@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<ruleset name="Akibara">
+	<description>
+		Análisis estático de los tres paquetes first-party (Business, Search y el
+		theme Akibara GP). Cierra ENV-03 de la auditoría 2026-07-29: hasta ahora
+		el único gate estático era `php -l`, que solo detecta errores de sintaxis
+		— nada de escaping faltante, SQL sin preparar, nonces ausentes ni APIs
+		de PHP que no existan en la versión mínima soportada.
+
+		Arranca en modo ADVISORY a propósito: el gate no debe volverse rojo el
+		día uno sobre ~100k líneas escritas antes de existir esta regla. Se corre
+		con `composer sniff` y el equipo baja la deuda por módulo; cuando el
+		conteo llegue a cero se cablea a qa.sh como bloqueante.
+	</description>
+
+	<file>../../public_html/wp-content/plugins/akibara-business/src</file>
+	<file>../../public_html/wp-content/plugins/akibara-business/akibara-business.php</file>
+	<file>../../public_html/wp-content/plugins/akibara-business/uninstall.php</file>
+	<file>../../public_html/wp-content/plugins/akibara-search/src</file>
+	<file>../../public_html/wp-content/plugins/akibara-search/akibara-search.php</file>
+	<!-- Rewards entró tarde al gate (2026-09-02): era el único first-party
+	     fuera del análisis estático, y justo el que mueve el saldo de puntos de
+	     los clientes. La primera pasada dio 73 errores; la célula de auditoría
+	     los revisó uno a uno y TODOS resultaron falsos positivos del sniff
+	     (nombres de tabla interpolados, HTML de `wp_nonce_field`, comparaciones
+	     contra lista blanca). El bug real que sí había —la foto huérfana de
+	     `ReviewForm`— no lo vio ningún sniff. Queda dentro igualmente: el gate
+	     vale por lo que impide entrar mañana. -->
+	<file>../../public_html/wp-content/plugins/akibara-rewards/src</file>
+	<file>../../public_html/wp-content/plugins/akibara-rewards/akibara-rewards.php</file>
+	<file>../../public_html/wp-content/plugins/akibara-rewards/uninstall.php</file>
+	<!-- Plantillas: entraron el 2026-09-05 por orden del dueño. Estaban fuera y
+	     son superficie del CLIENTE — la lista de pedidos, las direcciones, el
+	     resumen de la cuenta, el muro de acceso y los correos de preventa. La
+	     primera pasada dio 118 avisos ahí, tres de ellos entradas repintadas sin
+	     sanear en el muro de acceso. Un directorio que sirve HTML a la gente no
+	     puede quedarse fuera del único gate que mira el escapado. -->
+	<file>../../public_html/wp-content/plugins/akibara-business/templates</file>
+	<file>../../public_html/wp-content/plugins/akibara-search/templates</file>
+	<file>../../public_html/wp-content/themes/akibara-gp/woocommerce</file>
+	<file>../../public_html/wp-content/themes/akibara-gp/template-parts</file>
+	<file>../../public_html/wp-content/themes/akibara-gp/inc</file>
+	<file>../../public_html/wp-content/themes/akibara-gp/functions.php</file>
+	<file>../../public_html/wp-content/mu-plugins</file>
+
+	<!-- Nunca first-party: dependencias, artefactos y assets minificados. -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+	<exclude-pattern>*.min.js</exclude-pattern>
+	<exclude-pattern>*.min.css</exclude-pattern>
+	<!-- mu-plugins de terceros/hosting: se listan por nombre para que un
+	     akibara-*.php nuevo entre al gate automáticamente. -->
+	<exclude-pattern>*/mu-plugins/hostinger-*.php</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+	<arg name="parallel" value="8"/>
+
+	<!--
+		Núcleo de seguridad: es lo que la auditoría midió a mano (escaping,
+		SQL preparado, nonces, capabilities). Se adopta primero porque es
+		donde un falso negativo cuesta un incidente, no un estilo feo.
+	-->
+	<rule ref="WordPress.Security"/>
+	<rule ref="WordPress.DB.PreparedSQL"/>
+	<rule ref="WordPress.DB.PreparedSQLPlaceholders"/>
+	<rule ref="WordPress.WP.GlobalVariablesOverride"/>
+	<rule ref="WordPress.WP.DeprecatedFunctions"/>
+	<rule ref="WordPress.WP.DeprecatedParameters"/>
+
+	<!--
+		Blindaje Permanente contra Código Espagueti (Guardrails Inviolables):
+		Detecta métodos con complejidad ciclomática excesiva, anidamiento profundo,
+		parámetros de función no utilizados y declaraciones vacías.
+	-->
+	<rule ref="Generic.Metrics.CyclomaticComplexity">
+		<properties>
+			<property name="complexity" value="15"/>
+			<property name="absoluteComplexity" value="25"/>
+		</properties>
+	</rule>
+	<rule ref="Generic.Metrics.NestingLevel">
+		<properties>
+			<property name="nestingLevel" value="5"/>
+			<property name="absoluteNestingLevel" value="8"/>
+		</properties>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter"/>
+	<rule ref="Generic.CodeAnalysis.EmptyStatement"/>
+	<rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+
+	<!--
+		Compatibilidad de versión: `php -l` corre con el PHP del contenedor
+		(8.4) y por diseño NO puede avisar que una API no existe en 8.1, que es
+		el `Requires PHP` declarado por Business.
+	-->
+	<config name="testVersion" value="8.1-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- El prefijo del proyecto, para los sniffs que exigen namespacing.
+
+	     `akb` a secas lo RECHAZA el sniff por corto (exige 4 caracteres o más),
+	     así que hay que declarar los prefijos compuestos que se usan de verdad:
+	     sin ellos, los ~40 hooks propios `akb_rewards_*` / `akb_search_*` salen
+	     como «hook sin prefijo» y ahogan los hallazgos que sí importan. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="akibara"/>
+				<element value="akb_rewards"/>
+				<element value="akb_search"/>
+				<element value="akb_"/>
+				<element value="Akibara"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

@@ -1,0 +1,1360 @@
+/* ==========================================================================
+   AKIBARA HOME HERO — editorial cinema + optional carousel
+   Desktop: 1920x811 | Mobile: 768x1377
+   ==========================================================================
+   Heredero de assets/css/hero.css del theme akibara-gp. Movido al plugin
+   (akibara-business) en 1.35.0 para soportar carrusel y configuración admin.
+   Prefijo de clases `.akb-hero*` (plugin) en lugar de `.aki-hero*` (theme)
+   para evitar colisión durante la transición — si por accidente quedan
+   ambos enqueueados, no se pisan.
+
+   Tokens consumidos (vienen del theme akibara-gp/theme.json):
+     --aki-red, --aki-yellow, --aki-white, --aki-black, --aki-red-bright
+     --aki-surface, --weight-black, --weight-bold, --weight-medium
+     --font-heading, --text-base, --text-sm, --text-xs
+     --touch-target-min, --transition-fast, --space-2, --space-3
+
+   Custom properties inyectadas por slide (inline style):
+     --akb-hero-vignette        (0-100, opacidad del darken)
+     --akb-hero-objpos-desktop  (object-position desktop)
+     --akb-hero-objpos-mobile   (object-position mobile)
+   ========================================================================== */
+
+/* Sin fade-in de opacity en `.akb-hero`: el hero CONTIENE la imagen LCP (eager,
+   fetchpriority=high). Arrancar en opacity:0 y animar a 1 difiere el LCP ~500ms.
+   El hero vive a opacity:1 desde el primer frame; cualquier gesto de entrada es
+   transform-only (intro GSAP del theme) o sobre un overlay que NO es el LCP. */
+
+/* Hook de motion "armado de viñeta" (intro GSAP en theme/assets/js/animations.js).
+   La barra roja del título se "estampa" de arriba hacia abajo (scaleY 0→1).
+   GSAP no puede animar un pseudo-elemento directo, así que tweenea esta custom
+   property en el slide activo y el ::before del título la consume por herencia.
+   @property la registra como <number> para que el tween interpole suave; donde
+   @property no exista, GSAP igual setea la var y el scaleV interpola por string.
+   initial-value:1 (identidad) → SIN JS, sin @property, o si GSAP no carga, la
+   barra queda 100% visible. Cero dependencia de JS para el estado correcto. */
+@property --akb-hero-bar-scale {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 1;
+}
+
+.akb-hero,
+.akb-hero *,
+.akb-hero *::before,
+.akb-hero *::after {
+	box-sizing: border-box;
+}
+
+.akb-hero {
+	position: relative;
+	width: 100%;
+	overflow: hidden;
+	background: var(--aki-black, #000);
+	isolation: isolate;
+	cursor: default;
+}
+
+/* Progressive enhancement: los controles SSR usan `hidden` porque no tienen
+ * comportamiento sin home-hero.js. Algunos estilos de autor (`display:flex`)
+ * pueden ganar a la regla UA de [hidden], por eso el contrato se blinda aquí. */
+.akb-hero [hidden] {
+	display: none !important;
+}
+
+/* MOTIVO 2/2 (whisper, en reposo): banda de screentone (halftone negro) al filo
+   inferior del hero — textura manga + cose el hero con la sección negra de abajo.
+   Solo CSS paint, pointer-events:none, fuera de la imagen LCP. */
+.akb-hero::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 70px;
+	z-index: 5;
+	pointer-events: none;
+	background-image: radial-gradient(var(--aki-black, #121212) 1.1px, transparent 1.3px);
+	background-size: 6px 6px;
+	-webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+	        mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+	opacity: 0.5;
+}
+
+/* Viewport: altura controlada por --akb-hero-height-desktop (preset o custom).
+ * Mantenemos aspect-ratio para preservar la proporción cuando el preset
+ * permite altura "auto" (no usado hoy — todos los presets tienen height fija
+ * o vh). */
+.akb-hero__viewport {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 1920 / 811;
+	max-height: var(--akb-hero-height-desktop, 700px);
+	min-height: 360px;
+	overflow: hidden;
+}
+
+/* Cuando la altura es 100vh (fullscreen), forzar height en lugar de aspect-ratio. */
+.akb-hero[style*="100vh"] .akb-hero__viewport {
+	aspect-ratio: auto;
+	height: var(--akb-hero-height-desktop);
+	max-height: none;
+}
+
+/* Track = contenedor de slides.
+ *
+ * Estático (1 slide): track absoluto, slide absoluto que llena el viewport.
+ * Carrusel (2+ slides): scroll-snap nativo horizontal. El JS solo detecta
+ * el slide activo via scrollLeft + maneja drag-to-scroll desktop. Sin
+ * transforms, sin transitions JS — todo nativo. */
+.akb-hero__track {
+	position: absolute;
+	inset: 0;
+	display: block;
+}
+
+.akb-hero__slide {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+/* ---- 1 slide (estático) — no carrusel ---- */
+.akb-hero:not(.akb-hero--carousel) .akb-hero__slide {
+	opacity: 1;
+}
+
+/* ---- Carrusel: scroll-snap nativo horizontal ---- */
+.akb-hero--carousel .akb-hero__track {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scroll-snap-type: x mandatory;
+	scroll-behavior: smooth;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+	cursor: grab;
+}
+
+.akb-hero--carousel .akb-hero__track::-webkit-scrollbar {
+	display: none;
+}
+
+.akb-hero--carousel .akb-hero__slide {
+	position: relative;
+	inset: auto;
+	flex: 0 0 100%;
+	width: 100%;
+	min-width: 100%;
+	height: 100%;
+	scroll-snap-align: start;
+	scroll-snap-stop: always;
+	opacity: 1;
+}
+
+/* ---- Picture / img ---- */
+.akb-hero__picture {
+	position: absolute;
+	inset: 0;
+	display: block;
+	z-index: 1;
+}
+
+.akb-hero__img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: var(--akb-hero-objpos-desktop, center center);
+	display: block;
+	transform: translateZ(0);
+}
+
+/* ---- Vignette: oscurecimiento bottom-left para legibility ---- */
+.akb-hero__vignette {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	pointer-events: none;
+	--vop: calc(var(--akb-hero-vignette, 50) * 1%);
+	/*
+	 * Limita la proporción del color-mix a 96% para que factores mayores que uno no generen
+	 * porcentajes inválidos ni oculten la viñeta.
+	 */
+	background:
+		linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--aki-black, #000) min(calc(var(--akb-hero-vignette, 50) * 1.1%), 96%), transparent) 0%,
+			color-mix(in srgb, var(--aki-black, #000) calc(var(--akb-hero-vignette, 50) * 0.4%), transparent) 35%,
+			transparent 65%
+		),
+		linear-gradient(
+			0deg,
+			color-mix(in srgb, var(--aki-black, #000) min(calc(var(--akb-hero-vignette, 50) * 1.2%), 96%), transparent) 0%,
+			color-mix(in srgb, var(--aki-black, #000) calc(var(--akb-hero-vignette, 50) * 0.3%), transparent) 35%,
+			transparent 65%
+		);
+}
+
+/* ---- Content: H1, lede, CTAs ---- */
+/* Base — sin modifier el contenido está ABSENT del DOM (PHP no lo emite).
+ * Las clases de posición (--bottom-left, etc) definen left/top/transform. */
+.akb-hero__content {
+	position: absolute;
+	z-index: 8;
+	width: min(610px, calc(100% - 36px));
+	color: var(--aki-white, #fff);
+	text-shadow: 0 2px 16px color-mix(in srgb, var(--aki-black, #000) 80%, transparent);
+}
+
+/*
+ * El panel oscuro plano mantiene legible la tipografía y deja el acento rojo a la acción
+ * principal. El espacio superior izquierdo forma parte de la composición; el screentone
+ * permanece en el filo.
+ */
+
+/* En mobile la banda halftone del filo va más fina. */
+@media (max-width: 768px) {
+	.akb-hero::after { height: 46px; opacity: 0.4; }
+}
+
+/* ---- Posición del bloque de texto (desktop) — grid 3×3 ---- */
+
+.akb-hero__content--top-left {
+	top: clamp(18px, 8%, 80px);
+	left: clamp(18px, 5%, 72px);
+}
+.akb-hero__content--top-center {
+	top: clamp(18px, 8%, 80px);
+	left: 50%;
+	transform: translateX(-50%);
+}
+.akb-hero__content--top-right {
+	top: clamp(18px, 8%, 80px);
+	right: clamp(18px, 5%, 72px);
+}
+.akb-hero__content--middle-left {
+	top: 50%;
+	left: clamp(18px, 5%, 72px);
+	transform: translateY(-50%);
+}
+.akb-hero__content--middle-center {
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+.akb-hero__content--middle-right {
+	top: 50%;
+	right: clamp(18px, 5%, 72px);
+	transform: translateY(-50%);
+}
+.akb-hero__content--bottom-left {
+	bottom: clamp(18px, 8%, 80px);
+	left: clamp(18px, 5%, 72px);
+}
+.akb-hero__content--bottom-center {
+	bottom: clamp(18px, 8%, 80px);
+	left: 50%;
+	transform: translateX(-50%);
+}
+.akb-hero__content--bottom-right {
+	bottom: clamp(18px, 8%, 80px);
+	right: clamp(18px, 5%, 72px);
+}
+
+/* ---- Alineación de texto dentro del bloque ---- */
+.akb-hero__content--align-left   { text-align: left; }
+.akb-hero__content--align-center { text-align: center; }
+.akb-hero__content--align-right  { text-align: right; }
+
+/* Cuando el contenido está alineado al centro, los CTAs también */
+.akb-hero__content--align-center .akb-hero__actions { justify-content: center; }
+.akb-hero__content--align-right  .akb-hero__actions { justify-content: flex-end; }
+
+/* El title con max-width 9ch tiene sentido solo cuando align-left.
+ * En center/right anchamos para que el texto largo no se vea apretado. */
+.akb-hero__content--align-center .akb-hero__title,
+.akb-hero__content--align-right  .akb-hero__title { max-width: none; }
+.akb-hero__content--align-center .akb-hero__lede,
+.akb-hero__content--align-right  .akb-hero__lede  { margin-left: auto; margin-right: auto; }
+
+/*
+ * El eyebrow es texto no interactivo con barra lateral roja 4px, sin placa ni sombra de botón.
+ * pointer-events:none evita capturar toques. Renderer sólo lo emite cuando tiene contenido.
+ */
+.akb-hero__eyebrow {
+	display: inline-block;
+	/*
+	 * El margen 14px mantiene separación óptica entre eyebrow y título. Como el stack está anclado
+	 * abajo, el margen desplaza el eyebrow sin mover el título.
+	 */
+	margin: 0 0 14px;
+	padding: 0 0 0 12px;
+	background: transparent;
+	color: var(--akb-hero-eyebrow-color, var(--aki-white, #fff));
+	box-shadow: none;
+	border-left: 4px solid var(--aki-red, #E60012);
+	border-radius: 0;
+	font-family: var(--font-heading, "Bebas Neue", sans-serif);
+	font-size: 0.78rem;
+	/* Bebas solo tiene corte 400: pedir 700 producía faux bold sintetizado. */
+	font-weight: 400;
+	font-synthesis: none;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	text-shadow: none;
+	pointer-events: none;
+}
+
+.akb-hero__title {
+	margin: 0;
+	max-width: 9ch;
+	position: relative;
+	padding-left: 18px;
+	color: var(--akb-hero-title-color, var(--aki-white, #fff));
+	font-family: var(--akb-hero-title-font, var(--font-heading, "Bebas Neue", sans-serif));
+	font-size: 5.4rem; /*
+	font-size: 5.4rem;  * Escala del título ajustada a la condensación de la fuente Bebas.
+	font-size: 5.4rem;  */
+	/* Fallback 400, no 900: Bebas no tiene black — el 900 se sintetizaba y
+	   emborronaba el display más grande del sitio. El custom property permite
+	   override por-slide si algún día se carga una familia con pesos reales. */
+	font-weight: var(--akb-hero-title-weight, 400);
+	font-synthesis: none;
+	line-height: 0.94;
+	letter-spacing: 0;
+	text-transform: uppercase;
+	/* Sombra dura proyectada (no blur): lenguaje neo-brutalista de la marca, no el
+	   blur suave tipo "hero de IA" que heredaba de .akb-hero__content. */
+	text-shadow: 3px 3px 0 var(--aki-black, #000);
+}
+
+/* Barra roja de marca al borde del título (eco del bullet de sección). */
+.akb-hero__title::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0.08em;
+	bottom: 0.08em;
+	width: 7px;
+	background: var(--aki-red, #E60012);
+	pointer-events: none;
+	/* Estampa de tinta vertical para el intro GSAP: crece desde arriba. En reposo
+	   --akb-hero-bar-scale = 1 (identidad, sin cambio visual); el intro la lleva
+	   0→1. transform-origin top = "se dibuja" de arriba hacia abajo (gesto manga). */
+	transform: scaleY(var(--akb-hero-bar-scale, 1));
+	transform-origin: top center;
+}
+.akb-hero__content--align-center .akb-hero__title,
+.akb-hero__content--align-right  .akb-hero__title { padding-left: 0; }
+.akb-hero__content--align-center .akb-hero__title::before,
+.akb-hero__content--align-right  .akb-hero__title::before { display: none; }
+
+.akb-hero__lede {
+	max-width: 34rem;
+	margin: 14px 0 0;
+	color: var(--akb-hero-lede-color, color-mix(in srgb, var(--aki-white, #fff) 88%, transparent));
+	font-family: var(--akb-hero-lede-font, var(--font-body, "Inter", sans-serif));
+	font-size: var(--text-base, 1rem);
+	font-weight: var(--akb-hero-lede-weight, 400);
+	line-height: 1.35;
+	/*
+	 * Evita palabras huérfanas en el título móvil cuando el navegador admite el balance de texto.
+	 */
+	text-wrap: pretty;
+}
+
+.akb-hero__lede--glass {
+	background: rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	padding: 8px 14px;
+	border-radius: 0;
+	/*
+	 * El texto usa blanco como valor inicial y respeta el color elegido desde el panel.
+	 */
+	color: var(--akb-hero-lede-color, var(--aki-white, #fff));
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.akb-hero__lede--shadow {
+	text-shadow: 1px 1px 2px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5);
+	font-weight: calc(var(--akb-hero-lede-weight, 400) + 100); /* Un poco más grueso */
+	/* Ídem glass: default blanco, el picker del admin gana. */
+	color: var(--akb-hero-lede-color, var(--aki-white, #fff));
+}
+
+.akb-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 18px;
+}
+
+/*
+ * Compensa los 6px adicionales del CTA primario de 50px en el stack anclado abajo. Sin :has(),
+ * el título puede quedar 6px más alto como degradación aceptada.
+ */
+.akb-hero__actions:has(.akb-hero__action--shop) {
+	margin-top: 12px;
+}
+
+.akb-hero__action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 118px;
+	min-height: var(--touch-target-min, 44px);
+	padding: 10px 16px;
+	border: 2px solid color-mix(in srgb, var(--aki-white, #fff) 22%, transparent);
+	border-radius: 0;
+	background: color-mix(in srgb, var(--aki-black, #000) 72%, transparent);
+	color: var(--aki-white, #fff);
+	font-family: var(--font-heading, "Bebas Neue", sans-serif);
+	font-size: var(--text-base, 1rem);
+	font-weight: 400; /* Bebas sin corte bold: 700 = faux bold sintetizado */
+	font-synthesis: none;
+	line-height: 1;
+	letter-spacing: 0;
+	text-decoration: none;
+	text-transform: uppercase;
+	box-shadow: var(--shadow-sm, 4px 4px 0 var(--aki-black, #000));
+	transition:
+		background var(--transition-fast, 150ms),
+		border-color var(--transition-fast, 150ms),
+		color var(--transition-fast, 150ms),
+		transform var(--transition-fast, 150ms);
+}
+
+/* Defensa del componente: el color global de enlaces visitados no debe
+   degradar el contraste de los CTA sobre imágenes ni sobre el fill rojo. */
+.akb-hero__action:visited {
+	color: var(--aki-white, #fff);
+}
+
+.akb-hero__action:hover,
+.akb-hero__action:focus-visible {
+	color: var(--aki-white, #fff);
+	transform: translateY(-1px);
+	outline: none;
+}
+
+.akb-hero__action:focus-visible {
+	box-shadow: var(--aki-focus-ring) !important;
+}
+
+/* Press físico (botón impreso): se hunde a su sombra. transform/box-shadow ya
+   cubiertos por la transición; es affordance de press, no motion en loop. */
+.akb-hero__action:active {
+	transform: translate(2px, 2px);
+	box-shadow: 2px 2px 0 var(--aki-black, #000);
+}
+
+/* Jerarquia: UN solo primario (--shop "Ver todo") = fill rojo de marca; Manga y
+   Comics = secundarios outline crema de IGUAL peso, ceden al primario sin
+   desaparecer (border white 48%, siguen >=44px y legibles). "Ver todo" es el
+   primario por menor friccion / mayor cobertura, NO por sesgar a manga: la web
+   sirve a manga Y comics por igual. */
+.akb-hero__action--manga {
+	border-color: color-mix(in srgb, var(--aki-white, #fff) 48%, transparent);
+	color: var(--aki-white, #fff);
+	/*
+	 * La sombra dura identifica exclusivamente la acción primaria.
+	 */
+	box-shadow: none;
+}
+
+.akb-hero__action--manga:hover,
+.akb-hero__action--manga:focus-visible {
+	background: var(--aki-white, #fff);
+	color: var(--aki-black, #000);
+}
+
+/* Comics = secundario crema-outline (NO amarillo: amarillo es solo precio). */
+.akb-hero__action--comics {
+	border-color: color-mix(in srgb, var(--aki-white, #fff) 48%, transparent);
+	color: var(--aki-white, #fff);
+	box-shadow: none;
+}
+
+.akb-hero__action--comics:hover,
+.akb-hero__action--comics:focus-visible {
+	background: var(--aki-white, #fff);
+	color: var(--aki-black, #000);
+}
+
+/* Sin sombra que hundir: el press de los secundarios es 1px, sin sombra corta. */
+.akb-hero__action--manga:active,
+.akb-hero__action--comics:active {
+	transform: translate(1px, 1px);
+	box-shadow: none;
+}
+
+/*
+ * Ver todo es el primario: relleno y borde rojos de marca, texto blanco y hover opaco más
+ * oscuro. Usa altura 50px y escala 1.12rem frente a los secundarios 44px/1rem; sombra y estado
+ * activo proceden de la base.
+ */
+.akb-hero__action--shop {
+	background: var(--aki-red, #E60012);
+	border-color: var(--aki-red, #E60012);
+	color: var(--aki-white, #fff);
+	min-height: 50px;
+	padding: 10px 28px;
+	font-size: 1.12rem;
+	letter-spacing: 0.08em;
+}
+
+.akb-hero__action--shop:hover,
+.akb-hero__action--shop:focus-visible {
+	background: var(--aki-red-hover, #C0000F);
+	border-color: var(--aki-red-hover, #C0000F);
+	color: var(--aki-white, #fff);
+}
+
+/* El anillo de foco generico (amarillo 38%) queda <3:1 sobre el fill rojo =
+   foco invisible. Sobre --shop usamos el doble anillo canonico (amarillo solido
+   + negro) para que se lea como FOCO, no como badge de precio. */
+.akb-hero__action--shop:focus-visible {
+	box-shadow: var(--aki-focus-ring, 0 0 0 3px #FFD60A, 0 0 0 6px #000);
+}
+
+.akb-hero__action--ghost {
+	border-color: color-mix(in srgb, var(--aki-white, #fff) 40%, transparent);
+	background: transparent;
+}
+
+.akb-hero__action--ghost:hover,
+.akb-hero__action--ghost:focus-visible {
+	background: color-mix(in srgb, var(--aki-white, #fff) 10%, transparent);
+}
+
+/* ---- Slide-wide link overlay (cuando no hay CTAs) ---- */
+.akb-hero__link {
+	position: absolute;
+	inset: 0;
+	z-index: 9;
+	display: block;
+}
+
+/*
+ * Indicador segmentado común a todos los anchos. Cada diapositiva tiene botón rectangular de
+ * 44px, mientras el corte diagonal queda en track y fill para no recortar el área táctil. El
+ * fill indica posición y tiempo; sin autoplay permanece estático. Pausa/reanudación usa un
+ * botón dedicado 44×44; elegir segmento no cambia la pausa.
+ */
+@keyframes akb-hero-progress {
+	from { transform: scaleX(0); }
+	to   { transform: scaleX(1); }
+}
+
+.akb-hero__progress {
+	position: absolute;
+	top: 18px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 11;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: min(calc(100% - 32px), 340px);
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.akb-hero__seg {
+	position: relative;
+	flex: 1 1 0;
+	min-width: 0;
+	height: 44px;          /* hit 44px de alto a lo ancho del segmento (2.5.8);
+	                          hits adyacentes sin solape — cajas flex disjuntas */
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Track del segmento (sin avance). Corte diagonal = eco de las flechas. */
+.akb-hero__seg::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 5px;
+	margin-top: -2.5px;
+	/*
+	 * El riel translúcido claro y su línea oscura mantienen visibles también los segmentos
+	 * inactivos sobre arte oscuro o claro. El fill de autoplay anima sobre ese riel estable.
+	 */
+	background: color-mix(in srgb, var(--aki-white, #fff) 38%, transparent);
+	box-shadow: 0 1px 0 color-mix(in srgb, var(--aki-black, #000) 55%, transparent);
+	clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+	pointer-events: none;
+}
+
+/* Fill (posición/tiempo). La animación del activo se aplica inline desde JS. */
+.akb-hero__seg-fill {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 5px;
+	margin-top: -2.5px;
+	background: var(--aki-red, #E60012);
+	clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+	transform: scaleX(0);
+	transform-origin: left center;
+	pointer-events: none;
+	will-change: transform;
+}
+
+/* Vistos = clase, NUNCA inline (el reset `animation:none` del JS no debe
+ * poder dejar un transform stale en los previos). Wrap del loop: al volver
+ * al slide 0 nadie es "visto" y la tira se vacía (patrón stories). */
+.akb-hero__seg.is-seen .akb-hero__seg-fill {
+	transform: scaleX(1);
+}
+
+/* Sin autoplay efectivo no hay reloj: el activo se pinta lleno, estático.
+ * JS refleja aquí la combinación real de setting, breakpoint y reduced-motion. */
+.akb-hero[data-akb-autoplay-active="0"] .akb-hero__seg.is-active .akb-hero__seg-fill {
+	transform: scaleX(1);
+}
+
+.akb-hero__seg:hover::before,
+.akb-hero__seg:focus-visible::before {
+	background: color-mix(in srgb, var(--aki-white, #fff) 55%, transparent);
+}
+
+/* El token del tema ya pinta el anillo sobre `button:focus-visible`. Este
+ * outline inset a −7px se sumaba por dentro: dos anillos amarillos sólidos, uno
+ * dentro del botón y otro fuera. Manda el token. */
+
+/* Pause/play dedicado (solo autoplay). Icono pause (dos barras) en marcha;
+ * triángulo play cuando is-paused. Mismo contrato JS que la barra vieja:
+ * [data-akb-progress] + aria-pressed + clase is-paused. */
+.akb-hero__progress-toggle {
+	position: relative;
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.akb-hero__progress-toggle::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: color-mix(in srgb, var(--aki-black, #000) 82%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--aki-white, #fff) 22%, transparent);
+	clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+	pointer-events: none;
+}
+
+.akb-hero__progress-toggle-icon {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 10px;
+	height: 12px;
+	transform: translate(-50%, -50%);
+	background:
+		linear-gradient(to right, var(--aki-white, #fff) 35%, transparent 35%, transparent 65%, var(--aki-white, #fff) 65%);
+	pointer-events: none;
+	z-index: 1;
+}
+
+.akb-hero__progress-toggle.is-paused .akb-hero__progress-toggle-icon {
+	background: var(--aki-white, #fff);
+	clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* Con la rotación pausada los fills bajan a blanco (reloj apagado).
+ * Progressive enhancement: sin :has() los fills quedan amarillos — aceptable. */
+.akb-hero:has(.akb-hero__progress-toggle.is-paused) .akb-hero__seg-fill {
+	background: color-mix(in srgb, var(--aki-white, #fff) 60%, transparent);
+}
+
+.akb-hero__progress-toggle:hover .akb-hero__progress-toggle-icon {
+	background:
+		linear-gradient(to right, var(--aki-red, #E60012) 35%, transparent 35%, transparent 65%, var(--aki-red, #E60012) 65%);
+}
+
+.akb-hero__progress-toggle.is-paused:hover .akb-hero__progress-toggle-icon {
+	background: var(--aki-red, #E60012);
+}
+
+/* Mismo criterio que `.akb-hero__seg`: el anillo lo pone el token del tema. */
+
+/* ---- Screen-reader status (anuncia cambios manuales de slide) ---- */
+.akb-hero__sr-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ---- Arrows (desktop, fade-in solo en hover/focus — patrón Apple/Vercel) ---- */
+.akb-hero__arrow {
+	position: absolute;
+	top: 50%;
+	z-index: 10;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 56px;
+	padding: 0;
+	border: none;
+	/*
+	 * El paralelogramo vive en ::before; el botón conserva un anillo de foco sin clip-path.
+	 * isolation contiene el fondo con z-index negativo.
+	 */
+	background: transparent;
+	isolation: isolate;
+	color: var(--aki-white, #fff);
+	cursor: pointer;
+	transform: translate(var(--akb-arrow-tx, 0), -50%);
+	opacity: 0;
+	pointer-events: none;
+	transition:
+		opacity 200ms ease,
+		color var(--transition-fast, 150ms),
+		transform 200ms ease;
+}
+
+.akb-hero__arrow::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+	background: color-mix(in srgb, var(--aki-black, #000) 80%, transparent);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+	transition: background var(--transition-fast, 150ms);
+}
+
+/* Fade-in cuando hover sobre el carrusel, o focus visible en un arrow,
+ * o el track tiene focus interno (keyboard user). */
+.akb-hero--carousel:hover .akb-hero__arrow,
+.akb-hero--carousel:focus-within .akb-hero__arrow,
+.akb-hero__arrow:focus-visible {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.akb-hero__arrow svg {
+	width: 22px;
+	height: 22px;
+}
+
+.akb-hero__arrow--prev { left: 18px; }
+.akb-hero__arrow--next { right: 18px; }
+
+/*
+ * Hover usa rojo y el foco de teclado conserva el anillo amarillo completo, sin depender de un
+ * cambio de color de fondo para indicar el foco.
+ */
+.akb-hero__arrow:hover::before {
+	background: var(--aki-red, #D90010);
+}
+
+.akb-hero__arrow:focus-visible {
+	outline: var(--aki-focus-outline, 2px solid var(--aki-white, #fff));
+	outline-offset: 2px;
+	/* Una sola forma del foco de la casa: sin el anillo global de box-shadow
+	   (tokens.css), que sin el clip-path ya no se recorta y se sumaba al
+	   outline como un segundo borde blanco y negro. */
+	box-shadow: none;
+}
+
+.akb-hero__arrow:active {
+	transform: translateY(-50%) scale(0.94);
+}
+
+/* ==========================================================================
+   Responsive breakpoints
+   ========================================================================== */
+
+/* Banda 769-900: crop intermedio propio (1200/750). El rango arranca en 769
+ * para que ≤768 tenga UN solo dueño — el solape 601-900/≤768 anterior era la
+ * causa raíz del recorte tablet (y presa fácil del reorden del minificador). */
+@media (max-width: 900px) and (min-width: 769px) {
+	.akb-hero__viewport {
+		aspect-ratio: 1200 / 750;
+		max-height: 560px;
+		min-height: 420px;
+	}
+
+	/* 58% center = default afinado para ESTE crop; el pin desktop del admin
+	 * manda apenas el owner lo mueva (Renderer emite --akb-hero-objpos-band
+	 * solo si el pin ≠ 'center center' — sentinel, ver render_slide()). */
+	.akb-hero__img {
+		object-position: var(--akb-hero-objpos-band, 58% center);
+	}
+
+	.akb-hero__title {
+		font-size: 4.4rem;
+	}
+}
+
+/*
+ * Entre 901 y 1199px usa la altura de la banda tablet, limitada por --akb-hero-height-desktop,
+ * para alojar el stack. Mantiene el encuadre de escritorio de --akb-hero-objpos-desktop.
+ */
+@media (min-width: 901px) and (max-width: 1199px) {
+	.akb-hero__viewport {
+		aspect-ratio: 1200 / 750;
+		max-height: min(560px, var(--akb-hero-height-desktop, 700px));
+	}
+}
+
+@media (max-width: 768px) {
+	/*
+	 * En móvil, imagen y contenido forman una columna de altura natural. El track sale de posición
+	 * absoluta para extender el viewport y evitar que el hero colapse o se solape con la sección
+	 * siguiente.
+	 */
+	.akb-hero__track {
+		position: static;
+		inset: auto;
+	}
+
+	.akb-hero__viewport {
+		aspect-ratio: auto;
+		max-height: none;
+		min-height: 0;
+		overflow: visible;
+	}
+
+	.akb-hero__slide {
+		display: flex;
+		flex-direction: column;
+		position: relative;
+		inset: auto;
+		height: auto;
+	}
+
+	.akb-hero__picture {
+		position: relative;
+		inset: auto;
+		width: 100%;
+		flex: 0 0 auto;
+		/* Altura mobile: la imagen tiende a 108vw (look vertical) PERO acotada a
+		 * [40vh, 50vh] para que h1/lede/CTA queden arriba del fold y del bottom-nav.
+		 * CLAVE 1 — 108vw va como valor PREFERIDO del clamp, NO como piso: con 108vw
+		 *   de piso el tope vh quedaba muerto cuando 108vw>50vh (width/height>0.46) y
+		 *   Android chico (360×640), tablets (600×960) e iPad portrait (768×1024)
+		 *   rendían la imagen al 61–81% del alto, empujando el CTA fuera de pantalla.
+		 * CLAVE 2 — el tope es min(50vh, --akb-hero-height-mobile): 50vh es TECHO DURO
+		 *   en mobile aunque el owner suba el slider (hoy en 65vh → rompía el CTA en
+		 *   portrait). El owner puede BAJAR de 50vh, no subir. El piso 40vh evita la
+		 *   franja "tirada". Verificado en render a 360/390/412/600/768/769. */
+		height: clamp(40vh, 118vw, min(50vh, var(--akb-hero-height-mobile, 50vh)));
+		overflow: hidden;
+	}
+
+	.akb-hero__img {
+		aspect-ratio: auto;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: var(--akb-hero-objpos-mobile, center 80%);
+	}
+
+	.akb-hero__vignette {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		aspect-ratio: auto;
+		background:
+			linear-gradient(
+				0deg,
+				color-mix(in srgb, var(--aki-black, #000) calc(var(--akb-hero-vignette, 50) * 1%), transparent) 0%,
+				color-mix(in srgb, var(--aki-black, #000) calc(var(--akb-hero-vignette, 50) * 0.2%), transparent) 40%,
+				transparent 75%
+			);
+	}
+
+	/* En mobile, las posiciones desktop se RESETEAN. El layout mobile lo
+	 * controla `data-mobile-layout` en el slide. Default "below" mantiene el
+	 * comportamiento original (caja debajo de la imagen). */
+	.akb-hero__content {
+		position: relative;
+		left: auto;
+		right: auto;
+		bottom: auto;
+		top: auto;
+		transform: none;
+		z-index: 8;
+		width: 100%;
+		max-width: 100%;
+		padding: 16px 14px 18px;
+		border-top: 1px solid color-mix(in srgb, var(--aki-white, #fff) 8%, transparent);
+		background: linear-gradient(180deg, var(--aki-black, #000) 0%, var(--aki-surface, #0f0f10) 100%);
+		text-shadow: none;
+	}
+
+	/* ---- Layouts mobile del bloque de texto ---- */
+
+	/* Layout "overlay-bottom": texto SOBRE la imagen, ancla bottom */
+	.akb-hero__slide[data-mobile-layout="overlay-bottom"] .akb-hero__content {
+		position: absolute;
+		left: 12px;
+		right: 12px;
+		bottom: 12px;
+		top: auto;
+		width: auto;
+		padding: 12px 14px 14px;
+		border-top: 0;
+		border-radius: 0;
+		border: 1px solid rgba(255,255,255,0.1);
+		background: color-mix(in srgb, var(--aki-black, #000) 62%, transparent);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		text-shadow: 0 1px 8px color-mix(in srgb, var(--aki-black, #000) 70%, transparent);
+	}
+
+	/* Layout "overlay-center": texto SOBRE la imagen, centrado vertical */
+	.akb-hero__slide[data-mobile-layout="overlay-center"] .akb-hero__content {
+		position: absolute;
+		left: 12px;
+		right: 12px;
+		top: 50%;
+		bottom: auto;
+		width: auto;
+		padding: 12px 14px;
+		transform: translateY(-50%);
+		border-top: 0;
+		border-radius: 0;
+		border: 1px solid rgba(255,255,255,0.1);
+		background: color-mix(in srgb, var(--aki-black, #000) 55%, transparent);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		text-align: center;
+		text-shadow: 0 1px 8px color-mix(in srgb, var(--aki-black, #000) 70%, transparent);
+	}
+
+	.akb-hero__slide[data-mobile-layout="overlay-center"] .akb-hero__actions {
+		justify-content: center;
+	}
+
+	/* max-width:none — el 9ch de desktop es un recurso de composición del overlay
+	 * (stack vertical junto al arte). En mobile la caja es full-width: forzar el
+	 * stack agrega 1 línea entera de título (~40px) y la caja tapa el arte. */
+	.akb-hero__title {
+		max-width: none;
+		font-size: 3.05rem;
+	}
+
+	.akb-hero__lede {
+		max-width: 22rem;
+		margin-top: 8px;
+		font-size: var(--text-sm, 0.875rem);
+		line-height: 1.3;
+	}
+
+	.akb-hero__actions {
+		gap: var(--space-2, 8px);
+		margin-top: var(--space-3, 12px);
+	}
+
+	.akb-hero__action {
+		flex: 1 1 0;
+		min-width: 0;
+		min-height: var(--touch-target-min, 44px);
+		padding: 9px 8px;
+		font-size: var(--text-sm, 0.875rem);
+	}
+
+	/* En pantallas pequeñas los secundarios necesitan una superficie opaca:
+	 * sobre el arte y el glass del hero, el negro translúcido y el borde al 48%
+	 * reducían demasiado el contraste y hacían que texto/borde se vieran suaves. */
+	.akb-hero__action--manga,
+	.akb-hero__action--comics {
+		background: var(--aki-black, #000);
+		border-color: color-mix(in srgb, var(--aki-white, #fff) 78%, transparent);
+		color: var(--aki-white, #fff);
+		font-size: 0.9rem;
+		text-shadow: none;
+	}
+
+	/*
+	 * El CTA primario ocupa una fila completa en móvil y mantiene su escala superior. Los
+	 * indicadores permanecen sobre la imagen, independientes de la altura de las acciones.
+	 */
+	.akb-hero__action--shop {
+		flex: 1 1 100%;
+		min-height: 48px;
+		padding: 10px 22px;
+		font-size: 0.95rem;
+	}
+
+	/* Mobile: SIN flechas (touch swipe + dots). Decisión de marca. */
+	.akb-hero__arrow {
+		display: none !important;
+	}
+
+	/*
+	 * El indicador móvil conserva la anatomía del escritorio y sólo ajusta su posición superior.
+	 * El fill comunica rotación y posibilidad de navegar el carrusel.
+	 */
+	.akb-hero__progress {
+		top: 10px;
+	}
+
+	/* En mobile el track usa el mismo scroll-snap nativo que desktop (heredado
+	 * de la regla base `.akb-hero--carousel .akb-hero__track`). Solo necesitamos
+	 * sobrescribir posicionamiento porque el viewport mobile colapsa con
+	 * `aspect-ratio: auto` — el track pasa a `static` para que el slide
+	 * flex-column (picture + content) extienda el viewport con su altura. */
+	.akb-hero--carousel .akb-hero__track {
+		position: static;
+		inset: auto;
+		cursor: auto;        /* en mobile no aplica drag-to-scroll (touch nativo) */
+	}
+}
+
+@media (max-width: 380px) {
+	.akb-hero__title { font-size: 2.8rem; }
+	.akb-hero__lede  { font-size: var(--text-xs, 0.75rem); }
+	.akb-hero__action { font-size: var(--text-xs, 0.75rem); }
+	.akb-hero__action--manga,
+	.akb-hero__action--comics { font-size: 0.8rem; }
+	/* La brecha primario/secundario se mantiene también en viewports mínimos. */
+	.akb-hero__action--shop { font-size: 0.85rem; }
+}
+
+/* ---- Hide/show modifiers del indicador (ex flags de dots del admin;
+ * el Renderer los ignora con autoplay activo — guard WCAG 2.2.2) ---- */
+@media (min-width: 769px) {
+	.akb-hero__progress--hide-desktop { display: none; }
+}
+@media (max-width: 768px) {
+	.akb-hero__progress--hide-mobile { display: none; }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+	.akb-hero {
+		animation: none;
+		opacity: 1;
+	}
+
+	.akb-hero__img {
+		animation: none;
+		transform: translateZ(0);
+		transition: none;
+	}
+
+	.akb-hero--carousel .akb-hero__track {
+		scroll-behavior: auto;
+	}
+
+	.akb-hero__seg-fill,
+	.akb-hero__arrow {
+		animation: none !important;
+		transition: none;
+	}
+
+	/* Sin reloj animado, el estado no puede perderse: activo lleno estático
+	 * (el JS ya apaga el autoplay bajo reduced-motion, pero data-autoplay="1"
+	 * sigue en el DOM — esta regla cubre ese hueco). */
+	.akb-hero__seg.is-active .akb-hero__seg-fill {
+		transform: scaleX(1);
+	}
+}
+
+/*
+ * Hasta 768px, below mantiene texto y CTA absolutos a caballo del filo del arte, sin caja y
+ * con scrim de contraste. Tablet 601–768 aplica geometría propia dentro del mismo lenguaje.
+ * Conserva mobile_text_layout=below y las constantes de control de pliegue compartidas con
+ * Renderer.
+ */
+@media (max-width: 768px) {
+	/* Banda de respiro (fallback vh; el override svh vive en el @supports de
+	 * abajo — LiteSpeed dedupea propiedades repetidas en la MISMA regla). */
+	.akb-hero__slide[data-mobile-layout="below"] {
+		--akb-hero-band: clamp(0px, 100vh - 596px, 60px);
+		padding-bottom: var(--akb-hero-band);
+	}
+
+	/*
+	 * El texto móvil se superpone al key-art sin panel. El scrim ::after garantiza contraste
+	 * independientemente de la viñeta elegida. Mantiene la geometría de pliegue; user-select evita
+	 * que un long-press de iOS interrumpa el gesto del carrusel.
+	 */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content {
+		position: absolute;
+		left: 14px;
+		right: 14px;
+		/* bottom:12 MÍNIMO — con 10px el CTA pierde el fold por 1px en
+		 * iPhone SE (navTop 487). */
+		bottom: 12px;
+		top: auto;
+		width: auto;
+		padding: 0 0 14px;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+		text-shadow: none;
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
+
+	/* Scrim portador del AA: viaja CON el bloque (cualquier copy del dueño queda
+	 * cubierto por construcción). Plateau 0.62 bajo todo el stack de texto
+	 * (eyebrow 12.5px es texto normal y va ARRIBA del título → un gradiente
+	 * decreciente no le sirve; 0.62 sobre arte blanco puro = 6.2:1) + ancla 0.92
+	 * en la zona CTA + feather 72px hacia el arte. #000 puro y no --aki-black:
+	 * con #121212 el mismo AA exigiría α más alta. El tercio superior de la
+	 * imagen queda SIN scrim — el arte respira (lente identidad). */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content::after {
+		content: "";
+		position: absolute;
+		z-index: -1;
+		pointer-events: none;
+		left: -14px;
+		right: -14px;
+		bottom: -12px;
+		top: -72px;
+		background: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.92) 0,
+			rgba(0, 0, 0, 0.66) 110px,
+			rgba(0, 0, 0, 0.62) calc(100% - 72px),
+			rgba(0, 0, 0, 0) 100%
+		);
+	}
+
+	/* Tipografía compacta (lente tipografía): el kicker se pega a su titular
+	 * (14→8px — el gap grande tenía sentido flotando en caja acolchada), la
+	 * estampa escala con el glifo (1px en cuerpos, 3px solo en display). */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__eyebrow {
+		margin: 0 0 8px;
+		padding-left: 8px;
+		font-size: 0.72rem;
+		letter-spacing: 0.12em;
+		filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.9));
+	}
+
+	/* Sin caja, las barras rojas son el único esqueleto editorial: la del título
+	 * engorda a lomo (10px) y porta estampa propia — sobre el callejón ROJO una
+	 * barra roja sin sombra se funde. text-wrap:balance evita la viuda "SAGA";
+	 * clamp con piso 2.4rem protege "EMPIEZA TU PRÓXIMA SAGA" (23 chars) de la
+	 * 3ª línea en 320-360px. OJO: ningún ancestro del h1 puede llevar
+	 * overflow:hidden (clipearía las tildes de Ó/É a line-height 0.94). */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__title {
+		max-width: none;
+		font-size: clamp(2.4rem, 10.5vw, 2.6rem);
+		padding-left: 20px;
+		text-wrap: balance;
+		text-shadow: 3px 3px 0 var(--aki-black, #121212);
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__title::before {
+		width: 10px;
+		box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.9);
+	}
+
+	/* Lede: blanco pleno + peso 500 (compensación óptica sobre foto, no faux
+	 * bold) + micro-estampa 1px (3px sobre Inter 14px embarra los ojales).
+	 * Clamp de seguridad a 2 líneas para copy futuro largo — acá el overflow
+	 * hidden SÍ es seguro (line-height 1.25, sin display condensado). */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__lede {
+		margin-top: 6px;
+		font-size: 0.85rem;
+		line-height: 1.25;
+		font-weight: 500;
+		color: var(--aki-white, #fff);
+		text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.85);
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	/* CTA sobre arte: keyline negro (fill rojo sobre callejón rojo necesita
+	 * silueta garantizada) + sombra un escalón sobre el 4px de desktop porque
+	 * ya no apoya en panel — 6px, no 8 (8px sobre un botón de 48px = sticker). */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--shop {
+		border: 2px solid var(--aki-black, #121212);
+		box-shadow: 6px 6px 0 rgba(0, 0, 0, 1);
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--shop:active {
+		transform: translate(3px, 3px);
+		box-shadow: 3px 3px 0 rgba(0, 0, 0, 1);
+	}
+
+	/*
+	 * Los CTAs secundarios usan contorno blanco y leve relleno claro, con área táctil 48px.
+	 * Conservan identidad outline frente al primario rojo con sombra; el stack anclado abajo
+	 * absorbe su altura hacia arriba y mantiene el control de pliegue.
+	 */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--manga,
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--comics {
+		min-height: 48px;
+		font-size: 0.95rem;
+		border: 2px solid var(--aki-white, #fff);
+		background: color-mix(in srgb, var(--aki-white, #fff) 12%, transparent);
+	}
+
+	/*
+	 * La transición entre arte y texto usa negro, sin franja roja decorativa. El acento rojo
+	 * relleno de cada diapositiva identifica la acción principal.
+	 */
+
+	/* El contenido de cada layout móvil ya porta su propia superficie legible:
+	 * `below` usa su scrim local y los overlays tienen fondo. Mantener además el
+	 * pseudo-elemento global del hero apilaba dos degradados en el borde inferior,
+	 * dejando la zona de «Ver novedades» innecesariamente negra. */
+	.akb-hero::after {
+		display: none;
+	}
+
+	/* Overrides svh (iOS 15.4+/Chrome 108+). En Safari real vh = viewport
+	 * GRANDE (~750) e inflaría imagen y banda; svh es ESTABLE al colapsar
+	 * toolbars (una @media min-height SÍ flapea al scrollear). */
+	@supports (height: 100svh) {
+		.akb-hero__slide[data-mobile-layout="below"] {
+			/* Banda continua: crece 1px por px de altura sobrante.
+			 * 596 = 42 announcement + 73 header + 421 imagen (108vw en 390)
+			 *     + 66 bottom-nav + 20 margen − 26 (caja cuelga: bottom 12
+			 *     + pad 14). NO volver al toggle (100svh−620px)*99: con
+			 * umbral 620 el rango svh 621-655 (in-app browsers de IG/FB a
+			 * 390 de ancho) prendía la banda de 60 cuando NO cabía y el CTA
+			 * quedaba DETRÁS de la nav. Recalcular 596 y 168 si cambia
+			 * header/announcement/nav. */
+			--akb-hero-band: clamp(0px, 100svh - 596px, 60px);
+		}
+
+		/* Alto de imagen phone: tiende a 108vw (look vertical), acotado por
+		 * 72svh y por el guard de fold. Guard: imagen + banda ≤ 100svh − 168
+		 * garantiza CTA ≥13px sobre la bottom-nav en CUALQUIER ancho×alto
+		 * (168 = 42 + 73 + 66 + 13 margen − 26 caja). El guard DEBE restar
+		 * la banda: un guard plano rompe en phones anchos con viewport corto
+		 * (428×640 in-app daba CTA 36px detrás de la nav). */
+		.akb-hero__slide[data-mobile-layout="below"] .akb-hero__picture {
+			height: min(78svh, 118vw, calc(100svh - 168px - var(--akb-hero-band)));
+		}
+	}
+
+}
+
+/*
+ * Tablet 601–768 mantiene el texto sobre el arte con imagen más alta y focal Y limitado por
+ * Renderer. El texto se ancla abajo a la izquierda con ancho acotado y scrim de extremo a
+ * extremo. Título 3.4rem, límites de altura en píxeles y compensación del chrome preservan el
+ * pliegue. Este bloque sigue al de 768px para ganar con igual especificidad.
+ */
+@media (min-width: 601px) and (max-width: 768px) {
+	.akb-hero__img {
+		/* Fallback anidado a center 50% (no center 80%): si la var tablet no
+		 * llega por un bug, mejor fallar hacia arriba que decapitar. */
+		object-position: var(--akb-hero-objpos-tablet, var(--akb-hero-objpos-mobile, center 50%));
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] {
+		--akb-hero-band: clamp(0px, 100vh - 175px - clamp(475px, 71vh, 700px), 60px);
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__picture {
+		height: clamp(475px, 71vh, 700px);
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content {
+		left: 20px;
+		right: auto;
+		width: min(36rem, calc(100% - 40px));
+	}
+
+	/* Scrim full-bleed: left al filo izquierdo (−20 = offset del bloque);
+	 * right = borde del bloque − distancia al filo derecho del viewport
+	 * (100% acá = ancho del bloque, su containing block). */
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content::after {
+		left: -20px;
+		right: calc(100% + 20px - 100vw);
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__title {
+		font-size: 3.4rem;
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__lede {
+		font-size: 0.95rem;
+	}
+
+	/* Overrides svh — MISMA anatomía @supports-aparte que el bloque phone
+	 * (el minificador LiteSpeed dedupea propiedades repetidas en una regla). */
+	@supports (height: 100svh) {
+		.akb-hero__slide[data-mobile-layout="below"] {
+			--akb-hero-band: clamp(0px, 100svh - 175px - clamp(475px, 71svh, 700px), 60px);
+		}
+
+		/* Guard de fold heredado: imagen + banda ≤ 100svh − 168 mantiene el
+		 * CTA sobre la bottom-nav en cualquier ancho×alto del rango
+		 * (landscape 740×360 aplasta la imagen, el texto no se hunde). */
+		.akb-hero__slide[data-mobile-layout="below"] .akb-hero__picture {
+			height: min(clamp(475px, 71svh, 700px), calc(100svh - 168px - var(--akb-hero-band)));
+		}
+	}
+}
+
+/* Reduced transparency: el usuario pidió menos capas translúcidas — el scrim en
+ * gradiente se retira y vuelve el panel sólido (la caja) como fallback legible. */
+@media (max-width: 768px) and (prefers-reduced-transparency: reduce) {
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content {
+		padding: 12px 14px 14px;
+		background: var(--aki-surface, #0f0f10);
+		border: 2px solid rgba(255, 255, 255, 0.3);
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content::after {
+		display: none;
+	}
+}
+
+/* Windows High Contrast: los gradientes se eliminan por plataforma — panel con
+ * colores del sistema para que el texto nunca flote sobre el arte sin fondo. */
+@media (max-width: 768px) and (forced-colors: active) {
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content {
+		padding: 12px 14px 14px;
+		background: Canvas;
+		border: 1px solid CanvasText;
+	}
+
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content::after {
+		display: none;
+	}
+}
+
+/* Espejo ≤380px de la escala del CTA secundario: baja a 0.85rem (paridad con el
+ * primario, línea 1035). DEBE ir al final del archivo — el bloque ≤380 original
+ * (línea 1030) precede al ≤600, así que un override ahí perdería el orden de
+ * cascada contra el selector de atributo (0,3,0) de arriba. Acá gana por venir
+ * después con la misma especificidad. */
+@media (max-width: 380px) {
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--manga,
+	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--comics {
+		font-size: 0.85rem;
+	}
+}

@@ -1,0 +1,138 @@
+%% Piezas del capítulo 10 — Akibara Puntos: quién mueve los puntos y por dónde entra cada uno.
+%% Qué muestra: la puerta única por la que pasa todo movimiento (Points\Ledger), los seis carriles que suman y el que resta, las cinco superficies donde el cliente ve el programa, las tres fugas de configuración que se saltan Support\Options, y los datos que quedan escritos. En rojo, lo que el verificador dejó señalado como roto o muerto.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    CLIENTE["Cliente<br/>compra, canjea, cumple años, invita"]:::persona
+    DUENO["Dueño<br/>mueve el pedido de estado y otorga puntos a mano"]:::persona
+
+    subgraph TERCEROS["Terceros — nada de esto es código de la casa"]
+        WOO["WooCommerce ≥ 10.0<br/>avisa de estados, reembolsos y recálculos del carrito"]:::tercero
+        AS["Action Scheduler<br/>corre las dos tareas diarias y trocea los lotes"]:::tercero
+        WP["WordPress 6.8<br/>options, usermeta, wp_mail y el flujo de privacidad"]:::tercero
+        SQL["MySQL · GET_LOCK<br/>el cerrojo por usuario y por pedido, 3 s de espera"]:::tercero
+        SPAR["SPAR — plugin viejo<br/>si sigue activo, akibara-rewards duerme entero"]:::tercero
+    end
+
+    subgraph CONFIG["Configuración · 40 casillas en una sola pantalla"]
+        SET["Support\\SettingsPage<br/>catálogo FIELDS, guardado saneado por tipo"]:::propio
+        OPT["Support\\Options<br/>lane_on: el interruptor vive DENTRO del accesor del monto"]:::propio
+        FUGA["Fuga: 3 módulos leen get_option crudo<br/>Expiry 46/49/58 · PdpNotice 44 · teaser en 3 sitios"]:::alerta
+    end
+
+    subgraph MOTOR["El motor · todo pasa por aquí"]
+        LEDGER["Points\\Ledger<br/>candado, relectura fresca, clave de evento, inserta y actualiza"]:::propio
+        CALC["Points\\Calculator<br/>pesos a puntos y comisión en neto (residuo ±$1)"]:::propio
+        STATES["Support\\OrderStates<br/>DOWN y ALIVE, dos listas literales"]:::propio
+        SCHEMA["Support\\Schema<br/>crea las tablas y pone las options en carga automática"]:::propio
+    end
+
+    subgraph SUMAN["Los seis carriles que suman puntos"]
+        ACC["Points\\Accrual<br/>acredita al entrar a «Listo para enviar» · prioridad 20"]:::propio
+        WEL["Points\\WelcomeBonus<br/>500 en la primera compra · prioridad 10"]:::propio
+        REF["Points\\Referrals<br/>500 al padrino cuando el invitado compra · prioridad 30"]:::propio
+        BIR["Points\\Birthday<br/>1.000 al año, mira hoy y ayer"]:::propio
+        ADJ["Points\\AdminAdjust<br/>el dueño otorga o quita, con motivo obligatorio"]:::propio
+        REV["Reviews\\ReviewPoints<br/>500 por reseña con foto aprobada (otro capítulo)"]:::propio
+    end
+
+    subgraph RESTAN["Lo que resta puntos"]
+        EXP["Points\\Expiry<br/>vence a los 12 meses, FIFO contra el ledger"]:::propio
+        RED["Points\\Redemption<br/>cobra el canje: 5 metas de pedido y dos cuentas de reposición"]:::propio
+    end
+
+    subgraph SUPERFICIES["Lo que ve el cliente"]
+        ACCT["Points\\AccountRewards<br/>Mi cuenta → Puntos Akibara: saldo, canje, historial"]:::propio
+        CAJA["Blocks\\CheckoutIntegration + checkout-blocks.js<br/>la caja del checkout de bloques"]:::propio
+        PDP["Points\\PdpNotice<br/>«Gana N puntos con este tomo», junto al precio"]:::propio
+        PROG["Points\\ProgramPage<br/>shortcode de /akibara-puntos/, cifras siempre vivas"]:::propio
+        MAIL["Points\\Emails<br/>5 correos; sella sólo con transporte confirmado"]:::propio
+    end
+
+    subgraph OPERACION["Operación y traspaso"]
+        MIG["Points\\Migration<br/>wp akb-rewards migrate: reconstruye el ledger desde SPAR"]:::propio
+        AUD["Support\\Audit<br/>wp akb-rewards audit --fix: re-deriva la caché del ledger"]:::propio
+        PRIV["Support\\Privacy<br/>exportar y borrar datos personales"]:::propio
+        LOG["Support\\Log<br/>los eventos de dinero van a Estado → Registros"]:::propio
+    end
+
+    subgraph DATOS["Lo que queda escrito"]
+        TABLA[("wp_akb_rewards_ledger<br/>un renglón por movimiento, con saldo resultante")]:::dato
+        UMETA[("11 usermeta<br/>saldo, cumpleaños, código de invitación, marcas de aviso")]:::dato
+        OMETA[("10 order meta<br/>puntos, bono, tasa sellada y las 5 del canje")]:::dato
+        OPTS[("43 options<br/>40 con casilla + db_version, rewrite_version, migration_epoch")]:::dato
+    end
+
+    MUERTO["Carga muerta y avisos huérfanos<br/>max_pct viaja y nadie lo lee · 8 alarmas sin oyente · total_earned sin lector"]:::alerta
+
+    CLIENTE --> CAJA
+    CLIENTE --> ACCT
+    CLIENTE --> PDP
+    DUENO --> SET
+    DUENO --> ADJ
+    DUENO -->|"mueve el pedido de estado"| WOO
+
+    SET --> OPTS
+    OPT --> OPTS
+    FUGA -.->|"se saltan la fuente única"| OPT
+    SET --> OPT
+
+    WOO -->|"order_status_changed · order_refunded"| ACC
+    WOO -->|"cart_calculate_fees · checkout_order_processed"| RED
+    AS -->|"akb_rewards_expiry_daily"| EXP
+    AS -->|"akb_rewards_birthday_daily"| BIR
+    SPAR -.->|"mientras viva, el boot no corre"| MOTOR
+
+    ACC -->|"after_order_award"| WEL
+    ACC -->|"after_order_award"| REF
+    ACC -->|"after_order_award prioridad 100"| MAIL
+    ACC --> CALC
+    ACC --> STATES
+    RED --> STATES
+    RED --> CALC
+
+    ACC --> LEDGER
+    WEL --> LEDGER
+    REF --> LEDGER
+    BIR --> LEDGER
+    ADJ --> LEDGER
+    REV --> LEDGER
+    EXP --> LEDGER
+    RED --> LEDGER
+
+    LEDGER --> SQL
+    LEDGER --> TABLA
+    LEDGER --> UMETA
+    ACC --> OMETA
+    RED --> OMETA
+    SCHEMA --> TABLA
+    SCHEMA --> OPTS
+
+    ACCT --> RED
+    CAJA --> RED
+    ACCT --> LEDGER
+    CAJA --> WOO
+    PDP --> CALC
+    PROG --> OPT
+    MAIL --> WP
+    BIR --> MAIL
+    EXP --> MAIL
+    ADJ --> MAIL
+
+    MIG --> TABLA
+    MIG --> OPTS
+    AUD --> UMETA
+    PRIV --> TABLA
+    LOG --> WOO
+    AUD -.->|"--fix deshace la decisión de la migración"| MIG
+
+    CAJA -.-> MUERTO
+    RED -.-> MUERTO
+    LEDGER -.-> MUERTO
+
+    BUS["akibara-business<br/>tarjeta «Recompensas» y menú móvil"]:::propio
+    LEDGER -->|"función global spar_get_user_points()"| BUS

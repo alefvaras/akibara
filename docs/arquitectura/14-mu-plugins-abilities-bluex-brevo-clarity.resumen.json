@@ -1,0 +1,72 @@
+{
+  "titulo": "mu-plugins (A) · abilities/MCP, Blue Express, Brevo, Clarity",
+  "capitulo": "14-mu-plugins-abilities-bluex-brevo-clarity",
+  "diagramas": [
+    "diagramas/14-mu-plugins-abilities-bluex-brevo-clarity-piezas.mmd",
+    "diagramas/14-mu-plugins-abilities-bluex-brevo-clarity-caso-portada-carrito.mmd",
+    "diagramas/14-mu-plugins-abilities-bluex-brevo-clarity-caso-numero-de-seguimiento.mmd",
+    "diagramas/14-mu-plugins-abilities-bluex-brevo-clarity-cron.mmd",
+    "diagramas/14-mu-plugins-abilities-bluex-brevo-clarity-estados-vigia.mmd"
+  ],
+  "componentes": 9,
+  "casos": 7,
+  "crons": [
+    "akibara_bluex_log_retention_cleanup",
+    "bluex_clean_logs",
+    "akibara_bluex_integrity_weekly (la arma is_admin(): la primera visita del dueno al escritorio; el cron por WP-CLI no puede rearmarla)",
+    "action_scheduler_run_queue (limpieza de Action Scheduler, acotada a 14 dias por filtro)",
+    "upgrader_process_complete (disparo por evento, no periodico)"
+  ],
+  "terceros": [
+    "bluex-for-woocommerce (Blue Express)",
+    "Brevo (plugin de correo/marketing; no esta en el arbol del repositorio)",
+    "microsoft-clarity (Microsoft Clarity + Brand Agent)",
+    "seo-by-rank-math (24 abilities y una copia del mcp-adapter)",
+    "WooCommerce (7 abilities propias, servidor MCP propio apagado, Store API, wc/v3)",
+    "Action Scheduler (dos copias en el arbol: woocommerce/packages y seo-by-rank-math/vendor)",
+    "Abilities API + mcp-adapter de WordPress (dos copias en el arbol)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "mu-plugins (B) · akibara-rankmath-redirections-abilities.php",
+      "por": "ese fichero escribe postmeta de un tercero (`rank_math_focus_keyword`, :242 y :257) y publica las 5 abilities de la casa; el capitulo 14 solo lo cita como remision"
+    },
+    {
+      "a": "akibara-business · SeoSocial",
+      "por": "clase `Modules\\SeoSocial\\SocialImageDerivatives::ensure_now()` y transient `akb_og_fail_<slug>`"
+    },
+    {
+      "a": "15-mu-plugins-correo-litespeed-claves-y-guardas",
+      "por": "`akibara-correo-no-sale-a-clientes.php` intercepta fuera de produccion los correos del vigia de Blue y la notificacion de despacho"
+    },
+    {
+      "a": "16-todo-lo-programado",
+      "por": "acciones de Action Scheduler `akibara_bluex_log_retention_cleanup` y `akibara_bluex_integrity_weekly`, evento WP-Cron `bluex_clean_logs` y filtro `action_scheduler_retention_period`"
+    },
+    {
+      "a": "17-catalogo-de-datos",
+      "por": "options `akb_bluex_watch_baseline_seen` y `akb_bluex_watch_resolved_notified`; tabla `wp_bluex_logs`"
+    },
+    {
+      "a": "18-fronteras-con-terceros",
+      "por": "`woocommerce_shipping_<id>_is_available`, `wc_correios_updateTrackingCode()`, `upgrader_process_complete`, `wp_register_ability_args` y los remove_action sobre microsoft-clarity"
+    },
+    {
+      "a": "19-como-se-hablan-los-plugins",
+      "por": "endpoints `wp-abilities/v1/abilities`, `/wp-json/mcp/mcp-adapter-default-server`, `/wp-json/woocommerce/mcp` (apagado) y `PUT /wp-json/wc/v3/orders/<id>`"
+    },
+    {
+      "a": "Rank Math (tercero)",
+      "por": "veto de `rank-math/set-module-status` y `rank-math/set-plugin-preferences`"
+    }
+  ],
+  "defectos_abiertos": [
+    "GRAVE: `akibara-brevo-portada-jpg-en-el-carrito.php` esta INERTE en produccion. Su `class_exists` de `Akibara\\Business\\Modules\\SeoSocial\\SocialImageDerivatives` (:121) corre antes de que `akibara_business_bootstrap()` registre el autocargador PSR-4: ambos cuelgan de `plugins_loaded` prioridad 20 (mu-plugin :131 / plugin :159) y los mu-plugins se cargan primero. Arreglo minimo: prioridad 21 en :131, o comprobar la clase dentro de la ventana.",
+    "`akb_bluex_watch_baseline_seen` se escribe en :89 ANTES del `wp_mail()` de :93 y sin mirar su resultado: la buena noticia puede llegar sin que la alarma haya salido nunca.",
+    "El vigia de integridad no cubre el unico fichero del tercero que la casa carga por ruta fija (`akibara-cart-checkout-blocks/src/ComunaDirectory.php:26`, `:377-393` sobre `bluex-for-woocommerce/includes/data/chile-communes.php`).",
+    "Desinstalar `akibara-business` borra las dos options del vigia (`uninstall.php:95-104`, `LIKE 'akb\\_%'` sin exclusion para `akb_bluex_`).",
+    "`akibara-bluex-log-retention.php`: el `do { } while` de :41-51 no tiene techo de tiempo ni de iteraciones, y el mismo callback cuelga de dos hooks sin candado (:122-123).",
+    "El veto de `akibara-abilities-denylist.php` (1.2.0) cubre 3 de al menos 36 operaciones publicas por MCP (24 Rank Math + 7 WooCommerce + 5 de la casa): las dos de Rank Math mas `woocommerce/product-delete`, vetada por decision del dueno del 2026-09-13; la medicion viva del servidor por defecto listo 47 herramientas.",
+    "Dos sitios apagan Clarity con condiciones distintas: `akibara-clarity-production-only.php` (init:1, solo entorno) y `FrontendCompatibility.php:44-46` (plugins_loaded:20, entorno + host canonico). El que sobrevive si Business se desactiva es el mas laxo."
+  ]
+}

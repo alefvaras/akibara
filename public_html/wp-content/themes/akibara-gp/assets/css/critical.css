@@ -1,0 +1,142 @@
+/**
+ * Akibara Critical CSS — inlined in <head> before the modular CSS.
+ *
+ * Purpose: prevent FOUC (Flash of Unstyled Content) for elements that are:
+ *   - position:fixed / absolute (render outside normal flow)
+ *   - expected to be hidden initially (drawers, overlays, modals)
+ *
+ * Why this file exists:
+ *   Durante la descarga de los módulos visuales, cualquier
+ *   element relying on `transform: translateX(100%)` / `opacity: 0` to
+ *   hide itself is briefly visible, then animates out when CSS kicks in.
+ *   This file contains ONLY the minimal hidden-state rules needed to
+ *   prevent that flash. Keep it small.
+ *
+ * Las reglas deben coincidir con los estados base de header.css. Las variantes
+ * abiertas permanecen en ese módulo.
+ */
+
+/* ═════════════════════════════════════════════════════════════════
+ * Anti-FOUC global — fondo dark antes que cargue base.css/tokens.css
+ *
+ * Sin esto, durante el gap entre HTML parse y CSS de body{background:dark},
+ * el browser muestra blanco default. Visible como flash blanco al entrar
+ * a cualquier page, especialmente checkout (más CSS por cargar).
+ *
+ * Hex hardcoded — NO usar var() porque tokens.css todavía puede no estar
+ * disponible al momento que el bloque inline aplica. Sincronizado estrictamente
+ * con `--wp--preset--color--black` de theme.json (#121212), que es el valor base
+ * pintado por `body { background: var(--aki-black) }` en base.css.
+ * ═════════════════════════════════════════════════════════════════ */
+html {
+    background: #121212;
+}
+body {
+    background: #121212;
+    color: #f5f5f5;
+}
+
+/* WooCommerce mounts empty-cart recommendations after first paint. Reserving
+ * their verified footprint here prevents the footer from flashing in-view.
+ * Scoped to `.is-loading` during the hydration phase. */
+.woocommerce-cart .wp-block-woocommerce-cart.is-loading,
+.woocommerce-cart .wp-block-woocommerce-empty-cart-block {
+    min-height: 86rem;
+}
+
+/* Reserva durante el estado esqueleto intermedio antes de la llegada del Store API.
+ * Vinculada a los elementos esqueleto para evitar layout shifts en la carga inicial
+ * sin afectar el carrito hidratado. Regla separada para compatibilidad con navegadores
+ * sin soporte de :has(). */
+.woocommerce-cart .wp-block-woocommerce-cart:has(.wc-block-cart-items .wc-block-components-skeleton__element) {
+    min-height: 86rem;
+}
+
+/* Ocultación de sidebar durante el esqueleto hasta resolver las líneas reales,
+ * garantizando estabilidad visual y evitando parpadeos de totales provisionales. */
+.woocommerce-cart .wp-block-woocommerce-cart:has(.wc-block-cart-items .wc-block-components-skeleton__element) .wc-block-cart__sidebar {
+    visibility: hidden;
+}
+
+/* GeneratePress imprime en el head un `.site-header` blanco antes del CSS del
+ * child theme. Este override crítico usa los mismos valores base de header.css,
+ * de modo que una reconstrucción/minificación nunca pueda mostrar la franja
+ * blanca mientras llega el módulo completo. */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky, 200);
+    background: rgba(18, 18, 18, 0.9);
+    color: #f5f5f5;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+.header-main,
+.mainnav {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Chrome autofill normalmente pinta el input amarillo claro, rompiendo el dark.
+ * Forzamos box-shadow inset que pisa el background y text-fill-color para el text.
+ * Aplica a TODOS los inputs del sitio — es la solución general, no por campo. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #1b1b1e inset !important;
+    -webkit-text-fill-color: #f5f5f5 !important;
+    caret-color: #f5f5f5 !important;
+    transition: background-color 9999s ease-in-out 0s;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * Native Cart drawer (plugin akibara-business) — estado cerrado crítico.
+ *
+ * Previene FOUC ocultando .akb-cart-drawer y .akb-cart-overlay antes de la carga
+ * del CSS modular del plugin. Mantiene sincronía con el contrato de visibilidad
+ * definido en native-cart-v2.css.
+ * ═════════════════════════════════════════════════════════════════ */
+.akb-cart-overlay {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+}
+.akb-cart-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: var(--akb-cart-width, 404px);
+    height: 100vh;
+    height: 100dvh;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+}
+.akb-cart-drawer[data-side="left"] {
+    right: auto;
+    left: 0;
+    transform: translate3d(-100%, 0, 0);
+}
+
+/* Mobile nav drawer — slides in from left */
+.mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh;
+    width: 85%;
+    max-width: 340px;
+    transform: translateX(-100%);
+    z-index: var(--z-modal, 400);
+}
+.mobile-overlay {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+}

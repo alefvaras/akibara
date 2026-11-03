@@ -1,0 +1,54 @@
+%% Caso 4 del capítulo 16 — el buscador se cae y el dueño se entera por correo.
+%% Qué muestra: la pasada del vigilante cada 15 minutos, la reparación barata que prueba primero, las dos ramas de recuperación y la puerta que sigue abierta: si la reconstrucción está parada en BUILDING o CATCHING_UP, la alarma no se evalúa nunca.
+sequenceDiagram
+    autonumber
+    participant Cola as Action Scheduler<br/>cada 900 s
+    participant WD as RebuildJob&#58;&#58;handle_watchdog
+    participant Estado as option akb_search_rebuild_state
+    participant EdPub as EditorialDiscountPublication<br/>reconcile_now
+    participant Bomba as akb_search_pump_live
+    participant Alarma as option akb_search_serving_alarm
+    participant Correo as Transporte de correo
+    actor Dueno as Dueño
+    actor Cliente
+
+    Cola->>WD: arranca akb_search_rebuild_watchdog
+    WD->>WD: anota los avisos de cambio de versión del índice y suelta<br/>los permisos de lote vencidos (cada lote se reserva 120 s)
+    alt hay deuda viva en la tabla de trabajo
+        WD->>Bomba: despierta la bomba del índice
+    else no hay deuda
+        WD-->>WD: no encola nada
+        Note over WD,Bomba: antes encolaba siempre y dejó 4.949 acciones vacías en producción
+    end
+
+    WD->>Estado: lee la fase de la reconstrucción
+
+    alt Rama A — estado nulo, BLOCKED o ABORTED
+        Note over WD: le toca al vigilante levantar el servicio
+        WD->>EdPub: reparación barata reconcile_now — re-prueba el recibo contra las tablas vivas
+        alt el servicio vuelve
+            WD->>Alarma: anota que está arriba
+            opt había mandado la alarma
+                WD->>Correo: «Akibara: el buscador volvió»
+                Correo->>Dueno: una sola vez, al recuperarse
+            end
+        else el servicio no vuelve
+            WD->>Estado: solicita una reconstrucción completa
+            WD->>Alarma: anota que sigue caído, con el instante de la primera caída
+            alt lleva más de 900 s caído
+                WD->>Correo: «Akibara: el buscador lleva rato caído»<br/>minutos caído, lo que ve el cliente y los dos comandos&#58;<br/>wp akb-search status · bash ops/rescate-buscador.sh produccion
+                Correo->>Dueno: una sola vez por episodio
+                Note over Correo,Dueno: el umbral es a propósito más alto que una reconstrucción<br/>normal, de unos 6 minutos, para que una rutinaria no dispare la alarma
+            else lleva menos de 900 s
+                WD-->>Alarma: espera a la siguiente pasada
+            end
+        end
+    else Rama B — parada en BUILDING o CATCHING_UP
+        WD->>Estado: resume_run — retoma la reconstrucción donde se quedó
+        rect rgb(255, 235, 235)
+            Note over WD,Alarma: LA PUERTA QUE SIGUE ABIERTA&#58; por esta rama<br/>note_serving_down nunca se alcanza y la alarma NO se evalúa.<br/>Es la misma puerta que dejó tres horas sin buscador el 2026-09-05
+        end
+    end
+
+    Cliente-->>Cliente: mientras tanto&#58; el autocompletado responde 503, la página de resultados<br/>no trae nada y los filtros desaparecen. Fichas, carrito y checkout siguen funcionando
+    Note over WD,Correo: fuera de producción las alarmas NO salen. Lo decide wp_get_environment_type()<br/>(RebuildJob&#58;828), que lee WP_ENVIRONMENT_TYPE de wp-config.php. Además, en el espejo<br/>el mu-plugin akibara-correo-no-sale-a-clientes.php desvía TODO el correo a una bandeja de captura

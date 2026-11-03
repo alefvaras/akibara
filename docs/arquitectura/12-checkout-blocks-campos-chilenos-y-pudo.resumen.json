@@ -1,0 +1,39 @@
+{
+  "titulo": "akibara-cart-checkout-blocks · RUT, celular, comuna y puntos Blue Express en el checkout por bloques",
+  "capitulo": "12-checkout-blocks-campos-chilenos-y-pudo",
+  "diagramas": [
+    "diagramas/12-checkout-blocks-campos-chilenos-y-pudo-piezas.mmd",
+    "diagramas/12-checkout-blocks-campos-chilenos-y-pudo-caso-comuna.mmd",
+    "diagramas/12-checkout-blocks-campos-chilenos-y-pudo-caso-pudo.mmd",
+    "diagramas/12-checkout-blocks-campos-chilenos-y-pudo-caso-direccion-google.mmd",
+    "diagramas/12-checkout-blocks-campos-chilenos-y-pudo-estados-pudo-dialogo.mmd"
+  ],
+  "componentes": 18,
+  "casos": 8,
+  "crons": [],
+  "terceros": [
+    "WooCommerce (bloques de carrito y pago, Store API, locale CL, cálculo de envíos, HPOS)",
+    "akibara-business (dependencia dura: contrato Contracts\\CheckoutDataProvider y servicio de PUDO)",
+    "bluex-for-woocommerce (catálogo chile-communes.php, canal de escritura bluex_pudo que este plugin pisa, dos selectores de comuna desencolados)",
+    "widget-pudo.blue.cl (mapa de puntos de retiro en un iframe; hoy sin atributo sandbox)",
+    "Google Places (buscador de direcciones; la clave viaja en el HTML de cada pago)",
+    "Mercado Pago (15 observadores del checkout clásico retirados del carrito de bloques)",
+    "Flow (se le reponen las 5 dependencias que su build no declara; el parche corre dos veces)",
+    "LiteSpeed Cache (el pago queda excluido de la optimización JS por el fragmento suelto 'checkout')",
+    "google-login (su bloque login-button está en la lista blanca de hijos del formulario de pago, como literal cableado)",
+    "tema akibara-gp (dos shortcodes y el filtro generate_show_title @100)"
+  ],
+  "aristas_salientes": [
+    { "a": "akibara-business", "por": "$business->checkout_data(), contrato Contracts\\CheckoutDataProvider: is_valid_rut(), format_rut(), phone_validation_error(), structured_cart_data(), address_autocomplete_config()" },
+    { "a": "akibara-business", "por": "$business->pudo_checkout(), envuelto por PudoServiceAdapter con exactamente siete métodos" },
+    { "a": "akibara-business", "por": "options leídas por NOMBRE: akibara_blocks_shipping_hint_text, akibara_blocks_collection_notice_text, akb_sf_enabled, akibara_address_autocomplete_enabled" },
+    { "a": "akibara-business (módulo SeriesFollow)", "por": "usermeta _akb_sf_optout_all (sólo lectura) para decidir si se pinta el aviso de colección" },
+    { "a": "capítulo 05 (carrito, checkout y cuenta de Business)", "por": "misma frontera PUDO: Business decide, este plugin valida el transporte y escribe las metas agencyId / isPudoSelected / agencyName / agencyAddress" },
+    { "a": "capítulo 04 (disponibilidad, preventa y avisos)", "por": "extensión por línea de la Store API: stock_status, stock_label, is_preventa, eta; y las filas «Estado» / «Llegada estimada»" },
+    { "a": "tema akibara-gp", "por": "shortcodes [akibara_cart_blocks_title] y [akibara_cart_blocks_empty]; plantilla cart/cart-empty.php que el tema sobrescribe" },
+    { "a": "tema akibara-gp", "por": "filtro generate_show_title: el plugin @100 por BlocksPage y el tema por slug, dos fuentes de verdad para la misma decisión" },
+    { "a": "capítulo 15 (mu-plugins: LiteSpeed y guardas)", "por": "filtro litespeed_optm_uri_exc con el fragmento 'checkout'" },
+    { "a": "capítulo 17 (catálogo de datos)", "por": "option akb_blocks_mp_dequeue_observed, sin ninguna pantalla de edición" },
+    { "a": "capítulo 18 (fronteras con terceros)", "por": "los tres parches de RuntimeCompatibility y la prueba de Salud del sitio akibara_blocks_third_party_patches" }
+  ]
+}

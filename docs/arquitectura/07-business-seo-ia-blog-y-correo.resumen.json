@@ -1,0 +1,210 @@
+{
+  "titulo": "akibara-business · SEO, descubribilidad por IA, blog y todo el correo",
+  "capitulo": "07-business-seo-ia-blog-y-correo",
+  "diagramas": [
+    "diagramas/07-business-seo-ia-blog-y-correo-piezas.mmd",
+    "diagramas/07-business-seo-ia-blog-y-correo-caso-landing-serie.mmd",
+    "diagramas/07-business-seo-ia-blog-y-correo-caso-aviso-stock.mmd",
+    "diagramas/07-business-seo-ia-blog-y-correo-caso-agente-ia.mmd",
+    "diagramas/07-business-seo-ia-blog-y-correo-caso-correo-mudo.mmd",
+    "diagramas/07-business-seo-ia-blog-y-correo-cron.mmd",
+    "diagramas/07-business-seo-ia-blog-y-correo-estados-portada.mmd"
+  ],
+  "componentes": 30,
+  "casos": 8,
+  "crons": [
+    "akibara_business_llms_manifest_refresh",
+    "akibara_business_social_image_derivatives",
+    "akibara_business_social_image_for_slug"
+  ],
+  "terceros": [
+    "Rank Math",
+    "WooCommerce",
+    "LiteSpeed Cache",
+    "Cloudflare",
+    "Google Listings & Ads / Google Merchant Center",
+    "Google Search / Rich Results",
+    "Brevo (plugin SendinblueWoocommerce y su servicio)",
+    "Hostinger (smtp.hostinger.com y el cron cada 5 minutos)",
+    "WhatsApp / X / Facebook (consumidores del og:image)",
+    "Gmail / Apple Mail / Outlook (reglas de contraste y de formato de imagen)",
+    "ChatGPT / Claude / Perplexity (consumidores de /llms.txt)",
+    "GD con soporte AVIF del PHP de producción",
+    "tema akibara-gp (envoltorio de marca del correo)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "SeriesDirectory (capítulo del directorio de series)",
+      "por": "clase SeriesCatalogEligibility — autoridad compartida de «esta serie tiene catálogo público»"
+    },
+    {
+      "a": "SeriesDirectory (capítulo del directorio de series)",
+      "por": "clase SeriesIndex — el conjunto de series que el blog puede enlazar"
+    },
+    {
+      "a": "SeriesFacts / PublicationStatus",
+      "por": "catalog_facts() y scoped_for_term() — los dos ejes del título de serie"
+    },
+    {
+      "a": "Stock (capítulo de preventa y disponibilidad)",
+      "por": "clases Stock\\Availability y Stock\\StockStatus — PreOrder vs BackOrder y «a pedido» vs «en preventa»"
+    },
+    {
+      "a": "TaxonomyDiscount",
+      "por": "clase Settings — el gate que decide si el precio entra en la meta de serie"
+    },
+    {
+      "a": "akibara-business · schema (SchemaGraph)",
+      "por": "constantes de etapa 90/91/92/99/100/999 del @graph, contrato compartido entre módulos"
+    },
+    {
+      "a": "BackInStock (capítulo de avisos)",
+      "por": "NotificationDispatcher llama a MailerBoot::from_mailer() e InstockEmail::trigger()"
+    },
+    {
+      "a": "OrderPreventa (capítulo de preventa)",
+      "por": "ReadyToShipEmail, ReminderEmail, PreventaItems::outstanding_qty(), ShipPromise::window(), ContactFooter"
+    },
+    {
+      "a": "SeriesFollow (capítulo del resumen de series)",
+      "por": "DigestRunner y SeriesFollowEmail sobre la base AkibaraEmail"
+    },
+    {
+      "a": "akibara-rewards",
+      "por": "hook woocommerce_email_order_details compartido — botón en 15, empujón de reseña en 25"
+    },
+    {
+      "a": "tema akibara-gp",
+      "por": "woocommerce/emails/email-header.php — su hoja pinta de rojo todo <a>; add_button_exception() reinstala el relleno blanco"
+    },
+    {
+      "a": "AdminPanel (panel Akibara)",
+      "por": "add_section() por la API pública akibara_business_booted — la pestaña «Salud SEO»"
+    },
+    {
+      "a": "Utilities\\CatalogQueryGrammar",
+      "por": "la gramática única de parámetros de filtro que usa FilteredUrlsPolicy"
+    },
+    {
+      "a": "Services\\VolumeTitle",
+      "por": "extract_number() (VolumeTitle.php:34) — el número de tomo sale del TÍTULO del producto, quitando primero sufijos finales entre paréntesis o corchetes; devuelve null si no es inequívoco"
+    },
+    {
+      "a": "Utilities\\RobotsMeta",
+      "por": "is_indexable() sobre rank_math_robots, en sitemap, llms.txt y políticas de indexación"
+    },
+    {
+      "a": "Utilities\\Log",
+      "por": "Log::warn() de AdultContentFeed cuando falla la siembra +18"
+    },
+    {
+      "a": "mu-plugin akibara-correo-smtp",
+      "por": "MailFrom debe forzar exactamente el REQUIRED_SENDER que el transporte valida"
+    },
+    {
+      "a": "mu-plugin akibara-mail-transport-watch",
+      "por": "class_exists + has_action('phpmailer_init') sobre el transporte, y la copia de rescate akb-runtime/"
+    },
+    {
+      "a": "mu-plugin akibara-brevo-portada-jpg-en-el-carrito",
+      "por": "SocialImageDerivatives::ensure_now() — la única ruta que convierte en el acto"
+    },
+    {
+      "a": "Cloudflare",
+      "por": "Cache Rule nº 10 de la zona, «BYPASS Accept text/markdown (agentes IA)»: any(http.request.headers[\"accept\"][*] contains \"text/markdown\") -> cache: false, más el bypass equivalente en .htaccess DESPUÉS de # END LSCACHE. Sin ella el edge sirvió markdown a Chrome (la Cache Rule nº1 usa override_origin y pisa las cabeceras del origen). Y sitemaps cacheables 4 h por CDN-Cache-Control"
+    },
+    {
+      "a": "Rank Math",
+      "por": "filtros rank_math/frontend/*, rank_math/json_ld, rank_math/snippet/*, rank_math/sitemap/*, rank_math/opengraph/*, rank_math/can_edit_file"
+    },
+    {
+      "a": "Google Listings & Ads",
+      "por": "filtro woocommerce_gla_product_attribute_values, prioridad 10 (AdultContentFeed.php:82). NO es punto de contacto exclusivo: EstimatedDelivery\\GlaBridge escribe availabilityDate en el MISMO hook y la misma prioridad (GlaBridge.php:54-60), y el orden lo decide la instanciación en Plugin.php. Tercer contacto fuera del carril: FrontendCompatibility.php:62 (woocommerce_gla_disable_gtag_tracking)"
+    },
+    {
+      "a": "uninstall.php",
+      "por": "borrado por patrón akb_/akibara_ con exclusiones de los plugins hermanos, y limpieza de los dos crons de portadas"
+    },
+    {
+      "a": "SeriesSchema (capítulo 03)",
+      "por": "ocupa la etapa 91 del @graph (SchemaGraph::SERIES_COLLECTION, SeriesSchema.php:187) y publica el nodo ComicSeries con @id = <url>#serie (:430-438) — es el destino del isPartOf de BookSchemaEnricher"
+    },
+    {
+      "a": "Utilities\\Text",
+      "por": "Text::length() (:25-29) mide caracteres, no bytes: es con lo que se miden los topes de 62, 155, 160 y 500 caracteres del carril"
+    },
+    {
+      "a": "MarketingConsent (capítulo 05)",
+      "por": "segundo fichero first-party que habla de Brevo (normaliza la casilla de consentimiento de su plugin); queda FUERA de este capítulo, que sólo lo remite"
+    },
+    {
+      "a": "ops/akibara-prod-muplugins-deploy.sh",
+      "por": "deposita y verifica por hash la copia de rescate ~/domains/akibara.cl/akb-runtime/akibara-correo-smtp.php que repone el centinela"
+    },
+    {
+      "a": "ops/akibara-prod-mail-health.sh",
+      "por": "chequeo de sólo lectura del transporte: mu-plugin presente, copia de rescate en su sitio, autenticación SMTP sin enviar"
+    }
+  ],
+  "secciones": {
+    "total": 30,
+    "modulos_y_servicios": 23,
+    "plantillas_de_correo": "1 sección (8 ficheros: 4 correos x 2 versiones)",
+    "mu_plugins": 6
+  },
+  "estado_vivo_en_produccion": {
+    "akb_markdown_negotiation_enabled": "yes desde 2026-08-28 (el default del código es 'no'); se lee con wp option get",
+    "regla_de_borde_cloudflare": "Cache Rule nº 10 «BYPASS Accept text/markdown (agentes IA)» — fuera de este código",
+    "constantes_smtp_en_wp-config": [
+      "AKIBARA_HOSTINGER_MAIL_ENABLED (interruptor maestro)",
+      "AKIBARA_HOSTINGER_SMTP_HOST",
+      "AKIBARA_HOSTINGER_SMTP_PORT",
+      "AKIBARA_HOSTINGER_SMTP_ENCRYPTION",
+      "AKIBARA_HOSTINGER_SMTP_USERNAME",
+      "AKIBARA_HOSTINGER_SMTP_PASSWORD"
+    ],
+    "portadas_sociales": "1.699 hermanas -og.jpg de unas 14.900 portadas (medido 2026-09-11); a 100/día son unos 132 días"
+  },
+  "correos_propios": [
+    {
+      "correo": "Volvió a stock",
+      "clase": "BackInStock\\InstockEmail",
+      "email_id": "akb_bis_instock",
+      "option": "woocommerce_akb_bis_instock_settings",
+      "asunto_por_defecto": "{product_name} está de vuelta en Akibara",
+      "gatillo": "akb_bis_notify_product"
+    },
+    {
+      "correo": "Ya llegó",
+      "clase": "OrderPreventa\\ReadyToShipEmail",
+      "email_id": "akb_preventa_ready",
+      "option": "woocommerce_akb_preventa_ready_settings",
+      "asunto_por_defecto": "Tu pedido {order_number} ya llegó a Akibara"
+    },
+    {
+      "correo": "Se acerca / cambió la fecha / fecha anunciada",
+      "clase": "OrderPreventa\\ReminderEmail",
+      "email_id": "akb_preventa_reminder",
+      "option": "woocommerce_akb_preventa_reminder_settings",
+      "asunto_por_defecto": "Tu pedido {order_number} se acerca (sólo el modo t7 es editable por pantalla; los otros dos son constantes, :193-196)"
+    },
+    {
+      "correo": "Tomo nuevo de tu serie",
+      "clase": "SeriesFollow\\SeriesFollowEmail",
+      "email_id": "akb_sf_series",
+      "option": "woocommerce_akb_sf_series_settings",
+      "asunto_por_defecto": "Salió el tomo {tomo} de {serie}{y_mas}; y subject_tanda: Salieron {n_tomos} tomos de {serie}{y_mas}"
+    }
+  ],
+  "pantallas": {
+    "Panel Akibara → Salud SEO": "/wp-admin/admin.php?page=akibara-panel&tab=salud_seo (el slug corto «akibara» da 403)",
+    "Productos → Atributos → Serie": "/wp-admin/edit-tags.php?taxonomy=pa_serie&post_type=product",
+    "WooCommerce → Ajustes → Correos": "/wp-admin/admin.php?page=wc-settings&tab=email",
+    "Rank Math → Ajustes generales": "/wp-admin/admin.php?page=rank-math-options-general (sin la pestaña .htaccess)"
+  },
+  "zonas_menos_verificadas": [
+    "LlmsManifest::write_manifests() y su rollback",
+    "el armado del texto de llms.txt",
+    "la maquinaria de huella / CAS / shutdown de SeriesSitemapLastmod"
+  ]
+}

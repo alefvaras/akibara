@@ -1,0 +1,35 @@
+%% Título: Estados del vigía de integridad de Blue Express
+%% Qué muestra: cómo las dos options deciden qué correo sale, por qué la alarma
+%% se repite a propósito y los DOS caminos que dan una buena noticia falsa.
+%% Cada estado se identifica por el valor de las options, que se leen con
+%% wp option get akb_bluex_watch_baseline_seen / akb_bluex_watch_resolved_notified.
+stateDiagram-v2
+    direction LR
+    [*] --> Sano
+
+    state "Sano: baseline_seen vacía" as Sano
+    state "Roto: baseline_seen = yes, resolved_notified vacía" as Roto
+    state "Resuelto: baseline_seen = yes, resolved_notified = yes" as Resuelto
+    state "Alarma muda: baseline_seen = yes, pero el correo NO salió" as Muda
+    state "Plugin ausente: el escáner ve lista vacía" as Ausente
+
+    Sano --> Roto : el chequeo encuentra includes rotos, se marca baseline_seen y sale la alarma
+    Roto --> Roto : cada chequeo vuelve a encontrarlos y repite la alarma a propósito
+    Roto --> Resuelto : el chequeo ya no encuentra roturas, sale la buena noticia UNA vez
+    Resuelto --> Roto : Blue vuelve a embarcar un include roto, se borra la marca de resolución
+    Sano --> Sano : el chequeo no encuentra nada y baseline_seen no está puesta, silencio
+
+    Sano --> Muda : baseline_seen se escribe ANTES del wp_mail y nadie mira su resultado
+    Muda --> Resuelto : el siguiente chequeo sano manda la buena noticia de una alarma que nadie vio
+
+    Roto --> Ausente : alguien borra o renombra la carpeta del plugin
+    Resuelto --> Ausente : recaída y borrado, con baseline_seen todavía en yes
+    Muda --> Ausente : lo mismo, sin que la alarma haya salido nunca
+    Ausente --> Resuelto : el escáner devuelve lista vacía y sale la buena noticia falsa
+
+    note right of Ausente
+        Lista vacía significa sano
+        para el escáner, aunque la
+        tienda se haya quedado sin
+        método de envío
+    end note

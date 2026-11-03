@@ -1,0 +1,20 @@
+%% Qué se rompe si falta una pieza
+flowchart LR
+  T["tema akibara-gp"] -->|"URLs, series, tomos<br/>(NavigationLinks)"| B["akibara-business"]
+  B -->|"foto de descuento sellada"| S["akibara-search"]
+  S -->|"disponibilidad y precio<br/>del índice"| B
+  B --> K["cart-checkout-blocks"]
+  R["akibara-rewards"] --> B
+  MU["mu-plugins"] -.->|"correo, caché, Blue, Brevo"| B
+  B1["Sin business:<br/>el sitio NO carga (el tema falla a propósito)"]:::mal
+  S1["Sin search:<br/>catálogo sin facetas ni sugerencias;<br/>si además falla el par de versiones, 500 global"]:::mal
+  K1["Sin checkout-blocks:<br/>el checkout pierde RUT, comuna y punto de retiro"]:::mal
+  R1["Sin rewards:<br/>no hay puntos ni reseñas; la tienda sigue vendiendo"]:::ok
+  MU1["Sin mu-plugins:<br/>el correo deja de salir y LiteSpeed cachea lo que no debe"]:::mal
+  B --- B1
+  S --- S1
+  K --- K1
+  R --- R1
+  MU --- MU1
+  classDef mal fill:#fde8e8,stroke:#c0392b,color:#111
+  classDef ok fill:#e8f6ec,stroke:#2e7d32,color:#111

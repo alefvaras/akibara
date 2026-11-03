@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="../../public_html/wp-content/plugins/akibara-rewards/tests/bootstrap.php"
+	cacheResult="false"
+	colors="true"
+	failOnRisky="true"
+	failOnWarning="true"
+>
+	<!--
+		Pruebas PHP de Akibara Rewards (reseñas + puntos first-party). Reusa el
+		vendor de tools/akibara-business (mismo PHPUnit y Brain Monkey), igual
+		que tools/akibara-search y tools/akibara-gp.
+
+		Ejecutar: ./tools/akibara-business/vendor/bin/phpunit -c tools/akibara-rewards/phpunit.xml.dist
+	-->
+	<testsuites>
+		<testsuite name="Akibara Rewards">
+			<directory suffix="Test.php">../../public_html/wp-content/plugins/akibara-rewards/tests</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

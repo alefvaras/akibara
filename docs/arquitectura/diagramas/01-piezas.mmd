@@ -1,0 +1,22 @@
+%% Las piezas del código propio, agrupadas por lo que hacen
+flowchart TB
+  subgraph BIZ["akibara-business · el plugin principal (~74 módulos)"]
+    direction LR
+    G1["**Catálogo y series**<br/>series, tomos, editoriales,<br/>packs, seguir una serie"]
+    G2["**Disponibilidad**<br/>en bodega / a pedido / preventa,<br/>entrega estimada, «avísame cuando llegue»"]
+    G3["**Compra y cuenta**<br/>cajón del carrito, favoritos,<br/>retiro, Mi cuenta, seguridad"]
+    G4["**Panel del dueño**<br/>campañas de descuento, textos,<br/>portada, formularios"]
+    G5["**SEO y correo**<br/>Rank Math, /llms.txt, blog,<br/>plantillas de correo"]
+  end
+  SEA["akibara-search<br/>índice propio · facetas · sugerencias<br/>y la foto de descuento que business adopta"]
+  CCB["akibara-cart-checkout-blocks<br/>RUT · celular · comuna · punto Blue Express"]
+  REW["akibara-rewards<br/>Puntos · reseñas con foto"]
+  THEME["tema akibara-gp<br/>cabecera, ficha, pie, correos de marca"]
+  MU["mu-plugins<br/>correo SMTP y su centinela · LiteSpeed ·<br/>Blue Express · Brevo · Clarity · claves"]
+  THEME --> BIZ
+  BIZ <--> SEA
+  BIZ --> CCB
+  REW --> BIZ
+  MU -.-> BIZ
+  classDef propio fill:#fde8e8,stroke:#c0392b,color:#111
+  class SEA,CCB,REW,THEME,MU propio

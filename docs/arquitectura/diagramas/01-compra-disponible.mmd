@@ -1,0 +1,28 @@
+%% Comprar un tomo que está en bodega, de punta a punta
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant S as akibara-search
+  participant B as akibara-business
+  participant K as cart-checkout-blocks
+  participant W as WooCommerce
+  participant BX as Blue Express
+  participant PG as Mercado Pago / Flow
+  participant R as akibara-rewards
+  C->>S: escribe «one piece 1» en el buscador
+  S-->>C: sugerencias (índice propio, no la búsqueda de WordPress)
+  C->>B: abre la ficha
+  B-->>C: precio, disponibilidad, entrega estimada, puntos que ganará
+  C->>B: «Agregar al carrito»
+  B-->>C: se abre el cajón del carrito con recomendados
+  C->>K: va al checkout
+  K-->>C: RUT, celular chileno, comuna (lista propia) y punto de retiro
+  K->>BX: cotiza envío con la comuna
+  BX-->>K: precio y plazo (o envío gratis)
+  C->>PG: paga
+  PG-->>W: pago aprobado
+  W->>B: pedido «procesando»
+  B-->>C: correo «Tu pedido de Akibara está en camino»
+  W->>R: acredita puntos al cliente
+  W->>BX: se genera el envío y su número de seguimiento
+  B-->>C: correo de reseña, días después

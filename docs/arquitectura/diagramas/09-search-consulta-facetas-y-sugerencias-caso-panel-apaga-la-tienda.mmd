@@ -1,0 +1,57 @@
+%% Caso del capítulo 09 — el dueño guarda un sinónimo válido y el buscador desaparece.
+%% Qué muestra: el hallazgo principal del capítulo: el panel sanea con reglas más laxas que las que exige el lector, la fila se escribe igual, y en la petición siguiente la foto autorizada se cierra y apaga los tres servicios sin que nadie nombre la causa.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant ADM as SearchAdminSection
+    participant SEM as SemanticPublication
+    participant DB as wp_options
+    participant SEA as Search
+    participant CTRL as SuggestController
+    actor Cliente as Cliente
+
+    Dueno->>ADM: Buscador → Sinónimos, agrega "aot, el ataque de los titanes" y guarda
+    ADM->>ADM: guard: exige manage_woocommerce y nonce
+    ADM->>ADM: Synonyms sanitize_groups cuenta PALABRAS SIGNIFICATIVAS
+    Note over ADM: "el ataque de los titanes" tiene 2 significativas<br/>de un máximo de 4 → el saneador lo acepta
+    ADM->>SEM: pre_update_option con prioridad máxima
+    SEM->>SEM: sólo ANOTA la intención de escritura, NO valida la forma del valor
+    SEM->>DB: se escribe la fila
+    ADM->>DB: persist_options_exact relee el valor y lo confirma
+    ADM-->>Dueno: "Cambios guardados"
+
+    Note over Dueno,DB: Hasta aquí todo parece bien. El daño aparece en la petición SIGUIENTE
+
+    Cliente->>SEA: visita akibara.cl
+    SEA->>SEM: authoritative_value de las trece options vigiladas
+    SEM->>SEM: configuration_is_canonical cuenta TODAS las fichas con explode
+    Note over SEM: "el ataque de los titanes" tiene 5 fichas<br/>de un máximo de 4 → valor inválido
+    SEM->>SEM: mark_authoritative_unavailable cierra la autoridad GLOBAL
+    SEM-->>SEA: no hay foto autorizada
+
+    par Los tres interruptores caen juntos
+        SEA->>CTRL: filtered_boolean_option de akb_search_suggest devuelve false
+        CTRL-->>Cliente: la ruta /suggest ni se registra → 404, el desplegable queda mudo
+    and
+        SEA->>SEA: akb_search_facets devuelve false
+        SEA-->>Cliente: la barra lateral de filtros desaparece y vuelve el listado nativo de WooCommerce
+    and
+        SEA->>SEA: akb_search_indexing devuelve false
+        SEA-->>SEA: el índice deja de actualizarse y la poda diaria del registro deja de agendarse
+    end
+
+    Dueno->>ADM: entra a buscar la causa (el panel SIGUE disponible: se registra fuera de los flags)
+    ADM-->>Dueno: Ajustes muestra "Autocompletado ✅ encendido" leyendo la option directo
+    ADM-->>Dueno: Índice → Servicios muestra "Apagado (flag OFF)" leyendo por la foto cerrada
+    Note over ADM,Dueno: Ninguna de las dos nombra la opción rota.<br/>SemanticPublication::authoritative_error() SÍ guardó un motivo,<br/>pero el panel no lo lee nunca — y el texto guardado es el genérico,<br/>que tampoco nombra la option
+    Note over ADM,Dueno: Volver a guardar Ajustes reescribe los interruptores<br/>y NO toca el sinónimo que cerró la foto
+
+    Note over Dueno,DB: CÓMO SE SALE DE ESTO, HOY
+    Dueno->>DB: 1) wp option get akb_search_synonyms --format=json — ver qué se guardó
+    Dueno->>ADM: 2) Buscador → Sinónimos: dejar cada término en 4 fichas<br/>contando TODAS las palabras, no sólo las significativas
+    ADM->>DB: se reescribe la option con un valor que el lector sí acepta
+    Dueno->>ADM: 3) recargar Índice → Servicios y probar una búsqueda real
+    ADM-->>Dueno: los tres servicios vuelven, sin reconstruir el índice
+    Note over Dueno,ADM: ops/rescate-buscador.sh NO sirve aquí:<br/>ese guion rescata un rebuild atascado.<br/>El índice está sano y lo cerrado es la foto de configuración
+
+    Note over Dueno,Cliente: Correos que salen en todo el caso: ninguno

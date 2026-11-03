@@ -1,0 +1,53 @@
+%% Título: Un lector llega desde Google a /serie/one-piece/ buscando el tomo 1
+%% Qué muestra: cómo el tema convierte un archivo de taxonomía corriente en una
+%% landing de serie — sin barra lateral, con héroe, con el orden por tomo y con
+%% una salida hacia el directorio de series — y qué pasa si el hub no existe.
+sequenceDiagram
+  autonumber
+  actor Lector
+  participant WP as WordPress
+  participant Tema as Tema akibara-gp
+  participant Woo as WooCommerce
+  participant Bus as akibara-business
+
+  Lector->>WP: Clic en un resultado de Google
+  WP->>Woo: Resuelve el archivo de la taxonomía pa_serie
+  Woo->>Tema: filtro generate_sidebar_layout
+  Tema-->>Woo: "sin barra lateral" woocommerce.php:118-134
+
+  Tema->>Woo: woocommerce_show_page_title devuelve false
+  Woo->>Tema: woocommerce_before_main_content prioridad 25
+  Tema->>Tema: Antetítulo "Serie", H1 y sólo el PRIMER párrafo de la descripción
+  Tema->>Tema: woocommerce.php:316-327 guarda el resto para el pie del archivo
+  Tema->>Bus: acción akibara_gp_series_hero_after_title
+  Bus-->>Tema: Conmutador de ediciones de la misma obra
+
+  rect rgb(240,255,240)
+    note over Tema,Woo: Orden por tomo — series-order.php
+    Tema->>Woo: woocommerce_default_catalog_orderby prio 10 devuelve "title"
+    Woo->>Woo: Al no ser menu_order, BORRA "Destacados" del selector
+    Tema->>Woo: woocommerce_catalog_orderby PRIORIDAD 20 renombra las dos salidas
+    note over Tema,Bus: La 20 no es un capricho: akibara-business RECONSTRUYE<br/>ese array en la prioridad 10. En la 10 el tema perdería.<br/>Un despliegue del plugin puede romper esto EN SILENCIO.
+    Tema->>Woo: orderby.php repone "Novedades primero" y vuelve a marcar lo elegido
+  end
+
+  Tema->>Tema: flyout-button.php:112-114 marca la barra --no-filters
+  note over Tema: En serie no hay botón "Filtrar":<br/>el selector de orden se queda la fila entera
+
+  Woo->>Tema: filtro woocommerce_get_breadcrumb prioridad 20
+  Tema->>Tema: Lee el transient akb_gp_series_hub_url
+  alt El transient está frío
+    Tema->>WP: Busca la página que CONTIENE el shortcode akibara_series_directory
+    alt La encuentra
+      Tema->>WP: set_transient 12 h
+      Tema-->>Lector: Peldaño "Series" enlazado al directorio
+    else No la encuentra
+      Tema->>WP: set_transient 1 h
+      Tema-->>Lector: Peldaño "Series" sin enlace — el lenguaje se arregla igual
+    end
+  else El transient está caliente
+    Tema-->>Lector: Peldaño "Series" con la URL cacheada
+  end
+
+  Tema-->>Lector: Tarjetas con antetítulo de editorial y número de tomo como lomo
+  Lector-->>Lector: En móvil, el párrafo del héroe sale plegado con "Leer más"

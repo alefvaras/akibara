@@ -1,0 +1,21 @@
+.akb-rw-account .akb-rw-redeem { margin: 0 0 24px; }
+.akb-rw-account .akb-rw-redeem label { display: block; margin-bottom: 6px; font-weight: 600; }
+.akb-rw-account .akb-rw-redeem-controls,
+.akb-rw-account .akb-rw-pages { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.akb-rw-account #akb-rw-points { min-height: 44px; width: 140px; max-width: 100%; }
+.akb-rw-account .akb-rw-redeem button,
+.akb-rw-account .akb-rw-pages a { min-height: 44px; white-space: normal; }
+.akb-rw-account .akb-rw-max[hidden] { display: none; }
+.akb-rw-account #akb-rw-preview { margin: 10px 0 6px; font-weight: 600; }
+.akb-rw-account #akb-rw-rules { margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
+.akb-rw-account .akb-rw-redeem-submit { background: var(--aki-buy-bg, #CC0010); color: var(--aki-buy-fg, #FFFFFF); font-weight: 700; border-radius: 0; }
+.akb-rw-account .akb-rw-redeem-submit:hover:not(:disabled) { background: var(--aki-buy-bg-hover, #99000C); color: var(--aki-buy-fg, #FFFFFF); }
+.akb-rw-account .akb-rw-expiry { margin: 0 0 20px; line-height: 1.6; }
+.akb-rw-account .akb-rw-pages { margin: 12px 0 20px; }
+.akb-rw-account .akb-rw-pages a { display: inline-flex; align-items: center; }
+.akb-rw-account .akb-rw-history-table { max-width: 100%; overflow-x: auto; }
+.akb-rw-account .akb-rw-history-table td:not(:last-child) { overflow-wrap: anywhere; }
+.akb-rw-account .akb-rw-history-table th:last-child,
+.akb-rw-account .akb-rw-history-table td:last-child { width: 1%; white-space: nowrap; overflow-wrap: normal; }
+.akb-rw-account .akb-rw-redeem :focus-visible,
+.akb-rw-account .akb-rw-pages a:focus-visible { outline: 2px solid var(--aki-white, #ffffff); outline-offset: 2px; }

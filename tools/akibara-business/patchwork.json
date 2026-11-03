@@ -1,0 +1,7 @@
+{
+	"whitelist": [
+		"../../public_html/wp-content/plugins/akibara-business/tests",
+		"../../public_html/wp-content/plugins/akibara-cart-checkout-blocks/tests",
+		"../../public_html/wp-content/plugins/akibara-search/tests"
+	]
+}

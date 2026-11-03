@@ -1,0 +1,37 @@
+%% Crons del capítulo 07 — los dos trabajos recurrentes y los dos puntuales.
+%% Qué muestra: cuándo corre cada uno en hora de Chile contando desde la activación del plugin, y que el disparo real depende del cron del hospedaje cada 5 minutos, no de un reloj fijo.
+timeline
+    title Lo programado del carril SEO / IA / correo (hora Chile, medida desde la activación del plugin)
+    section Activación del plugin
+        Minuto 0 : register() agenda los dos recurrentes
+                 : llms_manifest_refresh queda a +1 h
+                 : social_image_derivatives queda a +2 h
+    section Primer día
+        +1 h : akibara_business_llms_manifest_refresh (daily)
+             : regenera /llms.txt y /llms-full.txt
+             : lease de 30 min protege contra la doble corrida
+        +2 h : akibara_business_social_image_derivatives (daily)
+             : convierte hasta 100 portadas AVIF a -og.jpg
+             : el candado NO es un compare-and-swap real
+    section Cada 24 h desde entonces
+        Misma hora +1 h : llms_manifest_refresh otra vez
+        Misma hora +2 h : social_image_derivatives otra vez
+                        : la cadena de reanudación NUNCA arranca
+                        : tope real 100 portadas por DÍA
+    section Bajo demanda, sin hora fija
+        Al guardar la identidad en Salud SEO : llms_manifest_refresh puntual
+        Al pulsar Regenerar llms.txt : llms_manifest_refresh puntual
+        Al pulsar Generar portadas : social_image_derivatives, también 100
+        Al servir un og-image sin hermana JPG : social_image_for_slug puntual con el slug
+    section Cómo se disparan de verdad
+        Siempre : DISABLE_WP_CRON activo en produccion
+                : el cron de Hostinger llama a wp-cron.php cada 5 minutos
+                : «diario» significa «en la primera corrida tras vencer el plazo»
+        Cómo se averigua la hora REAL de hoy : ssh akibara
+                                             : wp cron event list --fields=hook,next_run_gmt,next_run_relative,recurrence
+                                             : filtrar por akibara_business_
+                                             : es el ÚNICO modo: la hora depende de cuándo se activó el plugin
+    section Al desactivar el plugin
+        Quedan huérfanos : social_image_derivatives y social_image_for_slug
+                         : el hook de desactivación limpia seis crons y no estos dos
+                         : uninstall.php sí los limpia

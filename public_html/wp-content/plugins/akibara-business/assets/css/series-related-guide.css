@@ -1,0 +1,104 @@
+/**
+ * Guía editorial relacionada en archivos de serie.
+ */
+
+.akb-related-guide {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-4, 16px);
+	margin: 0 0 var(--space-5, 24px);
+	padding: var(--space-4, 16px) var(--space-5, 24px);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-border-light, #3a3a3a);
+	border-left: 4px solid var(--aki-red, #e60012);
+}
+
+.akb-related-guide__body {
+	min-width: 0;
+}
+
+.akb-related-guide__eyebrow {
+	margin: 0 0 var(--space-1, 4px);
+	color: var(--aki-red-text, #ff4756);
+	font-family: var(--font-heading, sans-serif);
+	font-size: var(--text-xs, 0.75rem);
+	font-weight: 400;
+	font-synthesis: none;
+	letter-spacing: 0.08em;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+.akb-related-guide__title {
+	margin: 0;
+	color: var(--aki-white, #fff);
+	font-family: var(--font-heading, sans-serif);
+	font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.7rem);
+	font-weight: 400;
+	font-synthesis: none;
+	letter-spacing: 0.02em;
+	line-height: 1.15;
+	text-transform: uppercase;
+}
+
+.akb-related-guide__cta {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2, 8px);
+	min-height: var(--touch-target-min, 44px);
+	padding: var(--space-2, 8px) var(--space-4, 16px);
+	color: var(--aki-white, #fff);
+	background: var(--aki-red, #e60012);
+	border: 1px solid var(--aki-red, #e60012);
+	font-weight: var(--weight-semibold, 600);
+	line-height: 1.25;
+	text-decoration: none;
+	/* Los tokens --transition-* YA incluyen la timing function
+	 * (150ms cubic-bezier(.4,0,.2,1)). Añadirle `ease-out` deja DOS funciones
+	 * en la declaración, la vuelve inválida en tiempo de cómputo y el navegador
+	 * cae al valor inicial `all` — la transición que se pretendía nunca corre.
+	 * El fallback lleva su propia timing function para seguir siendo válido. */
+	transition:
+		background-color var(--transition-fast, 160ms ease-out),
+		border-color var(--transition-fast, 160ms ease-out);
+}
+
+.akb-related-guide__cta:hover {
+	color: var(--aki-white, #fff);
+	background: var(--aki-red-hover, #c0000f);
+	border-color: var(--aki-red-hover, #c0000f);
+}
+
+/* El foco de la casa en su forma `outline` (DS-5): el amarillo de 3 px, sin
+   la sombra desplazada de --aki-focus-shadow, que sumaba un segundo indicador
+   distinto al de todos los demás botones. */
+.akb-related-guide__cta:focus-visible {
+	outline: var(--aki-focus-outline, 3px solid #ffd700);
+	outline-offset: var(--aki-focus-offset, 2px);
+	box-shadow: none; /* sin el anillo global encima del outline: una sola forma */
+}
+
+@media (max-width: 600px) {
+	.akb-related-guide {
+		align-items: stretch;
+		flex-direction: column;
+		padding: var(--space-4, 16px);
+	}
+
+	.akb-related-guide__cta {
+		/*
+		 * border-box incluye padding y borde dentro de width:100% para no desbordar la landing.
+		 */
+		box-sizing: border-box;
+		width: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-related-guide__cta {
+		transition: none;
+	}
+}

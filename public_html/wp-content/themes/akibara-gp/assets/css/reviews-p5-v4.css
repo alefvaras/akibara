@@ -1,0 +1,130 @@
+/* ==========================================================================
+   Reseñas de la ficha — estética Persona 5 / manga (WooCommerce #reviews)
+
+   Arquitectura:
+   - Especificidad deliberada sin !important: reglas acotadas con la cadena de
+     WooCommerce (.woocommerce #reviews #comments ol.commentlist li.review) para
+     prevalecer limpiamente sobre el CSS base.
+   - Ámbito estricto a #reviews para prevenir colisiones con .star-rating en
+     fichas de producto o tarjetas de catálogo.
+   - Textos y títulos semánticos respetando el árbol de accesibilidad (H2 real
+     sin superposición artificial con pseudo-elementos).
+   ========================================================================== */
+
+/* Lista y tarjetas */
+.woocommerce #reviews #comments ol.commentlist {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.woocommerce #reviews #comments ol.commentlist li.review {
+    padding: 0;
+    margin: 0 0 40px;
+    border: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#reviews .commentlist li.review .comment_container {
+    background-color: var(--aki-surface-2);
+    border: 3px solid var(--aki-white);
+    border-radius: 0;
+    clip-path: polygon(0 0, 100% 2%, 98% 100%, 2% 98%);
+    padding: 24px;
+    margin: 10px 0 24px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+#reviews .commentlist li.review:nth-child(even) .comment_container {
+    clip-path: polygon(2% 0, 98% 2%, 100% 98%, 0 100%);
+    border-color: var(--aki-red-bright);
+}
+
+/* Sólo con puntero real: en un teléfono el :hover queda pegado tras el toque. */
+@media (hover: hover) {
+    #reviews .commentlist li.review .comment_container:hover {
+        transform: translateY(-4px);
+    }
+}
+
+/* Autor (estilo nota de rescate) */
+#reviews .commentlist li.review .woocommerce-review__author {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 400;
+    font-synthesis: none;
+    text-transform: uppercase;
+    background: var(--aki-white);
+    color: var(--aki-black);
+    padding: 4px 10px;
+    display: inline-block;
+    transform: rotate(2deg);
+    margin-bottom: 16px;
+    box-shadow: 3px 3px 0 var(--aki-red-bright);
+    line-height: 1;
+}
+
+/* Avatar anguloso. WooCommerce: (2,2,4) → aquí (2,3,4). */
+.woocommerce #reviews #comments ol.commentlist li.review img.avatar {
+    border-radius: 0;
+    clip-path: polygon(10% 0, 100% 10%, 90% 100%, 0 90%);
+    border: 2px solid var(--aki-red-bright);
+    background: var(--aki-surface);
+    padding: 2px;
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    z-index: 3;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* WooCommerce: (2,3,2) → aquí (2,4,2). */
+.woocommerce #reviews #comments ol.commentlist li.review .comment-text {
+    margin-left: 50px;
+    border: none;
+    padding: 0;
+}
+
+/* Estrellas de la reseña.
+ * `--aki-red-text` y no `--aki-red-bright`: #FF0A1D sobre la tarjeta (#1A1A1A)
+ * da 4,40:1 y reprueba AA para texto chico; el token de rojo legible sí pasa
+ * (R12-resena-contraste). */
+#reviews .commentlist li.review .star-rating span::before {
+    color: var(--aki-red-text);
+    text-shadow: 1px 1px 0 #000;
+}
+
+#reviews .star-rating {
+    font-size: 1.2rem;
+    transform: skewX(-10deg);
+}
+
+/* Las metas que WooCommerce escribe encima de la tarjeta oscura (fecha y
+ * «(propietario verificado)») traían su gris de tema claro: #767676 sobre
+ * #1A1A1A = 3,83:1. Gris del sistema oscuro, ≥ 8:1. */
+#reviews .commentlist li.review .woocommerce-review__published-date,
+#reviews .commentlist li.review .woocommerce-review__dash,
+#reviews .commentlist li.review .woocommerce-review__verified {
+    color: var(--aki-gray-300);
+}
+
+/* Texto de la reseña */
+.woocommerce #reviews #comments ol.commentlist li.review .description {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--aki-white);
+    line-height: 1.6;
+    font-style: italic;
+    border-left: 4px solid var(--aki-red);
+    padding-left: 16px;
+    margin-top: 10px;
+}

@@ -1,0 +1,182 @@
+%% Piezas del capítulo 03 — akibara-business: catálogo, series, tomos, editoriales y packs.
+%% Qué muestra: los cinco dominios del área (la serie y su ficha de datos, las editoriales, el orden y las vitrinas, «Sigue esta serie» y «Arma tu Pack»), qué pieza depende de cuál, dónde entra el dueño, qué ve el cliente, y los terceros con los que se habla (WooCommerce, Rank Math, LiteSpeed, Action Scheduler y el tema).
+%% Cómo leer los colores: naranja = código propio de Akibara · gris = tercero (no se toca, se le habla por hooks) · verde = una persona · violeta = un dato guardado · rojo = donde nos muerde. La leyenda va dibujada como primer bloque.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    subgraph LEYENDA["Leyenda de colores"]
+        direction LR
+        L1["código propio de Akibara"]:::propio
+        L2["tercero: se le habla por hooks"]:::tercero
+        L3["una persona"]:::persona
+        L4["un dato guardado"]:::dato
+        L5["donde nos muerde"]:::alerta
+    end
+
+    DUENO["Dueño<br/>escribe sólo lo que no se puede derivar"]:::persona
+    CLIENTE["Cliente<br/>llega desde Google a la landing de una serie"]:::persona
+
+    subgraph TAX["Los tres cajones de WordPress sobre los que vive el área"]
+        SERIE["Taxonomía pa_serie<br/>la SERIE; su única página es /serie/&lt;slug&gt;/"]:::dato
+        MARCA["Taxonomía product_brand<br/>la EDITORIAL; su página es /marca/&lt;slug&gt;/"]:::dato
+        AUTOR["Taxonomía pa_autor<br/>el AUTOR. NINGUNA pieza de este capítulo construye /autor/&lt;slug&gt;/: es el archive que WooCommerce genera solo. Acá sólo se LEE, para la fila «Autor …» del bloque de datos"]:::dato
+    end
+
+    subgraph NUCLEO["La serie y su ficha de datos"]
+        ELIG["SeriesCatalogEligibility<br/>autoridad única del «cuántos tomos»: una consulta agregada, sin el count nativo"]:::propio
+        FACTS["SeriesFacts<br/>el agregado de la serie en UNA consulta; caché de 6 h por generaciones"]:::propio
+        PUB["PublicationStatus + PublicationStatusFields<br/>lo único que no se deriva: 2 ejes (obra y edición) x 2 campos (estado y total) = 4 term meta"]:::propio
+        SCHEMA["SeriesSchema + SeriesSchemaType<br/>publica la serie como ComicSeries dentro del grafo de Rank Math"]:::propio
+        EDIC["SeriesEditions<br/>hasta 8 ediciones hermanas, siempre en los dos sentidos"]:::propio
+        GUIA["SeriesRelatedGuide<br/>cuelga una entrada del blog de la serie, sólo en la URL limpia"]:::propio
+        IDX["SeriesIndex + SeriesDirectory\Shortcode + bootstrap SeriesDirectory<br/>el directorio alfabético que vive en /series/; dos reglas, ninguna lista de slugs"]:::propio
+    end
+
+    subgraph EDITORIALES["Las editoriales y sus landings"]
+        BOOT["BrandsDirectory (bootstrap)<br/>cablea los once componentes del dominio. Su cabecera dice «single source of truth = pwb-brand» y es FALSO: todo el módulo usa product_brand"]:::alerta
+        REGION["BrandRegion + RegionMeta + BrandFeatured<br/>de qué país es cada editorial, en cascada de cinco pasos"]:::propio
+        GRID["BrandsDirectory\Shortcode + HomeCarousel<br/>/editoriales/ y la vitrina capada del inicio"]:::propio
+        MENU["MenuInjector + MenuItemFields<br/>convierten un elemento del menú en megamenú generado"]:::propio
+        LAND["BrandLandings + BrandFamilyLanding + BrandLandingCallout + BrandLandingSchema<br/>las páginas paraguas /ivrea/ y /panini/ y el conmutador de ediciones"]:::propio
+        EFACTS["EditionFacts + EditionCopy + EditionsPanel<br/>tres hechos escritos y dos calculados por edición"]:::propio
+    end
+
+    subgraph ORDEN["El orden, las vitrinas y las portadas"]
+        CORD["CatalogOrder + Interleaver<br/>reparte por rondas de serie y escribe menu_order en lotes de 200"]:::propio
+        PAD["Bootstrap akibara-business.php<br/>rellena el nº de tomo a dos dígitos y rotula el selector de orden"]:::propio
+        HSD["HomeSeriesDestacadas<br/>vitrina «Series más buscadas» de la portada"]:::propio
+        HD["HomeDestacados<br/>las dos vitrinas de producto del inicio, con tope por serie"]:::propio
+        POP["PopularProducts<br/>los más vendidos del 404, el carrito vacío y «sin resultados»"]:::propio
+        COVER["SeriesCover + VolumeTitle<br/>qué portada representa a la serie y qué número lleva un título"]:::propio
+    end
+
+    subgraph FOLLOW["«Sigue esta serie» — la suscripción que no se almacena"]
+        SFROOT["SeriesFollow (raíz) + Install<br/>los 4 ajustes, el panel de la cola y quien CREA la tabla (sólo sella la versión si la sonda confirma que existe)"]:::propio
+        PL["PublishListener<br/>encola y se va; cero consultas sobre set_object_terms"]:::propio
+        RES["SeriesResolver<br/>una sola serie y un número inequívoco, o descarta"]:::propio
+        FF["FollowerFinder<br/>consulta inversa serie → compradores; ante la duda, null"]:::propio
+        DQ["DigestQueue<br/>la cola Y la marca de avisado en la misma tabla"]:::propio
+        DR["DigestRunner<br/>arma el correo ANTES de reclamar las filas"]:::propio
+        MAIL["SeriesFollowEmail + plantillas<br/>un bloque por serie, con baja por serie y baja global"]:::propio
+        REG["FollowRegistry + UnfollowHandler + CollectionToggle + GlobalToggle<br/>lo único que se guarda es la NEGACIÓN, en user meta"]:::propio
+        FRASE["VolumePhrase + CutoffPhrase<br/>«71 al 74» y la fecha de corte, sin aritmética propia"]:::propio
+    end
+
+    subgraph PACKS["«Arma tu Pack» — descuento por cantidad dentro de una serie"]
+        SET["Settings + EligibilityGuard + SeriesDepth<br/>el interruptor, las categorías excluidas y «N tomos elegibles hoy»"]:::propio
+        TIER["VolumeTierResolver + PromotionPolicy<br/>tramos estrictamente crecientes desde 3 tomos"]:::propio
+        COL["CartSeriesCollector<br/>la ÚNICA rutina carrito → serie → configuración"]:::propio
+        ENG["DiscountEngine + Support\Money + Support\Result<br/>convierte porcentajes en pesos; Money decide el redondeo"]:::propio
+        CUP["BundleCouponEngine<br/>cupón virtual fabricado al vuelo, nunca set_price()"]:::propio
+        BW["BuilderWidget<br/>el armador de la ficha de producto"]:::propio
+        LO["LandingOffer<br/>el riel de la landing de serie y sus chips de disponibilidad"]:::propio
+        OI["OrderInstrumentation<br/>sella el aporte por línea dentro del pedido, para poder reconstruir el cupón meses después"]:::propio
+        CC["CustomerCollection<br/>la definición ÚNICA de «qué tiene ya este cliente»; lee Analytics contra el almacén canónico de pedidos"]:::propio
+        NOTICE["BypCartNoticeProvider<br/>los avisos del carrito: «te falta 1 para el siguiente tramo», «un cupón externo desactivó el pack»"]:::propio
+        ADMIN["Admin\AdminSection + Admin\BypConfigController + Admin\AdminAssets<br/>la pantalla «Arma tu Pack»: un bloque por serie, y 347 KB al abrirla"]:::propio
+        PBR["PublicBatchRequest<br/>mismo origen, 300 IDs y 10 por minuto: el nonce de invitado es público"]:::propio
+    end
+
+    subgraph TERCEROS["Terceros"]
+        WOO["WooCommerce<br/>productos, cupones, correos y la tabla wc_product_meta_lookup"]:::tercero
+        AS["Action Scheduler<br/>la cola de trabajos que empuja el cron cada 5 minutos"]:::tercero
+        RM["Rank Math<br/>emite el grafo JSON-LD y guarda el noindex del término"]:::tercero
+        LS["LiteSpeed Cache<br/>purga por etiqueta T.&lt;term_id&gt;, por URL y ENTERA. Las dos primeras se quedan en el servidor; la entera sí propaga a Cloudflare"]:::tercero
+        CF["Cloudflare<br/>la copia que ve el cliente. Sólo la purga ENTERA la invalida; el resto espera a que venza el TTL de la zona"]:::alerta
+        TEMA["Tema akibara-gp<br/>aporta el hook del hero. Sin el plugin NO pinta otros más vendidos: fuerza un resultado vacío para no mostrar el catálogo entero"]:::tercero
+        SEARCH["akibara-search<br/>facetas, reindexado y el vocabulario de disponibilidad"]:::tercero
+    end
+
+    DUENO -->|Productos → Atributos → Serie| PUB
+    DUENO -->|Productos → Atributos → Serie| EDIC
+    DUENO -->|la columna «Guía» del listado| GUIA
+    DUENO -->|Productos → Marcas| REGION
+    DUENO -->|Apariencia → Menús| MENU
+    DUENO -->|Akibara → Sitio → Editoriales · Ediciones| EFACTS
+    DUENO -->|Akibara → Sitio → Series en la portada| HSD
+    DUENO -->|Akibara → Textos y Copys| PAD
+    DUENO -->|Akibara → Venta → Vitrina| CORD
+    DUENO -->|Akibara → Venta → Arma tu Pack| ADMIN
+    DUENO -->|Akibara → Venta → Sigue esta serie| SFROOT
+    DUENO -->|WooCommerce → Ajustes → Correos<br/>EL SEGUNDO INTERRUPTOR, del que el panel no informa| MAIL
+
+    SERIE --> ELIG
+    SERIE --> FACTS
+    MARCA --> REGION
+    AUTOR --> FACTS
+
+    ELIG --> IDX
+    ELIG --> EDIC
+    FACTS --> SCHEMA
+    PUB --> FACTS
+    PUB --> SCHEMA
+    SCHEMA --> RM
+    FACTS --> LS
+    IDX --> LS
+    GUIA --> FACTS
+
+    BOOT --> REGION
+    BOOT --> GRID
+    BOOT --> LAND
+    REGION --> GRID
+    REGION --> MENU
+    LAND --> MENU
+    EFACTS --> LAND
+    EFACTS --> COVER
+    EFACTS --> LS
+    GRID --> REGION
+
+    CORD --> AS
+    CORD --> LS
+    LS -. purga por etiqueta y por URL: NO propaga .-> CF
+    CORD ==>|litespeed_purge_all, vía cdn-cloudflare_clear: ESTO SÍ llega al borde. 48 → 1.057 ms| CF
+    EFACTS -.->|sólo si cambió el texto del menú| CF
+    CORD --> INTERL["Interleaver<br/>agrupa por serie, ordena por el tomo vendible más nuevo y reparte POR RONDAS"]:::propio
+    INTERL --> MO["menu_order de los 1.568 productos<br/>campo gestionado por máquina: el arrastre manual se pisa"]:::dato
+    CORD --> MO
+    PAD --> MO
+    HSD --> COVER
+    HD --> WOO
+    POP --> TEMA
+
+    SFROOT --> PL
+    SFROOT --> DQ
+    PL --> AS
+    AS --> DR
+    PL --> RES
+    RES --> FF
+    FF -->|reusa su definición de «lo tenés»| CC
+    DR --> DQ
+    DR --> MAIL
+    MAIL --> WOO
+    REG --> MAIL
+    FRASE --> MAIL
+
+    SET --> TIER
+    TIER --> ENG
+    COL --> ENG
+    ENG --> CUP
+    CUP --> WOO
+    BW --> COL
+    LO --> COL
+    LO -->|sus chips leen SeriesFacts::catalog_facts; segunda instancia| FACTS
+    LO --> SEARCH
+    CUP --> OI
+    CUP --> NOTICE
+    CC --> BW
+    CC --> LO
+    ADMIN --> SET
+    BW --> PBR
+    LO --> PBR
+
+    CLIENTE --> FACTS
+    CLIENTE --> LO
+    CLIENTE --> BW
+    CLIENTE --> HSD
+    MAIL -->|el correo va AL cliente, no al revés| CLIENTE
+    EDIC --> TEMA
+    PL --> SEARCH

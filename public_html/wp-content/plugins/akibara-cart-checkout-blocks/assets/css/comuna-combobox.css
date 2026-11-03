@@ -1,0 +1,113 @@
+/* Commune combobox for the Checkout Block city field.
+ *
+ * The input itself stays WooCommerce's — its focus ring is the theme token
+ * and must not be repainted here (see the site-wide focus system). This file
+ * only styles the suggestion panel injected as a sibling of the input.
+ */
+
+.wc-block-components-address-form__city,
+.akb-comuna-host {
+	position: relative;
+}
+
+.akb-comuna-listbox {
+	position: absolute;
+	z-index: 100;
+	top: calc(100% + 4px);
+	right: 0;
+	left: 0;
+	display: none;
+	box-sizing: border-box;
+	max-height: 264px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-border, #2a2a2e);
+	border-radius: 2px;
+	box-shadow: 0 12px 28px rgb(0 0 0 / 55%);
+	scrollbar-width: thin;
+	scrollbar-color: var(--aki-border-light, #333333) transparent;
+}
+
+.akb-comuna-listbox--open {
+	display: block;
+}
+
+.akb-comuna-option {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	box-sizing: border-box;
+	min-height: 44px;
+	padding: 10px 14px;
+	color: var(--aki-gray-100, #f0f0f0);
+	font-size: 15px;
+	line-height: 1.4;
+	cursor: pointer;
+	user-select: none;
+}
+
+.akb-comuna-option:hover {
+	background: var(--aki-surface-3, #222222);
+}
+
+.akb-comuna-option:active {
+	background: rgba(230, 0, 18, 0.18);
+}
+
+.akb-comuna-option--active,
+.akb-comuna-option--active:hover {
+	background: rgba(230, 0, 18, 0.12);
+	box-shadow: inset 3px 0 0 var(--aki-red, #E60012);
+}
+
+.akb-comuna-option__name {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.akb-comuna-option__region {
+	flex: 0 0 auto;
+	max-width: 45%;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: 12px;
+	text-align: right;
+}
+
+.akb-comuna-empty {
+	padding: 12px 14px;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: 14px;
+}
+
+.akb-comuna-live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+@media (forced-colors: active) {
+	.akb-comuna-listbox {
+		border: 1px solid CanvasText;
+	}
+
+	.akb-comuna-option--active,
+	.akb-comuna-option--active:hover {
+		outline: 2px solid Highlight;
+		outline-offset: -2px;
+		box-shadow: none;
+	}
+}
+
+/* positionListbox() elige la apertura superior cuando hay más espacio sobre el campo y publica el alto disponible mediante max-height en línea. */
+.akb-comuna-listbox--above {
+	top: auto;
+	bottom: calc(100% + 4px);
+}

@@ -1,0 +1,300 @@
+/*
+ * Home — `.akb-section` system para bloques de productos.
+ * Carga conditional (is_front_page() || is_page(210)).
+ *
+ * Selectores en uso por page 210:
+ *   .akb-section           (wrapper genérico)
+ *   .akb-section--alt      (variante con bg ligeramente distinto)
+ *   .akb-preventas         (variante temática preventas)
+ *   .akb-section__header   (h2 + link container)
+ *   .akb-section__header h2
+ *   .akb-section__header h2::before  (bullet rojo)
+ *   .akb-section__sub      (subtitle pequeño)
+ *   .akb-section__link     (link "Ver todos →")
+ *
+ * NOTA: hero configurable (.akb-hero) vive en akibara-business. Trust
+ * (.akb-trust-section) está en trust.css.
+ */
+
+/* ─── Page wrapper reset (home only) ────────────────────────────
+ * GP renderiza .inside-article con bg blanco + .entry-header vacío
+ * (~17px) que crea franja blanca arriba del hero. En home queremos
+ * que el hero pegue directo al header.
+ */
+body.home .inside-article {
+    background: var(--aki-black);
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+body.home .entry-header {
+    display: none;
+}
+
+body.home .entry-content {
+    margin: 0;
+    padding: 0;
+}
+
+.akb-section {
+    padding-block: clamp(2.5rem, 6vw, 4.5rem);
+    /* Padding lateral consistente: el wp:group es alignfull (sin margins
+     * naturales), sin esto el contenido (h2, links "Ver todos →", grid de
+     * productos) toca el viewport edge en mobile. La flecha "→" del link
+     * "VER TODOS" quedaba flush al pixel del display sin gap. */
+    padding-inline: clamp(14px, 4vw, 32px);
+    background: var(--aki-black);
+    color: var(--aki-gray-200);
+}
+
+.akb-section--alt {
+    background: var(--aki-surface);
+}
+
+.akb-preventas {
+    background: var(--aki-surface);
+    border-top: 1px solid var(--aki-border);
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.akb-section__header {
+    margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--aki-border);
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    position: relative;
+}
+
+.akb-section__header::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 90px;
+    height: 22px;
+    background-image: radial-gradient(circle, var(--aki-gray-600) 1px, transparent 1px);
+    background-size: 6px 6px;
+    opacity: 0.28;
+    pointer-events: none;
+}
+
+.akb-section__header h2 {
+    margin: 0;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    line-height: 1;
+    color: var(--aki-white);
+    flex: 1 1 auto;
+    text-transform: uppercase;
+}
+
+.akb-section__header h2::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 0.85em;
+    background: var(--aki-red);
+    margin-right: 0.6rem;
+    vertical-align: -2px;
+}
+
+.akb-section__sub {
+    flex: 1 1 100%;
+    margin: 0.25rem 0 0;
+    color: var(--aki-gray-400);
+    font-size: var(--text-sm);
+}
+
+.akb-section__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0.45rem 0.85rem;
+    margin-left: auto;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.72);
+    font-family: var(--font-heading);
+    font-size: 13px;
+    /* Bebas no tiene 800 ni italic: ambos se sintetizaban (trazo engordado +
+       slant falso). El dinamismo lo da un skew real del contenedor. */
+    font-weight: 400;
+    font-style: normal;
+    font-synthesis: none;
+    transform: skewX(-5deg);
+    letter-spacing: 0.08em;
+    /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre el chip
+       casi-negro: AA pleno (1.4.3). --aki-red-bright puro daba 3.95 a 13px. El
+       borde/box-shadow del chip + la flecha → cubren 1.4.1 (uso de color). */
+    color: #FF2738;
+    color: color-mix(in srgb, var(--aki-red-bright) 88%, #fff);
+    text-decoration: none;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+        color 220ms ease,
+        background-color 220ms ease,
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        transform 220ms ease,
+        text-shadow 220ms ease;
+}
+
+.akb-section__link:hover,
+.akb-section__link:focus-visible {
+    /* Fill ROJO (no amarillo — amarillo = solo precio). El color de acción de la
+       casa es el rojo; el amarillo queda solo como anillo de foco abajo. */
+    color: var(--aki-white);
+    background: var(--aki-red);
+    border-color: var(--aki-red);
+    transform: translateX(5px) skewX(-5deg);
+    text-shadow: none;
+    box-shadow: 4px 4px 0 var(--aki-black);
+    text-decoration: none;
+}
+
+/* Anillo de foco (amarillo permitido como indicador funcional de foco, no fill). */
+.akb-section__link:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+    .akb-section {
+        padding-block: 2rem;
+    }
+
+    .akb-section__header {
+        margin-bottom: var(--space-4);
+    }
+}
+
+/* ─── Vitrinas en fila deslizable en móvil (<= 768px) ──────────────
+ * En pantallas estrechas, cada vitrina de productos y «Series más buscadas»
+ * se presenta como una fila horizontal deslizable con CSS scroll snap.
+ *
+ * - Margen negativo igual al relleno lateral de la sección para scroll a sangre.
+ * - scroll-snap-type alineado al inicio de cada tarjeta.
+ * - Relleno vertical para no recortar la elevación y el foco de la tarjeta.
+ */
+@media (max-width: 768px) {
+    .akb-section .woocommerce ul.products,
+    .akb-section .akb-home-series__grid {
+        --akb-fila-canal: clamp(14px, 4vw, 32px);
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-columns: none;
+        grid-auto-columns: clamp(140px, 44%, 200px);
+        gap: var(--space-3);
+        max-width: none;
+        margin-inline: calc(-1 * var(--akb-fila-canal));
+        padding: var(--space-2) var(--akb-fila-canal) var(--space-3);
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: var(--akb-fila-canal);
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .akb-section .woocommerce ul.products::-webkit-scrollbar,
+    .akb-section .akb-home-series__grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .akb-section .woocommerce ul.products > li.product,
+    .akb-section .akb-home-series__grid > .akb-home-series__item {
+        scroll-snap-align: start;
+    }
+
+    /* ── Las portadas de la 4.ª tarjeta en adelante esperan al gesto (D2) ──────
+     * Con las filas deslizables la portada pedía 27 imágenes antes de `load`
+     * (385 KB) contra 15 (164 KB) en rejilla: Chrome aplica su margen de lazy
+     * también de lado dentro de un desplazador, y pedía las 8 de cada fila.
+     * Con esto: 18 imágenes (220 KB) y `load` 835 ms antes (mediana 5.328 →
+     * 4.493 ms); el LCP —la imagen del hero— no cambia (1.908 → 1.892 ms).
+     * Medido en el espejo: Chromium móvil, CPU ×4, 1,6 Mbps / 150 ms, sin caché,
+     * 6 + 6 corridas alternas, y la hoja de la portada servida por la MISMA vía
+     * en las dos (lo que se sirve con `page.route` no pasa por el
+     * estrangulamiento de red y adelantaba el LCP ~350 ms del lado que lo usaba).
+     *
+     * `content-visibility: auto` en la CAJA DE LA PORTADA (no en la tarjeta) de
+     * la 4.ª en adelante: mientras está fuera de la vista, el navegador no pinta
+     * su contenido y la imagen lazy de dentro no se pide; al deslizar la fila, la
+     * caja entra, se pinta y la imagen se carga. La 3.ª, la que asoma, no entra
+     * aquí. Sólo la portada: título, precio y botón se pintan siempre, así que
+     * la fila mide exactamente lo mismo y nada salta al deslizar.
+     *
+     * Mientras no se pinta, la caja mide su `contain-intrinsic-block-size`, que
+     * tiene que ser su alto real al píxel o la tarjeta crecería al entrar:
+     *   - producto: 2:3 del ancho de la caja, que es la columna de la fila menos
+     *     los 2 × 2 px del borde de la tarjeta (loop.css, `li.product`); la
+     *     columna es `clamp(140px, 44%, 200px)` de la caja de contenido de la
+     *     fila, que en unidades de contenedor es `clamp(140px, 44cqi, 200px)`.
+     *     Por eso la fila declara `container-type: inline-size` (su ancho ya lo
+     *     fija la sección, no su contenido: no cambia nada de su maqueta).
+     *   - serie: su caja ya tiene `aspect-ratio: 2 / 3` (home-series-destacadas.css,
+     *     akibara-business), que sigue valiendo con la caja sin pintar.
+     * Verificado en Chromium y WebKit a 320, 360, 390, 414, 600 y 768 px: todas
+     * las tarjetas y el alto de la página, idénticos con y sin esto.
+     * `auto` en el alto: una vez pintada, se recuerda su medida real.
+     * Navegadores sin `content-visibility` lo ignoran y cargan como antes. */
+    .akb-section .woocommerce ul.products {
+        container-type: inline-size;
+    }
+
+    .akb-section .woocommerce ul.products > li.product:nth-child(n+4) .akb-product-cover-wrap {
+        content-visibility: auto;
+        contain-intrinsic-block-size: auto calc(1.5 * (clamp(140px, 44cqi, 200px) - 4px));
+    }
+
+    .akb-section .akb-home-series__grid > .akb-home-series__item:nth-child(n+4) .akb-home-series__cover {
+        content-visibility: auto;
+    }
+
+    /* Al primer toque, desplazamiento o foco en una fila, main.js le pone
+     * `akb-fila--activa`: sus portadas se sueltan todas y se descargan mientras
+     * el dedo desliza, en vez de una a una cuando ya asoman. Sin JS, las
+     * portadas se piden igual al entrar en la vista (sólo un poco más tarde). */
+    .akb-section .woocommerce ul.products.akb-fila--activa > li.product:nth-child(n+4) .akb-product-cover-wrap,
+    .akb-section .akb-home-series__grid.akb-fila--activa > .akb-home-series__item:nth-child(n+4) .akb-home-series__cover {
+        content-visibility: visible;
+    }
+}
+
+/* WC products grid + card styling viven en loop.css con selectores
+ * generales (.woocommerce ul.products) — single source of truth para
+ * shop, archives, search y este home shortcode.
+ */
+
+/* ─── Neutralizar wrappers internos cuando viven dentro de .akb-section ──
+ * El shortcode [akibara_brands_home] viene con su propio padding-block +
+ * background + container (theme-agnostic). Cuando el page 210 lo envuelve
+ * en un wp:group constrained (.akb-section), ese wrapper YA aplica
+ * padding-block, background y max-width 1280px coherentes con las otras
+ * secciones de la home — el styling interno duplica. Acá lo desactivamos
+ * solo en ese contexto, preservando el componente standalone para
+ * cualquier otra page que use el shortcode sin envoltorio.
+ */
+.akb-section > .akb-brands-home,
+.akb-section .akb-brands-home {
+    padding: 0;
+    background: transparent;
+    border-top: 0;
+    border-bottom: 0;
+}
+
+.akb-section .akb-brands-home__container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}

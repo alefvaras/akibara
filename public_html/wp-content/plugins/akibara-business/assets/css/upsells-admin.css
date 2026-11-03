@@ -1,0 +1,277 @@
+.akb-upsells-card {
+	max-width: 760px;
+	margin-top: 16px;
+	padding: 22px 24px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.akb-upsells-card h3 {
+	margin: 0 0 6px;
+	font-size: 18px;
+}
+
+.akb-upsells-intro {
+	max-width: 620px;
+	margin: 0 0 18px;
+	color: #50575e;
+}
+
+.akb-upsells-stats {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	margin-bottom: 18px;
+	padding: 16px 18px;
+	border-radius: 4px;
+	background: #f6f7f7;
+}
+
+.akb-upsells-stat-main {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	min-width: 130px;
+	padding-right: 24px;
+	border-right: 1px solid #dcdcde;
+}
+
+.akb-upsells-pct {
+	color: #d90010;
+	font-size: 32px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.akb-upsells-pct-label {
+	margin-top: 4px;
+	color: #50575e;
+	font-size: 12px;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.akb-upsells-stat-detail {
+	color: #1d2327;
+	font-size: 13px;
+	line-height: 1.7;
+}
+
+.akb-upsells-stat-detail code {
+	padding: 1px 6px;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	background: #fff;
+	font-size: 11px;
+}
+
+.akb-upsells-stat-pending,
+.akb-upsells-stat-pending strong {
+	color: #996800;
+}
+
+.akb-upsells-stat-total {
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: 1px solid #dcdcde;
+	color: #50575e;
+}
+
+.akb-upsells-explain,
+.akb-upsells-lastrun,
+.akb-upsells-cron {
+	max-width: 620px;
+	margin: 0 0 18px;
+	padding: 10px 14px;
+	border-left: 3px solid #2271b1;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.akb-upsells-explain {
+	background: #f6f7f7;
+}
+
+.akb-upsells-lastrun {
+	background: #f0f6fc;
+}
+
+.akb-upsells-cron {
+	border-left-color: #008a20;
+	background: #edfaef;
+}
+
+.akb-upsells-unprocessable {
+	max-width: 620px;
+	margin: 0 0 18px;
+	padding: 0;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.akb-upsells-unprocessable summary {
+	padding: 10px 14px;
+	color: #2271b1;
+	font-size: 13px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.akb-upsells-unprocessable summary:hover {
+	color: #135e96;
+}
+
+.akb-upsells-unprocessable[open] summary {
+	margin-bottom: 0;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.akb-upsells-unprocessable ul {
+	margin: 0;
+	padding: 8px 14px 12px 32px;
+	font-size: 13px;
+	line-height: 1.7;
+	list-style: disc;
+}
+
+.akb-upsells-unprocessable li {
+	margin: 0;
+}
+
+.akb-upsells-unprocessable a {
+	color: #1d2327;
+	text-decoration: none;
+}
+
+.akb-upsells-unprocessable a:hover {
+	color: #2271b1;
+	text-decoration: underline;
+}
+
+.akb-upsells-preview {
+	margin: 0 0 18px;
+	padding: 14px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.akb-upsells-preview h3 {
+	margin: 0 0 6px;
+}
+
+.akb-upsells-preview-scroll {
+	max-height: 360px;
+	overflow: auto;
+}
+
+.akb-upsells-health {
+	margin: 18px 0;
+	padding: 16px;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #dba617;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.akb-upsells-health h3 {
+	margin: 0 0 6px;
+}
+
+.akb-upsells-health details {
+	margin: 10px 0 14px;
+}
+
+.akb-upsells-health details ul {
+	max-height: 240px;
+	margin: 8px 0;
+	padding-left: 22px;
+	overflow: auto;
+	list-style: disc;
+}
+
+.akb-upsells-health-ok {
+	margin-bottom: 0;
+	color: #008a20;
+	font-weight: 600;
+}
+
+.akb-upsells-note {
+	margin: 14px 0 0;
+	padding: 10px 14px;
+	border-left: 3px solid #8c8f94;
+	background: #f6f7f7;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.akb-upsells-cross {
+	margin: 10px 0 0;
+	padding: 0;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.akb-upsells-cross summary {
+	padding: 10px 14px;
+	color: #996800;
+	font-size: 13px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.akb-upsells-cross[open] summary {
+	border-bottom: 1px solid #dcdcde;
+}
+
+.akb-upsells-cross ul {
+	margin: 8px 0;
+	padding: 0 14px 4px 32px;
+	font-size: 13px;
+	line-height: 1.7;
+	list-style: disc;
+}
+
+.akb-upsells-cross .description {
+	padding: 0 14px 12px;
+	margin: 0;
+}
+
+.akb-upsells-confirm {
+	display: block;
+	max-width: 620px;
+	margin: 10px 0;
+	color: #3c434a;
+}
+
+.akb-upsells-confirm input {
+	margin-right: 6px;
+}
+
+.akb-upsells-run-btn {
+	height: auto !important;
+	padding: 6px 18px !important;
+	font-size: 14px !important;
+}
+
+@media (max-width: 782px) {
+	.akb-upsells-card {
+		padding: 18px 16px;
+	}
+
+	.akb-upsells-stats {
+		align-items: stretch;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.akb-upsells-stat-main {
+		padding-right: 0;
+		padding-bottom: 12px;
+		border-right: 0;
+		border-bottom: 1px solid #dcdcde;
+	}
+}

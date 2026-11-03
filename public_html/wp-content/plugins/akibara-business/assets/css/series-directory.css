@@ -1,0 +1,470 @@
+/*
+ * Directorio de series en enlaces de texto por columnas. Sus tokens tienen fallback exacto
+ * para permitir despliegue independiente del tema; no adopta el peso visual de tarjetas de
+ * editorial.
+ */
+
+/* Este asset sólo se encola en la Page que contiene el shortcode. El H1 nativo
+ * de GeneratePress es block-level y el theme inclina todos los headings; al
+ * ocupar 100% del viewport, esa proyección sobresale ~1px y crea scroll-x en
+ * desktop. Ajustar la caja al texto conserva el tratamiento y elimina el rebote. */
+h1.entry-title {
+    width: fit-content;
+    max-width: 100%;
+}
+
+.akb-series-directory {
+    font-family: var(--font-body, Inter, system-ui, sans-serif);
+    color: var(--aki-white, #fff);
+    /*
+     * El directorio define sus propios márgenes laterales sin depender de que el tema reconozca el
+     * slug de la página como contenido especial.
+     */
+    padding-inline: 16px;
+}
+
+/* El componente no depende del reset del theme para que `width: 100%`, borde y
+ * padding sigan dentro del grid. Sin esta regla, un theme sin border-box añade
+ * 10px de overflow al alfabeto móvil. */
+.akb-series-directory *,
+.akb-series-directory *::before,
+.akb-series-directory *::after {
+    box-sizing: border-box;
+}
+
+/* …y cede el margen en cuanto el envoltorio del theme sí está presente, para no
+ * sumar dos sangrías. */
+.akb-page .akb-series-directory {
+    padding-inline: 0;
+}
+
+/* ── Buscador ─────────────────────────────────────────────────────────────── */
+
+/* Sale con [hidden] desde PHP y el JS lo revela. `display: none` explícito
+ * porque el `display: flex` de abajo ganaría al `display: none` del user-agent
+ * (misma especificidad, regla posterior). */
+.akb-series-directory__filter[hidden] {
+    display: none;
+}
+
+.akb-series-directory__filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-block-end: 16px;
+}
+
+.akb-series-directory__filter-label {
+    font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--aki-gray-200, #e0e0e0);
+    /* Bebas Neue no tiene bold real: sin esto el navegador lo sintetiza y el
+     * trazo engorda de forma desigual. Mismo criterio que el patrón «eyebrow»
+     * del theme. */
+    font-synthesis: none;
+}
+
+.akb-series-directory__input {
+    width: 100%;
+    max-width: 420px;
+    /* 44px de alto mínimo: objetivo táctil del sistema. */
+    min-height: 44px;
+    padding: 10px 14px;
+    background: var(--aki-surface-2, #1a1a1a);
+    border: 2px solid var(--aki-input-border, #707070);
+    border-radius: 2px;
+    color: var(--aki-white, #fff);
+    font: inherit;
+    font-size: 1rem; /* < 16px provoca zoom automático al enfocar en iOS. */
+}
+
+.akb-series-directory__input::placeholder {
+    color: var(--aki-gray-400, #8a8a8a);
+}
+
+.akb-series-directory__input:focus-visible {
+    border-color: var(--aki-white, #fff);
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+/* ── Filtros rápidos por faceta (País, Editorial, Estado) ─────────────────── */
+
+.akb-series-directory__facets {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-block-start: 10px;
+}
+
+.akb-series-directory__facet {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    align-items: start;
+    gap: 6px 12px;
+}
+
+.akb-series-directory__facet-label {
+    padding-block-start: 7px;
+    font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+    font-size: 0.88rem;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-synthesis: none;
+}
+
+.akb-series-directory__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.akb-series-directory button.akb-series-directory__chip,
+.akb-series-directory__chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 4px 12px;
+    background-color: var(--aki-surface-2, #1a1a1a);
+    border: 1px solid var(--aki-border-light, #333333);
+    border-radius: 3px;
+    color: var(--aki-gray-200, #e0e0e0);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.akb-series-directory button.akb-series-directory__chip:hover,
+.akb-series-directory button.akb-series-directory__chip:focus,
+.akb-series-directory button.akb-series-directory__chip:active,
+.akb-series-directory__chip:hover {
+    background-color: var(--aki-surface-3, #242428);
+    border-color: var(--aki-gray-400, #8a8a8a);
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-directory button.akb-series-directory__chip:focus-visible,
+.akb-series-directory__chip:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-series-directory button.akb-series-directory__chip.is-active,
+.akb-series-directory button.akb-series-directory__chip.is-active:hover,
+.akb-series-directory button.akb-series-directory__chip.is-active:focus,
+.akb-series-directory button.akb-series-directory__chip.is-active:active,
+.akb-series-directory__chip.is-active {
+    background-color: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+    color: var(--aki-white, #fff);
+    font-weight: 700;
+}
+
+/* El chip «Todos / Todas» representa la ausencia de filtro en esa fila: se
+ * distingue con borde claro y fondo sobrio para que el amarillo destaque
+ * únicamente cuando hay un filtro específico aplicado. */
+.akb-series-directory button.akb-series-directory__chip[data-akb-filter-pais=""].is-active,
+.akb-series-directory button.akb-series-directory__chip[data-akb-filter-editorial=""].is-active,
+.akb-series-directory button.akb-series-directory__chip[data-akb-filter-estado=""].is-active {
+    background-color: var(--aki-surface-3, #26262b);
+    border-color: var(--aki-gray-300, #b0b0b0);
+    color: var(--aki-white, #fff);
+}
+
+/* ── Índice alfabético ────────────────────────────────────────────────────── */
+
+.akb-series-directory__index {
+    padding-block: 8px;
+    background: var(--aki-black, #121212);
+    border-block-end: 1px solid var(--aki-border, #2a2a2e);
+}
+
+.akb-series-directory__letters {
+    display: grid;
+    /* En el viewport mínimo caben seis objetivos completos. Desde 360px son
+     * siete: el alfabeto queda íntegro y visible en 4–5 filas, nunca detrás de
+     * un gesto horizontal sin pista. */
+    grid-template-columns: repeat(6, minmax(44px, 1fr));
+    gap: 3px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.akb-series-directory__letter-item {
+    margin: 0;
+    list-style: none;
+}
+
+.akb-series-directory__letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: 4px;
+    font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+    font-size: 1.05rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    font-synthesis: none;
+    color: var(--aki-white, #fff);
+    text-decoration: none;
+    border: 1px solid transparent;
+    touch-action: manipulation;
+}
+
+a.akb-series-directory__letter:hover {
+    color: var(--aki-white, #fff);
+    background: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+}
+
+a.akb-series-directory__letter:focus-visible {
+    color: var(--aki-white, #fff);
+    background: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+/* Letra sin series: inerte y claramente distinta, pero sin desaparecer — la
+ * barra conserva la forma del alfabeto. Contraste ~4,6:1 sobre #121212, por
+ * encima del mínimo de texto no interactivo. */
+.akb-series-directory__letter--empty {
+    color: var(--aki-gray-400, #8a8a8a);
+    opacity: 0.55;
+    cursor: default;
+}
+
+/* ── Contador y estado vacío ──────────────────────────────────────────────── */
+
+.akb-series-directory__count {
+    margin-block: 14px 4px;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-size: 0.9rem;
+}
+
+.akb-series-directory__empty[hidden] {
+    display: none;
+}
+
+.akb-series-directory__empty {
+    margin-block: 16px;
+    padding: 14px 16px;
+    background: var(--aki-surface-2, #1a1a1a);
+    border-inline-start: 3px solid var(--aki-red, #e60012);
+    color: var(--aki-gray-200, #e0e0e0);
+}
+
+/* ── Grupos por letra ─────────────────────────────────────────────────────── */
+
+.akb-series-directory__group[hidden] {
+    display: none;
+}
+
+.akb-series-directory__group {
+    margin-block-start: 28px;
+    scroll-margin-block-start: 16px;
+}
+
+.akb-series-directory__heading {
+    margin: 0 0 10px;
+    padding-block-end: 6px;
+    border-block-end: 2px solid var(--aki-red, #e60012);
+    font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+    font-size: 1.6rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    font-synthesis: none;
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-directory__list {
+    display: grid;
+    /* Columnas por ANCHO disponible y no por número fijo: con 104 entradas
+     * repartidas de forma muy desigual (la S tiene 11, la Q ninguna) un número
+     * fijo deja columnas vacías en los grupos cortos. */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 2px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.akb-series-directory__item {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.akb-series-directory__item[hidden] {
+    display: none;
+}
+
+.akb-series-directory__link {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    /* 44px de alto: el renglón ES el objetivo táctil. */
+    min-height: 44px;
+    padding: 8px 6px;
+    color: var(--aki-gray-200, #e0e0e0);
+    text-decoration: none;
+    border-block-end: 1px solid var(--aki-border, #2a2a2e);
+    touch-action: manipulation;
+}
+
+.akb-series-directory__link:hover,
+.akb-series-directory__link:focus-visible {
+    color: var(--aki-white, #fff);
+    background: var(--aki-surface-2, #1a1a1a);
+}
+
+.akb-series-directory__link:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-series-directory__name {
+    /* `min-width: 0` para que el título largo pueda encoger en lugar de empujar
+     * el conteo fuera de la celda. */
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.akb-series-directory__link:hover .akb-series-directory__name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Estado de la edición (UC-14): marca pequeña junto al nombre, que baja con él
+ * si no cabe en la columna. Neutra —no es un estado de stock ni una alerta—; la
+ * edición «Completa» se lee un paso más clara porque es la que se puede tener
+ * entera. `vertical-align` la centra con la versal del nombre. */
+.akb-series-directory__estado {
+    display: inline-block;
+    margin-inline-start: 6px;
+    padding: 1px 6px;
+    border: 1px solid var(--aki-border-light, #333333);
+    border-radius: 3px;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: 0.1em;
+    white-space: nowrap;
+}
+
+.akb-series-directory__estado--completa {
+    border-color: var(--aki-gray-400, #8a8a8a);
+    color: var(--aki-gray-100, #f5f5f5);
+}
+
+.akb-series-directory__estado--tomo_unico {
+    border-color: var(--aki-red-text, #ff4756);
+    color: var(--aki-red-text, #ff4756);
+}
+
+.akb-series-directory__origin {
+    display: inline-block;
+    margin-inline-start: 6px;
+    padding: 1px 6px;
+    background: var(--aki-surface-2, #1a1a1a);
+    border: 1px solid var(--aki-border, #2a2a2e);
+    border-radius: 3px;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.4;
+    vertical-align: 0.1em;
+    white-space: nowrap;
+}
+
+.akb-series-directory__related-hint {
+    display: block;
+    margin-block-start: 3px;
+    color: var(--aki-gray-400, #8a8a8a);
+    font-size: 0.76rem;
+    font-style: italic;
+    line-height: 1.3;
+    text-decoration: none;
+}
+
+/* El conteo es metadato: se desenfatiza por matiz, nunca por luminancia (el
+ * blanco puro sobre #121212 llega a 18,7:1 y promovería el dato secundario por
+ * encima del título). `tabular-nums` alinea los números entre renglones. */
+.akb-series-directory__tomos {
+    flex: 0 0 auto;
+    color: var(--aki-gray-400, #8a8a8a);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ── Responsivo ───────────────────────────────────────────────────────────── */
+
+@media (min-width: 360px) {
+    .akb-series-directory__letters {
+        grid-template-columns: repeat(7, minmax(44px, 1fr));
+    }
+}
+
+@media (min-width: 720px) {
+    .akb-series-directory__index {
+        position: sticky;
+        top: var(--header-sticky-offset, 68px);
+        z-index: 15;
+        /* Fondo opaco obligatorio: al quedar pegado arriba, los renglones pasan
+         * por debajo y sin fondo se leen los dos textos superpuestos. */
+        background: var(--aki-black, #121212);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.72);
+    }
+
+    .akb-series-directory__letters {
+        /* Dos filas previsibles en tablet y escritorio. Cada letra conserva
+         * 44px aunque el contenedor sea angosto. */
+        grid-template-columns: repeat(14, minmax(44px, 1fr));
+    }
+
+    .akb-series-directory__group {
+        scroll-margin-block-start: 112px;
+    }
+}
+
+@media (max-width: 600px) {
+    .akb-series-directory__facet {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .akb-series-directory__facet-label {
+        padding-block-start: 0;
+    }
+
+    .akb-series-directory__list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .akb-series-directory,
+    .akb-series-directory * {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

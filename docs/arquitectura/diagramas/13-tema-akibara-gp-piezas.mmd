@@ -1,0 +1,185 @@
+%% Título: Piezas del tema akibara-gp y con quién habla cada una
+%% Qué muestra: los veinte módulos de inc/ (los tres walkers van juntos en el nodo
+%% "Nav"), las plantillas, los guiones y las hojas de estilo, agrupados por dominio;
+%% el tema padre y los terceros a los que se engancha; los cuatro plugins propios que
+%% le dan los datos; y los pocos datos que el tema lee o escribe.
+%% Leyenda de colores: azul = código nuestro, naranja = tercero, verde = persona,
+%% morado = dato guardado, rojo = enganche que hoy NO corre, gris punteado =
+%% sospechoso (corre, pero puede no estar sirviendo para nada).
+flowchart LR
+  classDef propio fill:#E8F0FE,stroke:#1A4FBF,stroke-width:2px,color:#0B2545
+  classDef tercero fill:#FDF0E3,stroke:#B36B00,stroke-width:2px,color:#4A2C00
+  classDef persona fill:#EAF7EC,stroke:#1E7B34,stroke-width:2px,color:#0E3A18
+  classDef dato fill:#F3F0F7,stroke:#6B4BA1,stroke-width:2px,color:#2E1A4A
+  classDef inerte fill:#FBEAEA,stroke:#B02A2A,stroke-width:2px,color:#4A0E0E
+  classDef sospechoso fill:#F1F1F1,stroke:#6B6B6B,stroke-width:2px,stroke-dasharray:5 4,color:#2B2B2B
+
+  subgraph LEYENDA["Leyenda"]
+    LP["código nuestro"]:::propio
+    LT["tercero"]:::tercero
+    LQ["persona"]:::persona
+    LD[("dato guardado")]:::dato
+    LI["hoy no corre"]:::inerte
+    LS["sospechoso"]:::sospechoso
+  end
+
+  Cliente["Cliente<br/>mira, busca y compra"]:::persona
+  Duenno["Dueño<br/>edita menús y textos"]:::persona
+
+  subgraph ARRANQUE["Arranque y decisión de página"]
+    Fn["functions.php<br/>encadena los 20 módulos, cero lógica"]:::propio
+    Targets["inc/page-targets.php<br/>única lista de en qué página estamos"]:::propio
+    Setup["inc/setup.php<br/>declara supports y 5 sitios de menú"]:::propio
+    GPCompat["inc/generatepress-compat.php<br/>recorta el hover rojo del padre"]:::propio
+    PageHdr["inc/page-header.php<br/>apaga el H1 del padre"]:::propio
+    Preload["functions.php wp_head 2<br/>INERTE: preload de portada, global vacío"]:::inerte
+    RamaCheckout["rama 'checkout' de page-header.php<br/>SOSPECHOSA: el slug es finalizar-compra"]:::sospechoso
+  end
+
+  subgraph ASSETS["Qué CSS y qué JS recibe cada página"]
+    Enq["inc/enqueue.php<br/>encolado condicional y versionado"]:::propio
+    Perf["inc/performance.php<br/>tamaño de imágenes y hojas diferidas"]:::propio
+    Critical["critical.css<br/>viaja dentro del HTML, sin fogonazo"]:::propio
+    Core["core.css<br/>tokens + fonts + base + header + footer"]:::propio
+    Cond["hojas condicionales<br/>woocommerce, loop, pages, blog, home"]:::propio
+    RevP5["reviews-p5-v4.css<br/>SOSPECHOSA: en toda ficha, estila un nodo<br/>del núcleo y hoy no hay ni una reseña"]:::sospechoso
+  end
+
+  subgraph TIENDA["Capa de tienda"]
+    WooLayer["inc/woocommerce.php<br/>el módulo grande: IVA, héroes, carrito, rutas"]:::propio
+    Flyout["inc/flyout-button.php<br/>fila Filtrar y Ordenar"]:::propio
+    SerOrder["inc/series-order.php<br/>orden tomo 1 a N en pa_serie"]:::propio
+    SerBread["inc/series-breadcrumb.php<br/>peldaño Series enlazado al hub"]:::propio
+    Title["inc/title-parser.php<br/>antetítulo de editorial y número de tomo"]:::propio
+    Faq["inc/seo-faq.php<br/>acordeón de preguntas de la ficha"]:::propio
+    Trust["inc/trust-badges.php<br/>los cuatro sellos de confianza"]:::propio
+    TrustCheck["enganche del checkout clásico<br/>INERTE: esta tienda es de bloques"]:::inerte
+    Icons["inc/icons.php<br/>los trece iconos SVG en línea"]:::propio
+    SiteCopy["inc/site-copy.php<br/>dueño de las tres options de texto"]:::propio
+    RankMath["inc/rank-math.php<br/>sólo el editor de entradas"]:::propio
+  end
+
+  subgraph PLANTILLAS["Lo que se imprime"]
+    Header["header.php + header/shell.php<br/>logo, buscador, tres iconos"]:::propio
+    Nav["header/navigation.php + walkers<br/>menú de escritorio y cajón móvil"]:::propio
+    Footer["footer.php + footer/main.php<br/>marca, tres columnas, sellos"]:::propio
+    BottomNav["footer/bottom-nav.php<br/>cuatro tabuladores fijos en móvil"]:::propio
+    Overrides["woocommerce/*<br/>carrito vacío, sin resultados, orden, paginación"]:::propio
+    Contenido["404, home, archive, single<br/>blog y página de error"]:::propio
+    Blog["inc/blog.php<br/>alt de respaldo, comentarios, puente de búsqueda"]:::propio
+    Brands["brands/grid + home-carousel<br/>directorio de editoriales"]:::propio
+    Cross["empty/cross-sell.php<br/>los 4 más vendidos de toda pantalla vacía"]:::propio
+  end
+
+  subgraph CORREOS["Correos"]
+    MailShell["emails/email-header + email-footer<br/>banda negra, franja roja, pie fijo"]:::propio
+    MailTres["cuenta nueva, contraseña, reembolso<br/>la voz de Akibara"]:::propio
+    SinPlano["carpeta plain/<br/>AUSENTE: texto plano sin marca"]:::inerte
+  end
+
+  subgraph JS["Lo que corre en el navegador"]
+    Main["main.js<br/>cajón, foco, acordeones, contadores"]:::propio
+    Bridge["wc-event-bridge.js<br/>traduce eventos jQuery a nativos"]:::propio
+    Guard["atc-guard.js<br/>descarta el segundo clic en vuelo"]:::propio
+    Pdp["pdp-ajax-atc.js<br/>comprar sin recargar y con motivo"]:::propio
+    Sticky["sticky-atc.js<br/>barra de compra espejo"]:::propio
+    Anim["animations.js + GSAP<br/>aparición, vuelo al carrito, marquesina"]:::propio
+    Franja["franja-inferior.js<br/>mide en vivo lo que tapan las barras"]:::propio
+    Menores["archive-intro.js, page-toc.js<br/>intro plegable e índice"]:::propio
+  end
+
+  subgraph DATOS["Lo que el tema toca en la base de datos"]
+    OptCopy[("akb_copy_promise_installments<br/>akb_copy_footer_support_hours<br/>akb_copy_footer_phone")]:::dato
+    OptPost[("page_for_posts")]:::dato
+    ThemeMod[("custom_logo")]:::dato
+    Trans[("akb_gp_series_hub_url<br/>transient, 12 h o 1 h")]:::dato
+  end
+
+  subgraph PROPIOS["Plugins propios"]
+    Business["akibara-business<br/>NavigationLinks, Wishlist, BrandsDirectory"]:::propio
+    Search["akibara-search<br/>facetas, sugeridor, evento akb:pjax"]:::propio
+    Blocks["akibara-cart-checkout-blocks<br/>carrito y pago de bloques"]:::propio
+  end
+
+  subgraph TERCEROS["Terceros"]
+    GP["GeneratePress<br/>tema padre"]:::tercero
+    Woo["WooCommerce<br/>carrito, pedidos, correos"]:::tercero
+    LS["LiteSpeed Cache<br/>combinación y retraso"]:::tercero
+    RM["Rank Math<br/>análisis SEO en el editor"]:::tercero
+    CusRev["customer-reviews-woocommerce<br/>override por @import relativo"]:::tercero
+  end
+
+  Cliente --> Header
+  Cliente --> BottomNav
+  Cliente --> Main
+  Duenno --> Setup
+  Duenno -->|"Akibara → Textos"| OptCopy
+  Duenno -->|"Apariencia → Menús"| Nav
+  Duenno -->|"Personalizar"| ThemeMod
+
+  Fn --> Targets
+  Fn --> Enq
+  Fn --> WooLayer
+  Fn --> Preload
+  Targets --> Enq
+  Targets --> Perf
+  Enq --> Critical
+  Enq --> Core
+  Enq --> Cond
+  Fn --> RevP5
+  Enq -->|"3 filtros de exclusión"| LS
+  Perf -->|"media=print + onload"| Cond
+
+  WooLayer --> Woo
+  WooLayer -->|"fragmento a.header-icon--cart"| Header
+  WooLayer --> Title
+  Flyout -->|"akibara_search_facets_active"| Search
+  SerOrder --> Overrides
+  SerBread --> Trans
+  Faq -->|"filtro akibara/product_faq_data"| Business
+  Perf -->|"filtro akibara/popular_product_ids"| Business
+  SiteCopy --> OptCopy
+  Trust -->|"promesa de cuotas"| SiteCopy
+  Trust --> TrustCheck
+  Trust -->|"akibara_gp_icon()"| Icons
+
+  Header -->|"NavigationLinks, Wishlist::count"| Business
+  Header -->|"akibara_search_suggest_active"| Search
+  Footer -->|"horario y teléfono"| SiteCopy
+  Footer --> ThemeMod
+  Footer --> Icons
+  Header --> Icons
+  Blog --> Contenido
+  PageHdr --> GP
+  PageHdr -.-> RamaCheckout
+  RamaCheckout -.->|"quien SÍ suprime el H1<br/>es el plugin de bloques"| Blocks
+  Fn --> PageHdr
+  Fn --> Blog
+  Fn --> SiteCopy
+  Fn --> Icons
+  Fn --> RankMath
+  BottomNav --> Business
+  Contenido --> OptPost
+  Brands -->|"locate_template"| Business
+  Cross --> Business
+  Overrides -->|"cart-empty por shortcode"| Blocks
+  Nav --> GP
+  GPCompat --> GP
+  Setup --> GP
+
+  Main --> Bridge
+  Bridge --> Woo
+  Guard --> Woo
+  Pdp -->|"wc-ajax=add_to_cart"| Woo
+  Pdp -->|"akb_get_cart&drain_notices=1"| Business
+  Anim -->|"window.akbCart.open()<br/>animations.js:237"| Business
+  Anim -->|"evento akb:pjax"| Search
+  Sticky --> Pdp
+  Franja --> BottomNav
+
+  MailShell --> Woo
+  MailTres --> MailShell
+  MailTres -.-> SinPlano
+  WooLayer -->|"voz activa del reembolso"| MailTres
+  RevP5 -.-> CusRev
+  RankMath -.->|"editor de entradas"| RM

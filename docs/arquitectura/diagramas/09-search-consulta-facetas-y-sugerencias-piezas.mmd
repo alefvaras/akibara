@@ -1,0 +1,184 @@
+%% Piezas del capítulo 09 — akibara-search · lo que pasa cuando el cliente busca.
+%% Qué muestra: las 39 piezas de la mitad LECTORA del buscador agrupadas por dominio (llaves, motor, rescates, desplegable, facetas, registro, panel), las tablas y transients que leen, los terceros con los que hablan y quién las opera.
+%% Las tres llaves se leen de arriba abajo: la foto autorizada valida las trece options; el comprobante de publicación dice si lo publicado corresponde al catálogo de ahora; y recién entonces un interruptor en `yes` es EFECTIVO.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    CLIENTE["Cliente<br/>escribe en la cajita, tilda filtros, aprieta Enter"]:::persona
+    DUENO["Dueño<br/>opera las siete pestañas de Akibara → Buscador"]:::persona
+
+    subgraph LLAVES["Las llaves — sin esto no existe nada"]
+        SEARCH["Search<br/>interruptor general: arma las piezas y separa configurado de efectivo"]:::propio
+        SEMPUB["SemanticPublication<br/>la foto autorizada: valida trece options de una vez o cierra todo"]:::propio
+        EDP["EditorialDiscountPublication<br/>el comprobante de publicación: sin él, un interruptor en yes NO es efectivo"]:::propio
+        PUENTES["7 funciones puente<br/>facets_active, facets_view, facets_context, suggest_active, correction, relaxed_notice, demand_gaps"]:::propio
+    end
+
+    subgraph MOTOR["El motor — de texto a lista ordenada"]
+        ENGINE["QueryEngine<br/>trocea, arma candidatos, decide rescates y entrega el ranking"]:::propio
+        NORM["Normalizer<br/>minúsculas, sin tildes, y el 1 que también es 01"]:::propio
+        STOP["Stopwords<br/>las palabras de relleno que no cuentan"]:::propio
+        SYN["Synonyms<br/>grupos equivalentes con límites de frase"]:::propio
+        SCORER["Scorer<br/>la nota de cada candidato y el desempate"]:::propio
+        HL["Highlighter<br/>envuelve en mark lo que casó; no pliega tildes"]:::propio
+    end
+
+    subgraph RESCATES["Los dos rescates, en orden"]
+        BTOK["BrandTokens<br/>qué palabra es sólo nombre de editorial y se puede soltar"]:::propio
+        BREL["BrandRelax<br/>la frase que le explica al cliente qué se soltó"]:::propio
+        FUZZY["Fuzzy<br/>el corrector de tipeo: laxo en la página, estricto en el desplegable"]:::propio
+    end
+
+    subgraph DESPL["El desplegable"]
+        SUGC["SuggestController<br/>las tres rutas públicas: suggest, popular y track"]:::propio
+        PRES["ProductPresenter<br/>de identificadores a tarjetas vivas; tope propio de 14"]:::propio
+        PSA["ProductSourceAuthority<br/>que leer un producto falle visible y no en silencio"]:::propio
+        SERIES["SeriesSuggestions<br/>ofrece la landing de la serie antes que los tomos"]:::propio
+        JSSUG["search-suggest.js<br/>220 ms de espera, memoria de 60 s y el historial del navegador"]:::propio
+    end
+
+    subgraph FACETAS["Las facetas del catálogo"]
+        FILTERSET["FilterSet<br/>traduce la URL a selecciones; sólo params conocidos"]:::propio
+        FREG["FacetRegistry<br/>las doce facetas base más lo que cambió el dueño"]:::propio
+        FSERV["FacetService<br/>el SQL sobre la tabla espejo: filtrar y contar"]:::propio
+        FQI["FacetQueryIntegration<br/>inyecta post__in en el listado de WooCommerce"]:::propio
+        FVIEW["FacetsView<br/>qué facetas se muestran, en qué orden y con qué etiquetas activas"]:::propio
+        PBUCK["PriceBuckets<br/>los tramos de precio y si los manda el cálculo o el dueño"]:::propio
+        STOCKL["StockLabels<br/>Disponible, A pedido, Preventa o Agotado"]:::propio
+        NOVEDAD["Novedad<br/>7, 30 y 90 días, resueltos en tiempo de consulta"]:::propio
+        RENDER["frontend/facets-render.php<br/>imprime barra lateral, etiquetas, contador, avisos y banda de serie"]:::propio
+        JSFAC["akb-search.js<br/>filtra sin recargar y arma el cajón del teléfono"]:::propio
+    end
+
+    subgraph REGISTRO["El registro y el radar del dueño"]
+        QLOGGER["QueryLogger<br/>una fila por día, búsqueda y origen; nunca por evento"]:::propio
+        POPQ["PopularQueries<br/>el top de 30 días del desplegable vacío"]:::propio
+        GAPS["DemandGaps<br/>la lista de compra: lo buscado que dio cero"]:::propio
+        DISM["GapDismissals<br/>esconde del radar sin borrar el historial"]:::propio
+        EMPTY["EmptyStateCopy<br/>las dos frases de sin resultados, editables"]:::propio
+    end
+
+    subgraph PANEL["El panel y sus apoyos"]
+        ADMIN["SearchAdminSection<br/>siete pestañas; existe justamente para operar con los flags apagados"]:::propio
+        AUDIT["AuditLog<br/>anillo de 50 entradas: quién cambió qué y cuándo"]:::propio
+        RLIM["Support RateLimit<br/>60 lecturas, 20 escrituras y 120 conteos por minuto e IP"]:::propio
+        RCACHE["Support RestCache<br/>ninguna respuesta se almacena; la purga por etiqueta está muerta"]:::propio
+        HEALTH["HealthReport<br/>el veredicto sano / atención / reconstruyendo que pinta Índice → Servicios"]:::propio
+        CLI["Cli<br/>wp akb-search status, rebuild, reindex y reconcile: la vía cuando el panel está gris"]:::propio
+    end
+
+    DOCS[("wp_akb_search_docs<br/>una fila por producto indexado")]:::dato
+    TOKENS[("wp_akb_search_tokens<br/>una fila por ficha y campo")]:::dato
+    FACETSTBL[("wp_akb_search_facets<br/>espejo: producto por valor de faceta")]:::dato
+    QLOG[("wp_akb_search_qlog<br/>el registro agregado de búsquedas")]:::dato
+    TRANS[("transients<br/>akb_vocab_titles, akb_search_brand_tokens, akb_search_series_catalog, akb_search_popular, akb_lc_*")]:::dato
+    OPTS[("options del buscador<br/>trece vigiladas y tres textos libres")]:::dato
+
+    WOO["WooCommerce<br/>el listado de la tienda y el producto vivo"]:::tercero
+    GP["GeneratePress<br/>la barra lateral donde se monta el formulario"]:::tercero
+    RANKMATH["Rank Math<br/>el título de la página y el noindex de las series"]:::tercero
+    LSC["LiteSpeed Cache<br/>caché de página del servidor"]:::tercero
+    CF["Cloudflare<br/>caché de borde y la IP real del visitante"]:::tercero
+    BUSINESS["akibara-business<br/>precio con descuento, vocabulario de stock y rutas curadas"]:::tercero
+    TEMA["tema akibara-gp<br/>marca los campos con data-akb-suggest"]:::tercero
+
+    CLIENTE --> JSSUG
+    CLIENTE --> RENDER
+    CLIENTE --> JSFAC
+    DUENO --> ADMIN
+
+    SEARCH --> SEMPUB
+    SEARCH -. "el panel y /search/admin-status se registran SIEMPRE, con los tres apagados" .-> ADMIN
+    SEARCH --> EDP
+    EDP -. "serving_ready(): sin comprobante, configurado no es efectivo" .-> SUGC
+    EDP -. "capture_serving_token(): current() es null sin comprobante" .-> FQI
+    SEARCH --> SUGC
+    SEARCH --> FQI
+    SEARCH --> JSSUG
+    SEMPUB --> OPTS
+    EDP --> SEMPUB
+    PUENTES --> SEARCH
+    PUENTES --> EDP
+    PUENTES --> FQI
+    TEMA --> PUENTES
+
+    JSSUG --> SUGC
+    SUGC --> RLIM
+    SUGC --> RCACHE
+    SUGC --> ENGINE
+    SUGC --> PRES
+    SUGC --> SERIES
+    SUGC --> FSERV
+    SUGC --> QLOGGER
+    SUGC --> POPQ
+
+    ENGINE --> NORM
+    ENGINE --> STOP
+    ENGINE --> SYN
+    ENGINE --> SCORER
+    ENGINE --> BTOK
+    ENGINE --> BREL
+    ENGINE --> FUZZY
+    ENGINE --> DOCS
+    ENGINE --> TOKENS
+    ENGINE --> TRANS
+    BTOK --> TOKENS
+    SUGC --> HL
+
+    PRES --> PSA
+    PSA --> WOO
+    PRES --> WOO
+    PRES --> STOCKL
+    PRES --> BUSINESS
+    STOCKL --> BUSINESS
+    SERIES --> RANKMATH
+    SERIES --> TRANS
+
+    RENDER --> FQI
+    RENDER --> SERIES
+    RENDER --> EMPTY
+    RENDER --> WOO
+    RENDER --> GP
+    RENDER --> RANKMATH
+    JSFAC --> FQI
+    FQI --> FILTERSET
+    FQI --> FSERV
+    FQI --> FVIEW
+    FQI --> WOO
+    FQI --> BUSINESS
+    FSERV --> FREG
+    FSERV --> FACETSTBL
+    FSERV --> DOCS
+    FSERV --> TRANS
+    FREG --> PBUCK
+    FREG --> NOVEDAD
+    FREG --> OPTS
+
+    QLOGGER --> QLOG
+    POPQ --> QLOG
+    POPQ --> TRANS
+    GAPS --> QLOG
+    GAPS --> DISM
+    GAPS --> ENGINE
+    ADMIN --> GAPS
+    ADMIN --> POPQ
+    ADMIN --> PBUCK
+    ADMIN --> SYN
+    ADMIN --> STOP
+    ADMIN --> EMPTY
+    ADMIN --> BREL
+    ADMIN --> AUDIT
+    ADMIN --> SEMPUB
+    ADMIN --> HEALTH
+    ADMIN -. "publica tres de las cuatro órdenes en Diagnóstico técnico" .-> CLI
+    HEALTH --> SEARCH
+    HEALTH --> EDP
+    CLI --> SEARCH
+    ADMIN --> LSC
+    RCACHE --> CF
+    RCACHE -. "el tag akb_search_rest nunca se añade: carril muerto" .-> LSC
+    RLIM --> CF
+    GAPS -. "función puente akibara_search_demand_gaps" .-> BUSINESS

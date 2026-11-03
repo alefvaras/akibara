@@ -1,0 +1,56 @@
+%% Título: Los tres estados del cajón lateral en móvil (y por dónde se sale)
+%% Qué muestra: el mismo panel sirve de menú y de hoja de búsqueda a pantalla
+%% completa; qué cambia entre los dos modos y por dónde se sale de cada uno.
+%% Todo el manejo vive en assets/js/main.js.
+stateDiagram-v2
+  direction TB
+
+  [*] --> Cerrado
+
+  Cerrado: Cerrado
+  Cerrado: El cajón existe en el HTML pero está fuera de pantalla
+  Cerrado: critical.css lo deja cerrado desde el primer píxel
+
+  Menu: Modo menú
+  Menu: role=dialog con aria-modal, trampa de foco con Tab y Shift+Tab
+  Menu: lo de detrás queda inert y aria-hidden
+  Menu: el cuerpo no hace scroll
+  Menu: acordeones de nivel 2 y 3 con botones data-target
+
+  Busqueda: Modo hoja de búsqueda
+  Busqueda: clases mobile-drawer--search y mobile-overlay--search
+  Busqueda: aria-label pasa a "Buscar productos"
+  Busqueda: aparece el botón Cancelar
+  Busqueda: el foco va SÍNCRONO al input, dentro del gesto del dedo
+
+  Cerrado --> Menu: Pulsa las tres rayas
+  Cerrado --> Busqueda: Pulsa el tabulador Buscar de la barra inferior
+
+  Menu --> Cerrado: ESC
+  Menu --> Cerrado: Clic en el velo
+  Menu --> Cerrado: Botón de cerrar
+  Menu --> Cerrado: Navega a un enlace del menú
+
+  Busqueda --> Cerrado: ESC
+  Busqueda --> Cerrado: Cancelar limpia el campo y devuelve el foco al tabulador
+  Busqueda --> Enviado: Pulsa Buscar
+  Busqueda --> Enviado: Elige una sugerencia del sugeridor
+
+  Enviado: NO es un estado del cajón: es la salida de la página
+  Enviado: GET a /tienda/?_buscar=… — nunca busca dentro de la página actual
+  Enviado --> [*]
+
+  note right of Busqueda
+    Antes de enfocar se fuerza un reflujo: un focus()
+    sobre un elemento aún oculto deja el elemento activo
+    SIN emitir el evento focus, y el sugeridor nunca
+    pintaba su estado inicial. En el siguiente tick se
+    re-dispara focus a mano, porque el mismo clic sigue
+    burbujeando hasta document, donde el sugeridor cierra
+    su panel al detectar un clic fuera del formulario.
+  end note
+
+  note right of Cerrado
+    Al volver, el foco siempre regresa al control
+    que abrió el cajón.
+  end note

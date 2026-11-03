@@ -1,0 +1,36 @@
+%% Reloj de Chile del capítulo 16 — a qué hora corre cada trabajo programado propio.
+%% Qué muestra: las horas reales medidas en producción el 2026-09-11, en horario de Chile. SOLO DOS están escritas en el código (domingo 03:00 y 05:00); todas las demás son «hora heredada»: el código dice «dentro de una hora» y la hora resultante es el instante del primer agendado, así que tras una reinstalación o una baja cambian.
+timeline
+    title Todo lo programado de Akibara, en hora de Chile (medido en producción el 2026-09-11)
+    section Latido permanente
+        Cada minuto : action_scheduler_run_queue — el motor de la cola de WooCommerce; sin él no corre nada de Action Scheduler
+        Cada 5 minutos : La tarea de Hostinger llama a wp-cron.php — el único empuje, porque DISABLE_WP_CRON está encendido
+        Cada 15 minutos : akb_search_rebuild_watchdog — vigila el buscador, suelta los permisos de lote vencidos y manda la alarma
+    section Madrugada
+        02&#58;37 aprox, hora heredada : akb_preventa_vencida_sweep — degrada hasta 50 fichas de preventa cuya fecha ya pasó
+    section Mañana
+        05&#58;00, HORA ESCRITA EN EL CÓDIGO : akibara_catalog_order_daily — reordena la vitrina y purga la caché, re-anclada si deriva más de 15 min
+    section Mediodía
+        12&#58;50 aprox, hora heredada : akb_search_reconcile — audita el índice contra el catálogo y poda el registro de búsquedas
+    section Tarde
+        16&#58;10 aprox, hora heredada : akb_rewards_birthday_daily — acredita los Puntos Akibara de cumpleaños
+        17&#58;15 aprox, hora heredada : akb_rewards_expiry_daily — vence puntos y encola los avisos de «por vencer»
+    section Noche
+        19&#58;05 aprox, hora heredada : akibara_business_social_image_derivatives — convierte hasta 100 portadas a JPG
+        19&#58;30 aprox, hora heredada : akb_order_preventa_recompute_ready — recalcula pendientes y marca pedidos listos
+        19&#58;30 aprox, el MISMO instante, hora heredada : akb_upsells_autofill_cron — rellena hasta 100 productos sin recomendaciones
+        20&#58;30 aprox, hora heredada : akb_bis_cleanup_terminal — borra inscripciones terminales de más de 180 días
+        21&#58;45 aprox, hora heredada : akibara_business_llms_manifest_refresh — regenera llms.txt y llms-full.txt
+        21&#58;55 aprox, hora heredada : akibara_bluex_log_retention_cleanup — poda los registros de envíos de Blue Express
+    section Semanales
+        Domingo 03&#58;00, HORA ESCRITA EN EL CÓDIGO : akb_order_preventa_t7_reminder_scan — «tu pedido se acerca». Nadie la re-ancla&#58; el cambio de horario de Chile la corre una hora
+        Lunes 19&#58;23 aprox, hora heredada : akibara_bluex_integrity_weekly — escanea el árbol de Blue Express y avisa por correo. Se agenda SIN grupo
+    section Sin reloj — los dispara un hecho
+        Al reponer stock : akb_order_preventa_recompute_for_product a +5 s y akb_bis_notify_product en tandas de 20 cada 60 s
+        Al publicar un tomo : akb_sf_scan_product a +120 s y el digest a +6 h
+        Al marcar un pedido listo : akb_order_preventa_dispatch_ready_email inmediata, reintento +305 s sin tope
+        Al cambiar el catálogo : akb_search_pump_live asíncrona, drena la deuda del índice
+        Al empezar o terminar una campaña : akb_search_editorial_discount_boundary en el segundo exacto
+        Al vincular un pedido de invitado : akibara_business_cleanup_collection_owner_fence a +2 d, luego cada 12 h, tope 7 d
+        Al traspasar al transportista : akb_order_preventa_verify_carrier_handoff a +2 h
+        A los 3 días del estado disparador : akb_rewards_send_review_invite, reintento +6 h, máximo 3

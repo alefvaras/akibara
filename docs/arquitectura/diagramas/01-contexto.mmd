@@ -1,0 +1,65 @@
+%% Contexto · quién habla con quién en akibara.cl (13-sep-2026). Rojo: código propio. Gris: terceros.
+flowchart TB
+  CLI["🧑 Cliente<br/>busca, compra, sigue series,<br/>canjea puntos"]
+  DUENO["👤 Dueño<br/>opera todo desde el panel,<br/>sin tocar código"]
+  subgraph BORDE[" "]
+    CF["Cloudflare · CDN y borde"]
+    LSC["LiteSpeed · caché de página"]
+  end
+  subgraph HOST["Hostinger · akibara.cl"]
+    subgraph WP["WordPress 7.1 + WooCommerce 11.1"]
+      subgraph FP["Código propio (lo único que modificamos)"]
+        THEME["tema akibara-gp 2.1.119<br/>todo lo que se VE"]
+        BIZ["akibara-business 1.116.5<br/>catálogo, series, preventa,<br/>checkout, cuenta, panel, SEO, correo"]
+        SEA["akibara-search 0.1.60<br/>índice propio, facetas,<br/>sugerencias"]
+        CCB["akibara-cart-checkout-blocks 2.2.17<br/>RUT, celular, comuna,<br/>punto Blue Express"]
+        REW["akibara-rewards 0.3.14<br/>Puntos y reseñas"]
+        MU["18 mu-plugins<br/>guardas y parches sobre terceros"]
+      end
+      WOO["WooCommerce<br/>productos, carrito, pedidos, correos"]
+      GP["GeneratePress (tema padre)"]
+      DB[("Base de datos<br/>+ 10 tablas propias")]
+    end
+    CRON["Cron de Hostinger<br/>cada 5 min"]
+    SMTP["SMTP · contacto@akibara.cl"]
+  end
+  BLUE["Blue Express<br/>cotización, puntos de retiro, tracking"]
+  MP["Mercado Pago"]; FLOW["Flow"]
+  BREVO["Brevo · carrito abandonado"]
+  RM["Rank Math · SEO"]
+  GOO["Google · Merchant Center,<br/>Login, Places, Search Console"]
+  CLAR["Microsoft Clarity · grabaciones"]
+  WA["WhatsApp · lo atiende el dueño"]
+
+  CLI --> CF --> LSC --> WP
+  DUENO --> WP
+  CRON --> WP
+  THEME --> GP
+  THEME --> BIZ
+  BIZ <--> SEA
+  BIZ --> CCB
+  BIZ --> WOO
+  SEA --> WOO
+  REW --> WOO
+  CCB --> WOO
+  MU -.-> WOO
+  MU -.-> LSC
+  WOO --> DB
+  SEA --> DB
+  REW --> DB
+  WP --> SMTP --> CLI
+  WOO --> BLUE
+  WOO --> MP
+  WOO --> FLOW
+  WOO --> BREVO
+  WP --> RM
+  WP --> GOO
+  WP -.-> CLAR
+  CLI -.-> WA
+
+  classDef propio fill:#fde8e8,stroke:#c0392b,stroke-width:2px,color:#111
+  classDef tercero fill:#eef2f7,stroke:#6b7a90,color:#111
+  classDef persona fill:#fff8e1,stroke:#b58900,color:#111
+  class THEME,BIZ,SEA,CCB,REW,MU propio
+  class WOO,GP,CF,LSC,BLUE,MP,FLOW,BREVO,RM,GOO,CLAR,WA,SMTP,CRON,DB tercero
+  class CLI,DUENO persona

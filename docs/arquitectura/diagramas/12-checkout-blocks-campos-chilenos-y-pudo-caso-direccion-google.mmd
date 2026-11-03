@@ -1,0 +1,47 @@
+%% Caso 3: el cliente autocompleta su direccion con el buscador de Google. Muestra la carga
+%% bajo demanda, el cruce de la comuna contra el catalogo real y que campos se pisan al elegir.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Woo as WooCommerce (campo Direccion)
+    participant Puente as google-places-address-provider.js
+    participant Plugin as AddressIntegration (servidor)
+    participant Business as akibara-business (interruptor y clave)
+    participant Google as Google Places
+
+    Plugin->>Business: address_autocomplete_config(): encendido, clave, mapa de regiones
+    Plugin->>Woo: Cortocircuita woocommerce_address_autocomplete_enabled = yes, solo en el pago
+    Plugin->>Puente: Inlina window.akbCartCheckoutBlocksGoogle (loaderUrl con la clave dentro)
+    Puente->>Woo: Se registra en window.wc.addressAutocomplete (hasta 200 reintentos de 25 ms)
+
+    Cliente->>Woo: Escribe en el campo Direccion
+    alt Menos de tres caracteres
+        Puente-->>Cliente: No llama a Google y recicla el token de sesion
+    else Tres caracteres o mas
+        Puente-->>Cliente: "Buscando direcciones..." (aria-live)
+        Puente->>Google: Carga la libreria por primera vez y pide sugerencias (Chile, espanol)
+        alt Error de red o de API
+            Google-->>Puente: Fallo
+            Puente-->>Cliente: "No pudimos buscar direcciones en este momento. Puedes escribirla manualmente"
+        else Hay sugerencias
+            Google-->>Puente: Lista de lugares
+            Puente-->>Cliente: Panel de sugerencias colocado segun el viewport visual
+        end
+    end
+
+    Cliente->>Puente: Elige una sugerencia
+    Puente->>Google: Pide los componentes del lugar
+    Google-->>Puente: address_components
+    Puente->>Puente: Traduce la region a CL-XX con el mapa del servidor mas alias
+    Puente->>Puente: Cruza la comuna contra el catalogo REAL de esa region
+
+    alt El cruce es inequivoco
+        Puente->>Woo: Devuelve las seis claves con la comuna resuelta
+    else El cruce es ambiguo o falta el catalogo
+        Puente->>Woo: Devuelve city vacia
+        Note over Puente,Woo: Y con ella address_2 y postcode vacias: pisan el "Depto 42" ya escrito
+    end
+
+    Woo-->>Cliente: Aplica el objeto sobre la direccion actual
+
+    Note over Cliente,Google: Correos que salen en este caso: ninguno

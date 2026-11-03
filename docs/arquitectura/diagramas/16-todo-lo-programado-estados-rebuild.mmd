@@ -1,0 +1,72 @@
+%% Máquina de estados del capítulo 16 — las diez fases de una reconstrucción del índice del buscador.
+%% Qué muestra: las ocho fases del camino normal, las dos salidas de emergencia (BLOCKED y ABORTED), cuáles son terminales y quién puede escribir cada una. Los nombres son literales del código: RebuildJob.php:87-96.
+stateDiagram-v2
+    direction TB
+
+    classDef ciega fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px,color:#5c1010
+
+    [*] --> PREPARING: request_rebuild crea el estado<br/>protocolo 2, run_id y sello de esquema
+
+    PREPARING --> BUILDING: el esquema sombra está verificado<br/>y hay lista de documentos a construir
+    BUILDING --> CATCHING_UP: se construyeron todos los lotes<br/>en las tablas sombra _new
+    CATCHING_UP --> SWAP_INTENT: se alcanzó la deuda acumulada<br/>durante la construcción
+    SWAP_INTENT --> SWAPPED: se declara la intención de intercambiar,<br/>para que un corte no deje topología huérfana
+    SWAPPED --> PUBLISHING: las tablas nuevas pasan a ser las vivas
+    PUBLISHING --> CLEANUP: se publica el recibo de precios<br/>y se sueltan los permisos
+    CLEANUP --> DONE: se retiran las tablas viejas
+
+    SWAP_INTENT --> CATCHING_UP: la foto de precios editorial cambió justo<br/>antes del renombrado, o la recuperación pide revalidar
+    CLEANUP --> PUBLISHING: llegó con acuses antiguos que nunca sellaron la huella&#58;<br/>se reabre PUBLISHING y se conservan las tablas _old
+
+    state "BLOCKED" as BLOCKED
+    state "ABORTED" as ABORTED
+
+    PREPARING --> BLOCKED: fallo irrecuperable
+    BUILDING --> BLOCKED: fallo irrecuperable
+    CATCHING_UP --> BLOCKED: fallo irrecuperable
+    SWAP_INTENT --> BLOCKED: fallo irrecuperable
+    SWAPPED --> BLOCKED: fallo irrecuperable
+    PUBLISHING --> BLOCKED: fallo irrecuperable
+    CLEANUP --> BLOCKED: fallo irrecuperable
+
+    [*] --> ABORTED: SOLO desde fuera&#58; rescate manual o línea de comandos.<br/>Ningún fichero propio escribe esta fase
+
+    DONE --> [*]
+    BLOCKED --> [*]
+    ABORTED --> [*]
+
+    class BUILDING ciega
+    class CATCHING_UP ciega
+
+    note right of BUILDING
+        EN ROJO&#58; la ventana en la que la alarma NO se evalúa.
+        Si la reconstrucción se queda parada en BUILDING o en
+        CATCHING_UP, el vigilante toma resume_run y nunca llega
+        a note_serving_down. Es la puerta que dejó tres horas
+        sin buscador el 2026-09-05.
+    end note
+
+    note right of DONE
+        Las diez fases son las ocho del camino normal más BLOCKED
+        y ABORTED. Terminales —de las que ya no se sale sola—
+        son tres&#58; DONE, BLOCKED y ABORTED. El vigilante solo
+        intenta levantar el servicio si el estado es nulo,
+        BLOCKED o ABORTED.
+    end note
+
+    note right of ABORTED
+        ABORTED se LEE como terminal en ocho sitios del código
+        propio (HealthReport&#58;300, SearchAdminSection&#58;993,
+        EditorialDiscountPublication&#58;2571 y cinco de RebuildJob),
+        pero NINGÚN fichero first-party la escribe. Por eso su
+        única flecha de entrada viene de fuera.
+    end note
+
+    note left of BLOCKED
+        Si se borra la option del estado dejando vivas las tablas sombra
+        _new, el primer arranque de WordPress acuña
+        BLOCKED / orphan_topology_without_state&#58; un pestillo que ni el
+        panel ni la CLI deshacen. Por eso el rescate
+        (bash ops/rescate-buscador.sh produccion) suelta la sombra
+        PRIMERO y retira la option DESPUÉS.
+    end note

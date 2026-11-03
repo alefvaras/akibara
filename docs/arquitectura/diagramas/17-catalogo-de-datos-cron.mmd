@@ -1,0 +1,28 @@
+%% Crons del capítulo 17 — los trabajos programados que CREAN, PODAN o SELLAN datos.
+%% Qué muestra: cuándo corre cada uno en hora de Chile. Salvo el barrido T-7, ninguno tiene hora fija en el código: se agendan relativos al momento de instalar, así que la hora real hay que leerla en producción.
+timeline
+    title Trabajos programados que tocan el catálogo de datos (hora de Chile)
+    section Hora fija en el código
+        Domingo 03&#58;00 : akb_order_preventa_t7_reminder_scan — barre pedidos que necesitan recordatorio T-7
+    section Diarios, a la hora en que se instalaron
+        Retención de la lista de espera : akb_bis_cleanup_terminal — borra estados terminales pasados 180 días (mínimo 30)
+        Reconciliación del buscador : akb_search_reconcile — compara publicado contra fuente Y PODA el qlog (180 días / 50.000 filas)
+        Vencimiento de puntos : akb_rewards_expiry_daily — vence saldos, avisa de los que vencen pronto y purga tokens de reseña · SIN GRUPO de Action Scheduler
+        Cumpleaños : akb_rewards_birthday_daily — regala los puntos del día · SIN GRUPO de Action Scheduler
+        Preventa vencida : akb_preventa_vencida_sweep — degrada preventas cuya fecha ya pasó
+        Vitrina : akibara_catalog_order_daily — reordena y escribe akb_catalog_order_last_run
+        Manifiesto llms.txt : akibara_business_llms_manifest_refresh — regenera bajo cerrojo de option
+        Imágenes sociales : akibara_business_social_image_derivatives — cerrojo y cursor en options
+        Logs de Blue Express : akibara_bluex_log_retention_cleanup — poda wp_bluex_logs por lotes de 1.000, retención 2 días
+        Transients caducados : delete_expired_transients — trabajo del propio WordPress, sólo sin caché de objetos persistente
+    section Semanales
+        Integridad de Blue Express : akibara_bluex_integrity_weekly — comprueba y avisa a admin_email
+    section Cada 15 minutos
+        Vigilante del rebuild : akb_search_rebuild_watchdog — rescata reconstrucciones colgadas Y levanta el serving cuando la fase es BLOCKED o ABORTED
+    section Disparados por un hecho, no por reloj
+        Al reponer stock : akb_bis_notify_product — encola los avisos «Ya llegó»
+        Al cambiar un producto : akb_search_pump_live — bombea la cola wp_akb_search_work
+        Al borde de una campaña : akb_search_editorial_discount_boundary — acción única en el grupo akibara-search; republica precios cuando la ventana empieza o termina
+        Al cambiar fecha de preventa : batch bajo el candado _akb_preventa_datechg_lock (TTL 15 minutos)
+    section No es un trabajo programado&#58; es un filtro
+        Retención de Action Scheduler : akibara-as-retention.php sólo hace add_filter('action_scheduler_retention_period') → 14 días · la poda la sigue haciendo Action Scheduler en su propia acción

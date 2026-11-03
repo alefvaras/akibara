@@ -1,0 +1,20 @@
+%% Lo programado en este capítulo — un solo trabajo recurrente, y las limpiezas que NO son programadas. Horas de Chile.
+%% Qué muestra: que el único cron del área no tiene hora fija (se ancla en el momento en que se agendó por primera vez), quién empuja la cola en producción, y qué se limpia de paso dentro de la petición que lo necesita.
+timeline
+  title Lo que corre solo en carrito, checkout, retiro y cuenta (hora de Chile)
+  section El reloj
+    Cada 5 minutos, todo el día : Hostinger dispara wp-cron desde fuera — DISABLE_WP_CRON está activo y el tráfico NO empuja la cola
+                                : Lo que venció se ejecuta en el primer disparo posterior, no a una hora exacta
+  section Diaria
+    A la hora en que se agendó por primera vez, y esa misma hora cada día : akb_upsells_autofill_cron — rellena hasta 100 productos SIN recomendados con sus tres tomos siguientes
+                                                                         : Firma lo escrito en _akb_upsells_autofill_sig y purga la caché de página de cada ficha tocada
+                                                                         : Correr dos veces es inocuo — sólo toca productos sin recomendados, así que la segunda pasada no encuentra candidatos
+                                                                         : No hay interruptor en ninguna pantalla; borrar el evento por CLI lo reagenda la siguiente visita (maybe_schedule en el hook init)
+                                                                         : El ÚNICO apagado real es desactivar el plugin entero — akibara-business.php:251 retira el evento; al reactivar vuelve
+                                                                         : Para saber a qué hora corre: wp cron event list --fields=hook,next_run_gmt,recurrence | grep akb_upsells_autofill_cron (la hora va en UTC)
+                                                                         : Como el arranque se ancla en time(), la primera pasada tras una activación corre DENTRO de la petición de un cliente
+  section No es periódico — ocurre de paso
+    En cada apertura y cada confirmación de un punto de retiro : cleanup_expired() borra hasta 25 filas akb_pudo_state_* caducadas con una sola sentencia SQL
+                                                              : La caducidad va delante del valor con ancho fijo, para no necesitar funciones JSON
+    Cuando WordPress limpia sus transients : candidatos del recomendador 5 min, historial del cliente 6 h, estadísticas de Upsells 5 min, aviso de consentimiento 1 día
+    Cuando el cliente compra : se borra su historial cacheado, para no recomendarle el tomo que acaba de pagar

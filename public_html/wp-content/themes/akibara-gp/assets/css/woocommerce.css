@@ -1,0 +1,5129 @@
+/*
+ * WooCommerce — overrides theme dark + UI polish.
+ * Carga conditional cuando is_woocommerce() || is_cart() || is_checkout() || is_account_page().
+ *
+ * Cubre: archive (shop, category), single product, cart, checkout, mi-cuenta,
+ * badges WC, breadcrumb.
+ *
+ * Solo CSS — cero business logic. La logica de badges custom va en
+ * akibara-business plugin (módulo Badges).
+ */
+
+/* ─── Page wrapper reset (WC contexts) ─────────────────────────
+ * GP renderiza .inside-article con fondo blanco en cada page.
+ * En contextos WC (checkout, account, single product) eso crea una
+ * franja blanca arriba que rompe el dark theme.
+ * Reset equivalente al de body.home (home.css) adaptado al contexto de WooCommerce.
+ */
+body.woocommerce-checkout .inside-article,
+body.woocommerce-account .inside-article,
+body.single-product .inside-article {
+    background: var(--aki-black);
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+body.woocommerce-checkout .entry-header {
+    display: none;
+}
+
+/* Mi cuenta conserva el entry-title nativo: WooCommerce lo adapta por
+ * endpoint (Mi cuenta, Pedidos, Favoritos, Direcciones, Detalles). Ocultarlo
+ * dejaba esas vistas sin H1 visible ni encabezado expuesto a tecnologías de
+ * asistencia. */
+body.woocommerce-account .entry-header {
+    display: block;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-4) var(--space-4) 0;
+    background: var(--aki-black);
+}
+
+body.woocommerce-checkout .entry-content,
+body.woocommerce-account .entry-content,
+body.single-product .entry-content {
+    margin: 0;
+    padding: var(--space-4);
+    background: var(--aki-black);
+}
+
+/* ─── Hide WC nativo `.onsale` GLOBAL ─────────────────────────
+ * Akibara muestra badge custom "Oferta" via akibara-business plugin
+ * (con styling dark theme). El badge nativo WC (yellow circle) es
+ * inconsistente — lo ocultamos en todos los contextos.
+ *
+ * Nota: el shortcode [products] dentro de page builders (akb-section)
+ * NO siempre tiene ancestor .woocommerce, por eso el selector global. */
+.onsale,
+.woocommerce span.onsale,
+.woocommerce-page span.onsale {
+    display: none !important;
+}
+
+/* ─── Breadcrumb dark ─────────────────────────────────────────── */
+.woocommerce-breadcrumb {
+    color: var(--aki-gray-400);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
+}
+
+.woocommerce .woocommerce-breadcrumb,
+.woocommerce-page .woocommerce-breadcrumb {
+    color: var(--aki-gray-400);
+}
+
+.woocommerce-breadcrumb a {
+    color: var(--aki-gray-200);
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.18em;
+    text-decoration-skip-ink: auto;
+    transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+.woocommerce-breadcrumb a:hover {
+    color: var(--aki-yellow);
+    text-decoration-color: currentColor;
+}
+
+/* El anillo lo pinta `--aki-focus-ring` (tokens.css) sobre `a:focus-visible`.
+   Este outline amarillo se sumaba encima y dejaba DOS anillos amarillos
+   separados por el negro — medidos 3 en la miga de pan de la ficha. */
+.woocommerce-breadcrumb a:focus-visible {
+    text-decoration-color: currentColor;
+}
+
+.woocommerce .woocommerce-breadcrumb a,
+.woocommerce-page .woocommerce-breadcrumb a {
+    color: var(--aki-gray-200);
+}
+
+/* Zona táctil de las migas: WCAG 2.5.8 (Target Size Minimum). El enlace mide
+ * 16-18 px de alto (texto de 14 px en línea). Se amplía exclusivamente el área
+ * táctil mediante un ::after transparente de 6 px arriba y abajo (30 px en
+ * total, superando el umbral mínimo de 24 px de WCAG 2.5.8): el texto, el
+ * subrayado y el anillo de foco (box-shadow del propio enlace) se mantienen
+ * visualmente intactos. Se evita padding para no deformar el outline de foco,
+ * y se acota a 30 px para prevenir solapamientos si la miga quiebra en dos líneas. */
+.woocommerce-breadcrumb a {
+    position: relative;
+}
+
+.woocommerce-breadcrumb a::after {
+    content: "";
+    position: absolute;
+    inset: -6px 0;
+}
+
+/* ─── Page title (h1 catálogo, page title) ─────────────────────── */
+/* Eyebrow para single product */
+span.akb-editorial-eyebrow.akb-editorial-eyebrow--single {
+    display: block;
+    color: var(--aki-gray-200); /* Un gris un poco más claro para mejor legibilidad */
+    font-size: 14px; /* Un poco más grande para compensar el H1 gigante */
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 12px; /* Separación crítica de los badges (DISPONIBLE, Oferta) */
+    margin-bottom: var(--space-2);
+}
+.woocommerce-products-header__title,
+.product_title,
+.woocommerce h1.entry-title,
+.woocommerce-page h1.entry-title {
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--aki-type-page);
+    line-height: 1.1;
+    margin: 0 0 var(--space-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ─── Firma de marca del archive "DISTRITO" (solo /manga/ y /comics/) ────────
+ * Scoped por body.akb-distrito (inc/woocommerce.php lo agrega SOLO en los dos
+ * términos top-level; subcategorías y /tienda/ quedan con el H1 plano). El TEXTO
+ * del H1 NO cambia ("MANGA"/"COMICS" = ancla SEO exact-match); solo agregamos
+ * tratamiento visual: eyebrow "DISTRITO" arriba + barra roja izquierda — la misma
+ * firma que .akb-page-title (carrito/checkout), sin inventar patrón nuevo.
+ *
+ * Eyebrow EN BLANCO, no rojo: red-bright #FF0A1D = ~3.6-4.4:1 sobre el fondo
+ * oscuro → falla AA para texto chico. El rojo queda SOLO en la barra (objeto
+ * gráfico, 3:1 basta). El ::before va sobre el contenedor (no el H1) para que
+ * NO herede el skew(-5deg) global del H1: una recta que ancla contra el título
+ * inclinado. */
+body.akb-distrito .woocommerce-products-header::before {
+    content: "DISTRITO";
+    display: block;
+    font-family: var(--font-heading);
+    font-size: var(--text-sm);
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    margin: 0 0 var(--space-2);
+}
+/* width:fit-content: el H1 de archive hereda skewX(-5deg) y sombra del bloque
+ * global de encabezados; al definir border-left, fit-content contiene la caja
+ * proyectada y previene desbordamiento horizontal (scroll-x) en viewports estrechos (~360px). */
+body.akb-distrito .woocommerce-products-header__title {
+    width: fit-content;
+    max-width: 100%;
+    padding-left: var(--space-3);
+    border-left: 4px solid var(--aki-red);
+}
+
+/* ─── Volumen / Tomo Universal (Propuesta 2: Distrito Manga & Cómics) ─────────
+ * Destaca el número de tomo con la tipografía de lomo (Bebas) y el rojo de marca
+ * en todas las superficies: PDP H1, Sticky ATC, Carrito, Checkout y Pedidos. */
+.akb-vol {
+    font-family: var(--font-accent, 'Bebas Neue', sans-serif);
+    color: #ffffff;
+    background: var(--aki-red);
+    font-weight: 400;
+    font-synthesis: none;
+    line-height: 1.1;
+    margin-left: 0.25em;
+    padding: 1px 6px;
+    transform: skew(-6deg);
+    display: inline-block;
+    box-shadow: 2px 2px 0 #000;
+    vertical-align: middle;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.product_title.entry-title .akb-vol,
+.akb-sticky-atc__title .akb-vol {
+    font-size: 1.25em;
+    margin-left: 0.35em;
+    padding: 2px 10px;
+}
+
+.woocommerce-cart-form .product-name .akb-vol,
+.woocommerce-checkout-review-order .product-name .akb-vol,
+.woocommerce-order-details .product-name .akb-vol {
+    font-size: 1.1em;
+    margin-left: 0.25em;
+    padding: 1px 6px;
+}
+
+
+/* Padding lateral consistente para archive WC pages (tienda, manga, comics).
+ * Sin esto, h1/breadcrumb/result-count/ordering quedan flush al viewport edge
+ * en mobile (left=0). El cart ya tiene su propio scope con max-width+padding
+ * (líneas 96-100); single-product no necesita esto porque .summary ya provee
+ * padding via .entry-summary. */
+body.archive.woocommerce-page .woocommerce-breadcrumb,
+body.archive.woocommerce-page .woocommerce-products-header,
+body.archive.woocommerce-page .woocommerce-result-count,
+body.archive.woocommerce-page .woocommerce-ordering {
+    padding-inline: var(--space-4);
+    max-width: var(--container-max);
+    margin-inline: auto;
+    box-sizing: border-box;
+}
+
+/* Screentone Ben-Day Dots en el encabezado de catálogo de manga */
+body.archive.woocommerce-page .woocommerce-products-header {
+    background-image: var(--aki-screentone);
+    background-size: 8px 8px;
+    border-bottom: 1px solid var(--aki-border);
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+/* ─── Archive intro (term/category description) link policy ─────
+ * Aplica a textos editoriales en /tienda/, /category/*, /producto-editorial/*.
+ * Estandariza enlaces inline con la paleta de marca y estados interactivos consistentes.
+ */
+.term-description a,
+.archive-description a,
+.woocommerce-products-header a {
+    color: var(--aki-red-bright);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-base);
+}
+.term-description a:hover,
+.term-description a:focus-visible,
+.archive-description a:hover,
+.archive-description a:focus-visible,
+.woocommerce-products-header a:hover,
+.woocommerce-products-header a:focus-visible {
+    color: var(--aki-white);
+}
+
+/* PDP gallery — limit altura mobile para que title+price asomen al fold
+ * inicial. Antes la imagen ocupaba ~555px (84% del viewport útil 664px),
+ * empujando precio + add-to-cart bajo el fold. Con max-height 50vh la
+ * imagen baja a ~332px y precio queda visible al primer view. */
+@media (max-width: 768px) {
+    .woocommerce div.product .woocommerce-product-gallery,
+    .woocommerce div.product .woocommerce-product-gallery__wrapper {
+        max-height: 50vh;
+        overflow: hidden;
+    }
+    .woocommerce div.product .woocommerce-product-gallery img,
+    .woocommerce div.product .woocommerce-product-gallery__image img {
+        max-height: 50vh;
+        width: auto;
+        object-fit: contain;
+        margin-inline: auto;
+        display: block;
+    }
+}
+
+/* H1 del carrito ("CARRITO") con el mismo tratamiento que los headings de
+ * sección estilo `.akb-empty__cross-sell-heading` (MÁS VENDIDOS): barra
+ * roja izquierda + padding-left para que el título quede anclado visualmente
+ * y no flush al viewport edge. Scope cart-only para no tocar otras pages. */
+body.woocommerce-cart h1.entry-title {
+    padding-left: var(--space-3);
+    border-left: 4px solid var(--aki-red);
+    font-size: var(--aki-type-page);
+    font-weight: 400;
+    line-height: 1;
+}
+
+/* H1 de marca del carrito y checkout (impreso por akibara-cart-checkout-blocks).
+   Firma del sistema: barra roja izquierda + Bebas mayúsculas. width:fit-content
+   evita el desbordamiento horizontal que produce la proyección de skew(-5deg).
+   Escala tipográfica unificada a --aki-type-page para jerarquía consistente. */
+.akb-page-title {
+    margin: 0 0 var(--space-5);
+}
+
+/* El H1 del carrito y checkout comparte el ancho máximo y alineación del bloque
+ * principal (.wp-block-woocommerce-cart / .wp-block-woocommerce-checkout.alignwide),
+ * manteniendo las guías verticales alineadas en desktop y mobile. */
+.woocommerce-cart .entry-content > .akb-page-title,
+.woocommerce-checkout .entry-content > .akb-page-title {
+    box-sizing: border-box;
+    width: calc(100% - 32px);
+    max-width: var(--container-max);
+    margin-inline: auto;
+}
+.akb-page-title h1,
+body.woocommerce-account .entry-header .entry-title {
+    width: fit-content;
+    margin: 0;
+    padding-left: var(--space-3);
+    border-left: 4px solid var(--aki-red);
+    font-family: var(--font-heading);
+    font-size: var(--aki-type-page);
+    font-weight: 400;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--aki-white);
+}
+
+/* /carrito/: alinear .entry-header con el container .akb-empty para que la
+ * barra roja del H1 "CARRITO" quede flush con la del H2 "MÁS VENDIDOS" del
+ * cross-sell. Sin esto, .entry-header es full-width y el H1 toca el viewport
+ * edge mientras .akb-empty está centrado con padding lateral. */
+body.woocommerce-cart .entry-header {
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--space-4);
+}
+
+/* ─── Títulos de sección de la ficha ──────────────────────────────
+ * «También te recomendamos…», «Productos relacionados» y «Preguntas frecuentes».
+ * Asigna explícitamente la escala tipográfica de sección (--aki-type-section)
+ * para mantener la jerarquía visual balanceada respecto al H1 de producto y los
+ * títulos de las tarjetas de catálogo. */
+.woocommerce div.product .related > h2,
+.woocommerce div.product .up-sells > h2,
+.product-faqs .section-header__title {
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-heading);
+    font-size: var(--aki-type-section);
+    font-weight: 400;
+    letter-spacing: var(--aki-type-heading-tracking);
+    line-height: 1.1;
+    text-transform: uppercase;
+    color: var(--aki-white);
+}
+
+/* ─── Single Product page ─────────────────────────────────────── */
+.single-product .summary .price,
+.single-product .summary .price ins,
+.single-product .summary .price .amount,
+.woocommerce.single-product div.product .summary p.price,
+.woocommerce.single-product div.product .summary span.price {
+    color: var(--aki-white);
+    font-weight: 700;
+    font-size: var(--text-2xl);
+}
+
+/* Flex con center alignment: ambos precios se centran verticalmente como cajas.
+ * baseline-alignment técnicamente correcto deja el <del> chico visualmente
+ * arriba (su top más bajo que el del <ins> grande); center se ve uniforme.
+ * column-gap reemplaza margin-right. screen-reader-text spans NO afectan el
+ * layout (position:absolute global). Specificity 4 classes para ganar a WC core. */
+.woocommerce.single-product div.product .summary p.price,
+.woocommerce.single-product div.product .summary span.price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.5em;
+}
+
+/* Look editorial limpio en oferta (PDP): precio VIGENTE blanco nítido y <del>
+   (original) gris atenuado. Alinea con la barra sticky y las tarjetas. */
+.woocommerce.single-product div.product .summary p.price ins,
+.woocommerce.single-product div.product .summary p.price ins .amount,
+.woocommerce.single-product div.product .summary p.price ins bdi,
+.woocommerce.single-product div.product .summary span.price ins,
+.woocommerce.single-product div.product .summary span.price ins .amount,
+.woocommerce.single-product div.product .summary span.price ins bdi {
+    color: var(--aki-white) !important;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.single-product .summary .price del,
+.woocommerce.single-product div.product .summary p.price del,
+.woocommerce.single-product div.product .summary p.price del .amount,
+.woocommerce.single-product div.product .summary span.price del,
+.woocommerce.single-product div.product .summary span.price del .amount {
+    color: var(--aki-gray-500);
+    /* opacity 1, no .6: gray-500 atenuado rendía ~2.76:1 (falla AA 4.5:1). El
+       "apagado" del tachado lo da el color, no una opacity apilada. */
+    opacity: 1;
+    font-weight: 400;
+    text-decoration: none;
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+}
+
+.single-product .summary .price del::after,
+.woocommerce.single-product div.product .summary p.price del::after,
+.woocommerce.single-product div.product .summary span.price del::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    background-color: currentColor;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.single-product .product .summary,
+.woocommerce div.product .woocommerce-product-details__short-description {
+    color: var(--aki-gray-200);
+}
+
+/* WC Tabs (descripción / información adicional) */
+.woocommerce div.product .woocommerce-tabs ul.tabs {
+    background: transparent;
+    border-bottom: 1px solid var(--aki-border);
+    display: flex;
+    gap: var(--space-6);
+    padding: 0;
+    margin: 0 0 var(--space-6) 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.woocommerce div.product .woocommerce-tabs ul.tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.woocommerce div.product .woocommerce-tabs ul.tabs li {
+    background: var(--aki-surface-1) !important;
+    border: 2px solid var(--aki-border) !important;
+    color: var(--aki-gray-400);
+    border-radius: 0;
+    padding: var(--space-2) var(--space-4) !important;
+    margin: 0 !important;
+    position: relative;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.woocommerce div.product .woocommerce-tabs ul.tabs li::before,
+.woocommerce div.product .woocommerce-tabs ul.tabs li::after {
+    display: none !important;
+}
+
+.woocommerce div.product .woocommerce-tabs ul.tabs li.active {
+    background: var(--aki-red-readable) !important;
+    color: var(--aki-white);
+    border-color: var(--aki-black) !important;
+    transform: translate(-2px, -4px);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    z-index: 2;
+}
+
+.woocommerce div.product .woocommerce-tabs ul.tabs li a {
+    color: inherit;
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.woocommerce div.product .woocommerce-tabs ul.tabs li:not(.active):hover {
+    background: var(--aki-surface-2) !important;
+    color: var(--aki-white);
+    transform: translate(-1px, -2px);
+    box-shadow: 2px 2px 0 var(--aki-black);
+}
+
+.woocommerce div.product .woocommerce-tabs .panel {
+    color: var(--aki-gray-200);
+    background: var(--aki-surface-1);
+    padding: var(--space-5);
+    border-radius: 0;
+    border: 2px solid var(--aki-black);
+    box-shadow: 6px 6px 0 var(--aki-black);
+    font-size: var(--text-base);
+    line-height: 1.7;
+}
+
+.woocommerce div.product .woocommerce-tabs .panel h2,
+.woocommerce div.product .woocommerce-tabs .panel h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-heading);
+    font-size: clamp(1.375rem, 1rem + 1.2vw, 2rem);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--aki-white);
+    text-transform: uppercase;
+}
+
+.woocommerce div.product .woocommerce-tabs .panel h2::before,
+.woocommerce div.product .woocommerce-tabs .panel h3::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 5px;
+    height: 1.25em;
+    background: var(--aki-red-readable);
+    transform: skewX(-12deg);
+    box-shadow: 3px 3px 0 var(--aki-black);
+}
+
+/* Links inline dentro del panel (descripción / información adicional /
+ * valoraciones) — sin esto los <a> editoriales heredan color GP default
+ * que en PDP queda azul sobre fondo oscuro. `--aki-red-text` conserva el rojo
+ * de marca y pasa AA incluso sobre la superficie elevada más clara. */
+.woocommerce div.product .woocommerce-tabs .panel a {
+    color: var(--aki-red-text);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-base);
+}
+.woocommerce div.product .woocommerce-tabs .panel a:hover,
+.woocommerce div.product .woocommerce-tabs .panel a:focus-visible {
+    color: var(--aki-white);
+}
+
+@media (max-width: 768px) {
+    .woocommerce div.product .woocommerce-tabs ul.tabs {
+        gap: var(--space-4);
+        margin-bottom: var(--space-4);
+        justify-content: space-between;
+    }
+    .woocommerce div.product .woocommerce-tabs ul.tabs li a {
+        font-size: 13px;
+        letter-spacing: 0.02em;
+    }
+    .woocommerce div.product .woocommerce-tabs .panel {
+        padding: var(--space-4);
+    }
+}
+
+/* Categorías / SKU / Tags meta */
+.woocommerce div.product .product_meta {
+    color: var(--aki-gray-400);
+    font-size: var(--text-sm);
+    border-top: 1px solid var(--aki-border);
+    padding-top: var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+.woocommerce div.product .product_meta a {
+    color: var(--aki-white);
+    background: var(--aki-surface-1);
+    border: 1px solid var(--aki-border);
+    padding: 2px 8px;
+    text-decoration: none;
+    text-transform: uppercase;
+    font-family: var(--font-heading);
+    letter-spacing: 0.05em;
+    transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.woocommerce div.product .product_meta a:hover {
+    background: var(--aki-yellow);
+    color: var(--aki-black);
+    border-color: var(--aki-black);
+    transform: translate(-2px, -2px);
+    box-shadow: 2px 2px 0 var(--aki-black);
+}
+
+/* Zona táctil de las etiquetas de metadatos (WCAG 2.5.8): miden 22 px de alto
+ * con 8 px de separación entre filas. El pseudo-elemento ::after amplía el área
+ * interactiva a 30 px verticales sin alterar el layout visual ni solapar filas adyacentes. */
+.woocommerce div.product .product_meta a {
+    position: relative;
+}
+
+.woocommerce div.product .product_meta a::after {
+    content: "";
+    position: absolute;
+    inset: -5px 0;
+}
+
+/* ─── WC Buttons (Añadir al carrito / Comprar) ────────────────── */
+.woocommerce a.button,
+.woocommerce button.button,
+.woocommerce .button.alt,
+.woocommerce input.button.alt,
+.woocommerce button.button.alt,
+.woocommerce #respond input#submit,
+.woocommerce #respond input#submit.alt,
+.woocommerce a.button.alt,
+.woocommerce-page a.button,
+.woocommerce-page button.button,
+.woocommerce-page .button.alt,
+.single_add_to_cart_button {
+    background: var(--aki-buy-bg);
+    color: var(--aki-buy-fg);
+    font-family: var(--font-heading);
+    font-weight: 400; /* Bebas solo tiene 400; el 700 era declaración muerta */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 0;
+    padding: var(--space-3) var(--space-5);
+    border: 2px solid var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    min-height: var(--touch-target-min);
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Hover del botón de compra: elevación brutalista con sombra de tinta */
+.woocommerce a.button:hover,
+.woocommerce button.button:hover,
+.woocommerce .button.alt:hover,
+.woocommerce input.button.alt:hover,
+.woocommerce button.button.alt:hover,
+.woocommerce #respond input#submit:hover,
+.woocommerce a.button.alt:hover {
+    background: var(--aki-buy-bg-hover);
+    color: var(--aki-buy-fg);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--aki-black);
+}
+
+.single_add_to_cart_button {
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    transform: skew(-4deg);
+    filter: drop-shadow(4px 4px 0 #000);
+    border: none !important;
+}
+
+.single_add_to_cart_button:hover {
+    background: var(--aki-buy-bg-hover);
+    color: var(--aki-buy-fg);
+    transform: skew(-4deg) translate(-2px, -2px);
+    filter: drop-shadow(6px 6px 0 var(--aki-white));
+}
+
+.single_add_to_cart_button:active {
+    transform: skew(-4deg) translate(2px, 2px);
+    filter: drop-shadow(1px 1px 0 #000);
+    transition: transform 50ms ease, filter 50ms ease;
+}
+
+.single_add_to_cart_button:focus-visible {
+    clip-path: none !important;
+    transform: none !important;
+    filter: none !important;
+    box-shadow: var(--aki-focus-ring) !important;
+}
+
+/* Active: hundimiento físico táctil instantáneo */
+.woocommerce a.button:active,
+.woocommerce button.button:active,
+.woocommerce .button.alt:active,
+.woocommerce input.button.alt:active,
+.woocommerce button.button.alt:active,
+.woocommerce #respond input#submit:active,
+.woocommerce a.button.alt:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--aki-black);
+    transition: transform 50ms ease, box-shadow 50ms ease;
+}
+
+/* Auth (login / registro / recuperar contraseña): medidor de fuerza nativo de WC
+   sin tematizar (ilegible) oculto —el módulo propio ya muestra uno legible— y
+   links de auth en el rojo de texto de la casa, no en el azul de WP. */
+.akb-account-auth a:not(.button),
+.akb-account-disclosure .lost_password a,
+.woocommerce-ResetPassword a,
+.woocommerce-LostPassword a {
+    /* Enlaces de autenticación sobre superficies oscuras (surface-2 / #1A1A1A):
+       --aki-red-text garantiza contraste >= 5:1 (conforme a WCAG AA para texto pequeño)
+       manteniendo la coherencia de identidad de marca. */
+    color: var(--aki-red-text);
+}
+/* Móvil: descarte de colisiones con botón flotante de WhatsApp (joinchat).
+   Alinea el enlace de recuperación a la izquierda y oculta el botón flotante
+   mientras los campos de autenticación tienen foco activo mediante :has(:focus). */
+@media (max-width: 768px) {
+    .woocommerce-account .akb-account-disclosure .woocommerce-LostPassword.lost_password,
+    .woocommerce-account .woocommerce-LostPassword.lost_password {
+        text-align: left;
+    }
+    body.woocommerce-account:has(.woocommerce-form-login :focus, .woocommerce-form-register :focus) .joinchat {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+    }
+}
+/* Ocultar el medidor nativo de WC SOLO en edit-account, donde existe el
+   medidor propio legible (#akb-pwd-strength via MyAccountUx). En registro y
+   lost/reset-password el medidor nativo DEBE quedar visible: WC deshabilita el
+   submit cuando la fuerza < mínimo y el .woocommerce-password-hint es lo único
+   que explica por qué. Ocultarlo global trababa esos formularios. */
+.woocommerce-edit-account .woocommerce-password-strength,
+.woocommerce-edit-account .woocommerce-password-hint {
+    display: none !important;
+}
+
+/* Select2 (WC checkout: country, region, city)
+ *
+ * Problema de cascada: WC carga su select2.css DESPUÉS del theme CSS → misma
+ * especificidad, WC gana → fondos blancos. Solución: prefijo `body` eleva
+ * especificidad a 0,3,0+ en todos los selectores críticos.
+ * Adicionalmente WC 8+ usa `--wc-form-color-background` como variable CSS
+ * en .select2-dropdown; lo sobreescribimos en :root para neutralizarlo. */
+
+:root {
+    --wc-form-color-background: var(--aki-surface-2);
+    --wc-form-color-text: var(--aki-light);
+}
+
+body .select2-container--default .select2-selection--single,
+body .select2-container--default .select2-selection--multiple {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    height: var(--touch-target-min);
+    color: var(--aki-light);
+}
+
+body .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--aki-light);
+    line-height: var(--touch-target-min);
+    padding-left: var(--space-3);
+    padding-right: var(--space-8);
+}
+
+body .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: var(--touch-target-min);
+    right: var(--space-2);
+}
+
+body .select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: var(--aki-light) transparent transparent transparent;
+}
+
+body .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--aki-red);
+}
+
+/* Dropdown abierto */
+body .select2-dropdown {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    color: var(--aki-light);
+}
+
+body .select2-container--open .select2-dropdown--below {
+    border-top-color: var(--aki-border);
+}
+
+body .select2-container--open .select2-dropdown--above {
+    border-bottom-color: var(--aki-border);
+}
+
+body .select2-container--default .select2-results__option {
+    color: var(--aki-light);
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+}
+
+/* Highlighted (hover/keyboard) — rojo brand.
+ * Cubre aria-selected Y data-selected (Select2 v4 usa data-selected). */
+body .select2-container--default .select2-results__option--highlighted,
+body .select2-container--default .select2-results__option--highlighted[aria-selected],
+body .select2-container--default .select2-results__option--highlighted[data-selected],
+body .select2-container--default .select2-results__option--highlighted[aria-selected="true"],
+body .select2-container--default .select2-results__option--highlighted[data-selected="true"] {
+    background: var(--aki-red);
+    color: var(--aki-white);
+}
+
+/* Selected (opción actualmente elegida, sin hover) — surface sutil.
+ * Cubre aria-selected Y data-selected para compatibilidad con Select2 v4+. */
+body .select2-container--default .select2-results__option[aria-selected="true"]:not(.select2-results__option--highlighted),
+body .select2-container--default .select2-results__option[data-selected="true"]:not(.select2-results__option--highlighted),
+body .select2-container--default .select2-results__option--selected:not(.select2-results__option--highlighted) {
+    background: var(--aki-surface-3);
+    color: var(--aki-white);
+}
+
+/* Disabled */
+body .select2-container--default .select2-results__option[aria-disabled="true"] {
+    color: var(--aki-gray-400);
+    background: transparent;
+    cursor: not-allowed;
+}
+
+/* Search input */
+body .select2-container--default .select2-search--dropdown .select2-search__field {
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    color: var(--aki-white);
+    padding: var(--space-2) var(--space-3);
+}
+
+body .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: var(--aki-white);
+    outline: none;
+    box-shadow: var(--aki-focus-ring);
+}
+
+/* BlueX shipping methods box — el plugin `bluex-for-woocommerce` inyecta
+ * `.woocommerce-checkout-section` con bg:#fff hardcoded → choca con dark theme
+ * (los labels son blancos sobre blanco, invisibles). Forzamos surface-2. */
+.woocommerce-checkout-section {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    color: var(--aki-light);
+    padding: var(--space-4) var(--space-5);
+}
+
+.woocommerce-checkout-section label,
+.woocommerce-checkout-section .form-row label {
+    color: var(--aki-light);
+}
+
+.woocommerce-checkout-section strong,
+.woocommerce-checkout-section b {
+    color: var(--aki-white);
+}
+
+/* Payment method description boxes (.payment_box) — WC core los pinta con
+ * background-color:#dcd7e2 (lavanda) que en dark theme rompe contraste y
+ * la flecha apuntando arriba (border-color: #dcd7e2) queda visible como
+ * triangle lavender feo. Re-pintamos con surface-2 + texto white para que
+ * cuadre con el resto del checkout. */
+.woocommerce-checkout #payment div.payment_box {
+    background: var(--aki-surface-2);
+    color: var(--aki-light);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.woocommerce-checkout #payment div.payment_box::before {
+    border-bottom-color: var(--aki-surface-2);
+}
+
+.woocommerce-checkout #payment div.payment_box a {
+    color: var(--aki-white);
+    text-decoration: underline;
+}
+
+/* Inputs WC — el styling base (bg, color, border, radius, focus,
+ * placeholder, disabled) vive ahora en `base.css` bloque "Form
+ * controls — global reset". Aquí solo lo WC-específico que el
+ * global no puede cubrir:
+ *   - `.qty` width 64px + center (caso compacto que rompería el
+ *     layout si fuera 100% como otros inputs).
+ */
+.woocommerce .quantity input.qty,
+.woocommerce-page .quantity input.qty {
+    width: 64px;
+    text-align: center;
+}
+
+/* ─── Result count + ordering ─────────────────────────────────── */
+.woocommerce-result-count,
+.woocommerce-ordering select {
+    color: var(--aki-gray-300);
+}
+
+.woocommerce-ordering select {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    padding: var(--space-2);
+}
+
+/* ─── WC notices — TODOS los contextos (single product, cart, checkout, archives) ─
+ * El default WC es bg blanco con border-left azul. Se ve fuera de marca en el
+ * theme dark. Color del border-top diferencia severity:
+ *   info    → neutral gray (yellow reservado para money, ver feedback_akibara_yellow_for_critical_money)
+ *   message → green (success)
+ *   error   → red brand
+ */
+.woocommerce-info,
+.woocommerce-message,
+.woocommerce-error {
+    background: var(--aki-surface-1);
+    color: var(--aki-white);
+    padding: var(--space-4);
+    border-radius: 0;
+    border: 2px solid var(--aki-black);
+    box-shadow: 6px 6px 0px var(--aki-black);
+    /* Sin uppercase ni bold total: los errores largos de checkout en caps
+     * sostenidas pierden legibilidad en 390px. La identidad brutalista la
+     * dan borde+sombra, no las mayúsculas. */
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: var(--space-5);
+}
+
+.woocommerce-info {
+    border-left: 6px solid var(--aki-gray-400);
+}
+
+.woocommerce-message {
+    border-left: 6px solid var(--aki-green-deep);
+}
+
+.woocommerce-error {
+    border-left: 6px solid var(--aki-red);
+}
+
+.woocommerce-info a,
+.woocommerce-message a,
+.woocommerce-error a {
+    /* red-bright (4.78:1) — el --aki-red puro da 3.93:1 sobre el surface oscuro (falla AA). */
+    color: var(--aki-red-bright);
+    text-decoration: underline;
+}
+
+.woocommerce-info a:hover,
+.woocommerce-message a:hover,
+.woocommerce-error a:hover {
+    color: var(--aki-red-bright);
+    text-decoration: none;
+}
+
+/* Suprime el ícono ::before nativo de WooCommerce para evitar colisiones de espaciado
+   y mantener la indicación semántica a través del borde de color y tokens tipográficos. */
+.woocommerce-info::before,
+.woocommerce-message::before,
+.woocommerce-error::before {
+    display: none;
+}
+
+/* WC enfoca el primer aviso "se ha añadido a tu carrito" (tabindex=-1, por a11y)
+   y el navegador le pinta su outline de foco AZUL por defecto — el "azul" que
+   rompe la marca en el carrito. Lo reemplazamos por el anillo de foco de la casa. */
+.woocommerce-message:focus,
+.woocommerce-info:focus,
+.woocommerce-error:focus,
+.woocommerce-message:focus-visible,
+.woocommerce-info:focus-visible,
+.woocommerce-error:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset);
+}
+
+/* WooCommerce BLOCKS notice (cart/checkout de bloques) — por defecto viene AZUL,
+   rompiendo la marca. Lo re-skineamos al mismo lenguaje brutalista que los notices
+   clásicos: surface oscuro, borde + sombra dura, acento por tipo (info gris /
+   success verde / error rojo), sin azul. */
+.wc-block-components-notice-banner {
+    background: var(--aki-surface-1) !important;
+    color: var(--aki-white) !important;
+    border: 2px solid var(--aki-black) !important;
+    border-left-width: 6px !important;
+    border-radius: 0 !important;
+    box-shadow: 6px 6px 0 var(--aki-black);
+}
+.wc-block-components-notice-banner.is-info { border-left-color: var(--aki-gray-400) !important; }
+.wc-block-components-notice-banner.is-success { border-left-color: var(--aki-green-deep) !important; }
+.wc-block-components-notice-banner.is-error { border-left-color: var(--aki-red) !important; }
+.wc-block-components-notice-banner svg { fill: currentColor; color: var(--aki-gray-400); }
+.wc-block-components-notice-banner a { color: var(--aki-red-bright); text-decoration: underline; }
+
+/* ─── Checkout page ────────────────────────────────────────────── */
+
+.woocommerce-checkout #order_review,
+.woocommerce-checkout .checkout_coupon {
+    background: var(--aki-surface);
+    color: var(--aki-gray-200);
+    border: 2px solid var(--aki-black);
+    padding: var(--space-4);
+    border-radius: 0;
+}
+
+.woocommerce form .form-row label {
+    color: var(--aki-gray-200);
+    font-weight: 600;
+    font-size: var(--text-sm);
+}
+
+/* Mobile: apilar los pares de campos 2-col (Nombre|Apellidos, etc.) a 1 col.
+ * Verificado en render: a 390px WC core los deja lado a lado (form-row-first
+ * left:16 w:174 + form-row-last left:200 w:174) — campos angostos y apretados.
+ * El theme no carga woocommerce-smallscreen.css, así que reponemos su apilado
+ * estándar (full width + sin float) bajo 640px. Cubre checkout y direcciones. */
+@media (max-width: 640px) {
+    .woocommerce form .form-row-first,
+    .woocommerce form .form-row-last {
+        width: 100%;
+        float: none;
+        margin-right: 0;
+    }
+}
+
+/* Mobile checkout: el #order_review tiene padding 16 + table propia con
+ * padding interno → header "Producto" se cortaba mid-letter por overflow.
+ * Padding tight + font-size más chico para que la tabla 2-col
+ * (Producto | Subtotal) quepa sin desbordar el container. */
+@media (max-width: 768px) {
+    .woocommerce-checkout #order_review {
+        padding: var(--space-3);
+    }
+    .woocommerce-checkout #order_review table.shop_table {
+        font-size: var(--text-sm);
+    }
+    .woocommerce-checkout #order_review table.shop_table th,
+    .woocommerce-checkout #order_review table.shop_table td {
+        padding: var(--space-2) var(--space-1);
+    }
+    /* CTA primario "REALIZAR EL PEDIDO" full width en mobile.
+     * WC core lo renderiza inline-flex (~300px) y el parent
+     * `#payment div.form-row` tiene `padding: 1em` (specificity (0,1,2,1)
+     * via #payment ID). Igualamos specificity con el ID y reseteamos
+     * padding del wrapper para que el btn al 100% ocupe el container. */
+    .woocommerce-checkout #payment div.form-row.place-order {
+        padding: var(--space-3) 0 0;
+    }
+    .woocommerce-checkout #place_order {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        min-height: var(--touch-target-min);
+    }
+}
+
+/* Checkout CTA: Botón táctil brutalista con física kinética */
+.woocommerce-checkout #place_order {
+    background: var(--aki-buy-bg);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 0;
+    border: none;
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    filter: drop-shadow(4px 4px 0 var(--aki-black));
+    transition: transform 0.12s ease, filter 0.12s ease, background-color 0.12s ease;
+    cursor: pointer;
+}
+
+.woocommerce-checkout #place_order:hover {
+    background: var(--aki-buy-bg-hover);
+    background-image: none;
+    color: var(--aki-white);
+    transform: translate(-2px, -2px);
+    filter: drop-shadow(6px 6px 0 var(--aki-black));
+}
+
+.woocommerce-checkout #place_order:active {
+    transform: translate(2px, 2px);
+    filter: drop-shadow(1px 1px 0 var(--aki-black));
+    transition: transform 40ms ease, filter 40ms ease;
+}
+
+.woocommerce-checkout #place_order:focus-visible {
+    background: var(--aki-buy-bg-hover);
+    background-image: none;
+    transform: none;
+    clip-path: none;
+    filter: none;
+    box-shadow: var(--aki-focus-ring) !important;
+}
+
+/* Suprime el contorno únicamente en forced-colors: none para permitir que box-shadow
+ * pinte el anillo de foco de la casa sin duplicación visual, preservando el outline
+ * en modo de alto contraste asistivo. */
+@media (forced-colors: none) {
+    .woocommerce-checkout #place_order:focus-visible {
+        outline: none !important;
+    }
+}
+
+/* Desktop: el CTA primario "Realizar el pedido" no tenia ancho explicito → WC lo
+   renderea a content-width (~188px), subdimensionado para la accion de mayor
+   intencion del checkout. >=50% de la columna. (Mobile ya es full-width arriba.) */
+@media (min-width: 769px) {
+    .woocommerce-checkout #place_order {
+        min-width: 50%;
+        min-height: var(--touch-target-min);
+    }
+}
+
+/* Form controls globales (radios, checkboxes, inputs, textarea, select)
+ * y enlace `.woocommerce-terms-and-conditions-link` residen en `base.css`
+ * (bloque "Form controls — global reset") para cobertura uniforme independiente del contexto. */
+
+/* ─── Coupon form (carrito + checkout) ─────────────────────────
+ * WC inyecta `<div class="coupon"><input #coupon_code><button>`
+ * sin layout — input queda con width:170px hardcoded, placeholder
+ * "Código de cupón" se corta. Flex con tokens DS: input crece hasta
+ * llenar el espacio, botón mantiene su tamaño natural, gap entre
+ * ambos. flex-wrap permite que en mobile estrecho el input baje a
+ * su propia línea sin overflow horizontal. */
+.coupon {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: stretch;
+}
+
+.coupon #coupon_code,
+.coupon input[name="coupon_code"] {
+    flex: 1 1 200px;
+    min-width: 0;
+    /* WC core pinta border lavanda con `.woocommerce #content table.cart
+     * td.actions .coupon .input-text` (specificity 0,0,5,2 con var(--base)).
+     * Reescribimos con ID selector (0,1,1,1) — gana sin !important. */
+    background: var(--aki-surface-2);
+    color: var(--aki-white);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+}
+
+/* ─── Override WC form fields specificity ──────────────────────
+ * El global de `base.css` (specificity 0,0,1,1) pierde contra WC
+ * core `.woocommerce form .form-row .input-text|textarea|select`
+ * (0,0,3,1 con `var(--wc-form-color-background, #fff)`). Re-aplicamos
+ * los tokens DS con specificity matched — empate gana orden de carga
+ * (child theme después de plugins). Cubre nombre/email/RUT/teléfono/
+ * notas en checkout y todos los inputs del form de mi-cuenta. */
+.woocommerce form .form-row .input-text,
+.woocommerce form .form-row textarea,
+.woocommerce form .form-row select,
+.woocommerce-page form .form-row .input-text,
+.woocommerce-page form .form-row textarea,
+.woocommerce-page form .form-row select {
+    background: var(--aki-surface-2);
+    color: var(--aki-white);
+    /* Borde ≥3:1 sobre surface-2 (#1A1A1A): el input vacío se veía como hueco
+       negro (WCAG 1.4.11). 2px para que el límite del campo se perciba en dark. */
+    border: 2px solid var(--aki-input-border);
+    border-radius: 0;
+    /* WC core fija `padding: .5em; height: auto; line-height: normal` que
+     * achica los inputs a ~31px (font-size base 13px). Mobile WCAG/Apple
+     * HIG exige 44px tap target. Re-aplicamos los valores del DS para
+     * recuperar el touch target sin desfaz visual. */
+    height: var(--touch-target-min);
+    padding: 0 var(--space-3);
+    /* >=16px evita el zoom automatico de iOS Safari al enfocar el input
+     * (el cuello de friccion del checkout en mobile). */
+    font-size: max(16px, var(--text-sm));
+    line-height: 1;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.woocommerce form .form-row .input-text:focus,
+.woocommerce form .form-row textarea:focus,
+.woocommerce form .form-row select:focus,
+.woocommerce-page form .form-row .input-text:focus,
+.woocommerce-page form .form-row textarea:focus,
+.woocommerce-page form .form-row select:focus {
+    outline: none;
+    /* Anillo de foco estandarizado del sistema de diseño (tokens.css) con contraste óptimo en dark theme. */
+    border-color: var(--aki-white);
+    box-shadow: var(--aki-focus-ring);
+}
+
+.woocommerce form .form-row textarea,
+.woocommerce-page form .form-row textarea {
+    height: auto;
+    min-height: calc(var(--touch-target-min) * 2);
+    padding: var(--space-3);
+    line-height: 1.4;
+}
+
+/* Mobile cart: reescribe el layout tabla a card-per-product (cada <tr>
+ * = una card visual). WC nativo en mobile renderea labels "Producto:",
+ * "Precio:", "Cantidad:", "Subtotal:" con valor alineado a la derecha
+ * (verbose, scroll vertical largo, X eliminar separado del producto).
+ *
+ * Aprovecha que WC ya inyecta `data-title` en cada <td> para etiquetar,
+ * y reformatea como tarjeta limpia: producto arriba (full width), abajo
+ * grid 2-col con precio/cantidad/subtotal alineados. X eliminar absolute
+ * top-right del bloque.
+ */
+@media (max-width: 768px) {
+    .woocommerce-cart-form table.shop_table_responsive,
+    .woocommerce-cart table.cart {
+        border: 0;
+        background: transparent;
+    }
+    /* Card mobile = grid 2-col: thumbnail izquierda (80px), contenido
+     * derecha (name/price/quantity), subtotal full-width abajo. Patrón
+     * estándar e-commerce mobile (Amazon, MercadoLibre, SHEIN, Shopify
+     * default) — mayor densidad de info, expectativa del usuario, mejor
+     * aprovechamiento del ancho. X eliminar queda absolute top-right. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item,
+    .woocommerce-cart table.cart tbody tr.cart_item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        grid-template-areas:
+            "img name"
+            "img price"
+            "img quantity"
+            "subtotal subtotal";
+        column-gap: var(--space-3);
+        row-gap: var(--space-1);
+        background: var(--aki-surface);
+        border: 1px solid var(--aki-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-4);
+        margin-bottom: var(--space-3);
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td,
+    .woocommerce-cart table.cart tbody tr.cart_item td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0;
+        border: 0;
+        text-align: left;
+        font-size: var(--text-sm);
+    }
+    /* Producto name: col derecha row 1, bold, sin label, padding-right
+     * para no chocar con la X absolute top-right del card. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-name,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-name {
+        grid-area: name;
+        display: block;
+        font-weight: var(--weight-semibold);
+        color: var(--aki-white);
+        padding-right: 48px;
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-name::before,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-name::before {
+        display: none;
+    }
+    /* X eliminar: absolute top-right del card. No participa del grid. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-remove,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-remove {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 0;
+        margin: 0;
+        display: block;
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-remove::before,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-remove::before {
+        display: none;
+    }
+    /* Thumbnail: col izquierda, abarca toda la altura del card. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail {
+        grid-area: img;
+        display: block;
+        padding: 0;
+        margin: 0;
+        border: 0;
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail::before,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail::before {
+        display: none;
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail a,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail a {
+        display: block;
+        width: 80px;
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail img,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail img {
+        display: block;
+        width: 80px;
+        height: auto;
+    }
+    /* Price/quantity: col derecha, label-value inline. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-price,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-price {
+        grid-area: price;
+    }
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-quantity,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-quantity {
+        grid-area: quantity;
+    }
+    /* Subtotal: full-width abajo, bold, separador superior. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-subtotal,
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-subtotal {
+        grid-area: subtotal;
+        font-weight: var(--weight-semibold);
+        color: var(--aki-white);
+        border-top: 1px solid var(--aki-border);
+        padding-top: var(--space-2);
+        margin-top: var(--space-2);
+    }
+    /* Hide the "Actions" row (cupón + Update cart) que viene como tr
+     * separada — se renderea OK como bloque sin tarjeta. */
+    .woocommerce-cart-form table.shop_table_responsive tbody tr:not(.cart_item),
+    .woocommerce-cart table.cart tbody tr:not(.cart_item) {
+        display: block;
+        padding: var(--space-3) 0;
+    }
+    /* Hide thead en mobile (WC lo hace via shop_table_responsive class
+     * pero en algunos themes se override). */
+    .woocommerce-cart-form table.shop_table_responsive thead,
+    .woocommerce-cart table.cart thead {
+        display: none;
+    }
+    /* WC core mobile inserta `td::before { content: attr(data-title) ": " }`
+     * para mostrar la label de cada celda. Plugins (WPC EDD) que añaden
+     * <tr><td colspan> sin data-title producen un orphan ": " visible.
+     * Ocultar el pseudo cuando el data-title está ausente o vacío. */
+    .woocommerce-cart-form table.shop_table_responsive tbody td:not([data-title])::before,
+    .woocommerce-cart table.cart tbody td:not([data-title])::before,
+    .woocommerce-cart-form table.shop_table_responsive tbody td[data-title=""]::before,
+    .woocommerce-cart table.cart tbody td[data-title=""]::before {
+        display: none;
+    }
+    /* Primary action "FINALIZAR COMPRA" full width en mobile.
+     * WC core renderiza <a class="checkout-button"> como inline-flex (~190px).
+     * Tap target del CTA principal debe ocupar el ancho del container. */
+    .woocommerce-cart .wc-proceed-to-checkout .checkout-button {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Desktop cart thumbnail: WC core fija `width: 32px` (`.woocommerce-cart
+ * table.cart img` en woocommerce.css del plugin), default heredado del
+ * 2014. 32px no permite reconocer la portada del tomo — el cliente debe
+ * leer el título para confirmar el ítem. Ampliamos a 72px para que la
+ * portada sea distinguible sin dominar la fila. @media min-width 769
+ * para que no destrone el 96px del bloque mobile (que vive en @media
+ * max-width 768 más arriba en el archivo y matchearía la cascada). */
+@media (min-width: 769px) {
+    .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail img,
+    .woocommerce-cart-form table.shop_table tbody tr.cart_item td.product-thumbnail img {
+        width: 72px;
+        height: auto;
+    }
+}
+
+/* ─── My Account ───────────────────────────────────────────────── */
+.woocommerce-MyAccount-navigation ul {
+    background: var(--aki-surface);
+    border: 2px solid var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    border-radius: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.woocommerce-MyAccount-navigation ul li {
+    border-bottom: 1px solid var(--aki-border);
+    margin: 0;
+}
+
+.woocommerce-MyAccount-navigation ul li:last-child {
+    border-bottom: none;
+}
+
+.woocommerce-MyAccount-navigation ul li a {
+    position: relative;
+    color: var(--aki-gray-200);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+    box-sizing: border-box;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Navegación: solapa de tomo con desplazamiento y resalte */
+.woocommerce-MyAccount-navigation ul li a:hover {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+    transform: translateX(4px);
+}
+
+/* Outline por DENTRO (offset negativo): la lista recorta lo que sale. */
+.woocommerce-MyAccount-navigation ul li a:focus-visible {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+    outline: var(--aki-focus-outline);
+    outline-offset: -4px;
+    box-shadow: none;
+}
+
+/* Active: distintiva pestaña activa con barra roja de marca */
+.woocommerce-MyAccount-navigation ul li.is-active a {
+    color: var(--aki-white);
+    background: var(--aki-surface-3);
+    font-weight: 700;
+}
+
+.woocommerce-MyAccount-navigation ul li.is-active a::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--aki-red);
+}
+
+/* Logout — destructive accent */
+.woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout a {
+    color: var(--aki-gray-300);
+}
+
+.woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout a:hover {
+    color: var(--aki-red);
+    background: var(--aki-surface-2);
+}
+
+/* Content area — solo el color de links (eran azul default, ahora blancos).
+ * Sin card/border/bg para no romper el layout de WC mi-cuenta. */
+.woocommerce-MyAccount-content a:not(.button) {
+    color: var(--aki-white);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color var(--transition-fast);
+}
+
+.woocommerce-MyAccount-content a:not(.button):hover {
+    color: var(--aki-red-bright);
+}
+
+/* edit-account: el WC core renderiza `<fieldset><legend>Cambio de
+ * contraseña</legend>...</fieldset>` con los defaults del browser
+ * (border 2px groove #efefef, padding random). En dark theme queda como
+ * caja gris pálida fuera de la paleta. Re-skin con surface + border DS. */
+.woocommerce-EditAccountForm fieldset {
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin: var(--space-4) 0;
+}
+
+.woocommerce-EditAccountForm fieldset legend {
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0 var(--space-2);
+}
+
+/* edit-address: link tipográfico secundario. El CTA primario del flow es
+ * "Guardar dirección" (submit del form). Este link es navegación de
+ * mantenimiento, no acción transaccional → underline gray, no botón.
+ * Outline rojo previo (commit 4ba21aa) competía visualmente con el <h3>
+ * y diluía la señal del rojo en el resto del flow (checkout submit, delete).
+ * Hover sube text-decoration-thickness 1→2px como señal redundante al
+ * cambio de color (WCAG 1.4.1 use-of-color). */
+.woocommerce-MyAccount-content header.woocommerce-Address-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.woocommerce-MyAccount-content header.woocommerce-Address-title .edit {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: var(--aki-gray-200);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    letter-spacing: normal;
+    text-transform: none;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--aki-gray-500);
+    transition: color var(--transition-fast),
+                text-decoration-color var(--transition-fast),
+                text-decoration-thickness var(--transition-fast);
+}
+
+.woocommerce-MyAccount-content header.woocommerce-Address-title .edit:visited {
+    color: var(--aki-gray-200);
+}
+
+.woocommerce-MyAccount-content header.woocommerce-Address-title .edit:hover,
+.woocommerce-MyAccount-content header.woocommerce-Address-title .edit:focus-visible {
+    color: var(--aki-white);
+    text-decoration-color: var(--aki-white);
+    text-decoration-thickness: 2px;
+    background: transparent;
+}
+
+/* ─── My Account · Orders table (mobile card layout) ────────────
+ * WC core mobile aplica `table.shop_table_responsive tbody th { display: none }`
+ * que oculta la celda <th data-title="Pedido"> con el order number. Sin esta
+ * regla el cliente no ve el # del pedido en mobile (sólo Fecha/Estado/Total/
+ * Acciones), lo que dificulta referenciarlo en soporte.
+ * Specificity (0,0,3,2) > core (0,0,2,2) sin !important. */
+@media (max-width: 768px) {
+    .woocommerce-orders-table.shop_table_responsive {
+        border: 0;
+        background: transparent;
+    }
+    .woocommerce-orders-table.shop_table_responsive tbody tr {
+        display: block;
+        background: var(--aki-surface);
+        border: 1px solid var(--aki-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+        margin-bottom: var(--space-3);
+    }
+    .woocommerce-orders-table.shop_table_responsive tbody th[data-title],
+    .woocommerce-orders-table.shop_table_responsive tbody td[data-title] {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-1) 0;
+        border: 0;
+        text-align: right;
+        font-size: var(--text-sm);
+    }
+    .woocommerce-orders-table.shop_table_responsive tbody th[data-title]::before,
+    .woocommerce-orders-table.shop_table_responsive tbody td[data-title]::before {
+        content: attr(data-title) ":";
+        font-weight: var(--weight-semibold);
+        color: var(--aki-white);
+        text-align: left;
+    }
+    .woocommerce-orders-table.shop_table_responsive thead {
+        display: none;
+    }
+}
+
+/* ─── Orders table — color semántico por estado ────────────────
+ * WC core template myaccount/orders.php v9.5.0 agrega class
+ * `woocommerce-orders-table__row--status-<key>` al <tr>. Aprovechamos esa
+ * class para colorear el texto del cell-order-status con jerarquía visual
+ * — sin override de PHP ni JS.
+ *
+ * Keys WC: pending, processing, on-hold, completed, cancelled, refunded,
+ * failed, checkout-draft.
+ *
+ * Mobile: el ::before del cell pinta "Estado:" en white (rule específica
+ * arriba con specificity 0,0,3,2 > nuestra 0,0,3,1) — solo el text node
+ * del cell toma el color semántico, el label queda neutro. */
+/* Mismo semáforo que las cards (tokens --aki-status-*, tokens.css): rojo de texto
+   = atención, verde = ok, gris = en curso. Cero azul/morado. */
+.woocommerce-orders-table__row--status-cancelled td.woocommerce-orders-table__cell-order-status,
+.woocommerce-orders-table__row--status-failed td.woocommerce-orders-table__cell-order-status,
+.woocommerce-orders-table__row--status-refunded td.woocommerce-orders-table__cell-order-status {
+    color: var(--aki-status-alert); /* atención (reembolso/cancelado/fallido) */
+    font-weight: var(--weight-bold);
+}
+
+.woocommerce-orders-table__row--status-completed td.woocommerce-orders-table__cell-order-status {
+    color: var(--aki-status-ok); /* completado/entregado */
+    font-weight: var(--weight-bold);
+}
+
+.woocommerce-orders-table__row--status-processing td.woocommerce-orders-table__cell-order-status,
+.woocommerce-orders-table__row--status-on-hold td.woocommerce-orders-table__cell-order-status,
+.woocommerce-orders-table__row--status-pending td.woocommerce-orders-table__cell-order-status {
+    color: var(--aki-gray-200); /* neutro — en proceso / en espera / pendiente */
+    font-weight: var(--weight-bold);
+}
+
+/* ─── Mobile: nav account = tabs horizontales ───────────────────
+ * Default WC renderea el nav como <ul> vertical full-width. En mobile,
+ * 6 items × ~45px = 270px above-the-fold gastados en menú antes de mostrar
+ * contenido (41% del viewport útil en iPhone 14). Lo convertimos en row
+ * horizontal scrollable con snap — patrón "category chips" de Mercado
+ * Libre/Falabella mobile. Total height pasa a ~52px.
+ *
+ * @media 768 alineado con el resto del woocommerce.css (header.css usa
+ * 1024 — son breakpoints distintos por dominio: header tiene mainnav
+ * desktop hasta 1024, WC tablet layout colapsa a stacked en 768). */
+@media (max-width: 768px) {
+    .woocommerce-MyAccount-navigation {
+        margin-bottom: var(--space-4);
+    }
+    .woocommerce-MyAccount-navigation ul {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        /* scroll-snap-type proximity: alineación suave al deslizar horizontalmente sin bloquear el desplazamiento. */
+        scroll-snap-type: x proximity;
+        gap: var(--space-1);
+        padding: var(--space-2);
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        scrollbar-width: none; /* Firefox */
+        -webkit-overflow-scrolling: touch;
+    }
+    .woocommerce-MyAccount-navigation ul::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+    /* Indicador visual de desbordamiento horizontal: elemento sticky al extremo
+     * derecho que proyecta un degradado de desvanecimiento hacia el fondo mientras
+     * existan pestañas adicionales por desplazar. Al alcanzar el final de la fila,
+     * fluye naturalmente sin ocultar la última opción. */
+    .woocommerce-MyAccount-navigation ul::after {
+        content: "";
+        position: sticky;
+        right: 0;
+        flex: 0 0 40px;
+        align-self: stretch;
+        background: linear-gradient(90deg, rgba(18, 18, 18, 0), var(--aki-black) 80%);
+        pointer-events: none;
+    }
+    .woocommerce-MyAccount-navigation ul li {
+        flex-shrink: 0;
+        border-bottom: 0;
+        margin: 0;
+        scroll-snap-align: start;
+    }
+    .woocommerce-MyAccount-navigation ul li a {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--touch-target-min); /* 44px touch (antes ~36px, fallaba WCAG 2.5.8) */
+        padding: 0 var(--space-4);
+        white-space: nowrap;
+        background: var(--aki-surface-2);
+        border: 1px solid var(--aki-border);
+        border-radius: 0; /* marca: radius 0 (antes pill 999px) */
+        font-size: var(--text-sm);
+    }
+    .woocommerce-MyAccount-navigation ul li a:focus-visible {
+        outline: var(--aki-focus-outline);
+        outline-offset: var(--aki-focus-offset);
+    }
+    /* Active state — pill rojo brand */
+    .woocommerce-MyAccount-navigation ul li.is-active a {
+        background: var(--aki-red);
+        color: var(--aki-white);
+        border-color: var(--aki-red);
+    }
+    /* Override de la barra roja izquierda — no aplica en tabs horizontales */
+    .woocommerce-MyAccount-navigation ul li.is-active a::before {
+        display: none;
+    }
+    /* Logout — variante outline para diferenciar de tabs de sección */
+    .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout a {
+        background: transparent;
+        color: var(--aki-gray-300);
+    }
+    .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout a:hover {
+        color: var(--aki-red);
+        background: var(--aki-surface-2);
+    }
+
+    /* Fade lateral derecho — indicador visual de overflow horizontal.
+     * Las tabs scrollean a la derecha (overflow-x:auto + scrollbar
+     * oculto). Sin esto el usuario no sabe que hay más tabs detrás
+     * del borde derecho. Width 32px = ~3 chars de la próxima pill. */
+    .woocommerce-MyAccount-navigation {
+        position: relative;
+    }
+    .woocommerce-MyAccount-navigation::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 32px;
+        background: linear-gradient(to right, rgba(0, 0, 0, 0), var(--aki-black));
+        pointer-events: none;
+    }
+}
+
+/* ─── Dashboard /mi-cuenta/ — cards de acciones ────────────────────
+ * Override del template default WC (`myaccount/dashboard.php`) servido
+ * por akibara-business 1.38.0. Reemplaza "Hello X (¿no eres X?)" por
+ * un grid de 2-cols con Pedidos / Favoritos / Direcciones / Detalles
+ * + un botón Cerrar sesión con hit target ≥44px al cierre. */
+.akb-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+.akb-dashboard__greeting {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+    color: var(--aki-white);
+}
+.akb-dashboard__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+}
+/* Specificity: el bloque WC `.woocommerce-MyAccount-content a:not(.button)`
+ * (0,2,1) impone text-decoration: underline a todo `<a>` dentro del content
+ * area. Para nuestros cards y logout necesitamos override empatado-o-superior
+ * — uso doble clase (0,2,0) + source-order para ganar. */
+.woocommerce-MyAccount-content a.akb-dashboard__card,
+a.akb-dashboard__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background: var(--aki-surface-2);
+    border: 2px solid var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    border-radius: 0;
+    color: var(--aki-white);
+    text-decoration: none;
+    min-height: 84px;
+    transition: border-color var(--transition-fast),
+                background var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+.woocommerce-MyAccount-content a.akb-dashboard__card:hover,
+a.akb-dashboard__card:hover {
+    border-color: var(--aki-red);
+    background: var(--aki-surface-3);
+    color: var(--aki-white);
+    text-decoration: none;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--aki-black);
+}
+.woocommerce-MyAccount-content a.akb-dashboard__card:focus-visible,
+a.akb-dashboard__card:focus-visible {
+    border-color: var(--aki-red);
+    background: var(--aki-surface-3);
+    color: var(--aki-white);
+    text-decoration: none;
+    outline: var(--aki-focus-outline);
+    outline-offset: 2px;
+}
+.woocommerce-MyAccount-content a.akb-dashboard__card:active,
+a.akb-dashboard__card:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--aki-black);
+    transition: transform 50ms ease, box-shadow 50ms ease;
+}
+.akb-dashboard__card-title {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+}
+.akb-dashboard__card-desc {
+    font-size: var(--text-sm);
+    color: var(--aki-gray-300);
+    line-height: 1.4;
+}
+/* Card PRIMARIA (Pedidos): full-width + barra roja → jerarquía sobre las otras 3. */
+.akb-dashboard__card--primary {
+    grid-column: 1 / -1;
+    border-left: 5px solid var(--aki-red);
+}
+/* Dato real (conteo de pedidos): blanco semibold, NO amarillo (no es precio). */
+.akb-dashboard__card-meta {
+    margin-top: var(--space-1);
+    color: var(--aki-white);
+    font-weight: var(--weight-semibold);
+}
+/* Chevron rojo PERMANENTE = affordance de clic visible en touch (antes el único
+   cue era border-color:hover, invisible al tacto). */
+.akb-dashboard__card {
+    position: relative;
+    padding-right: calc(var(--space-4) + 18px);
+}
+.akb-dashboard__card::after {
+    content: "\203A"; /* › */
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--aki-red);
+    font-size: 1.6rem;
+    line-height: 1;
+    opacity: 0.55;
+}
+.akb-dashboard__card:hover::after,
+.akb-dashboard__card:focus-visible::after {
+    opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .akb-dashboard__card::after { transition: opacity var(--transition-fast), transform var(--transition-fast); }
+    .akb-dashboard__card:hover::after,
+    .akb-dashboard__card:focus-visible::after { transform: translateY(-50%) translateX(3px); }
+}
+.woocommerce-MyAccount-content a.akb-dashboard__logout,
+a.akb-dashboard__logout {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-5);
+    margin-top: var(--space-2);
+    background: transparent;
+    border: 2px solid var(--aki-black);
+    box-shadow: 3px 3px 0 var(--aki-black);
+    border-radius: 0;
+    color: var(--aki-gray-300);
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+.woocommerce-MyAccount-content a.akb-dashboard__logout:hover,
+a.akb-dashboard__logout:hover {
+    color: var(--aki-red);
+    border-color: var(--aki-red);
+    text-decoration: none;
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--aki-black);
+}
+.woocommerce-MyAccount-content a.akb-dashboard__logout:focus-visible,
+a.akb-dashboard__logout:focus-visible {
+    color: var(--aki-red);
+    border-color: var(--aki-red);
+    text-decoration: none;
+    outline: var(--aki-focus-outline);
+    outline-offset: 2px;
+}
+.woocommerce-MyAccount-content a.akb-dashboard__logout:active,
+a.akb-dashboard__logout:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--aki-black);
+}
+@media (max-width: 480px) {
+    .akb-dashboard__actions { grid-template-columns: 1fr; }
+}
+
+/* ─── /mi-cuenta/orders/ — card-based con thumbnail ─────────────────
+ * Reemplaza la table responsive default WC (label/value en mobile) por
+ * cards verticales con thumbnail + meta + acciones. Patrón Amazon /
+ * MercadoLibre / Falabella. Template servido por akibara-business
+ * 1.39.0 (`templates/myaccount/orders.php`). */
+.akb-orders {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+.akb-orders-card {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--aki-surface);
+    border: 2px solid var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    border-radius: 0;
+}
+.akb-orders-card__thumb {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-black);
+    border-radius: 0;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.akb-orders-card__thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.akb-orders-card__thumb-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.85);
+    color: var(--aki-white);
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    padding: 2px 6px;
+    border-radius: 0; /* marca: radius 0 */
+    line-height: 1;
+}
+.akb-orders-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0; /* evita overflow del header child */
+}
+.akb-orders-card__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+.woocommerce-MyAccount-content a.akb-orders-card__number,
+a.akb-orders-card__number {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    text-decoration: none;
+}
+.woocommerce-MyAccount-content a.akb-orders-card__number:hover,
+a.akb-orders-card__number:hover {
+    color: var(--aki-red);
+    text-decoration: none;
+}
+.akb-orders-card__date {
+    font-size: var(--text-xs);
+    color: var(--aki-gray-400);
+    white-space: nowrap;
+}
+.akb-orders-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+.akb-orders-card__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 0; /* marca: radius 0 (antes pill 999px) */
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-200);
+    border: 1px solid var(--aki-black);
+}
+/* Paleta de estados semánticos brand-safe y accesible:
+   - completed: verde de éxito (--aki-status-ok).
+   - processing / on-hold / pending: gris neutro de alto contraste.
+   - cancelled / failed / refunded: rojo de alerta (--aki-status-alert, contraste >= 5:1 en dark theme). */
+.akb-orders-card__status--completed {
+    background: color-mix(in srgb, var(--aki-status-ok) 12%, transparent);
+    color: var(--aki-status-ok);
+    border-color: color-mix(in srgb, var(--aki-status-ok) 30%, transparent);
+}
+.akb-orders-card__status--processing,
+.akb-orders-card__status--on-hold,
+.akb-orders-card__status--pending {
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-200);
+    border-color: var(--aki-border);
+}
+.akb-orders-card__status--cancelled,
+.akb-orders-card__status--failed,
+.akb-orders-card__status--refunded {
+    background: color-mix(in srgb, var(--aki-status-alert) 12%, transparent);
+    color: var(--aki-status-alert);
+    border-color: color-mix(in srgb, var(--aki-status-alert) 30%, transparent);
+}
+.akb-orders-card__total {
+    font-size: var(--text-sm);
+    color: var(--aki-white);
+    font-weight: var(--weight-semibold);
+}
+.akb-orders-card__items {
+    color: var(--aki-gray-400);
+    font-weight: var(--weight-normal);
+    font-size: var(--text-xs);
+}
+.akb-orders-card__extra {
+    font-size: var(--text-xs);
+    color: var(--aki-gray-300);
+    line-height: 1.4;
+}
+.akb-orders-card__extra-label {
+    color: var(--aki-gray-400);
+}
+.akb-orders-card__actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-1);
+}
+.woocommerce-MyAccount-content a.akb-orders-card__action,
+a.akb-orders-card__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: var(--touch-target-min);
+    padding: var(--space-1) var(--space-3);
+    border-radius: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 2px solid var(--aki-black);
+    box-shadow: 3px 3px 0 var(--aki-black);
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+.akb-orders-card__action:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--aki-black);
+}
+.akb-orders-card__action--primary {
+    background: var(--aki-red);
+    color: var(--aki-white);
+}
+.akb-orders-card__action--primary:hover {
+    background: var(--aki-red-hover);
+    color: var(--aki-white);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    text-decoration: none;
+}
+.akb-orders-card__action--primary:focus-visible {
+    background: var(--aki-red-hover);
+    color: var(--aki-white);
+    text-decoration: none;
+    outline: var(--aki-focus-outline);
+    outline-offset: 2px;
+}
+.akb-orders-card__action--secondary {
+    background: transparent;
+    color: var(--aki-gray-200);
+}
+.akb-orders-card__action--secondary:hover {
+    color: var(--aki-white);
+    border-color: var(--aki-red);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    text-decoration: none;
+}
+.akb-orders-card__action--secondary:focus-visible {
+    color: var(--aki-white);
+    border-color: var(--aki-red);
+    text-decoration: none;
+    outline: var(--aki-focus-outline);
+    outline-offset: 2px;
+}
+
+/* Empty state /mi-cuenta/orders/ — sin pedidos todavía. */
+.akb-orders-empty {
+    text-align: center;
+    padding: var(--space-6) var(--space-4);
+    background: var(--aki-surface);
+    border: 2px solid var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    border-radius: 0;
+}
+.akb-orders-empty__title {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    margin: 0 0 var(--space-2);
+}
+.akb-orders-empty__desc {
+    font-size: var(--text-sm);
+    color: var(--aki-gray-300);
+    margin: 0 0 var(--space-4);
+}
+.woocommerce-MyAccount-content a.akb-orders-empty__cta,
+a.akb-orders-empty__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-5);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    border: 2px solid var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    border-radius: 0;
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+.woocommerce-MyAccount-content a.akb-orders-empty__cta:hover,
+a.akb-orders-empty__cta:hover {
+    background: var(--aki-red-hover);
+    color: var(--aki-white);
+    text-decoration: none;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--aki-black);
+}
+.woocommerce-MyAccount-content a.akb-orders-empty__cta:active,
+a.akb-orders-empty__cta:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--aki-black);
+}
+
+/* Línea informativa secundaria sobre la lista de pedidos para vinculación de compras previas como invitado (GuestOrderLinking), diseñada como texto al pie de baja intrusión visual. */
+.akb-orders-claim {
+    font-size: var(--text-sm);
+    color: var(--aki-gray-300);
+    margin: 0 0 var(--space-4);
+}
+.woocommerce-MyAccount-content .akb-orders-claim a,
+.akb-orders-claim a {
+    color: var(--aki-gray-300);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: var(--weight-normal, 400);
+}
+.woocommerce-MyAccount-content .akb-orders-claim a:hover,
+.akb-orders-claim a:hover {
+    color: var(--aki-white);
+}
+
+/* Paginación reescrita — botones outline. */
+.akb-orders-pagination {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+.woocommerce-MyAccount-content a.akb-orders-pagination__btn,
+a.akb-orders-pagination__btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: var(--space-2) var(--space-4);
+    background: transparent;
+    color: var(--aki-gray-200);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-size: var(--text-sm);
+}
+
+/* ─── /mi-cuenta/edit-address/ — listado en cards ──────────────────
+ * Reemplaza el listado a pelo del default WC por cards con border +
+ * "Por defecto" badge + botón "Editar dirección" como CTA secondary. */
+.akb-address-intro {
+    margin: 0 0 var(--space-4);
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+.akb-addresses {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+}
+@media (min-width: 769px) {
+    .akb-addresses { grid-template-columns: 1fr 1fr; }
+}
+.akb-address-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+}
+.akb-address-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+.akb-address-card__title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--aki-white);
+}
+.akb-address-card__badge {
+    display: inline-flex;
+    padding: 2px 8px;
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-300);
+    border: 1px solid var(--aki-border);
+    border-radius: 0; /* marca: radius 0 */
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.akb-address-card__address {
+    margin: 0;
+    font-style: normal;
+    color: var(--aki-gray-200);
+    line-height: 1.6;
+    font-size: var(--text-sm);
+}
+.akb-address-card__empty {
+    margin: 0;
+    color: var(--aki-gray-400);
+    font-size: var(--text-sm);
+}
+/* CTA primario rojo de marca (es la ÚNICA acción de la vista de direcciones;
+   antes era ghost outline 40px → leía secundaria + fallaba touch ≥44px). */
+.woocommerce-MyAccount-content a.akb-address-card__edit,
+a.akb-address-card__edit {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+    padding: var(--space-3) var(--space-5);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    border: 1px solid var(--aki-red);
+    border-radius: 0;
+    box-shadow: 3px 3px 0 var(--aki-black);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    text-decoration: none;
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.woocommerce-MyAccount-content a.akb-address-card__edit:hover,
+.woocommerce-MyAccount-content a.akb-address-card__edit:focus-visible,
+a.akb-address-card__edit:hover,
+a.akb-address-card__edit:focus-visible {
+    background: var(--aki-red-hover);
+    color: var(--aki-white);
+    text-decoration: none;
+}
+/* Press físico (no fade), respetando reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+    a.akb-address-card__edit:active {
+        transform: translate(2px, 2px);
+        box-shadow: 1px 1px 0 var(--aki-black);
+    }
+}
+
+/* ─── /mi-cuenta/edit-account/ — secciones separadas ───────────────
+ * El default WC tiene un fieldset apenas distinguido para "Password
+ * change". Acá usamos 2 sections con título visible para separar
+ * "Datos personales" de "Seguridad". */
+.akb-edit-account {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+.akb-edit-account__section {
+    padding: var(--space-4);
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+}
+.akb-edit-account__section-title {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--aki-white);
+}
+.akb-edit-account__section-hint {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--aki-gray-400);
+    line-height: 1.4;
+}
+.akb-edit-account__row--split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+.akb-edit-account__row--split .form-row {
+    margin: 0;
+    width: auto;
+}
+@media (max-width: 480px) {
+    .akb-edit-account__row--split { grid-template-columns: 1fr; }
+}
+.akb-edit-account__submit-wrap {
+    margin: 0;
+}
+.akb-edit-account__submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: var(--space-2) var(--space-6);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    border: 1px solid var(--aki-red);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.akb-edit-account__submit:hover,
+.akb-edit-account__submit:focus-visible {
+    background: var(--aki-red-hover);
+    border-color: var(--aki-red-hover);
+}
+
+/* Password strength meter — feedback visual, sin enforcement (1.41.0).
+ * wp.passwordStrength.meter() retorna 0-5; mapeamos a 3 visual states. */
+.akb-pwd-strength {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-height: 24px;
+    background: transparent;
+    color: var(--aki-gray-400);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+.akb-pwd-strength:empty {
+    display: none;
+}
+.akb-pwd-strength--weak {
+    background: color-mix(in srgb, var(--aki-status-alert) 12%, transparent);
+    color: var(--aki-status-alert);
+}
+.akb-pwd-strength--medium {
+    background: color-mix(in srgb, var(--aki-status-warn) 12%, transparent);
+    color: var(--aki-status-warn);
+}
+.akb-pwd-strength--strong {
+    background: color-mix(in srgb, var(--aki-status-ok) 14%, transparent);
+    color: var(--aki-status-ok);
+}
+
+/* ─── Order Timeline (/mi-cuenta/view-order/{id}/) ─────────────────
+ * Progress visual con 4-5 nodos según estado. Hook
+ * woocommerce_order_details_before_order_table priority 5 — antes de
+ * la tabla de productos. Nodo "En preventa" se inyecta cuando aplica. */
+.akb-timeline {
+    margin: 0 0 var(--space-5);
+    padding: var(--space-4);
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+}
+.akb-timeline__steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.akb-timeline__step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    position: relative;
+}
+.akb-timeline__step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 38px;
+    bottom: -8px;
+    width: 2px;
+    background: var(--aki-border);
+}
+.akb-timeline__step--done:not(:last-child)::after {
+    background: var(--aki-red);
+}
+.akb-timeline__step-marker {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: var(--weight-semibold);
+    border: 2px solid var(--aki-border);
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-400);
+    flex-shrink: 0;
+    z-index: 1;
+}
+.akb-timeline__step--done .akb-timeline__step-marker {
+    background: var(--aki-red);
+    border-color: var(--aki-red);
+    color: var(--aki-white);
+}
+.akb-timeline__step--current .akb-timeline__step-marker {
+    background: var(--aki-surface);
+    border-color: var(--aki-red);
+    color: var(--aki-red);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--aki-status-alert) 15%, transparent);
+}
+.akb-timeline__step-label {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--aki-gray-300);
+    line-height: 1.2;
+    align-self: center;
+}
+.akb-timeline__step--done .akb-timeline__step-label,
+.akb-timeline__step--current .akb-timeline__step-label {
+    color: var(--aki-white);
+}
+.akb-timeline__step-hint {
+    grid-column: 2;
+    font-size: var(--text-xs);
+    color: var(--aki-gray-400);
+    line-height: 1.4;
+    margin-top: 2px;
+}
+.akb-timeline--terminal {
+    text-align: center;
+    padding: var(--space-5) var(--space-4);
+}
+.akb-timeline--cancelled,
+.akb-timeline--failed {
+    border-color: color-mix(in srgb, var(--aki-status-alert) 30%, transparent);
+    background: color-mix(in srgb, var(--aki-status-alert) 5%, transparent);
+}
+.akb-timeline--refunded {
+    border-color: color-mix(in srgb, var(--aki-status-warn) 30%, transparent);
+    background: color-mix(in srgb, var(--aki-status-warn) 5%, transparent);
+}
+.akb-timeline__terminal-title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--aki-white);
+}
+.akb-timeline--cancelled .akb-timeline__terminal-title,
+.akb-timeline--failed .akb-timeline__terminal-title {
+    color: var(--aki-status-alert);
+}
+.akb-timeline--refunded .akb-timeline__terminal-title {
+    color: var(--aki-status-warn);
+}
+.akb-timeline__terminal-desc {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--aki-gray-200);
+    line-height: 1.5;
+}
+
+/* My account desktop ≥769 — override del 30%/68% que WC core impone
+ * vía `.woocommerce-account .woocommerce-MyAccount-navigation` /
+ * `-content`. En 1280 daba sidebar 374px (29%) y content 849px (66%) —
+ * mucho whitespace en la sidebar para 6 items de menu cortos y poco
+ * aire en content para tablas de pedidos / forms de address. Pasamos
+ * a sidebar fijo 240px + content calc(100% - 264px), liberando ~110px
+ * de content area en 1280 (849 → 957) sin tocar el behavior mobile
+ * (tabs horizontales arriba) ni el float layout que WC core asume.
+ *
+ * Specificity: WC core usa `.woocommerce-account .woocommerce-MyAccount-
+ * navigation` (0,2,0); este selector matchea exact y nuestro source
+ * order es later → wins sin !important. */
+@media (min-width: 769px) {
+    .woocommerce-account .woocommerce-MyAccount-navigation {
+        width: 240px;
+    }
+    .woocommerce-account .woocommerce-MyAccount-content {
+        width: calc(100% - 240px - var(--space-6));
+    }
+}
+
+/* ── Paginación tienda ─────────────────────────────────────── */
+.woocommerce nav.woocommerce-pagination {
+    margin-top: var(--space-6);
+    text-align: center;
+}
+
+.woocommerce nav.woocommerce-pagination ul {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.woocommerce nav.woocommerce-pagination ul li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    float: none;
+    overflow: visible;
+}
+
+/* Estilos interactivos aplicados al hijo directo del <li> (enlace <a> o <span> de página actual/puntos).
+ * El selector directo (> a, > span) previene herencia anidada en spans internos auxiliares
+ * (flechas decorativas y etiquetas accesibles screen-reader). */
+.woocommerce nav.woocommerce-pagination ul li > a,
+.woocommerce nav.woocommerce-pagination ul li > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    padding: 0 var(--space-3);
+    border: 2px solid var(--aki-border);
+    border-radius: 0;
+    background: var(--aki-surface-1);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    /* Bebas Neue se renderiza estrictamente en peso 400 nominal para evitar síntesis artificial de negrita. */
+    font-weight: 400;
+    font-synthesis: none;
+    line-height: 1;
+    text-decoration: none;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Y esos <span> interiores quedan como texto a secas: WooCommerce les pone su
+ * `ul li span` (relleno de .5em y ancho mínimo de 1em, 0,2,4), que agrandaba la
+ * flecha y el nombre oculto. Así la flecha ocupa lo que ocupaba el «→» suelto. */
+.woocommerce nav.woocommerce-pagination ul li > :is(a, span) > span {
+    min-width: 0;
+    padding: 0;
+}
+
+/* `:focus` a secas sólo devuelve el reposo: WooCommerce pinta `a:focus` (0,3,4)
+ * de gris #e9e6ed con texto morado, también tras un clic. */
+.woocommerce nav.woocommerce-pagination ul li a:focus {
+    background: var(--aki-surface-1);
+    color: var(--aki-white);
+}
+
+.woocommerce nav.woocommerce-pagination ul li a:hover {
+    border-color: var(--aki-white);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--aki-black);
+}
+
+/* Foco de teclado accesible: anillo de foco de la marca (--aki-focus-ring)
+ * priorizado sobre las transformaciones cinéticas de hover. */
+.woocommerce nav.woocommerce-pagination ul li a:focus-visible {
+    border-color: var(--aki-white);
+    box-shadow: var(--aki-focus-ring);
+}
+
+/* Página actual activa destacada con bloque rojo sólido y peso normal Bebas Neue. */
+.woocommerce nav.woocommerce-pagination ul li > span.current {
+    border-color: var(--aki-black);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    cursor: default;
+    box-shadow: 4px 4px 0px var(--aki-black);
+}
+
+.woocommerce nav.woocommerce-pagination ul li > span.dots {
+    min-width: 0;
+    height: auto;
+    padding: 0 var(--space-1);
+    border: 0;
+    background: transparent;
+    color: var(--aki-text-muted);
+    cursor: default;
+}
+
+/* Paginador mobile a 44px (WCAG 2.5.5 / target táctil estándar de Akibara).
+ * box-sizing: border-box y flex-wrap aseguran envoltura fluida en viewports estrechos sin desbordamiento. */
+@media (max-width: 480px) {
+    .woocommerce nav.woocommerce-pagination ul {
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    .woocommerce nav.woocommerce-pagination ul li > a,
+    .woocommerce nav.woocommerce-pagination ul li > span {
+        box-sizing: border-box;
+        min-width: 44px;
+        height: 44px;
+        padding: 0 var(--space-1);
+        font-size: var(--text-sm);
+    }
+    .woocommerce nav.woocommerce-pagination ul li > span.dots {
+        box-sizing: border-box;
+        min-width: 24px;
+        height: 44px;
+        padding: 0 2px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    
+    /* En mobile el viewport (~390px) no acomoda 11 botones del pager
+     * sin overflow ni wrap. Ocultamos las páginas vecinas (3,4,6,7
+     * cuando inner_size=2) y mantenemos solo: prev (←), first (1),
+     * dots, current (active), dots, last (56), next (→). Resultado:
+     * `← 1 … 5 … 56 →` = 7 elementos siempre, en 1 línea. */
+    
+}
+
+/* ─── Hide "Ver carrito" link bajo CTA tras add-to-cart ─────────
+ * WC nativo inserta `<a class="added_to_cart wc-forward">Ver carrito</a>`
+ * debajo del botón después de un AJAX add-to-cart. Sin styling propio,
+ * sale en azul link plano (`rgb(30,115,190)`) — out-of-place sobre el
+ * theme dark.
+ *
+ * Fix: ocultarlo. El flycart popup (woo-fly-cart) ya muestra dos CTAs
+ * brand-styled (VER CARRITO outline + FINALIZAR COMPRA solid red) en
+ * el side panel apenas se agrega un producto. El link bajo el CTA es
+ * redundante y confunde — dos formas de "ver carrito" simultáneas en
+ * la misma pantalla.
+ */
+/* Standalone selectors (sin requerir `.woocommerce` ancestor) — porque en HOME
+ * los carousels de productos viven en `.akb-section` o shortcodes custom SIN
+ * wrapper `.woocommerce`. Las clases son específicas de WC, no hay risk de
+ * pisar otro contexto.
+ *
+ * Cubre:
+ *   - `<a class="added_to_cart wc-forward">Ver carrito</a>` (post AJAX add en
+ *     loop product card — wrapper variable)
+ *   - `<a class="button wc-forward">Ver carrito</a>` dentro de notice WC
+ *     (.woocommerce-message / .woocommerce-info / .woocommerce-error) — por
+ *     ej. cuando AJAX add restringe stock, redirige notice global al top.
+ *
+ * Solo el enlace del loop queda oculto: tras el alta por AJAX en tarjetas de producto
+ * el drawer de carrito se abre automáticamente. El "Ver carrito" dentro de avisos
+ * sigue visible como acción secundaria del flujo sin AJAX. */
+a.added_to_cart.wc-forward {
+    display: none;
+}
+
+/* ─── Left-sidebar layout en archives WC (host de las facetas) ──────
+ * akibara-gp usa <div id="main-content"> como wrapper en lugar de
+ * .site-content (custom header.php; el <main> real es el #main interno).
+ * GeneratePress aplica display:flex
+ * a .site-content, pero ese estilo no nos llega: en main-content los
+ * hijos #left-sidebar + #primary caen en flujo normal y la sidebar
+ * se renderea bajo los productos.
+ *
+ * Fix: replicar el layout grid de GP en main-content cuando body
+ * tiene .left-sidebar (sólo activo en archives WC vía
+ * akibara_gp_archive_sidebar_layout filter).
+ */
+body.left-sidebar.woocommerce-page #main-content {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+    max-width: var(--container-max, 1400px);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+    box-sizing: border-box;
+}
+
+body.left-sidebar.woocommerce-page #main-content > #primary {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+}
+
+body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    body.left-sidebar.woocommerce-page #main-content {
+        display: block;
+        /* Sin padding lateral en mobile: el sidebar está hidden (regla
+         * abajo) así que el container debe aprovechar 100% del viewport.
+         * Antes tenía padding-left/right var(--space-4) que perdía 32px
+         * por viewport — incoherente con home (full-width). */
+        padding-left: 0;
+        padding-right: 0;
+    }
+    body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
+        display: none;
+    }
+}
+
+/* ─── Canalón de las landings sin barra de filtros (serie y autor) ──────
+ * /serie/* y /autor/* no llevan la columna de filtros
+ * (akibara_gp_archive_sidebar_layout()) y ningún contenedor les pone margen
+ * lateral: la columna —migas, cabecera, «N productos · Ordenar», los chips de
+ * filtros, la rejilla, el aviso sin resultados y la paginación— sólo se centraba
+ * con su `max-width: 1400px`. A 1440 eso dejaba 20 px por lado; por debajo de
+ * 1400 no dejaba nada: a 1366 «30 productos» y la primera portada arrancaban en
+ * x = 0 y la última tocaba el borde derecho (medido de 769 a 1399 px, lote de
+ * cruce X1). Y a CUALQUIER ancho quedaban sin canalón los chips de filtros, el
+ * aviso sin resultados y la fila «título + orden» del autor en la página 2, con
+ * orden o con filtro (la fila en línea de más abajo, ≥ 1025 px).
+ *
+ * Por margen y no por `max-width` + `margin: auto`: en esa fila en línea la
+ * cabecera y la barra de orden son elementos flex que se reparten el ancho, y un
+ * margen automático no deja canalón. Con `max(20px, (100% - contenedor) / 2)` la
+ * columna mide lo mismo que antes a partir de 1440 (el contenedor) y conserva
+ * 20 px por lado por debajo. Las bandas (hero, resumen, ficha de la serie, guía,
+ * intro del autor) siguen a sangre como a 1440; la caja «Completa tu colección»
+ * de akibara-business (.akb-sb-landing) toma este canalón en su propia hoja.
+ * Móvil (≤ 768) no se toca: ahí las portadas van a sangre a propósito. El
+ * `sizes` de estas portadas (akibara_gp_catalog_image_sizes(),
+ * inc/performance.php) descuenta estos 40 px; tests/catalog-cover-sizes.test.js
+ * lo recalcula desde esta regla. */
+@media (min-width: 769px) {
+    body.archive.tax-pa_serie .entry-content > :is(.woocommerce-breadcrumb, .woocommerce-products-header, .akb-shop-toolbar, .akb-facet-chips, ul.products, .akb-empty-state, .woocommerce-pagination),
+    body.archive.tax-pa_autor .entry-content > :is(.woocommerce-breadcrumb, .woocommerce-products-header, .akb-shop-toolbar, .akb-facet-chips, ul.products, .akb-empty-state, .woocommerce-pagination) {
+        width: auto;
+        max-width: none;
+        margin-inline: max(20px, (100% - var(--container-max)) / 2);
+    }
+}
+
+/* ─── Shop toolbar wrapper (mobile pill-bar) ───────────────────
+ * En desktop: corrección fuzzy en fila propia; debajo Ordenar queda estable a
+ * la izquierda y el total a la derecha. En mobile: corrección → total →
+ * Filtrar/Ordenar. El mensaje nunca comparte fila con los controles.
+ *
+ * Wrapper se renderea desde inc/flyout-button.php (hooks priority 4 y 35
+ * en woocommerce_before_shop_loop).
+ */
+.akb-shop-toolbar {
+    display: contents;
+}
+
+/* Enlace de accesibilidad para saltar directamente a los filtros (skip link).
+ * Permanece oculto fuera de vista hasta recibir foco por teclado, posicionándose
+ * absolutamente para no causar desplazamiento acumulado del diseño (CLS). */
+.akb-skip-filtros {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .akb-skip-filtros {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .akb-shop-toolbar {
+        position: relative;
+    }
+
+    .akb-shop-toolbar .akb-skip-filtros:focus {
+        top: 0;
+        left: 0;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        width: auto;
+        height: auto;
+        min-height: 44px;
+        padding: 0 var(--space-3);
+        overflow: visible;
+        clip-path: none;
+        background: var(--aki-surface);
+        color: var(--aki-white);
+        font-size: var(--text-sm);
+        font-weight: var(--weight-semibold);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+}
+
+@media (min-width: 769px) {
+    .akb-shop-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--space-3);
+        width: 100%;
+        /* Reserva el alto del control de orden para que el conteo no cambie de
+         * eje vertical al filtrar. NO se aplica al estado sin resultados
+         * (`--empty`): ahí WooCommerce no renderiza el control y reservar su
+         * alto solo dejaría aire muerto sobre el aviso de "sin resultados". */
+        min-height: 44px;
+        margin: 0 0 var(--space-3);
+        /* Alinea el ancho máximo y centrado con la cuadrícula del catálogo (1400px)
+         * para asegurar continuidad visual vertical entre el toolbar y las portadas. */
+        max-width: 1400px;
+        margin-inline: auto;
+    }
+
+    .akb-shop-toolbar.akb-shop-toolbar--empty {
+        min-height: 0;
+    }
+
+    .akb-shop-toolbar > .woocommerce-notices-wrapper {
+        order: -3;
+        flex: 1 1 100%;
+    }
+
+    .akb-shop-toolbar > .woocommerce-notices-wrapper:empty {
+        display: none;
+    }
+
+    .akb-shop-toolbar .akb-search-correction {
+        order: -2;
+        flex: 1 1 100%;
+    }
+
+    /* Banner informativo de relajación de marca (BrandRelax de akibara-search):
+     * ocupa el 100% del ancho del toolbar en su propia fila para no desplazar
+     * el contador ni los controles de ordenación. */
+    .akb-shop-toolbar .akb-relaxed {
+        order: -2;
+        flex: 1 1 100%;
+        margin: 0;
+    }
+
+    /* Orden de lectura en escritorio: primero CUÁNTO hay, después CÓMO ordenarlo.
+     * Antes era al revés — el select abría la fila pegado al margen izquierdo y
+     * el total quedaba desterrado al extremo derecho, a más de mil píxeles del
+     * H1 que acababa de anunciar la búsqueda. Invertía la convención de
+     * catálogo (el total encabeza, el control de orden cierra) y dejaba el
+     * dato más importante en el punto más frío de la fila. */
+    .akb-shop-toolbar .akb-result-count {
+        order: 0;
+        flex: 0 0 auto;
+        /* Único margen auto de la fila: absorbe todo el espacio libre y ancla el
+         * control de orden contra el borde derecho. El conteo encabeza (qué hay)
+         * y el control cierra (cómo se ordena), que es la convención de catálogo
+         * —Buscalibre, entre otros, resuelve la misma fila así—. Con márgenes
+         * auto en ambos extremos el espacio se repartiría y ninguno quedaría
+         * anclado. */
+        margin: 0 auto 0 0;
+        white-space: nowrap;
+    }
+
+    body.archive.woocommerce-page .akb-shop-toolbar .woocommerce-ordering {
+        order: 1;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        float: none;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* El select solo decía "Relevancia": sin contexto se lee como un filtro
+     * activo, no como el criterio de orden. En escritorio hay sitio de sobra
+     * para nombrarlo. Decorativo a propósito — la semántica ya la aporta el
+     * aria-label que WooCommerce pone en el <select>, así que el pseudo-elemento
+     * no duplica el anuncio para lectores de pantalla. */
+    .akb-shop-toolbar .woocommerce-ordering::before {
+        content: "Ordenar por:";
+        flex: 0 0 auto;
+        color: var(--aki-text-muted);
+        font-size: var(--text-sm);
+        white-space: nowrap;
+    }
+
+    .akb-shop-toolbar .woocommerce-ordering select {
+        min-width: 176px;
+        min-height: 44px;
+        padding: var(--space-2) var(--space-3);
+        cursor: pointer;
+    }
+}
+
+/* ─── Cabecera de catálogo en una sola fila (Desktop >= 1025px) ──────────────
+ * Optimización de fold vertical: ubica el H1 de catálogo (.page-title) y el toolbar
+ * de ordenación (.akb-shop-toolbar) en una fila horizontal compartida cuando no
+ * existen descripciones ni avisos activos.
+ *
+ * Condiciones de aplicación mediante :has():
+ * 1. El contenedor .woocommerce-products-header contiene exclusivamente el H1 (.page-title:only-child).
+ * 2. .akb-shop-toolbar sucede inmediatamente a la cabecera.
+ * 3. No existen avisos activos de WooCommerce (.woocommerce-notices-wrapper con hijos)
+ *    ni notificaciones de búsqueda visibles (.akb-search-correction, .akb-relaxed sin [hidden]).
+ * Si cualquiera de estas condiciones no se cumple (o si el H1 es extenso y desborda 26rem),
+ * flex-wrap degrada naturalmente a disposición vertical apilada. */
+@media (min-width: 1025px) {
+    body.archive.woocommerce-page .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: var(--space-6);
+    }
+
+    body.archive.woocommerce-page .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) > * {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    body.archive.woocommerce-page .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) > .woocommerce-products-header {
+        flex: 0 1 auto;
+        margin-bottom: var(--space-4);
+    }
+
+    body.archive.woocommerce-page .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) > .woocommerce-products-header > .page-title {
+        margin-bottom: 0;
+    }
+
+    body.archive.woocommerce-page .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) > .akb-shop-toolbar {
+        flex: 1 1 26rem;
+        margin-bottom: var(--space-4);
+    }
+
+    /* La fila en /autor/* (página 2, con orden, con filtro, sin resultados). El
+     * canalón de las landings sin barra (arriba, ≥ 769 px) pone su margen a los
+     * DOS lados de la cabecera y de la fila de orden, y aquí son vecinos: entre el
+     * H1 y «N productos» se sumaban el margen derecho de la cabecera, el hueco y
+     * el margen izquierdo de la fila. 78 px de 1025 a 1440 y creciendo con la
+     * ventana —174 a 1536, 238 a 1600, 558 a 1920—; a 2560 ya no cabían y la
+     * fila de orden bajaba de línea con la rejilla 60 px más abajo (revisión
+     * X1-1, D1). Se anula el canalón del lado DERECHO de la cabecera con uno
+     * negativo, y no el izquierdo de la fila de orden: si un nombre largo la
+     * manda a la línea siguiente, ésa arranca sola y necesita su canalón, que
+     * sin él pegaba «N productos» al borde de la ventana. En la misma línea el
+     * canalón de la fila y el negativo se anulan y la separación vuelve a ser
+     * sólo el relleno de la cabecera más el hueco (~38 px, como antes de X1). El
+     * `max-width` evita que ese negativo deje a una cabecera sola en su línea
+     * más ancha que la columna. Sólo /autor/*: la serie no imprime cabecera
+     * (su título va en el hero) y en el resto del catálogo no hay canalón. */
+    body.archive.woocommerce-page.tax-pa_autor .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) > .woocommerce-products-header {
+        max-width: calc(100% - 2 * max(20px, (100% - var(--container-max)) / 2));
+        margin-inline-end: min(-20px, (var(--container-max) - 100%) / 2);
+    }
+}
+
+@media (max-width: 768px) {
+    .akb-shop-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        align-items: stretch;
+        margin: 0 0 var(--space-3);
+        /* Canalón lateral mobile consistente con el encabezado (.woocommerce-products-header).
+         * padding-inline: 16px garantiza que los textos y botones mantengan margen seguro respecto al viewport. */
+        padding-inline: var(--space-4);
+        box-sizing: border-box;
+    }
+
+    .akb-shop-toolbar > .woocommerce-notices-wrapper {
+        order: -4;
+        flex: 1 1 100%;
+    }
+
+    .akb-shop-toolbar .woocommerce-result-count {
+        order: -2;
+        flex: 1 1 100%;
+        margin: 0;
+        font-size: var(--text-sm);
+        color: var(--aki-text-muted);
+    }
+
+    .akb-shop-toolbar .akb-search-correction {
+        order: -3;
+        flex: 1 1 100%;
+    }
+
+    /* Contador de resultados en línea completa superior en mobile,
+     * permitiendo que los botones de Filtrar y Ordenar se repartan simétricamente la fila inferior. */
+    .akb-shop-toolbar .akb-result-count {
+        order: -2;
+        flex: 1 1 100%;
+        margin: 0;
+        font-size: var(--text-sm);
+        color: var(--aki-text-muted);
+        white-space: nowrap;
+    }
+
+    .akb-shop-toolbar .akb-filter-toggle {
+        flex: 0 0 calc((100% - var(--space-2)) / 2);
+        margin: 0;
+        min-width: 0;
+        justify-content: center;
+    }
+
+    .akb-shop-toolbar--empty .akb-filter-toggle {
+        flex-basis: 100%;
+    }
+
+    body.archive.woocommerce-page .akb-shop-toolbar .woocommerce-ordering {
+        flex: 0 0 calc((100% - var(--space-2)) / 2);
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+    }
+
+    /* Landings de serie/autor: ahí `akibara_gp_shop_toolbar_has_filters()` no
+     * imprime "Filtrar" (inc/flyout-button.php), así que la mitad media de la
+     * fila quedaba muerta y el select comprimido contra ella sin ganar nada.
+     * Con la fila completa entra la etiqueta visible al lado, sin sumar alto:
+     * es el mismo renglón de 44px, no uno nuevo — y en esta página cada píxel
+     * vertical retrasa la primera portada, que ya arranca en 771px. */
+    body.archive.woocommerce-page .akb-shop-toolbar--no-filters .woocommerce-ordering {
+        flex: 1 1 100%;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    /* "Ordenar por:" sólo existía dentro de @media (min-width: 769px), es decir
+     * en ninguna parte para el 72,5% del tráfico de estas páginas: en mobile el
+     * control se anunciaba únicamente con el glifo y con su aria-label. Ahora
+     * que el criterio por defecto de las series es "Tomo 1 → N", el select deja
+     * de ser decoración y hay que poder leer qué hace ANTES de tocarlo.
+     * Decorativo a propósito, igual que en escritorio: la semántica ya la
+     * aporta el aria-label del <select>, así que el pseudo-elemento no duplica
+     * el anuncio para lectores de pantalla. */
+    .akb-shop-toolbar--no-filters .woocommerce-ordering::before {
+        content: "Ordenar por:";
+        flex: 0 0 auto;
+        color: var(--aki-text-muted);
+        font-size: var(--text-sm);
+        white-space: nowrap;
+    }
+
+    /* El select es el único que cede ancho: sin `min-width: 0` su tamaño
+     * mínimo automático (min-content) le gana al shrink y empuja la etiqueta
+     * fuera de la fila en los viewports angostos. */
+    .akb-shop-toolbar--no-filters .woocommerce-ordering select {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    /* Woo inserta este wrapper aun cuando no hay avisos. Si queda como ítem
+     * flex de ancho cero consume dos gaps y desbalancea Filtrar/Ordenar. */
+    .akb-shop-toolbar > .woocommerce-notices-wrapper:empty {
+        display: none;
+    }
+
+    .akb-shop-toolbar .woocommerce-ordering select {
+        width: 100%;
+        height: 100%;
+        min-height: 44px;
+        /* Padding compacto y reservas para glifos SVG: izquierda para icono de orden, derecha para chevron selector. */
+        padding: 10px 26px 10px 30px;
+        /* Truncamiento elíptico en caso de texto largo en viewports ultra estrechos. */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-color: var(--aki-surface);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 16 4 4 4-4'/%3E%3Cpath d='M7 20V4'/%3E%3Cpath d='m21 8-4-4-4 4'/%3E%3Cpath d='M17 4v16'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: left 8px center, right 8px center;
+        background-size: 14px, 14px;
+        border: 1px solid var(--aki-border);
+        border-radius: 8px;
+        color: var(--aki-white);
+        font-family: inherit;
+        /* font-size: 16px previene el zoom automático involuntario de iOS Safari al enfocar.
+         * font-weight: 500 alineado con los pesos precargados del sistema. */
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+.akb-filter-toggle {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--aki-border);
+    background: var(--aki-surface);
+    color: var(--aki-white);
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Estado :hover exclusivo sin sobreescribir el anillo de foco por teclado (:focus-visible). */
+.akb-filter-toggle:hover {
+    background: var(--aki-surface-2);
+    border-color: var(--aki-gray-300);
+}
+
+.akb-filter-toggle__icon {
+    flex-shrink: 0;
+}
+
+.akb-filter-toggle__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--aki-red);
+    color: var(--aki-white);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.akb-filter-toggle__count[hidden] {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .akb-filter-toggle {
+        display: inline-flex;
+        margin: 0 0 var(--space-3);
+    }
+}
+
+/* ─── Sidebar de facetas — contenedor ──────────────────────────
+ * El motor propio (plugin akibara-search) renderea `<form class="akb-facets">`
+ * en el left-sidebar; su styling interno vive en akb-search.css del plugin.
+ * Acá solo el layout del contenedor dentro del catálogo. */
+.akb-facets {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    color: var(--aki-white);
+}
+
+/* ── Empty state cuando 0 resultados ───────────────────────────
+ * Pre-rendereado por el motor propio; visible cuando la búsqueda/facetas
+ * no devuelven productos. */
+.akb-empty-state {
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    background: var(--aki-surface-1);
+    border: 1px dashed var(--aki-border);
+    border-radius: 0px;
+    margin: var(--space-4) 0;
+    color: var(--aki-gray-200);
+}
+
+/* Auth UI — login/registro en /mi-cuenta/ con layout unificado:
+ * Google primario + dos disclosure (<details>) para correo/contraseña.
+ * El botón Google lo estiliza rtCamp; acá ajustamos wrapper, divisor,
+ * disclosure y los forms WC anidados. */
+
+.akb-account-auth {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 var(--space-3);
+}
+
+.akb-account-auth__header {
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.akb-account-auth__title {
+    font-size: var(--text-2xl, 1.5rem);
+    margin: 0 0 var(--space-2);
+}
+
+.akb-account-auth__sub {
+    color: var(--aki-text-muted);
+    margin: 0;
+    font-size: var(--text-sm);
+}
+
+/* Contexto: de qué tomo viene el cliente, con su enlace de vuelta. Se pinta
+ * sólo cuando el `redirect_to` apunta a un producto publicado, así que no
+ * ocupa sitio en el caso general. */
+.akb-account-auth__context {
+    margin: var(--space-3) 0 0;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-200);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+}
+
+.akb-account-auth__perks {
+    margin: var(--space-3) 0 0;
+    padding: var(--space-3);
+    list-style: none;
+    text-align: left;
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-left: 3px solid var(--aki-red);
+    border-radius: var(--radius-sm);
+    color: var(--aki-gray-200);
+    font-size: var(--text-xs);
+    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.akb-account-auth__perks strong {
+    color: var(--aki-white);
+}
+
+/* Google button + divisor compartidos */
+.akb-google-login-wrap .wp_google_login__button-container {
+    display: flex;
+    justify-content: center;
+}
+
+.akb-google-login-wrap .wp_google_login__button {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Google Login pinta su CTA sobre una superficie blanca propia. El selector
+ * genérico de links de auth lo volvía rojo (#FF3D4D, 3.48:1) y pisaba el ink
+ * accesible del plugin. Su UI no expone color de texto: preservamos el tono
+ * original de Google (10.29:1 sobre blanco) en todos los estados. */
+.akb-account-auth .akb-google-login-wrap .wp_google_login__button,
+.akb-account-auth .akb-google-login-wrap .wp_google_login__button:visited,
+.akb-account-auth .akb-google-login-wrap .wp_google_login__button:hover,
+.akb-account-auth .akb-google-login-wrap .wp_google_login__button:focus,
+.akb-account-auth .akb-google-login-wrap .wp_google_login__button:active {
+    color: #3D4145;
+}
+
+.akb-account-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-4) 0;
+    color: var(--aki-text-muted);
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.akb-account-divider::before,
+.akb-account-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--aki-border);
+}
+
+/* Disclosure (login / registro con correo y contraseña) */
+.akb-account-disclosure {
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md, 8px);
+    margin-bottom: var(--space-3);
+    overflow: hidden;
+    background: var(--aki-surface-2);
+}
+
+.akb-account-disclosure[open] {
+    border-color: var(--aki-red);
+}
+
+.akb-account-disclosure__summary {
+    list-style: none;
+    cursor: pointer;
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-weight: 600;
+    user-select: none;
+}
+
+.akb-account-disclosure__summary::-webkit-details-marker {
+    display: none;
+}
+
+.akb-account-disclosure__summary:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: -3px;
+}
+
+.akb-account-disclosure__label {
+    flex: 1;
+}
+
+/* Affordance "+"/"−": consistente con el footer mobile. Glyph
+ * tipográfico, escala con font-size, sin SVG ni rotaciones. */
+.akb-account-disclosure__icon {
+    flex: 0 0 auto;
+    display: inline-block;
+    line-height: 1;
+    color: var(--aki-gray-400);
+    font-size: 1.25em;
+    font-weight: 400;
+    transition: color var(--transition-fast, 0.15s ease);
+}
+
+.akb-account-disclosure__icon::before {
+    content: "+";
+}
+
+.akb-account-disclosure[open] .akb-account-disclosure__icon {
+    color: var(--aki-red);
+}
+
+.akb-account-disclosure[open] .akb-account-disclosure__icon::before {
+    content: "\2212"; /* − minus sign U+2212 */
+}
+
+/* Form WC dentro del disclosure: que el form herede el fondo del
+ * disclosure para que no haya caja anidada visible. Selector con
+ * `form.woocommerce-form` para ganar specificity contra el CSS stock
+ * de WC (que usa `.woocommerce form.woocommerce-form-login`). */
+.akb-account-disclosure form.woocommerce-form {
+    padding: var(--space-2) var(--space-4) var(--space-4);
+    background: transparent;
+    border: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+.akb-account-disclosure .form-row {
+    margin-bottom: var(--space-3);
+}
+
+.akb-account-disclosure .form-row label {
+    display: block;
+    margin-bottom: var(--space-1);
+    font-size: var(--text-sm);
+}
+
+.akb-account-disclosure .input-text {
+    width: 100%;
+}
+
+.akb-account-disclosure .button {
+    width: 100%;
+}
+
+.akb-account-disclosure .lost_password {
+    text-align: right;
+    font-size: var(--text-sm);
+    margin: var(--space-2) 0 0;
+}
+
+/* Limpia los layouts viejos de WC con dos columnas (col-1/col-2) si
+ * algún tercer plugin los reintroduce — nuestro template no los usa. */
+.akb-account-auth .u-columns,
+.akb-account-auth .col2-set {
+    display: block;
+}
+
+/* ─── Links de producto en las tablas `shop_table` ─────────────
+ * WC default deja los <a> del shop_table sin color → toman el azul
+ * del browser sobre el dark theme. Los normalizamos a blanco con
+ * hover red coherente con el resto del sitio.
+ *
+ * Aplica al detalle del pedido (página de confirmación de compra, historial
+ * en Mi Cuenta y pantalla de pago de pedidos pendientes).
+ *
+ * Cubre:
+ *   .shop_table .product-name a      — título del producto en cart row
+ *   .shop_table .product-thumbnail a — imagen-link del producto
+ *   table.cart .product-name a       — alias legacy
+ *   .woocommerce-cart-form .product-name a
+ *   .woocommerce-checkout-review-order-table .product-name a
+ */
+.woocommerce table.shop_table .product-name a,
+.woocommerce table.shop_table .product-thumbnail a,
+.woocommerce-page table.shop_table .product-name a,
+.woocommerce-page table.shop_table .product-thumbnail a,
+.woocommerce-cart-form .product-name a,
+.woocommerce-checkout-review-order-table .product-name a {
+    color: var(--aki-white);
+    text-decoration: none;
+    font-weight: var(--weight-medium);
+    transition: color var(--transition-fast);
+}
+
+.woocommerce table.shop_table .product-name a:hover,
+.woocommerce table.shop_table .product-thumbnail a:hover,
+.woocommerce-page table.shop_table .product-name a:hover,
+.woocommerce-page table.shop_table .product-thumbnail a:hover,
+.woocommerce-cart-form .product-name a:hover,
+.woocommerce-checkout-review-order-table .product-name a:hover {
+    color: var(--aki-red-bright);
+    text-decoration: none;
+}
+
+/* ─── Convención de color en números financieros ──────────────
+ *
+ * Akibara usa amarillo `--aki-yellow` SOLO para "el número que importa
+ * en la decisión final de compra":
+ *
+ *   ✓ Precio del producto en single product page (hero)
+ *   ✓ Subtotal de carrito (.cart-subtotal .amount)
+ *   ✓ Total a pagar (.order-total .amount)
+ *
+ * Los precios POR LÍNEA en el shop_table del cart quedan en blanco
+ * semibold — son info de contexto, no la decisión. Esto evita:
+ *   - Compite cromáticamente con el total final.
+ *   - Asociación industria con "warning" en montos accesorios.
+ *   - Permite a futuro distinguir oferta: tachado gris + rebaja roja.
+ *
+ * Cambios al respecto de esta convención: actualizar también
+ * single-product price y akibara-business plugin badges (mismo token).
+ */
+.woocommerce table.shop_table .product-price,
+.woocommerce table.shop_table .product-subtotal,
+.woocommerce-page table.shop_table .product-price,
+.woocommerce-page table.shop_table .product-subtotal {
+    color: var(--aki-white);
+    font-weight: var(--weight-semibold);
+}
+
+/* Subtotal y Total del cart — look editorial blanco de alta legibilidad */
+.woocommerce .cart_totals .cart-subtotal .amount,
+.woocommerce .cart_totals .order-total .amount,
+.woocommerce-page .cart_totals .cart-subtotal .amount,
+.woocommerce-page .cart_totals .order-total .amount,
+.woocommerce-checkout-review-order-table .cart-subtotal .amount,
+.woocommerce-checkout-review-order-table .order-total .amount {
+    color: var(--aki-white);
+    font-weight: var(--weight-bold);
+}
+
+/* Jerarquía del TOTAL: el "número que importa" debe DOMINAR sobre el subtotal,
+   no pesar igual. Subtotal/línea = info de contexto (menor); TOTAL = decisión. */
+.woocommerce .cart_totals .order-total th,
+.woocommerce-checkout-review-order-table .order-total th {
+    font-size: var(--text-lg);
+}
+.woocommerce .cart_totals .order-total .amount,
+.woocommerce-page .cart_totals .order-total .amount,
+.woocommerce-checkout-review-order-table .order-total .amount {
+    font-size: 1.5em;
+    line-height: 1.1;
+}
+.woocommerce .cart_totals .cart-subtotal .amount,
+.woocommerce-checkout-review-order-table .cart-subtotal .amount {
+    font-size: 0.95em;
+}
+
+/* Remove (×) link en cart row */
+.woocommerce table.shop_table .product-remove a,
+.woocommerce-page table.shop_table .product-remove a {
+    color: var(--aki-gray-400);
+    text-decoration: none;
+    font-size: 22px;
+    line-height: 1;
+    transition: color var(--transition-fast);
+}
+
+.woocommerce table.shop_table .product-remove a:hover,
+.woocommerce-page table.shop_table .product-remove a:hover {
+    color: var(--aki-red);
+    background: transparent;
+}
+
+/* ─── Star rating (reseñas) ─────────────────────────────────────
+ *
+ * WC nativo renderiza estrellas vía pseudo-element `::before` con
+ * caracteres unicode `★★★★★` (sin imágenes). El color hereda de
+ * `a{color:var(--accent)}` que GP inyecta global → quedan azules
+ * (#1e73be) sobre el dark theme. Las llevamos al amarillo brand,
+ * convención universal de stars.
+ *
+ * Aplica a:
+ *   - `.star-rating` — display en single product / loop / reseña ya
+ *     publicada. Pseudo-element ::before del wrapper = estrellas vacías;
+ *     ::before del span interno (con width:% según rating) = estrellas
+ *     llenas. Ambos amarillo, distinguidos por opacity.
+ *   - `.comment-form-rating .stars a` — input clickeable del form
+ *     de review (radio buttons disfrazados de stars).
+ *   - `.woocommerce-product-rating a` — link "ver N valoraciones".
+ *   - Mensajes "No hay valoraciones aún" + "Solo usuarios registrados".
+ */
+/* Container de las stars: hereda el `a{color:--accent}` de GP (azul cyan
+ * #1e73be). Por default las estrellas filled ::before solo cubren la cara
+ * visible, pero el strong/text crudo del span queda visible si el width
+ * span no se aplica + el numero "5 de 5" sale azul si el container no
+ * fuerza color. Forzamos todo el container a yellow brand.
+ *
+ * IMPORTANTE: usar `.star-rating` standalone (sin ancestor `.woocommerce`)
+ * porque en HOME los carousels de productos viven en `.akb-section` o
+ * shortcodes custom SIN wrapper `.woocommerce`. Sin esto, las stars salen
+ * azul cyan en home aunque las reglas sí apliquen en /tienda/ y PDP. */
+/* Estrellas en ROJO de marca, no amarillo: el amarillo es EXCLUSIVO del dinero
+ * (precio) y una misma página mostraba estrellas amarillas en el summary y rojas
+ * en #reviews (reviews-p5-v4.css ya usa red-bright). Un solo sistema: track/idle
+ * atenuado, filled/activo red-bright. Iconos informativos → 3:1 basta (1.4.11);
+ * red-bright sobre #121212 = 4.74:1 medido. */
+.star-rating {
+    color: var(--aki-red-bright);
+}
+
+.star-rating::before {
+    color: var(--aki-red-bright);
+    opacity: 0.35;
+}
+
+.star-rating span::before {
+    color: var(--aki-red-bright);
+    opacity: 1;
+}
+
+.woocommerce .comment-form-rating .stars a,
+.woocommerce-page .comment-form-rating .stars a {
+    /* Input de selección: idle gris (como las estrellas vacías del display),
+       hover/activo rojo — el sistema filled=rojo / empty=atenuado en todas partes. */
+    color: var(--aki-gray-400);
+    text-decoration: none;
+}
+
+.woocommerce .comment-form-rating .stars a:hover,
+.woocommerce .comment-form-rating .stars a.active,
+.woocommerce-page .comment-form-rating .stars a:hover,
+.woocommerce-page .comment-form-rating .stars a.active {
+    color: var(--aki-red-bright);
+}
+
+.woocommerce .woocommerce-noreviews,
+.woocommerce .woocommerce-verification-required,
+.woocommerce-page .woocommerce-noreviews,
+.woocommerce-page .woocommerce-verification-required {
+    color: var(--aki-gray-300);
+}
+
+/* Lectura larga en PDP: 65–75 caracteres por línea y bloque centrado, con el
+ * texto internamente alineado a la izquierda. Evita párrafos de más de 1300px. */
+.single-product .woocommerce-Tabs-panel--description > * {
+    max-width: 72ch;
+    margin-inline: auto;
+}
+
+/* Los asteriscos requeridos de WooCommerce usan #a00 por defecto; sobre #111
+ * quedan en 2.44:1. El token de texto rojo mantiene la semántica y pasa AA. */
+.woocommerce-account .woocommerce-MyAccount-content .form-row .required {
+    color: var(--aki-red-text);
+}
+
+/* ─── WooCommerce blockUI loading overlay ─────────────────────
+ *
+ * WC carga blockUI.js (jQuery plugin) cada vez que el cart se modifica
+ * (remove item, update qty, apply coupon, etc.). El default es:
+ *   - <div class="blockUI blockOverlay" style="bg:#fff opacity:0.6">
+ *   - sobre eso un loader gif/svg blanco con círculo negro
+ *
+ * Sobre dark theme se ve horrible (blanco grisáceo + círculo negro
+ * descontextualizado). Re-skinear:
+ *   - overlay con surface dark + glass blur
+ *   - spinner branded con --aki-red rotando (puro CSS, sin imagen)
+ *   - oculta el texto/imagen default del plugin via opacity:0
+ *
+ * Aplica a cualquier page WC con blockUI activo (cart, checkout, mini-cart).
+ */
+.woocommerce .blockUI.blockOverlay,
+.woocommerce-cart .blockUI.blockOverlay,
+.woocommerce-checkout .blockUI.blockOverlay {
+    background: color-mix(in srgb, var(--aki-black) 75%, transparent) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    cursor: wait;
+}
+
+/* Oculta el loader original (gif blanco circular) */
+.woocommerce .blockUI.blockOverlay::before,
+.woocommerce-cart .blockUI.blockOverlay::before,
+.woocommerce-checkout .blockUI.blockOverlay::before {
+    content: "" !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 3px solid color-mix(in srgb, var(--aki-white) 15%, transparent);
+    border-top-color: var(--aki-red);
+    border-radius: 50%;
+    animation: akb-spin 0.8s linear infinite;
+    background: none !important;
+}
+
+@keyframes akb-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .woocommerce .blockUI.blockOverlay::before,
+    .woocommerce-cart .blockUI.blockOverlay::before,
+    .woocommerce-checkout .blockUI.blockOverlay::before {
+        animation: none;
+        border-top-color: var(--aki-red);
+    }
+}
+
+/* ─── PDP "Información adicional" — attribute term links ──────
+ *
+ * Tabla `<table class="woocommerce-product-attributes shop_attributes">`
+ * de WC core renderiza los attribute terms (País, Autor, Género, Serie...)
+ * como `<a href="/pais/argentina/">Argentina</a>` sin styling. Por default
+ * heredan el color de WP editor (#1E73BE — azul cyan) que choca con el
+ * dark theme. Heredan el rojo AA del panel y refuerzan su affordance.
+ *
+ * Selectores: aplican a la tabla shop_attributes Y a los términos comma-
+ * separated dentro de cada celda (que también son <a>).
+ */
+.woocommerce .woocommerce-product-attributes.shop_attributes a,
+.woocommerce-page .woocommerce-product-attributes.shop_attributes a {
+    color: var(--aki-red-text);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: color var(--transition-fast), text-decoration-thickness var(--transition-fast);
+}
+
+.woocommerce .woocommerce-product-attributes.shop_attributes a:hover,
+.woocommerce .woocommerce-product-attributes.shop_attributes a:focus-visible,
+.woocommerce-page .woocommerce-product-attributes.shop_attributes a:hover,
+.woocommerce-page .woocommerce-product-attributes.shop_attributes a:focus-visible {
+    text-decoration-thickness: 2px;
+}
+
+/* ── Order received / thank-you page ──────────────────────────
+ *
+ * El theme no override `checkout/thankyou.php`; el HTML viene de WC core.
+ * Default styling deja varias secciones funcionalmente importantes con
+ * spacing colapsado, especialmente crítico el bloque BACS (transferencia)
+ * que es el método de pago dominante en Akibara — el customer necesita
+ * leer banco/número de cuenta claramente para hacer el pago. */
+
+/* Success notice "Gracias. Tu pedido ha sido recibido." — WC core lo
+ * renderiza como <p class="woocommerce-notice woocommerce-notice--success
+ * woocommerce-thankyou-order-received"> con font-size base + text-align
+ * start. Es el header de éxito post-checkout, debe destacar visualmente
+ * sobre el resto del contenido. */
+.woocommerce-order .woocommerce-thankyou-order-received {
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--aki-white);
+    margin: var(--space-4) 0 var(--space-6);
+    padding: var(--space-4) 0;
+    border-top: 1px solid var(--aki-border);
+    border-bottom: 1px solid var(--aki-border);
+}
+
+/* Order overview list — ul con LIs (NÚMERO PEDIDO / FECHA / EMAIL / TOTAL
+ * / MÉTODO PAGO). WC core renderiza LIs sin spacing (inline en desktop,
+ * apilados en mobile). Re-estructurar como grid de cards con label
+ * (strong) sobre value para mejor jerarquía visual. */
+.woocommerce-order ul.woocommerce-order-overview {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+    list-style: none;
+    margin: 0 0 var(--space-6);
+    padding: 0;
+}
+
+/* Disposición en cuadrícula fluida para resumen del pedido a partir de viewports medianos (>= 768px). */
+@media (min-width: 768px) {
+    .woocommerce-order ul.woocommerce-order-overview {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+/* Desactiva los pseudo-elementos clearfix de WooCommerce core en la cuadrícula de resumen,
+ * previniendo celdas de cuadrícula vacías espurias. */
+.woocommerce-order ul.woocommerce-order-overview::before,
+.woocommerce-order ul.woocommerce-order-overview::after {
+    content: none;
+}
+
+.woocommerce-order ul.woocommerce-order-overview > li {
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin: 0;
+    color: var(--aki-light);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* WooCommerce le quita el borde a la última (`ul.order_details li:last-of-type`,
+ * de cuando era una fila con separadores, 0,3,2): «Método de pago» salía como
+ * la única tarjeta sin marco. Misma especificidad y después; antes de `.total`
+ * para que el amarillo del total siga ganando si el total es el último. */
+.woocommerce-order ul.woocommerce-order-overview > li:last-of-type {
+    border: 1px solid var(--aki-border);
+}
+
+.woocommerce-order ul.woocommerce-order-overview > li strong {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--aki-gray-400);
+    margin-bottom: var(--space-1);
+}
+
+/* TOTAL value highlight — aplica regla de yellow para "el número que
+ * importa" (consistente con cart subtotal/total + PDP price). */
+.woocommerce-order ul.woocommerce-order-overview > li.total {
+    border-color: var(--aki-border);
+}
+
+.woocommerce-order ul.woocommerce-order-overview > li.total .woocommerce-Price-amount {
+    color: var(--aki-white);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+}
+
+/* Bank details section — funcionalmente crítico para customers BACS. WC
+ * core renderiza h2 + h3 + ul.wc-bacs-bank-details sin spacing entre items
+ * ni background. Re-card con jerarquía: heading → account holder blanco
+ * (call-out) → ul con value en strong destacado. */
+.woocommerce-order .woocommerce-bacs-bank-details {
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin: var(--space-4) 0 var(--space-6);
+}
+
+.woocommerce-order .wc-bacs-bank-details-heading {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    margin: 0 0 var(--space-3);
+}
+
+.woocommerce-order .wc-bacs-bank-details-account-name {
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    margin: 0 0 var(--space-3);
+}
+
+.woocommerce-order ul.wc-bacs-bank-details {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* WC core / GeneratePress fija `float: left` en `ul.order_details li` (de
+ * donde hereda `.wc-bacs-bank-details`) para layout horizontal en la
+ * overview de mi-cuenta. En el contexto BACS queremos stack vertical
+ * para legibilidad. Reset float + display:block. */
+.woocommerce-order ul.wc-bacs-bank-details li {
+    display: block;
+    float: none;
+    width: auto;
+    margin: 0;
+    padding: var(--space-3) 0;
+    color: var(--aki-light);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.woocommerce-order ul.wc-bacs-bank-details li:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.woocommerce-order ul.wc-bacs-bank-details li:first-child {
+    padding-top: 0;
+}
+
+.woocommerce-order ul.wc-bacs-bank-details li strong {
+    display: inline-block;
+    color: var(--aki-white);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    margin-left: var(--space-1);
+}
+
+/* Retiro: el HTML compartido con el correo trae una tarjeta clara inline.
+ * En las dos pantallas del pedido usamos la paleta de la tienda; el correo
+ * conserva sus estilos. !important sólo vence esos valores inline. */
+.woocommerce-order-details .akb-pickup-coord {
+    background: var(--aki-surface-2) !important;
+    border-color: var(--aki-border) !important;
+    border-top-color: var(--aki-red) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--aki-light);
+    overflow-wrap: anywhere;
+}
+
+.woocommerce-order-details .akb-pickup-coord p {
+    color: var(--aki-light);
+}
+
+.woocommerce-order-details .akb-pickup-coord p:first-child {
+    color: var(--aki-white);
+}
+
+.woocommerce-order-details .akb-pickup-coord a {
+    color: var(--aki-red-text) !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-underline-offset: 3px;
+}
+
+.woocommerce-order-details .akb-pickup-coord a:hover,
+.woocommerce-order-details .akb-pickup-coord a:focus-visible {
+    color: var(--aki-white) !important;
+    text-decoration-thickness: 2px;
+}
+
+/* Customer details address — WC core inserta <br> entre líneas y <p>
+ * para phone/email/rut sin styling. Wrap en card + line-height legible y
+ * separator entre direction y contactos. */
+.woocommerce-order .woocommerce-customer-details address {
+    font-style: normal;
+    line-height: 1.6;
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    color: var(--aki-light);
+    font-size: var(--text-sm);
+}
+
+.woocommerce-order .woocommerce-customer-details address p {
+    margin: var(--space-3) 0 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--aki-border);
+    color: var(--aki-gray-300);
+}
+
+.woocommerce-order .woocommerce-customer-details address p:first-of-type {
+    margin-top: var(--space-3);
+}
+
+/* Encabezados H2 en la página de confirmación del pedido, alineados con la escala tipográfica de sección. */
+.woocommerce-order .woocommerce-order-details__title,
+.woocommerce-order .woocommerce-column__title {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    margin: var(--space-6) 0 var(--space-3);
+}
+
+/* Customer details columns: en desktop WC core renderiza 2 col (billing /
+ * shipping) via .woocommerce-customer-details. Si solo hay billing (caso
+ * típico Akibara sin shipping address separado), no necesita columns. */
+.woocommerce-order .woocommerce-customer-details {
+    margin-bottom: var(--space-6);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Link colors — superficies WC transaccionales (sistémico)
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * POLÍTICA: cualquier `<a>` que aparezca en cart, checkout o my-account
+ * (superficies de transacción) debe usar tokens Akibara — NO debe heredar
+ * el azul default GeneratePress/browser.
+ *
+ * Casos cubiertos por esta sección:
+ *   - `[Eliminar]` del cupón aplicado (cart_totals + checkout review)
+ *   - `[Eliminar]` de producto (cart row)
+ *   - Links genéricos en payment_box (T&C, etc.)
+ *   - Links en notices info/message (success/warning) de WC
+ *
+ * Excepciones (NO afecta): botones `.button` ya tienen color propio,
+ * navegación MyAccount activa tiene bg rojo, breadcrumb tiene su color.
+ */
+.woocommerce-cart .cart_totals a,
+.woocommerce-cart .woocommerce-remove-coupon,
+.woocommerce-checkout .woocommerce-checkout-review-order a,
+.woocommerce-checkout .woocommerce-remove-coupon,
+.woocommerce-checkout #payment .payment_box a,
+.woocommerce .woocommerce-info a,
+.woocommerce .woocommerce-message a,
+.woocommerce .woocommerce-error a {
+    /* Enlaces transaccionales de alto contraste (WCAG AA >= 4.5:1):
+     * --aki-red-bright garantiza ratio 5.17:1 sobre superficies oscuras. */
+    color: var(--aki-red-bright);
+    text-decoration: underline;
+    transition: color var(--transition-base);
+}
+
+.woocommerce-cart .cart_totals a:hover,
+.woocommerce-cart .woocommerce-remove-coupon:hover,
+.woocommerce-checkout .woocommerce-checkout-review-order a:hover,
+.woocommerce-checkout .woocommerce-remove-coupon:hover,
+.woocommerce-checkout #payment .payment_box a:hover,
+.woocommerce .woocommerce-info a:hover,
+.woocommerce .woocommerce-message a:hover {
+    /* Hover: white (19.80:1 AAA) — inversión visual estándar; underline preserva
+     * affordance para usuarios color-blind. --aki-red-hover (2.94:1) era peor. */
+    color: var(--aki-white);
+}
+
+/* ─── Product FAQs (schema-faq.php) ──────────────────────────────── */
+.product-faqs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: var(--space-6) 0;
+}
+.product-faq {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.product-faq__q {
+    padding: var(--space-4);
+    font-weight: var(--weight-bold);
+    color: var(--aki-white);
+    cursor: pointer;
+    user-select: none;
+    list-style: none; /* Oculta el marker nativo en Firefox/Chrome moderno */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+/* Oculta el marker nativo en WebKit antiguos */
+.product-faq__q::-webkit-details-marker {
+    display: none;
+}
+.product-faq__q::after {
+    content: "+";
+    color: var(--aki-red);
+    font-size: var(--text-lg);
+    line-height: 1;
+    transition: transform var(--transition-fast);
+}
+.product-faq[open] .product-faq__q::after {
+    transform: rotate(45deg);
+}
+/* Foco de teclado accesible para summary de FAQs: anillo de foco interior (inset)
+ * para evitar recorte por overflow:hidden en el contenedor con bordes redondeados. */
+.product-faq__q:focus:not(:focus-visible) {
+    outline: none;
+}
+.product-faq__q:focus-visible {
+    outline: none;
+    outline-offset: -2px;
+    box-shadow: inset 0 0 0 3px var(--aki-yellow), inset 0 0 0 6px var(--aki-black);
+}
+.product-faq__a {
+    padding: 0 var(--space-4) var(--space-4);
+    color: var(--aki-gray-200);
+    border-top: 1px solid var(--aki-border);
+    margin-top: var(--space-2);
+    padding-top: var(--space-3);
+}
+.product-faq__a p:last-child {
+    margin-bottom: 0;
+}
+.product-faq__a a {
+    /* Texto normal sobre surface-2: red-bright quedaba en 4.40:1. */
+    color: var(--aki-red-text);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-base);
+}
+.product-faq__a a:hover {
+    color: var(--aki-white);
+}
+
+/* Sin fondos falsos detrás de las portadas (la tarjeta en sí vive en loop.css). */
+.woocommerce ul.products li.product .woocommerce-loop-product__link,
+.woocommerce div.product .woocommerce-product-gallery,
+.woocommerce div.product .woocommerce-product-gallery__wrapper,
+.woocommerce div.product .woocommerce-product-gallery__image,
+.woocommerce div.product .woocommerce-product-gallery__image a {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Micro-interacciones: Zoom en portadas de manga */
+.woocommerce ul.products li.product .woocommerce-loop-product__link {
+    display: block;
+    /* overflow:hidden vivía acá, pero este link es el padre INMEDIATO de
+       .akb-product-cover-wrap, cuyo margin negativo (loop.css) sangra la
+       portada hasta el borde del <li> compensando su padding. Clipear en
+       este nivel corta esa sangría ANTES de llegar al <li> — recortaba
+       ~12px (--space-3) de cada lado de la portada. El clip del zoom vive
+       ahora en .akb-product-cover-wrap, que es el borde real post-sangría. */
+}
+
+.woocommerce ul.products li.product .woocommerce-loop-product__link img {
+    /* El token ya trae la timing function; sumarle `ease-out` invalidaba la
+     * declaracion y el zoom del listado nunca animaba. */
+    transition: transform var(--transition-slow, 400ms ease-out);
+}
+
+.woocommerce ul.products li.product:hover .woocommerce-loop-product__link img {
+    /* Tope 1.02 (igual que loop.css): la portada ya llena la caja con `cover` y
+       la jaula `.akb-product-cover-wrap` (overflow:hidden) contiene el zoom;
+       más de 1.02 se come más borde de lo que el micro-zoom necesita. */
+    transform: scale(1.02);
+}
+
+/* Respeto estricto a preferencia de reducción de movimiento (prefers-reduced-motion: reduce),
+   anulando el micro-zoom de la imagen de producto. */
+@media (prefers-reduced-motion: reduce) {
+    .woocommerce ul.products li.product:hover .woocommerce-loop-product__link img {
+        transform: none;
+    }
+}
+
+/* ─── Brutalist Table (Carrito y Checkout) ────────────────────────── */
+.woocommerce table.shop_table {
+    border: 2px solid var(--aki-black);
+    border-collapse: collapse;
+    border-radius: 0;
+}
+
+.woocommerce table.shop_table th,
+.woocommerce table.shop_table td {
+    border: 1px solid var(--aki-border);
+    padding: var(--space-3);
+}
+
+.woocommerce table.shop_table th {
+    background: var(--aki-surface-2);
+    color: var(--aki-white);
+    text-transform: uppercase;
+    font-family: var(--font-heading);
+    letter-spacing: 0.05em;
+}
+
+/* ─── Product Buttons: Preventa & Agotado ─────────────────────────── */
+/* Botón Agotado (Vía Muerta) - Especificidad Alta */
+/* NOTA: se usa `.woocommerce` (no `body.woocommerce`) porque el shortcode
+ * [products] del home envuelve su salida en <div class="woocommerce"> pero el
+ * <body> del home NO recibe la clase `woocommerce` (WC solo la añade en
+ * archives/single/cart). Con `body.woocommerce` el botón de preventa/agotado
+ * quedaba sin estilo en el home y distinto al del menú. */
+/* :not(.akb-notify-link): con YITH activo el botón de la card agotada es un
+ * CTA VIVO "Avísame cuando vuelva" (LoopEnhancer::notify_link_loop) — la vía
+ * muerta queda solo como fallback sin waitlist. */
+.woocommerce ul.products li.product:has(.akb-badge--out_of_stock) .button:not(.akb-notify-link),
+.woocommerce div.product .summary:has(.out-of-stock) .single_add_to_cart_button {
+    background: var(--aki-surface-3) !important;
+    color: var(--aki-gray-400) !important;
+    pointer-events: none !important;
+    border-color: var(--aki-border) !important;
+    box-shadow: none !important;
+}
+
+/* Los botones de reserva/preventa y productos a pedido comparten el estilo
+ * unificado de los tokens de compra (--aki-buy-*), distinguiéndose a nivel de texto e insignia. */
+
+/* Suprime el contorno nativo de búsqueda en forced-colors: none para dar paso
+ * al anillo de foco de la casa (--aki-focus-ring), preservando el contorno en alto contraste asistivo. */
+@media (forced-colors: none) {
+    input[type="search"]:not(.akibara-search__input, .akb-brands-filterbar__input):focus {
+        outline: none !important;
+    }
+}
+
+/* ─── Badges + botones más compactos en Cross-sells del Carrito ───
+ * Las cards de cross-sells ("Puede que estés interesado en…") son
+ * notablemente más chicas que las del loop normal. Con los badges y
+ * botones a tamaño completo se ven desproporcionados. Se achican
+ * selectivamente dentro de .woocommerce-cart. */
+.woocommerce-cart ul.products li.product .akb-badge {
+    /* 0.6875rem = 11px: proporcional al card compacto pero legible
+     * (0.6rem eran 9.6px, bajo umbral de legibilidad). */
+    font-size: 0.6875rem;
+    line-height: 1.1;
+    padding: 0.25rem 0.6rem;
+    filter: drop-shadow(2px 2px 0 var(--aki-black));
+}
+
+.woocommerce-cart .woocommerce ul.products li.product .akb-badge + .akb-badge {
+    top: 30px;
+}
+
+/* Toggle "mostrar contraseña" (WC core, mi-cuenta): el ícono mide 22px —
+ * área táctil 44px centrada sin mover el ícono visualmente. */
+.woocommerce form .show-password-input {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* WC core embebe el ojo como SVG #111 en un data URI; sobre el input oscuro
+ * desaparece. Su UI no expone el color. Invertir el pseudo conserva el mismo
+ * SVG y sus estados abierto/cerrado, llevándolo a #EEE (≥3:1). */
+.woocommerce form .show-password-input::before {
+    filter: invert(1);
+}
+
+/* Checkout Blocks renderiza "Añadir línea 2 de la dirección" como un botón
+ * de una sola línea (18px de alto). La UI de WooCommerce no expone su target:
+ * ampliamos solo ese control, y solo en carrito/checkout, sin tocar toggles
+ * reutilizados por otros bloques. */
+.woocommerce-cart .wc-block-components-address-form__address_2-toggle,
+.woocommerce-checkout .wc-block-components-address-form__address_2-toggle {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+}
+
+/* Control interactivo de eliminación en carrito ("×"): área táctil expandida a 44×44 px (WCAG 2.5.5) preservando la escala del glifo. */
+.woocommerce-cart .woocommerce-cart-form a.remove,
+.woocommerce-cart .shop_table a.remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--aki-gray-400) !important;
+    font-size: 1.5rem !important;
+    font-weight: 400 !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.woocommerce-cart .woocommerce-cart-form a.remove:hover,
+.woocommerce-cart .shop_table a.remove:hover {
+    color: var(--aki-red) !important;
+    background: transparent !important;
+    transform: scale(1.1);
+}
+
+.woocommerce-cart ul.products li.product .button,
+.woocommerce-cart ul.products li.product .add_to_cart_button {
+    /* 0.75rem + min-height 44px: el cross-sell del carrito es el CTA más
+     * cercano a conversión — target táctil completo, no ~28px. */
+    font-size: 0.75rem !important;
+    padding: 0.55rem 0.85rem !important;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.04em;
+}
+
+/* Los headings llevan skewX(-5deg) global (base.css). En un heading
+ * block-level cuya caja llega al borde del contenedor, la proyección
+ * del skew sobresale ~1px del viewport y crea scroll horizontal en
+ * /carrito/ desktop. Ajustar la caja al texto deja la proyección
+ * lejos del borde sin alterar el render (heading alineado izquierda). */
+.woocommerce-cart .cart_totals > h2 {
+    width: fit-content;
+}
+
+/* ─── Jerarquía de llamadas a la acción (CTA) en el carrito ───────────
+ * Prioriza "FINALIZAR COMPRA" como acción principal y relega las acciones auxiliares
+ * (aplicar cupón y actualizar carrito) a botones fantasma con contorno sutil (--aki-btn-ghost-border). */
+.woocommerce-cart td.actions .coupon button[name="apply_coupon"],
+.woocommerce-cart td.actions button[name="update_cart"] {
+    background: transparent !important;
+    background-image: none !important;
+    border: 2px solid var(--aki-btn-ghost-border) !important; /* papel «fantasma» */
+    color: var(--aki-white) !important;
+    box-shadow: none !important;
+}
+.woocommerce-cart td.actions .coupon button[name="apply_coupon"]:hover,
+.woocommerce-cart td.actions .coupon button[name="apply_coupon"]:focus-visible,
+.woocommerce-cart td.actions button[name="update_cart"]:hover,
+.woocommerce-cart td.actions button[name="update_cart"]:focus-visible {
+    background: var(--aki-surface-2) !important;
+    background-image: none !important;
+    border-color: var(--aki-gray-400) !important;
+    color: var(--aki-white) !important;
+}
+.woocommerce-cart td.actions button[name="update_cart"]:disabled,
+.woocommerce-cart td.actions button[name="update_cart"][disabled] {
+    opacity: 0.5;
+    background: var(--aki-surface-1) !important;
+    border-color: var(--aki-border) !important;
+    color: var(--aki-gray-500) !important;
+}
+
+/* Aquí se escondía el botón «Actualizar carrito» cuando main.js marcaba el
+   formulario con `.akb-cart-autoupdate`, y se atenuaba la tabla con
+   `.is-updating`. Las dos clases las ponía el auto-update del carrito CLÁSICO,
+   retirado con él: el carrito de esta tienda es de bloques y no emite
+   `.woocommerce-cart-form`. Nadie escribe ya ninguna de las dos. */
+
+/* ─── Barra de compra fija en ficha de producto (Sticky Add to Cart) ───
+ *
+ * Barra fija precio+CTA. En ≤1024 px va apilada ENCIMA del bottom-nav (su
+ * alto pintado es el token `--bottom-nav-height` de tokens.css); en
+ * escritorio, pegada al borde inferior (bloque de más abajo). El CTA real
+ * queda bajo el fold en la ficha típica (top ~1.226 px vs fold 844 en móvil;
+ * 823 px vs 768 en un portátil de 1366x768); la barra lo proxea. Visibilidad:
+ * sticky-atc.js vía .is-visible (form fuera de vista, título ya por encima de
+ * la barra y ningún pack listo para enviar en pantalla). */
+.akb-sticky-atc {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--bottom-nav-height, 66px) + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-sticky, 200);
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    background: var(--aki-surface);
+    border-top: 2px solid var(--aki-border);
+    box-shadow: -4px -4px 0px var(--aki-black);
+    transform: translateY(8px);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform var(--transition-fast), opacity var(--transition-fast), visibility var(--transition-fast), background-color var(--transition-fast);
+}
+
+.akb-sticky-atc,
+.akb-sticky-atc * {
+    box-sizing: border-box;
+}
+
+.akb-sticky-atc.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Barra de progreso viva de 3px (Opción 1: Barra Unificada) */
+.akb-sticky-atc__progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    opacity: 0;
+    background-color: var(--aki-warning);
+    transition: width 240ms ease, background-color 240ms ease, opacity 180ms ease;
+    z-index: 2;
+}
+
+.akb-sticky-atc.is-pack-mode .akb-sticky-atc__progress {
+    opacity: 1;
+}
+
+/* Modo Pack Activo: Fondo carbón oscuro (#141417) de alto contraste */
+.akb-sticky-atc.is-pack-mode {
+    background: #141417;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.akb-sticky-atc__price-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+/* Botón de reseteo rápido [✕] */
+.akb-sticky-atc__reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--aki-white);
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 150ms ease, transform 150ms ease;
+    touch-action: manipulation;
+}
+
+.akb-sticky-atc__reset:hover {
+    background: var(--aki-red);
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.akb-sticky-atc__reset:active {
+    transform: scale(0.95);
+}
+
+.akb-sticky-atc__reset[hidden] {
+    display: none !important;
+}
+
+/* Badge de descuento [-8%], [-10%] */
+.akb-sticky-atc__badge {
+    display: inline-block;
+    padding: 1px 5px;
+    background: var(--aki-red);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 2px;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+.akb-sticky-atc__badge[hidden] {
+    display: none !important;
+}
+
+/* Subtexto CRO e incentivo */
+.akb-sticky-atc__subtext {
+    display: block;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    color: var(--aki-gray-300);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 230px;
+}
+
+.akb-sticky-atc__subtext[hidden] {
+    display: none !important;
+}
+
+.akb-sticky-atc.is-pack-mode .akb-sticky-atc__subtext {
+    color: #d1d5db;
+}
+
+/* Micro-animación de pulso al actualizar selección */
+.akb-sticky-atc__info.is-pulsing {
+    animation: akb-pulse-short 180ms ease;
+}
+
+@keyframes akb-pulse-short {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+}
+
+/* El nombre del tomo sólo acompaña a la barra en escritorio (bloque ≥1025). */
+.akb-sticky-atc__title {
+    display: none;
+}
+
+/* Precio: yellow = "el número que importa" (misma regla que el price del
+ * summary). La barra vive fuera de .product, así que los selectores del
+ * price single no la alcanzan — se replica el tratamiento aquí. */
+.akb-sticky-atc__price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.4em;
+    color: var(--aki-white);
+    font-weight: 700;
+    font-size: var(--text-xl);
+    white-space: nowrap;
+}
+
+.akb-sticky-atc__price del {
+    color: var(--aki-gray-500);
+    opacity: 0.6;
+    font-weight: 400;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+}
+
+.akb-sticky-atc__price del::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1.5px;
+    background-color: currentColor;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.akb-sticky-atc__price ins {
+    text-decoration: none;
+    background: none;
+}
+
+/* Metadatos de fecha estimada de llegada (ETA) para tomos en preventa y a pedido,
+ * generados por akibara-business (akb_eta_linea_corta) y medidos dinámicamente por franja-inferior.js. */
+.akb-sticky-atc__info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.akb-sticky-atc__eta {
+    margin-top: 2px;
+    color: var(--aki-white);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.akb-sticky-atc__btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--aki-buy-bg);
+    color: var(--aki-buy-fg);
+    font-family: var(--font-heading);
+    font-weight: 400; /* Bebas solo tiene 400; el 700 era declaración muerta */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    transform: skew(-3deg);
+    filter: drop-shadow(3px 3px 0 #000);
+    border-radius: 0;
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) var(--space-4);
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.akb-sticky-atc__btn:hover,
+.akb-sticky-atc__btn:active {
+    background: var(--aki-buy-bg-hover);
+    color: var(--aki-buy-fg);
+}
+
+.akb-sticky-atc__btn:hover {
+    transform: skew(-3deg) translate(-2px, -2px);
+    filter: drop-shadow(5px 5px 0 var(--aki-white));
+}
+
+.akb-sticky-atc__btn:active {
+    transform: skew(-3deg) translate(1px, 1px);
+    filter: drop-shadow(1px 1px 0 #000);
+    transition: transform 50ms ease, filter 50ms ease;
+}
+
+.akb-sticky-atc__btn:focus-visible {
+    clip-path: none !important;
+    transform: none !important;
+    filter: none !important;
+    box-shadow: var(--aki-focus-ring) !important;
+}
+
+@media (max-width: 1024px) {
+    body.single-product .akb-sticky-atc {
+        display: flex;
+        box-sizing: border-box;
+        height: 60px;
+        max-height: 60px;
+        padding: 6px 12px;
+        gap: 8px;
+    }
+    body.single-product .akb-sticky-atc .akb-sticky-atc__btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        height: 44px;
+        min-height: 44px;
+        max-height: 44px;
+        padding: 0 12px;
+        font-size: 15px;
+    }
+    body.single-product .akb-sticky-atc .akb-sticky-atc__subtext {
+        max-width: 180px;
+    }
+    /* En móvil, el botón duplicado del medio se oculta: la barra fija inferior es la única que manda */
+    body.single-product [data-akb-sb-builder] [data-akb-sb-add] {
+        display: none !important;
+    }
+    /* Joinchat se desplaza por encima de la barra para no obstaculizar la compra */
+    body.single-product:has(.akb-sticky-atc.is-visible) .joinchat,
+    body.single-product:has(.akb-sticky-atc.is-pack-mode) .joinchat {
+        bottom: calc(var(--franja-inferior-peor, 134px) + 12px) !important;
+    }
+    /* footer.css ya reserva el bottom-nav; en PDP se reserva la franja
+     * entera (bottom-nav + barra de compra, tokens.css) para que el final
+     * del footer no quede tapado cuando la barra está visible (al fondo de
+     * la página el form siempre quedó arriba → barra visible).
+     *
+     * El peor caso estático es el SUELO, no el techo: la barra escala con la
+     * tipografía raíz (el precio va en rem) y con la fuente del navegador a
+     * 24px mide 119px, no 68; la franja pasa a 185 y el respaldo de 134 dejaba
+     * el copyright 16px bajo la barra al fondo de la ficha, donde ya no hay
+     * recorrido y ni el navegador ni la red de foco pueden sacarlo. Por eso se
+     * toma el MÁXIMO entre el respaldo y la medida en vivo: con la raíz a
+     * 16px la medida nunca supera el respaldo y la página no cambia de largo
+     * cuando la barra aparece; sólo crece cuando la barra de verdad es más
+     * alta que el peor caso previsto. La medida en vivo ya incluye el
+     * `env()` (ver base.css), así que sólo se suma al respaldo. */
+    body.single-product {
+        padding-bottom: max(calc(var(--franja-inferior-peor, 134px) + env(safe-area-inset-bottom, 0px)), var(--akb-franja-inferior, 0px));
+    }
+    /* Ficha agotada: sticky-atc.php no pinta la barra si el producto no es
+     * comprable o no tiene stock, así que ahí la franja es sólo el bottom-nav
+     * y el peor caso dejaba 67,5px de banda vacía bajo el footer. Se escribe
+     * como `:not(:has())` a propósito: un navegador sin `:has()` descarta
+     * esta regla y se queda con el peor caso de arriba (aire de más, nunca
+     * contenido tapado). */
+    body.single-product:not(:has(.akb-sticky-atc)) {
+        padding-bottom: calc(var(--bottom-nav-height, 66px) + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* Tablet (768-1024px): eleva el botón de WhatsApp por encima de la barra de compra
+ * fija cuando está presente para prevenir superposición de controles interactivos. */
+@media (min-width: 768px) and (max-width: 1024px) {
+    body.single-product:has(.akb-sticky-atc) .joinchat {
+        bottom: calc(var(--franja-inferior-peor, 134px) + 12px);
+    }
+}
+
+/* Escritorio (>= 1025px): barra de compra fija anclada al borde inferior de la pantalla,
+ * alineando el título del tomo a la izquierda y el precio junto al botón de compra a la derecha. */
+@media (min-width: 1025px) {
+    body.single-product .akb-sticky-atc {
+        --akb-sticky-pad-x: max(var(--space-6), calc((100vw - var(--container-max)) / 2 + var(--space-4)));
+        display: flex;
+        bottom: 0;
+        gap: var(--space-6);
+        padding-left: var(--akb-sticky-pad-x);
+        padding-right: var(--akb-sticky-pad-x);
+    }
+
+    .akb-sticky-atc__subtext {
+        max-width: 420px;
+    }
+
+    .akb-sticky-atc__title {
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: var(--font-heading);
+        font-size: var(--text-xl);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--aki-white);
+    }
+
+    .akb-sticky-atc__btn {
+        flex: 0 0 auto;
+        min-width: 18rem;
+    }
+
+    /* Al fondo de la ficha el form ya quedó arriba, así que la barra está
+     * visible: el final del pie no puede quedar debajo. Mismo criterio que en
+     * móvil: el máximo entre el token y la medida en vivo de franja-inferior.js. */
+    body.single-product {
+        padding-bottom: max(var(--buy-bar-height, 68px), var(--akb-franja-inferior, 0px));
+    }
+
+    body.single-product:not(:has(.akb-sticky-atc)) {
+        padding-bottom: 0;
+    }
+
+    /* Joinchat (60 px a 20 px del borde) caía encima del botón de la barra. */
+    body.single-product:has(.akb-sticky-atc) .joinchat {
+        bottom: calc(var(--buy-bar-height, 68px) + var(--space-4));
+    }
+}
+
+/* Viewports con altura reducida (max-height: 500px): oculta la barra de compra fija
+ * para garantizar suficiente área de lectura y navegación en dispositivos apaisados o con zoom asistivo alto. */
+@media (max-height: 500px) {
+    body.single-product .akb-sticky-atc {
+        display: none;
+    }
+
+    body.single-product {
+        padding-bottom: 0;
+    }
+
+    body.single-product:not(:has(.akb-sticky-atc)) {
+        padding-bottom: 0;
+    }
+
+    html body.single-product:has(.akb-sticky-atc) .joinchat {
+        bottom: var(--bottom, 20px);
+    }
+}
+
+/* Drawer hamburger abierto → ocultar la barra (mismo patrón que el
+ * bottom-nav en footer.css: evita controles flotando sobre el overlay). */
+body:has(#mobile-drawer[aria-hidden="false"]) .akb-sticky-atc,
+body:has(.hamburger.active) .akb-sticky-atc {
+    display: none;
+}
+
+/* Estados AJAX de añadir al carrito en PDP. pdp-ajax-atc.js aplica is-adding e is-added al botón real y a su proxy sticky. Estas reglas finales ganan por orden de cascada; aria-disabled conserva la accesibilidad y evita pulsaciones durante la petición. */
+.single_add_to_cart_button.is-adding,
+form.cart[inert] .single_add_to_cart_button,
+.akb-sticky-atc__btn.is-adding {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Atenuación del botón en barra fija mientras el formulario nativo permanece inerte durante el envío. */
+body:has(form.cart[inert]) .akb-sticky-atc__btn {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.woocommerce .product .single_add_to_cart_button.is-added,
+.akb-sticky-atc__btn.is-added {
+    background: var(--aki-success);
+    color: var(--aki-black);
+    border-color: var(--aki-black);
+}
+
+.woocommerce .product .single_add_to_cart_button.is-added:hover,
+.akb-sticky-atc__btn.is-added:hover {
+    background: var(--aki-success);
+    color: var(--aki-black);
+}
+
+/* ─── V11: botones dentro de notices (Ver carrito) ────────────────
+ * En PDP el body lleva .woocommerce pero NO .woocommerce-page, y el grupo
+ * base de CTAs solo cubre `a.button.alt` / `.woocommerce-page a.button` —
+ * el "Ver carrito" (a.button.wc-forward) caía al estilo de link plano de
+ * `.woocommerce-message a`. Botón secundario outline, (0,2,1) > (0,1,1). */
+.woocommerce-message a.button,
+.woocommerce-error a.button,
+.woocommerce-info a.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--aki-white);
+    border: 2px solid var(--aki-red-bright);
+    border-radius: 0;
+    padding: var(--space-1) var(--space-3);
+    margin-inline-start: var(--space-3);
+    font-family: var(--font-heading);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    min-height: var(--touch-target-min);
+    transition: background var(--transition-fast);
+}
+
+.woocommerce-message a.button:hover,
+.woocommerce-error a.button:hover,
+.woocommerce-info a.button:hover {
+    background: var(--aki-red-readable);
+    color: var(--aki-white);
+    text-decoration: none;
+}
+
+/* ─── V14: totales antes de cross-sells en carrito mobile ─────────
+ * El DOM trae .cross-sells antes de .cart_totals dentro de
+ * .cart-collaterals: el CTA "Finalizar compra" quedaba a ~1.9k px tras
+ * el discovery. En mobile el camino canónico (totales → pagar) va primero. */
+@media (max-width: 768px) {
+    .woocommerce-cart .cart-collaterals {
+        display: flex;
+        flex-direction: column;
+    }
+    .woocommerce-cart .cart-collaterals .cart_totals {
+        order: -1;
+    }
+}
+
+/* ─── V15: steppers −/+ de cantidad ────────────────────────────────
+ * Botones inyectados por inc/woocommerce.php (hooks before/after del
+ * quantity-input WC); handler delegado en main.js. Touch target 44px. */
+.woocommerce .quantity,
+.woocommerce-page .quantity {
+    display: inline-flex;
+    align-items: stretch;
+}
+
+.akb-qty-btn {
+    width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--aki-surface-2);
+    color: var(--aki-light);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    font-size: var(--text-lg);
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.akb-qty-btn:hover,
+.akb-qty-btn:active {
+    background: var(--aki-surface-3);
+}
+
+.akb-qty-btn:disabled,
+.akb-qty-btn[aria-disabled="true"] {
+    background: var(--aki-surface-2);
+    color: var(--aki-text-muted);
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* Sin regla de foco propia a propósito: `--aki-focus-ring` (tokens.css) ya cubre
+   `button:focus-visible`. El outline amarillo que había aquí se apilaba encima y
+   dejaba dos anillos amarillos separados por el negro. */
+
+.akb-qty-btn--minus { border-right: 0; }
+.akb-qty-btn--plus  { border-left: 0; }
+
+/* ─── V16: cross-sells del carrito con grilla propia ───────────────
+ * El grid global del loop usa 5 columnas en desktop. En cross-sells del
+ * carrito eso aplasta las cards a ~110px y deja los badges/títulos sin aire.
+ * Rebalanceamos el bloque para que 1-3 recomendaciones ocupen mejor el ancho.
+ */
+@media (min-width: 769px) {
+    .woocommerce-cart .cross-sells ul.products {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        justify-content: start;
+    }
+
+    .woocommerce-cart .cross-sells ul.products li.product .akb-badge {
+        font-size: 0.75rem;
+        padding: 0.28rem 0.75rem;
+    }
+
+    .woocommerce-cart .woocommerce ul.products li.product .akb-badge + .akb-badge {
+        top: 32px;
+    }
+}
+
+/* El input queda entre los dos botones; quitar spinners nativos que ahora
+ * duplican función (el width 64px ya está definido arriba, línea ~814). */
+.woocommerce .quantity input.qty::-webkit-outer-spin-button,
+.woocommerce .quantity input.qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.woocommerce .quantity input.qty {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* ─── Métodos de envío como radio-cards seleccionables (mesa funnel) ──────
+   La elección Retiro San Miguel / Retiro Punto BlueX / Envío BlueX es la lista
+   NATIVA de WC (ul#shipping_method) — la estilizamos como filas elegibles claras
+   (radio nativo intacto: no rompe label/teclado/BlueX). Estado activo redundante
+   al color (daltónicos) con barra roja izquierda. El selector de PUNTO de BlueX
+   (#bluex-shipping-selector-*) NO se toca acá (3ro, lo maneja main.js). */
+ul#shipping_method,
+ul.woocommerce-shipping-methods {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+ul#shipping_method li,
+ul.woocommerce-shipping-methods li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) var(--space-3);
+    margin: 0 0 var(--space-2);
+    border: 2px solid var(--aki-border);
+    border-radius: 0;
+    cursor: pointer;
+}
+ul#shipping_method li:hover,
+ul.woocommerce-shipping-methods li:hover {
+    border-color: var(--aki-gray-400);
+}
+ul#shipping_method li:has(input[type="radio"]:checked),
+ul.woocommerce-shipping-methods li:has(input[type="radio"]:checked) {
+    border-color: var(--aki-border);
+    border-left: 4px solid var(--aki-red);
+    background: var(--aki-surface-2);
+}
+ul#shipping_method li label,
+ul.woocommerce-shipping-methods li label {
+    flex: 1 1 auto;
+    margin: 0;
+    cursor: pointer;
+}
+ul#shipping_method li input[type="radio"]:focus-visible,
+ul.woocommerce-shipping-methods li input[type="radio"]:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset);
+}
+
+/* Letra chica de los métodos de envío: gris/Inter (NO amarillo — amarillo = solo
+   precio). `.akb-shipping-hint` salió de la lista con la función que lo emitía:
+   colgaba de `woocommerce_cart_totals_after_shipping`, un hook del carrito
+   clásico que esta tienda no dispara (ver inc/woocommerce.php). */
+ul.woocommerce-shipping-methods li small,
+ul#shipping_method li small {
+    color: var(--aki-gray-200);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    line-height: 1.4;
+    display: block;
+    margin-top: var(--space-1);
+}
+
+/* Fix PhotoSwipe pure black background */
+.pswp__bg { background: var(--aki-black) !important; }
+
+/* ───────────────────────────────────────────────────────────────────────
+   Interacción táctil y presentación de precios
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Touch: sin doble-tap zoom ni flash nativo en los controles de compra. */
+.akb-qty-btn,
+.single_add_to_cart_button,
+.akb-sticky-atc__btn {
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Cifras alineadas en precios (PDP + sticky + carrito). */
+.woocommerce-Price-amount,
+.woocommerce-Price-amount.amount,
+.akb-sticky-atc__price {
+	font-variant-numeric: tabular-nums;
+}
+
+/* >=8px entre el grupo de cantidad y el botón de compra (default WC ~4px). */
+.woocommerce div.product form.cart .single_add_to_cart_button {
+	margin-left: var(--space-2);
+}
+
+/* Fila «cantidad + comprar» en mobile: el botón de compra ocupa fluidamente
+ * el espacio restante disponible para maximizar la superficie táctil del CTA principal. */
+@media (max-width: 768px) {
+	.woocommerce div.product form.cart {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: var(--space-2);
+	}
+
+	.woocommerce div.product form.cart .quantity {
+		flex: 0 0 auto;
+	}
+
+	.woocommerce div.product form.cart .single_add_to_cart_button {
+		flex: 1 1 auto;
+		min-width: 0;
+		/* El gap ya separa: el margen heredado sumaría al hueco. */
+		margin-left: 0;
+	}
+}
+
+/* Portada de ficha en desktop (>= 769px): límite de 500px para preservar
+ * la fidelidad de resolución nativa de los assets y evitar degradación visual por escalado excesivo. */
+@media (min-width: 769px) {
+	.woocommerce div.product .woocommerce-product-gallery {
+		max-width: 500px;
+	}
+}
+
+/* Estado de error o rechazo del botón de compra: resalta el estado con fondo
+ * negro y borde rojo para proporcionar retroalimentación visual inequívoca. */
+.woocommerce .product .single_add_to_cart_button.is-error,
+.woocommerce .product .single_add_to_cart_button.is-error:hover,
+.akb-sticky-atc__btn.is-error,
+.akb-sticky-atc__btn.is-error:hover {
+	background: var(--aki-black);
+	color: var(--aki-white);
+	border-color: var(--aki-red);
+	box-shadow: none;
+}
+
+/* Transición del botón de compra a estado secundario "Ver carrito" cuando
+ * la unidad ya está en el carrito, adoptando contorno neutro (--aki-btn-secondary-border).
+ * Las variantes :hover se declaran explícitamente para asegurar precedencia en la cascada. */
+.woocommerce .product .single_add_to_cart_button.is-ver-carrito,
+.woocommerce .product .single_add_to_cart_button.is-ver-carrito:hover,
+.akb-sticky-atc__btn.is-ver-carrito,
+.akb-sticky-atc__btn.is-ver-carrito:hover {
+	background: var(--aki-black);
+	color: var(--aki-white);
+	border-color: var(--aki-btn-secondary-border);
+	box-shadow: none;
+}
+
+/* Sólo con puntero que flota: en el teléfono el :hover se queda pegado tras el
+ * toque y el botón quedaba blanco. */
+@media (hover: hover) {
+	.woocommerce .product .single_add_to_cart_button.is-ver-carrito:hover,
+	.akb-sticky-atc__btn.is-ver-carrito:hover {
+		background: var(--aki-white);
+		border-color: var(--aki-white);
+		color: var(--aki-black);
+	}
+}
+
+/* ── Scroll a errores de checkout bajo header sticky ──────────────
+ * Los paths con scrollIntoView/anclas (validación WC, saltos a notices)
+ * dejaban el destino tapado por el .site-header sticky. scroll-margin-top
+ * reserva el alto del header + aire. Los scrolls jQuery-animate (phone.js,
+ * WC core) no leen esta propiedad — phone.js compensa el offset en JS. */
+form.checkout .form-row,
+.woocommerce-error,
+.woocommerce-NoticeGroup {
+	scroll-margin-top: 140px;
+}
+
+/* Aviso de escasez de inventario (akibara-business): alerta ámbar (--aki-warning)
+ * de alto contraste que sobreescribe los estilos de stock de WooCommerce core. */
+.woocommerce div.product p.stock.akb-stock-low {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 4px 10px;
+    color: var(--aki-warning);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid var(--aki-warning);
+    border-left: 4px solid var(--aki-warning);
+    border-radius: 0;
+    box-shadow: 2px 2px 0 #000;
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.woocommerce div.product p.stock.akb-stock-low::before {
+    content: "⚠️ ";
+    flex: 0 0 auto;
+    font-size: 0.9em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--aki-warning);
+    background: transparent;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+}
+
+/* Mensaje explicativo de límite de cantidad alcanzado (emitido por main.js):
+ * ocupa línea propia completa para evitar saltos de diseño (CLS) en controles adyacentes. */
+.akb-qty-hint {
+    margin: var(--space-2) 0 0;
+    color: var(--aki-text-muted);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    clear: both;
+    flex-basis: 100%;
+    width: 100%;
+}
+
+/*
+ * Notificación en línea del motivo de rechazo de adición al carrito junto al botón de compra.
+ */
+.akb-atc-motivo {
+	margin: var(--space-2, .5rem) 0 0;
+	font-size: var(--text-sm, .88rem);
+	line-height: 1.4;
+	color: var(--aki-gray-100);
+}
+
+.akb-atc-motivo[hidden] {
+	display: none;
+}
+
+.akb-atc-motivo a {
+	color: var(--aki-red-bright);
+	text-decoration: underline;
+}
+
+/*
+ * Notificación del motivo de rechazo en la barra de compra fija:
+ * franja contextual posicionada sobre la barra para no alterar la altura ni métricas de layout.
+ */
+.akb-sticky-atc__motivo {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 100%;
+	margin: 0;
+	padding: var(--space-2, .5rem) var(--akb-sticky-pad-x, var(--space-4, 1rem));
+	background: var(--aki-surface);
+	border-top: 2px solid var(--aki-red);
+	color: var(--aki-gray-100);
+	font-size: var(--text-sm, .88rem);
+	line-height: 1.4;
+}
+
+.akb-sticky-atc__motivo[hidden] {
+	display: none;
+}
+
+.akb-sticky-atc__motivo a {
+	color: var(--aki-red-bright);
+	text-decoration: underline;
+}
+
+/*
+ * Ocultación del botón flotante de WhatsApp (Joinchat) mientras el mensaje
+ * de motivo de rechazo permanece visible, evitando solapamiento sobre el texto.
+ */
+body:has(#akb-sticky-atc.is-visible .akb-sticky-atc__motivo:not([hidden])) .joinchat:not(.joinchat--chatbox):not(:focus-within),
+body:has(form.cart .akb-atc-motivo:not([hidden])):not(:has(#akb-sticky-atc.is-visible)) .joinchat:not(.joinchat--chatbox):not(:focus-within) {
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+
+/* Tabla de seguimiento de Blue Express en mobile: preserva la visibilidad
+ * del encabezado con el código de seguimiento sobreescribiendo el display:none genérico de WooCommerce. */
+@media (max-width: 768px) {
+    /* Mantiene especificidad suficiente frente a reglas de smallscreen de WooCommerce */
+    .woocommerce table.wc-correios-tracking__table thead,
+    .woocommerce-page table.wc-correios-tracking__table thead {
+        display: table-header-group;
+    }
+
+    .woocommerce table.wc-correios-tracking__table thead th,
+    .woocommerce table.wc-correios-tracking__table tbody th,
+    .woocommerce-page table.wc-correios-tracking__table thead th,
+    .woocommerce-page table.wc-correios-tracking__table tbody th {
+        display: table-cell;
+        word-break: break-all;
+    }
+}
+
+/* ─── Contenedor de reserva para portadas no disponibles (fallback 404) ───
+ * Proporciona un marcador de posición estructurado cuando la imagen falla al cargar (.akb-cover--error). */
+.akb-cover-cage,
+.woocommerce div.product .woocommerce-product-gallery__image {
+    position: relative;
+}
+.akb-cover-cage.akb-cover--error img,
+.woocommerce-product-gallery__image.akb-cover--error img {
+    display: block;
+    opacity: 0;
+    height: 100% !important;
+}
+.woocommerce div.product .woocommerce-product-gallery__image.akb-cover--error {
+    aspect-ratio: 2 / 3;
+    max-height: 50vh;
+    background: var(--aki-surface-3);
+}
+.akb-cover-cage.akb-cover--error::after,
+.woocommerce-product-gallery__image.akb-cover--error::after {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 8px;
+    color: var(--aki-gray-300);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
+    content: "Portada no disponible";
+}
+.woocommerce-product-gallery__image.akb-cover--error::after {
+    font-size: 14px;
+    padding: 16px;
+}

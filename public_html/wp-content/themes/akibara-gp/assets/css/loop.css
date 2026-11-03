@@ -1,0 +1,1537 @@
+/*
+ * Loop badges — estiliza markup emitido por akibara-business plugin.
+ *
+ * Markup contract (módulo LoopEnhancer):
+ *   <span class="akb-badge akb-badge--<variant>" data-akb-badge="<variant>">Label</span>
+ *
+ * Variants soportados: out_of_stock, preorder, sale, available.
+ *
+ * El badge se posiciona absolute top-left dentro del wrapper .product de WC.
+ * WC ya pone position:relative implícito vía su grid; reforzamos por seguridad.
+ *
+ * NOTA: WC `.onsale` core badge ya está hidden globalmente en woocommerce.css.
+ */
+/* ─── Grid de productos (loop unificado) ────────────────────────
+ * WC default usa float layout (legacy). Lo reemplazamos por CSS grid
+ * en TODOS los contextos donde aparece el shop loop:
+ *   - home (page 210 con shortcode [products])
+ *   - shop archive (/tienda/)
+ *   - product category archives (/manga/, /comics/, /shonen/, etc.)
+ *   - search results
+ *
+ * Single source of truth para el visual de cards. Era duplicado en
+ * .akb-section solamente, lo que dejaba archives con float layout sin
+ * border ni bg.
+ */
+.woocommerce ul.products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-4);
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    max-width: 1400px;
+}
+
+@media (min-width: 1025px) {
+    .woocommerce ul.products {
+        /* Fallback para loops de terceros sin contrato de columnas explícito. */
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    /* Respetar el contrato `columns-N` emitido por WooCommerce. Producción usa
+     * columns-4 + 24 productos en archives y 8 en vitrinas; forzar 5 tracks
+     * creaba huecos sistemáticos aunque la consulta estuviera completa. Una
+     * última fila puede seguir incompleta cuando el total real no es múltiplo. */
+    .woocommerce ul.products:where(.columns-1) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .woocommerce ul.products:where(.columns-2) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .woocommerce ul.products:where(.columns-3) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .woocommerce ul.products:where(.columns-4) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .woocommerce ul.products:where(.columns-5) {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .woocommerce ul.products:where(.columns-6) {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+/* WC inyecta ::before y ::after con content:" " width:308px (legacy clearfix
+ * para float layout). En grid esos pseudo-elements ocupan celdas reales,
+ * dejando la primera columna vacía. Los neutralizamos. */
+.woocommerce ul.products::before,
+.woocommerce ul.products::after {
+    content: none;
+    display: none;
+}
+
+/* ─── Tarjeta de producto: definición unificada ─────────────────────────
+ * Establece el contenedor canónico para las tarjetas de producto en el shop loop.
+ * Sombra de alto contraste (#000000) sobre fondo de tarjeta (#141416).
+ * El selector `.woocommerce …` cubre tanto archives como shortcodes en páginas estáticas. */
+.woocommerce ul.products li.product {
+    position: relative;
+    width: 100% !important;
+    margin: 0 !important;
+    float: none !important;
+    max-width: none !important;
+    background: #141416;
+    padding: var(--space-3);
+    border-radius: 0;
+    border: 2px solid var(--aki-border);
+    box-shadow: 4px 4px 0 #000000;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition:
+        transform var(--transition-base),
+        box-shadow var(--transition-base),
+        border-color var(--transition-base);
+    isolation: isolate;
+}
+
+/* ─── Persona 5 / Manga Style: Speedlines on hover ─────────────────
+ * Inspired by P5's "All-Out Attack" UI and manga speedlines.
+ * Subtle white streaks emanating from card on hover/focus. */
+.woocommerce ul.products li.product::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--space-2));
+    z-index: -1;
+    background:
+        linear-gradient(var(--aki-white), var(--aki-white)) top right / 42px 2px no-repeat,
+        linear-gradient(var(--aki-white), var(--aki-white)) top right / 2px 42px no-repeat,
+        linear-gradient(var(--aki-white), var(--aki-white)) bottom left / 34px 2px no-repeat,
+        linear-gradient(var(--aki-white), var(--aki-white)) bottom left / 2px 34px no-repeat;
+    opacity: 0;
+    transform: skew(-6deg) translate(2px, -2px);
+    transition:
+        opacity var(--transition-base),
+        transform var(--transition-base);
+    pointer-events: none;
+    border-radius: calc(var(--radius-md) + var(--space-2));
+}
+
+.woocommerce ul.products li.product::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -14%;
+    bottom: 0;
+    width: 54%;
+    z-index: -1;
+    background: repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.15) 0 1px, transparent 1px 9px);
+    clip-path: polygon(34% 0, 100% 0, 100% 100%, 0 100%);
+    opacity: 0;
+    transform: translateX(18px);
+    transition:
+        opacity var(--transition-base),
+        transform var(--transition-base);
+    pointer-events: none;
+}
+
+/* Realce interactivo de tarjeta (hover o foco visible de teclado).
+ * Se utiliza `:has(:focus-visible)` en lugar de `:focus-within` para evitar
+ * que acciones activadas por puntero (clic AJAX sin navegación) mantengan la
+ * tarjeta en estado levantado tras retirar el cursor.
+ * Se encapsula en `:is(:hover, :has(:focus-visible))` para aislar la tolerancia
+ * sintáctica en navegadores con soporte parcial.
+ * El salto desplaza la tarjeta y proyecta una sombra dura roja (--shadow-glow-red). */
+@media (hover: hover) {
+    .woocommerce ul.products li.product:hover {
+        transform: translate(-6px, -6px);
+        box-shadow: var(--shadow-glow-red);
+        border-color: var(--aki-white);
+    }
+}
+
+.woocommerce ul.products li.product:has(:focus-visible) {
+    transform: translate(-6px, -6px);
+    box-shadow: var(--shadow-glow-red);
+    border-color: var(--aki-white);
+}
+
+.woocommerce ul.products li.product:is(:hover, :has(:focus-visible))::after {
+    opacity: 0.8;
+    transform: translateX(0);
+}
+
+.woocommerce ul.products li.product:is(:hover, :has(:focus-visible))::before {
+    opacity: 0.8;
+    transform: skew(-6deg) translate(0, 0);
+}
+
+/* Touch (sin hover real): las speed-lines, el zoom y el rojo del título de la
+   card NO deben quedar PEGADOS tras el tap — en touch el :hover se activa al
+   tocar y persiste hasta tocar fuera (defecto transversal #1). El foco no hace
+   falta anularlo: un toque no enciende :focus-visible. El salto con ratón ya no
+   llega aquí: vive en (hover: hover), arriba. */
+@media (hover: none) {
+    .woocommerce ul.products li.product:hover::after,
+    .woocommerce ul.products li.product:hover::before {
+        opacity: 0;
+    }
+    /* !important porque el zoom del img y el rojo del título se declaran DESPUÉS
+       en este archivo (misma especificidad → perderían por orden). Sin esto,
+       cualquier tap deja la portada zoomeada y el título rojo hasta tocar fuera. */
+    .woocommerce ul.products li.product:hover img {
+        transform: none !important;
+    }
+    .woocommerce ul.products li.product:hover .woocommerce-loop-product__title {
+        color: var(--aki-white) !important;
+    }
+}
+
+/* El link interno (img + title + price + rating) también es flex column
+ * para que ocupe todo el espacio disponible y el title/price queden
+ * apilados consistentemente. */
+.woocommerce ul.products li.product > a.woocommerce-LoopProduct-link {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    text-decoration: none;
+    position: relative;
+    z-index: 2;
+}
+
+/* Title con max 2 líneas — evita que cards con títulos largos sean
+ * desproporcionadamente altas. line-clamp con fallback. */
+
+/* Eyebrow de la editorial (inyectado dinámicamente) */
+.akb-editorial-eyebrow {
+    display: block;
+    color: var(--aki-gray-200);
+    font-size: 12px;
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+}
+/* Título = flex de dos piezas: el clamp de líneas vive en .akb-title-name
+   y el número .akb-vol queda fuera para asegurar que la elipsis nunca oculte el tomo. */
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+    display: flex;
+    align-items: flex-end; /* fallback: el override real está en el @supports de abajo */
+    gap: 0.14em;
+    min-height: 2.2em; /* Bebas es condensada → 2 líneas ocupan menos que Inter */
+    flex-shrink: 0;
+    padding-block: 0;
+    margin-bottom: var(--space-2);
+}
+
+/* Alineación tipográfica por línea base (last baseline) para sincronizar la altura
+   del nombre con el número de volumen independientemente del tamaño de glifos.
+   Se declara dentro de @supports para preservar la regla frente a optimizadores CSS
+   que colapsan declaraciones duplicadas de fallback. */
+@supports (align-items: last baseline) {
+    .woocommerce ul.products li.product .woocommerce-loop-product__title {
+        align-items: last baseline;
+    }
+}
+
+.woocommerce ul.products li.product .akb-title-name {
+    display: -webkit-box;
+    /* clamp 3, no 2: los títulos editoriales españoles son prefijo-pesados
+       ("Biblioteca Vertigo. John Constantine: Hellblazer") y a 2 líneas el token
+       distintivo desaparecía. La 3ª línea NO se reserva (min-height sigue 2.2em):
+       solo crece si el contenido la necesita; el precio/CTA anclan abajo por
+       margin-top:auto así que la fila queda pareja. Cap duro: la 4ª nunca. */
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: 3.3em; /* 3 × lh 1.1 */
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+/* Price + rating empujados arriba del botón con margen automático.
+ * El precio queda al final del LINK, el botón es sibling absoluto. */
+.woocommerce ul.products li.product .price {
+    margin-top: auto;
+    /* En 2-col ~145px el <del> + <ins> puede romper feo → baseline + wrap limpio. */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+}
+
+/* CTA siempre al fondo de la card, alineado entre filas.
+ * Override `display: inline-block` + `margin-top: 1em` heredados de WC core.
+ * Flex centra texto vertical y horizontalmente preservando full-width.
+ *
+/* Margin-top para `.added_to_cart` SOLO cuando esté visible (raro, por
+ * default está display:none de woocommerce.css). Sin display flex aquí.
+ * IMPORTANTE: NO incluir `.added_to_cart` en .button para evitar que su especificidad
+ * (0,0,4,1) sobreescriba el `display: none` de woocommerce.css. */
+.woocommerce ul.products li.product .added_to_cart {
+    width: 100%;
+    margin-top: var(--space-3);
+}
+
+/* Feedback AJAX del CTA. WC core togglea .loading/.added en el botón, pero el
+ * theme dequeue'a los estilos core de WC en varias vistas (home/editoriales) →
+ * entre el click y la apertura del drawer (0.5-1.5s) el botón no cambiaba NADA.
+ * Spinner en ::before — el ::after ya lo usa el shimmer de este archivo.
+ * También con `:hover`: la regla del hover de más abajo pesa lo mismo y, por
+ * venir después, le devolvía el rótulo blanco; en el móvil el toque deja el
+ * hover puesto y el rótulo salía encima del giro (medido en el espejo en
+ * /tienda/ a 390 táctil, Chromium y WebKit; 2.1.142 tiene las mismas reglas). */
+.woocommerce ul.products li.product .button.loading,
+.woocommerce ul.products li.product .button.loading:hover {
+    position: relative;
+    pointer-events: none; /* absorbe el doble-click impaciente */
+    color: transparent;
+    /* woocommerce-general.css (cuando carga: shop/category/tag) pone
+       .loading{opacity:.25} → botón fantasma con el label ya transparente. */
+    opacity: 1;
+}
+/* Estado de carga (.loading) en el botón de acción de vista rápida (.akb-qv__actions):
+ * Asegura animación de giro coherente y previene desplazamientos de layout (CLS)
+ * sin retirar pointer-events para permitir reintentos controlados por atc-guard.js. */
+.akb-qv__actions .button.button.loading,
+.akb-qv__actions .button.button.loading:hover {
+    padding-right: var(--space-5);
+    color: transparent;
+    opacity: 1;
+}
+.akb-qv__actions .button.button.loading::after {
+    display: none;
+}
+.woocommerce ul.products li.product .button.loading::before,
+.akb-qv__actions .button.loading::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 1.1em;
+    height: 1.1em;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: var(--aki-white);
+    border-radius: 50%;
+    animation: akb-atc-spin 0.7s linear infinite;
+}
+.woocommerce ul.products li.product .button.added::before {
+    content: "✓ ";
+}
+
+/* ─── CTA "Avísame cuando vuelva" y "Ver carrito" en tarjeta ─────────
+ * Estilo outline secundario para acciones alternativas o informativas.
+ * El rojo sólido queda reservado a la conversión directa de compra. */
+.woocommerce ul.products li.product .button.akb-notify-link,
+.woocommerce ul.products li.product .button.akb-ver-carrito {
+    background: transparent;
+    /* Papel «secundario»: contorno coherente con el token var(--aki-btn-secondary-border). */
+    border: 2px solid var(--aki-btn-secondary-border);
+    color: var(--aki-gray-100);
+    box-shadow: none;
+    pointer-events: auto;
+}
+.woocommerce ul.products li.product .button.akb-notify-link:hover,
+.woocommerce ul.products li.product .button.akb-notify-link:focus-visible,
+.woocommerce ul.products li.product .button.akb-ver-carrito:hover,
+.woocommerce ul.products li.product .button.akb-ver-carrito:focus-visible {
+    background: var(--aki-white);
+    border-color: var(--aki-white);
+    color: var(--aki-black);
+}
+
+@keyframes akb-atc-spin {
+    to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .woocommerce ul.products li.product .button.loading::before,
+    .akb-qv__actions .button.loading::before {
+        animation: none;
+        opacity: 0.7;
+    }
+}
+
+/* Wrapper inyectado por akibara-business para anclar badges e icono de wishlist */
+/* Jaula de la portada: reserva proporción 2:3 aun si la imagen remota falla
+   para prevenir Cumulative Layout Shift (CLS) en todas las superficies con tarjetas.
+   El control de fallback (.akb-cover--error) vive en main.js. */
+.woocommerce ul.products li.product .akb-product-cover-wrap {
+    background: var(--aki-surface-3);
+    flex-shrink: 0;
+}
+
+/* Proporción 2:3 implementada mediante padding intrínseco (padding-top: 150%).
+ * Garantiza paridad de layout e idénticas dimensiones en WebKit y motores Chromium,
+ * evitando discrepancias de cálculo flex con aspect-ratio en Safari iOS. */
+.woocommerce ul.products li.product .akb-product-cover-wrap::before {
+    content: "";
+    display: block;
+    padding-top: 150%;
+}
+
+/* La imagen llena completamente el contenedor con `object-fit: cover`.
+ * `border: 0` neutraliza el borde por defecto de los placeholders de WooCommerce
+ * (.woocommerce-placeholder) para evitar desbordamientos perimetrales. */
+.woocommerce ul.products li.product .akb-product-cover-wrap > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: cover;
+    border: 0;
+}
+
+.woocommerce ul.products li.product .akb-product-cover-wrap.akb-cover--error > img {
+    opacity: 0;
+}
+
+.woocommerce ul.products li.product .akb-product-cover-wrap.akb-cover--error::after {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    color: var(--aki-gray-300);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    content: "Portada no disponible";
+}
+
+.akb-product-cover-wrap {
+    position: relative;
+    margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-3);
+    border-radius: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 0 #000;
+    /* Clip acá (no en .woocommerce-loop-product__link): éste es el borde real
+       post-sangría, y contiene el zoom hover sin recortar la portada. */
+    overflow: hidden;
+}
+
+/* ─── «Vista rápida»: icono circular accesible sobre la portada ──────────────
+ * Posicionado en la esquina de la portada (44x44 px touch target).
+ * Utiliza el markup accesible de akibara-business con aria-label descriptivo.
+ * Se muestra en desktop (desde 769 px) y se oculta en móviles (hasta 768 px).
+ * [hidden] se respeta para navegadores sin soporte nativo de <dialog>. */
+.woocommerce ul.products li.product > .akb-qv-trigger {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 3;
+    box-sizing: border-box;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    color: var(--aki-white);
+    font-size: 0; /* el texto queda en el DOM; el nombre lo da el aria-label */
+    letter-spacing: 0;
+    background: rgb(0 0 0 / 55%);
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 999px;
+    opacity: 0.92;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Ojo de 22 px, del mismo trazo que el corazón. Máscara y no un <svg>: el
+ * marcado es del plugin, y `currentColor` deja el color en manos del estado. */
+.woocommerce ul.products li.product > .akb-qv-trigger::before {
+    content: "";
+    width: 22px;
+    height: 22px;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Modo de alto contraste / colores forzados (forced-colors: active):
+ * Se exime el pseudo-elemento con forced-color-adjust: none y se asigna ButtonText
+ * para preservar el icono SVG enmascarado frente al forzado de background del navegador. */
+@media (forced-colors: active) {
+    .woocommerce ul.products li.product > .akb-qv-trigger::before {
+        forced-color-adjust: none;
+        background-color: ButtonText;
+    }
+}
+
+/* Rótulo que aparece con el ratón encima o con el foco de teclado: quien no
+ * reconoce el ojo lee qué hace sin tener que abrirlo. Va a la IZQUIERDA del
+ * icono, dentro de la tarjeta (el li recorta con overflow:hidden). Decorativo:
+ * con aria-label presente el contenido generado no entra en el nombre.
+ * El texto lo pone akibara-business en `data-akb-qv-label`: es el rótulo del
+ * botón que el dueño edita en Akibara → Textos (D5b), el mismo que abre su
+ * aria-label. */
+.woocommerce ul.products li.product > .akb-qv-trigger::after {
+    content: attr(data-akb-qv-label);
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 6px);
+    padding: 4px 8px;
+    color: var(--aki-white);
+    font-family: var(--font-body, inherit);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: rgb(0 0 0 / 82%);
+    border-radius: 3px;
+    opacity: 0;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+}
+
+.woocommerce ul.products li.product > .akb-qv-trigger:focus-visible,
+.woocommerce ul.products li.product > .akb-qv-trigger:focus-visible::after {
+    opacity: 1;
+}
+
+@media (hover: hover) {
+    .woocommerce ul.products li.product > .akb-qv-trigger:hover {
+        color: var(--aki-white);
+        background: rgb(0 0 0 / 72%);
+        border-color: rgb(255 255 255 / 40%);
+        opacity: 1;
+    }
+
+    .woocommerce ul.products li.product > .akb-qv-trigger:hover::after {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .woocommerce ul.products li.product > .akb-qv-trigger::after {
+        transition: none;
+    }
+}
+
+/* Oculta la vista rápida en móviles (≤ 768 px).
+ * La tarjeta completa enlaza a la ficha individual y se optimiza el espacio de portada. */
+@media (max-width: 768px) {
+    .woocommerce ul.products li.product > .akb-qv-trigger {
+        display: none;
+    }
+}
+
+/* Sincronización de orden de tabulación y jerarquía visual (WCAG 2.4.3).
+ * Apila los controles secundarios (favoritos y vista rápida) en la esquina inferior
+ * de la portada para preservar el orden secuencial de foco del DOM.
+ * Utiliza cálculo porcentual sobre el ancho de la tarjeta para alinear a la base del 2:3. */
+@media (min-width: 769px) {
+    @supports selector(:has(*)) {
+        .woocommerce ul.products li.product:has(> .akb-qv-trigger) > .akb-qv-trigger {
+            top: 0;
+            margin-top: calc(150% - 44px - var(--space-2));
+        }
+
+        .woocommerce ul.products li.product:has(> .akb-qv-trigger) .akb-wl-toggle--loop {
+            bottom: calc(44px + 2 * var(--space-2));
+        }
+    }
+}
+
+.woocommerce ul.products li.product img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    /* La portada llena la relación de aspecto 2:3 con object-fit: cover. */
+    object-fit: cover;
+    object-position: center;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.woocommerce ul.products li.product:hover img {
+    /* Con cover la portada ya llena la caja; el zoom 1.02 amplía la imagen ya
+       encuadrada (el .akb-product-cover-wrap con overflow:hidden contiene el
+       desborde). Tope suave para que el micro-zoom se sienta, no que salte. */
+    transform: translateY(-2px) scale(1.02) rotate(-0.35deg);
+}
+
+.woocommerce ul.products li.product:has(:focus-visible) img {
+    transform: translateY(-2px) scale(1.02) rotate(-0.25deg);
+}
+
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+    color: var(--aki-white);
+    /* Voz de marca en el texto más repetido: Bebas Neue all-caps. */
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 1.15rem; /* Jerarquía visual de título respecto al precio con métrica condensada de Bebas Neue */
+    /* 1.1 (era 1.2): Bebas all-caps sin descendentes lo tolera y compacta el
+       crecimiento de la 3ª línea condicional a <1em. El número ya no vive en el
+       flujo inline del nombre (flex item propio), no necesita aire de línea. */
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    transition: color var(--transition-fast);
+}
+
+/* Número de tomo con jerarquía de "lomo": Bebas, bloque rojo de marca y skew shonen. */
+.woocommerce ul.products li.product .akb-vol {
+    background: var(--aki-red);
+    color: #ffffff;
+    font-size: 1.15em;
+    line-height: 1.1;
+    margin-left: 0.25em;
+    padding: 1px 6px;
+    transform: skew(-6deg);
+    display: inline-block;
+    box-shadow: 2px 2px 0 #000;
+    letter-spacing: 0.04em;
+    flex: none;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.woocommerce ul.products li.product:is(:hover, :has(:focus-visible)) .woocommerce-loop-product__title {
+    /* Hover del título a rojo (no amarillo — amarillo = solo precio; competía con
+       el precio amarillo de la misma card). red-bright = 4.74:1 MEDIDO sobre la
+       superficie real de card (#121212 computado de base.css) — AA ok. Ojo: sobre
+       surface-3 (#222) caería a 4.03; si este color migra a un contenedor más
+       claro, usar --aki-red-text. */
+    color: var(--aki-red-bright);
+}
+
+.woocommerce ul.products li.product .price {
+    color: var(--aki-white);
+    font-weight: 700;
+    /* Jerarquía: heredaba 14.57px de WC core — el dato de decisión nº2 de la card
+       quedaba más chico que título y botón. tabular-nums alinea los dígitos entre
+       cards de la misma fila (precios comparables de un vistazo). */
+    font-size: var(--text-base, 1rem);
+    font-variant-numeric: tabular-nums;
+}
+
+.woocommerce ul.products li.product .price del,
+.woocommerce div.product .related .price del,
+.woocommerce div.product .up-sells .price del {
+    color: var(--aki-gray-500);
+    /* WC core mete del{opacity:.7} → gray-500 caía a 3.31:1 (falla AA). El
+       atenuado lo da el color, la opacity se resetea. */
+    opacity: 1;
+    font-weight: 400;
+    /* Subordinado al precio vigente: mismo tamaño competía con el <ins>. */
+    font-size: 0.85em;
+    text-decoration: none;
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+}
+
+.woocommerce ul.products li.product .price del::after,
+.woocommerce div.product .related .price del::after,
+.woocommerce div.product .up-sells .price del::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1.5px;
+    background-color: currentColor;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.woocommerce ul.products li.product .price .amount,
+.woocommerce div.product .related .price .amount,
+.woocommerce div.product .up-sells .price .amount {
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* Conteo de reseñas junto a las estrellas (solo aparece sobre el umbral de
+ * volumen — gate en LoopEnhancer::render_rating_loop). Gris muted, NUNCA
+ * amarillo (amarillo = solo precio). Hoy no se renderiza (ningún producto
+ * supera el umbral); CSS preparado. */
+.woocommerce ul.products li.product .aki-rating-count {
+    margin-left: 6px;
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    vertical-align: middle;
+}
+
+/* ─── Marcador sutil "Disponible" (junto al precio) ──────────────────────────
+ * Indicador de disponibilidad inmediata (.akb-avail-hint):
+ * Tipografía peso 500 y color var(--aki-green-bright) (ratio contraste > 12:1).
+ * min-height: 1.15em garantiza reserva vertical fija para alinear tarjetas en la grilla
+ * incluso en tarjetas con .akb-avail-hint--empty. */
+.woocommerce ul.products li.product .akb-avail-hint {
+    display: block;
+    margin: 0.3rem 0 0;
+    min-height: 1.15em; /* reserva altura aun vacío → grilla alineada */
+    color: var(--aki-green-bright);
+    font-size: var(--text-xs, 0.8rem);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+}
+
+/* Regla defensiva para dimensiones de icono SVG residual en .akb-avail-hint:
+ * Previene desbordamiento a 100% de ancho durante transiciones de caché o despliegues escalonados. */
+.woocommerce ul.products li.product .akb-avail-hint__check {
+    flex: 0 0 auto;
+    width: 0.85em;
+    height: 0.85em;
+}
+
+/* `--empty` no necesita reglas propias: `min-height` del selector base ya reserva
+ * el alto, y sin contenido no pinta nada. Declarado por claridad del contrato. */
+.woocommerce ul.products li.product .akb-avail-hint--empty {
+    color: transparent;
+}
+
+/* …EXCEPTO cuando detrás viene la píldora de ETA (solo preventa, la emite
+ * EstimatedDelivery\BannerRenderer::render_loop_item). Ahí el placeholder deja de
+ * alinear y empieza a desalinear: la card recibe el hueco de 14,7px MÁS el ETA,
+ * rompiendo justo la grilla que el placeholder venía a cuidar. Colapsarlo recupera
+ * esos 14,7px.
+ *
+ * ATENCIÓN, esto NO cierra el problema por completo. Medido comparando el top del
+ * precio relativo a su card dentro de filas mixtas preventa+instock (la métrica
+ * "precio → primer botón" NO sirve: el CTA está anclado abajo por `margin-top:auto`,
+ * así que el excedente del slot sube al precio y esa métrica lo esconde):
+ *   - 1440px, card 252px: el ETA cabe en 1 línea (16,2px) → desfase 4,7px.
+ *   - 1280px, card 219px: "LLEGADA ESTIMADA:" + la fecha envuelven a 2 líneas
+ *     (32,4px) → desfase 20,9px, consistente en 5 de 6 filas mixtas.
+ * O sea el colapso recupera los 14,7px del hueco, pero el wrap del label los
+ * devuelve en las grillas angostas. Lo que cierra el residuo es acortar el copy del
+ * label, no seguir tocando el placeholder — y eso toca la promesa al cliente
+ * ("estimada" es la salvedad, no relleno), así que es decisión del dueño, no de CSS.
+ * La rama de agotado sí alinea perfecto: medido 0,0px en fila instock+agotado, en
+ * ambos viewports.
+ *
+ * Va en CSS y no en PHP porque ambos renderers cuelgan de
+ * `woocommerce_after_shop_loop_item_title` en la MISMA prioridad 11, así que el orden
+ * DOM es emergente del orden de instanciación en Plugin.php, no un contrato. Por eso
+ * el selector usa `~` y no `+`: con `+` el colapso se apagaría en silencio si alguien
+ * reordena los módulos o si otro callback se mete entre ambos. `~` sigue siendo seguro
+ * para agotado porque DateCalculator::calculate() devuelve null salvo preventa, así que
+ * una card agotada nunca tiene un `.akb-eta-loop` hermano posterior.
+ *
+ * PROHIBIDO generalizar a `li.product:has(.akb-eta-loop) .akb-avail-hint--empty`: eso
+ * le quitaría el placeholder a las 82 cards agotadas y las desalinearía. La forma
+ * HERMANO es lo que las protege. */
+.woocommerce ul.products li.product .akb-avail-hint--empty:has(~ .akb-eta-loop) {
+    display: none;
+}
+
+/* Precios de Oferta (<ins>): Look editorial limpio (Propuesta 1).
+ * Reemplaza la estampilla roja inclinada de marcador por un precio
+ * vigente en blanco nítido de alto contraste, preservando el <del>
+ * tachado en gris atenuado. */
+.price ins,
+.woocommerce ul.products li.product .price ins,
+.woocommerce div.product .price ins,
+.woocommerce.single-product div.product .summary p.price ins,
+.woocommerce.single-product div.product .summary span.price ins {
+    text-decoration: none;
+    background: transparent;
+    color: var(--aki-white) !important;
+    padding: 0;
+    border-radius: 0;
+    display: inline-block;
+    transform: none;
+    box-shadow: none;
+    margin-left: 4px;
+    transition: transform var(--transition-fast) ease-out;
+}
+
+.price ins .amount,
+.woocommerce ul.products li.product .price ins .amount,
+.woocommerce div.product .price ins .amount,
+.woocommerce.single-product div.product .summary p.price ins .amount,
+.woocommerce.single-product div.product .summary p.price ins bdi,
+.woocommerce.single-product div.product .summary span.price ins .amount,
+.woocommerce.single-product div.product .summary span.price ins bdi {
+    color: var(--aki-white) !important;
+    font-weight: 700;
+}
+
+/* Micro-interacción: En hover de la card, el precio vigente resalta sutilmente */
+@media (hover: hover) {
+    .woocommerce ul.products li.product:hover .price ins {
+        transform: scale(1.04);
+    }
+    .woocommerce ul.products li.product:hover .price del {
+        opacity: 0.5;
+        transition: opacity var(--transition-fast) ease-out;
+    }
+}
+
+.woocommerce ul.products li.product .button {
+    background: var(--aki-buy-bg);
+    color: var(--aki-buy-fg);
+    width: 100%;
+    margin-top: var(--space-3);
+    /* Bebas Neue estándar con peso normal (400) sin síntesis artificial. */
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 0;
+    border: none;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    transform: skew(-3deg);
+    filter: drop-shadow(3px 3px 0 #000);
+    padding: 6px 12px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+    line-height: 1.1;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    z-index: 2;
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast),
+        filter var(--transition-fast);
+}
+
+.woocommerce ul.products li.product .button::after,
+.akb-qv__actions .button::after {
+    content: "";
+    position: absolute;
+    inset: -45% -35%;
+    z-index: 1;
+    background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%);
+    transform: translateX(-130%) skewX(-14deg);
+    transition: transform 420ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    pointer-events: none;
+}
+
+.woocommerce ul.products li.product .button:hover::after,
+.woocommerce ul.products li.product .button:focus-visible::after,
+.akb-qv__actions .button:hover::after,
+.akb-qv__actions .button:focus-visible::after {
+    transform: translateX(130%) skewX(-14deg);
+}
+
+.woocommerce ul.products li.product .button:hover,
+.akb-qv__actions .button.button:hover {
+    /* `.button.button` asegura especificidad (0,4,0) para preceder selectores compuestos. */
+    background: var(--aki-buy-bg-hover);
+    background-image: none;
+    color: var(--aki-buy-fg);
+    transform: skew(-3deg) translate(-2px, -2px);
+    filter: drop-shadow(5px 5px 0 var(--aki-white));
+}
+
+.woocommerce ul.products li.product .button:active,
+.akb-qv__actions .button:active {
+    transform: skew(-3deg) translate(1px, 1px);
+    filter: drop-shadow(1px 1px 0 #000);
+    transition: transform 50ms ease, filter 50ms ease;
+}
+
+.woocommerce ul.products li.product .button:focus-visible,
+.akb-qv__actions .button:focus-visible {
+    clip-path: none;
+    transform: none;
+    filter: none;
+    box-shadow: var(--aki-focus-ring);
+}
+
+/* ─── CTA de la Vista Rápida: mismo hover que el de la card ──────────────────
+ * `quick-view.js` CLONA el CTA de la card y monta el <dialog> en `document.body`,
+ * así que `ul.products li.product` deja de ser ancestro y TODO el tratamiento de
+ * arriba dejaba de aplicar. El botón caía al hover genérico de woocommerce.css,
+ * que es el barber-pole a rayas de 4px (`repeating-linear-gradient(-45deg, …)`).
+ *
+ * Ese barber-pole ya estaba juzgado como incorrecto por el propio proyecto: la
+ * regla de `.akb-account-auth .button:hover` en woocommerce.css lo pisa con el
+ * motivo escrito —"leían como WooCommerce vainilla en el momento de mayor
+ * intención"—. El CTA del bottom-sheet es exactamente eso: el botón de compra en
+ * la superficie de conversión. Se le pasó por alto.
+ *
+ * Y además el barber-pole EMPEORA el contraste: en reposo el texto blanco va sobre
+ * --aki-red-readable (5,87:1) y al hacer hover las rayas claras son --aki-red
+ * (4,8:1). El hover debe reforzar la legibilidad, no degradarla; el oscurecido a
+ * --aki-red-dark la sube a 8,9:1.
+ *
+ * Estas tres declaraciones son las que el clon no hereda y que el `::after` del
+ * barrido necesita para recortarse dentro del botón. */
+.akb-qv__actions .button.button {
+    /* Clase repetida otra vez, y por la MISMA razón que abajo: WooCommerce core fija
+     * `overflow: visible` con un selector de (0,2,1) —lleva un `button` de tipo— y
+     * `.akb-qv__actions .button` solo pesa (0,2,0), así que perdía y el barrido se
+     * desbordaba fuera del botón. Con la clase repetida sube a (0,3,0) y gana.
+     * (Tercera vez en esta revisión que un selector scopeado a la card pierde fuera
+     * de ella: pasó con la estampilla del <ins>, con el hover y acá.) */
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* prefers-reduced-motion: anula el shimmer y los micro-movimientos del CTA (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+    .woocommerce ul.products li.product .button,
+    .woocommerce ul.products li.product .button::after,
+    .akb-qv__actions .button,
+    .akb-qv__actions .button::after {
+        transition: none !important;
+    }
+    .woocommerce ul.products li.product .button:hover::after,
+    .woocommerce ul.products li.product .button:focus-visible::after,
+    .woocommerce ul.products li.product .button:active,
+    .akb-qv__actions .button:hover::after,
+    .akb-qv__actions .button:focus-visible::after,
+    .akb-qv__actions .button:active {
+        transform: none !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .woocommerce ul.products {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .woocommerce ul.products {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3);
+    }
+
+    /* Override WC core `woocommerce-smallscreen.css` que aplica
+     * `width: 48%; float: left; margin: 0 0 2.992em;` al li.product
+     * (selector `.woocommerce ul.products[class*=columns-] li.product`).
+     * Sin esto, en mobile las cards quedan a ~91px dentro del grid de
+     * 189px → botón AÑADIR AL CARRITO se quiebra a 3 líneas y se ve roto.
+     * Specificity-matched con el chain de WC core. */
+    .woocommerce ul.products[class*="columns-"] li.product,
+    .woocommerce-page ul.products[class*="columns-"] li.product {
+        width: auto;
+        float: none;
+        clear: none;
+        margin: 0;
+    }
+
+    .woocommerce ul.products[class*="columns-"] li.product:nth-child(2n),
+    .woocommerce-page ul.products[class*="columns-"] li.product:nth-child(2n) {
+        float: none;
+    }
+
+    /* Title mobile: misma estructura flex + clamp en .akb-title-name que desktop
+     * (si este bloque re-clampeara el h2, decapitaría la 3ª línea condicional).
+     * Fuente un toque menor para la columna ~165px; el número queda fuera del
+     * clamp igual que en desktop. min-height 1.2em (era 2.4): el caso dominante
+     * es título de 1 línea ("SERIE + Nº") y reservar 2 dejaba ~26px muertos por
+     * fila; el precio ancla abajo por margin-top:auto, la fila no se desalinea. */
+    .woocommerce ul.products li.product .woocommerce-loop-product__title {
+        font-size: 0.95rem;
+        min-height: 1.2em;
+    }
+    .woocommerce ul.products li.product .akb-title-name {
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        max-height: 3.3em;
+    }
+
+    /* Botón AÑADIR AL CARRITO en mobile */
+    .woocommerce ul.products li.product .button {
+        font-size: var(--text-sm);
+        letter-spacing: 0;
+        padding: var(--space-2);
+        white-space: normal;
+        line-height: 1.1;
+    }
+}
+
+@media (max-width: 480px) {
+    .woocommerce ul.products li.product {
+        padding: 8px;
+    }
+    .woocommerce ul.products li.product .akb-title-name {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        max-height: 2.4em;
+    }
+}
+
+/* Mantener 2 columnas hasta 320px — los covers de manga se leen bien
+ * en ~145px de ancho (320 - paddings - gap / 2). 1 col por fila se
+ * sentía demasiado vacío y forzaba scroll vertical excesivo. */
+@media (max-width: 380px) {
+    .woocommerce ul.products {
+        gap: var(--space-2);
+    }
+}
+
+/* WC core `.onsale` badge (yellow circle "¡Oferta!") siempre hidden — el
+ * badge brand-aligned vive en .akb-badge--sale. Se duplica acá (también
+ * en woocommerce.css) porque loop.css carga en home/archives donde
+ * woocommerce.css NO se enquea (is_woocommerce() returns false en page 210). */
+.onsale {
+    display: none !important;
+}
+
+.akb-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.9rem;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    font-family: var(--font-heading, "Bebas Neue", sans-serif);
+    font-size: clamp(0.8rem, 1vw, 0.9rem); /* piso 0.8: Bebas 400 a 11px quedaba hairline en PREVENTA/AGOTADO */
+    font-weight: 400; /* Bebas solo tiene 400; el 900 era declaración muerta con font-synthesis:none */
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    /* Usamos drop-shadow porque clip-path corta los box-shadow normales */
+    filter: drop-shadow(4px 4px 0 var(--aki-black));
+    pointer-events: none;
+    user-select: none;
+    transform-origin: left top;
+    transition:
+        transform var(--transition-fast),
+        filter var(--transition-fast);
+}
+
+.woocommerce ul.products li.product:is(:hover, :has(:focus-visible)) .akb-badge {
+    transform: translate(-1px, -1px) rotate(-1deg);
+    filter: drop-shadow(5px 5px 0 var(--aki-black));
+}
+
+.woocommerce ul.products li.product:is(:hover, :has(:focus-visible)) .akb-badge + .akb-badge {
+    transform: translate(-1px, -1px) rotate(1deg);
+}
+
+.akb-badge--out_of_stock {
+    background: var(--aki-status-out-bg);
+    color: var(--aki-status-out-fg);
+}
+
+.akb-badge--preorder {
+    /* PREVENTA = chip negro, texto BLANCO, borde rojo de marca. NO crema de IG
+       (paleta de historias, prohibida en web), NO amarillo (= precio), NO rojo
+       sólido (= OFERTA, que es fill rojo) → outline-blanco vs fill-rojo distingue
+       preventa de oferta. Blanco sobre #121212 ≈ 18:1 (AA holgado); el borde
+       #FF0A1D ≈ 4.7:1 (componente UI, ≥3:1 WCAG 1.4.11). */
+    background: var(--aki-black);
+    color: var(--aki-white);
+    border: 1.5px solid var(--aki-status-preorder);
+    clip-path: none;
+    border-radius: 4px;
+    padding: 0.35rem 0.65rem;
+    box-shadow: 2px 2px 0 var(--aki-black);
+}
+
+.akb-badge--sale {
+    background: var(--aki-red-readable);
+    color: var(--aki-white);
+}
+
+/* Sutil y elegante: fondo oscuro con texto blanco y borde leve.
+ * Elimina el verde esmeralda heredado para no pelear visualmente
+ * con las OFERTAS (fill rojo) y PREVENTAS (chip negro, borde rojo). */
+.akb-badge--available {
+    background: var(--aki-surface-2);
+    color: var(--aki-white);
+    border: 1px solid var(--aki-border);
+}
+
+/* NUNCA mostrar "Disponible" en el CATÁLOGO (loop/archive/home): estaba en ~60%
+ * de las cards y convertía el slot top-left en wallpaper, ahogando las señales que
+ * cambian la decisión (OFERTA / PREVENTA / AGOTADO). El cover limpio ya comunica
+ * "en stock". Decisión confirmada con woocommerce-copy-guidelines + marketing-psychology
+ * (Von Restorff / señal-vs-ruido: no se badgea el estado por defecto). En el SINGLE
+ * (.akb-badge-single) "Disponible" SÍ se conserva. display:none también lo saca del
+ * árbol de accesibilidad. NOTA: el LoopEnhancer de HEAD ya no lo renderiza, pero
+ * depende del módulo Stock (rebuild, no deployado) → este CSS lo resuelve sin tocar PHP. */
+.woocommerce ul.products li.product .akb-badge--available,
+.woocommerce-page ul.products li.product .akb-badge--available {
+    display: none !important;
+}
+
+/* ─── Imagen en grayscale cuando el producto está agotado ──────
+ * Selecciona el wrapper .product que contiene un badge out_of_stock
+ * y desatura su <img>. CSS moderno (:has() soporte ≥91% global).
+ */
+.woocommerce ul.products li.product:has(.akb-badge--out_of_stock) img {
+    filter: grayscale(1);
+    opacity: 0.7;
+    transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
+/* El precio vigente de una reserva o preventa utiliza el mismo marcador rojo que el resto
+ * de los precios rebajados. La diferenciación comercial reside en la semántica de PreventaUX
+ * (precio futuro y nota de reserva). La regla base `.price ins` opera tanto en catálogo como en Vista Rápida. */
+
+/* ─── Coexistencia de badges (2 en la misma card) ────────
+ * Cuando un producto tiene 2 badges, el primero (estado: preorder/available)
+ * queda top-left (default del `.akb-badge`) y el segundo (descuento) se
+ * apila DEBAJO del primero, también a la izquierda. El orden DOM lo decide
+ * LoopEnhancer::resolve_variants():
+ *   - preventa + sale     → ['preorder', 'sale'] → amarillo arriba + rojo debajo
+ *   - disponible + sale   → loop solo muestra sale; single conserva ambos
+ * El corazón (.akb-wl-toggle--loop) queda libre en bottom-right.
+ * Out-of-stock siempre suprime los demás vía PHP, no coexiste.
+ *
+ * Top calc: 0.5rem (top inicial) + ~1.6rem (alto del badge: padding 0.6rem
+ * + font 0.75rem line-height 1) + 0.25rem (gap entre badges) = ~2.35rem.
+ */
+.woocommerce ul.products li.product .akb-badge + .akb-badge {
+    left: 0.5rem;
+    right: auto;
+    top: 2.35rem;
+}
+
+@media (max-width: 600px) {
+    .akb-badge {
+        /* 12px de piso: a 0.68rem (10.9px) el dato más decisivo de la card
+           (PREVENTA/AGOTADO/oferta) era el texto MÁS chico de toda la card. */
+        font-size: 0.8rem;
+        padding: 0.3rem 0.6rem;
+    }
+    /* Badge mobile más chico → segundo badge sube pero sigue fuera del borde.
+     * Con el inset base de 0.5rem y el badge a 12px, cae aprox. a 2.05rem. */
+    .woocommerce ul.products li.product .akb-badge + .akb-badge {
+        top: 2.05rem;
+    }
+}
+
+/* ─── Badge en página de producto individual ─────────────────────
+ * Hook woocommerce_single_product_summary prioridad 4 (antes del
+ * título en priority 5). Badges en fila, sin posicionamiento absoluto.
+ * El stock-html nativo de WC se oculta vía filter en LoopEnhancer.php.
+ */
+.akb-badge-single {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: var(--space-3, 0.75rem);
+    align-items: center;
+}
+
+.akb-badge-single .akb-badge {
+    position: static;
+    font-size: clamp(0.75rem, 1vw, 0.88rem);
+    padding: 0.4rem 0.95rem;
+    border: 0;
+    box-shadow: none;
+    filter: drop-shadow(4px 4px 0 var(--aki-black));
+}
+
+/* El reset de arriba (border:0) mataría el contorno del badge de preventa en la
+   PDP; re-afirmarlo a igual especificidad pero después en orden de fuente. */
+.akb-badge-single .akb-badge--preorder {
+    border: 1.5px solid var(--aki-status-preorder);
+    clip-path: none;
+    border-radius: 4px;
+}
+
+/* DISPONIBLE en el single SIN dorado (antes: gradiente + borde rgba(255,215,0)):
+   el amarillo es EXCLUSIVO del dinero, y en el summary competía con el precio a
+   ~200px de distancia. Estado neutro = el tratamiento base de .akb-badge--available
+   (superficie oscura + borde sutil), que aplica solo por cascada. */
+
+@media (prefers-reduced-motion: reduce) {
+    .woocommerce ul.products li.product,
+    .woocommerce ul.products li.product img,
+    .woocommerce ul.products li.product .button,
+    .woocommerce ul.products li.product .woocommerce-loop-product__title,
+    .woocommerce ul.products li.product::before,
+    .woocommerce ul.products li.product::after,
+    .akb-badge {
+        transition: none;
+        animation: none;
+    }
+
+    .woocommerce ul.products li.product:is(:hover, :has(:focus-visible)),
+    .woocommerce ul.products li.product:is(:hover, :has(:focus-visible)) img,
+    .woocommerce ul.products li.product:is(:hover, :has(:focus-visible)) .akb-badge,
+    .woocommerce ul.products li.product:is(:hover, :has(:focus-visible)) .akb-badge + .akb-badge,
+    .woocommerce ul.products li.product .button:active {
+        transform: none;
+    }
+
+    .woocommerce ul.products li.product::before,
+    .woocommerce ul.products li.product::after,
+    .woocommerce ul.products li.product .button::after {
+        display: none;
+    }
+}
+
+/* ─── Hero de marca para singles de editorial/serie ───────────────
+ * Render: inc/woocommerce.php akibara_gp_render_archive_hero (hook
+ * woocommerce_before_main_content). Reemplaza el header vainilla de WC. */
+
+/* El hero reemplaza el header de WC: el título ya está suprimido (filtro
+ * woocommerce_show_page_title) y la descripción removida (remove_action), así
+ * que loop/header.php queda vacío pero con caja de layout → colapsarlo para que
+ * no deje un hueco fantasma sobre la grilla. Scopeado a estos dos archives. */
+.tax-product_brand .woocommerce-products-header,
+.tax-pa_serie .woocommerce-products-header {
+    display: none;
+}
+
+.akb-archive-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5, 24px);
+    margin: 0 0 var(--space-6, 32px);
+    padding: var(--space-5, 24px);
+    background: var(--aki-surface-2);
+    border-left: 5px solid var(--aki-red);
+}
+.akb-archive-hero__logo {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: var(--aki-white);
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+    box-sizing: border-box;
+}
+/* Mismo patrón que `.akb-brand-card__logo img` de brands.css: la imagen llena la
+   caja útil de la placa y `contain` la centra sin deformarla. Es lo que permite
+   que el `width`/`height` del <img> sea sólo reserva de hueco (CLS) — los ocho
+   SVG de editorial van de 1,04:1 a 6,6:1 y ninguna medida declarada podría
+   describirlos a todos. Antes eran `max-*` y el atributo habría mandado. */
+.akb-archive-hero__logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.akb-archive-hero__kicker {
+    margin: 0 0 4px;
+    /* Blanco, no --aki-red-bright: #FF0A1D a 0.75rem bold sobre --aki-surface-2
+       (#1a1a1a) da 4.40:1, bajo el AA 4.5:1 de texto chico. El rojo de marca ya lo
+       carga el border-left del hero (objeto gráfico). Mismo criterio que el eyebrow
+       DISTRITO (woocommerce.css) que se mantiene blanco por la misma razón. */
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-xs, 0.75rem);
+    /* Bebas sin italic ni bold reales: se sintetizaban. Upright 400 limpio. */
+    font-style: normal;
+    font-weight: 400;
+    font-synthesis: none;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.akb-archive-hero__title {
+    margin: 0 0 var(--space-2);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--aki-type-page); /* Escala tipográfica H1 unificada con tienda y ficha */
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+/* Otras ediciones de la obra (.akb-series-editions):
+ * Formato inline compacto para optimizar el viewport vertical en cabeceras de serie.
+ * Incluye área táctil expandida en enlaces vía pseudo-elemento ::after. */
+.akb-series-editions {
+    margin: 0 0 var(--space-3, 12px);
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm, 0.875rem);
+    line-height: 1.45;
+}
+.akb-series-editions__label {
+    margin-right: 0.35em;
+    font-weight: 600;
+}
+.akb-series-editions__list {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.akb-series-editions__list > li {
+    display: inline;
+}
+.akb-series-editions__list > li + li::before {
+    content: " · ";
+    content: " · " / "";
+    color: var(--aki-gray-400);
+}
+.akb-series-editions__link {
+    position: relative;
+    color: var(--aki-white);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--aki-gray-400);
+    text-underline-offset: 3px;
+}
+.akb-series-editions__link::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+}
+.akb-series-editions__link:hover {
+    color: var(--aki-white);
+    text-decoration-color: currentColor;
+}
+.akb-series-editions__link:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset);
+}
+.akb-archive-hero__desc {
+    margin: 0 0 var(--space-2, 8px);
+    max-width: 70ch;
+    color: var(--aki-gray-300);
+    font-size: var(--text-base, 1rem);
+    line-height: 1.5;
+}
+
+/* Intro nativo de género/autor. Vive antes de controles y grilla solo en la
+ * URL canónica limpia; serie reutiliza el mismo comportamiento dentro del hero. */
+.akb-archive-intro {
+    margin: 0 0 var(--space-5, 24px);
+    padding: var(--space-4, 16px) var(--space-5, 24px);
+    color: var(--aki-gray-200);
+    background: var(--aki-surface-2);
+    border-left: 4px solid var(--aki-red);
+}
+.akb-archive-intro__content {
+    max-width: 75ch;
+    font-size: var(--text-base, 1rem);
+    line-height: 1.6;
+}
+.akb-archive-intro__content > :first-child {
+    margin-top: 0;
+}
+.akb-archive-intro__content > :last-child {
+    margin-bottom: 0;
+}
+.akb-archive-intro__toggle,
+.akb-archive-hero__desc-toggle {
+    display: none;
+}
+/* `.akb-archive-hero__count` se retiró del hero (ver inc/woocommerce.php): el
+ * total lo publica la barra de resultados, que sí se actualiza al filtrar. */
+@media (max-width: 600px) {
+    .akb-archive-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: var(--space-4, 16px);
+    }
+    .akb-archive-hero__logo {
+        width: 72px;
+        height: 72px;
+    }
+    /* Las otras ediciones ya son una línea de texto en todos los anchos (ver
+     * `.akb-series-editions` más arriba): aquí no queda nada que apilar. */
+    .akb-series-editions {
+        width: 100%;
+    }
+    .akb-archive-intro {
+        padding: var(--space-4, 16px);
+    }
+    .akb-archive-intro__content.is-collapsed {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+    }
+    /* La serie clampaba a 5 líneas donde el resto de los archives clampa a 3, y
+       eso son 51px medidos en 375px de ancho. Importa porque en móvil la primera
+       PORTADA arrancaba en 771px sobre un viewport útil de ~700 en Safari iOS:
+       en una página de catálogo cuyo producto ES la portada, el primer pantallazo
+       era 100% texto. Se iguala a 3; el botón "Leer más" sigue dando el resto. */
+    .akb-archive-intro__content--series.is-collapsed {
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+    }
+    .akb-archive-intro__toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--touch-target-min, 44px);
+        margin: 0 0 var(--space-2, 8px);
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        color: var(--aki-red-text);
+        background: transparent;
+        border: 1px solid currentColor;
+        border-radius: var(--radius-xs, 4px);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--weight-semibold, 600);
+        line-height: 1.25;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+    }
+    .akb-archive-intro__toggle:hover,
+    .akb-archive-intro__toggle:focus-visible {
+        color: var(--aki-white);
+        background: var(--aki-surface-3);
+    }
+    .akb-archive-intro__toggle:focus-visible {
+        outline: var(--aki-focus-outline);
+        outline-offset: 3px;
+    }
+    .akb-archive-intro__toggle[hidden] {
+        display: none;
+    }
+}
+
+/* Resto de la descripción del término (párrafos que el hero no muestra).
+ * El hero imprime solo el primer párrafo; esto va al pie del archive. */
+.akb-archive-desc {
+    max-width: 70ch;
+    margin: var(--space-6, 32px) auto var(--space-4, 16px);
+    padding: 0 var(--space-4, 16px);
+    color: var(--aki-gray-300);
+    font-size: var(--text-base, 1rem);
+    line-height: 1.7;
+}
+
+/* Componentes emitidos por akibara-business y presentados por el tema. estimated-delivery.css aporta la estructura y se encola antes de esta hoja; la presentación gana por orden de carga sin elevar la especificidad. */
+
+/* ─── Preventa: la dirección del precio ─────────────────────────────────
+ * "Al llegar el stock sube a $14.000". Es el único motivo racional para pagar
+ * hoy algo que llega en septiembre, y hasta ahora sólo lo oían los lectores de
+ * pantalla (vivía en un `screen-reader-text` con los importes en aria-hidden).
+ *
+ * NI ROJO NI AMARILLO, a propósito. El amarillo es el color de la preventa en
+ * este theme (`.akb-price--preventa ins`) y el rojo es el de comprar: usar
+ * cualquiera de los dos convertiría esta nota en un TERCER importe compitiendo
+ * con los dos que ya están ahí. Es una nota al margen y se ve como tal. */
+.akb-preventa-alza {
+    color: var(--aki-gray-400);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+}
+
+/* En tarjetas de catálogo (`ul.products`) la nota de alza se oculta para no
+ * repetir el importe 3 veces junto al tachado y la píldora «Llegada: …»;
+ * sigue visible en la ficha individual (PDP) y en la vista rápida. */
+.woocommerce ul.products li.product .price .akb-preventa-alza,
+ul.products li.product .price .akb-preventa-alza {
+    display: none;
+}
+
+/*
+ * Notificación contextual de rechazo o límite en tarjeta (.akb-tarjeta-motivo):
+ * Posicionado sobre la tarjeta sin alterar el flujo de layout para prevenir CLS en la rejilla.
+ * Se sitúa sobre el botón o por encima de él según si se muestra la acción de "Ver carrito".
+ */
+li.product > .akb-tarjeta-motivo {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    margin: 0;
+    padding: var(--space-3) var(--space-3) var(--space-1);
+    background: var(--aki-surface);
+    border-top: 2px solid var(--aki-red);
+    color: var(--aki-gray-100);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    text-align: left;
+}
+
+li.product > .akb-tarjeta-motivo[hidden],
+.akb-qv__actions > .akb-tarjeta-motivo[hidden] {
+    display: none;
+}
+
+li.product > .akb-tarjeta-motivo a {
+    display: flex;
+    align-items: center;
+    min-height: var(--touch-target-min, 44px);
+    color: var(--aki-red-bright);
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+/*
+ * Notificación contextual de rechazo dentro del modal de vista rápida (.akb-qv__actions):
+ * En pantallas amplias (≥ 769 px) se posiciona adyacente a la acción sin alterar la altura modal;
+ * en móviles se ubica en el flujo natural debajo de la acción para preservar accesibilidad.
+ */
+.akb-qv__actions {
+    position: relative;
+}
+
+.akb-qv__actions > .akb-tarjeta-motivo {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    margin: var(--space-2) 0;
+    padding: var(--space-1) var(--space-2);
+    background: var(--aki-surface-2);
+    border-left: 2px solid var(--aki-red);
+    color: var(--aki-gray-100);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+}
+
+@media (min-width: 769px) {
+    .akb-qv__actions > .akb-tarjeta-motivo {
+        position: absolute;
+        top: 0;
+        right: calc(100% + 22px);
+        z-index: 1;
+        width: 196px;
+        min-height: 100%;
+        margin: 0;
+    }
+}
+
+/*
+ * Venta cruzada en estados vacíos (.akb-empty__cross-sell):
+ * Estiliza el bloque de recomendaciones emitido en 404, carrito vacío y transiciones PJAX
+ * de búsqueda sin resultados. Se consolida en loop.css para garantizar estilos en swaps dinámicos.
+ */
+.akb-empty__cross-sell {
+    margin-top: var(--space-12);
+    padding-top: var(--space-12);
+    border-top: 1px solid var(--aki-border);
+    text-align: left;
+}
+
+.akb-empty__cross-sell-heading {
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--aki-white);
+    margin: 0 0 var(--space-6);
+    padding-left: var(--space-3);
+    border-left: 4px solid var(--aki-red);
+    line-height: 1;
+}
+
+/* P2: densidad de catálogo en tablet; 2 columnas se conservan en teléfonos. */
+@media (min-width: 700px) and (max-width: 1024px) {
+    body.archive.woocommerce ul.products {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}

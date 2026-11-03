@@ -1,0 +1,126 @@
+{
+  "titulo": "akibara-business · el núcleo: cómo arranca y cómo se enciende cada módulo",
+  "capitulo": "02-business-nucleo",
+  "diagramas": [
+    "02-business-nucleo-piezas-arranque.mmd",
+    "02-business-nucleo-piezas-nucleo.mmd",
+    "02-business-nucleo-dependencias-modulos.mmd",
+    "02-business-nucleo-caso-despliegue.mmd",
+    "02-business-nucleo-caso-activacion.mmd",
+    "02-business-nucleo-caso-desinstalacion.mmd",
+    "02-business-nucleo-caso-limite-formularios.mmd",
+    "02-business-nucleo-estados-upgrade.mmd",
+    "02-business-nucleo-cron.mmd"
+  ],
+  "componentes": 15,
+  "casos": 8,
+  "componentes_nota": "Quince piezas: siete en los dos ficheros de la raíz (1, 2, 3, 4, 11, 12, 13) y ocho en src/ (5, 6, 7, 8, 9, 10, 14, 15). GuestOrderLinking ya NO cuenta como pieza del núcleo: es uno de los 74 módulos (su capítulo es el 05) y aquí vive en una sección aparte, «Un hallazgo que no es del núcleo», porque dos comentarios del código afirman que está inerte y no lo está.",
+  "estado_de_verificacion": {
+    "cobertura_estimada": 88,
+    "medido_en_vivo": false,
+    "nota": "Todo el capítulo está comprobado contra el snapshot de código; nada contra producción en vivo. Los ocho hallazgos (1 rojo y 7 ámbar) llevan la etiqueta «leído, sin medir» y su comprobación para el espejo Docker. Regla del dueño: hasta que no está medido en producción, no está aprobado.",
+    "sin_cerrar_por_lectura": [
+      "El comportamiento real de wp_cache_incr() en el drop-in de LiteSpeed, del que depende la rama viva de RateLimit::bump().",
+      "Si el parámetro ?_gl= llega de verdad a las landings: el agujero de CatalogQueryGrammar es cierto por lectura, su frecuencia sólo se ve en el qlog de producción."
+    ],
+    "valor_no_medido_clave": "akibara_business_search_feed_contract_version en producción. El docblock de Plugin.php:187-194 (escrito en 1.99.15) afirma que producción nunca adoptó el 2; el plugin publicado hoy es 1.116.4. Se lee con: ssh akibara \"wp option get akibara_business_search_feed_contract_version\"."
+  },
+  "ficheros_del_zip_no_cubiertos_aqui": {
+    "src/Services/": "10 ficheros: AkibaraEmail, CheckoutDataService, CheckoutTrustSignals, EmailButton, FreeShippingThreshold, MailerBoot, NavigationLinks, OneClickPage, SeriesCover, VolumeTitle. Sólo CheckoutDataService es del núcleo (contrato de la pieza 14); el resto se documenta en los capítulos 05 y 07.",
+    "src/Integrations/": "9 ficheros: el pegamento con Blue Express (OrderPreventaIntegrations, Bluex/OrderPreventaAdapter y los 7 de Bluex/Pudo/, entre ellos PudoCheckoutService). Capítulo 18.",
+    "templates/": "14 ficheros: templates/myaccount/ (6) reemplaza pantallas de WooCommerce y templates/emails/ (8, con su carpeta plain/) son las plantillas de correo. Capítulos 05 y 07.",
+    "assets/": "26 hojas de estilo y 17 scripts. Cobertura de cache-bust: 100 % de los assets propios; las tres llamadas sin versión son dos re-encolados por handle (Wishlist.php:118-119) y un handle de WordPress (MyAccountUx.php:115).",
+    "README.md": "NO EXISTE: el plugin no tiene ningún .md en su raíz. Este capítulo lo sustituye mientras tanto."
+  },
+  "crons": [
+    "akb_order_preventa_t7_reminder_scan",
+    "akb_order_preventa_recompute_ready",
+    "akb_bis_cleanup_terminal",
+    "akb_preventa_vencida_sweep",
+    "akb_upsells_autofill_cron",
+    "akibara_business_llms_manifest_refresh",
+    "akibara_business_social_image_derivatives",
+    "akibara_catalog_order_daily",
+    "akibara_business_social_image_for_slug",
+    "akibara_business_cleanup_collection_owner_fence",
+    "akb_bis_notify_product",
+    "akibara_catalog_order_recompute"
+  ],
+  "terceros": [
+    "WordPress 6.8 (hooks plugins_loaded turno 20 e init turno 999, wp_options, wp_prime_option_caches, flush_rewrite_rules, WP-Cron, dbDelta, wp_load_alloptions)",
+    "WooCommerce ≥ 10.0 (dependencia dura; FeaturesUtil::declare_compatibility de custom_order_tables y cart_checkout_blocks; filtros woocommerce_shortcode_products_query, woocommerce_catalog_orderby y woocommerce_get_catalog_ordering_args; OrderUtil::custom_orders_table_usage_is_enabled; woocommerce_customer_email_verification_should_show_prompt y woocommerce_before_account_orders; wc_get_logger)",
+    "Action Scheduler (acción recurrente akibara_catalog_order_daily, grupo akb-catalog-order; ni la desactivación ni la desinstalación la retiran)",
+    "Rank Math (SchemaGraph sobre rank_math/json_ld y RobotsMeta sobre la postmeta rank_math_robots)",
+    "Cloudflare (cabecera CF-Connecting-IP, aceptada sólo si el peer TCP está en los rangos publicados; filtro akibara_trusted_proxy_ranges sembrado en prioridad 5)",
+    "LiteSpeed Cache (su object-cache.php deja la caché de objetos persistente: cambia la rama de RateLimit::bump() y hace que los DELETE directos sin purga puedan seguir sirviéndose)",
+    "Hostinger (empuja wp-cron.php cada 5 minutos; DISABLE_WP_CRON está puesto)",
+    "MariaDB/MySQL (el CAS del upgrade depende de rows-affected en UPDATE y del índice UNIQUE de option_name para el INSERT IGNORE)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "akibara-search",
+      "por": "filtro akb_search_effective_price (prioridad 10, 2 argumentos) con SearchPriceProvider — sin filtro puente a propósito (Plugin.php:1221-1223)"
+    },
+    {
+      "a": "akibara-search",
+      "por": "RebuildJob::schedule(true) al cruzar la versión del contrato de alimentación (Plugin.php:762-771)"
+    },
+    {
+      "a": "akibara-search",
+      "por": "option akibara_business_search_feed_contract_version = '2', exigida literalmente por EditorialDiscountPublication::REQUIRED_FEED_CONTRACT; el reconciliador la mueve en las DOS direcciones"
+    },
+    {
+      "a": "akibara-search",
+      "por": "filtro akibara_trusted_proxy_ranges (prioridad 5): los rangos de Cloudflare tienen un solo dueño (Plugin.php:811)"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "Plugin::checkout_data() y Plugin::pudo_checkout(); ese plugin arranca en plugins_loaded turno 30"
+    },
+    {
+      "a": "Capítulo · disponibilidad y preventa",
+      "por": "EstimatedDelivery::calculator() y renderer(), prestados en register_modules() a order_preventa, series_bundles, series_follow, native_cart y CheckoutDataService"
+    },
+    {
+      "a": "Capítulo · precios, panel, textos y home",
+      "por": "TaxonomyDiscount::settings() y resolver(), más AdoptedSnapshot::FEED_CONTRACT = '2' y la option akb_discount_max_pct de DiscountCeiling"
+    },
+    {
+      "a": "Capítulo · catálogo y series",
+      "por": "series_catalog_eligibility como colaborador sin register() y la misma instancia de series_facts compartida con series_schema"
+    },
+    {
+      "a": "tema akibara-gp",
+      "por": "ThemeAssetVersion delega en akibara_gp_asset_ver(); y el transient akb_gp_series_hub_url del tema cae en el barrido de uninstall.php"
+    },
+    {
+      "a": "Capítulo · mu-plugins (14 y 15)",
+      "por": "uninstall.php borra akb_bluex_watch_baseline_seen, akb_bluex_watch_resolved_notified y el transient akibara_debug_log_rotation_checked, que no son suyos"
+    },
+    {
+      "a": "Capítulo · todo lo programado (16)",
+      "por": "los 8 hooks recurrentes y los 5 eventos únicos que la desactivación y la desinstalación retiran (o dejan vivos)"
+    },
+    {
+      "a": "Capítulo · catálogo de datos (17)",
+      "por": "las 3 options del motor de upgrade, las 3 options de versión de esquema, las 3 tablas propias y la frontera de nombres akb_/akibara_"
+    },
+    {
+      "a": "Capítulo · fronteras con terceros (18)",
+      "por": "la declaración HPOS + cart_checkout_blocks, el gate de WooCommerce ≥ 10.0, SchemaGraph/RobotsMeta con Rank Math y CF-Connecting-IP con Cloudflare"
+    },
+    {
+      "a": "Capítulo · cómo se hablan los plugins (19)",
+      "por": "hook público akibara_business_booted, hook akibara_business_upgraded y los contratos CheckoutDataProvider y EtaProvider"
+    },
+    {
+      "a": "Capítulo · SEO y correo",
+      "por": "CatalogQueryGrammar alimenta FilteredUrlsPolicy y SeriesRelatedGuide: cualquier parámetro con guion bajo (_gl, _ga, _gac) convierte una landing en variante filtrada y la deja noindex"
+    },
+    {
+      "a": "Capítulo · lo que ve el cliente en su cuenta (05)",
+      "por": "GuestOrderLinking apaga el aviso nativo de verificación de correo de WooCommerce y pinta su propia línea; se documenta aquí sólo porque dos comentarios (Plugin.php:944 y GuestOrderLinking.php:59) afirman que está inerte"
+    }
+  ],
+  "crons_nota": "Los ocho primeros son los recurrentes (siete de WP-Cron y akibara_catalog_order_daily de Action Scheduler); los dos siguientes son eventos únicos de WP-Cron. akb_bis_notify_product (StockWatcher.php:41, :110) y akibara_catalog_order_recompute (CatalogOrder.php:38, :259) son acciones SUELTAS de Action Scheduler, igual que las de SeriesFollow (PublishListener.php:150, DigestRunner.php:722, :753, :809): nadie las retira nunca porque no viven en wp_options. El inventario completo del sitio está en el capítulo 16."
+}

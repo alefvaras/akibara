@@ -1,0 +1,160 @@
+{
+  "titulo": "akibara-business · carrito, checkout, retiro, cuenta del cliente y seguridad",
+  "capitulo": "05-business-carrito-checkout-y-cuenta",
+  "diagramas": [
+    "diagramas/05-business-carrito-checkout-y-cuenta-piezas.mmd",
+    "diagramas/05-business-carrito-checkout-y-cuenta-caso-cajon-carrito.mmd",
+    "diagramas/05-business-carrito-checkout-y-cuenta-caso-pudo.mmd",
+    "diagramas/05-business-carrito-checkout-y-cuenta-caso-muro-favoritos.mmd",
+    "diagramas/05-business-carrito-checkout-y-cuenta-cron.mmd",
+    "diagramas/05-business-carrito-checkout-y-cuenta-estados-pedido.mmd",
+    "diagramas/05-business-carrito-checkout-y-cuenta-estados-pudo.mmd"
+  ],
+  "fichas": 19,
+  "familias": 6,
+  "componentes": 44,
+  "componentes_nota": "44 clases repartidas en 19 fichas; una de ellas (Contracts\\CheckoutDataProvider) es un contrato, no una clase. Wishlist son 8 clases, Bluex\\Pudo 7 ficheros, AccountCollection 5.",
+  "casos": 9,
+  "hallazgos": {
+    "hoy_no_cuadra": 19,
+    "decision_del_dueno": 1,
+    "con_receta_de_medicion": "todos",
+    "deuda_documentada": 3,
+    "nota_operativa": 1,
+    "recuadros_totales": 21
+  },
+  "crons": [
+    "akb_upsells_autofill_cron"
+  ],
+  "cron_nota": "Sin interruptor en ninguna pantalla; el único apagado real es desactivar el plugin (akibara-business.php:251). Para ver la hora: wp cron event list --fields=hook,next_run_gmt,recurrence (en UTC).",
+  "pantallas_del_dueno": [
+    {
+      "etiqueta": "Carrito",
+      "url": "wp-admin/admin.php?page=akibara-panel&tab=native_cart"
+    },
+    {
+      "etiqueta": "Envío gratis",
+      "url": "wp-admin/admin.php?page=akibara-panel&tab=free_shipping_progress"
+    },
+    {
+      "etiqueta": "Recomendaciones",
+      "url": "wp-admin/admin.php?page=akibara-panel&tab=upsells_autofill"
+    },
+    {
+      "etiqueta": "Autocompletar dirección",
+      "url": "wp-admin/admin.php?page=akibara-panel&tab=address"
+    },
+    {
+      "etiqueta": "Textos",
+      "url": "wp-admin/admin.php?page=akibara-panel&tab=copys"
+    }
+  ],
+  "canales_de_registro": [
+    "akibara-coleccion (AccountCollection\\Renderer)",
+    "akibara-consentimiento (MarketingConsent)"
+  ],
+  "correos_que_llevan_la_caja_de_retiro": [
+    "customer_processing_order",
+    "customer_completed_order",
+    "customer_on_hold_order",
+    "customer_invoice",
+    "customer_note",
+    "customer_failed_order",
+    "customer_cancelled_order",
+    "customer_refunded_order",
+    "customer_partially_refunded_order"
+  ],
+  "terceros": [
+    "WooCommerce (incluida la Store API y el checkout de bloques; los hooks clásicos del checkout NO se emiten)",
+    "Mercado Pago (plugin woocommerce-mercadopago): la pasarela que cobra. Este capítulo no le habla; dos módulos del capítulo 06 defienden sus scripts de LiteSpeed",
+    "Blue Express (plugin bluex-for-woocommerce: geolocalización de puntos PUDO y cotización)",
+    "Google (OAuth vía login-with-google, y Maps Places para autocompletar dirección)",
+    "Brevo (sólo el nombre de su campo de checkout; cero llamadas a su API)",
+    "LiteSpeed Cache (lista blanca de UCSS, purga por ficha, no-cache de la colección)",
+    "Cloudflare (indirecto: cabeceras no-store en las respuestas REST de Blue Express)",
+    "Rank Math (título del endpoint de colección)",
+    "plugin de WhatsApp / joinchat (el número del retiro)",
+    "Hostinger (empuja wp-cron cada 5 minutos; DISABLE_WP_CRON activo)"
+  ],
+  "no_es_tercero": "spar_get_user_points() la publica hoy el plugin PROPIO akibara-rewards como puente de compatibilidad (akibara-rewards.php:204-221). Simple Points and Rewards ya no está instalado.",
+  "aristas_salientes": [
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "Services\\CheckoutDataService vía $business->checkout_data(), contrato Contracts\\CheckoutDataProvider (datos, nunca HTML). Si el contrato no se cumple, el plugin de bloques hace return silencioso en src/Plugin.php:29-42"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "Bluex\\Pudo\\PudoCheckoutService vía $business->pudo_checkout()"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "options akibara_blocks_shipping_hint_text y akibara_blocks_collection_notice_text (se editan en Akibara → Carrito, las pinta el otro plugin)"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "meta de pedido _wc_other/akibara/rut, que RutValidation sólo lee"
+    },
+    {
+      "a": "tema akibara-gp",
+      "por": "Services\\NavigationLinks (URLs canónicas) y endpoint /?wc-ajax=akb_get_cart&drain_notices=1 desde pdp-ajax-atc.js"
+    },
+    {
+      "a": "tema akibara-gp",
+      "por": "template-parts/empty/cross-sell.php, que pinta el estado vacío de favoritos"
+    },
+    {
+      "a": "akibara-search",
+      "por": "evento JS akb:pjax, que hace reaparecer los botones de vista rápida tras filtrar"
+    },
+    {
+      "a": "akibara-rewards",
+      "por": "function_exists('spar_get_user_points') en templates/myaccount/dashboard.php:73, y el endpoint /mi-cuenta/rewards/ que registra AccountRewards.php:73"
+    },
+    {
+      "a": "capítulo 06 (panel, textos y portada)",
+      "por": "ShippingCopy ([akb_envio_gratis] sobre la misma option akibara_fsp_carrier_threshold), FrontendCompatibility y ScriptDiagnostics\\CrossOriginScripts (scripts de Mercado Pago)"
+    },
+    {
+      "a": "capítulo 07 (SEO, IA, blog y correo)",
+      "por": "Services\\MailerBoot, AkibaraEmail y EmailButton: el transporte de todos los correos que prometen los casos de uso"
+    },
+    {
+      "a": "capítulo 04 (preventa, fechas y avisos)",
+      "por": "OrderPreventa\\MetaKeys, PreventaItems, SummaryRecalculator, EstimatedDelivery\\BannerRenderer; y SeriesFollow\\GlobalToggle (POST akb_sf_global + _akb_sf_nonce) y CollectionToggle (POST /wp-json/akibara/v1/series-follow con X-WP-Nonce), las dos únicas vías de escritura de Mi colección"
+    },
+    {
+      "a": "capítulo 03 (packs de serie)",
+      "por": "CartSeriesCollector, EligibilityGuard, CustomerCollection y BuilderWidget"
+    },
+    {
+      "a": "capítulo de stock y disponibilidad",
+      "por": "Stock\\StockStatus y Stock\\Availability"
+    },
+    {
+      "a": "capítulo del panel del dueño (AdminPanel / CopyManager)",
+      "por": "filtro akibara_panel_save_errors y los copys akb_copy_wall_* y akb_copy_promise_installments"
+    },
+    {
+      "a": "Blue Express (tercero)",
+      "por": "clases BlueX_API_Client y WC_Correios_Settings, más rest_endpoints / rest_post_dispatch / wp_ajax_* desde Security"
+    },
+    {
+      "a": "login-with-google (tercero)",
+      "por": "filtro rtcamp.google_default_redirect"
+    },
+    {
+      "a": "WooCommerce",
+      "por": "woocommerce_store_api_checkout_order_processed, woocommerce_set_additional_field_value, woocommerce_locate_template y woocommerce_customer_email_verification_should_show_prompt"
+    }
+  ],
+  "datos_que_deja": {
+    "options": 45,
+    "metas": 9,
+    "tablas_propias": [
+      "wp_akb_wishlist"
+    ],
+    "transients": 4,
+    "claves_de_sesion": 5,
+    "al_desinstalar": "uninstall.php borra options, _akb_% de termmeta y _akb_sf_% de usermeta. NO hay ningún DROP TABLE: wp_akb_wishlist sobrevive con el user_id de cada cliente. Anotado como deuda: borrar datos de clientes lo autoriza el dueño."
+  }
+}

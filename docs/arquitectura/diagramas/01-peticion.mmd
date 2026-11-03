@@ -1,0 +1,30 @@
+%% Qué pasa entre que el cliente pide una página y la ve
+sequenceDiagram
+  autonumber
+  participant N as Navegador
+  participant CF as Cloudflare
+  participant LS as LiteSpeed
+  participant WP as WordPress
+  participant T as tema akibara-gp
+  participant P as plugins propios
+  participant DB as Base de datos
+  N->>CF: GET /serie/one-piece/
+  alt el borde ya tiene la página
+    CF-->>N: HTML cacheado (milisegundos)
+  else no la tiene
+    CF->>LS: pide al servidor
+    alt LiteSpeed la tiene guardada
+      LS-->>CF: HTML cacheado
+    else hay que armarla
+      LS->>WP: arranca PHP
+      WP->>P: mu-plugins (guardas), luego plugins, luego el tema
+      P->>DB: productos, series, precios, índice del buscador
+      DB-->>P: filas
+      P-->>T: datos ya resueltos (URLs, precios, disponibilidad)
+      T-->>WP: HTML
+      WP-->>LS: HTML + cabeceras de caché
+      LS-->>CF: HTML
+    end
+    CF-->>N: HTML
+  end
+  Note over CF,LS: Carrito, checkout y Mi cuenta NUNCA se cachean:<br/>llevan datos de una persona.

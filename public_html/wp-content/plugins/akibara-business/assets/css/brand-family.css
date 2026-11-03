@@ -1,0 +1,281 @@
+/**
+ * Landing de familia de editorial (/panini/, /ivrea/): tarjetas por edición.
+ *
+ * Reutiliza el lenguaje que ya existe: la placa blanca inclinada del logo
+ * (brands.css), el eyebrow en Bebas (akb-archive-hero__kicker), el botón con
+ * clip-path del tema (.wp-block-button__link). Un lector entiende al primer
+ * vistazo cuál es cuál, en qué se diferencian y a dónde ir.
+ */
+
+.akb-family {
+	display: grid;
+	gap: var(--space-8, 32px);
+	margin: var(--space-5, 24px) 0 0;
+	max-width: 100%;
+	overflow-x: hidden;
+}
+
+.page:has(.akb-family) .entry-header .entry-title,
+.page-id-27449 .entry-header .entry-title {
+	font-family: var(--font-heading, 'Bebas Neue', Impact, sans-serif);
+	font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+	line-height: 1.1;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--aki-white, #fff);
+}
+
+.entry-content .akb-family__answer {
+	margin: 0 0 var(--space-5, 24px);
+	padding: var(--space-4, 16px) var(--space-5, 24px);
+	max-width: 75ch;
+	color: var(--aki-gray-200, #e0e0e0);
+	background: var(--aki-surface-2, #1a1a1a);
+	border-left: 4px solid var(--aki-red, #e60012);
+	font-size: var(--text-lg, 1.125rem);
+	line-height: 1.5;
+}
+
+.entry-content .akb-family__answer strong {
+	color: var(--aki-white, #fff);
+}
+
+.akb-family__grid {
+	display: grid;
+	/* min() evita el scroll horizontal en móvil (memoria clases-de-diseno-sin-css). */
+	grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+	gap: var(--space-5, 24px);
+}
+
+.akb-edition-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4, 16px);
+	padding: var(--space-5, 24px);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-border, #2a2a2e);
+	border-top: 5px solid var(--aki-red, #e60012);
+}
+
+.akb-edition-card--espana {
+	border-top-color: var(--aki-info, #3b82f6);
+}
+
+.akb-edition-card__head {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: var(--space-4, 16px);
+	align-items: center;
+}
+
+.akb-edition-card__logo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 128px;
+	height: 80px;
+	padding: 8px 12px;
+	box-sizing: border-box;
+	background: var(--aki-white, #fff);
+	border: 1px solid rgba(0, 0, 0, 0.16);
+	box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+	transform: skew(-5deg);
+}
+
+.akb-edition-card__logo img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.akb-edition-card__kicker {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2, 8px);
+	margin: 0 0 2px;
+	color: var(--aki-gray-200, #e0e0e0);
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-size: var(--text-xs, 0.75rem);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.akb-edition-card__badge {
+	padding: 1px 6px;
+	border: 1px solid currentColor;
+}
+
+.entry-content .akb-edition-card__title {
+	margin: 0;
+	color: var(--aki-white, #fff);
+	font-size: var(--text-2xl, 1.5rem);
+	line-height: 1.05;
+}
+
+.akb-edition-card__count {
+	margin: var(--space-1, 4px) 0 0;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: var(--text-sm, 0.875rem);
+	font-weight: var(--weight-semibold, 600);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.akb-edition-card__facts {
+	display: grid;
+	gap: 0;
+	margin: 0;
+}
+
+.akb-edition-card__facts > div {
+	display: grid;
+	grid-template-columns: 8.5rem 1fr;
+	gap: var(--space-3, 12px);
+	padding: var(--space-2, 8px) 0;
+	border-top: 1px solid var(--aki-border, #2a2a2e);
+	font-size: var(--text-sm, 0.875rem);
+	line-height: 1.45;
+}
+
+.akb-edition-card__facts dt {
+	margin: 0;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-family: var(--font-heading);
+	font-weight: 400;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.akb-edition-card__facts dd {
+	margin: 0;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+
+.akb-edition-card__covers {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(72px, 100%), 1fr));
+	gap: var(--space-2, 8px);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.akb-edition-card__covers a {
+	display: block;
+	aspect-ratio: 2 / 3;
+	background: var(--aki-surface-3, #222);
+	border: 1px solid var(--aki-border, #2a2a2e);
+}
+
+.akb-edition-card__covers img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.akb-edition-card__cover--text {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-2, 8px);
+	color: var(--aki-gray-200, #e0e0e0);
+	font-size: var(--text-xs, 0.75rem);
+	line-height: 1.2;
+	text-align: center;
+	text-decoration: none;
+}
+
+.akb-edition-card__covers a:focus-visible {
+	outline: var(--aki-focus-outline, 3px solid #ffd401);
+	outline-offset: 2px;
+}
+
+/* Especificidad (0,3,1): el color del botón de GeneratePress llega en línea
+ * como `.entry-content a.wp-block-button__link` y pintaba el CTA gris. */
+.entry-content .akb-edition-card a.akb-edition-card__cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2, 8px);
+	min-height: var(--touch-target-min, 44px);
+	margin-top: auto;
+	box-sizing: border-box;
+	/* La acción principal de la tarjeta va en el rojo de la marca (el botón
+	 * de bloque del tema pinta gris): blanco sobre #E60012 = 4,8:1 (AA). */
+	color: var(--aki-white, #fff);
+	background: var(--aki-red, #e60012);
+}
+
+@media (hover: hover) {
+	.entry-content .akb-edition-card a.akb-edition-card__cta:hover {
+		color: var(--aki-white, #fff);
+		background: var(--aki-red-hover, #c0000f);
+	}
+}
+
+.akb-family__compare h2 {
+	font-size: var(--text-2xl, 1.5rem);
+}
+
+.akb-family__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--text-sm, 0.875rem);
+}
+
+.akb-family__table th,
+.akb-family__table td {
+	padding: var(--space-3, 12px);
+	border-top: 1px solid var(--aki-border, #2a2a2e);
+	color: var(--aki-gray-200, #e0e0e0);
+	text-align: left;
+	vertical-align: top;
+}
+
+.akb-family__table th {
+	color: var(--aki-white, #fff);
+	font-family: var(--font-heading);
+	font-weight: 400;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+@media (max-width: 600px) {
+	.akb-edition-card {
+		padding: var(--space-4, 16px);
+	}
+
+	.akb-edition-card__head {
+		grid-template-columns: 1fr;
+	}
+
+	.akb-edition-card__logo {
+		width: 112px;
+		height: 70px;
+	}
+
+	.akb-edition-card__facts > div {
+		grid-template-columns: 1fr;
+		gap: 2px;
+	}
+
+	.entry-content .akb-edition-card a.akb-edition-card__cta {
+		width: 100%;
+	}
+
+	/* En móvil los hechos ya están en cada tarjeta; la tabla los duplicaría.
+	 * El título se queda: es el ancla del párrafo de cierre. */
+	.akb-family__table {
+		display: none;
+	}
+}
+
+@media (hover: hover) {
+	.akb-edition-card__covers a:hover {
+		border-color: var(--aki-red, #e60012);
+	}
+}

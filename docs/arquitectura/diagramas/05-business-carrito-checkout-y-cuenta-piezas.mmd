@@ -1,0 +1,142 @@
+%% Piezas del capítulo 05 — carrito, checkout, retiro, cuenta del cliente y seguridad de akibara-business.
+%% Qué muestra: las diecinueve fichas del capítulo (44 clases) agrupadas en las SEIS familias del texto, a quién le hablan fuera del plugin, qué terceros hay al otro lado —incluida la pasarela que cobra— y qué datos quedan escritos.
+%% Convención de aristas: flecha sólida = escribe o llama; flecha punteada = sólo lee, o relación indirecta. Las cajas con borde discontinuo son piezas de OTRO capítulo, dibujadas sólo para que se vea de dónde vienen los datos.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef fuera fill:#fafafa,stroke:#b0b0b0,stroke-width:1px,stroke-dasharray:4 3,color:#6b6b6b
+
+    CLIENTE["Cliente<br/>agrega al carrito, paga y sigue su pedido"]:::persona
+    DUENO["Dueño<br/>edita textos y umbrales en wp-admin → Akibara"]:::persona
+
+    subgraph CARRITO["El carrito (fuera de /carrito/ y /checkout/)"]
+        NC["NativeCart<br/>el cajón lateral; HTML vacío + AJAX"]:::propio
+        NCS["NativeCart\\Settings<br/>25 campos y sus validadores"]:::propio
+        SCR["SmartCartRecommender<br/>el siguiente tomo de tus series"]:::propio
+        FSP["FreeShippingProgress<br/>pinta cuánto falta para envío gratis"]:::propio
+        FST["FreeShippingThreshold<br/>calcula si hay camino real al envío gratis"]:::propio
+    end
+
+    subgraph CATALOGO["Desde el listado"]
+        QV["QuickView<br/>la sinopsis sin salir de la grilla"]:::propio
+        WL["Wishlist (8 clases)<br/>el corazón y /mi-cuenta/favoritos/"]:::propio
+        UPS["UpsellsAutofill<br/>rellena los recomendados de la ficha"]:::propio
+    end
+
+    subgraph CHILE["Los retoques chilenos del checkout"]
+        TAX["CheckoutTaxLabels<br/>la palabra IVA en las cuatro superficies"]:::propio
+        PHONE["PhoneValidation<br/>normaliza a +569XXXXXXXX tras crear el pedido"]:::propio
+        RUT["RutValidation<br/>compatibilidad con el RUT antiguo"]:::propio
+        ADDR["AddressAutocomplete<br/>sugerencias de dirección, apagado por defecto"]:::propio
+    end
+
+    subgraph RETIRO["Las dos formas de retirar"]
+        PICK["PickupCoordination<br/>retiro en mano en Metro San Miguel"]:::propio
+        PUDO["Bluex\\Pudo (7 ficheros)<br/>retiro en Punto Blue Express, con candado"]:::propio
+    end
+
+    subgraph CUENTA["Después de comprar: /mi-cuenta/"]
+        TL["OrderTimeline<br/>3 pasos + 1 si hay espera vigente"]:::propio
+        COL["AccountCollection (5 clases)<br/>tus tomos por edición y cuál falta"]:::propio
+        UX["MyAccountUx<br/>pestañas, 4 plantillas, sin Volver a comprar"]:::propio
+        GOL["GuestOrderLinking<br/>reclamar compras hechas sin cuenta"]:::propio
+        WALL["GoogleLoginButton + AccessWall<br/>el muro de acceso y su destino de vuelta"]:::propio
+    end
+
+    subgraph TRANSVERSAL["Transversales"]
+        SEC["Security<br/>cierra la enumeración y tapa a Blue Express"]:::propio
+        MKT["MarketingConsent<br/>la prueba de qué aceptó el cliente"]:::propio
+        CDS["CheckoutDataService<br/>el único puente con bloques: datos, nunca HTML"]:::propio
+        NAV["NavigationLinks<br/>6 URLs canónicas y la regla de destino seguro"]:::propio
+        TRUST["CheckoutTrustSignals<br/>los tres sellos, desde una sola option"]:::propio
+        OCP["OneClickPage<br/>la cáscara de las páginas de baja"]:::propio
+    end
+
+    BLOQUES["akibara-cart-checkout-blocks<br/>pinta /carrito/ y /checkout/"]:::propio
+    TEMA["tema akibara-gp<br/>pinta las tarjetas y llama al carrito por AJAX"]:::propio
+
+    WOO["WooCommerce<br/>carrito, pedidos, correos, Mi cuenta, Store API"]:::tercero
+    BLUEX["Blue Express<br/>geolocaliza el punto y cotiza el envío"]:::tercero
+    GOOGLE["Google (OAuth y Maps Places)"]:::tercero
+    BREVO["Brevo<br/>sólo el NOMBRE de su campo de checkout"]:::tercero
+    LS["LiteSpeed Cache"]:::tercero
+    WSP["plugin de WhatsApp (joinchat)"]:::tercero
+    MP["Mercado Pago<br/>LA PASARELA: es quien cobra"]:::tercero
+
+    TBL["wp_akb_wishlist<br/>favoritos, clave primaria (user_id, product_id)"]:::dato
+    OPT["wp_options<br/>ajustes, copys y akb_pudo_state_* sin autoload"]:::dato
+    META["metas de pedido y de producto<br/>consentimiento, RUT, teléfonos, _upsell_ids"]:::dato
+    TRANS["transients<br/>candidatos 5 min, historial 6 h"]:::dato
+    CRON["wp-cron<br/>akb_upsells_autofill_cron, diario"]:::dato
+
+    OPREV["OrderPreventa / EstimatedDelivery<br/>(capítulo 04) — escriben las metas de espera"]:::fuera
+    SFOLLOW["SeriesFollow<br/>(capítulo 04) — el interruptor de avisos"]:::fuera
+    BIS["BackInStock<br/>(capítulo 04) — «avísame cuando llegue»"]:::fuera
+    COMPAT["FrontendCompatibility + CrossOriginScripts<br/>(capítulo 06) — protegen los scripts de la pasarela"]:::fuera
+
+    CLIENTE --> NC
+    CLIENTE --> QV
+    CLIENTE --> WL
+    CLIENTE --> BLOQUES
+    CLIENTE --> WALL
+    CLIENTE --> COL
+    CLIENTE --> TL
+    DUENO --> NCS
+    DUENO --> FSP
+    DUENO --> UPS
+    DUENO --> TRUST
+
+    NC -->|"filtro akb_native_cart_fsp_html"| FSP
+    NC -->|"filtro de cross-sells de WooCommerce"| SCR
+    NC --> NCS
+    FSP --> FST
+    TEMA -->|"drain_notices=1"| NC
+    QV -.->|"clona del DOM de la tarjeta"| TEMA
+    WL --> TBL
+    WL -->|"litespeed_ucss_whitelist"| LS
+    UPS -->|"litespeed_purge_post"| LS
+    UPS --> CRON
+    UPS --> META
+    SCR --> TRANS
+
+    BLOQUES -->|"checkout_data()"| CDS
+    BLOQUES -->|"pudo_checkout()"| PUDO
+    CDS --> FSP
+    CDS --> ADDR
+    CDS --> TRUST
+    NCS -->|"2 options akibara_blocks_*"| BLOQUES
+
+    PUDO -->|"get_geolocation + get_pricing"| BLUEX
+    PUDO --> OPT
+    PICK -->|"correo del cliente y /view-order/"| WOO
+    PICK --> WSP
+    ADDR --> GOOGLE
+    WALL --> GOOGLE
+    WALL --> NAV
+    MKT -.->|"sólo el nombre del campo"| BREVO
+    MKT --> META
+    PHONE --> META
+    RUT --> META
+    TAX --> WOO
+    PHONE -->|"Store API order_processed"| WOO
+    GOL -->|"apaga el aviso nativo"| WOO
+    UX --> WOO
+    OPREV -->|"escriben _akb_eta_*"| META
+    TL -.->|"sólo LEE"| META
+    COL -->|"no-store + DONOTCACHEPAGE"| LS
+    COL -.->|"la única escritura pasa por aquí"| SFOLLOW
+    SEC -->|"cierra 6 AJAX y /wc-bluex/v1/*"| BLUEX
+    SEC -->|"login, alta y lost-password"| WOO
+    NCS --> OPT
+    FSP --> OPT
+    TRUST --> OPT
+    WALL --> OPT
+    OCP -.->|"la cáscara la reusan"| BIS
+    OCP -.->|"la cáscara la reusan"| SFOLLOW
+
+    CLIENTE -->|"paga"| MP
+    COMPAT -.->|"lo sacan del combine/defer de LiteSpeed"| MP
+    COMPAT -.-> LS
+    BLOQUES -.->|"pinta el botón de pago"| MP

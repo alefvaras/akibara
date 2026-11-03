@@ -1,0 +1,137 @@
+{
+  "titulo": "Transversal · todo lo programado: WP-Cron, Action Scheduler y trabajos diferidos, con horas de Chile",
+  "capitulo": "16-todo-lo-programado",
+  "diagramas": [
+    "16-todo-lo-programado-piezas.mmd",
+    "16-todo-lo-programado-cron.mmd",
+    "16-todo-lo-programado-caso-preventa-lista.mmd",
+    "16-todo-lo-programado-caso-lista-de-espera.mmd",
+    "16-todo-lo-programado-caso-tomo-nuevo.mmd",
+    "16-todo-lo-programado-caso-buscador-caido.mmd",
+    "16-todo-lo-programado-caso-puntos-por-vencer.mmd",
+    "16-todo-lo-programado-estados-rebuild.mmd"
+  ],
+  "componentes": 28,
+  "casos": 7,
+  "crons": [
+    "akb_preventa_vencida_sweep",
+    "akibara_business_social_image_derivatives",
+    "akibara_business_social_image_for_slug",
+    "akb_order_preventa_recompute_ready",
+    "akb_upsells_autofill_cron",
+    "akb_bis_cleanup_terminal",
+    "akibara_business_llms_manifest_refresh",
+    "akb_order_preventa_t7_reminder_scan",
+    "akibara_business_cleanup_collection_owner_fence",
+    "akb_search_rebuild_watchdog",
+    "akb_search_pump_live",
+    "akb_search_rebuild_batch",
+    "akb_search_reconcile",
+    "akb_search_editorial_discount_boundary",
+    "akb_sf_scan_product",
+    "akb_sf_digest_run",
+    "akb_rewards_expiry_daily",
+    "akb_rewards_expiry_batch",
+    "akb_rewards_expiry_warn_async",
+    "akb_rewards_birthday_daily",
+    "akb_rewards_send_review_invite",
+    "akibara_catalog_order_daily",
+    "akibara_catalog_order_recompute",
+    "akb_order_preventa_dispatch_ready_email",
+    "akb_order_preventa_recompute_for_product",
+    "akb_order_preventa_release_date_changed_batch",
+    "akb_order_preventa_verify_carrier_handoff",
+    "akb_order_preventa_verify_bluex_handoff",
+    "akb_bis_notify_product",
+    "akibara_bluex_log_retention_cleanup",
+    "akibara_bluex_integrity_weekly",
+    "akb_search_reindex_product",
+    "akb_search_reindex_term"
+  ],
+  "terceros": [
+    "Hostinger (la tarea del panel que llama a wp-cron.php cada 5 minutos)",
+    "WordPress (WP-Cron, la option cron)",
+    "WooCommerce (dueño de Action Scheduler y de las clases WC_Email)",
+    "Action Scheduler (dos copias en el árbol: WooCommerce y Rank Math)",
+    "Blue Express (envíos: se le purgan los registros y se le vigila el árbol)",
+    "LiteSpeed Cache (recibe las purgas de la vitrina y de la valla)",
+    "Cloudflare (detrás de LiteSpeed)",
+    "Rank Math (segunda copia de Action Scheduler; familia rank_math/*)",
+    "Google Listings & Ads (gla/*, el mayor consumidor de la cola)",
+    "Microsoft Clarity (clarity_collect_batch_cron)",
+    "Jetpack (jetpack_*)",
+    "WC Admin (wc_admin_*)",
+    "Hostinger / WP-CLI (ssh akibara, wp cron event, wp action-scheduler): la única forma de mirar y forzar lo programado"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "14-mu-plugins-abilities-bluex-brevo-clarity",
+      "por": "akibara_bluex_log_retention_cleanup, bluex_clean_logs y akibara_bluex_integrity_weekly (mu-plugins de Blue Express)"
+    },
+    {
+      "a": "15-mu-plugins-correo-litespeed-claves-y-guardas",
+      "por": "akibara-correo-smtp.php y akibara-mail-transport-watch.php en admin_init:1 e init:1 bajo DOING_CRON; sin ese transporte no sale ningún correo de este capítulo"
+    },
+    {
+      "a": "17-catalogo-de-datos",
+      "por": "options akb_search_rebuild_state, akb_search_serving_alarm, akb_rewards_%, akb_catalog_order_last_run; metas _akb_eta_*; transitorios akb_search_watchdog_guard_v2 y akb_search_reconciler_scheduled"
+    },
+    {
+      "a": "18-fronteras-con-terceros",
+      "por": "filtro action_scheduler_retention_period, hook action_scheduler_ensure_recurring_actions, evento action_scheduler_run_queue y el gancho propio sobre bluex_clean_logs"
+    },
+    {
+      "a": "19-como-se-hablan-los-plugins",
+      "por": "akb_order_preventa_marked_ready, akb_bis_subscribers_ready, akb_search_pump_live y la comparación literal de la frontera editorial entre akibara-search y akibara-business"
+    },
+    {
+      "a": "akibara-search",
+      "por": "clases Search\\Indexer, Search\\RebuildJob, Search\\Reconciler y Search\\EditorialDiscountPublication; grupo de cola akibara-search"
+    },
+    {
+      "a": "akibara-business",
+      "por": "clases OrderPreventa\\ReadyToShipCron, OrderPreventa\\ReadyEmailDispatcher, BackInStock\\NotificationDispatcher, SeriesFollow\\DigestRunner, CatalogOrder y LlmsManifest; grupos akibara-order-preventa, akibara-bis, akibara-series-follow, akb-catalog-order y akibara-business"
+    },
+    {
+      "a": "akibara-rewards",
+      "por": "clases Rewards\\Points\\Expiry, Rewards\\Points\\Birthday y Rewards\\Reviews\\Invitations; acciones agendadas SIN grupo; sus correos NO son WC_Email (WC()->mailer()->send())"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "ninguna: el carrito y el checkout no programan nada"
+    },
+    {
+      "a": "akibara-gp (tema)",
+      "por": "ninguna: verificado buscando wp_schedule_*, as_schedule_* y as_enqueue_async_action sobre TODO el árbol del tema, no solo sobre inc/"
+    },
+    {
+      "a": "WooCommerce",
+      "por": "Action Scheduler (as_schedule_single_action, as_schedule_recurring_action, as_enqueue_async_action) y las clases WC_Email instanciadas dentro del trabajador"
+    },
+    {
+      "a": "Blue Express",
+      "por": "Integrations\\Bluex\\OrderPreventaAdapter::is_available(), que mira WC_CORREIOS_PLUGIN_FILE y class_exists('WC_Correios')"
+    },
+    {
+      "a": "LiteSpeed Cache",
+      "por": "purga completa tras un recálculo de la vitrina y purgas de la valla de propietario"
+    }
+  ],
+  "piezas_de_apoyo": 16,
+  "comandos_wp_cli_propios": 13,
+  "grupos_action_scheduler": [
+    "akibara-order-preventa",
+    "akibara-bis",
+    "akibara-series-follow",
+    "akb-catalog-order",
+    "akibara-business",
+    "akibara-search",
+    "akibara-bluex",
+    "(sin grupo)"
+  ],
+  "horas_escritas_en_el_codigo": [
+    "domingo 03:00 — akb_order_preventa_t7_reminder_scan",
+    "05:00 — akibara_catalog_order_daily"
+  ],
+  "alcance_medido": "Código propio leído entero (27 ficheros que agendan trabajo) + captura de producción del 2026-09-11. Sin medir: el estado vivo de la cola de Action Scheduler (pendientes y fallidas, y su antigüedad)."
+}

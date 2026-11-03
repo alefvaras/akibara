@@ -1,0 +1,40 @@
+%% Pantalla del capítulo 08 — la única superficie que el dueño ve del índice del buscador.
+%% Qué muestra: cómo se llega (admin.php?page=akibara-search&sub=…), las siete pestañas exactas, y las cinco cajas de la pestaña «Índice» en el orden fijo en que se pintan (SearchAdminSection::render_index_status, :551-562). Sin esto no se puede empezar a operar nada de este capítulo.
+flowchart TB
+    classDef ruta fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef tab fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef caja fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef aviso fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5a1a14
+
+    ENTRADA["Escritorio de WordPress → menú «Buscador»<br/>cuelga de «Akibara» si el panel de business existe;<br/>si no, menú propio con lupa · exige manage_woocommerce<br/><b>admin.php?page=akibara-search&sub=…</b>"]:::ruta
+
+    subgraph TABS["Las SIETE pestañas — cualquier otro valor de sub cae en «indice»"]
+        direction LR
+        T1["sub=indice<br/><b>Índice</b><br/>por defecto"]:::tab
+        T2["sub=busquedas<br/>Búsquedas"]:::tab
+        T3["sub=facetas<br/>Facetas"]:::tab
+        T4["sub=precios<br/>Precios"]:::tab
+        T5["sub=sinonimos<br/>Sinónimos"]:::tab
+        T6["sub=stopwords<br/>Palabras ignoradas"]:::tab
+        T7["sub=ajustes<br/>Ajustes"]:::tab
+    end
+
+    ENTRADA --> TABS
+
+    subgraph INDICE["Pestaña «Índice» — cinco cajas, SIEMPRE en este orden"]
+        direction TB
+        C1["1 · Banda de salud<br/>el veredicto en una frase: sano / atención / reconstruyendo<br/>se repolla cada 4 s mientras hay una reconstrucción"]:::caja
+        C2["2 · Servicios<br/>los tres interruptores (indexación, autocompletado, filtros)<br/>y el estado del gate editorial CON SU CAUSA"]:::caja
+        C3["3 · Estado<br/>documentos, tokens, filas de filtros, deuda pendiente / arrendada / bloqueada,<br/>versión de esquema, última reconstrucción, última verificación,<br/>y la solicitud de rebuild pendiente si la hay"]:::caja
+        C4["4 · Mantenimiento<br/>«Reconstruir índice» / «Reintentar reconstrucción»"]:::caja
+        C5["5 · Diagnóstico técnico<br/>desplegable: volcado crudo, comandos de terminal<br/>y «Registro de cambios» (15 entradas del cuaderno)"]:::caja
+        C1 --> C2 --> C3 --> C4 --> C5
+    end
+
+    T1 --> INDICE
+
+    BLOQUEO["Si la reconstrucción quedó en fase terminal<br/><b>NO hay botón</b>: en su lugar, cartel rojo<br/>«La reconstrucción quedó bloqueada»<br/>→ ops/rescate-buscador.sh (caso 10)"]:::aviso
+    C4 -.-> BLOQUEO
+
+    CIEGO["Si esta pantalla no carga, todo esto se lee por terminal:<br/>wp akb-search status · wp option get akb_search_rebuild_state --format=json<br/>wp option get akb_search_pending_rebuild --format=json<br/>wp option get akb_search_serving_alarm --format=json"]:::ruta
+    INDICE -.-> CIEGO

@@ -1,0 +1,63 @@
+{
+  "titulo": "akibara-rewards · Akibara Puntos: ganar, canjear, caducar",
+  "capitulo": "10-rewards-akibara-puntos",
+  "diagramas": [
+    "diagramas/10-rewards-akibara-puntos-piezas.mmd",
+    "diagramas/10-rewards-akibara-puntos-caso-compra.mmd",
+    "diagramas/10-rewards-akibara-puntos-caso-canje.mmd",
+    "diagramas/10-rewards-akibara-puntos-caso-vencimiento.mmd",
+    "diagramas/10-rewards-akibara-puntos-cron.mmd",
+    "diagramas/10-rewards-akibara-puntos-estados-canje.mmd"
+  ],
+  "componentes": 24,
+  "casos": 13,
+  "crons": [
+    "akb_rewards_expiry_daily (Action Scheduler, recurrente cada 24 h; la hora NO esta escrita en el codigo: se crea apuntando a «ahora + 2 h» la primera vez que alguien entra al escritorio, corre el cron o usa WP-CLI, Expiry.php:93)",
+    "akb_rewards_birthday_daily (Action Scheduler, recurrente cada 24 h; misma herencia de hora, «ahora + 1 h», Birthday.php:72)",
+    "akb_rewards_expiry_batch (accion unica sin hora: la encola la corrida diaria cuando hay mas de 100 usuarios con saldo, Expiry.php:245)",
+    "akb_rewards_expiry_warn_async (accion asincrona sin hora, una por cliente con puntos por vencer, Expiry.php:368; as_enqueue_async_action NO deduplica: es la unica de las cuatro que duplica el correo)"
+  ],
+  "terceros": [
+    "WooCommerce >= 10.0 (avisos de estado y reembolso, comisiones del carrito, Store API, plantillas de Mi cuenta; sin el, el plugin no arranca: akibara-rewards.php:96-143)",
+    "Action Scheduler (viene dentro de WooCommerce; corre las dos tareas diarias y trocea los lotes)",
+    "WordPress 6.8 (wp_options, usermeta, wp_mail, el flujo de privacidad y register_activation_hook)",
+    "MySQL / MariaDB (GET_LOCK por usuario y por pedido, 3 s de espera: Ledger.php:46, Accrual.php:48)",
+    "SPAR — Simple Points and Rewards (plugin viejo; mientras siga activo, akibara-rewards duerme entero: akibara-rewards.php:127-140)",
+    "CusRev / Customer Reviews (decide si el sexto carril —reseñas— existe: Options::reviews_engine_on, Options.php:161-168)",
+    "LiteSpeed y Cloudflare (cache: el ?ver= compuesto de Support/Assets.php y la purga al guardar ajustes deciden si un arreglo llega al navegador; nada excluye ?ref= de la cache de pagina)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "akibara-business (capitulos 02 y 05)",
+      "por": "la funcion global `spar_get_user_points()` (akibara-rewards.php:202-223), puente con el nombre del plugin viejo; la consume templates/myaccount/dashboard.php:73-74 de akibara-business para pintar la tarjeta «Recompensas»"
+    },
+    {
+      "a": "11-rewards-resenas (la otra mitad del mismo plugin)",
+      "por": "Options::reviews_engine_on() y reviews_lane_on(); la tabla wp_akb_rewards_review_forms; la limpieza de enlaces de reseña caducados va DENTRO de la corrida diaria del vencimiento (Expiry.php:235), asi que apagar el vencimiento apaga tambien esa limpieza"
+    },
+    {
+      "a": "12-checkout-blocks-campos-chilenos-y-pudo",
+      "por": "endpoint_data en CartSchema bajo el espacio `akibara-rewards` (CheckoutIntegration.php:41, :75, :84) y la comision negativa «Puntos Akibara» que viaja en woocommerce_cart_calculate_fees prioridad 20"
+    },
+    {
+      "a": "13-tema-akibara-gp",
+      "por": "acoplamiento indirecto: las pantallas del cliente (Mi cuenta → Puntos Akibara, el aviso de la ficha, la pagina publica del programa) se pintan dentro de las plantillas de Mi cuenta de WooCommerce que el tema estiliza; cero codigo compartido"
+    },
+    {
+      "a": "16-todo-lo-programado",
+      "por": "las dos acciones recurrentes akb_rewards_expiry_daily y akb_rewards_birthday_daily mas los dos ganchos troceados, todos por Action Scheduler y empujados por la tarea de Hostinger cada 5 minutos (DISABLE_WP_CRON encendido)"
+    },
+    {
+      "a": "17-catalogo-de-datos",
+      "por": "la tabla propia wp_akb_rewards_ledger, las 40 options del catalogo FIELDS mas las 3 sin casilla (akb_rewards_db_version, akb_rewards_rewrite_version, akb_rewards_migration_epoch), 11 usermeta (8 de ellas sobreviven al desinstalador) y 10 order meta del programa"
+    },
+    {
+      "a": "18-fronteras-con-terceros",
+      "por": "la puerta de convivencia con SPAR (akibara-rewards.php:127-140), el comando `wp akb-rewards migrate` y el interruptor de motor de reseñas frente a CusRev"
+    },
+    {
+      "a": "19-como-se-hablan-los-plugins",
+      "por": "los avisos propios que este plugin dispara para que otros escuchen: akb_rewards_after_order_award, akb_rewards_after_order_deduct, akb_rewards_redemption_shortfall, akb_rewards_reversal_failed, akb_rewards_capture_failed, akb_rewards_lock_busy, akb_rewards_expiry_warning y akb_rewards_manual_review_needed"
+    }
+  ]
+}

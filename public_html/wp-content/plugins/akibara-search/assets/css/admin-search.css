@@ -1,0 +1,546 @@
+/**
+ * admin-search.css — página de admin propia del buscador (page=akibara-search).
+ * UI WordPress, acento visual Akibara (negro/rojo), sin dependencias.
+ */
+
+.akb-fwp {
+	--akb-admin-red: #d90010;
+	--akb-admin-red-dark: #aa000c;
+	--akb-admin-ink: #171717;
+	--akb-admin-line: #d7d7d7;
+	--akb-admin-soft-line: #ececec;
+	--akb-admin-soft-red: #fff1f2;
+	--akb-admin-yellow: #ffd401;
+	margin: 20px 20px 0 2px;
+	max-width: 1200px;
+}
+
+.akb-fwp-panel {
+	background: #fff;
+	border: 1px solid var(--akb-admin-line);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 2px 0 rgba(0, 0, 0, .05);
+}
+
+/* ---- Header Akibara ---- */
+.akb-fwp-head {
+	display: flex;
+	align-items: stretch;
+	gap: 4px;
+	padding: 0 14px;
+	min-height: 56px;
+	background: var(--akb-admin-ink);
+	color: #fff;
+	border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+
+.akb-fwp-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: .2px;
+	padding-right: 10px;
+	margin-right: 6px;
+	white-space: nowrap;
+}
+
+.akb-fwp-gem {
+	color: var(--akb-admin-red);
+	font-size: 17px;
+	line-height: 1;
+}
+
+.akb-fwp-ver {
+	font-size: 11px;
+	font-weight: 700;
+	background: rgba(217, 0, 16, .24);
+	border: 1px solid rgba(255, 255, 255, .22);
+	padding: 2px 8px;
+	border-radius: 10px;
+}
+
+/* Reusa el nav-tab de WP (render_subnav) y lo pinta como tabs Akibara. */
+.akb-fwp-head .nav-tab-wrapper {
+	display: flex;
+	align-items: flex-end;
+	gap: 2px;
+	border: 0;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+}
+
+.akb-fwp-head .nav-tab {
+	border: 0;
+	margin: 0;
+	background: transparent;
+	color: rgba(255, 255, 255, .8);
+	font-weight: 700;
+	font-size: 13px;
+	line-height: 1;
+	padding: 10px 16px;
+	border-radius: 7px 7px 0 0;
+	align-self: flex-end;
+	transition: background .12s ease, color .12s ease;
+	/*
+	 * Objetivo táctil de al menos 44px en todos los breakpoints. Usar border-box para que el
+	 * padding no aumente la altura computada a 64px.
+	 */
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	box-sizing: border-box;
+}
+
+.akb-fwp-head .nav-tab:hover,
+.akb-fwp-head .nav-tab:focus {
+	background: rgba(217, 0, 16, .28);
+	color: #fff;
+	box-shadow: none;
+}
+
+.akb-fwp-head .nav-tab-active,
+.akb-fwp-head .nav-tab-active:hover,
+.akb-fwp-head .nav-tab-active:focus {
+	background: #fff;
+	color: var(--akb-admin-red-dark);
+	border: 0;
+}
+
+.akb-fwp-reindex {
+	margin-left: auto;
+	align-self: center;
+	background: var(--akb-admin-red);
+	color: #fff !important;
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 13px;
+	padding: 8px 16px;
+	border-radius: 7px;
+	transition: background .12s ease;
+}
+
+.akb-fwp-reindex:hover,
+.akb-fwp-reindex:focus {
+	background: var(--akb-admin-red-dark);
+	color: #fff !important;
+	box-shadow: none;
+}
+
+.akb-fwp a:focus,
+.akb-fwp button:focus,
+.akb-fwp input:focus,
+.akb-fwp select:focus,
+.akb-fwp textarea:focus {
+	border-color: var(--akb-admin-red);
+	box-shadow: 0 0 0 1px var(--akb-admin-red), 0 0 0 4px rgba(255, 212, 1, .28);
+	outline: 2px solid transparent;
+}
+
+/* ---- Body ---- */
+.akb-fwp-body {
+	padding: 22px 26px 28px;
+}
+
+.akb-fwp-body > h2:first-child,
+.akb-fwp-body .akb-search-admin > h2:first-child {
+	margin-top: 0;
+}
+
+.akb-fwp-body .description {
+	color: #6b7280;
+	max-width: 760px;
+}
+
+.akb-fwp input[type="checkbox"],
+.akb-fwp input[type="radio"] {
+	accent-color: var(--akb-admin-red);
+}
+
+.akb-fwp select.akb-facet-ui {
+	margin-top: 6px;
+	min-width: 150px;
+	border-color: var(--akb-admin-line);
+}
+
+/* ---- Tabla de facetas ---- */
+.akb-facets-table.widefat {
+	border: 1px solid var(--akb-admin-soft-line);
+	border-radius: 8px;
+	border-collapse: separate;
+	border-spacing: 0;
+	box-shadow: none;
+}
+
+.akb-facets-table.widefat thead th {
+	background: #f7f7f7;
+	color: #6b7280;
+	font-weight: 600;
+	text-transform: none;
+	border-bottom: 1px solid var(--akb-admin-soft-line);
+	padding: 12px 14px;
+}
+
+.akb-facets-table.widefat td,
+.akb-facets-table.widefat tbody th {
+	padding: 12px 14px;
+	vertical-align: middle;
+	border-bottom: 1px solid #f2f2f2;
+}
+
+.akb-facets-table.widefat tbody tr:hover {
+	background: var(--akb-admin-soft-red);
+}
+
+.akb-facets-table code {
+	background: #111;
+	color: #fff;
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+.akb-facet-order .button-link {
+	color: #8a8f98;
+	text-decoration: none;
+	font-size: 13px;
+}
+
+.akb-facet-order .button-link:hover {
+	color: var(--akb-admin-red);
+}
+
+/*
+ * Panel administrativo responsive: respaldar .akb-facets-scroll, .akb-admin-scroll y
+ * .akb-health-band con desplazamiento contenido y controles alcanzables en móvil.
+ */
+
+/*
+ * Repetir tipografía y espaciado de h1 con más especificidad que .wrap h1 de wp-admin. La
+ * píldora de versión es hermana del título.
+ */
+.akb-fwp-head .akb-fwp-brand h1 {
+	font-size: 15px;
+	font-weight: 800;
+	margin: 0;
+	padding: 0;
+	color: #fff;
+	letter-spacing: .2px;
+	line-height: 1;
+}
+
+/* ---- A1: foco de teclado VISIBLE en tabs (P1 del opositor). Los resets
+   de :focus de arriba (box-shadow:none en :90-95 + outline transparente
+   del bloque genérico :125-133) dejaban CERO indicación, peor en el tab
+   activo. Gana por especificidad: (0,3,0) > `.akb-fwp a:focus` (0,2,1).
+   Aplica también a .nav-tab-active. */
+.akb-fwp-head .nav-tab:focus-visible {
+	outline: 2px solid var(--akb-admin-yellow);
+	outline-offset: -2px;
+}
+
+/*
+ * Hasta 1199px, distribuir el header en dos filas: marca y reconstrucción arriba; tabs
+ * desplazables abajo. Conservar el orden DOM de navegación antes de acción aunque difiera del
+ * visual. A partir de 1200px el contenido cabe en una fila con el sidebar expandido; no
+ * limitar el corte a 782px porque dejaría acciones recortadas entre 783 y 1199px.
+ */
+@media (max-width: 1199px) {
+	.akb-fwp-head {
+		flex-wrap: wrap;
+	}
+
+	.akb-fwp-head .nav-tab-wrapper {
+		order: 2;
+		flex-basis: 100%;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		/*
+		 * No usar scroll-snap: compite con scrollIntoView, puede dejar tabs parcialmente recortadas y
+		 * dificulta estabilizar el foco y los clics.
+		 */
+		/* Affordance de scroll: scrolling shadows con background-attachment:
+		   local — los covers (color del header) viajan con el contenido y
+		   destapan las sombras solo donde quedan tabs ocultas; se apagan
+		   solas en los extremos. Degradación benigna sin soporte. Sin JS. */
+		background:
+			linear-gradient(90deg, var(--akb-admin-ink) 40%, rgba(23, 23, 23, 0)) left / 28px 100%,
+			linear-gradient(270deg, var(--akb-admin-ink) 40%, rgba(23, 23, 23, 0)) right / 28px 100%,
+			linear-gradient(90deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, 0)) left / 14px 100%,
+			linear-gradient(270deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, 0)) right / 14px 100%;
+		background-repeat: no-repeat;
+		background-attachment: local, local, scroll, scroll;
+	}
+
+	.akb-fwp-head .nav-tab {
+		flex: 0 0 auto; /* el nav scrollea; las tabs no se comprimen */
+	}
+}
+
+/* ---- A2: wrappers de scroll de las tablas del panel (el PHP ya los
+   emite; port del legacy :218-247 + :301-306). */
+.akb-facets-scroll,
+.akb-admin-scroll {
+	position: relative; /*
+	position: relative;  * Crear el containing block de los .screen-reader-text absolutos dentro de las tablas. Su
+	position: relative;  * posición no debe resolverse fuera del wrapper ni aumentar el scroll horizontal de toda la
+	position: relative;  * página.
+	position: relative;  */
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	max-width: 840px;
+}
+
+.akb-facets-table {
+	min-width: 680px; /* scroll honesto: la tabla NO se comprime */
+}
+
+.akb-encargos-table {
+	min-width: 760px; /* scroll honesto para 7 columnas */
+}
+
+/*
+ * Los controles ▲/▼ requieren un objetivo de 44×44px sin agrandar el glifo; apilarlos dentro
+ * de la columna de 88px.
+ */
+.akb-facets-table .akb-facet-order .button-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+	padding: 4px 6px;
+}
+
+/* «Quitar» vive FUERA de .akb-facet-order (el legacy nunca lo cubrió):
+   regla propia, mismo piso táctil. */
+.akb-facets-table .button-link-delete {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+}
+
+/* Alta de faceta: el <select> de taxonomías (labels largos) impone su
+   min-content (~400px) y desbordaba el documento (port legacy :277-299). */
+.akb-facets-new {
+	min-width: 0;
+}
+
+.akb-facets-new p {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.akb-facets-new select,
+.akb-facets-new input {
+	max-width: 100%;
+}
+
+/*
+ * La tabla de facetas ocupa todo el ancho del panel y sus campos «Etiqueta visible» mantienen
+ * un mínimo legible en cualquier viewport.
+ */
+.akb-facets-scroll {
+	position: relative;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	max-width: none;
+}
+.akb-facets-table input[type="text"] {
+	min-width: 140px;
+}
+@media (max-width: 782px) {
+	.akb-facets-table input[type="text"] {
+		min-width: 140px; /* scoped a text — NO a los checkboxes */
+	}
+
+	.akb-facets-new select {
+		width: 100%;
+		max-width: 280px;
+	}
+}
+
+/* ---- A2: banda de salud (sub=indice — lo primero que mira el gate de
+   cutover). Port del legacy :307-365: sin esto .akb-health-band computa
+   border 0 / sin fondo / dot invisible. */
+.akb-health-band {
+	max-width: 840px;
+	margin-top: 12px;
+	padding: 12px 16px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left-width: 4px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+}
+
+.akb-health-band p {
+	margin: 0 0 4px;
+}
+
+.akb-health-band ul {
+	margin: 8px 0 0 18px;
+	list-style: disc;
+}
+
+.akb-health-verdict {
+	font-size: 14px;
+}
+
+.akb-health-dot {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 8px;
+	border-radius: 50%;
+}
+
+.akb-health--sano {
+	border-left-color: #00a32a;
+}
+
+.akb-health--sano .akb-health-dot {
+	background: #00a32a;
+}
+
+.akb-health--atencion {
+	border-left-color: #d63638;
+}
+
+.akb-health--atencion .akb-health-dot {
+	background: #d63638;
+}
+
+.akb-health--reconstruyendo {
+	border-left-color: #dba617;
+}
+
+.akb-health--reconstruyendo .akb-health-dot {
+	background: #dba617;
+}
+
+.akb-search-diagnostics summary {
+	cursor: pointer;
+	padding: 6px 0;
+}
+
+/*
+ * En escritorio, conservar la tabla de precios legible mediante scroll. Hasta 782px, agrupar
+ * Desde/Hasta/Etiqueta/Corte en cada tarjeta y mantener visible el conteo efectivo de
+ * productos.
+ */
+.akb-precios-table {
+	min-width: 720px;
+}
+
+@media (max-width: 782px) {
+	.akb-precios-table {
+		min-width: 0;
+	}
+
+	/* thead solo para lectores (las cards anuncian su columna vía
+	   data-label); clip dentro del wrapper position:relative. */
+	.akb-precios-table thead {
+		position: absolute;
+		clip-path: inset(50%);
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+	}
+
+	.akb-precios-table tr {
+		display: block;
+		padding: 10px 12px;
+		border-bottom: 1px solid var(--akb-admin-soft-line);
+	}
+
+	.akb-precios-table td {
+		display: block;
+		padding: 6px 0;
+		border: 0;
+	}
+
+	.akb-precios-table td::before {
+		content: attr(data-label);
+		display: block;
+		font-weight: 600;
+		color: #6b7280;
+		font-size: 12px;
+		margin-bottom: 2px;
+	}
+}
+
+/*
+ * En móvil, apilar las facetas como tarjetas para alcanzar Visible y Quitar sin desplazar toda
+ * la tabla. Cada td usa su data-label para identificar la columna sin depender de la cabecera.
+ */
+@media (max-width: 782px) {
+	/*
+	 * Retirar la tabla móvil del algoritmo de ancho intrínseco y limitar los controles al ancho
+	 * disponible. min-width: 0 por sí solo no contiene el ancho mínimo de sus campos de texto.
+	 */
+	.akb-facets-table,
+	.akb-facets-table tbody {
+		display: block;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.akb-facets-table input[type="text"],
+	.akb-facets-table select {
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+
+	/* thead solo para lectores de pantalla; el clip vive dentro del wrapper
+	   `position: relative` para no reabrir el desbordamiento horizontal. */
+	.akb-facets-table thead {
+		position: absolute;
+		clip-path: inset(50%);
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+	}
+
+	.akb-facets-table tr {
+		display: block;
+		padding: 10px 12px;
+		border-bottom: 1px solid var(--akb-admin-soft-line);
+	}
+
+	.akb-facets-table td,
+	.akb-facets-table th[scope="row"] {
+		display: block;
+		width: auto;
+		padding: 6px 0;
+		border: 0;
+		text-align: left;
+	}
+
+	.akb-facets-table td::before {
+		content: attr(data-label);
+		display: block;
+		font-weight: 600;
+		color: #6b7280;
+		font-size: 12px;
+		margin-bottom: 2px;
+	}
+
+	/* Las flechas de orden se leen mejor en fila, y ya miden 44px cada una. */
+	.akb-facets-table .akb-facet-order {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.akb-facets-table .akb-facet-order::before {
+		flex: 1 0 100%;
+	}
+}

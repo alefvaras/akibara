@@ -1,0 +1,183 @@
+{
+  "titulo": "Tema akibara-gp · todo lo que el cliente ve",
+  "capitulo": "13-tema-akibara-gp",
+  "diagramas": [
+    "diagramas/13-tema-akibara-gp-piezas.mmd",
+    "diagramas/13-tema-akibara-gp-orden-de-wp-head.mmd",
+    "diagramas/13-tema-akibara-gp-prioridades-sin-resultados.mmd",
+    "diagramas/13-tema-akibara-gp-caso-serie-desde-google.mmd",
+    "diagramas/13-tema-akibara-gp-caso-compra-en-la-ficha.mmd",
+    "diagramas/13-tema-akibara-gp-caso-correo-de-reembolso.mmd",
+    "diagramas/13-tema-akibara-gp-estados-cajon-movil.mmd",
+    "diagramas/13-tema-akibara-gp-estados-selector-de-cantidad.mmd"
+  ],
+  "componentes": 49,
+  "casos": 13,
+  "crons": [],
+  "crons_nota": "El tema no agenda NADA: cero wp_schedule_event(), cero wp_schedule_single_event(), cero as_schedule_* y cero register_rest_route() en todo el arbol. Lo unico con caducidad es el transient akb_gp_series_hub_url (12 h si encuentra el hub, 1 h si no; inc/series-breadcrumb.php:91), que no ejecuta nada al vencer y se invalida ademas en save_post:10 y delete_post:10 (inc/series-breadcrumb.php:113-114).",
+  "terceros": [
+    "GeneratePress (tema padre; style.css:7 `Template: generatepress`. 5 filtros `generate_*` (`generate_meta_viewport`, `generate_colors_css_output`, `option_generate_dynamic_css_output`, `generate_sidebar_layout`, `generate_show_title`) y 5 ACCIONES REPLICADAS en las plantillas (`generate_before_header`, `generate_inside_header`, `generate_after_header`, `generate_before_footer`, `generate_after_footer`), mas un sexto gancho del padre del que el tema CUELGA codigo (`generate_before_main_content`, inc/blog.php:272) y un septimo del que DESCUELGA el skip-link ajeno (inc/setup.php:72). Ademas repone `generate_add_viewport` en functions.php:71 y recorta al vuelo la option `generate_dynamic_css_output`. CORREGIDO: antes decia «6 hooks de accion replicados»; `grep \"do_action( 'generate_\" ` sobre el tema devuelve exactamente 5",
+    "WooCommerce (32 de los 69 registros del tema cuelgan de ganchos `woocommerce_*`; 9 sobrescrituras de plantilla en `woocommerce/`, incluidas las de correo)",
+    "LiteSpeed Cache (3 filtros de exclusion en inc/enqueue.php:546-548 mas los atributos `data-no-optimize` / `data-no-defer` en el `script_loader_tag`)",
+    "seo-by-rank-math (un guion solo para el editor de entradas, inc/rank-math.php:36; cero efecto en la superficie publica)",
+    "customer-reviews-woocommerce / CusRev (`customer-reviews-woocommerce/form.css:1` (203 lineas) hace `@import` por RUTA RELATIVA hacia `../../../plugins/customer-reviews-woocommerce/css/form.css`: la unica superficie del tema acoplada al arbol de otro plugin, y candidata a codigo muerto porque akibara-rewards declara reemplazarlo)",
+    "GSAP + ScrollTrigger 3.15.0 (biblioteca EMPAQUETADA DENTRO del tema en assets/js/vendor/gsap.min.js (72.927 B) y assets/js/vendor/ScrollTrigger.min.js (44.575 B); no es un CDN. Los «46 KB» de inc/enqueue.php:432 son el peso comprimido (28,4 + 18,0 KB). Consecuencia: actualizar GSAP o parchear un CVE suyo es publicar una version del tema"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "02-business-nucleo (akibara-business)",
+      "por": "clase `Services\\NavigationLinks` — el tema le pide TODAS las URLs canonicas (home, tienda, carrito, cuenta, favoritos, contacto). Dependencia dura y declarada: `functions.php:16-22` dice que los templates deben reventar con «Class not found». 10 llamadas sin guarda (footer/main.php:27, footer/bottom-nav.php:22-24, header/shell.php:113-114, header/mobile-drawer.php:101-102, brands/grid.php:211, inc/woocommerce.php:336) frente a 4 guardadas con `class_exists` (404.php:32, no-products-found.php:29, cart-empty.php:31). Y una arista de JAVASCRIPT que faltaba: el objeto global `window.akbCart`, que publica el plugin en assets/js/native-cart.js:48 y que el tema llama en assets/js/animations.js:237 (`window.akbCart.open()`) al aterrizar el vuelo de la portada. El tema comprueba `typeof … === 'function'` antes, asi que si native-cart.js no carga el vuelo ocurre, el cajon NO se abre y NO hay error en consola"
+    },
+    {
+      "a": "02-business-nucleo (akibara-business)",
+      "por": "`Utilities\\ThemeAssetVersion::for_path()` llama a `akibara_gp_asset_ver()` DEL TEMA para versionar los ficheros del tema que encola el plugin (forms.js, forms.css, brands.css, akibara-brands-filter.js, tokens.css, fonts.css). Es la unica arista entrante de codigo: el plugin depende de una funcion del tema"
+    },
+    {
+      "a": "03-business-catalogo-y-series (akibara-business)",
+      "por": "`Modules\\BrandsDirectory` carga `template-parts/brands/grid.php` y `home-carousel.php` con `locate_template()`; sin el tema, /editoriales/ y la vitrina de la portada no tienen que pintar"
+    },
+    {
+      "a": "02-business-nucleo (akibara-business)",
+      "por": "`Modules\\Wishlist\\Storage::count()` alimenta el contador del corazon (header/shell.php:120, guardado con `class_exists`) y `Wishlist\\Render` carga plantillas del tema"
+    },
+    {
+      "a": "06-business-panel-descuentos-textos-y-portada (akibara-business)",
+      "por": "options `akb_copy_promise_installments`, `akb_copy_footer_support_hours` y `akb_copy_footer_phone` — el tema SOLO LEE (inc/site-copy.php:35, :55, :69); el panel «Akibara → Textos» es quien escribe"
+    },
+    {
+      "a": "04-business-disponibilidad-preventa-y-avisos (akibara-business)",
+      "por": "filtro `akibara/product_faq_data` (inc/seo-faq.php:24-43): si nadie lo rellena, el acordeon de la ficha no se imprime"
+    },
+    {
+      "a": "03-business-catalogo-y-series (akibara-business)",
+      "por": "filtro `akibara/popular_product_ids` — alimenta el cross-sell compartido de TODOS los estados vacios (404, carrito vacio, sin resultados). Sin el, la consulta cae a `array(0)` y no pinta nada"
+    },
+    {
+      "a": "09-search-consulta-facetas-y-sugerencias (akibara-search)",
+      "por": "funciones `akibara_search_facets_active()` y `akibara_search_suggest_active()` — deciden si se pinta el boton «Filtrar» y si el campo de busqueda es sugeridor o formulario GET clasico. Es el rollback documentado del buscador"
+    },
+    {
+      "a": "09-search-consulta-facetas-y-sugerencias (akibara-search)",
+      "por": "evento DOM `akb:pjax` — el buscador lo emite tras cada intercambio de la rejilla y `assets/js/main.js` lo escucha para recontar los filtros activos y volver a revelar las tarjetas nuevas"
+    },
+    {
+      "a": "12-checkout-blocks-campos-chilenos-y-pudo (akibara-cart-checkout-blocks)",
+      "por": "`wc_get_template('cart/cart-empty.php')` por shortcode: es lo unico que mantiene vivo ese override del tema. Y `RuntimeCompatibility::hide_checkout_entry_title` (prioridad 100) es quien SI suprime el H1 del pago — la rama `is_page('checkout')` del tema (inc/page-header.php:47-58) no casa nunca porque la pagina es `/finalizar-compra/`"
+    },
+    {
+      "a": "12-checkout-blocks-campos-chilenos-y-pudo (akibara-cart-checkout-blocks)",
+      "por": "`Modules\\NativeCart\\Settings::get_empty_copy()` — el texto del carrito vacio (cart-empty.php:32, con copia literal de respaldo si la clase no esta)"
+    },
+    {
+      "a": "11-rewards-resenas (akibara-rewards)",
+      "por": "`assets/css/reviews-p5-v4.css` (135 lineas, 3.911 bytes) estila `#reviews .commentlist` —el marcado del nucleo de WooCommerce— en ONCE reglas (lineas 7, 13, 22, 38, 43, 48, 65, 80, 87, 98 y 110; una duodecima aparicion de la palabra esta en el comentario de la linea 6), y se encola en TODAS las fichas (functions.php:76-83). CORREGIDO: el capitulo decia «doce apariciones» y verificacion.json decia «15 selectores»; el numero del fichero es 11 (`grep -c '#reviews \\.commentlist'`). Si rewards pasa a pintar su propio marcado de resenas, esta hoja queda huerfana; y la produccion tiene CERO resenas hoy"
+    },
+    {
+      "a": "16-todo-lo-programado",
+      "por": "aporta el NEGATIVO: el tema es el unico componente first-party sin nada agendado. Solo el transient `akb_gp_series_hub_url` y sus dos ganchos de invalidacion (`save_post`, `delete_post`)"
+    },
+    {
+      "a": "17-catalogo-de-datos",
+      "por": "inventario medido: 4 `get_option`, 2 `get_theme_mod('custom_logo')`, 1 transient propio, y CERO `update_option`, CERO tablas, CERO metas escritas, CERO `wp_mail`"
+    },
+    {
+      "a": "18-fronteras-con-terceros",
+      "por": "los 3 filtros de LiteSpeed (`litespeed_optimize_js_excludes`, `litespeed_optm_js_defer_exc`, `litespeed_optm_gm_js_exc`), el recorte de `option_generate_dynamic_css_output` de GeneratePress, y el `@import` por ruta relativa hacia el arbol de customer-reviews-woocommerce"
+    },
+    {
+      "a": "19-como-se-hablan-los-plugins",
+      "por": "el tema es el punto de encuentro: 5 componentes first-party se encuentran en el mismo HTML servido. La arista mas rara es la inversa (`ThemeAssetVersion` del plugin llamando a `akibara_gp_asset_ver()` del tema)"
+    }
+  ],
+  "pasos_manuales_al_desplegar": [
+    "Subir el numero de version a mano en `style.css:8` (`Version: 2.1.118`). Es lo UNICO que invalida la cache del navegador en produccion: `akibara_gp_asset_ver()` junta version + filemtime y el empaquetador congela todos los mtimes en 1980-01-01 (=315532800), asi que los ~103 ficheros comparten sufijo (`?ver=2.1.118.315532800`)",
+    "Regenerar `assets/css/core.css` con `bash tools/akibara-releases/build-theme-core-css.sh` ANTES de empaquetar: es un fichero GENERADO (tokens+fonts+base+header+footer) y el arbol puede tenerlo viejo",
+    "Empaquetar con `bash tools/akibara-releases/package-theme.sh` (deja `dist/akibara-gp-<version>.zip` + `.sha256` + `.files.sha256`) y correr el gate `bash tools/akibara-releases/qa-theme.sh`, que prueba EL ZIP, no el arbol. Ese gate se arreglo el 2026-09-11: hasta entonces validaba un artefacto congelado (2.1.48) con las pruebas de hoy y llevaba semanas en rojo sin que nadie lo corriera",
+    "Subir con el guion de promocion de `ops/` que corresponda (p. ej. `ops/akibara-theme-2.1.70-production-promotion.sh`). NUNCA a mano con scp+unzip: los mtimes congelados en 1980 impiden que OPcache invalide su copia compilada, el servidor sirve DOS VERSIONES MEZCLADAS y nada lo delata — ni un error en el log ni un aviso en el escritorio. Ya costo una caida real",
+    "Guardar los enlaces permanentes (`wp rewrite flush`) para que entren las ocho rutas cortas de catalogo (/manga/, /comics/, /shonen/, /seinen/, /shojo/, /manhwa/, /vertigo/, /independiente/): se registran con `add_rewrite_rule()` en `init` (inc/woocommerce.php:400-424) y NADIE llama a `flush_rewrite_rules()` ni engancha `after_switch_theme`. Mientras no se guarden, una ruta nueva de esa lista da 404 y el sintoma parece «el menu esta mal»",
+    "Verificar la superficie SERVIDA (bundle `.min`, `?ver` y la copia de LiteSpeed), no el fichero en disco",
+    "Desde 2.1.143: tras tocar cualquier hoja o guion del tema, correr `bash tools/akibara-releases/build-theme-core-css.sh` (concatena core.css y llama a build-theme-min-assets.mjs, que genera las copias .min y las cuatro partes de woocommerce.css); tests/min-assets.test.js falla si no se hizo",
+    "Desde 2.1.143: desplegar search antes que el tema y business antes que el tema o en el mismo paso (nunca el tema primero: QA-DIFF-TEMA-1), los cinco en la misma ventana, y purgar LiteSpeed y Cloudflare tras el paso del tema (el HTML de invitados de la version anterior vive hasta 10 min en el borde; TEMA-VENTANA-1, capitulo 19 §19)"
+  ],
+  "hallazgos_altos": [
+    "§5.1 El preload de la portada de la ficha no se emite NUNCA: `functions.php:139-173` corre en `wp_head:2` y sale por `! $product instanceof WC_Product`, porque el global `$product` lo puebla `the_post` DENTRO del bucle, despues de `wp_head()`. Arreglo de una linea: `wc_get_product( get_queried_object_id() )`",
+    "§5.4 Los botones −/+ desaparecen justo en «A pedido»: la condicion real es `! ( is_numeric($max) && (int)$max <= 1 )` (inc/woocommerce.php:524) y `get_max_purchase_quantity()` devuelve **-1** en `onbackorder`, que tambien cumple `<= 1`",
+    "§5.7 Los correos de marca del tema no llevan version de texto plano (pendiente de medir en base de datos)",
+    "AVISO que condiciona dos de los tres hallazgos ALTOS: WooCommerce NO esta en el snapshot. El -1 de `get_max_purchase_quantity()` (§5.4) y los filtros `..._partial_refunded_order` (§5.13) dependen de su codigo y hay que confirmarlos con un grep contra el WooCommerce instalado ANTES de tocar nada. La regla ALTA del capitulo descansa sobre ese -1"
+  ],
+  "verificacion": {
+    "cobertura_estimada_del_mapa": 88,
+    "omisiones_del_mapa_aplicadas": 7,
+    "errores_del_mapa_corregidos": 7,
+    "sospechas_refutadas": 4,
+    "correcciones_propias_del_redactor": 10,
+    "cobertura_nota": "Declarada ahora tambien en el preambulo del capitulo: NO se leyeron linea a linea animations.js, archive-intro.js, page-toc.js, akibara-brands-filter.js ni el grueso de las 18 hojas de CSS (30.503 lineas). Eso alcanza a §4.28, §4.38, §4.40 y a la mayor parte de §4.35",
+    "correcciones_a_verificacion_json": 3,
+    "criticas_de_lector_aplicadas": "todas las de .criticas/13-tema-akibara-gp.md (secciones 1, 2, 3, 4 y 5); ninguna resulto equivocada contra el codigo. Los matices se anotaron al final de la critica bajo «Respuesta del redactor»"
+  },
+  "diagramas_nota": "Cada .mmd se publica junto a su .svg ya renderizado, y el capitulo embebe el .svg (un visor de Markdown corriente no pinta un .mmd). Al tocar un .mmd hay que regenerar su .svg: mmdc -i diagramas/<f>.mmd -o diagramas/<f>.svg -b white. Los ocho renderizan con rc=0.",
+  "como_se_prueba": {
+    "espejo": "docker compose -f compose.yaml up -d  (sirve en http://localhost:8080)",
+    "regenerar_core_css": "bash tools/akibara-releases/build-theme-core-css.sh",
+    "sonda_marcada": "curl -s -A AkibaraQA 'http://localhost:8080/<slug-de-un-tomo>/' | grep -c 'akb-qty-btn'",
+    "gate": "bash tools/akibara-releases/qa-theme.sh [version] — prueba el ZIP de dist/, no el arbol. Los artefactos congelados conservan sus propios gates: qa-theme-production-superset.sh y qa-theme-seo-production.sh",
+    "panel_del_dueno": "/wp-admin/admin.php?page=akibara-panel&tab=copys (Textos) y &tab=native_cart (Carrito). El slug corto `akibara` da 403"
+  },
+  "correcciones_del_capitulo_a_verificacion_json": [
+    "Conteo de ganchos: son 69, no 63. verificacion.json cerraba diciendo «los 63 add_action/add_filter del tema estan todos representados». El conteo se hizo con una expresion que solo ve el nombre del gancho en la misma linea, y SIETE registros lo llevan en la siguiente porque la llamada va partida: inc/trust-badges.php:82, inc/setup.php:82, inc/woocommerce.php:200, :598, :613, :629 e inc/rank-math.php:36. 62 + 7 = 69",
+    "Apariciones de `#reviews .commentlist` en reviews-p5-v4.css: son ONCE reglas, no 15 (verificacion.json) ni 12 (version anterior del capitulo). La duodecima aparicion de la palabra esta en un comentario",
+    "Rango del preload de la ficha: functions.php:139-173 (verificacion.json ya lo decia bien; el capitulo escribia 139-180 en dos sitios. El fichero acaba en la linea 173)"
+  ],
+  "correcciones_del_capitulo_a_si_mismo": [
+    "«doce entradas en la raiz del tema» -> son CATORCE, y ahora se enumeran en el preambulo porque son el inventario contra el que un recien llegado compara su `ls`",
+    "«once guiones» -> DOCE guiones propios (uno de ellos solo de administracion) mas GSAP y ScrollTrigger en assets/js/vendor/",
+    "«hay que quitar el zoom dos veces» -> UNA vez. El tema NUNCA activa el zoom (inc/setup.php:57-58 son lightbox y slider); quien lo anade es GeneratePress en after_setup_theme:10, y por eso el tema lo retira en la prioridad 99 (inc/setup.php:82-88)",
+    "«si el servidor rechaza NO se recarga» -> se recarga en DOS ramas: pdp-ajax-atc.js:140 (la segunda peticion responde sin motivo) y :147 (esa peticion falla). Corregido tambien en el diagrama caso-compra-en-la-ficha",
+    "«GeneratePress: 5 filtros y 6 hooks de accion replicados» -> 5 filtros y 5 ACCIONES replicadas, mas un sexto gancho del padre del que el tema cuelga codigo",
+    "critical.css: medido hoy son 142 lineas y 5.885 bytes, de los cuales 4.209 son sus siete comentarios de bloque. El docblock de inc/enqueue.php:52-53 sigue diciendo «3.646 de sus 5.322 bytes»: medicion vieja que nadie actualizo",
+    "§5.9: la regla «un valor vacio es una decision» esta en el docblock DEL FICHERO (inc/site-copy.php:18-19), QUINCE lineas arriba de akibara_gp_copy() (:34-39), no tres",
+    "§5.3: son TRES llamadas sin `function_exists`, no dos. Faltaba functions.php:140 (`if ( ! is_product() )`, al empezar el cierre de wp_head:2), que tambien corre en toda pagina del front",
+    "«la clase de Ruta Amarilla» -> la clase real es `akb-sticky-atc__btn--preorder` (sticky-atc.php:35-39) y NO es amarilla: assets/css/woocommerce.css:4177-4189 la pinta ROJA, con su propio comentario diciendolo. «Ruta Amarilla» es solo un apodo interno de la preventa que sobrevive en dos comentarios",
+    "Los numeros sueltos (104 series, 106 paginas, 1.568 productos, ~1.600 fichas) se atribuyen ahora a los docblocks de los que salen, sin fecha y sin comando, y el capitulo da el comando para medirlos hoy en vez de fingir precision"
+  ],
+  "huecos_de_operacion_cerrados": [
+    "El tema NO tiene plantilla propia de pagina, de catalogo ni de ficha (no existen page.php, index.php, single-product.php ni archive-product.php): esas las sirven GeneratePress y WooCommerce y el tema solo las modifica por ganchos. Se dice ahora en «Piezas», antes de cualquier otra cosa",
+    "Tabla de inventario «fichero -> seccion» de una pantalla, para que un recien llegado ubique cualquier fichero del `ls`",
+    "Bloque «Como lo pruebo»: levantar el espejo, regenerar core.css y una sonda curl -A AkibaraQA; mas el gate real (tools/akibara-releases/qa-theme.sh)",
+    "Logos de editorial: la carpeta `assets/img/editoriales/`, la extension .svg obligatoria, la lista de los ocho que hay hoy, y que anadir el noveno EXIGE desplegar el tema — con la alternativa sin codigo (Productos -> Editoriales -> <editorial> -> Imagen)",
+    "Los tres PNG de los correos por su nombre (akb-email-logo-banner.png, akb-btn-red.png, akb-hdr-white.png), que viajan como URL absolutas a akibara.cl dentro de correos ya enviados, y el curl -I que comprueba que siguen publicos",
+    "RETIRADO en el tema 2.1.139: /suscripcion-confirmada/ no existe (404, ningun post en ningun estado), y con la pagina murieron AKIBARA_GP_SUBSCRIBED_PAGE y akibara_gp_is_subscribed_page(); el test PageTargetsTest.php:178-194 fija que no renazcan. Hoy inc/page-targets.php:56 es AKIBARA_GP_HOME_ALT y :83-85 akibara_gp_is_home_surface().",
+    "Quien abre el cajon de facetas: el tema solo pinta el boton (data-akb-drawer-open, inc/flyout-button.php:69-72); quien escucha es akb-search.js del plugin (:752, :1091, :1101) y el panel es #akb-facets-drawer (akibara-search/frontend/facets-render.php:119)",
+    "El aviso amarillo del carrito vacio tiene nombre: la funcion wc_empty_cart_message sobre la accion woocommerce_cart_is_empty (cart-empty.php:36-47)",
+    "El constructor «Arma tu pack» lo publica akibara-business (SeriesBundles/BuilderWidget.php:796) y sticky-atc.js lo detecta por [data-akb-sb-builder] (:16, :56-64)",
+    "Las cinco ubicaciones de menu con su nombre en wp-admin y el titulo que se ve en el sitio, que NO coinciden: akibara-footer-explore se llama «Akibara Footer — Explorar» y el titulo publicado es «Novedades»",
+    "Las redes del pie son literales de codigo (footer/main.php:115 y :118): cambiar de cuenta exige desplegar el tema",
+    "La URL exacta del panel: /wp-admin/admin.php?page=akibara-panel&tab=copys. El slug corto `akibara` da 403",
+    "Como verificar los correos en la bandeja: los asuntos y el remitente son datos de base de datos (woocommerce_customer_new_account_settings, woocommerce_customer_reset_password_settings, woocommerce_email_from_address/_from_name), no codigo, y el capitulo da los cuatro comandos",
+    "El 94% del catalogo tiene una sola unidad, asi que NO pintar los botones -/+ es el estado NORMAL de una ficha, no la excepcion",
+    "Como conviven el guard estatico y la banda del pie: en una ficha los cuatro sellos se imprimen DOS VECES en la misma pagina, a proposito (el pie llama directo a akibara_get_trust_badges_html() en footer/main.php:157, sin pasar por el guard de trust-badges.php:67-74)",
+    "De donde salen las «26 peticiones» que justifican core.css: son TODAS las hojas de estilo de la portada (tema + plugins), medidas en produccion el 2026-08-24 en movil sobre HTTP/3 (inc/enqueue.php:143-165)",
+    "El valor completo del ?ver (?ver=2.1.118.315532800) y donde se edita el numero que de verdad importa (style.css:8)"
+  ],
+  "actualizacion_2026_09_26": {
+    "version": "2.1.143 (en produccion 2026-09-26 06:11 UTC)",
+    "leido_contra": "dist/akibara-gp-2.1.143.zip",
+    "secciones_nuevas": [
+      "§4.42 toque-temprano.js",
+      "§4.43 animations-loader.js",
+      "§4.44 copias .min y woocommerce.css por contexto",
+      "§4.45 vista rapida como icono y tarjeta",
+      "§4.46 busqueda sin resultados (akibara_search_empty_after)",
+      "§4.47 serie de una guia del blog",
+      "§4.48 portada, catalogo, ficha e imagenes",
+      "§4.49 accesibilidad y sistema de diseno"
+    ],
+    "abiertos_al_desplegar": [
+      "VERIF-Z-1 (toque-temprano, WebKit)",
+      "VERIF-Z-2 (aviso de la vista rapida al girar)",
+      "PROD-COMP-2 (small de los sellos en escritorio)"
+    ],
+    "recuento": "84 add_action/add_filter (73 en 2.1.142); update_option, cron, REST y wp_mail siguen en 0; !important en las fuentes CSS 202 -> 129",
+    "ver_en_produccion": "2.1.143.1790403032 (06:10:32 UTC): mtime del fichero en el servidor, que ops/akibara-deploy-runtime.sh re-estampa al desplegar (TRAMPA 2, :24-32; el paso que la aplica es el find … -exec touch {} + de :143, explicado en el comentario de :126-142); el ZIP trae 1980. Ver §4.5"
+  }
+}

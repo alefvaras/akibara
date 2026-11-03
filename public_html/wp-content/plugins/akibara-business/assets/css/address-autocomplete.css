@@ -1,0 +1,104 @@
+/**
+ * Akibara — Address Autocomplete (Google Places Web Component).
+ *
+ * Los campos clásicos y Mi cuenta usan el componente oficial de Google.
+ * Sus CSS parts y color-scheme mantienen el panel y su atribución legibles
+ * sobre la paleta oscura de Akibara sin acceder al shadow DOM.
+ */
+
+.akb-pac-element {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	color-scheme: dark;
+	color: var(--aki-light, #e0e0e0);
+	background-color: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-input-border, #585858);
+	border-radius: 2px;
+	font-family: var(--font-body, sans-serif);
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+.akb-pac-element::part(input) {
+	color: var(--aki-light, #e0e0e0);
+	background-color: var(--aki-surface-2, #1a1a1a);
+	font: inherit;
+}
+
+.akb-pac-element::part(input)::placeholder {
+	color: var(--aki-gray-300, #b0b0b0);
+	opacity: 1;
+}
+
+.akb-pac-element::part(prediction-list) {
+	color: var(--aki-light, #e0e0e0);
+	background-color: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-input-border, #585858);
+	border-radius: 2px;
+	box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+}
+
+.akb-pac-element::part(prediction-item) {
+	min-height: 48px;
+	color: var(--aki-gray-300, #b0b0b0);
+	background-color: var(--aki-surface-2, #1a1a1a);
+	border-color: var(--aki-border, #2a2a2e);
+	font-family: inherit;
+}
+
+.akb-pac-element::part(prediction-item-main-text),
+.akb-pac-element::part(prediction-item-match) {
+	color: var(--aki-light, #e0e0e0);
+}
+
+.akb-pac-element::part(prediction-item-secondary-text),
+.akb-pac-element::part(prediction-item-icon) {
+	color: var(--aki-gray-300, #b0b0b0);
+}
+
+.akb-pac-element::part(prediction-item):hover,
+.akb-pac-element::part(prediction-item-selected) {
+	background-color: var(--aki-surface-3, #222);
+	box-shadow: inset 4px 0 0 var(--aki-red, #e60012);
+}
+
+.akb-pac-element:focus-within,
+.akb-pac-element::part(prediction-item-selected) {
+	outline: var(--aki-focus-outline, 3px solid #ffd700);
+	outline-offset: -3px;
+}
+
+/* Feedback visual de validación WC. WC pone .woocommerce-validated /
+   .woocommerce-invalid en el form-row cuando el input nativo (oculto) cambia
+   de estado. Como el web component está dentro del mismo form-row, el
+   box-shadow cae sobre su host element y replica el verde / rojo. */
+.form-row.woocommerce-validated > .akb-pac-element,
+.woocommerce-validated > .akb-pac-element {
+	box-shadow: 0 0 0 2px var(--aki-success);
+	border-radius: 0;
+	transition: box-shadow .15s ease;
+}
+.form-row.woocommerce-invalid > .akb-pac-element,
+.woocommerce-invalid > .akb-pac-element {
+	box-shadow: 0 0 0 2px var(--aki-error);
+	border-radius: 0;
+}
+
+@media (forced-colors: active) {
+	.akb-pac-element::part(prediction-item-selected) {
+		color: HighlightText;
+		background-color: Highlight;
+		outline-color: Highlight;
+	}
+
+	.akb-pac-element:focus-within {
+		outline-color: Highlight;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.woocommerce-validated > .akb-pac-element {
+		transition: none;
+	}
+}

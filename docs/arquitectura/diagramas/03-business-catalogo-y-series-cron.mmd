@@ -1,0 +1,15 @@
+%% Reloj del capítulo 03 — lo único programado por reloj de esta área y lo que se dispara por un hecho.
+%% Qué muestra: la única corrida con hora fija (el reorden de la vitrina, 05:00 de Chile) y los cuatro trabajos que no tienen hora porque los dispara un hecho del catálogo. Todos viajan por Action Scheduler, y la cola sólo avanza cuando el cron de Hostinger la empuja: cada 5 minutos. Por eso los «+120 s» de abajo son un mínimo, no un plazo.
+timeline
+    title Catálogo, series y packs — qué corre solo, en hora de Chile
+    section Latido que lo hace posible
+        Cada 5 minutos : La tarea de Hostinger llama a wp-cron.php — DISABLE_WP_CRON está encendido, el tráfico NO empuja nada
+        Agendada cada minuto, se ejecuta cada 5 : action_scheduler_run_queue — el motor de la cola de WooCommerce está AGENDADO cada minuto, pero nada lo despierta salvo la llamada de Hostinger. La cola avanza cada 5 minutos, no cada uno
+    section Única hora fija del área
+        05&#58;00 : akibara_catalog_order_daily — recalcula el menu_order de los 1.568 productos y, si escribió algo, dispara litespeed_purge_all: la ÚNICA purga del área que llega a Cloudflare, y por eso a las 05:00 (la landing de serie pasa de 48 a 1.057 ms mientras el borde se rellena). Se re-ancla si la acción se desvía más de 15 minutos, calculada con el calendario de la zona y no sumando desfases. Sólo se AGENDA en peticiones de admin, cron o consola
+    section Sin reloj — los dispara un hecho
+        Al dar de alta o de baja un producto : akibara_catalog_order_recompute a +120 s — agrupa la ráfaga de un import en una sola corrida. Un cambio de stock NO lo dispara
+        Desde el botón del panel : akibara_catalog_order_recompute a +0 s — no hay ráfaga que agrupar, hay una persona esperando
+        Al publicar un tomo : akb_sf_scan_product a +120 s (grupo akibara-series-follow) — el importador escribe el post antes de asignarle los términos. Se reencola a sí misma con un cursor mientras la página de compradores venga llena: ver el mismo producto varias veces en la cola es paginación, no duplicados
+        Tras el escaneo : akb_sf_digest_run a las 6 h configuradas — se reencadena mientras quede cola, y reintenta a +60 s hasta 4 veces si la clase del correo aún no es cargable
+        Al cambiar de dueño un pedido : akibara_business_cleanup_collection_owner_fence — limpia el rastro del dueño anterior en la caché de «qué tiene el cliente»

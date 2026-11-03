@@ -1,0 +1,43 @@
+%% Caso 3 del capítulo 19 — el dueño guarda un porcentaje de descuento de editorial.
+%% Qué muestra: el protocolo de la foto sellada entre el buscador y business, paso a paso, y las dos ramas en que el buscador se apaga en vez de publicar un precio inventado.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Panel as Panel Akibara (business)
+    participant Descuento as Módulo de descuentos (business)
+    participant Search as akibara-search
+    participant Provider as SearchPriceProvider (business)
+    participant Indice as Tabla akb_search_docs
+    participant LiteSpeed as LiteSpeed Cache
+
+    Dueno->>Panel: guarda «Ivrea 15%» en la ficha de la editorial
+    Panel->>Panel: escribe el termmeta del porcentaje
+    Note over Panel: do_action akibara_taxonomy_discount_pct_saved<br/>lo escuchan TRES sitios a la vez
+    Panel-->>Search: oyente 1 de 3 · Indexer.php:182
+    Panel-->>LiteSpeed: oyente 2 de 3 · LscPurger.php:62 agenda la purga
+    Panel-->>Descuento: oyente 3 de 3 · TaxonomyDiscount.php:152 invalida su propia caché
+    Search->>Search: marca deuda para los productos de esa editorial
+    Search->>Search: encola akb_search_pump_live en la cola de tareas
+    Note over Search: por cada documento que va a escribir
+    Search->>Search: saca una foto de TODA la configuración de descuento
+    Search->>Provider: adopt_search_snapshot(foto)
+    alt la foto es inválida o contradice la vigente
+        Provider-->>Search: lanza PriceAuthorityUnavailable y queda en FAILED
+        Search-->>Search: marca la lectura como no autoritativa
+        Note over Search: serving_ready() pasa a false<br/>el autocompletar desaparece y /tienda/ deja de filtrar
+    else la foto se adopta
+        Provider-->>Search: token sha256, estado PENDING
+        Search->>Provider: authoritative_snapshot() + snapshot_is_fresh(token)
+        alt la comparación byte a byte no calza
+            Provider-->>Search: no
+            Search-->>Search: se apaga entero, sin ningún mensaje al cliente
+        else calza exactamente
+            Provider-->>Search: sí
+            loop por cada producto de la editorial
+                Search->>Provider: apply_filters akb_search_effective_price
+                Provider-->>Search: precio con descuento (o lanza)
+            end
+            Search->>Indice: escribe price_effective ya sellado
+            Search-->>LiteSpeed: purga el HTML afectado
+        end
+    end

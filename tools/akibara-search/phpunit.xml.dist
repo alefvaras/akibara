@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="../../public_html/wp-content/plugins/akibara-search/tests/bootstrap.php"
+	cacheResult="false"
+	colors="true"
+	failOnRisky="true"
+	failOnWarning="true"
+	backupGlobals="true"
+>
+	<!--
+		backupGlobals: 12 archivos de test asignan `$GLOBALS['wpdb']` en su setUp
+		y NINGUNO lo restauraba, así que el doble se fugaba al siguiente test. Con
+		el orden aleatorio eso daba entre 2 y 9 rojos de cada 40 corridas
+		(«Undefined property: GapDismissalsWpdb::$options», «Call to undefined
+		method DemandGapsWpdb::get_var()») — rojos que no eran del producto sino
+		del arnés, y que en orden natural nunca aparecían. Restaurar los globales
+		alrededor de cada test cierra la clase entera de fuga en una línea, en vez
+		de parchear doce tearDown. Medido: 50 de 50 corridas aleatorias en verde,
+		con un sobrecoste de 0,04 s sobre 475 tests.
+	-->
+	<!--
+		Pruebas PHP de Akibara Search. El gate
+		`tools/akibara-releases/qa-search.sh` descubre dinámicamente esta suite
+		y los tests JavaScript presentes, y falla si no ejecuta ninguno. Reusa el
+		vendor de tools/akibara-business (mismo PHPUnit y Brain Monkey) para no
+		abrir un segundo árbol de dependencias, igual que tools/akibara-gp.
+
+		Ejecutar: ./tools/akibara-business/vendor/bin/phpunit -c tools/akibara-search/phpunit.xml.dist
+	-->
+	<testsuites>
+		<testsuite name="Akibara Search">
+			<directory suffix="Test.php">../../public_html/wp-content/plugins/akibara-search/tests</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

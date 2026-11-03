@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="../../public_html/wp-content/themes/akibara-gp/tests/bootstrap.php"
+	cacheResult="false"
+	colors="true"
+	failOnRisky="true"
+	failOnWarning="true"
+>
+	<!--
+		Pruebas PHP del theme (THM-06 de la auditoría 2026-07-29). La suite Node
+		de `themes/akibara-gp/tests/*.test.js` sigue cubriendo contratos de CSS y
+		fuente; esta cubre COMPORTAMIENTO: condicionales de ruta y callbacks de
+		filtro. Reusa el vendor de tools/akibara-business (mismo PHPUnit y Brain
+		Monkey) para no abrir un segundo árbol de dependencias.
+
+		Ejecutar: ./tools/akibara-business/vendor/bin/phpunit -c tools/akibara-gp/phpunit.xml.dist
+	-->
+	<testsuites>
+		<testsuite name="Akibara GP">
+			<directory suffix="Test.php">../../public_html/wp-content/themes/akibara-gp/tests</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

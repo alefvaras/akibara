@@ -1,0 +1,40 @@
+%% Caso 1 del capítulo 17 — el viaje completo de una option: el dueño cambia un texto del carrito.
+%% Qué muestra: las siete estaciones entre el botón Guardar y el texto que lee el cliente, incluidas la guarda que evita crear filas intactas y la purga de caché que sólo ocurre si algo cambió de verdad.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Panel as AdminPanel (business)
+    participant Woo as WooCommerce
+    participant Opts as wp_options
+    participant LS as LiteSpeed + Cloudflare
+    participant Tema as Tema akibara-gp
+    actor Cliente
+
+    Dueno->>Panel: Akibara → Textos (tab copys), cambia una frase y pulsa Guardar
+    Panel->>Panel: verifica nonce akibara_panel_save y capacidad manage_woocommerce
+    Panel->>Panel: filtro akibara_panel_save_errors (validación que bloquea ANTES de escribir)
+    alt alguna validación falla
+        Panel-->>Dueno: "No se guardó nada" (transient akibara_eda_save_errors_uid, 1 min)
+    else todo válido
+        Panel->>Panel: skip_untouched_default: los textos que no se tocaron no crean fila
+        Note over Panel: crear una fila nueva movería la huella de la fuente editorial y despertaría al buscador
+        Panel->>Woo: woocommerce_update_options(campos de la pestaña)
+        Woo->>Opts: escribe sólo lo que cambió, con el saneador de CopyManager
+        Opts-->>Panel: updated_option / added_option (recuento honesto)
+        alt hubo cambios reales y la pestaña tiene superficie cacheada
+            Panel->>LS: litespeed_purge_all en shutdown
+        else nada cambió, o pestaña sin superficie cacheada
+            Panel->>Panel: no se purga
+            Note over Panel,LS: medido en prod el 2026-09-06 (AdminPanel.php:284): entrar y pulsar Guardar<br/>sin cambiar nada llevaba la portada de 0,21-0,36 s a 2,55 s para el siguiente visitante
+        end
+        Panel->>Panel: options_that_did_not_stick(): compara lo enviado con lo releído
+        alt alguna escritura fue rechazada y era escalar
+            Panel-->>Dueno: "Se guardó todo menos esto: ..."
+        else
+            Panel-->>Dueno: "Ajustes guardados correctamente. Se limpió la caché del sitio"
+        end
+    end
+    Tema->>Opts: get_option del MISMO nombre (el contrato es el nombre)
+    Opts-->>Tema: texto nuevo
+    Tema-->>Cliente: la frase nueva en el pie y en el carrito
+    Note over Panel,Cliente: Correos que salen en este caso: ninguno.

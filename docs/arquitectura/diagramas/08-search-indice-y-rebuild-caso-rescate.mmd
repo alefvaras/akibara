@@ -1,0 +1,51 @@
+%% Caso 10 del capítulo 08 — el rescate manual del buscador atascado, paso a paso.
+%% Qué muestra: qué mirar ANTES de tocar nada, la parada de seguridad cuando existen tablas _old (ahí _old es la única marcha atrás), y por qué el orden —sombra PRIMERO, option DESPUÉS— es todo el arreglo. Medido en las dos direcciones el 2026-09-06.
+flowchart TB
+    classDef mirar fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef paso fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef stop fill:#fdecea,stroke:#c0392b,stroke-width:2px,color:#5a1a14
+    classDef bueno fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef decision fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    SINTOMA["EL SÍNTOMA<br/>El panel dice «La reconstrucción quedó bloqueada<br/>(orphan_topology_without_state)» y NO hay botón de reintento.<br/>wp akb-search rebuild → «Ya hay un rebuild en curso<br/>(option akb_search_rebuild_state)» con salida distinta de 0.<br/>wp akb-search reconcile → «ok», sin mirar que el índice va por detrás."]:::stop
+
+    MIRAR["PRIMERO MIRAR — tres órdenes que no cambian nada<br/>wp option get akb_search_rebuild_state --format=json<br/>wp option get akb_search_pending_rebuild --format=json<br/>wp db query &quot;SHOW TABLES LIKE 'wp_akb_search_%';&quot;"]:::mirar
+    SINTOMA --> MIRAR
+
+    DAVANZA{"¿«done» avanza y «work_blocked» está en cero?"}:::decision
+    MIRAR --> DAVANZA
+    DAVANZA -- "sí" --> ESPERAR["Entonces NO está atascado: es un rebuild normal.<br/>Esperar. No se rescata lo que está avanzando."]:::bueno
+
+    DAVANZA -- "no avanza, o la fase es BLOCKED / ABORTED" --> DOLD{"¿Existen tablas _old?"}:::decision
+
+    DOLD -- "SÍ" --> PARA["<b>EL GUION PARA, Y HACE BIEN.</b><br/>Si hay _old, el RENAME ya ocurrió: las _old son las tablas<br/>vivas anteriores y la ÚNICA vuelta atrás que existe<br/>— no hay rename inverso.<br/>Aquí NO se automatiza: hace falta una persona que decida."]:::stop
+
+    DOLD -- "no" --> ESPEJO["ENSAYO EN EL ESPEJO, primero<br/>bash ops/rescate-buscador.sh espejo<br/>(habla con WordPress por docker compose;<br/>los pasos y el orden son idénticos a los de producción)"]:::paso
+
+    ESPEJO --> PROD["bash ops/rescate-buscador.sh produccion<br/>habla por ssh akibara y pide escribir SI"]:::paso
+
+    subgraph PASOS["Los cuatro pasos, y el ORDEN es el arreglo"]
+        direction TB
+        P1["1 · Lee la topología por SQL PURO<br/>wp db query no arranca WordPress,<br/>así que no puede acuñar un bloqueo por el camino"]:::paso
+        P2["2 · PARA si hay tablas _old"]:::paso
+        P3["3 · Suelta las tablas _new — <b>PRIMERO</b>"]:::paso
+        P4["4 · Borra akb_search_rebuild_state — <b>DESPUÉS</b>,<br/>y sólo si las _new ya desaparecieron"]:::paso
+        P5["5 · Limpia los pumps encolados y lanza un rebuild limpio"]:::paso
+        P1 --> P2 --> P3 --> P4 --> P5
+    end
+    PROD --> PASOS
+
+    ALREVES["<b>AL REVÉS NO FUNCIONA.</b> Medido en las dos direcciones:<br/>• sólo soltar la sombra, dejando el BLOCKED → sigue atascado<br/>• sólo borrar la option, con la sombra puesta → el PRIMER arranque<br/>  de WordPress acuña BLOCKED / orphan_topology_without_state<br/>  (apareció solo a los ~40 s, sin teclear nada)<br/>• sombra PRIMERO, option DESPUÉS → única combinación que sale"]:::stop
+    P4 -.-> ALREVES
+
+    FIN["REPOSO SANO = option AUSENTE + topología clean_pre.<br/>No una fase terminal: escribir PHASE_ABORTED deja<br/>el mismo pestillo con otro nombre."]:::bueno
+    P5 --> FIN
+
+    DESPUES["Y DESPUÉS, DOS COMPROBACIONES QUE EL GUION NO HACE<br/>1 · ¿Sigue habiendo una acción de borde que apague la promoción?<br/>   Un rescate puede dejarla sin coincidir, y entonces NADIE la apaga.<br/>2 · ¿Quedaron productos en «bloqueado» por reintentos quemados<br/>   durante el episodio? SELECT status, COUNT(*) FROM wp_akb_search_work GROUP BY status;"]:::mirar
+    FIN --> DESPUES
+
+    CORREOS["CORREOS<br/>El de «lleva rato caído» ya habrá salido si el episodio pasó de 900 s.<br/>El de «volvió» sale cuando el rescate funciona."]:::bueno
+    DESPUES --> CORREOS
+
+    FALLO["Si drop_shadow_tables() falla,<br/>probablemente alguien tiene el WriteFence tomado: reintentar."]:::mirar
+    P3 -.-> FALLO

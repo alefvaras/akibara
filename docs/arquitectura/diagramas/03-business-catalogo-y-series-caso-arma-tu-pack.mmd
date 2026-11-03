@@ -1,0 +1,60 @@
+%% Caso 4 del capítulo 03 — un cliente arma un pack de tomos desde la landing de la serie y el descuento sobrevive hasta el pedido.
+%% Qué muestra: por qué el HTML de la landing no lee usuario ni carrito (es cacheable), cómo se pide el progreso personal después, las tres guardas del endpoint público, la bifurcación del cupón de campaña externo, y cómo el aporte por línea queda sellado en el pedido.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Tema as Tema akibara-gp<br/>landing /serie/kingdom/
+    participant LO as LandingOffer<br/>akibara-business
+    participant PBR as PublicBatchRequest
+    participant COL as CartSeriesCollector
+    participant ENG as DiscountEngine<br/>+ Support\Money
+    participant CUP as BundleCouponEngine
+    participant Woo as WooCommerce<br/>carrito y pedido
+    participant OI as OrderInstrumentation
+
+    Cliente->>Tema: llega desde Google a /serie/kingdom/
+    Tema->>LO: woocommerce_before_shop_loop, prioridad 40
+    LO->>LO: recorre el universo real de la serie con los CUATRO guardas del carrito
+    LO->>Tema: pinta el riel «Completa tu colección de Kingdom»<br/>sólo con los tramos que la serie ALCANZA
+    Note over LO,Tema: esta página se cachea y se indexa — anunciar un tramo<br/>que el carrito nunca dará es mentir en frío
+    Note over LO: el HTML no lee usuario, ni pedidos, ni carrito — por eso es cacheable
+
+    Cliente->>LO: el navegador pide el progreso personal<br/>wp_ajax_nopriv_akb_sb_collection_state
+    alt Invitado
+        LO-->>Cliente: «no autenticado» y un enlace para iniciar sesión que vuelve a la landing
+    else Sesión iniciada
+        LO->>COL: qué tomos de Kingdom ya tiene (nunca acepta un user_id — usa el de la sesión)
+        COL-->>Cliente: marca lo comprado en las tarjetas
+    end
+
+    Cliente->>LO: marca tomos (la selección se guarda en el navegador, por serie)
+    Cliente->>LO: pulsa «Agregar seleccionados»
+    LO->>PBR: wp_ajax_nopriv_akb_sb_add_series_selection
+    PBR->>PBR: mismo origen, tope de 300 IDs, 10 peticiones por minuto e IP
+    Note over PBR: el nonce de invitado viaja en HTML cacheado —<br/>es el MISMO para todos los invitados del sitio
+    PBR->>COL: revalida cada producto contra la serie exacta
+    COL->>Woo: añade al carrito, tomo a tomo
+    Woo-->>Cliente: respuesta PARCIAL: cuántos entraron y cuáles<br/>(el carrito puede rechazar uno entre validar y escribir)
+
+    Woo->>CUP: woocommerce_before_calculate_totals, prioridad 1000
+    Note over CUP: corre DESPUÉS del descuento editorial (prioridad 20)<br/>para leer precios ya rebajados
+    CUP->>COL: carrito → serie → configuración (la única rutina)
+    COL->>ENG: tomos distintos por serie y precios vigentes
+    ENG->>ENG: gana el mejor precio: si el filtrado ya es ≤ el objetivo del tramo, el aporte es 0
+    ENG->>ENG: Money::round redondea a los decimales de WooCommerce
+
+    alt El cliente aplicó un cupón de campaña externo
+        CUP-->>Woo: el pack CEDE — no se apila
+        Woo-->>Cliente: aviso propio del carrito explicando por qué
+    else Sin cupón externo y con descuento estrictamente positivo
+        CUP->>Woo: fabrica un cupón virtual akb_sb_* que NO existe en la base
+        Note over CUP,Woo: nunca set_price() — cambiar el precio del producto<br/>rompe el cálculo del envío gratis
+        Woo-->>Cliente: total rebajado, y «te falta 1 tomo para el siguiente tramo» si aplica
+    end
+
+    Cliente->>Woo: paga
+    Woo->>OI: woocommerce_checkout_create_order, prioridad 20
+    OI->>Woo: sella el aporte POR LÍNEA en el ítem de cupón, con claves provisionales
+    Woo->>OI: un hook posterior sustituye las claves por los IDs reales de línea
+    Note over OI,Woo: en el checkout de bloques WooCommerce reutiliza un pedido borrador —<br/>un hook con carrito vivo reconstruye el mapa y NUNCA reutiliza el importe anterior
+    OI->>Woo: escribe las cinco metas del pedido: usado, descuento, series, distintos y tramos

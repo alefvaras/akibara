@@ -1,0 +1,15 @@
+/**
+ * Joinchat compatibility for the mobile home trust grid.
+ *
+ * JavaScript adds the state only while the real fixed button rectangle
+ * intersects the trust section. Keep an open/focused chat available even if
+ * layout changes underneath it.
+ */
+@media (max-width: 768px) {
+	body.home
+		.joinchat.akb-joinchat--trust-overlap:not(.joinchat--chatbox):not(:focus-within) {
+		opacity: 0 !important;
+		visibility: hidden !important;
+		pointer-events: none !important;
+	}
+}

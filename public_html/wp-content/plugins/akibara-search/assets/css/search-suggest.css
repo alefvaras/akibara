@@ -1,0 +1,653 @@
+/**
+ * search-suggest.css — panel del autocomplete. Tokens de la casa (rojo/negro/
+ * crema), sin dependencias. Mantener liviano (presupuesto del buscador).
+ */
+.akb-suggest-panel {
+	position: absolute;
+	z-index: 60;
+	left: 0;
+	right: 0;
+	top: calc( 100% + 4px );
+	/*
+	 * El límite 78vh/560px permite mostrar el grupo de series y la salida «Ver los N resultados»
+	 * sin ocultarlos tras un panel demasiado corto. A 375×812, un inicio cercano a y=166 deja el
+	 * límite de 560px dentro del viewport.
+	 */
+	max-height: min( 78vh, 560px );
+	overflow-y: auto;
+	background: var( --aki-surface, #fffdf7 );
+	border: 2px solid var( --aki-border, #2a2a2e );
+	border-radius: 2px;
+	/* Acento rojo editorial brutalista + sombra de tinta negra */
+	box-shadow: inset 3px 0 0 var( --aki-red, #E60012 ), 6px 6px 0 var( --aki-black, #121212 );
+	padding: 4px;
+}
+
+.akb-suggest-item {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	padding: 8px 10px;
+	border-radius: 2px;
+	text-decoration: none;
+	color: inherit;
+}
+
+.akb-suggest-item {
+	transition: background-color 140ms cubic-bezier( 0.23, 1, 0.32, 1 );
+}
+
+.akb-suggest-item.is-active,
+.akb-suggest-item:hover,
+.akb-suggest-item:focus {
+	background: rgba( 200, 16, 46, 0.08 );
+	/*
+	 * Declarar color explícito en hover: a:hover del theme tiene más especificidad que
+	 * color:inherit y aplica #222 sobre el panel #111, ocultando título y precio.
+	 */
+	color: var( --aki-gray-200, #e0e0e0 );
+}
+
+.akb-suggest-thumb {
+	width: 40px;
+	height: 40px;
+	object-fit: cover;
+	border-radius: 2px;
+	flex: 0 0 auto;
+	background: rgba( 0, 0, 0, 0.05 );
+}
+
+.akb-suggest-body {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	gap: 2px;
+}
+
+.akb-suggest-title {
+	font-weight: 600;
+	font-size: 0.9rem;
+	line-height: 1.2;
+	/*
+	 * Permitir hasta dos líneas para títulos largos dentro del ancho heredado del input, en vez de
+	 * truncarlos a una línea.
+	 */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.akb-suggest-title mark {
+	background: transparent;
+	/*
+	 * Usar --aki-red-text para texto pequeño sobre #111: ofrece aproximadamente 5,2:1. --aki-red
+	 * (#e60012) queda en 3,9:1 y --aki-red-readable (#CC0010), destinado a fondos claros, en
+	 * 2,9:1.
+	 */
+	color: var( --aki-red-text, #ff4756 );
+	font-weight: 700;
+}
+
+.akb-suggest-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8rem;
+	opacity: 0.85;
+}
+
+.akb-suggest-badge {
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	padding: 1px 6px;
+	border-radius: 999px;
+}
+
+/* Colores de estado del tema (tokens.css, DS-9): las insignias del buscador
+ * dicen lo mismo, con el mismo color, que las de las tarjetas y la ficha. Con
+ * sus tonos propios (#46c97c, gris #a9a9a9) el «Disponible» del buscador era
+ * otro verde que el de la ficha.
+ *   - ok:  --aki-status-ok sobre su tinte al 14 % → 8,5:1.
+ *   - out: --aki-status-out-fg sobre --aki-status-out-bg → 8,6:1.
+ *   - pre: NO pasa a --aki-status-preorder: ese rojo brillante sobre su tinte da
+ *     4,27:1, bajo el 4,5 de AA para un texto de 10,9 px. Se queda en
+ *     --aki-red-text (5,05:1), como el badge «Serie». El token de preventa en
+ *     el tema es un BORDE (loop.css), no un color de texto pequeño.
+ * Los respaldos son los valores de los tokens, por si la hoja carga sin el tema. */
+.akb-badge-ok { background: color-mix( in srgb, var( --aki-status-ok, #66de98 ) 14%, transparent ); color: var( --aki-status-ok, #66de98 ); }
+.akb-badge-pre { background: rgba( 200, 16, 46, 0.16 ); color: var( --aki-red-text, #ff4756 ); }
+.akb-badge-order { background: rgba( 0, 168, 232, 0.16 ); color: #38bdf8; }
+.akb-badge-out { background: var( --aki-status-out-bg, #2a2a2e ); color: var( --aki-status-out-fg, #e0e0e0 ); }
+
+/* ── Sugerencias de SERIE (grupo propio, arriba de los tomos) ──
+ * Tienen que LEERSE distintas de un producto: sin thumb ni precio, una fila
+ * igual a la de un tomo parecía una tarjeta rota. El icono (tres lomos
+ * apilados) ocupa el mismo cuadro de 40px que la portada para que la grilla no
+ * se desalinee, y el badge «Serie» va con el rojo de marca (mismo token que el
+ * <mark>, ya verificado en AA sobre el panel). */
+.akb-suggest-serie {
+	min-height: 44px; /* target táctil WCAG 2.5.8, igual que el resto de options */
+}
+
+.akb-suggest-serie-icon {
+	width: 40px;
+	height: 40px;
+	flex: 0 0 auto;
+	padding: 8px;
+	border-radius: 6px;
+	background: rgba( 200, 16, 46, 0.12 );
+	fill: var( --aki-red-text, #ff4756 );
+	box-sizing: border-box;
+}
+
+.akb-badge-serie {
+	background: rgba( 200, 16, 46, 0.16 );
+	color: var( --aki-red-text, #ff4756 );
+}
+
+/* Footer "Ver los N resultados": comparte .akb-suggest-item (foco/flechas/
+ * hover-bg); el color va DESPUÉS de la regla de estados de arriba para ganar
+ * el cascade a igual especificidad — mismo gotcha del a:hover global. */
+.akb-suggest-more {
+	justify-content: center;
+	min-height: 44px; /*
+	min-height: 44px;  * Mantener el mínimo táctil explícito; padding y line-height solos dejan aproximadamente 38px.
+	min-height: 44px;  */
+	margin-top: 4px;
+	border-top: 1px solid rgba( 255, 255, 255, 0.1 );
+	border-radius: 0 0 8px 8px;
+	font-weight: 700;
+	font-size: 0.85rem;
+	color: var( --aki-red-text, #ff4756 );
+}
+
+.akb-suggest-more.is-active,
+.akb-suggest-more:hover,
+.akb-suggest-more:focus {
+	color: var( --aki-red-text, #ff4756 );
+}
+
+.akb-suggest-empty,
+.akb-suggest-loading,
+.akb-suggest-error {
+	padding: 14px 12px;
+	font-size: 0.85rem;
+	opacity: 0.75;
+}
+
+.akb-suggest-error {
+	color: var( --aki-red-text, #ff4756 );
+	opacity: 1;
+}
+
+/*
+ * La corrección fuzzy encabeza el panel con role=status, sin ser una option. Separarla de las
+ * tarjetas mediante borde y destacar el término corregido en strong.
+ */
+.akb-suggest-correction {
+	padding: 10px 12px;
+	font-size: 0.8rem;
+	line-height: 1.35;
+	opacity: 0.8;
+	border-bottom: 1px solid var( --aki-hairline, rgba( 0, 0, 0, 0.08 ) );
+}
+
+.akb-suggest-correction strong {
+	font-weight: 700;
+	color: var( --aki-red-text, #ff4756 );
+	opacity: 1;
+}
+
+/*
+ * El aviso de editorial comparte estructura con la corrección, pero no es un
+ * tipeo: lleva el acento amarillo de la marca para que se lea como información
+ * y no como un error del cliente.
+ */
+.akb-suggest-correction[data-akb-relaxed] {
+	opacity: 1;
+	border-left: 3px solid var( --aki-red, #E60012 );
+	background: var( --aki-surface-2, rgba( 0, 0, 0, 0.03 ) );
+}
+
+.akb-suggest-correction[data-akb-relaxed] strong { color: inherit; }
+
+.akb-suggest-correction[data-akb-relaxed] .akb-relaxed__brand {
+	color: var( --aki-red-text, #ff4756 );
+}
+
+/*
+ * Con el campo vacío y enfocado, mostrar recientes y populares.
+ */
+
+/* Encabezado de grupo: NO es option (role=presentation), fuera del recorrido. */
+.akb-suggest-head {
+	padding: 8px 10px 4px;
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	opacity: 0.65;
+}
+
+/* Los pseudo-items <button> heredan la fila de .akb-suggest-item; reset
+ * chromeless (mismos leaks GP/WC que la lupa del header). */
+button.akb-suggest-item {
+	width: 100%;
+	background: transparent;
+	border: 0;
+	margin: 0;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.akb-suggest-zero {
+	min-height: 44px; /* target táctil */
+}
+
+.akb-suggest-clear {
+	justify-content: center;
+	min-height: 44px;
+	font-size: 0.78rem;
+	font-weight: 600;
+	opacity: 0.8;
+	border-top: 1px solid rgba( 255, 255, 255, 0.1 );
+	border-radius: 0;
+}
+
+/* Contexto solo para AT ("Reciente:"/"Popular:" en el accname). */
+.akb-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect( 0, 0, 0, 0 );
+	white-space: nowrap;
+}
+
+/* ── Subencabezados y secciones duales (Bodega vs Encargo) ── */
+.akb-suggest-subhead {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 10px 4px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var( --aki-gray-300, #b0b0b5 );
+	border-top: 1px solid var( --aki-hairline, rgba( 255, 255, 255, 0.08 ) );
+	margin-top: 4px;
+}
+
+.akb-suggest-subhead:first-child {
+	border-top: 0;
+	margin-top: 0;
+}
+
+.akb-subhead--bodega {
+	color: var( --aki-status-ok, #66de98 );
+}
+
+.akb-subhead--encargo {
+	color: #a78bfa; /* Morado encargo editorial */
+}
+
+.akb-subhead-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.akb-dot--ok {
+	background: var( --aki-status-ok, #66de98 );
+	box-shadow: 0 0 6px rgba( 102, 222, 152, 0.6 );
+}
+
+.akb-dot--encargo {
+	background: #a78bfa;
+	box-shadow: 0 0 6px rgba( 167, 139, 250, 0.6 );
+}
+
+.akb-suggest-item--encargo {
+	border-left: 2px solid #7c3aed;
+	background: rgba( 124, 58, 237, 0.04 );
+}
+
+.akb-suggest-item--encargo:hover,
+.akb-suggest-item--encargo:focus,
+.akb-suggest-item--encargo.is-active {
+	background: rgba( 124, 58, 237, 0.12 );
+}
+
+.akb-suggest-encargo-tag {
+	display: inline-block;
+	font-size: 0.65rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 1px 6px;
+	border-radius: 2px;
+	background: #7c3aed;
+	color: #fff;
+	margin-left: 4px;
+}
+
+.akb-suggest-reservar-tag {
+	display: inline-block;
+	font-size: 0.65rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 1px 6px;
+	border-radius: 2px;
+	background: rgba( 255, 255, 255, 0.08 );
+	border: 1px solid rgba( 255, 255, 255, 0.2 );
+	color: #fff;
+	margin-left: 4px;
+	transition: background 120ms ease, border-color 120ms ease;
+}
+
+.akb-suggest-item:hover .akb-suggest-reservar-tag,
+.akb-suggest-item:focus .akb-suggest-reservar-tag,
+.akb-suggest-item.is-active .akb-suggest-reservar-tag {
+	background: var( --aki-red-bright, #c8102e );
+	border-color: var( --aki-red-bright, #c8102e );
+}
+
+/* Banner / Trigger para pedir por encargo dentro de sugerencias */
+.akb-suggest-request-banner {
+	padding: 6px 4px 4px;
+	margin-top: 4px;
+	border-top: 1px dashed rgba( 255, 255, 255, 0.15 );
+}
+
+.akb-suggest-request-trigger,
+.akb-suggest-request-btn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 8px 12px;
+	background: rgba( 124, 58, 237, 0.1 );
+	border: 1px dashed #7c3aed;
+	border-radius: 2px;
+	color: #ddd;
+	font-size: 0.8rem;
+	cursor: pointer;
+	text-align: center;
+	transition: all 140ms ease-out;
+}
+
+.akb-suggest-request-trigger:hover,
+.akb-suggest-request-btn:hover {
+	background: #7c3aed;
+	color: #fff;
+}
+
+.akb-suggest-request-trigger strong,
+.akb-suggest-request-btn strong {
+	color: #fff;
+}
+
+.akb-suggest-empty-cta {
+	padding: 0 10px 10px;
+}
+
+/* ── Modal Rápido de Solicitud (Soberano MariaDB) ── */
+.akb-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	background: rgba( 10, 10, 12, 0.82 );
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	box-sizing: border-box;
+}
+
+.akb-modal-overlay[hidden] {
+	display: none !important;
+}
+
+.akb-modal-dialog {
+	position: relative;
+	background: #18181c;
+	color: #fffdf7;
+	border: 2px solid #2a2a2e;
+	box-shadow: 6px 6px 0 #000;
+	border-radius: 4px;
+	max-width: 490px;
+	width: 100%;
+	max-height: 92vh;
+	overflow-y: auto;
+	padding: 24px;
+	box-sizing: border-box;
+	animation: akb-modal-pop 160ms cubic-bezier( 0.16, 1, 0.3, 1 );
+}
+
+@keyframes akb-modal-pop {
+	from { opacity: 0; transform: scale( 0.96 ) translateY( 8px ); }
+	to { opacity: 1; transform: scale( 1 ) translateY( 0 ); }
+}
+
+.akb-modal-close {
+	position: absolute;
+	top: 14px;
+	right: 14px;
+	background: transparent;
+	border: 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #e2e2e8;
+	cursor: pointer;
+	padding: 4px 8px;
+	line-height: 1;
+	border-radius: 2px;
+}
+
+.akb-modal-close:hover {
+	background: rgba( 255, 255, 255, 0.1 );
+	color: #fff;
+}
+
+.akb-modal-badge {
+	display: inline-block;
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 2px 8px;
+	border-radius: 999px;
+	margin-bottom: 8px;
+}
+
+.akb-req-pill--encargo { background: rgba( 124, 58, 237, 0.2 ); color: #c4b5fd; border: 1px solid rgba( 124, 58, 237, 0.4 ); }
+.akb-req-pill--pedido { background: rgba( 59, 130, 246, 0.2 ); color: #93c5fd; border: 1px solid rgba( 59, 130, 246, 0.4 ); }
+.akb-req-pill--agotado { background: rgba( 239, 68, 68, 0.2 ); color: #fca5a5; border: 1px solid rgba( 239, 68, 68, 0.4 ); }
+.akb-req-pill--preventa { background: rgba( 245, 158, 11, 0.2 ); color: #fde68a; border: 1px solid rgba( 245, 158, 11, 0.4 ); }
+
+.akb-modal-title {
+	font-size: 1.25rem;
+	font-weight: 800;
+	margin: 0 0 6px;
+	line-height: 1.2;
+	color: #ffffff;
+}
+
+.akb-modal-intro {
+	font-size: 0.85rem;
+	color: #b0b0ba;
+	margin: 0 0 16px;
+	line-height: 1.4;
+}
+
+.akb-modal-form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.akb-field-group {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.akb-field-group label {
+	font-size: 0.8rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	color: #e0e0e6;
+}
+
+.akb-req-star {
+	color: var( --aki-red, #E60012 );
+}
+
+.akb-opt {
+	font-weight: 400;
+	font-size: 0.75rem;
+	color: #90909c;
+}
+
+.akb-field-group input[type="text"] {
+	padding: 10px 12px;
+	border: 2px solid #33333a;
+	border-radius: 2px;
+	background: #101014;
+	color: #ffffff;
+	font-size: 16px; /* 16px evita zoom indeseado en iOS */
+	font-family: inherit;
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.akb-field-group input[type="text"]:focus {
+	outline: none;
+	border-color: var( --aki-red, #E60012 );
+	box-shadow: 2px 2px 0 var( --aki-black, #121212 );
+}
+
+.akb-field-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+@media ( max-width: 480px ) {
+	.akb-field-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+.akb-modal-actions {
+	margin-top: 6px;
+}
+
+.akb-modal-btn-submit {
+	width: 100%;
+	padding: 12px 18px;
+	background: var( --aki-red, #E60012 );
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.95rem;
+	border: 2px solid var( --aki-black, #121212 );
+	border-radius: 2px;
+	box-shadow: 3px 3px 0 var( --aki-black, #121212 );
+	cursor: pointer;
+	transition: all 120ms ease-out;
+}
+
+.akb-modal-btn-submit:hover:not(:disabled) {
+	transform: translate( -1px, -1px );
+	box-shadow: 4px 4px 0 var( --aki-black, #121212 );
+	background: #cc0010;
+}
+
+.akb-modal-btn-submit:active:not(:disabled) {
+	transform: translate( 2px, 2px );
+	box-shadow: 1px 1px 0 var( --aki-black, #121212 );
+}
+
+.akb-modal-btn-submit:disabled {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.akb-modal-disclaimer {
+	font-size: 0.75rem;
+	color: #8c8c98;
+	line-height: 1.35;
+	margin: 6px 0 0;
+	text-align: center;
+}
+
+.akb-modal-success {
+	text-align: center;
+	padding: 16px 8px;
+}
+
+.akb-success-icon {
+	width: 52px;
+	height: 52px;
+	border-radius: 50%;
+	background: var( --aki-status-ok, #66de98 );
+	color: #064e3b;
+	font-size: 1.8rem;
+	font-weight: 900;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 14px;
+	border: 2px solid var( --aki-black, #121212 );
+	box-shadow: 3px 3px 0 var( --aki-black, #121212 );
+}
+
+.akb-success-title {
+	font-size: 1.3rem;
+	font-weight: 800;
+	margin: 0 0 8px;
+	color: #ffffff;
+}
+
+.akb-success-desc {
+	font-size: 0.9rem;
+	color: #c4c4cc;
+	line-height: 1.45;
+	margin: 0 0 20px;
+}
+
+body.akb-modal-open {
+	overflow: hidden;
+}
+
+@media ( prefers-reduced-motion: no-preference ) {
+	.akb-suggest-panel { animation: akb-suggest-in 120ms ease-out; }
+	@keyframes akb-suggest-in {
+		from { opacity: 0; transform: translateY( -4px ); }
+		to { opacity: 1; transform: translateY( 0 ); }
+	}
+	/*
+	 * Escalonar la entrada con límite en el octavo ítem.
+	 */
+	.akb-suggest-item {
+		animation: akb-suggest-in 160ms ease-out backwards;
+	}
+	.akb-suggest-item:nth-child(2) { animation-delay: 30ms; }
+	.akb-suggest-item:nth-child(3) { animation-delay: 60ms; }
+	.akb-suggest-item:nth-child(4) { animation-delay: 90ms; }
+	.akb-suggest-item:nth-child(5) { animation-delay: 120ms; }
+	.akb-suggest-item:nth-child(6) { animation-delay: 150ms; }
+	.akb-suggest-item:nth-child(7) { animation-delay: 180ms; }
+	.akb-suggest-item:nth-child(n+8) { animation-delay: 210ms; }
+}

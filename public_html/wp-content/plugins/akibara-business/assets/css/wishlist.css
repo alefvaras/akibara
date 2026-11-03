@@ -1,0 +1,329 @@
+/**
+ * Akibara Wishlist — botón corazón loop/single + página /mi-cuenta/favoritos/.
+ *
+ * Sin overrides al plugin externo: todos los selectores son `.akb-wl-*`
+ * propios. El CSS legacy `theme/assets/css/wishlist.css` (overrides al plugin
+ * WPC) se elimina en sesión 2 cuando desactivemos el plugin.
+ *
+ * Durante sesión 1 coexistimos con el botón viejo del plugin: lo ocultamos al
+ * final de este archivo (1 selector, transicional).
+ *
+ * @package Akibara\Business
+ */
+
+/* ─── Botón corazón en loop ─────────────────────────────────────── */
+/* Posicionado absolute bottom-right de la portada (cover).
+ * Fondo oscuro semitransparente para legibilidad, como en el diseño original. */
+.woocommerce ul.products li.product .akb-product-cover-wrap > img {
+	margin-bottom: 0;
+}
+
+/*
+ * El shim absoluto del corazón replica el cover y mantiene su proporción 2/3 en sincronía con
+ * la jaula del tema. El botón queda fuera del enlace de portada. pointer-events:none deja
+ * pasar la interacción al cover.
+ */
+.products li.product .akb-wl-anchor {
+	position: absolute;
+	inset: 0 0 auto 0;
+	aspect-ratio: 2 / 3;
+	pointer-events: none;
+	z-index: 2;
+}
+
+.products li.product .akb-wl-toggle--loop {
+	position: absolute;
+	top: auto;
+	bottom: var(--space-2, 8px);
+	right: var(--space-2, 8px);
+	pointer-events: auto; /* re-habilita el click bajo el shim inerte */
+	z-index: 2;
+	background: rgba(0, 0, 0, 0.55);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 999px;
+	padding: 0;
+	width: 44px;
+	height: 44px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--aki-white, #fff);
+	cursor: pointer;
+	transition: color var(--transition-fast, 150ms ease), transform var(--transition-fast, 150ms ease), background-color var(--transition-fast, 150ms ease);
+	-webkit-tap-highlight-color: transparent;
+	opacity: 0.92;
+}
+
+
+
+/* El box real mide 44×44 en todos los breakpoints. El pseudo-elemento suma
+ * 2px de tolerancia por lado sin cambiar el tamaño visual del corazón. */
+.products li.product .akb-wl-toggle--loop::before {
+	content: "";
+	position: absolute;
+	inset: -2px;
+}
+
+/*
+ * El hover sólo se aplica en dispositivos hover:hover. No se resetea con hover:none, ya que
+ * una regla posterior de igual especificidad podría borrar el estado guardado tras un toque.
+ */
+@media (hover: hover) {
+	.products li.product .akb-wl-toggle--loop:hover {
+		color: var(--aki-red, #e63946);
+		background: rgba(0, 0, 0, 0.7);
+		outline: none;
+		transform: scale(1.08);
+		opacity: 1;
+	}
+}
+
+/* El foco de teclado es otro eje y NO se puede meter en la puerta de hover: un
+ * teclado existe en dispositivos sin hover. Va suelto. */
+.products li.product .akb-wl-toggle--loop:focus-visible {
+	color: var(--aki-red, #e63946);
+	background: rgba(0, 0, 0, 0.7);
+	outline: none;
+	transform: scale(1.08);
+	opacity: 1;
+}
+
+.products li.product .akb-wl-toggle--loop.is-saved {
+	color: var(--aki-red, #e63946);
+	background: rgba(0, 0, 0, 0.7);
+	opacity: 1;
+}
+
+.products li.product .akb-wl-toggle--loop.is-saved .akb-wl-toggle__icon {
+	fill: currentColor;
+}
+
+.products li.product .akb-wl-toggle--loop.is-loading {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* ─── Botón corazón en single product ───────────────────────────── */
+/* Inline-flex junto al ATC. Padding mínimo, hit target 44px. */
+.akb-wl-toggle--single {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2, 8px);
+	background: transparent;
+	border: 2px solid var(--aki-black, #121212);
+	color: var(--aki-white, #fff);
+	padding: var(--space-2, 8px) var(--space-4, 16px);
+	border-radius: 0;
+	font-weight: var(--weight-semibold, 600);
+	font-size: var(--text-sm, 14px);
+	cursor: pointer;
+	min-height: 44px;
+	margin: var(--space-3, 12px) 0 0;
+	transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease), box-shadow var(--transition-fast, 150ms ease), transform var(--transition-fast, 150ms ease);
+}
+
+.akb-wl-toggle--single:hover,
+.akb-wl-toggle--single:focus-visible {
+	border-color: var(--aki-black, #121212);
+	background-color: var(--aki-red, #e63946);
+	color: var(--aki-white, #fff);
+	box-shadow: 2px 2px 0px var(--aki-black, #121212);
+	transform: translate(-2px, -2px);
+	outline: none;
+}
+
+.akb-wl-toggle--single.is-saved {
+	border-color: var(--aki-black, #121212);
+	color: var(--aki-red, #e63946);
+	background-color: transparent;
+	box-shadow: 2px 2px 0px var(--aki-black, #121212);
+	transform: translate(-2px, -2px);
+}
+
+.akb-wl-toggle--single.is-saved .akb-wl-toggle__icon {
+	fill: currentColor;
+}
+
+.akb-wl-toggle--single.is-loading {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* ─── Empty state en /mi-cuenta/favoritos/ ──────────────────────── */
+/* Render.php aplica `.akb-empty` + `.akb-empty__hero` + `.akb-empty__title` +
+ * `.akb-empty__subtitle` + `.akb-empty__cta-row` + `.akb-empty__btn--primary`
+ * + cross-sell de 4 más vendidos. Todo el styling vive en
+ * `theme/assets/css/empty-states.css` (sistema unificado con cart-empty / 404
+ * / no-products-found). Aquí solo conservamos overrides exclusivos del
+ * contexto wishlist (icono del corazón). */
+
+.akb-wl-empty__icon {
+	color: var(--aki-gray-400, #6b6b6b);
+	margin-bottom: var(--space-4, 16px);
+}
+
+/* ─── Grid de items en /mi-cuenta/favoritos/ ────────────────────── */
+.akb-wl-grid-wrap {
+	margin-top: var(--space-3, 12px);
+}
+
+.akb-wl-grid__lead {
+	color: var(--aki-gray-300, #9a9a9a);
+	font-size: var(--text-sm, 14px);
+	margin: 0 0 var(--space-4, 16px);
+}
+
+/*
+ * Explicación secundaria de por qué algunos productos guardados no tienen tarjeta visible.
+ */
+.akb-wl-grid__nota {
+    display: block;
+    margin-top: 2px;
+    color: var(--aki-gray-400, #9e9e9e);
+    font-size: .9em;
+}
+
+
+/* loop.css del theme aplica `grid-template-columns: repeat(4, 1fr)` y
+ * `li.product { width: auto }`. En grid el `width: auto` colapsa al
+ * min-content del card (~72px con lazy-load imgs), dejando las cards
+ * súper angostas. Override solo para el grid de favoritos:
+ *   - auto-fill con minmax 200px: responde al ancho del contenedor
+ *     (mi-cuenta tiene su propio sidebar interno, la grid efectiva es
+ *     más angosta que /tienda/). 200px asegura cards legibles sin
+ *     truncar títulos.
+ *   - width: 100% en cada item para que ocupe la celda completa.
+ *
+ * Specificity: `.woocommerce ul.akb-wl-grid.products` = (0,3,1) vence a
+ * `.woocommerce ul.products` = (0,2,1) de loop.css. Sin !important.
+ * El `.woocommerce` ancestor existe (envuelve el grid en Render.php).
+ */
+.woocommerce ul.akb-wl-grid.products {
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.woocommerce ul.akb-wl-grid.products li.product {
+	width: 100%;
+	min-width: 0;
+}
+
+/* ─── Animación pulse al guardar ─────────────────────────────────
+ * Microfeedback: cuando el corazón pasa a `is-saved`, el ícono hace
+ * un pulse breve (200ms scale 1 → 1.2 → 1). Da la sensación de "clic
+ * satisfactorio" sin ser intrusivo. Solo dispara cuando entra a saved,
+ * no al estado removed (donde la card se va con fade-out de todos modos).
+ *
+ * `prefers-reduced-motion`: se respeta más abajo deshabilitando todas las
+ * animaciones del módulo. */
+@keyframes akb-wl-pulse {
+	0%, 100% { transform: scale(1); }
+	50%      { transform: scale(1.2); }
+}
+
+.akb-wl-toggle.is-saved .akb-wl-toggle__icon {
+	animation: akb-wl-pulse 200ms ease-out;
+}
+
+/* ─── Fade-out al remover una card en /mi-cuenta/favoritos/ ──────
+ * El JS agrega `.is-removing` a la card y espera 220ms antes de hacer
+ * `.remove()`. Sin esto, las cards desaparecen de golpe (jarring).
+ * Transition duration coincide con el setTimeout en wishlist.js. */
+.akb-wl-grid .product {
+	transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.akb-wl-grid .product.is-removing {
+	opacity: 0;
+	transform: scale(0.94);
+	pointer-events: none;
+}
+
+/* ─── Reduced motion: deshabilita pulse + fade ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+	.akb-wl-toggle.is-saved .akb-wl-toggle__icon {
+		animation: none;
+	}
+	.akb-wl-grid .product {
+		transition: none;
+	}
+}
+
+/* ─── Mobile tweaks ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+	.products li.product .akb-wl-toggle--loop {
+		/* El control real, no solo su pseudo-hitbox, conserva el mínimo táctil. */
+		width: 44px;
+		height: 44px;
+		bottom: var(--space-2, 8px);
+		right: 0.5rem;
+		background: rgba(0, 0, 0, 0.42);
+		border-color: rgba(255, 255, 255, 0.08);
+		opacity: 0.86;
+	}
+	.akb-wl-toggle--single {
+		width: 100%;
+		justify-content: center;
+	}
+}
+
+/* ─── Pestañas de filtrado rápido y paginación en favoritos ─── */
+.akb-wl-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 1rem 0 1.5rem;
+}
+
+.akb-wl-filter-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.45rem 1rem;
+	border-radius: 9999px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: #18181c;
+	color: #e2e8f0;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+	white-space: nowrap;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.akb-wl-filter-tab:hover {
+	border-color: rgba(225, 29, 72, 0.6);
+	background: #221518;
+	color: #ffffff;
+	transform: translateY(-1px);
+}
+
+.akb-wl-filter-tab.is-active {
+	background: #e11d48;
+	border-color: #f43f5e;
+	color: #ffffff;
+	box-shadow: 0 2px 10px rgba(225, 29, 72, 0.45);
+}
+
+@media (max-width: 600px) {
+	.akb-wl-filters {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: 0.5rem;
+		scrollbar-width: none;
+	}
+	.akb-wl-filters::-webkit-scrollbar {
+		display: none;
+	}
+	.akb-wl-filter-tab {
+		flex-shrink: 0;
+		padding: 0.45rem 0.85rem;
+		font-size: 0.8rem;
+	}
+}
+
+.akb-wl-pagination {
+	margin-top: 2rem;
+	text-align: center;
+}

@@ -1,0 +1,36 @@
+%% Caso «el pedido llevaba una preventa y la invitación se pierde para siempre» — capítulo 11.
+%% Qué muestra: por qué la compuerta de akibara-business corta la invitación con cualquiera de los dos estados disparadores posibles, por qué el camino no tiene vuelta atrás, y cuál es la puerta de reentrada que YA se emite en cada volteo y que nadie escucha desde reseñas.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant WC as WooCommerce
+    participant INV as Reviews\Invitations
+    participant CPOL as Business\CompletionPolicy
+    participant CRON as Business\ReadyToShipCron
+    participant AS as Action Scheduler
+
+    Cliente->>WC: compra un tomo en preventa
+    Note over WC: el tomo todavía no está en bodega
+
+    alt Disparador = «Completado», el valor de fábrica
+        WC-->>INV: el pedido nunca llega a «Completado»
+        Note over INV: on_status_changed no se ejecuta con ese estado<br/>no hay invitación, y no queda ninguna huella
+    else Disparador = «Listo para enviar», el terminal real de muchos pedidos
+        WC-->>INV: woocommerce_order_status_changed
+        INV->>CPOL: can_request_review con el pedido
+        CPOL-->>INV: NO — exige a la vez que no queden ítems pendientes<br/>Y que el pedido esté en «completed»
+        INV-->>INV: sale SIN agendar y SIN marcar el pedido<br/>confía en «una transición válida futura»
+        Note over INV: esa transición ya ocurrió: es la que acaba de pasar<br/>el pedido no volverá a entrar al estado disparador
+    end
+
+    Note over Cliente,AS: mientras tanto, el texto de ayuda de la pantalla promete<br/>«Las preventas siempre esperan su entrega, sea cual sea el estado elegido»
+
+    CRON->>CRON: llega el tomo a bodega y el cron voltea<br/>_akb_eta_ready_to_ship a «yes» SIN cambiar el estado del pedido
+    CRON-->>CRON: do_action akb_order_preventa_marked_ready con el id del pedido
+    CRON->>WC: nota en el pedido «listo para despachar»
+
+    rect rgba(224,123,57,0.12)
+        Note over CRON,INV: el evento existe y lleva el id del pedido<br/>su ÚNICO oyente en todo el árbol es ReadyEmailDispatcher, del propio akibara-business<br/>akibara-rewards no lo escucha — el arreglo de D2 es una línea:<br/>add_action akb_order_preventa_marked_ready en Invitations y re-evaluar ahí
+    end
+
+    INV--xCliente: hoy no sale ningún correo de invitación

@@ -1,0 +1,37 @@
+%% Caso 2 — el fichero del cartero desaparece del servidor y el centinela lo repone.
+%% Qué muestra: los dos latidos que despiertan al centinela, las tres decisiones posibles y qué queda escrito.
+sequenceDiagram
+    autonumber
+    participant Plataforma as Algo del servidor
+    participant Cron as Cron de hPanel cada 5 min
+    participant WP as WordPress arrancando
+    participant Centinela as Watch akibara-mail-transport-watch
+    participant Rescate as Copia en akb-runtime
+    participant Estado as Option akibara_mail_transport_watch
+    actor Dueno as Dueño
+
+    Note over Plataforma: MECANISMO PLAUSIBLE, no actor probado: esa misma noche,<br/>29 y 32 segundos antes, se reescriben los dos únicos mu-plugins<br/>de la plataforma, hostinger-auto-updates.php y hostinger-preview-domain.php.<br/>Nuestro fichero era entonces el único OTRO del directorio<br/>con la palabra hostinger en el nombre.
+    Plataforma-->>WP: borra mu-plugins/akibara-correo-smtp.php
+    Note over WP: a partir de aquí wp_mail cae al mail de PHP,<br/>que en Hostinger devuelve false
+    Cron->>WP: llama a wp-cron.php, define DOING_CRON
+    WP->>Centinela: acción init, prioridad 1
+    Centinela->>Centinela: ¿existe la clase Transport<br/>y su enganche a phpmailer_init?
+    alt el fichero falta y hay copia legible
+        Centinela->>Rescate: lee la copia de rescate
+        Centinela->>WP: copia el fichero a mu-plugins
+        Centinela->>Estado: escribe missing_since, outcome repuesto<br/>y añade la fecha al historial restores
+        Centinela->>Dueno: aviso rojo Falta el transporte de correo de Akibara
+        Note over Centinela: el correo vuelve a salir<br/>recién en la SIGUIENTE petición
+    else el fichero está pero la clase no cargó
+        Centinela->>Estado: outcome presente-pero-inerte
+        Note over Centinela: no lo pisa, para no tapar la causa<br/>ni bajar una versión más nueva
+        Centinela->>Dueno: aviso rojo con la explicación del caso
+    else no hay copia de rescate
+        Centinela->>Estado: outcome sin-copia
+        Centinela->>Dueno: aviso rojo, hay que subirlo a mano por SSH
+    end
+    Dueno->>WP: entra al escritorio días después
+    WP->>Centinela: acción admin_init, prioridad 1
+    Centinela->>Centinela: el transporte vuelve a estar vivo
+    Centinela->>Estado: borra missing_since y conserva restores
+    Centinela->>Dueno: aviso amarillo El transporte desapareció y se repuso solo

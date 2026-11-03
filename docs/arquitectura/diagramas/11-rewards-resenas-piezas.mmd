@@ -1,0 +1,109 @@
+%% Piezas del capítulo 11 — reseñas con foto: invitación, formulario, moderación, premio y carrusel.
+%% Qué muestra: el interruptor maestro que decide si el motor existe, las cinco etapas del recorrido de una reseña (invitar, escribir, moderar, pagar, publicar), quién le habla a quién y los dos datos que hoy nadie consume. Naranjo = código propio; gris = tercero; verde = persona; morado = dato guardado.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    CLIENTE["Cliente<br/>compra, recibe el correo, escribe y sube la foto"]:::persona
+    DUENO["Dueño<br/>aprueba una por una: nada se publica ni se paga sin él"]:::persona
+
+    subgraph GATE["Quién decide que el motor exista"]
+        PLUGIN["Plugin::boot<br/>los siete módulos de reseñas viven dentro de un gate"]:::propio
+        CUSREV["Customer Reviews for WooCommerce<br/>su sola presencia duerme el motor entero"]:::tercero
+        OPTIONS["Support\Options<br/>autoridad única: motor, monto y carril de promesa"]:::propio
+        AJUSTES["Support\SettingsPage<br/>WooCommerce → Puntos y Reseñas · 12 campos + 6 del carrusel"]:::propio
+    end
+
+    CUSREV -.->|class_exists CR_Reviews| OPTIONS
+    OPTIONS --> PLUGIN
+    DUENO --> AJUSTES
+    AJUSTES --> OPTIONS
+
+    subgraph INVITA["1 · Invitar"]
+        WCORD["WooCommerce · pedido<br/>woocommerce_order_status_changed"]:::tercero
+        INV["Reviews\Invitations<br/>agenda a 3 días, emite el token y manda el correo"]:::propio
+        CPOL["Business · CompletionPolicy<br/>una preventa pendiente corta la invitación"]:::tercero
+        READY["Business · ReadyToShipCron<br/>emite akb_order_preventa_marked_ready · NADIE lo escucha aquí"]:::tercero
+        AS["Action Scheduler<br/>la cola que ejecuta el envío y los reintentos"]:::tercero
+        TABLA["tabla akb_rewards_review_forms<br/>un enlace por invitación: token, vence, usado"]:::dato
+        OMETA["metas del pedido<br/>_akb_rewards_invite_scheduled · _sent · _attempts"]:::dato
+    end
+
+    WCORD --> INV
+    CPOL -.->|dice sí o no| INV
+    READY -. "puerta de reentrada sin usar · D2" .-> INV
+    INV --> AS
+    AS --> INV
+    INV --> TABLA
+    INV --> OMETA
+    INV -->|correo Qué te pareció tu pedido| CLIENTE
+
+    subgraph ESCRIBE["2 · Escribir"]
+        FORM["Reviews\ReviewForm<br/>página propia /resena/{token}/ · foto OBLIGATORIA"]:::propio
+        ACC["Points\AccountRewards<br/>refresca los enlaces permanentes: sin él la ruta es un 404"]:::propio
+        MEDIA["Reviews\Media<br/>pega la foto con las claves heredadas del plugin viejo"]:::propio
+        NUDGE["Reviews\ReviewNudge<br/>párrafo amarillo en el correo de entrega · SIN enlace · D8"]:::propio
+        CMETA["comment meta<br/>rating · ivole_review_image2 · _akb_rewards_review_order"]:::dato
+    end
+
+    CLIENTE --> FORM
+    ACC --> FORM
+    FORM --> MEDIA
+    MEDIA --> CMETA
+    FORM --> TABLA
+    NUDGE --> CLIENTE
+
+    subgraph MODERA["3 · Moderar"]
+        MOD["Reviews\Moderation<br/>pre_comment_approved:50 · retiene TODA reseña de producto"]:::propio
+        ADMIN["Reviews\AdminReviews<br/>Comentarios → Crear reseña · transcribe lo que llegó por Instagram"]:::propio
+        WPCOM["WordPress · comentarios<br/>Productos → Valoraciones · aprobar o rechazar"]:::tercero
+    end
+
+    FORM --> WPCOM
+    MOD --> WPCOM
+    DUENO --> ADMIN
+    ADMIN --> MEDIA
+    ADMIN --> WPCOM
+    DUENO -->|aprueba| WPCOM
+
+    subgraph PAGA["4 · Pagar"]
+        PTS["Reviews\ReviewPoints<br/>once compuertas seguidas antes de mover un peso"]:::propio
+        LEDGER["Points\Ledger<br/>libro contable · clave única review_u{cliente}_p{tomo}"]:::propio
+        MAILS["Points\Emails<br/>Tu reseña sumó 500 Puntos Akibara"]:::propio
+        SELLO["sello _akb_rewards_review_points<br/>puntos · 0 · pending_account · o SIN SELLO"]:::dato
+        MUDOS["_akb_rewards_review_progress y _source_note<br/>se escriben y nadie los lee · D11"]:::dato
+    end
+
+    WPCOM --> PTS
+    PTS --> SELLO
+    PTS --> MUDOS
+    PTS --> LEDGER
+    LEDGER --> MAILS
+    MAILS --> CLIENTE
+
+    subgraph PUBLICA["5 · Publicar"]
+        CAR["Reviews\Carousel<br/>shortcode akibara_home_reviews · mínimo 8 elegibles"]:::propio
+        SCH["Reviews\Schema<br/>estrellas y 5 reseñas dentro del bloque de Rank Math"]:::propio
+        RM["Rank Math<br/>dueño del JSON-LD de la ficha"]:::tercero
+        LS["LiteSpeed<br/>litespeed_purge_url de la portada"]:::tercero
+        TEMA["tema akibara-gp<br/>reviews-p5-v4.css estiliza la lista NATIVA de la ficha"]:::propio
+        TRANS["transient akb_rewards_carousel_v1<br/>una hora · seis ganchos lo invalidan"]:::dato
+    end
+
+    WPCOM --> CAR
+    CAR --> TRANS
+    CAR --> LS
+    SCH --> RM
+    RM --> CLIENTE
+    CAR --> CLIENTE
+    TEMA --> CLIENTE
+
+    subgraph LIMPIA["Higiene, de prestado"]
+        EXP["Points\Expiry · cron diario de vencimiento de puntos<br/>de paso borra 500 tokens caducados · si se apaga, no hay limpieza · D10"]:::propio
+        PRIV["Support\Privacy<br/>exporta y borra SÓLO el ledger: reseñas, fotos y tokens quedan fuera · D12"]:::propio
+    end
+
+    EXP --> TABLA
+    PRIV --> LEDGER

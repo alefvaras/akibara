@@ -1,0 +1,65 @@
+%% Caso 6 del capítulo 03 — entra un tomo nuevo al catálogo: las nueve superficies que se enteran, y por caminos distintos.
+%% Qué muestra: quién escucha el guardado de un producto, qué invalida cada oyente (generación, transient, etiqueta de LiteSpeed o URL), qué se salta el aviso a propósito y los dos huecos medidos: el borrado en firme, que EditionFacts no escucha, y el borde de Cloudflare, al que NINGUNA de estas purgas llega (sí llega la purga entera de la corrida diaria, que no sale en este diagrama).
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Woo as WooCommerce
+    participant Facts as SeriesFacts
+    participant Dir as SeriesDirectory\Shortcode
+    participant Cord as CatalogOrder
+    participant Home as HomeDestacados<br/>+ HomeSeriesDestacadas
+    participant EF as EditionFacts
+    participant Pop as PopularProducts
+    participant BW as BuilderWidget
+    participant PL as PublishListener
+    participant SRCH as akibara-search
+    participant LS as LiteSpeed Cache
+    participant CF as Cloudflare
+
+    Dueno->>Woo: publica el tomo 74 y lo asigna a su serie y su editorial
+    Woo->>Woo: wp_insert_post_data rellena el número de tomo a dos dígitos («Gannibal 1» → «Gannibal 01»)
+    Note over Woo: el slug NO se toca, para no cambiar URLs
+
+    par Las nueve superficies se enteran a la vez
+        Woo->>Facts: save_post_product, set_object_terms, added/updated/deleted_post_meta
+        Facts->>Facts: rota la generación de esa serie (el snapshot viejo queda inalcanzable)
+        Facts->>LS: litespeed_purge de la etiqueta T.&#60;term_id&#62; en shutdown, prioridad -100
+        Note over Facts,LS: la etiqueta cubre el archive Y todas sus páginas 2 y siguientes.<br/>LiteSpeed sólo purga por eventos de ENTRADA — guardar un TÉRMINO no dispara ninguno
+    and
+        Woo->>Dir: transition_post_status y set_object_terms
+        Dir->>Dir: borra el transient del directorio (6 h)
+        Dir->>LS: litespeed_purge_url de home_url('/series/') — la ruta va escrita a mano
+    and
+        Woo->>Cord: transition_post_status
+        alt Fue un alta o una baja de catálogo
+            Cord->>Cord: encola el recálculo del menu_order a +120 s
+        else Sólo cambió el stock
+            Cord-->>Cord: NO hace nada — colgarlo de cada venta reordenaría el 71,6% del catálogo por compra
+        end
+    and
+        Woo->>Home: woocommerce_new_product / update / delete / trash / set_stock_status
+        Home->>Home: sube el testigo de generación (invalida las listas de IDs cacheadas 1 h)
+    and
+        Woo->>EF: woocommerce_update_product o woocommerce_product_set_stock_status
+        EF->>EF: borra el transient de las ediciones del producto (12 h)
+        Note over Woo,EF: HUECO MEDIDO: EditionFacts NO escucha el borrado ni la papelera,<br/>así que /panini/ puede anunciar hasta 12 h un conteo y un «Desde $X» que ya no existen
+    and
+        Woo->>Pop: before_delete_post y los cambios de stock
+        Pop->>Pop: borra los transients de una lista FIJA de tamaños (1,2,3,4,5,6,8,12)
+    and
+        Woo->>BW: save_post_product, set_object_terms y las relaciones de término
+        BW->>BW: sube el testigo que versiona la membresía del armador de packs
+    and
+        Woo->>PL: transition_post_status y set_object_terms
+        PL->>PL: encola el escaneo de «Sigue esta serie» a +120 s
+        Note over PL: encola y se va SIN hacer ni una consulta,<br/>precisamente porque viaja encima del evento de abajo
+    and
+        Woo->>SRCH: set_object_terms
+        SRCH->>SRCH: reindexa su propio índice — el efecto MÁS CARO de la casa
+        Note over Woo,SRCH: la novena superficie, y la única que no es nuestra.<br/>Guardar cualquier término dispara esto: por eso PublishListener no añade trabajo encima
+    end
+
+    LS-->>CF: estas purgas (por etiqueta y por URL) NO propagan al borde
+    Note over LS,CF: la copia que ve el cliente se renueva al vencer el TTL de la zona.<br/>La ÚNICA purga que sí llega a Cloudflare es litespeed_purge_all, vía cdn-cloudflare_clear,<br/>y en esta área la disparan sólo dos cosas: el recálculo diario de las 05:00 y el panel<br/>de ediciones cuando cambia el texto del menú. Cuesta cara: la landing de serie pasa de 48 a 1.057 ms
+
+    Note over Facts: lo que a propósito NO se entera: el precio del bloque de datos sigue<br/>viniendo de wc_product_meta_lookup, que no incluye el descuento aplicado por filtro —<br/>por eso el rango se CALLA mientras haya campaña vigente

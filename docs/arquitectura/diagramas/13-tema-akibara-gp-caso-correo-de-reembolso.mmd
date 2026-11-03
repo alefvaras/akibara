@@ -1,0 +1,49 @@
+%% Título: El dueño devuelve el dinero de un pedido y sale el correo
+%% Qué muestra: quién pone cada trozo del correo — WooCommerce el envío, el tema
+%% la caja de marca y la voz — y la bifurcación entre reembolso total y parcial,
+%% donde el asunto y el encabezado de marca NO se aplican.
+sequenceDiagram
+  autonumber
+  actor Duenno as Dueño
+  participant Woo as WooCommerce
+  participant Tema as Tema akibara-gp
+  participant Correo as Bandeja del cliente
+  actor Cliente
+
+  Duenno->>Woo: En el pedido pulsa "Reembolsar" y marca "notificar al cliente"
+  Woo->>Woo: Instancia WC_Email_Customer_Refunded_Order
+
+  alt Reembolso TOTAL
+    Woo->>Tema: filtro woocommerce_email_subject_customer_refunded_order
+    Tema-->>Woo: "Te reembolsamos tu pedido #N" woocommerce.php:652-659
+    Woo->>Tema: filtro woocommerce_email_heading_customer_refunded_order
+    Tema-->>Woo: El mismo texto, en voz activa
+  else Reembolso PARCIAL
+    Woo->>Woo: Usa ..._subject_customer_partial_refunded_order
+    note over Woo,Tema: El tema NO engancha esos dos nombres:<br/>el asunto del parcial sale en la voz pasiva de WooCommerce
+  end
+
+  Woo->>Tema: acción woocommerce_email_header
+  Tema-->>Woo: Banda negra con el logo como IMAGEN, franja roja, cuerpo claro
+  note over Tema: Las bandas son imágenes porque Gmail oscuro<br/>invierte un fondo CSS pero no recolorea una imagen
+
+  Woo->>Tema: Busca la plantilla customer-refunded-order.php
+  Tema-->>Woo: Saludo por nombre de facturación y texto en primera persona
+  Tema->>Tema: Rama separada para el parcial en el CUERPO, líneas 26-38
+
+  Woo->>Woo: Dispara los tres hooks estándar: detalle, metadatos y datos del cliente
+  Woo->>Tema: filtro woocommerce_order_get_tax_totals
+  Tema-->>Woo: La etiqueta del impuesto dice "IVA", también en pedidos antiguos
+
+  Woo->>Tema: acción woocommerce_email_footer
+  Tema-->>Woo: Pie negro con borde amarillo, tres enlaces escritos a mano y el año
+  note over Tema,Woo: El pie NO lee la opción de WooCommerce,<br/>para no publicar la dirección operativa privada
+
+  Woo->>Correo: Envía el mensaje
+  Correo->>Cliente: "Te reembolsamos tu pedido #N"
+  alt El cliente lee en HTML
+    Cliente-->>Cliente: Ve la caja de marca y el botón legible
+  else El cliente lee la parte de texto plano
+    Cliente-->>Cliente: No hay carpeta plain/ en el tema: leería el texto de WooCommerce
+    note over Cliente: POR CONFIRMAR, no medido: depende de si el tipo de correo<br/>es multiparte o texto plano, que es un dato de base de datos.<br/>wp option get woocommerce_email_settings --format=json | grep email_type
+  end

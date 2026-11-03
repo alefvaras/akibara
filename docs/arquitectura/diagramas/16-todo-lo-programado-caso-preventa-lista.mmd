@@ -1,0 +1,55 @@
+%% Caso 1 del capítulo 16 — llega el tomo que un cliente esperaba en su preventa.
+%% Qué muestra: el camino completo desde que el dueño repone stock hasta que sale el correo «Tu pedido ya llegó», con las dos bifurcaciones (todavía falta algo / no falta nada) y las trampas que cortan el aviso.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Woo as WooCommerce
+    participant Listener as StockChangeListener<br/>akibara-business
+    participant Cola as Action Scheduler
+    participant Pag as OrderQueryPaginator<br/>el motor de las pasadas
+    participant Ready as ReadyToShipCron<br/>decide pedido a pedido
+    participant Pedido as Pedido<br/>metas _akb_eta_*
+    participant Mailer as ReadyEmailDispatcher
+    participant Correo as Transporte de correo
+    actor Cliente
+
+    Dueno->>Woo: pone stock al tomo, pasa a «en stock»
+    Woo->>Listener: woocommerce_product_set_stock_status, prioridad 10
+    Listener->>Cola: encola akb_order_preventa_recompute_for_product a +5 s
+    Note over Listener,Cola: dedupea POR ARGUMENTOS, nunca con el indicador unique:<br/>unique ignora los args y una reposición de tres tomos<br/>habría encolado solo el primero
+    Cola-->>Cola: action_scheduler_run_queue corre cada minuto
+    Cola->>Pag: arranca el trabajador, en menos de un minuto
+    Pag->>Pag: reclama atómicamente las acciones hermanas del lote
+    Pag->>Ready: le pasa los pedidos activos, de la última página a la primera
+    Ready->>Pedido: cuenta las líneas que siguen sin llegar<br/>PreventaItems::pending_items
+    Note over Ready,Pedido: OJO al depurar&#58; has_outstanding_items() NO significa lo mismo —<br/>es «líneas de preventa sin reembolsar», y sigue siendo cierta<br/>en un pedido ya marcado listo
+
+    alt Bifurcación A — todavía falta algún tomo
+        Ready->>Pedido: actualiza el contador y recalcula el arribo SOLO si el número cambió
+        opt se pasó de la gracia sobre la fecha prometida
+            Ready->>Pedido: deja la nota interna «revisar manualmente»
+        end
+    else Bifurcación B — no falta nada
+        Ready->>Pedido: _akb_eta_ready_to_ship = 'yes', sella la fecha y deja nota
+        Note over Pedido: la marca es INMUTABLE hacia atrás:<br/>aunque el tomo vuelva a agotarse, no se re-marca
+        Ready->>Mailer: dispara akb_order_preventa_marked_ready
+        Mailer->>Cola: encola akb_order_preventa_dispatch_ready_email con order_id
+        Cola->>Mailer: el trabajador instancia el mailer DENTRO de la acción
+        Mailer->>Correo: «Tu pedido {número} ya llegó a Akibara»
+        Correo->>Cliente: correo recibido, típicamente a menos de un minuto de reponer
+    end
+
+    rect rgb(255, 240, 235)
+        Note over Ready,Cliente: Bifurcaciones que cortan el aviso
+        Note over Pedido: sin _akb_eta_has_preventa = 'yes' el pedido no se toca
+        Note over Pedido: si todo lo pendiente se reembolsó, se marca listo con nota<br/>«no se envía aviso de llegada»
+        Note over Mailer: si quedó listo hace más de 7 días, el correo NO sale: queda nota para el dueño
+        Note over Pedido: si el pedido no tenía la meta _akb_eta_ready_to_ship es INVISIBLE<br/>para la consulta y nunca entra aquí — el defecto pendiente más caro
+        Note over Cola: si la acción del correo falla, se re-agenda a +305 s SIN contador, para siempre
+    end
+
+    alt el dueño repone el stock
+        Note over Listener,Cliente: es el camino de arriba&#58; el aviso llega en minutos
+    else no repone nadie
+        Note over Pag,Cliente: lo hace igual el barrido diario de las ~19&#58;30<br/>(akb_order_preventa_recompute_ready, DOS pasadas completas).<br/>Este listener solo adelanta horas, no cambia el resultado
+    end

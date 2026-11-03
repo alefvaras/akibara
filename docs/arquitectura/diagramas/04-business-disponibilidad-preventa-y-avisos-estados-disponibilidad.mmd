@@ -1,0 +1,47 @@
+%% Máquina de estados del capítulo 04 — los cuatro estados comerciales de un tomo.
+%% Qué muestra: que el estado NO se guarda nunca, se deduce en cada lectura del stock crudo de WooCommerce más dos metas del producto; y que por eso una preventa «caduca sola» al día siguiente de la fecha de salida, sin que nadie toque nada.
+stateDiagram-v2
+    direction LR
+
+    [*] --> Derivacion: alguien pregunta por el producto
+
+    state "Derivación en cada lectura<br/>Stock\Availability::of()" as Derivacion
+
+    state stock_crudo <<choice>>
+    Derivacion --> stock_crudo
+
+    stock_crudo --> Disponible: stock = instock
+    stock_crudo --> Agotado: stock = outofstock<br/>o cualquier valor desconocido
+    stock_crudo --> reservable: stock = onbackorder
+
+    state reservable <<choice>>
+    reservable --> Preventa: tipo = tba<br/>«todavía no sale, sin fecha confirmada»<br/>es preventa SIEMPRE, sin mirar ninguna fecha
+    reservable --> Preventa: tipo = release_date<br/>Y la fecha de salida es hoy o futura
+    reservable --> APedido: tipo = auto, disabled,<br/>ausente o desconocido
+    reservable --> APedido: tipo = release_date<br/>pero la fecha ya pasó
+
+    state "Disponible<br/>hay en bodega, se compra y se despacha" as Disponible
+    state "A pedido<br/>el tomo existe; se encarga y viaja" as APedido
+    state "Preventa<br/>la editorial todavía no lo publica" as Preventa
+    state "Agotado<br/>no se vende ni se encarga" as Agotado
+
+    Preventa --> APedido: sólo si el tipo era release_date:<br/>al día siguiente de la fecha de salida<br/>NADIE escribe nada: la ficha ya dice otra cosa
+    note right of Preventa
+        El día del lanzamiento todavía cuenta como preventa.
+        Sólo caduca sola la preventa CON fecha: la de tipo
+        tba se queda en Preventa hasta que alguien le ponga
+        fecha o le cambie el tipo a mano.
+        El barrido diario akb_preventa_vencida_sweep sólo
+        refresca las dos superficies horneadas: el índice
+        del buscador y el HTML cacheado.
+    end note
+
+    Agotado --> Disponible: el dueño repone;<br/>salen los avisos de la lista de espera
+    Disponible --> Agotado: se vende lo último
+    APedido --> Disponible: llega la mercadería;<br/>salen los avisos «tu pedido ya llegó»
+
+    note left of APedido
+        En un PEDIDO ya hecho esta máquina no manda:
+        la palabra de cada línea sale del snapshot
+        de compra, no del catálogo de hoy.
+    end note

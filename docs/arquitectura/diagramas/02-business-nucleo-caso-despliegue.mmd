@@ -1,0 +1,63 @@
+%% Caso 1 del capítulo 02 — se despliega una versión nueva y la tienda se pone al día sola.
+%% Qué muestra: cómo la primera petición que llega tras un despliegue recorre el arranque y el motor de upgrade; el CAS que deja exactamente un ejecutor, el arriendo de 600 segundos, y las tres bifurcaciones que duelen: la excepción que no se captura, el rollback que degrada el contrato del buscador, y el hecho de que nadie manda ningún correo.
+%% Nota de lectura: la flecha con una equis (--x) significa que ese mensaje NO ocurre.
+sequenceDiagram
+    autonumber
+    actor Cliente as Cliente o rastreador<br/>(la primera petición tras el ZIP)
+    participant WP as WordPress
+    participant Boot as akibara-business.php<br/>bootstrap (plugins_loaded 20)
+    participant Plugin as Plugin::maybe_upgrade<br/>(init 999)
+    participant DB as wp_options<br/>(las 3 options del upgrade)
+    participant Search as akibara-search<br/>RebuildJob
+    participant Correo as Correo
+
+    Cliente->>WP: pide cualquier página
+    WP->>Boot: plugins_loaded, turno 20
+
+    alt Falta WooCommerce o es anterior a 10.0
+        Boot-->>WP: return false · cartel rojo en el escritorio
+        Note over Cliente: el cliente ve una tienda sin Akibara,<br/>sin RUT, sin comuna y sin fechas de llegada
+    else WooCommerce presente y ≥ 10.0
+        Boot->>Boot: registra el autoloader y llama a Plugin::boot()
+        Boot->>Boot: register_modules(): enciende los 74 módulos en orden fijo
+        Note over Boot,DB: PRIMERA LÍNEA de register_modules() (Plugin.php:802-803):<br/>ceba de una vez las options del front (7 fijas + la lista de BrandLandings).<br/>Segunda: siembra los rangos de Cloudflare (:811). Recién después construye módulos.
+        Boot->>DB: wp_prime_option_caches(...) — una sola consulta
+    end
+
+    WP->>Plugin: init, turno 999
+    Plugin->>DB: ceba las 3 options del upgrade en UNA consulta
+    Plugin->>DB: lee akibara_business_search_feed_contract_version
+
+    alt El contrato del buscador cambió (en cualquier dirección)
+        Plugin->>DB: CAS: mueve la option HACIA la constante del código ('2')
+        Plugin->>Search: RebuildJob::schedule(true)
+        Note over Plugin,Search: ⚠️ no hay comprobación de dirección:<br/>un rollback la baja de 2 a 1 y el buscador,<br/>que exige 2, rechaza la foto del descuento entera
+    else El contrato coincide
+        Plugin->>Plugin: sigue sin tocar nada
+    end
+
+    Plugin->>DB: lee el marcador de tareas
+
+    alt Marcador vacío y versión sellada = versión del código
+        Plugin-->>WP: retorna · éste es el caso de TODAS las peticiones normales
+    else La versión sellada es la anterior
+        Plugin->>DB: CAS: publica queued exigiendo a la vez<br/>que no haya otra tarea y que la versión siga siendo la anterior
+        Note over DB: exactamente UNA petición gana — el resto reintenta el bucle
+        Plugin->>DB: CAS: queued → running con token único y arriendo de 600 s
+        Plugin->>DB: sella akibara_business_version_installed
+        Plugin->>Plugin: flush_rewrite_rules(true)
+        Plugin->>Plugin: do_action('akibara_business_upgraded') — CINCO oyentes, en orden de registro
+        Plugin->>DB: 1º cleanup_orphan_options: 13 delete_option + un DELETE LIKE
+        Note over Plugin: los otros cuatro: AdultContentFeed::seed_from_constant,<br/>ProductSitemapStableOrder::invalidate_product_sitemap_cache,<br/>SeriesBundles::standardize_promotion_policy y HomeHero\Migration::maybe_seed.<br/>Cualquiera de los cinco puede tumbar la petición.
+        Plugin->>DB: CAS: limpia el marcador CON EL MISMO TOKEN
+    end
+
+    alt Un oyente lanza UpgradeRetryRequired
+        Plugin->>DB: el marcador vuelve a queued · se reintenta en otra petición
+    else Un oyente lanza cualquier otra excepción
+        Plugin-->>Cliente: ⚠️ error 500 · la versión ya está sellada<br/>y el marcador queda en running 10 minutos
+    else El proceso se muere a mitad
+        Note over DB: pasados los 600 s del arriendo,<br/>otra petición lo roba y lo completa
+    end
+
+    Plugin--xCorreo: el núcleo NO manda ningún correo en ningún camino

@@ -1,0 +1,2227 @@
+/*
+ * Header — extracted from legacy header-v2.css.
+ * Solo reglas que renderea header.php (cero código muerto).
+ *
+ * Selectores en uso por header.php:
+ *   #aki-scroll-progress
+ *   .site-header
+ *   .header-main / .header-main__inner
+ *   .logo / .logo__img
+ *   .hamburger / .hamburger.active span
+ *   .header-icons
+ *   .header-icon / --account / --cart
+ *   .mainnav / .mainnav__inner / .mainnav__item / .mainnav__item--has-sub
+ *   .mainnav__link / .mainnav__link--active
+ *   .mainnav__toggle / --sub (botón que abre el panel; estados --open/--closed en el ítem)
+ *   .mainnav__sub / .mainnav__sublink / .mainnav__sublink--all
+ *   .mobile-drawer / .mobile-overlay / .mobile-drawer__head / .mobile-drawer__title
+ *   .mobile-drawer__close / .mobile-drawer__group
+ *   .mobile-drawer__link / .mobile-drawer__toggle / .mobile-drawer__sub
+ *   .mobile-drawer__sublink / .mobile-drawer__sublink--accent / .mobile-drawer__foot
+ */
+
+/* ── Scroll progress bar ─────────────────────────────────────── */
+/* Barra de progreso de lectura: animación por GPU vía scaleX() desde la izquierda. */
+#aki-scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--aki-red), var(--aki-red-bright));
+    z-index: var(--z-progress);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 80ms linear;
+    pointer-events: none;
+}
+
+/* ── Site header wrapper ─────────────────────────────────────── */
+.site-header {
+    view-transition-name: header;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky, 200);
+    background: rgba(18, 18, 18, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* ── Header main row (logo + search + icons) ─────────────────── */
+.header-main {
+    background: transparent;
+    border-bottom: 1px solid var(--aki-border);
+}
+
+/* Desktop: grid 3 columnas
+ *   col 1 (logo)   → auto (content size)
+ *   col 2 (search) → 1fr (toma todo el espacio disponible, capped a 520px
+ *                   por max-width interno de .akibara-search). Antes era
+ *                   `auto` lo que hacía colapsar la search a content size.
+ *   col 3 (iconos) → auto
+ *
+ * Mobile (<=1024px) cambia a grid simétrico (regla en breakpoint abajo). */
+.header-main__inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-5);
+    height: 78px;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+    transition: height var(--transition-base);
+}
+
+.header-main__inner > .logo {
+    justify-self: start;
+}
+
+.header-main__inner > .akibara-search {
+    justify-self: center;
+    width: 100%;
+    max-width: 440px;
+}
+
+/* ── Header search (input + submit) ────────────────────────────
+ * Input principal del sitio. Submitea a /tienda/?_buscar=X — la
+ * gramática de URL la sirve el buscador propio (plugin akibara-search,
+ * FilterSet). El autocomplete es del plugin: search-suggest.js se
+ * engancha vía [data-akb-suggest] y trae su propio CSS
+ * (plugins/akibara-search/assets/css/search-suggest.css) — el theme
+ * ya no estila ningún dropdown de búsqueda.
+ *
+ * Estructura: <form> > <svg icon> + <input> + <button>
+ * Layout: flex row con icon absoluto sobre input para que no compita
+ * con el flow del input border-radius.
+ */
+.akibara-search,
+.mobile-drawer__search {
+    --akb-search-line: rgba(255, 255, 255, 0.72);
+    /* Contraste no-textual WCAG 1.4.11 (≥3:1) frente al gradiente de fondo. */
+    --akb-search-field-border: #707070;
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    /* Altura táctil accesible estándar de 44px (WCAG 2.5.5). */
+    height: 44px;
+    background: linear-gradient(180deg, var(--aki-surface-2) 0%, var(--aki-surface) 100%);
+    border: 1px solid var(--akb-search-field-border);
+    border-radius: 0px;
+    /* Cuña roja de marca PERMANENTE en el filo izquierdo desde reposo (firma manga
+     * que antes solo aparecía en :focus). red-dark en reposo → readable/más gruesa
+     * en hover/focus: la energía sube con la interacción sin gritar. Una sola
+     * declaración box-shadow (robusta al dedupe de @supports de LiteSpeed). */
+    box-shadow: inset 3px 0 0 var(--aki-red-dark);
+    overflow: visible;
+    isolation: isolate;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.akibara-search::before,
+.mobile-drawer__search::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 8px);
+    clip-path: polygon(0 0, 42% 0, 60% 100%, 0 100%);
+    /* Screentone/speed-lines a baja intensidad PERMANENTE (0.14) en reposo: la firma
+     * de marca deja de vivir escondida detrás del :focus. Salto claro a 0.52 en focus
+     * (regla abajo). transform:none → la diagonal ya está compuesta en su sitio en
+     * reposo (antes entraba con translateX); el focus sube intensidad, no reposiciona. */
+    opacity: 0.14;
+    transform: none;
+    transition:
+        opacity var(--transition-fast),
+        transform var(--transition-fast);
+    pointer-events: none;
+}
+
+.akibara-search:focus-within::before,
+.mobile-drawer__search:focus-within::before {
+    opacity: 0.52;
+    transform: translateX(0);
+}
+
+.mobile-drawer__search {
+    /* space-3 lateral (12px, antes space-4=16px): +8px por lado = +16px de ancho de
+     * form dentro del drawer angosto, atacando el crunch junto con el pozo del icono.
+     * No toca el margen vertical ni la altura 44px (target táctil AA). */
+    margin: var(--space-3) var(--space-3);
+    height: 44px; /* Guarda de altura táctil mínima (44px) en el drawer */
+}
+
+.akibara-search:hover,
+.mobile-drawer__search:hover {
+    border-color: rgba(255, 255, 255, 0.42);
+    box-shadow:
+        3px 3px 0 var(--aki-black),
+        inset 3px 0 0 var(--aki-red-dark),
+        0 0 18px rgba(217, 0, 16, 0.14);
+}
+
+/* Campo activo: franja roja interior de marca combinada con anillo de foco accesible (--aki-focus-ring). */
+.akibara-search:focus-within,
+.mobile-drawer__search:focus-within {
+    border-color: var(--akb-search-line);
+    box-shadow:
+        inset 4px 0 0 var(--aki-red-readable),
+        var(--aki-focus-ring);
+}
+
+.akibara-search:focus-within {
+    z-index: 80;
+}
+
+.mobile-drawer__search:focus-within {
+    z-index: 60;
+}
+
+
+.akibara-search__icon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: var(--aki-gray-400);
+    pointer-events: none;
+    transition: color var(--transition-fast);
+    z-index: 1;
+}
+
+.akibara-search:focus-within .akibara-search__icon,
+.mobile-drawer__search:focus-within .akibara-search__icon {
+    color: var(--aki-red);
+}
+
+/* La lupa envía el formulario de escritorio con un área táctil de 44 × 44 px. El alcance __lens conserva el icono y botón propios del drawer y restablece los estados de GeneratePress y WooCommerce. */
+.akibara-search button.akibara-search__lens {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.akibara-search button.akibara-search__lens:hover,
+.akibara-search button.akibara-search__lens:focus,
+.akibara-search button.akibara-search__lens:active {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    transform: none;
+}
+
+/* El foco visible de teclado para la lupa se gestiona mediante la regla global button:focus-visible de tokens.css. */
+
+.akibara-search button.akibara-search__lens:hover .akibara-search__icon {
+    color: var(--aki-red);
+}
+
+.akibara-search .akibara-search__shortcut {
+    display: none;
+}
+
+/* Dentro del botón la lupa deja el layout absoluto (el botón ya la centra). */
+.akibara-search__lens .akibara-search__icon {
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+}
+
+/* Anillo de carga sobre la lupa mientras el formulario lleva is-fetching, controlado por search-suggest.js. Con reduced-motion el indicador permanece estático. */
+.akibara-search.is-fetching::after,
+.mobile-drawer__search.is-fetching::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    width: 12px;
+    height: 12px;
+    margin-top: -8px;
+    border: 2px solid var(--aki-red);
+    border-top-color: transparent;
+    border-radius: 50%;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.akibara-search.is-fetching .akibara-search__icon,
+.mobile-drawer__search.is-fetching .akibara-search__icon {
+    visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .akibara-search.is-fetching::after,
+    .mobile-drawer__search.is-fetching::after {
+        animation: akb-spin 0.7s linear infinite;
+    }
+}
+
+@keyframes akb-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* `[type="search"]` bump: el GP customizer aplica
+ * `input[type="search"] { background: #f7f8f9; color: #222 }` con specificity
+ * (0,1,1) que le gana a `.akibara-search__input` (0,1,0). Anclando a
+ * `.akibara-search__input[type="search"]` (0,2,1) gano sin recurrir a !important. */
+.akibara-search .akibara-search__input,
+.akibara-search input.akibara-search__input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: 0 10px 0 44px;
+    background: transparent;
+    background-color: transparent;
+    border: 0;
+    color: var(--aki-white);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
+}
+
+.mobile-drawer__search .akibara-search__input,
+.mobile-drawer__search input.akibara-search__input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px 0 38px;
+    background: transparent;
+    background-color: transparent;
+    border: 0;
+    color: var(--aki-white);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
+}
+
+.akibara-search .akibara-search__input:focus,
+.akibara-search input.akibara-search__input[type="search"]:focus,
+.mobile-drawer__search .akibara-search__input:focus,
+.mobile-drawer__search input.akibara-search__input[type="search"]:focus {
+    background: transparent;
+    background-color: transparent;
+    border: 0;
+    color: var(--aki-white);
+    box-shadow: none;
+    transform: none;
+}
+
+.akibara-search__input::placeholder {
+    /* gray-300 (#B0B0B0 = 8.7:1 vs #111, 8.0:1 vs #1A1A1A) en vez de gray-400
+     * (#8A8A8A, al filo sobre el tope del gradiente): sube contraste del reposo con
+     * holgura y lo diferencia de la lupa gris (rompe la "mancha gris"). El texto
+     * REAL tipeado sigue en #FFF (18.9:1) > placeholder, jerarquía intacta. */
+    color: var(--aki-gray-300);
+}
+
+.akibara-search__input:focus {
+    outline: none;
+}
+
+/* Reset del search clear native button (Chrome/Safari) */
+.akibara-search__input::-webkit-search-cancel-button,
+.akibara-search__input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* En pantallas táctiles móviles (≤ 768px), el input utiliza 16px para prevenir
+ * el auto-zoom intrusivo de iOS Safari al hacer foco. */
+@media ( max-width: 768px ) {
+    .akibara-search input.akibara-search__input[type="search"],
+    .mobile-drawer__search input.akibara-search__input[type="search"] {
+        font-size: 16px;
+        /* Ajuste de espaciado en drawers estrechos preservando margen respecto al icono. */
+        padding-left: 32px;
+    }
+
+    .akibara-search__icon {
+        left: 10px;
+    }
+}
+
+.akibara-search button.akibara-search__submit,
+.mobile-drawer__search button.akibara-search__submit {
+    flex-shrink: 0;
+    padding: 0 14px;
+    background: var(--aki-red-readable);
+    color: var(--aki-white);
+    border: 0;
+    /* Tipografía Bebas Neue condensada en mayúsculas (peso 400). */
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: var(--weight-normal);
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
+    /* Cuña del paralelogramo ensanchada (12/8 vs 10/6): la firma diagonal se lee a
+     * tamaño chico sin redondearse. NUNCA eliminar ni redondear — es la firma. */
+    clip-path: polygon(12px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    transform: none;
+}
+
+/* Clear button (X) — aparece solo cuando hay value en el input.
+ * Toggle de visibilidad lo maneja main.js (input handler) via [hidden]. */
+.akibara-search__clear {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 4px;
+    align-self: center;
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-300);
+    /* Borde visible (mismo token de campo, 3.5:1 sobre surface-2) para que el target
+     * de 44px sea perceptible en reposo sin depender del hover. No rompe el ring
+     * amarillo de :focus-visible ya definido. */
+    border: 1px solid var(--akb-search-field-border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
+}
+
+/* Área de toque invisible expandida para móviles (44x44px min touch target) */
+.akibara-search__clear::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+}
+
+.akibara-search__clear:hover {
+    background: var(--aki-surface-3);
+    color: var(--aki-white);
+}
+
+.akibara-search__clear:focus-visible {
+    background: var(--aki-surface-3);
+    color: var(--aki-white);
+}
+
+.akibara-search__clear[hidden] {
+    display: none;
+}
+
+
+.akibara-search button.akibara-search__submit:hover,
+.mobile-drawer__search button.akibara-search__submit:hover {
+    background: var(--aki-black);
+    color: var(--aki-white);
+    box-shadow: inset 0 -4px 0 var(--aki-red-readable) !important;
+    transform: none;
+}
+
+.akibara-search button.akibara-search__submit:focus-visible,
+.mobile-drawer__search button.akibara-search__submit:focus-visible {
+    background: var(--aki-black);
+    color: var(--aki-white);
+    outline: none;
+    /* El anillo amarillo de la casa + la franja roja interior del botón. */
+    box-shadow:
+        var(--aki-focus-ring),
+        inset 0 -4px 0 var(--aki-red-readable);
+    transform: none;
+}
+
+.akibara-search button.akibara-search__submit:active,
+.mobile-drawer__search button.akibara-search__submit:active {
+    background: var(--aki-red-dark);
+    transform: none;
+}
+
+
+.header-main__inner > .header-icons {
+    justify-self: end;
+}
+
+/* ── Logo ────────────────────────────────────────────────────── */
+.logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    min-height: 44px; /* Área de toque accesible ≥ 44px (WCAG 2.5.5) */
+    margin-right: var(--space-3);
+    transition: opacity var(--transition-fast);
+}
+
+.logo:hover {
+    opacity: 0.85;
+}
+
+.logo:active {
+    transform: scale(0.98);
+}
+
+/* WC adds `.woocommerce-page img { height: auto }` (specificity 0,1,1).
+ * Para ganar uso `.site-header .logo__img` (specificity 0,2,1).
+ * Reducido de 96 → 60 para que el header sea más compacto. */
+.site-header .logo__img {
+    height: 60px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+    transition: height var(--transition-base);
+}
+
+/* ── Hamburger (mobile only) ─────────────────────────────────── */
+.hamburger {
+    display: none;
+    width: 44px;
+    height: 44px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.hamburger:hover,
+.hamburger:focus,
+.hamburger:focus-visible,
+.hamburger:active {
+    background: transparent;
+    outline: none;
+}
+
+/* Spans = líneas del hamburger. border-radius 1px suaviza las puntas
+ * para matchear el lenguaje rounded del rest del header (search pill,
+ * close circular). Sutil — se nota en zoom o pantallas con DPR ≥3. */
+.hamburger span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--aki-white);
+    border-radius: 1px;
+    transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* Modo de alto contraste / colores forzados (forced-colors: active):
+ * Se eximen las barras de la hamburguesa de forzado de fondo con forced-color-adjust: none
+ * asignando ButtonText para preservar visibilidad frente al fondo del botón. */
+@media (forced-colors: active) {
+    .hamburger span {
+        forced-color-adjust: none;
+        background: ButtonText;
+    }
+}
+
+/* ── FiboSearch desktop (inyectado en header.php) ────────────── */
+/* ── Header icons (account/cart) ──────────────────────────────── */
+.header-icons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.header-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--aki-gray-200);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+}
+
+.header-icon:hover,
+.header-icon:focus-visible {
+    color: var(--aki-red);
+    background: transparent;
+    transform: translateY(-2px);
+}
+
+.header-icon:active {
+    transform: scale(0.92);
+}
+
+/* Compactación desktop: conserva los targets de 44px y reduce solo el espacio
+ * estructural después de abandonar el primer viewport. La clase la conmuta
+ * main.js con un listener pasivo y rAF; mobile mantiene su header de 72px. */
+@media (min-width: 1025px) {
+    .site-header.is-compact .header-main__inner {
+        height: 60px;
+    }
+
+    .site-header.is-compact .logo__img {
+        height: 44px;
+    }
+
+    .site-header.is-compact .mainnav__link {
+        padding-block: 8px;
+    }
+}
+
+.header-icon.is-bumped {
+    animation: akb-header-bump 460ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes akb-header-bump {
+    0% {
+        transform: translateY(0) scale(1);
+        filter: none;
+    }
+    35% {
+        transform: translateY(-3px) scale(1.14) rotate(-3deg);
+        filter: drop-shadow(3px 3px 0 var(--aki-black));
+    }
+    70% {
+        transform: translateY(0) scale(0.96) rotate(2deg);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        filter: none;
+    }
+}
+
+/* Counter badge — pill top-right sobre el icono del header.
+ *
+ * Aplicado a wishlist y cart con el mismo patrón:
+ *   - PHP server-rendea `data-akb-{wishlist,cart}-count="N"` en el `<a>`.
+ *   - JS escucha eventos para actualizar el atributo:
+ *       wishlist → `akb:wishlist:change` (CustomEvent del módulo Wishlist).
+ *       cart     → WC fragment filter reemplaza el `<a>` entero (server-rendered).
+ *   - Selector `[data-...-count="0"]::after { display:none }` oculta cuando
+ *     vacío sin necesidad de toggle de clase.
+ *
+ * Diseñado para que cualquier futuro `header-icon--<tipo>` que necesite badge
+ * pueda agregarse simplemente extendiendo `&[data-akb-<tipo>-count]`. */
+.header-icon--wishlist,
+.header-icon--cart {
+    position: relative;
+}
+
+.header-icon--wishlist::after,
+.header-icon--cart::after {
+    content: attr(data-akb-wishlist-count) attr(data-akb-cart-count);
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    background: var(--aki-red);
+    color: var(--aki-white);
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    line-height: 16px;
+    text-align: center;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.header-icon--wishlist[data-akb-wishlist-count="0"]::after,
+.header-icon--wishlist:not([data-akb-wishlist-count])::after,
+.header-icon--cart[data-akb-cart-count="0"]::after,
+.header-icon--cart:not([data-akb-cart-count])::after {
+    display: none;
+}
+
+/* ── Mainnav (row 2 — solo desktop ≥1025px) ──────────────────── */
+.mainnav {
+    background: transparent;
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.mainnav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+    gap: var(--space-1);
+}
+
+.mainnav__item {
+    position: relative;
+}
+
+/* Top-level link: pill con underline animado bottom.
+ * Estados:
+ *   - reposo:  texto gray-300, sin underline.
+ *   - hover:   texto white + underline slide-in desde el centro (scaleX).
+ *   - active:  texto white + underline 100%.
+ *   - has-sub: caret SVG via ::after, rota 180° cuando submenu abre.
+ */
+.mainnav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    /* Bebas Neue (display de marca) en vez de Inter genérico: la nav desktop
+       chocaba con la identidad display (logo, drawer mobile, headings) y con
+       los propios sublinks del mega-menú, que ya estaban en Bebas. 16px porque
+       Bebas es condensada y más baja que Inter al mismo px; weight 400 (Bebas
+       tiene un solo peso, el 600 no aplicaba). */
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--aki-gray-300);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+    white-space: nowrap;
+    position: relative;
+    border-radius: 0px;
+}
+
+/* Indicador visual de selección JRPG:
+ * El contenido generado utiliza la sintaxis content: '▶' / '' para proveer
+ * texto alternativo vacío y evitar lecturas espurias en tecnologías de asistencia. */
+.mainnav__link::after {
+    content: '▶';
+    content: '▶' / '';
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+    opacity: 0;
+    color: var(--aki-red);
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    font-size: 10px;
+}
+
+/* Estado hover en enlaces de navegación principal sin modificar sombras de foco. */
+.mainnav__link:hover {
+    color: var(--aki-white);
+    transform: translateX(4px);
+}
+
+/* El amarillo es un indicador de foco por teclado, no un estado de hover.
+ * Compartir la regla anterior hacía aparecer un marco amarillo al pasar el
+ * mouse y convertía el acento secundario en un segundo color primario de la
+ * navegación. El anillo lo pone la regla global (tokens.css). */
+.mainnav__link:focus-visible {
+    color: var(--aki-white);
+    transform: translateX(4px);
+}
+
+.mainnav__link:hover::after,
+.mainnav__link:focus-visible::after,
+.mainnav__link--active::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(2px);
+}
+
+.mainnav__link--active {
+    color: var(--aki-white);
+    transform: translateX(4px);
+}
+
+/* Padre con submenú = ENLACE que navega + BOTÓN que abre el panel (patrón
+ * «disclosure», AI-8; el botón lo pinta class-mainnav-walker.php y lo gobierna
+ * main.js). Van lado a lado dentro del ítem; el enlace cede su padding derecho
+ * al botón para que «EDITORIALES ⌄» mida lo mismo que cuando la flecha era
+ * parte del enlace. */
+.mainnav__item--has-sub {
+    display: flex;
+    align-items: stretch;
+}
+
+.mainnav__item--has-sub > .mainnav__link {
+    padding-right: 2px;
+}
+
+/* Botón toggle de submenú (34px ancho x altura de fila): cumple WCAG 2.5.8.
+ * Posicionamiento con offset izquierdo para alineación visual con el enlace hermano. */
+.mainnav__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 0 0 auto;
+    width: 34px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 0 0 8px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: var(--aki-gray-300);
+    cursor: pointer;
+}
+
+/* Flecha — el mismo SVG que antes colgaba del enlace. */
+.mainnav__toggle::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: transform var(--transition-base);
+}
+
+.mainnav__item--has-sub:hover > .mainnav__toggle::before,
+.mainnav__item--has-sub > .mainnav__toggle[aria-expanded="true"]::before {
+    transform: rotate(180deg);
+}
+
+/* Submenu dropdowns (Manga, Cómics, Preventas)
+ * - Pill rounded card con border + glow del top accent rojo.
+ * - Slide-down + fade-in + slight scale para profundidad.
+ */
+.mainnav__sub {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    /* Cap de altura al viewport (menos el alto del header ~78px + margen) con
+     * scroll interno: con 60+ editoriales el mega-dropdown crecía más alto que
+     * la ventana y el enlace "Ver todas →" del fondo quedaba cortado bajo el
+     * viewport, sin forma de alcanzarlo. */
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--aki-surface);
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 15%, transparent 15%);
+    background-size: 4px 4px;
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    box-shadow: 6px 6px 0px var(--aki-black);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top center;
+    transition: opacity 180ms ease-out, transform 180ms ease-out, visibility 180ms;
+    z-index: var(--z-dropdown);
+    padding: var(--space-2) 0;
+}
+
+/* Abierto: ratón encima, o `mainnav__flyout--open` (lo pone main.js al pulsar
+ * el botón, al tocar en tablet o con el hover). `:focus-within` SÓLO sin JS
+ * (`mainnav--js` lo pone main.js): con JS, que el foco pase por el enlace ya no
+ * abre el panel ni mete sus enlaces en el orden de Tab. */
+.mainnav__item--has-sub:hover > .mainnav__sub,
+.mainnav__item--has-sub.mainnav__flyout--open > .mainnav__sub,
+.mainnav:not(.mainnav--js) .mainnav__item--has-sub:focus-within > .mainnav__sub {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* Cerrado a pedido (Escape, o el botón con el puntero encima): gana al :hover. */
+.mainnav__item--has-sub.mainnav__flyout--closed > .mainnav__sub {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.98);
+    pointer-events: none;
+}
+
+.mainnav__item--has-sub.mainnav__flyout--closed > .mainnav__toggle::before {
+    transform: none;
+}
+
+/* Un panel que se va (ni el ratón encima ni abierto por JS) no atrapa el
+ * puntero mientras se funde: en esos 180 ms sube 8 px y tapa el borde de abajo
+ * de la fila. Con la gracia de cierre de main.js (RQF2-1) el panel de
+ * Editoriales sigue abierto mientras el ratón cruza «Series» y empieza a
+ * fundirse justo cuando entra en Manga: sin esta regla se volvía a abrir
+ * encima de Manga y Cómics no llegaba a abrirse (medido en el espejo a 1440 con
+ * movimiento normal, 3 de 3 en Chromium y WebKit; con la regla, 0 de 3, igual
+ * que antes de la gracia). Sólo con JS: sin él lo abre `:focus-within`, que no
+ * pone ninguna clase. */
+.mainnav--js .mainnav__item--has-sub:not(:hover):not(.mainnav__flyout--open) > .mainnav__sub {
+    pointer-events: none;
+}
+
+/* Puente de hover para cubrir el espacio de 4px entre la fila y el subpanel desplegable (WCAG 1.4.13 «hoverable»).
+ * Previene la pérdida involuntaria de :hover o pointerleave al descender el cursor hacia el panel,
+ * complementando la ventana de gracia temporal (GRACIA_MS) de main.js. */
+.mainnav__item--has-sub::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    min-width: calc(220px + 2px);
+    height: 4px;
+    pointer-events: none;
+}
+
+/* Panel centrado (`--auto`, el de Editoriales): centrado en el ítem como él, y
+ * tan ancho como el panel en su máximo (`max-width` + padding + borde). Con
+ * pocas columnas el panel queda más estrecho y sobra puente a los lados:
+ * inofensivo, sólo retiene el puntero mientras el panel está abierto. */
+.mainnav__item--has-sub:has(> .mainnav__sub--auto)::after {
+    left: 50%;
+    right: auto;
+    min-width: 0;
+    width: calc(min(880px, 100vw - 80px) + 2 * var(--space-4) + 2px);
+    transform: translateX(-50%);
+}
+
+.mainnav__item--has-sub:has(> .mainnav__sub--mega)::after {
+    left: 50%;
+    right: auto;
+    min-width: 0;
+    width: calc(min(920px, 100vw - 60px) + 2 * var(--space-4) + 2px);
+    transform: translateX(-50%);
+}
+
+/* Columnas fijas (nacen a la izquierda): N columnas de 160 px, sus N-1 huecos,
+ * el padding lateral y el borde. Entre 1025 y 1099 px las de 3 y 4 pasan a 2
+ * columnas y el puente sobra por la derecha, igual de inofensivo. */
+.mainnav__item--has-sub:has(> .mainnav__sub--cols-2)::after {
+    min-width: calc(2 * 160px + 3 * var(--space-4) + 2px);
+}
+
+.mainnav__item--has-sub:has(> .mainnav__sub--cols-3)::after {
+    min-width: calc(3 * 160px + 4 * var(--space-4) + 2px);
+}
+
+.mainnav__item--has-sub:has(> .mainnav__sub--cols-4)::after {
+    min-width: calc(4 * 160px + 5 * var(--space-4) + 2px);
+}
+
+.mainnav__item--has-sub:hover::after,
+.mainnav__item--has-sub.mainnav__flyout--open::after {
+    pointer-events: auto;
+}
+
+.mainnav__item--has-sub.mainnav__flyout--closed::after {
+    pointer-events: none;
+}
+
+.mainnav__sublink {
+    display: block;
+    padding: var(--space-2) var(--space-5);
+    color: var(--aki-white);
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    transition: transform var(--transition-fast), background-color var(--transition-fast);
+    text-transform: uppercase;
+}
+
+.mainnav__sublink:hover,
+.mainnav__sublink:focus-visible {
+    color: var(--aki-white);
+    background: var(--aki-red);
+    transform: translateX(5px) skewX(-5deg);
+    font-weight: var(--weight-bold);
+}
+
+.mainnav__sublink--active {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+    box-shadow: inset 3px 0 0 var(--aki-red);
+}
+
+.mainnav__sublink--parent {
+    margin: 0 0 var(--space-1);
+    border-bottom: 1px solid var(--aki-border);
+    /* Label de sección del dropdown: BLANCO (no amarillo — amarillo = solo precio). */
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400; /* explícito: heredaba un 500 que Bebas sintetizaba */
+    font-synthesis: none; /* Bebas sin italic/500 reales */
+}
+
+.mainnav__sublink--parent:hover,
+.mainnav__sublink--parent:focus-visible {
+    color: var(--aki-white);
+    background: var(--aki-red);
+    text-shadow: none;
+}
+
+.mainnav__sublink--all {
+    color: var(--aki-red);
+    border-top: 1px solid var(--aki-border);
+    margin-top: var(--space-1);
+    padding-top: var(--space-3);
+    text-align: right;
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-style: normal;
+    font-synthesis: none;
+    text-transform: uppercase;
+}
+
+.mainnav__sublink--all:hover,
+.mainnav__sublink--all:focus-visible {
+    color: var(--aki-white);
+    background: transparent;
+    transform: translateX(5px) skewX(-5deg);
+    text-shadow: 2px 2px 0 var(--aki-red);
+}
+
+/* Sub-label — section header no clickeable dentro del submenu desktop.
+ * El walker renderea como <span class="mainnav__sublink mainnav__sub-label">
+ * cuando el menu item tiene la clase `mainnav__sub-label`. Used by
+ * BrandsDirectory MenuInjector en /Editoriales/. */
+.mainnav__sub > .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub .mainnav__sublink.mainnav__sub-label {
+    display: block;
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--space-3) var(--space-5) var(--space-1);
+    cursor: default;
+}
+
+.mainnav__sub > .mainnav__sublink.mainnav__sub-label:hover,
+.mainnav__sub .mainnav__sublink.mainnav__sub-label:hover {
+    background: transparent;
+    transform: none;
+    color: var(--aki-gray-400);
+}
+
+.mainnav__sub > .mainnav__sublink.mainnav__sub-label:not(:first-child) {
+    border-top: 1px solid var(--aki-border);
+    margin-top: var(--space-2);
+}
+
+.mainnav__sub > .mainnav__sublink.mainnav__sub-label:hover {
+    color: var(--aki-gray-400);
+    background: transparent;
+}
+
+/* ── Variantes multi-columna del dropdown ────────────────────────────
+ * Se activan agregando una clase modifier al item top-level del menú
+ * desde Apariencia → Menús → CSS Classes:
+ *
+ *   - mainnav__sub--auto    → grid auto-fit (RECOMENDADO, no requiere ajuste)
+ *   - mainnav__sub--cols-2  → 2 columnas fijas (legacy)
+ *   - mainnav__sub--cols-3  → 3 columnas fijas (legacy)
+ *   - mainnav__sub--cols-4  → 4 columnas fijas (legacy)
+ *
+ * El walker (`class-mainnav-walker.php`) captura esa clase del padre y la
+ * forwardea al contenedor `<div class="mainnav__sub …">`. La variante
+ * `--auto` usa `repeat(auto-fit, minmax(180px, 1fr))` con max-width para que
+ * el browser decida cuántas columnas caben — escala de 8 a 60+ editoriales
+ * sin tocar nada. Las variantes fijas existen por backward-compat.
+ *
+ * Sublabels (.mainnav__sub-label) ocupan toda la fila para mantener la
+ * jerarquía visual de regiones (Argentinas / Españolas / …).
+ */
+.mainnav__sub--auto,
+.mainnav__sub--cols-2,
+.mainnav__sub--cols-3,
+.mainnav__sub--cols-4 {
+    display: grid;
+    grid-auto-rows: min-content;
+    column-gap: var(--space-4);
+    row-gap: 2px;
+    padding: var(--space-3) var(--space-4);
+}
+
+/* Auto: el browser decide cuántas columnas caben.
+ *   - min item width: 180px (largo razonable para nombres tipo "PANINI ARGENTINA")
+ *   - max-width del dropdown clampada al viewport para no tapar la página
+ *   - min-width asegura que con 1-2 brands no se vea encogido */
+.mainnav__sub--auto {
+    left: 50%;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    min-width: 280px;
+    max-width: min(880px, calc(100vw - 80px));
+    transform: translate(-50%, -8px) scale(0.98);
+}
+
+.mainnav__item--has-sub:hover > .mainnav__sub--auto,
+.mainnav__item--has-sub.mainnav__flyout--open > .mainnav__sub--auto,
+.mainnav:not(.mainnav--js) .mainnav__item--has-sub:focus-within > .mainnav__sub--auto {
+    transform: translate(-50%, 0) scale(1);
+}
+
+.mainnav__item--has-sub.mainnav__flyout--closed > .mainnav__sub--auto {
+    transform: translate(-50%, -8px) scale(0.98);
+}
+
+.mainnav__sub--cols-2 { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+.mainnav__sub--cols-3 { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+.mainnav__sub--cols-4 { grid-template-columns: repeat(4, minmax(160px, 1fr)); }
+
+/* En grid, los sublabels atraviesan todas las columnas para encabezar la
+ * región completa. La regla previa de `:not(:first-child)` border-top no
+ * aplica visualmente bien en grid — usamos margen superior cuando no es
+ * el primer label en lugar del border. */
+.mainnav__sub--auto > .mainnav__sub-label,
+.mainnav__sub--cols-2 > .mainnav__sub-label,
+.mainnav__sub--cols-3 > .mainnav__sub-label,
+.mainnav__sub--cols-4 > .mainnav__sub-label,
+.mainnav__sub--auto > .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub--cols-2 > .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub--cols-3 > .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub--cols-4 > .mainnav__sublink.mainnav__sub-label {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    padding-right: 0;
+    border-top: none;
+    margin-top: 0;
+}
+
+.mainnav__sub--auto > .mainnav__sub-label ~ .mainnav__sub-label,
+.mainnav__sub--cols-2 > .mainnav__sub-label ~ .mainnav__sub-label,
+.mainnav__sub--cols-3 > .mainnav__sub-label ~ .mainnav__sub-label,
+.mainnav__sub--cols-4 > .mainnav__sub-label ~ .mainnav__sub-label,
+.mainnav__sub--auto > .mainnav__sublink.mainnav__sub-label ~ .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub--cols-2 > .mainnav__sublink.mainnav__sub-label ~ .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub--cols-3 > .mainnav__sublink.mainnav__sub-label ~ .mainnav__sublink.mainnav__sub-label,
+.mainnav__sub--cols-4 > .mainnav__sublink.mainnav__sub-label ~ .mainnav__sublink.mainnav__sub-label {
+    margin-top: var(--space-3);
+    border-top: 1px solid var(--aki-border);
+    padding-top: var(--space-3);
+}
+
+/* "Ver todas →" también debe atravesar todas las columnas */
+.mainnav__sub--auto > .mainnav__sublink--all,
+.mainnav__sub--cols-2 > .mainnav__sublink--all,
+.mainnav__sub--cols-3 > .mainnav__sublink--all,
+.mainnav__sub--cols-4 > .mainnav__sublink--all {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* "Ver todas →" pegado al fondo del dropdown: aunque la lista de editoriales
+ * sea larga y el dropdown haga scroll interno (max-height + overflow-y), el
+ * CTA queda siempre visible y alcanzable en el borde inferior. */
+.mainnav__sublink--all {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background: var(--aki-surface);
+}
+
+/* Ajuste responsive para variantes fijas en desktop intermedio (1025px - 1099px):
+ * Colapsa subpaneles de 3 y 4 columnas a 2 columnas para evitar compresión de texto. */
+@media (min-width: 1025px) and (max-width: 1099px) {
+    .mainnav__sub--cols-3,
+    .mainnav__sub--cols-4 {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+}
+
+/* ── Variante MEGA MENÚ por País (Editoriales) ────────────────────────
+ * Diseño de vanguardia inspirado en Max Mega Menu & QuadMenu:
+ *   - 2 columnas independientes por país (Argentina izquierda / España derecha).
+ *   - Aceleración por hardware GPU pura (translate3d + will-change).
+ *   - Cero saltos de diseño (CLS = 0) con altura predecible.
+ *   - Encabezados de país con acento brutalista rojo (--aki-red) y divisor vertical.
+ *   - Píldoras de país [AR] y [ES] con micro-interacción al hover.
+ *   - Barra inferior de ancho completo con CTA "Ver todas las editoriales →".
+ */
+.mainnav__sub--mega {
+    left: 50%;
+    display: block;
+    column-count: 2;
+    column-gap: var(--space-6);
+    column-rule: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--space-5) var(--space-6);
+    min-width: 580px;
+    max-width: min(880px, calc(100vw - 60px));
+    transform: translate3d(-50%, -8px, 0) scale(0.98);
+    will-change: transform, opacity;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.mainnav__item--has-sub:hover > .mainnav__sub--mega,
+.mainnav__item--has-sub.mainnav__flyout--open > .mainnav__sub--mega,
+.mainnav:not(.mainnav--js) .mainnav__item--has-sub:focus-within > .mainnav__sub--mega {
+    transform: translate3d(-50%, 0, 0) scale(1);
+    opacity: 1;
+    visibility: visible;
+}
+
+.mainnav__item--has-sub.mainnav__flyout--closed > .mainnav__sub--mega {
+    transform: translate3d(-50%, -8px, 0) scale(0.98);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Encabezados de país: el segundo inicia obligatoriamente la Columna 2 */
+.mainnav__sub--mega > .mainnav__sub-label,
+.mainnav__sub--mega > .mainnav__sublink.mainnav__sub-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-heading);
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    color: var(--aki-white);
+    padding: 0 0 var(--space-2) 0;
+    margin-bottom: var(--space-2);
+    border-bottom: 2px solid var(--aki-red);
+    text-transform: uppercase;
+    break-after: avoid;
+}
+
+.mainnav__sub--mega > .mainnav__sub-label ~ .mainnav__sub-label,
+.mainnav__sub--mega > .mainnav__sublink.mainnav__sub-label ~ .mainnav__sublink.mainnav__sub-label {
+    break-before: column;
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+}
+
+/* Enlaces individuales a marcas con micro-interacción y badge */
+.mainnav__sub--mega > .mainnav__sublink:not(.mainnav__sub-label):not(.mainnav__sublink--all) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px var(--space-3);
+    font-size: 13px;
+    color: var(--aki-gray-200);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+    break-inside: avoid;
+}
+
+.mainnav__sub--mega > .mainnav__sublink:not(.mainnav__sub-label):not(.mainnav__sublink--all):hover,
+.mainnav__sub--mega > .mainnav__sublink:not(.mainnav__sub-label):not(.mainnav__sublink--all):focus-visible {
+    color: var(--aki-white);
+    background: var(--aki-red);
+    transform: translateX(4px) skewX(-4deg);
+    font-weight: var(--weight-bold);
+}
+
+/* Píldora sutil de país en desktop */
+.mainnav__sub--mega > .akb-brand--argentina::after {
+    content: 'AR';
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--aki-gray-400);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.mainnav__sub--mega > .akb-brand--espana::after {
+    content: 'ES';
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--aki-gray-400);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.mainnav__sub--mega > .mainnav__sublink:hover::after,
+.mainnav__sub--mega > .mainnav__sublink:focus-visible::after {
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--aki-white);
+}
+
+/* "Ver todas las editoriales →" atraviesa todo el ancho al pie */
+.mainnav__sub--mega > .mainnav__sublink--all {
+    column-span: all;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    border-top: 1px solid var(--aki-border);
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-2) 0;
+    color: var(--aki-red);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    text-transform: uppercase;
+}
+
+.mainnav__sub--mega > .mainnav__sublink--all:hover {
+    color: var(--aki-white);
+    text-shadow: 2px 2px 0 var(--aki-red);
+    transform: translateX(4px);
+}
+
+/* Compatibilidad si se activa el modo anidado en el mega menú */
+.mainnav__sub--mega .mainnav__sub-item {
+    position: static;
+    display: flex;
+    flex-direction: column;
+}
+
+.mainnav__sub--mega .mainnav__sub-item > .mainnav__sublink {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    color: var(--aki-white);
+    padding: 0 0 var(--space-2) 0;
+    margin-bottom: var(--space-2);
+    border-bottom: 2px solid var(--aki-red);
+    text-transform: uppercase;
+}
+
+.mainnav__sub--mega .mainnav__toggle--sub {
+    display: none;
+}
+
+.mainnav__sub--mega .mainnav__subsub {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    gap: 2px;
+}
+
+/* ── Flyout de 3er nivel (Argentinas → marcas) ───────────────── */
+.mainnav__sub-item {
+    position: relative;
+}
+
+/* Ítem con sub-submenú: enlace + botón «›» (mismo patrón que el primer nivel). */
+.mainnav__sub-item--has-sub {
+    display: flex;
+    align-items: stretch;
+}
+
+.mainnav__sub-item--has-sub > .mainnav__sublink {
+    flex: 1 1 auto;
+}
+
+/* El «›» del tercer nivel sí va centrado en sus 32 px. */
+.mainnav__toggle--sub {
+    justify-content: center;
+    width: 32px;
+    min-height: 24px;
+    padding: 0;
+}
+
+.mainnav__toggle--sub::before {
+    content: '›';
+    width: auto;
+    height: auto;
+    background: none;
+    opacity: 0.5;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.mainnav__sub-item--has-sub:hover > .mainnav__toggle--sub::before,
+.mainnav__sub-item--has-sub > .mainnav__toggle--sub[aria-expanded="true"]::before {
+    transform: none;
+    opacity: 1;
+}
+
+.mainnav__subsub {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-top: 2px solid var(--aki-red);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(6px);
+    transition: opacity var(--transition-base), transform var(--transition-base), visibility var(--transition-base);
+    z-index: calc(var(--z-dropdown) + 1);
+    padding: var(--space-2) 0;
+}
+
+.mainnav__sub-item--has-sub:hover > .mainnav__subsub,
+.mainnav__sub-item--has-sub.mainnav__flyout--open > .mainnav__subsub,
+.mainnav:not(.mainnav--js) .mainnav__sub-item--has-sub:focus-within > .mainnav__subsub {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.mainnav__sub-item--has-sub.mainnav__flyout--closed > .mainnav__subsub {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(6px);
+    pointer-events: none;
+}
+
+.mainnav__subsublink {
+    display: block;
+    padding: var(--space-2) var(--space-5);
+    color: var(--aki-gray-300);
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.mainnav__subsublink:hover,
+.mainnav__subsublink:focus-visible {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+}
+
+.mainnav__subsublink--active {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+    box-shadow: inset 3px 0 0 var(--aki-red);
+}
+
+/* ── Mobile drawer (slide from left) ─────────────────────────── */
+/* AnnouncementBar offset: cuando #akb-ann-bar está presente y visible, el
+ * drawer y overlay se desplazan hacia abajo para no taparla.
+ *
+ * Fallback `0px`: si el plugin no inyecta la barra (no hay messages, módulo
+ * desactivado, browser sin :has() support), el drawer cubre desde el top
+ * normal. :has() support: Chrome 105+, Safari 15.4+, Firefox 121+.
+ *
+ * Altura `38px` matchea AnnouncementBar.css (`#akb-ann-bar { height: 38px }`).
+ * Si la altura del plugin cambia, actualizar acá. */
+:root {
+    --akb-ann-bar-h: 0px;
+}
+
+body:has(#akb-ann-bar:not(.akb-hidden)) {
+    /* Altura de reserva cuando la barra de anuncios está activa en móvil */
+    --akb-ann-bar-h: 44px;
+}
+
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 0; /* cubre announcement bar también para focus completo */
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: calc(var(--z-modal) - 1);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-base);
+}
+
+/* `.open` overrides defensivos: algunas reglas globales aplican
+ * `visibility:hidden` a `[aria-hidden="true"]` y el overlay arrancaba con
+ * aria-hidden=true, pisando el opacity transition + bloqueando el click
+ * tap-to-close. Explicitamos visibility/pointer-events al abrir. */
+.mobile-overlay.open {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.mobile-drawer {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* min() colapsa width + max-width en una sola declaración: 360px ideal
+     * con cap a 88vw para dispositivos compactos. */
+    width: min(360px, 88vw);
+    height: 100dvh;
+    box-sizing: border-box;
+    background: var(--aki-surface);
+    border-right: 2px solid var(--aki-red);
+    z-index: var(--z-modal);
+    overflow-y: auto;
+    padding-bottom: var(--space-6);
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    will-change: transform;
+}
+
+/* ── SEARCH SHEET: modo búsqueda a pantalla completa del drawer móvil ──
+ * En .mobile-drawer--search el drawer se expande a ancho completo (100vw)
+ * con el input en la parte superior y botón cancelar accesible, maximizando
+ * el área visible de sugerencias sobre el teclado en pantalla. */
+.mobile-drawer--search {
+    top: 0;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    border-right: 0;
+    padding-bottom: 0;
+    overflow-y: visible;
+    /* La transición del drawer es translateX(-100%)→0: en full-screen se ve
+     * como una cortina desde la izquierda; para búsqueda es preferible un
+     * fundido, que además no compite con la aparición del teclado. */
+    transform: none;
+    transition: opacity 160ms ease;
+}
+
+.mobile-drawer--search > :not(.mobile-drawer__search) {
+    display: none;
+}
+
+.mobile-drawer--search .mobile-drawer__search {
+    /* Fila superior: input + Cancelar. El botón «Buscar» rojo se sustituye por
+     * un «Cancelar» de texto (patrón iOS/Android); enviar sigue siendo Enter
+     * del teclado (`enterkeyhint="search"`). El marco/gradiente del form pasa
+     * al campo (`--akb-sheet-field`) para que «Cancelar» quede FUERA del
+     * campo: es otra acción, no parte del input. */
+    margin: var(--space-2) var(--space-3) 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    gap: var(--space-2);
+}
+
+.mobile-drawer--search .mobile-drawer__search::before {
+    /* La cuña roja decorativa del form se reubica al campo vía outline. */
+    display: none;
+}
+
+/* (0,3,1): gana a `.mobile-drawer__search input.akibara-search__input[type="search"]`
+ * (0,2,1) y a su :focus (0,3,1 empatado → orden en cascada, esta va después)
+ * sin !important. Es el marco del CAMPO en el sheet: la cuña roja del form
+ * pasa a border-left del input. */
+.mobile-drawer--search .mobile-drawer__search input.akibara-search__input[type="search"],
+.mobile-drawer--search .mobile-drawer__search input.akibara-search__input[type="search"]:focus {
+    border: 1px solid var(--akb-search-field-border, #707070);
+    border-left: 3px solid var(--aki-red);
+    background: var(--aki-gray-900);
+    padding-left: 40px;
+    min-height: 44px;
+    box-shadow: none;
+}
+
+.mobile-drawer--search .akibara-search__icon {
+    left: 14px;
+}
+
+.mobile-drawer--search .akb-suggest-panel {
+    /* Sheet a pantalla completa: el panel puede usar hasta el borde inferior
+     * (menos el teclado, que el navegador resta solo). El 78vh/560px del
+     * dropdown clásico dejaba una banda muerta abajo. */
+    max-height: calc(100dvh - 72px);
+    border-radius: 0 0 10px 10px;
+}
+
+.mobile-drawer--search .akibara-search__submit {
+    display: none;
+}
+
+.mobile-drawer--search .mobile-drawer__search::after {
+    /* Sin este pseudo, el borde inferior del form queda solo; una línea sutil
+     * bajo la fila de búsqueda ancla el panel de sugerencias. */
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -8px;
+    height: 1px;
+    background: var(--aki-border);
+}
+
+.mobile-drawer--search .akibara-search__clear {
+    /* Área táctil accesible ≥ 44px (WCAG 2.5.5) */
+    width: 44px;
+    height: 44px;
+}
+
+.mobile-drawer--search .akb-search-cancel {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: var(--space-2);
+    padding: 0 var(--space-2);
+    border: 0;
+    background: transparent;
+    color: var(--aki-gray-200);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.akb-search-cancel {
+    display: none;
+}
+
+/* Zero-state del sheet: «Populares» y «Recientes» como chips envolventes. */
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-head {
+    padding: var(--space-3) var(--space-3) var(--space-1);
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    /* Contraste accesible WCAG 1.4.3 (≥ 4.5:1) sobre fondo oscuro */
+    color: var(--aki-gray-300);
+    opacity: 1;
+}
+
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-head + .akb-suggest-zero,
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-zero + .akb-suggest-zero {
+    display: inline-flex;
+}
+
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-zero {
+    display: inline-flex;
+    align-items: center;
+    /* Box-sizing border-box y alineación vertical consistente entre elementos <button> y <a> */
+    box-sizing: border-box;
+    vertical-align: middle;
+    width: auto;
+    margin: 4px 0 4px var(--space-3);
+    padding: 0 14px;
+    min-height: 44px; /* Área táctil accesible ≥ 44px (WCAG 2.5.5) */
+    border: 1px solid var(--akb-search-field-border, #707070);
+    border-radius: 999px;
+    background: var(--aki-gray-900);
+    color: var(--aki-white);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+}
+
+/* `.is-active` es el foco virtual de las flechas (aria-activedescendant): se
+ * pinta igual que el foco real, con el anillo amarillo de la casa. */
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-zero.is-active,
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-zero:focus-visible {
+    border-color: var(--aki-yellow);
+    box-shadow: var(--aki-focus-ring);
+}
+
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-zero .akb-suggest-thumb {
+    /* Recientes con portada: chip con miniatura pequeña a la izquierda. */
+    width: 24px;
+    height: 24px;
+    margin: 0 8px 0 -6px;
+    border-radius: 999px;
+    object-fit: cover;
+}
+
+.mobile-drawer--search .akb-suggest-panel .akb-suggest-clear {
+    /* «Borrar historial» no es un chip: enlace discreto bajo los recientes. */
+    display: block;
+    width: auto;
+    margin: 2px 0 6px var(--space-3);
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    text-decoration: underline;
+}
+
+/* El scrim del menú (85 % negro + blur) detrás de un sheet a pantalla completa
+ * es invisible pero sigue capturando el tap fuera del drawer, que en
+ * full-screen ya no existe: se apaga para no dejar un listener fantasma. */
+.mobile-overlay--search {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.mobile-drawer.open {
+    display: block;
+    transform: translateX(0);
+}
+
+.mobile-drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* El drawer ya no arranca bajo la barra de anuncios: sin esto el botón
+     * cerrar quedaría bajo el notch/isla dinámica en iOS. */
+    padding-top: env(safe-area-inset-top, 0px);
+    /* Reducido space-4 → space-3 vertical: combinado con close circular 36px
+     * deja el head en ~60px (antes 76px) — más contenido above-the-fold. */
+    padding: var(--space-3) var(--space-5);
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.mobile-drawer__title {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    text-transform: uppercase;
+    /* gray-200 en vez de white pleno: el título es un label de contexto,
+     * no debería competir visualmente con los items clicables (que sí van
+     * en white). Mantiene jerarquía sin perder legibilidad. */
+    color: var(--aki-gray-200);
+    letter-spacing: 0.05em;
+}
+
+/* Botón close — circular consistente con .akibara-search__clear.
+ *   - Default: surface-2 + gray-300 (discreto pero presente).
+ *   - Hover/focus-visible: rojo brand (mismo lenguaje que border-right del drawer).
+ *   - SVG forzado a 18×18 vía CSS aunque el helper emita width="24" en el
+ *     attribute (cascade gana sobre presentation attributes).
+ *   - :focus-visible explícito evita el default del browser/GP que pintaba
+ *     un cuadrado gris alrededor del SVG al recibir focus. */
+.mobile-drawer__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px; /* Target táctil accesible 44px (WCAG 2.5.5) */
+    height: 44px;
+    padding: 0;
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-300);
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* El foco NO comparte el círculo rojo del hover: lleva el anillo amarillo
+ * global (tokens.css), como el resto de los controles. */
+.mobile-drawer__close:hover {
+    background: var(--aki-red);
+    color: var(--aki-white);
+}
+
+.mobile-drawer__close:focus-visible {
+    color: var(--aki-white);
+    outline: none;
+}
+
+.mobile-drawer__close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mobile-drawer__group {
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.mobile-drawer__link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    /* Brand Typography Sync */
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--aki-white);
+    border: 0;
+    background: none;
+    /* Box-sizing border-box evita desbordamientos laterales por padding horizontal */
+    box-sizing: border-box;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-bottom: 1px solid var(--aki-border);
+    text-decoration: none;
+    overflow: hidden;
+    isolation: isolate;
+    transition:
+        color var(--transition-fast),
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.mobile-drawer__link::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    z-index: 0;
+    width: 6px;
+    background: var(--aki-red);
+    box-shadow: 4px 0 0 rgba(255, 215, 0, 0.18);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform var(--transition-fast);
+    pointer-events: none;
+}
+
+.mobile-drawer__link:hover,
+.mobile-drawer__link:focus-visible {
+    background: var(--aki-surface-2);
+    transform: translateX(2px);
+}
+
+.mobile-drawer__link--active {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+}
+
+.mobile-drawer__link--active::before {
+    transform: scaleY(1);
+}
+
+.mobile-drawer__link:hover::before,
+.mobile-drawer__link:focus-visible::before,
+.mobile-drawer__toggle[aria-expanded="true"]::before,
+.mobile-drawer__subtoggle[aria-expanded="true"]::before {
+    transform: scaleY(1);
+}
+
+/* Affordance chevron — reusa el mismo SVG inline data-URI que .mainnav__link
+ * desktop (líneas ~745) para cerrar inconsistencia entre breakpoints.
+ * Chevron rota 180° al expandir (vs glyph que mutaba +/− antes).
+ * El color rojo del texto del toggle abierto se hereda en otra rule abajo. */
+.mobile-drawer__toggle::after,
+.mobile-drawer__subtoggle::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    margin-left: auto;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: transform var(--transition-base);
+    flex-shrink: 0;
+}
+
+.mobile-drawer__toggle[aria-expanded="true"]::after,
+.mobile-drawer__subtoggle[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
+/* Open state: el título también va a rojo brand para que el state sea
+ * visible sin depender solo del +/- y matchear el comportamiento del
+ * footer accordion. */
+.mobile-drawer__toggle[aria-expanded="true"],
+.mobile-drawer__subtoggle[aria-expanded="true"] {
+    color: var(--aki-red);
+}
+
+.mobile-drawer__sub {
+    max-height: 0;
+    overflow: hidden;
+    background: var(--aki-surface-2);
+    padding: 0 var(--space-5);
+    /* visibility: hidden remueve elementos colapsados del orden de tabulación (a11y);
+     * el retardo de transición preserva la visibilidad durante la animación de cierre. */
+    visibility: hidden;
+    transition: max-height 280ms ease, padding 280ms ease, visibility 0s linear 280ms;
+}
+
+.mobile-drawer__sub.open {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: var(--space-2) var(--space-5);
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+/* Sin padding propio: el container .mobile-drawer__sub.open ya aporta
+ * 20px horizontales y el vertical lo provee min-height (touch-target).
+ * Al crecer la lista de editoriales/categorías, evita acumular padding
+ * que infla el alto del accordion sin aportar info. */
+.mobile-drawer__sublink {
+    display: flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+    color: var(--aki-gray-200); /* Mejor contraste base */
+    font-size: 15px; /* Más legible que text-sm */
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.mobile-drawer__sublink:hover,
+.mobile-drawer__sublink:focus-visible {
+    color: var(--aki-white);
+}
+
+/* Píldoras de país en el drawer móvil */
+.mobile-drawer__sublink.akb-brand--argentina::after,
+.mobile-drawer__sublink.akb-brand--espana::after {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.05em;
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--aki-gray-400);
+}
+.mobile-drawer__sublink.akb-brand--argentina::after { content: 'AR'; }
+.mobile-drawer__sublink.akb-brand--espana::after { content: 'ES'; }
+
+.mobile-drawer__sublink--active {
+    color: var(--aki-white);
+    font-weight: var(--weight-semibold);
+    box-shadow: inset 3px 0 0 var(--aki-red);
+    padding-left: var(--space-3);
+}
+
+.mobile-drawer__sublink--parent {
+    min-height: 44px;
+    margin-bottom: var(--space-1);
+    border-bottom: 1px solid var(--aki-border);
+    /* Label de sección del drawer: BLANCO (no amarillo — amarillo = solo precio). */
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: 18px;
+    text-transform: uppercase;
+}
+
+.mobile-drawer__sublink--parent:hover,
+.mobile-drawer__sublink--parent:focus-visible {
+    color: var(--aki-white);
+    background: var(--aki-red);
+    text-shadow: none;
+}
+
+/* Fix para el link "VER TODAS" dentro del cajón móvil */
+.mobile-drawer__sublink.mainnav__sublink--all {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--aki-border);
+    color: var(--aki-red);
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+
+.mobile-drawer__sublink--accent {
+    color: var(--aki-red-bright);
+    font-weight: var(--weight-semibold);
+}
+
+/* Sublabel — Argentinas/Españolas/Otros.
+ * Upgrade a Bebas Neue para mantener consistencia con los top-level links. */
+.mobile-drawer__sublabel {
+    display: block;
+    padding: var(--space-3) var(--space-3) var(--space-2) calc(var(--space-3) - 2px);
+    border-left: 2px solid var(--aki-red);
+    color: var(--aki-white); /* Destaca como header de sección */
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.mobile-drawer__sublabel + .mobile-drawer__sublink {
+    padding-top: 0;
+}
+
+.mobile-drawer__sublabel ~ .mobile-drawer__sublabel {
+    border-top: 1px solid var(--aki-border);
+    margin-top: var(--space-3);
+    padding-top: var(--space-4);
+}
+
+.mobile-drawer__foot {
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--aki-border);
+    padding-top: var(--space-4);
+}
+
+/* ── Mobile drawer: nivel 2 (Argentinas / Españolas) ───────── */
+.mobile-drawer__subgroup {
+    border-top: 1px solid var(--aki-border);
+}
+
+.mobile-drawer__subgroup:first-child {
+    border-top: 0;
+}
+
+/* Sin padding propio (mismo principio que .mobile-drawer__sublink): el
+ * container del sub aporta el horizontal, el min-height de los items
+ * aporta el vertical. Mantenido como estructura defensiva — el walker
+ * actual no genera subtoggles, pero podrían usarse para grupos
+ * toggleables cuando crezca el catálogo de editoriales. */
+.mobile-drawer__subtoggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: var(--touch-target-min);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--aki-gray-200);
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.mobile-drawer__subtoggle:hover,
+.mobile-drawer__subtoggle:focus-visible {
+    color: var(--aki-white);
+}
+
+.mobile-drawer__subtoggle--active {
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+    box-shadow: inset 3px 0 0 var(--aki-red);
+}
+
+.mobile-drawer__subtoggle--active[aria-expanded="true"] {
+    color: var(--aki-red);
+}
+
+/* ── Mobile drawer: nivel 3 (brand links) ──────────────────── */
+.mobile-drawer__subsub {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 250ms ease, padding 250ms ease;
+    padding: 0 var(--space-3);
+}
+
+.mobile-drawer__subsub.open {
+    max-height: 300px;
+    padding: var(--space-1) var(--space-3) var(--space-2);
+}
+
+/* ── Animación accordion upgrade (browsers nuevos) ───────────
+ * `interpolate-size: allow-keywords` permite transitions desde height: 0 a
+ * height: auto. El comportamiento actual con max-height fijo (70vh / 300px)
+ * tiene el problema de animar contra un techo mayor al contenido real → la
+ * primera parte del transition "atraviesa aire" y se siente lenta. Con
+ * height: auto, el transition pega al contenido exacto → más smooth.
+ *
+ * Wrapped en @supports: browsers que no entienden interpolate-size (Safari
+ * <17.4, Chrome <129, FF <137) ignoran el bloque entero y mantienen el
+ * comportamiento max-height previo como fallback. Cero riesgo regresión.
+ *
+ * `max-height: none` dentro del @supports anula el cap de las rules previas
+ * sin recurrir a !important (cascade orden + specificity equivalente). */
+@supports (interpolate-size: allow-keywords) {
+    .mobile-drawer {
+        interpolate-size: allow-keywords;
+    }
+
+    .mobile-drawer__sub,
+    .mobile-drawer__subsub {
+        max-height: none;
+        height: 0;
+    }
+
+    .mobile-drawer__sub {
+        /* Preserva la transición diferida de visibility al redefinir el shorthand transition con interpolate-size */
+        transition: height 280ms ease, padding 280ms ease, visibility 0s linear 280ms;
+    }
+
+    .mobile-drawer__subsub {
+        transition: height 250ms ease, padding 250ms ease;
+    }
+
+    .mobile-drawer__sub.open,
+    .mobile-drawer__subsub.open {
+        max-height: none;
+        height: auto;
+    }
+}
+
+.mobile-drawer__subsublink {
+    display: block;
+    padding: var(--space-1) var(--space-3);
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.mobile-drawer__subsublink:hover,
+.mobile-drawer__subsublink:focus-visible {
+    color: var(--aki-white);
+}
+
+.mobile-drawer__subsublink--active {
+    color: var(--aki-white);
+    font-weight: var(--weight-semibold);
+    box-shadow: inset 3px 0 0 var(--aki-red);
+}
+
+/* ── Responsive: ≤1024px hide desktop, show mobile bits ────── */
+@media (max-width: 1024px) {
+    .mainnav {
+        display: none;
+    }
+    .hamburger {
+        display: flex;
+    }
+
+    /* Mobile: tres columnas con laterales iguales. Así el logo queda centrado
+     * respecto del viewport aunque haya un hamburger a la izquierda y varios
+     * accesos a la derecha. Search se oculta: el drawer trae su propio input. */
+    .header-main__inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        height: 72px;
+        padding-inline:
+            max(var(--space-2), env(safe-area-inset-left, 0px))
+            max(var(--space-2), env(safe-area-inset-right, 0px));
+        gap: 0;
+    }
+
+    .header-main__inner > .akibara-search {
+        display: none;
+    }
+
+    /* La especificidad incluye .site-header para superar la regla desktop.
+     * 94px deja espacio real a tres targets táctiles de 44px desde 375px. */
+    .site-header .logo__img {
+        width: 94px;
+        height: auto;
+        max-width: 100%;
+        display: block;
+    }
+
+    .logo {
+        grid-column: 2;
+        justify-self: center;
+        min-width: 0;
+        overflow: visible;
+        justify-content: center;
+        margin: 0;
+    }
+
+    .hamburger {
+        grid-column: 1;
+        justify-self: start;
+    }
+
+    .header-icons {
+        grid-column: 3;
+        justify-self: end;
+        margin-left: 0;
+        gap: 0;
+        min-width: 0;
+    }
+
+    .header-icon {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+
+/* En pantallas <375px no caben matemáticamente logo centrado + 3 targets
+ * táctiles de 44px. Mi cuenta sigue disponible como enlace en el drawer; se
+ * conserva en el header Favoritos y Carrito, que son acciones más contextuales. */
+@media (max-width: 374px) {
+    .header-icon--account {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .akibara-search::before,
+    .mobile-drawer__search::before,
+    .header-icon.is-bumped,
+    .mobile-drawer__link,
+    .mobile-drawer__link::before {
+        transition: none;
+        animation: none;
+    }
+
+    .akibara-search:focus-within::before,
+    .mobile-drawer__search:focus-within::before,
+    .mobile-drawer__link:hover,
+    .mobile-drawer__link:focus-visible {
+        transform: none;
+    }
+
+    /* Drawer móvil, overlay y acordeones: sin slide/fade bajo reduce-motion.
+     * El JS de animaciones ya respeta la preferencia; faltaba el CSS del drawer. */
+    .mobile-overlay,
+    .mobile-drawer,
+    .mobile-drawer__sub,
+    .mobile-drawer__subsub {
+        transition: none;
+    }
+
+    /* Submenú de navegación de escritorio: supresión de transiciones con movimiento reducido */
+    .mainnav__sub,
+    .mainnav__sublink,
+    .mainnav__sublink--all {
+        transition: none;
+    }
+
+    .mainnav__sub {
+        transform: none;
+    }
+
+    /* Preserva el centrado geométrico del panel de ancho automático (--auto) */
+    .mainnav__sub--auto {
+        transform: translateX(-50%);
+    }
+
+    .mainnav__sublink:hover,
+    .mainnav__sublink:focus-visible {
+        transform: none;
+    }
+}

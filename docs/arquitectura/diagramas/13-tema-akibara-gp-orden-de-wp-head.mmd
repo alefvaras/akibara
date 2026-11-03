@@ -1,0 +1,30 @@
+%% Título: El orden real de wp_head y por qué el viewport tuvo que adelantarse
+%% Qué muestra: quién imprime qué dentro de <head>, en qué prioridad, y las dos
+%% cosas que ese orden decide — los 108 KB de imagen tirados en móvil (§4.1) y el
+%% preload de la ficha que no se emite nunca (§5.1).
+%% Rojo = hoy no corre. Verde = el resultado que se buscaba.
+flowchart TB
+  classDef prio fill:#E8F0FE,stroke:#1A4FBF,stroke-width:2px,color:#0B2545
+  classDef tercero fill:#FDF0E3,stroke:#B36B00,stroke-width:2px,color:#4A2C00
+  classDef inerte fill:#FBEAEA,stroke:#B02A2A,stroke-width:2px,color:#4A0E0E
+  classDef bien fill:#EAF7EC,stroke:#1E7B34,stroke-width:2px,color:#0E3A18
+  classDef nota fill:#F3F0F7,stroke:#6B4BA1,stroke-width:1px,color:#2E1A4A
+
+  Inicio["header.php:27 llama a wp_head()"]:::prio
+
+  P0["PRIORIDAD 0<br/>generate_add_viewport, de GeneratePress<br/>imprime el meta viewport"]:::prio
+  P1a["PRIORIDAD 1<br/>akibara_gp_preload_fonts()<br/>inc/enqueue.php:462-477<br/>4 link rel=preload as=font"]:::prio
+  P1b["PRIORIDAD 1<br/>wp_preload_resources, del núcleo de WordPress<br/>imprime los link rel=preload media=… del hero"]:::tercero
+  P2["PRIORIDAD 2<br/>cierre anónimo de functions.php:139-173<br/>debería imprimir el preload de la portada de la ficha"]:::inerte
+  Resto["Después: los link rel=stylesheet del encolado<br/>y el critical.css en línea"]:::prio
+
+  Inicio --> P0 --> P1a --> P1b --> P2 --> Resto
+
+  Mueve["functions.php:69-73, en after_setup_theme:10<br/>MUEVE generate_add_viewport de wp_head:1 a wp_head:0"]:::bien
+  Mueve -.->|"por eso el viewport está arriba"| P0
+
+  PorQue["POR QUÉ HIZO FALTA MOVERLO<br/>wp_preload_resources también va en la prioridad 1, y ganaba.<br/>Los preload media=… quedaban ANTES del meta viewport, el navegador<br/>evaluaba sus media queries con el ancho por defecto de 980 px y en móvil<br/>descargaba ADEMÁS la imagen de escritorio: ~108 KB tirados en cada visita."]:::nota
+  P1b -.-> PorQue
+
+  Falla["POR QUÉ LA PRIORIDAD 2 NO IMPRIME NADA (§5.1)<br/>Sale por if ( ! $product instanceof WC_Product ) return;<br/>El global $product lo puebla wc_setup_product_data() colgado de the_post,<br/>y the_post() corre DENTRO del bucle de la plantilla de producto,<br/>o sea DESPUÉS de wp_head(). Nunca llega a tiempo.<br/>Arreglo de una línea: wc_get_product( get_queried_object_id() )"]:::nota
+  P2 -.-> Falla

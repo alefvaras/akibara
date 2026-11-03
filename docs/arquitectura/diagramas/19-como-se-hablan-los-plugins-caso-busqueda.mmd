@@ -1,0 +1,47 @@
+%% Caso 1 del capítulo 19 — un cliente busca «naruto» desde la lupa de la cabecera.
+%% Qué muestra: cómo una sola búsqueda cruza el tema, el buscador, business y WooCommerce, y en qué punto exacto el buscador decide apagarse.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Tema as Tema akibara-gp
+    participant Search as akibara-search
+    participant Business as akibara-business
+    participant Woo as WooCommerce
+
+    Cliente->>Tema: abre cualquier página
+    Note over Tema: header/shell.php:97 pregunta con function_exists<br/>si el autocompletar está activo
+    Tema->>Search: akibara_search_suggest_active()
+    Search->>Search: ¿option akb_search_suggest = yes?
+    Search->>Search: ¿serving_ready() es true?
+    alt La lectura del descuento NO es autoritativa
+        Search-->>Tema: false
+        Tema-->>Cliente: campo de búsqueda sin desplegable, sin ningún aviso
+    else Todo en orden
+        Search-->>Tema: true
+        Tema-->>Cliente: campo con autocompletar
+        alt el cliente ABRE el campo y todavía no escribe nada
+            Cliente->>Search: GET /wp-json/akibara/v1/search/popular
+            Search-->>Cliente: su historial y las búsquedas populares
+        else el cliente escribe «naruto»
+            Cliente->>Search: GET /wp-json/akibara/v1/search/suggest?q=naruto
+        end
+        Search->>Search: cuota por IP y minuto (grupo de memoria akb_rl)
+        Note over Search,Business: confía en CF-Connecting-IP sólo si el vecino<br/>es Cloudflare, con la lista que siembra business
+        alt pasada la cuota
+            Search-->>Cliente: HTTP 429 — el desplegable se queda vacío, sin mensaje
+        else dentro de la cuota
+            Search->>Business: apply_filters akb_stock_status_label
+            Business-->>Search: «Disponible» / «A pedido» / «Agotado»
+            Search->>Business: apply_filters akb_search_availability_value
+            Business-->>Search: «preventa» o «a_pedido»
+            Search-->>Cliente: tarjetas con precio ya sellado en el índice
+        end
+        Cliente->>Tema: Enter → /tienda/?_buscar=naruto
+        Tema->>Woo: pinta el listado
+        Woo->>Search: hooks woocommerce_before_shop_loop (prio 1, 3, 5, 36, 37)
+        Woo->>Search: hook dynamic_sidebar_before (prio 4) — aquí imprime la barra lateral
+        Search-->>Cliente: barra lateral, banda de series y chips de filtros
+        Woo->>Business: hooks de la misma rejilla (prio 2 y 3)
+        Business-->>Cliente: intro de la ruta y selector de orden rotulado «Relevancia»
+        Note over Business: rotula «Relevancia» sólo por ver `_buscar` en la URL:<br/>nunca pregunta si el buscador está gobernando
+    end

@@ -1,0 +1,68 @@
+%% Título: Cuándo se pintan los botones menos y más del selector de cantidad
+%% Qué muestra: el árbol de decisión real de akibara_gp_quantity_is_adjustable()
+%% en inc/woocommerce.php:511-528, y dónde el valor -1 que devuelve WooCommerce
+%% para los productos "A pedido" cae en la rama equivocada.
+%% Rojo = el resultado que el módulo existe justamente para evitar.
+stateDiagram-v2
+  direction TB
+
+  [*] --> Entrada
+
+  Entrada: Se dispara woocommerce_before/after_quantity_input_field
+  Entrada: Sólo lo emite templates/global/quantity-input.php
+  Entrada: En esta tienda el único emisor es la FICHA — el carrito es de bloques
+
+  Entrada --> SinGlobal: El global $product no es un WC_Product
+  Entrada --> Individual: Hay producto
+
+  SinGlobal: return true — "carrito y otros contextos"
+  SinGlobal: Rama SIN consumidor en esta tienda — es residuo
+  SinGlobal --> Pinta
+
+  Individual: ¿is_sold_individually()?
+  Individual --> NoPinta: sí — se vende de a uno
+  Individual --> Maximo: no
+
+  Maximo: $max = get_max_purchase_quantity()
+  Maximo --> CasoUno: $max = 1 — queda una sola unidad
+  Maximo --> CasoMenosUno: $max = -1 — sin tope
+  Maximo --> CasoVarios: $max = 2, 3, 4…
+  Maximo --> Excepcion: la llamada LANZA una excepción
+
+  Excepcion: catch Throwable → return true (líneas 525-527)
+  Excepcion: Tercera forma de llegar a "Pinta"
+  Excepcion: Es la única rama que puede ESCONDER un error de WooCommerce
+  Excepcion --> Pinta
+
+  CasoUno: is_numeric(1) y 1 <= 1 → no ajustable
+  CasoUno --> NoPinta
+
+  CasoMenosUno: is_numeric(-1) y -1 <= 1 → no ajustable
+  CasoMenosUno: Pero WooCommerce NO emite el campo como oculto
+  CasoMenosUno: pinta un input type=number SIN atributo max
+  CasoMenosUno --> NoPintaMal
+
+  CasoVarios: -(is_numeric && <= 1) es falso → ajustable
+  CasoVarios --> Pinta
+
+  Pinta: Se pintan los dos botones de 44 px
+  Pinta --> [*]
+
+  NoPinta: No se pintan — correcto
+  NoPinta: El campo viene oculto — sin control muerto no hay nada que explicar
+  NoPinta: ESTE ES EL ESTADO NORMAL: el 94% del catálogo tiene una sola unidad
+  NoPinta --> [*]
+
+  NoPintaMal: No se pintan — DEFECTO
+  NoPintaMal: La cantidad es libremente ajustable y no hay botones
+  NoPintaMal: Sólo se puede cambiar con el teclado numérico
+  NoPintaMal --> [*]
+
+  note right of CasoMenosUno
+    get_max_purchase_quantity() devuelve -1 cuando el
+    producto admite reservas (onbackorder, o sea todo el
+    catálogo "A pedido") o cuando no gestiona stock.
+    El docblock justifica el recorte con "cuando min === max
+    WooCommerce emite el campo como hidden"; esa premisa
+    no cubre el -1.
+  end note

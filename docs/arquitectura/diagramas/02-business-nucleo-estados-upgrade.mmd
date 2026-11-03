@@ -1,0 +1,52 @@
+%% Máquina de estados del capítulo 02 — el marcador akibara_business_upgrade_tasks_pending.
+%% Qué muestra: los estados por los que pasa el marcador de tareas del upgrade, quién puede moverlo (siempre por CAS, nunca por get+set), el arriendo de 600 segundos que permite recuperar un proceso muerto, el formato LEGADO que se acepta como trabajo pendiente, y las dos salidas que hoy no tienen ninguna pantalla en el panel.
+stateDiagram-v2
+    direction TB
+    [*] --> Vacio
+
+    Vacio: Sin trabajo pendiente
+    Vacio: option — cadena vacía o fila ausente
+    Vacio: es el estado de TODAS las peticiones normales
+    Encolado: Encolado
+    Encolado: option — JSON con state=queued, sin token, vencimiento 0
+    Encolado: publicado por un CAS que exige a la vez que no haya otra tarea
+    Encolado: y que version_installed siga siendo la anterior
+    Corriendo: Corriendo bajo arriendo
+    Corriendo: option — JSON con state=running, token UUID y vencimiento a 600 s
+    Corriendo: la versión YA quedó sellada bajo este arriendo
+    Legado: Marcador en formato ANTERIOR al JSON
+    Legado: una sola cadena «version_nueva|version_anterior»
+    Legado: se reconoce por tener EXACTAMENTE una barra vertical
+    Legado: y dos números de versión válidos a los lados (Plugin.php:546-564)
+    Corrupto: Marcador ilegible
+    Corrupto: no decodifica como JSON con sus cinco campos
+    Corrupto: ni como el formato legado
+    Futuro: Marcador de una versión FUTURA
+    Futuro: alguien desplegó una versión anterior del código (rollback)
+    Atascado: Arriendo huérfano
+    Atascado: state=running con el vencimiento ya pasado
+    Atascado: nadie lo vigila: no hay tarjeta en el panel
+
+    Vacio --> Encolado: la versión sellada difiere de AKIBARA_BUSINESS_VERSION · gana UN solo request
+    Legado --> Encolado: se ACEPTA como trabajo pendiente, no se descarta
+    Encolado --> Corriendo: CAS queued → running con token propio
+    Corriendo --> Vacio: flush de URLs + akibara_business_upgraded + CAS con el MISMO token
+    Corriendo --> Encolado: un oyente lanza UpgradeRetryRequired · vuelve a la cola
+    Corriendo --> Atascado: el proceso muere, o un oyente lanza cualquier otra excepción (error 500 para el cliente)
+    Atascado --> Corriendo: pasados los 600 s, otra petición ROBA el arriendo y lo completa
+    Atascado --> Atascado: si la causa persiste, el fallo se repite una vez cada diez minutos, sin señal
+    Corrupto --> Vacio: se limpia SÓLO por CAS exacto — el bucle republica un estado canónico
+    Vacio --> Corrupto: escritura hecha a mano con wp option update, o valor truncado
+    Futuro --> Futuro: se deja INTACTO a propósito — un rollback no debe consumir tareas que no conoce
+
+    note right of Futuro
+        El motor de tareas SÍ se protege del rollback (Plugin.php:403).
+        El reconciliador del contrato del buscador NO tiene el equivalente:
+        mueve su option hacia la constante en las dos direcciones.
+    end note
+
+    note right of Vacio
+        Si el bucle de cuatro intentos se agota sin resolver nada
+        (Plugin.php:316-338), la función se rinde EN SILENCIO
+        y el bump queda pendiente hasta la petición siguiente.
+    end note

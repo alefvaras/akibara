@@ -1,0 +1,49 @@
+%% Caso A+B del capítulo 10 — una compra que acredita puntos, con el bono de bienvenida dentro.
+%% Qué muestra: quién despierta a quién cuando el dueño mueve un pedido a «Listo para enviar», el orden exacto de prioridades (canje 10, acreditación 20 — y dentro del aviso posterior: bono 10, referidos 30, correo 100), por qué el bono se SUMA a la cifra del pedido en vez de llevar cuenta aparte, y que sale UN solo correo aunque haya dos créditos.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WOO as WooCommerce (tercero)
+    participant ACC as Points\Accrual
+    participant CALC as Points\Calculator
+    participant LED as Points\Ledger
+    participant SQL as MySQL · GET_LOCK
+    participant WB as Points\WelcomeBonus
+    participant MAIL as Points\Emails → wp_mail
+    actor Maria as María (clienta)
+
+    Maria->>WOO: compra 3 tomos por $29.970 más $3.500 de despacho, y paga
+    Dueno->>WOO: mueve el pedido a «Listo para enviar»
+    WOO-->>ACC: woocommerce_order_status_changed, prioridad 20 (Accrual.php:70)
+    Note over ACC: la prioridad 10 ya la ocupó Redemption:<br/>el canje se toca ANTES que la acreditación
+    ACC->>SQL: toma el candado del pedido, 3 s de espera (Accrual.php:48)
+    SQL-->>ACC: candado concedido
+    ACC->>WOO: re-lee el pedido FRESCO de la base (Accrual.php:444-460)
+    ACC->>ACC: ¿tiene cuenta? ¿ya se acreditó? ¿queda algo sin sellar?<br/>¿el pedido es posterior al inicio del programa? (:462-500)
+    ACC->>CALC: award_base_for_order
+    CALC-->>ACC: base $29.970 — el despacho no puntúa, no hay reembolsos ni canje
+    ACC->>CALC: points_for($29.970)
+    CALC-->>ACC: 599 puntos — 2 por cada $100, redondeo estándar (Calculator.php:42)
+    ACC->>LED: credit(599, clave award_5521_1)
+    LED->>SQL: candado del usuario y saldo releído directo de la base
+    LED-->>ACC: fila insertada, saldo actualizado
+    ACC->>WOO: sella _akb_rewards_points_earned y _akb_rewards_rate = 2/100
+    Note over ACC,WOO: la TASA se sella para que un reembolso futuro<br/>deshaga con el número con el que se acreditó
+    ACC->>WOO: nota «Puntos Akibara: 599 puntos acreditados por esta compra.»
+    ACC-->>WB: akb_rewards_after_order_award, prioridad 10 (Accrual.php:202)
+    WB->>SQL: candado del usuario — re-lee BAJO candado la marca de bono pagado
+    WB->>LED: ¿existe ya un crédito de bono para este pedido sin reversa que lo arrastre?
+    LED-->>WB: no existe
+    WB->>LED: credit(500, clave welcome_88_5521_1)
+    WB->>WOO: marca al usuario con el pedido pagador y SUMA el bono a la cifra del pedido<br/>599 + 500 = 1.099 (WelcomeBonus.php:146-148)
+    Note over WB: sumarlo evita lógica extra:<br/>una anulación futura lo arrastra sola
+    ACC-->>MAIL: mismo aviso, prioridad 100 — corre DESPUÉS del bono
+    MAIL->>MAIL: ya ve los 1.099 y arma UN solo mensaje (Emails.php:480-491)
+    MAIL->>Maria: «[Akibara] Sumaste 599 Puntos Akibara con tu pedido»<br/>más el párrafo del bono y el saldo de 1.099 · sale INMEDIATAMENTE
+    alt María es invitada sin cuenta
+        ACC--xACC: se detiene y NO deja ninguna nota explicándolo (Accrual.php:103-106)
+    else el pedido es anterior al 17 de agosto de 2026
+        ACC->>WOO: deja UNA sola nota explicándolo (:487-497) y no acredita
+    else el correo no sale
+        MAIL->>WOO: no sella nada, deja nota, y se reintenta la próxima vez<br/>que el pedido vuelva a entrar a «Listo para enviar» (Emails.php:515-523)
+    end

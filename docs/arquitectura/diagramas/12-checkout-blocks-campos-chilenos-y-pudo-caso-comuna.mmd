@@ -1,0 +1,54 @@
+%% Caso 1: el cliente escribe mal la comuna. Muestra las tres bifurcaciones del navegador
+%% (elegir de la lista, escribir a mano, no haber catalogo) y los cuatro desenlaces del servidor.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Tema as Tema akibara-gp
+    participant Plugin as akibara-cart-checkout-blocks
+    participant Woo as WooCommerce (bloques + Store API)
+    participant Blue as bluex-for-woocommerce (catalogo)
+
+    Cliente->>Tema: Abre /checkout/
+    Tema->>Plugin: wp_enqueue_scripts del pago de bloques
+    Plugin->>Blue: ComunaDirectory carga chile-communes.php
+    alt Hay catalogo (16 regiones, 346 comunas)
+        Blue-->>Plugin: Lista de comunas por region
+        Plugin->>Cliente: Encola comuna-combobox.js e inlina window.akbComunaData
+    else No hay catalogo
+        Blue-->>Plugin: Nada utilizable
+        Plugin->>Cliente: Sin combobox, sin validacion: Comuna queda texto libre
+        Note over Plugin,Cliente: Ademas el buscador de Google devolvera la comuna siempre vacia
+    end
+
+    Cliente->>Plugin: Escribe "nunoa" en el campo Comuna
+    Plugin->>Plugin: rank() filtra por la Region ya elegida
+
+    alt Bifurcacion A: elige de la lista
+        Plugin->>Cliente: Escribe "Nunoa" con el native value setter
+        Plugin->>Woo: Si la comuna es de otra region, cambia tambien la Region
+    else Bifurcacion B: escribe a mano y sale del campo
+        Plugin->>Plugin: focusout a nivel de documento llama a comunaIssue()
+        Plugin->>Woo: Publica el mensaje en wc/store/validation bajo shipping_city
+        Woo-->>Cliente: Error anclado bajo el campo, con aria-describedby
+    end
+
+    Cliente->>Woo: El navegador manda la direccion (Store API)
+    Woo->>Plugin: woocommerce_store_api_cart_update_customer_from_request
+    Plugin->>Plugin: Canoniza solo coincidencias exactas normalizadas
+    Plugin->>Woo: set_shipping_city("Nunoa") antes de cotizar el envio
+    Woo->>Blue: Cotiza con el nombre que su API acepta
+
+    Cliente->>Woo: Pulsa "Realizar el pedido"
+    Woo->>Plugin: woocommerce_checkout_validate_order_before_payment
+    alt Comuna valida
+        Plugin-->>Woo: Pasa
+        Woo-->>Cliente: Pedido creado
+    else Existe pero es de otra region
+        Plugin-->>Cliente: "Nunoa" no pertenece a la region seleccionada
+    else No existe y hay candidata en su region
+        Plugin-->>Cliente: No encontramos la comuna "Renaca". Quisiste decir "Renaca"?
+    else No existe y no hay candidata
+        Plugin-->>Cliente: No encontramos la comuna "Stgo". Seleccionala de la lista
+    end
+
+    Note over Cliente,Blue: Correos que salen en este caso: ninguno

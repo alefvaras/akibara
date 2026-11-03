@@ -1,0 +1,909 @@
+/**
+ * Mi colección — endpoint privado, mobile-first y sin JavaScript.
+ */
+
+.akb-account-collection {
+	--akb-collection-border: var(--aki-border, #343434);
+	--akb-collection-panel: var(--aki-surface, #191919);
+	/* Tokens del tema (DS-10): --aki-surface-raised y --aki-text no existen y
+	   siempre caían al respaldo. surface-3 es el mismo #222; gray-100 (#F5F5F5)
+	   es el texto claro de la paleta. */
+	--akb-collection-panel-raised: var(--aki-surface-3, #222);
+	--akb-collection-text: var(--aki-gray-100, #f5f5f5);
+	--akb-collection-muted: var(--aki-text-muted, #b8b8b8);
+	--akb-collection-red: var(--aki-red, #d71920);
+	--akb-collection-red-hover: var(--aki-red-hover, #b91319);
+	/* El foco de la casa en su forma `outline` (DS-5), como el resto de las
+	   hojas de business: sin la sombra de foco que el tema guardaba sólo para
+	   esta hoja (negra desplazada más un halo amarillo), que sumaba un segundo
+	   indicador distinto al de todo el sitio. Era su último consumidor. */
+	--akb-collection-focus-outline: var(--aki-focus-outline, 3px solid #ffdd57);
+	--akb-collection-focus-offset: var(--aki-focus-offset, 3px);
+	--akb-collection-success: var(--aki-success, #58b975);
+	--akb-collection-warning: var(--aki-warning, #f2c94c);
+	color: var(--akb-collection-text);
+	font-size: 1rem;
+	line-height: 1.55;
+	min-width: 0;
+}
+
+.akb-account-collection *,
+.akb-account-collection *::before,
+.akb-account-collection *::after {
+	box-sizing: border-box;
+}
+
+.akb-account-collection a {
+	text-underline-offset: 0.18em;
+}
+
+.akb-account-collection__intro,
+.akb-account-collection__state {
+	background: var(--akb-collection-panel);
+	border: 1px solid var(--akb-collection-border);
+	border-radius: 14px;
+	padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.akb-account-collection__lead {
+	color: var(--akb-collection-muted);
+	font-size: 1.025rem;
+	margin: 0 0 1rem;
+	max-width: 66ch;
+}
+
+/* Aviso de que una compra recién hecha tarda unos minutos en aparecer. Más
+ * chico que la bajada porque es una salvedad, no el mensaje de la pantalla. En
+ * el estado vacío hereda el centrado y el color de `.__state p`, que gana por
+ * especificidad: una sola declaración para las dos superficies. */
+.akb-account-collection__delay-note {
+	color: var(--akb-collection-muted);
+	font-size: 0.9rem;
+	margin: 0 0 1rem;
+	max-width: 66ch;
+}
+
+.akb-account-collection__summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin: 0;
+	overflow: hidden;
+}
+
+.akb-account-collection__summary > div {
+	/*
+	 * La rejilla asigna cifras y etiquetas a filas separadas para alinear las tres cifras aunque
+	 * una etiqueta ocupe dos líneas. Conserva el orden semántico dt antes de dd.
+	 */
+	display: grid;
+	grid-template-rows: auto auto;
+	align-content: start;
+	gap: 0.1rem;
+	min-width: 0;
+	padding: 0.65rem 0.75rem;
+	text-align: center;
+}
+
+.akb-account-collection__summary > div > dt {
+	grid-row: 2;
+}
+
+.akb-account-collection__summary > div > dd {
+	grid-row: 1;
+}
+
+.akb-account-collection__summary > div + div {
+	border-left: 1px solid var(--akb-collection-border);
+}
+
+.akb-account-collection__summary dt {
+	color: var(--akb-collection-muted);
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.akb-account-collection__summary dd {
+	font-size: clamp(1.35rem, 5vw, 1.75rem);
+	font-weight: 800;
+	line-height: 1.1;
+	margin: 0;
+}
+
+.akb-account-collection__summary-text {
+	display: inline-block;
+	font-size: 0.78rem;
+	line-height: 1.25;
+}
+
+.akb-account-collection__help,
+.akb-account-collection__owned-details {
+	border-top: 1px solid var(--akb-collection-border);
+	margin-top: 0.85rem;
+}
+
+.akb-account-collection__help summary,
+.akb-account-collection__owned-details summary {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	gap: 0.75rem;
+	font-weight: 700;
+	list-style: none;
+	min-height: 44px;
+	padding: 0.6rem 0;
+}
+
+.akb-account-collection__help summary::-webkit-details-marker,
+.akb-account-collection__owned-details summary::-webkit-details-marker {
+	display: none;
+}
+
+.akb-account-collection__help summary::after,
+.akb-account-collection__owned-details summary::after {
+	border-bottom: 2px solid var(--akb-collection-red);
+	border-right: 2px solid var(--akb-collection-red);
+	content: "";
+	flex: 0 0 auto;
+	height: 0.5rem;
+	margin-left: auto;
+	transform: rotate(45deg) translate(-0.15rem, 0.15rem);
+	transition: transform 160ms ease;
+	width: 0.5rem;
+}
+
+.akb-account-collection__help[open] summary::after,
+.akb-account-collection__owned-details[open] summary::after {
+	transform: rotate(225deg) translate(-0.05rem, 0.05rem);
+}
+
+.akb-account-collection__help p,
+.akb-account-collection__owned-details p {
+	color: var(--akb-collection-muted);
+	margin: 0 0 0.85rem;
+}
+
+.akb-account-collection__notice {
+	align-items: center;
+	background: color-mix(in srgb, var(--akb-collection-warning) 10%, var(--akb-collection-panel));
+	border: 1px solid color-mix(in srgb, var(--akb-collection-warning) 45%, var(--akb-collection-border));
+	border-radius: 12px;
+	display: flex;
+	gap: 1rem;
+	justify-content: space-between;
+	margin-top: 1rem;
+	padding: 0.85rem 1rem;
+}
+
+.akb-account-collection__notice p {
+	margin: 0;
+}
+
+.akb-account-collection__notice a {
+	align-items: center;
+	display: inline-flex;
+	flex: 0 0 auto;
+	font-weight: 700;
+	min-height: 44px;
+}
+
+.akb-account-collection__grid {
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+	margin-top: 1rem;
+}
+
+.akb-account-collection__card {
+	background: var(--akb-collection-panel);
+	border: 1px solid var(--akb-collection-border);
+	border-radius: 14px;
+	display: grid;
+	gap: 0.9rem;
+	grid-template-columns: 72px minmax(0, 1fr);
+	padding: 1rem;
+}
+
+.akb-account-collection__cover {
+	align-self: start;
+	background: var(--akb-collection-panel-raised);
+	border: 1px solid var(--akb-collection-border);
+	border-radius: 7px;
+	height: 108px;
+	overflow: hidden;
+	position: relative;
+	width: 72px;
+}
+
+.akb-account-collection__cover img {
+	display: block;
+	height: 100%;
+	object-fit: cover;
+	width: 100%;
+}
+
+.akb-account-collection__cover span {
+	display: block;
+	height: 100%;
+	position: relative;
+}
+
+.akb-account-collection__cover span::before,
+.akb-account-collection__cover span::after {
+	background: var(--akb-collection-border);
+	content: "";
+	left: 13px;
+	position: absolute;
+	right: 13px;
+}
+
+.akb-account-collection__cover span::before {
+	height: 3px;
+	top: 35px;
+}
+
+.akb-account-collection__cover span::after {
+	height: 3px;
+	top: 47px;
+}
+
+.akb-account-collection__card-body {
+	min-width: 0;
+}
+
+.akb-account-collection__card h3 {
+	font-size: 1.08rem;
+	line-height: 1.25;
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.akb-account-collection__card h3 a {
+	align-items: center;
+	color: var(--akb-collection-text);
+	display: inline-flex;
+	min-height: 44px;
+	min-width: 44px;
+}
+
+.akb-account-collection__edition-state,
+.akb-account-collection__total-note {
+	color: var(--akb-collection-muted);
+	font-size: 0.85rem;
+	margin: 0.25rem 0 0;
+}
+
+.akb-account-collection__progress-copy {
+	align-items: baseline;
+	display: flex;
+	font-size: 0.82rem;
+	gap: 0.5rem;
+	justify-content: space-between;
+	margin-top: 0.75rem;
+}
+
+.akb-account-collection__progress-copy span {
+	color: var(--akb-collection-muted);
+}
+
+.akb-account-collection__progress {
+	accent-color: var(--akb-collection-red);
+	appearance: none;
+	background: var(--akb-collection-panel-raised);
+	border: 0;
+	border-radius: 999px;
+	display: block;
+	height: 8px;
+	margin-top: 0.35rem;
+	overflow: hidden;
+	width: 100%;
+}
+
+.akb-account-collection__progress::-webkit-progress-bar {
+	background: var(--akb-collection-panel-raised);
+	border-radius: 999px;
+}
+
+.akb-account-collection__progress::-webkit-progress-value {
+	background: var(--akb-collection-red);
+	border-radius: 999px;
+}
+
+.akb-account-collection__progress::-moz-progress-bar {
+	background: var(--akb-collection-red);
+	border-radius: 999px;
+}
+
+.akb-account-collection__continuity {
+	background: color-mix(in srgb, var(--akb-collection-warning) 7%, transparent);
+	border-left: 3px solid var(--akb-collection-warning);
+	line-height: 1.35;
+	margin-top: 0.75rem;
+	padding: 0.65rem 0.7rem;
+}
+
+.akb-account-collection__continuity--complete,
+.akb-account-collection__continuity--up_to_date {
+	background: color-mix(in srgb, var(--akb-collection-success) 8%, transparent);
+	border-left-color: var(--akb-collection-success);
+}
+
+.akb-account-collection__continuity--unknown {
+	background: color-mix(in srgb, var(--akb-collection-muted) 5%, transparent);
+	border-left-color: var(--akb-collection-muted);
+}
+
+.akb-account-collection__continuity-copy,
+.akb-account-collection__versions,
+.akb-account-collection__availability {
+	margin: 0;
+}
+
+.akb-account-collection__continuity-copy {
+	font-size: 0.9rem;
+}
+
+.akb-account-collection__versions {
+	color: var(--akb-collection-muted);
+	font-size: 0.82rem;
+	margin-top: 0.3rem;
+}
+
+.akb-account-collection__availability {
+	font-size: 0.78rem;
+	font-weight: 800;
+	margin-top: 0.45rem;
+}
+
+.akb-account-collection__availability--available {
+	color: var(--akb-collection-success);
+}
+
+.akb-account-collection__availability--preorder {
+	color: var(--akb-collection-warning);
+}
+
+.akb-account-collection__availability--out_of_stock,
+.akb-account-collection__availability--unavailable,
+.akb-account-collection__availability--unknown {
+	color: var(--akb-collection-muted);
+}
+
+.akb-account-collection__card-footer {
+	grid-column: 1 / -1;
+	min-width: 0;
+}
+
+.akb-account-collection__owned-details {
+	margin-top: 0;
+}
+
+.akb-account-collection__owned-details ul {
+	list-style: none;
+	margin: 0 0 0.75rem;
+	padding: 0;
+}
+
+.akb-account-collection__owned-details li + li {
+	border-top: 1px solid var(--akb-collection-border);
+}
+
+.akb-account-collection__owned-details li,
+.akb-account-collection__owned-details li a {
+	overflow-wrap: anywhere;
+}
+
+.akb-account-collection__owned-details li {
+	min-height: 44px;
+	padding: 0.65rem 0;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.akb-account-collection__owned-details li a,
+.akb-account-collection__owned-details li a:visited {
+	color: #ffffff !important;
+	text-decoration: none;
+	font-weight: 600;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	transition: color 150ms ease;
+}
+
+.akb-account-collection__owned-details li a:hover {
+	color: var(--aki-red-bright, #ff0a1d) !important;
+}
+
+.akb-account-collection__owned-details .akb-vol {
+	color: #ffffff !important;
+	background: var(--aki-red, #e60012) !important;
+	font-family: var(--font-accent, 'Bebas Neue', sans-serif);
+	font-size: 1.15em;
+	font-weight: 700;
+	line-height: 1;
+	margin-left: 0.25em;
+	padding: 1px 6px;
+	transform: skew(-6deg);
+	display: inline-block;
+	box-shadow: 2px 2px 0 #000;
+	vertical-align: middle;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+}
+
+.akb-account-collection__historical {
+	font-size: 0.82rem;
+}
+
+.akb-account-collection__button,
+.akb-account-collection__text-link {
+	align-items: center;
+	border-radius: 8px;
+	display: inline-flex;
+	font-weight: 800;
+	justify-content: center;
+	min-height: 44px;
+	padding: 0.65rem 1rem;
+	text-align: center;
+}
+
+.akb-account-collection__button {
+	background: var(--akb-collection-red);
+	border: 1px solid var(--akb-collection-red);
+	color: #fff;
+	text-decoration: none;
+}
+
+.akb-account-collection__button--card {
+	margin-top: 0.75rem;
+	width: 100%;
+}
+
+.akb-account-collection__button--card + .akb-account-collection__owned-details {
+	margin-top: 0.75rem;
+}
+
+.akb-account-collection__state {
+	margin-inline: auto;
+	max-width: 620px;
+	padding-block: clamp(1.5rem, 5vw, 2.5rem);
+	text-align: center;
+}
+
+.akb-account-collection__state h2 {
+	font-size: clamp(1.25rem, 5vw, 1.65rem);
+	line-height: 1.25;
+	margin: 0.85rem auto 0;
+	max-width: 28ch;
+}
+
+.akb-account-collection__state p {
+	color: var(--akb-collection-muted);
+	margin: 0.65rem auto 0;
+	max-width: 52ch;
+}
+
+.akb-account-collection__state .akb-account-collection__privacy-note {
+	border-top: 1px solid var(--akb-collection-border);
+	font-size: 0.85rem;
+	margin-top: 1rem;
+	padding-top: 1rem;
+}
+
+.akb-account-collection__state-mark {
+	background: var(--akb-collection-panel-raised);
+	border: 2px solid var(--akb-collection-red);
+	border-radius: 6px;
+	height: 54px;
+	margin: 0 auto;
+	position: relative;
+	transform: rotate(-4deg);
+	width: 38px;
+}
+
+.akb-account-collection__state-mark::after {
+	border: 2px solid var(--akb-collection-border);
+	border-radius: 6px;
+	content: "";
+	height: 54px;
+	left: 8px;
+	position: absolute;
+	top: 5px;
+	width: 38px;
+	z-index: -1;
+}
+
+.akb-account-collection__state-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	justify-content: center;
+	margin-top: 1.1rem;
+}
+
+.akb-account-collection :is(a, summary):focus-visible {
+	border-radius: 6px;
+	box-shadow: none; /* sin el anillo global encima del outline: una sola forma */
+	outline: var(--akb-collection-focus-outline);
+	outline-offset: var(--akb-collection-focus-offset);
+}
+
+@media (hover: hover) {
+	.akb-account-collection__button:hover {
+		background: var(--akb-collection-red-hover);
+		border-color: var(--akb-collection-red-hover);
+		color: #fff;
+	}
+
+	.akb-account-collection__card h3 a:hover,
+	.akb-account-collection__text-link:hover,
+	.akb-account-collection__notice a:hover,
+	.akb-account-collection__owned-details a:hover {
+		color: var(--akb-collection-red);
+	}
+}
+
+@media (max-width: 480px) {
+	.akb-account-collection__intro,
+	.akb-account-collection__state,
+	.akb-account-collection__card {
+		border-radius: 12px;
+	}
+
+	.akb-account-collection__notice {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.akb-account-collection__notice a,
+	.akb-account-collection__state-actions,
+	.akb-account-collection__state-actions > * {
+		width: 100%;
+	}
+
+	.akb-account-collection__bundle-cta,
+	a.akb-account-collection__bundle-cta {
+		width: 100%;
+		font-size: 0.8125rem;
+		padding: 0.8rem 0.9rem;
+		box-sizing: border-box;
+	}
+
+	.akb-account-collection__owned-details li {
+		flex-wrap: wrap;
+		gap: 0.35rem 0.5rem;
+		padding: 0.75rem 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-account-collection *,
+	.akb-account-collection *::before,
+	.akb-account-collection *::after {
+		scroll-behavior: auto !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/*
+ * Interruptor «avisarme del siguiente tomo».
+ *
+ * Vive en esta hoja y no en una propia porque comparte tarjeta, tokens y punto
+ * de encolado con el resto de la colección: una hoja aparte por veinte líneas
+ * añadiría una petición al único endpoint privado de la cuenta.
+ */
+.akb-series-follow__toggle {
+	align-items: center;
+	background: transparent;
+	border: 2px solid var(--akb-collection-border);
+	border-radius: 999px;
+	color: var(--akb-collection-text);
+	cursor: pointer;
+	display: inline-flex;
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: 600;
+	gap: 0.4rem;
+	justify-content: center;
+	min-height: 44px;
+	padding: 0.5rem 1.1rem;
+	transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.akb-series-follow__toggle::before {
+	content: "\2606"; /* Estrella hueca: sin avisos. */
+	font-size: 1rem;
+	line-height: 1;
+}
+
+.akb-series-follow__toggle[aria-pressed="true"] {
+	background: var(--akb-collection-panel-raised);
+	border-color: var(--akb-collection-red);
+	color: var(--akb-collection-text);
+}
+
+.akb-series-follow__toggle[aria-pressed="true"]::before {
+	content: "\2605"; /* Estrella llena: avisos activados. */
+	color: var(--akb-collection-red);
+}
+
+.akb-series-follow__toggle:hover:not(:disabled) {
+	border-color: var(--akb-collection-red);
+}
+
+.akb-series-follow__toggle:focus-visible {
+	box-shadow: none; /* sin el anillo global encima del outline: una sola forma */
+	outline: var(--akb-collection-focus-outline);
+	outline-offset: var(--akb-collection-focus-offset);
+}
+
+.akb-series-follow__toggle:disabled {
+	cursor: progress;
+	opacity: 0.65;
+}
+
+/*
+ * El mensaje NO se oculta con `display:none` cuando está vacío: el lector de
+ * pantalla necesita que la región `aria-live` exista en el DOM ANTES de que
+ * llegue el texto, o el anuncio se pierde.
+ */
+.akb-series-follow__msg {
+	color: var(--akb-collection-muted);
+	font-size: 0.8125rem;
+	margin: 0.4rem 0 0;
+	min-height: 0;
+}
+
+.akb-series-follow__msg:empty {
+	margin: 0;
+}
+
+.akb-series-follow__msg.is-error {
+	color: var(--akb-collection-red);
+}
+
+@media (max-width: 480px) {
+	.akb-series-follow__toggle {
+		width: 100%;
+	}
+}
+
+/*
+ * Interruptor GLOBAL «Avisos de mi colección».
+ *
+ * Es un formulario POST sin JavaScript: el estado lo pinta el servidor en cada
+ * carga. Reutiliza `.akb-account-collection__button` para que el botón sea el
+ * mismo que el resto de la cuenta, y vive en esta hoja por la misma razón que
+ * el toggle por serie: comparte tokens y punto de encolado con la colección.
+ */
+.akb-account-collection__follow-all {
+	background: var(--akb-collection-panel);
+	border: 1px solid var(--akb-collection-border);
+	border-radius: 12px;
+	margin: 0 0 1.5rem;
+	padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.akb-account-collection__follow-all h2 {
+	font-size: clamp(1.1rem, 4vw, 1.35rem);
+	line-height: 1.25;
+	margin: 0 0 0.5rem;
+}
+
+.akb-account-collection__follow-all-state {
+	color: var(--akb-collection-text);
+	margin: 0 0 1rem;
+	max-width: 60ch;
+}
+
+.akb-account-collection__follow-all-form {
+	margin: 0;
+}
+
+.akb-account-collection__button--follow-all {
+	cursor: pointer;
+	font: inherit;
+	font-weight: 800;
+}
+
+.akb-account-collection__follow-all .akb-account-collection__privacy-note {
+	border-top: 1px solid var(--akb-collection-border);
+	color: var(--akb-collection-muted);
+	font-size: 0.85rem;
+	margin: 1rem 0 0;
+	max-width: 60ch;
+	padding-top: 1rem;
+}
+
+/* Series apagadas una a una con el global encendido: la salvedad va junto al estado. */
+.akb-account-collection__follow-all-partial {
+	color: var(--akb-collection-muted);
+	font-size: 0.875rem;
+	margin: -0.5rem 0 1rem;
+	max-width: 60ch;
+}
+
+/* Con el global apagado la tarjeta no pinta botón: dice por qué. */
+.akb-series-follow__locked {
+	color: var(--akb-collection-muted);
+	font-size: 0.8125rem;
+	margin: 0 0 0.5rem;
+}
+
+@media (max-width: 480px) {
+	.akb-account-collection__button--follow-all {
+		width: 100%;
+	}
+}
+
+/* El progreso precede a los ajustes; el estado del aviso siempre es visible. */
+.akb-account-collection__intro + .akb-account-collection__follow-all { margin-top: 16px; }
+.akb-account-collection__follow-all > summary {
+    min-height: 44px;
+    cursor: pointer;
+    font-weight: 700;
+    line-height: 1.5;
+    padding-block: 8px;
+}
+.akb-account-collection__follow-all > summary span {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--akb-collection-muted);
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+.akb-account-collection__follow-all[open] > summary { margin-bottom: 12px; }
+
+/* ─── Banner de Recompensas por Reseña con Foto ────────────── */
+.akb-account-collection__rewards-banner {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem 1.25rem;
+	margin: 1.25rem 0;
+	background: #fffbeb;
+	border: 1px solid #fde68a;
+	border-radius: 8px;
+}
+
+.akb-account-collection__rewards-icon {
+	font-size: 1.75rem;
+	flex-shrink: 0;
+}
+
+.akb-account-collection__rewards-text strong {
+	display: block;
+	color: #92400e;
+	font-size: 0.9375rem;
+	margin-bottom: 0.2rem;
+}
+
+.akb-account-collection__rewards-text p {
+	color: #78350f;
+	font-size: 0.8125rem;
+	margin: 0;
+	line-height: 1.4;
+}
+
+/* ─── Insignia de Colección Completa ───────────────────────── */
+.akb-account-collection__badge-complete {
+	display: inline-block;
+	margin-left: 0.5rem;
+	padding: 0.15rem 0.5rem;
+	background: #fef3c7;
+	color: #92400e;
+	font-size: 0.75rem;
+	font-weight: 700;
+	border-radius: 9999px;
+	border: 1px solid #fcd34d;
+	vertical-align: middle;
+}
+
+/* ─── Botón Marcar «Ya lo tengo» en Estantería ─────────────── */
+.akb-account-collection__mark-owned {
+	display: inline-block;
+	background: none;
+	border: none;
+	padding: 0.35rem 0;
+	color: var(--akb-collection-muted, #64748b);
+	font-size: 0.8125rem;
+	text-decoration: underline;
+	cursor: pointer;
+	margin-top: 0.5rem;
+	transition: color 150ms ease;
+}
+
+.akb-account-collection__mark-owned:hover {
+	color: var(--color-primary, #e11d48);
+}
+
+.akb-account-collection__manual-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.18rem 0.55rem;
+	background: rgba(148, 163, 184, 0.18);
+	border: 1px solid rgba(148, 163, 184, 0.38);
+	color: #e2e8f0;
+	font-size: 0.72rem;
+	border-radius: 4px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+}
+
+.akb-account-collection__manual-count-badge {
+	font-size: 0.85rem;
+	color: #94a3b8;
+	font-weight: 500;
+}
+
+.akb-account-collection__verified-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.18rem 0.55rem;
+	background: rgba(16, 185, 129, 0.16);
+	border: 1px solid rgba(16, 185, 129, 0.45);
+	color: #34d399;
+	font-size: 0.72rem;
+	border-radius: 4px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+}
+
+.akb-account-collection__unmark-owned {
+	display: inline-flex;
+	align-items: center;
+	background: rgba(239, 68, 68, 0.16);
+	border: 1px solid rgba(239, 68, 68, 0.5);
+	color: #fca5a5;
+	font-size: 0.72rem;
+	border-radius: 4px;
+	cursor: pointer;
+	padding: 0.18rem 0.55rem;
+	font-weight: 600;
+	transition: all 150ms ease;
+	white-space: nowrap;
+}
+
+.akb-account-collection__unmark-owned:hover {
+	background: rgba(239, 68, 68, 0.38);
+	border-color: #ef4444;
+	color: #ffffff;
+}
+
+/* ─── Botón Puente Arma tu Pack ────────────────────────────── */
+.akb-account-collection__bundle-cta,
+a.akb-account-collection__bundle-cta {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-top: 0.85rem;
+	padding: 0.75rem 1.15rem;
+	background: linear-gradient(135deg, #200f13 0%, #301018 100%);
+	border: 1.5px solid #e11d48;
+	border-radius: 8px;
+	color: #ffffff !important;
+	font-size: 0.85rem;
+	font-weight: 700;
+	text-decoration: none !important;
+	text-align: center;
+	line-height: 1.35;
+	box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+	transition: all 180ms ease;
+}
+
+.akb-account-collection__bundle-cta:hover,
+a.akb-account-collection__bundle-cta:hover {
+	background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+	border-color: #fda4af;
+	color: #ffffff !important;
+	box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5);
+	transform: translateY(-1px);
+}

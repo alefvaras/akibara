@@ -1,0 +1,95 @@
+%% Piezas del capítulo 10, mitad 1 de 2 — el motor: quién mueve los puntos y por dónde entra cada uno.
+%% Qué muestra: las tres puertas del arranque, la puerta única por la que pasa todo movimiento (Points\Ledger), los seis carriles que SUMAN y los dos que RESTAN, y las cuatro fugas de configuración que se saltan Support\Options. En rojo, lo que el verificador dejó señalado como roto.
+%% La otra mitad (superficies, operación y datos) está en 10-rewards-akibara-puntos-piezas-superficies.mmd.
+flowchart LR
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    CLIENTE["Cliente<br/>compra, canjea, cumple años, invita"]:::persona
+    DUENO["Dueño<br/>mueve el pedido de estado y otorga puntos a mano"]:::persona
+
+    subgraph TERCEROS["Terceros — nada de esto es código de la casa"]
+        WOO["WooCommerce ≥ 10.0<br/>avisa de estados, reembolsos y recálculos del carrito"]:::tercero
+        AS["Action Scheduler<br/>corre las dos tareas diarias y trocea los lotes"]:::tercero
+        WP["WordPress ≥ 6.8<br/>options, usermeta, wp_mail y el flujo de privacidad"]:::tercero
+        SQL["MySQL · GET_LOCK<br/>el cerrojo por usuario y por pedido, 3 s de espera"]:::tercero
+        SPAR["SPAR — plugin viejo de terceros<br/>si sigue activo, akibara-rewards duerme entero"]:::tercero
+        ESTADO["Estado «Listo para enviar» (shipping-progress)<br/>NO es de WooCommerce: lo trae el plugin de Blue Express"]:::tercero
+    end
+
+    BOOT["Arranque · akibara-rewards.php + src\\Plugin<br/>tres puertas: WooCommerce activo, WooCommerce ≥ 10.0, SPAR inactivo<br/>plugins_loaded prioridad 20 · el puente spar_get_user_points en la 25"]:::propio
+
+    subgraph CONFIG["Configuración · 40 casillas en una sola pantalla"]
+        SET["Support\\SettingsPage<br/>catálogo FIELDS, guardado saneado por tipo<br/>WooCommerce → Puntos y Reseñas · manage_woocommerce"]:::propio
+        OPT["Support\\Options<br/>lane_on: el interruptor vive DENTRO del accesor del monto"]:::propio
+        FUGA["Fuga: 4 módulos · 7 lecturas con get_option crudo<br/>Expiry 46/49/58 · PdpNotice 44 · WelcomeBonus 167/190 · CheckoutIntegration 133"]:::alerta
+    end
+
+    subgraph MOTOR["El motor · todo pasa por aquí"]
+        LEDGER["Points\\Ledger<br/>candado, relectura fresca, clave de evento, inserta y actualiza"]:::propio
+        CALC["Points\\Calculator<br/>pesos a puntos y comisión en NETO (residuo ±$1)"]:::propio
+        STATES["Support\\OrderStates<br/>DOWN y ALIVE, dos listas literales"]:::propio
+        SCHEMA["Support\\Schema<br/>crea las tablas y pone las options en carga automática"]:::propio
+    end
+
+    subgraph SUMAN["Los seis carriles que SUMAN puntos"]
+        ACC["Points\\Accrual<br/>acredita al entrar a «Listo para enviar» · prioridad 20"]:::propio
+        WEL["Points\\WelcomeBonus<br/>500 en la primera compra · prioridad 10"]:::propio
+        REF["Points\\Referrals<br/>500 al padrino cuando el invitado compra · prioridad 30"]:::propio
+        BIR["Points\\Birthday<br/>1.000 al año, mira hoy y ayer"]:::propio
+        ADJ["Points\\AdminAdjust<br/>el dueño otorga o quita, con motivo obligatorio<br/>SIN interruptor en el panel"]:::propio
+        REV["Reviews\\ReviewPoints<br/>500 por reseña con foto aprobada (otro capítulo)"]:::propio
+    end
+
+    subgraph RESTAN["Los dos carriles que RESTAN puntos"]
+        RED["Points\\Redemption<br/>canje: los cambia por descuento · SIN interruptor en el panel"]:::propio
+        EXP["Points\\Expiry<br/>caducidad: se los lleva sin nada a cambio, FIFO contra el ledger"]:::propio
+    end
+
+    S1["El interruptor «Dar puntos por compra» apaga TRES carriles más<br/>con earn_enabled en «no» los puntos dan 0 y Accrual hace return en :162,<br/>ANTES del aviso de :202 del que cuelgan bono, referidos y correo"]:::alerta
+
+    CLIENTE --> WOO
+    DUENO --> SET
+    DUENO --> ADJ
+    DUENO -->|"mueve el pedido de estado"| WOO
+
+    SPAR -.->|"mientras viva, el arranque se detiene aquí"| BOOT
+    BOOT --> CONFIG
+    BOOT --> MOTOR
+    BOOT --> SUMAN
+    BOOT --> RESTAN
+    WP --> BOOT
+    WOO --> BOOT
+
+    SET --> OPT
+    FUGA -.->|"se saltan la fuente única"| OPT
+
+    ESTADO -.->|"si desaparece, nadie acredita y nadie avisa"| ACC
+    WOO -->|"order_status_changed · order_refunded"| ACC
+    WOO -->|"cart_calculate_fees · checkout_order_processed"| RED
+    AS -->|"akb_rewards_expiry_daily"| EXP
+    AS -->|"akb_rewards_birthday_daily"| BIR
+
+    ACC -->|"after_order_award prioridad 10"| WEL
+    ACC -->|"after_order_award prioridad 30"| REF
+    ACC --> CALC
+    ACC --> STATES
+    RED --> STATES
+    RED --> CALC
+
+    ACC --> LEDGER
+    WEL --> LEDGER
+    REF --> LEDGER
+    BIR --> LEDGER
+    ADJ --> LEDGER
+    REV --> LEDGER
+    EXP --> LEDGER
+    RED --> LEDGER
+
+    OPT --> CALC
+    OPT --> ACC
+    OPT --> RED
+    LEDGER --> SQL
+    ACC -.-> S1

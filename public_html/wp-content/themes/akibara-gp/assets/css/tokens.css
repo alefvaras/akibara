@@ -1,0 +1,317 @@
+/**
+ * Tokens — back-compat shim sobre theme.json.
+ *
+ * SOURCE OF TRUTH: `theme.json` (paleta, fuentes, tamaños, spacing, custom).
+ * WP genera automáticamente `--wp--preset--*` y `--wp--custom--*` desde ahí.
+ *
+ * Este file SOLO crea aliases con los nombres legacy `--aki-*` para que
+ * el CSS existente (header.css, footer.css, critical.css) no requiera
+ * renombrar 100+ referencias. Si algún día migramos completamente a
+ * `--wp--preset--*`, este file se borra y nada se rompe.
+ *
+ * Reglas:
+ *  - NO definir colores hex aquí — siempre alias a un --wp--preset--*.
+ *  - Si un valor NO está en theme.json, agregarlo allá primero (no acá).
+ */
+
+:root {
+    /* UI dark-first (fondo #0A0A0A, theme-color oscuro): le decimos al UA que
+     * pinte los controles nativos en dark — scrollbars, <select>, inputs de
+     * fecha, autofill y spinners — para que no salgan en claro sobre el fondo. */
+    color-scheme: dark;
+
+    /* ─── Brand color aliases (theme.json palette) ─────────────── */
+    --aki-red:           var(--wp--preset--color--primary);
+    --aki-red-hover:     var(--wp--preset--color--primary-hover);
+    --aki-red-bright:    var(--wp--preset--color--primary-bright);
+    --aki-red-dark:      var(--wp--preset--color--primary-dark);
+    --aki-red-readable:  var(--wp--preset--color--primary-readable);
+    /* Rojo para TEXTO chico sobre superficies elevadas: red-bright (#FF0A1D) da
+     * 4.74:1 sobre la superficie real de card (#121212) pero cae a 4.03:1 sobre
+     * surface-3 (#222) — falla AA justo en los contenedores más claros. Este
+     * tono (≈ red-bright 75% + blanco) mide 4.76:1 sobre #222 y 5.6:1 sobre
+     * #121212. REGLA: los ratios se miden contra la superficie COMPUTADA en el
+     * render (#121212 de base.css), no contra el token que declare el CSS local
+     * — ya hubo comments con ratios falsos por medir contra el token equivocado. */
+    --aki-red-text:      var(--wp--preset--color--primary-text);
+    --aki-yellow:        var(--wp--preset--color--accent);
+    --aki-yellow-bright: var(--wp--preset--color--accent-bright);
+    --aki-yellow-dark:   var(--wp--preset--color--accent-dark);
+    --aki-accent:        var(--wp--preset--color--accent);
+
+    /* ─── Status ───────────────────────────────────────────────── */
+    --aki-success: var(--wp--preset--color--success);
+    /* Ramp de verdes derivado de --aki-success (single source of truth:
+     * cambiar success en theme.json propaga a todo el ramp). bright = texto/
+     * íconos sobre dark; deep = bordes de notificación y confirmación. */
+    --aki-green-bright: color-mix(in srgb, var(--aki-success) 60%, var(--aki-white));
+    --aki-green-deep:   color-mix(in srgb, var(--aki-success) 60%, var(--aki-black));
+    --aki-warning: var(--wp--preset--color--warning);
+    --aki-error:   var(--wp--preset--color--error);
+    --aki-info:    var(--wp--preset--color--info);
+
+    /* ─── Surfaces / neutral ───────────────────────────────────── */
+    --aki-black:        var(--wp--preset--color--black);
+    --aki-surface:      var(--wp--preset--color--surface);
+    /* surface-1: token configurable por el owner (ThemeCustomizer del plugin
+     * lo re-inyecta en :root más abajo en el head). Fallback aquí para que
+     * la elevación exista aunque el plugin esté inactivo. */
+    --aki-surface-1:    var(--aki-surface);
+    --aki-surface-2:    var(--wp--preset--color--surface-2);
+    --aki-surface-3:    var(--wp--preset--color--surface-3);
+    --aki-border:       var(--wp--preset--color--border);
+    --aki-border-light: var(--wp--preset--color--border-light);
+    /* Borde de campos de formulario en reposo. --aki-border (#2A2A2E) sobre los
+       surfaces oscuros da ~1.3:1 (los inputs vacíos se ven como huecos, falla
+       WCAG 1.4.11 que pide ≥3:1 para límites de UI). #707070 da 3.52:1 sobre
+       #1A1A1A y 3.81:1 sobre #111111; #585858 sólo daba 2.42:1 y 2.65:1.
+       El token también cubre el buscador; los bordes decorativos no cambian. */
+    --aki-input-border: var(--wp--preset--color--input-border);
+    --aki-white:        var(--wp--preset--color--white);
+    --aki-gray-100:     var(--wp--preset--color--gray-100);
+    --aki-gray-200:     var(--wp--preset--color--gray-200);
+    --aki-gray-300:     var(--wp--preset--color--gray-300);
+    --aki-gray-400:     var(--wp--preset--color--gray-400);
+    --aki-gray-500:     var(--wp--preset--color--gray-500);
+    --aki-gray-600:     var(--wp--preset--color--gray-600);
+    --aki-gray-700:     var(--wp--preset--color--gray-700);
+    --aki-gray-800:     var(--wp--preset--color--gray-800);
+    --aki-gray-900:     var(--wp--preset--color--gray-900);
+
+    --aki-text-muted: var(--aki-gray-400);
+    --aki-muted:      var(--aki-gray-400);
+    --aki-light:      var(--aki-gray-200);
+
+    /* ─── Typography aliases ───────────────────────────────────── */
+    --font-heading: var(--wp--preset--font-family--heading);
+    --font-display: var(--font-heading);
+    --font-body:    var(--wp--preset--font-family--body);
+    --font-sans:    var(--font-body);
+    --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    --weight-normal:   400;
+    --weight-medium:   500;
+    --weight-semibold: 600;
+    --weight-bold:     700;
+    --weight-black:    900;
+
+    --text-xs:   var(--wp--preset--font-size--xs);
+    --text-sm:   var(--wp--preset--font-size--sm);
+    --text-base: var(--wp--preset--font-size--base);
+    --text-lg:   var(--wp--preset--font-size--lg);
+    --text-xl:   var(--wp--preset--font-size--xl);
+    /* WP sanitiza slugs con transición dígito→letra agregando guión:
+     * theme.json "2xl" → CSS var --wp--preset--font-size--2-xl. */
+    --text-2xl:  var(--wp--preset--font-size--2-xl);
+    --text-3xl:  var(--wp--preset--font-size--3-xl);
+    --text-4xl:  var(--wp--preset--font-size--4-xl);
+    --text-5xl:  var(--wp--preset--font-size--5-xl);
+    --text-6xl:  var(--wp--preset--font-size--6-xl);
+
+    /* ─── Roles tipográficos ─────────────────────────────────────────
+     * El tamaño se rige por su rol semántico en la composición:
+     *   display  — héroe visual o estados 404 destacados.
+     *   page     — título H1 principal de catálogo, ficha, serie, checkout.
+     *   section  — encabezado H2 subordinado («Más vendidos», «Relacionados»).
+     * Jerarquía gobernada por escala y tracking en Bebas Neue y tipografías base. */
+    --aki-type-display: var(--text-5xl);
+    --aki-type-page:    clamp(1.75rem, 1.4rem + 1.8vw, 2.5rem);
+    --aki-type-section: var(--text-2xl);
+    --aki-type-heading-tracking: 0.04em;
+
+    /* ─── Spacing aliases ──────────────────────────────────────── */
+    --space-1:  var(--wp--preset--spacing--1);
+    --space-2:  var(--wp--preset--spacing--2);
+    --space-3:  var(--wp--preset--spacing--3);
+    --space-4:  var(--wp--preset--spacing--4);
+    --space-5:  var(--wp--preset--spacing--5);
+    --space-6:  var(--wp--preset--spacing--6);
+    --space-8:  var(--wp--preset--spacing--8);
+    --space-10: var(--wp--preset--spacing--10);
+    --space-12: var(--wp--preset--spacing--12);
+    --space-16: var(--wp--preset--spacing--16);
+    --space-20: var(--wp--preset--spacing--20);
+    --space-24: var(--wp--preset--spacing--24);
+
+    /* ─── Custom (theme.json settings.custom) ──────────────────── */
+    --radius-xs: 4px;
+    --radius-sm: var(--wp--custom--radius--sm);
+    --radius-md: var(--wp--custom--radius--md);
+    --radius-lg: var(--wp--custom--radius--lg);
+    --radius-xl: var(--wp--custom--radius--xl);
+
+    --shadow-sm:          var(--wp--custom--shadow--sm);
+    --shadow-md:          var(--wp--custom--shadow--md);
+    --shadow-lg:          var(--wp--custom--shadow--lg);
+    --shadow-glow-red:    var(--wp--custom--shadow--glow-red);
+    --shadow-glow-yellow: var(--wp--custom--shadow--glow-yellow);
+
+    /* ─── Texturas Manga Físico / Ben-Day Screentones (網点) ────────── */
+    --aki-screentone: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 8px 8px;
+    --aki-screentone-dense: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px) 0 0 / 6px 6px;
+    --aki-screentone-red: radial-gradient(circle, rgba(230, 0, 18, 0.15) 1.2px, transparent 1.2px) 0 0 / 8px 8px;
+
+    --transition-fast:   var(--wp--custom--transition--fast);
+    --transition-base:   var(--wp--custom--transition--base);
+    --transition-slow:   var(--wp--custom--transition--slow);
+
+    --container-max:    var(--wp--custom--layout--container-max);
+    --container-narrow: var(--wp--custom--layout--container-narrow);
+    --header-height:    var(--wp--custom--layout--header-height);
+
+    --z-base:     var(--wp--custom--z--base);
+    --z-dropdown: var(--wp--custom--z--dropdown);
+    --z-sticky:   var(--wp--custom--z--sticky);
+    --z-overlay:  var(--wp--custom--z--overlay);
+    --z-modal:    var(--wp--custom--z--modal);
+    --z-toast:    var(--wp--custom--z--toast);
+    /* Capas con nombre por encima de la escala de z-index.
+     * Jerarquía estricta: sticky (200) < modal/drawer (400) < chat flotante (9000)
+     * < barra de lectura (9999) < carrito lateral (10400) < enlace saltar al contenido
+     * (skip-link, prioridad máxima en navegación accesible). */
+    --z-chat:      var(--wp--custom--z--chat);
+    --z-progress:  var(--wp--custom--z--progress);
+    --z-cart:      var(--wp--custom--z--cart);
+    --z-skip-link: var(--wp--custom--z--skip-link);
+
+    /* ─── Sistema de foco accesible (WCAG 2.4.13) ────────────────────
+     * Indicador de contraste alto:
+     *   - --aki-focus-ring: anillo de foco mediante box-shadow doble (blanco 2px + negro 4px).
+     *   - --aki-focus-outline + --aki-focus-offset: contorno explícito para elementos
+     *     con recortes geométricos (clip-path) o contenedores con overflow hidden. */
+    --aki-focus-outline: var(--wp--custom--focus--outline);
+    --aki-focus-offset:  var(--wp--custom--focus--outline-offset);
+    --aki-focus-ring:    var(--wp--custom--focus-ring);
+    --touch-target-min:  var(--wp--custom--touch-min);
+
+    /* ─── Botones de acción ──────────────────────────────────────────
+     * Papeles unificados de interacción:
+     *   compra     — color primario de acción en fichas, tarjetas y checkout.
+     *   secundario — contorno claro sobre fondo oscuro.
+     *   fantasma   — contorno neutro para acciones auxiliares.
+     *   enlace     — enlace inline con flecha direccional. */
+    --aki-buy-bg:        var(--aki-red-readable);
+    --aki-buy-bg-hover:  var(--aki-red-dark);
+    --aki-buy-fg:        var(--aki-white);
+    --aki-btn-secondary-border: color-mix(in srgb, var(--aki-white) 45%, transparent);
+    --aki-btn-ghost-border:     var(--aki-border);
+    --aki-btn-link-color:       var(--aki-red-text);
+
+    /* ─── Indicadores de estado ──────────────────────────────────────
+     * Semáforo de disponibilidad y estado de pedido sincronizado con la paleta. */
+    --aki-status-ok:       var(--aki-green-bright);
+    --aki-status-warn:     var(--aki-warning);
+    --aki-status-alert:    var(--aki-red-text);
+    --aki-status-preorder: var(--aki-red-bright);
+    --aki-status-out-bg:   var(--aki-gray-700);
+    --aki-status-out-fg:   var(--aki-gray-200);
+}
+
+/* ─── Franja inferior fija (móvil, ≤1024px) ───────────────────────
+ * Tokens de dimensionamiento para las barras inferiores fijadas
+ * (bottom navigation y barra sticky de compra). */
+:root {
+    --bottom-nav-height:    var(--wp--custom--layout--bottom-nav-height, 66px);
+    --buy-bar-height:       var(--wp--custom--layout--buy-bar-height, 68px);
+    --franja-inferior-peor: calc(var(--bottom-nav-height) + var(--buy-bar-height));
+}
+
+/* Altura de cabecera en escritorio (>= 1025px) para compensación de anclas y scroll-margin. */
+@media (min-width: 1025px) {
+    :root {
+        --header-height: 130px;
+    }
+}
+
+/* ─── Reduced motion override (WCAG 2.3.3) ─────────────────────── */
+/* Global cascade: disable ALL transitions, animations, and scroll-behavior */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --transition-fast:   0ms;
+        --transition-base:   0ms;
+        --transition-slow:   0ms;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Force-disable specific transform/shadow animations that may bypass the above */
+    .akb-cart-item:hover,
+    .akb-cs-item:hover,
+    .akb-cart-checkout-btn:hover,
+    .akb-cart-continue-btn:hover,
+    .akb-badge:hover,
+    .mainnav__link:hover,
+    .mainnav__sublink:hover,
+    .akb-filter-toggle:hover,
+    .header-icon:hover,
+    .akb-wl-toggle:hover,
+    .woocommerce a.button:hover,
+    .woocommerce button.button:hover,
+    .single_add_to_cart_button:hover {
+        transform: none !important;
+        filter: none !important;
+    }
+
+    /* La sombra de hover se anula en reposo sin interferir con
+     * el indicador de foco (:focus-visible) para navegación por teclado. */
+    .akb-cart-item:hover:not(:focus-visible),
+    .akb-cs-item:hover:not(:focus-visible),
+    .akb-cart-checkout-btn:hover:not(:focus-visible),
+    .akb-cart-continue-btn:hover:not(:focus-visible),
+    .akb-badge:hover:not(:focus-visible),
+    .mainnav__link:hover:not(:focus-visible),
+    .mainnav__sublink:hover:not(:focus-visible),
+    .akb-filter-toggle:hover:not(:focus-visible),
+    .header-icon:hover:not(:focus-visible),
+    .akb-wl-toggle:hover:not(:focus-visible),
+    .woocommerce a.button:hover:not(:focus-visible),
+    .woocommerce button.button:hover:not(:focus-visible),
+    .single_add_to_cart_button:hover:not(:focus-visible) {
+        box-shadow: none !important;
+    }
+}
+
+/* ─── Base focus ring (WCAG 2.4.13) ────────────────────────────── */
+/* Persona-style double shadow: yellow ring + black outer ring */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+.akibara-search__submit:focus-visible,
+.akibara-search__clear:focus-visible,
+.mainnav__link:focus-visible,
+.mainnav__sublink:focus-visible,
+.mobile-drawer__link:focus-visible,
+.mobile-drawer__sublink:focus-visible,
+.mobile-drawer__toggle:focus-visible,
+.footer-column__title:focus-visible,
+.footer-column__link:focus-visible,
+.akb-filter-toggle:focus-visible,
+.akb-cart-trigger:focus-visible,
+.akb-wl-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--aki-focus-ring);
+}
+
+/* ─── Foco en colores forzados (alto contraste) ───────────────────
+ * Restablece el contorno con Highlight del sistema para entornos donde
+ * box-shadow se encuentra desactivado por el modo de accesibilidad del SO.
+ * Se excluye #main mediante :where() para evitar recuadros perimetrales
+ * involuntarios al activar el salto al contenido. */
+@media (forced-colors: active) {
+    :focus-visible:where(:not(#main)) {
+        outline: 2px solid Highlight !important;
+        outline-offset: 2px;
+    }
+}

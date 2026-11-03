@@ -1,0 +1,110 @@
+%% Piezas de la frontera con terceros — quien es de la casa, quien es ajeno, y por que punto exacto se tocan.
+flowchart TB
+  classDef propio fill:#fde68a,stroke:#b45309,color:#1f2937,stroke-width:2px
+  classDef tercero fill:#dbeafe,stroke:#1d4ed8,color:#1f2937,stroke-width:2px
+  classDef persona fill:#dcfce7,stroke:#15803d,color:#1f2937,stroke-width:2px
+  classDef dato fill:#f3e8ff,stroke:#7e22ce,color:#1f2937,stroke-width:2px
+
+  subgraph PERSONAS["Quien empuja"]
+    CLIENTE["Cliente<br/>compra, elige punto, canjea puntos"]
+    DUENO["Dueno<br/>guarda precios y textos en el panel"]
+    AGENTE["Agente externo por MCP<br/>opera redirecciones y palabra clave"]
+  end
+
+  subgraph CASA["Codigo de la casa"]
+    BUSINESS["akibara-business<br/>impuestos, correo, SEO, seguridad, preventa"]
+    BLOCKS["akibara-cart-checkout-blocks<br/>carrito y checkout de bloques, comuna, PUDO"]
+    REWARDS["akibara-rewards<br/>puntos y resenas; canjea en el Store API"]
+    SEARCH["akibara-search<br/>indice propio del buscador"]
+    TEMA["Tema akibara-gp<br/>plantillas y correos sustituidos"]
+    MUS["17 mu-plugins<br/>lo que debe funcionar aunque todo falle"]
+  end
+
+  subgraph TIENDA["Plataforma"]
+    WP["WordPress<br/>sirve las paginas"]
+    WOO["WooCommerce<br/>productos, carrito, pedidos, correos"]
+    STOREAPI["Store API de Blocks<br/>puente carrito-servidor"]
+    AS["Action Scheduler<br/>cola de trabajos"]
+    GP["GeneratePress<br/>tema padre"]
+  end
+
+  subgraph LOGISTICA["Despacho y cobro"]
+    BLUEX["Blue Express<br/>tarifas, puntos de retiro, seguimiento"]
+    MP["Mercado Pago<br/>cobra con tarjeta"]
+    FLOW["Flow<br/>cobra con tarjeta"]
+  end
+
+  subgraph MARKETING["Descubrimiento y medicion"]
+    RANK["Rank Math<br/>titulos, canonical, robots, sitemaps"]
+    BREVO["Brevo<br/>campanas y carrito abandonado"]
+    CLARITY["Microsoft Clarity<br/>graba sesiones"]
+    GOOGLE["Google<br/>Maps, GA4, Ads, Merchant, acceso"]
+    JOINCHAT["Joinchat<br/>boton de WhatsApp"]
+  end
+
+  subgraph BORDE["Velocidad y servidor"]
+    LS["LiteSpeed Cache<br/>copia en el servidor"]
+    CF["Cloudflare<br/>copia en el borde"]
+    HOST["Hostinger<br/>buzon SMTP y reloj cada 5 min"]
+  end
+
+  subgraph DATOS["Lo que queda escrito"]
+    META["Metas de pedido y producto<br/>RUT, agencia, seguimiento"]
+    OPTS["Options del panel<br/>descuentos, textos, claves"]
+    LOGS["wp_bluex_logs y registros<br/>evidencia de la frontera"]
+  end
+
+  CLIENTE --> WP
+  DUENO --> BUSINESS
+  AGENTE -->|"Abilities API + adapter MCP"| MUS
+
+  WP --> WOO
+  TEMA -->|"tema hijo"| GP
+  BUSINESS -->|"class_exists WooCommerce o no arranca"| WOO
+  SEARCH -->|"class_exists WooCommerce"| WOO
+  REWARDS -->|"class_exists WooCommerce"| WOO
+  BLOCKS -->|"exige WooCommerce, BusinessPlugin y CheckoutDataProvider"| WOO
+
+  WOO --> STOREAPI
+  BLOCKS -->|"register_endpoint_data bluex_pudo"| STOREAPI
+  REWARDS -->|"register_endpoint_data akibara-rewards"| STOREAPI
+  REWARDS -->|"cart_calculate_fees prio 20: cargo negativo"| WOO
+  BUSINESS -->|"tipo de cupon propio y cupon virtual de pack"| WOO
+  TEMA -->|"14 plantillas del nucleo sustituidas (9 del tema, 5 del plugin) y los hooks de correo"| WOO
+
+  BLOCKS -->|"desencola su selector; require de chile-communes.php"| BLUEX
+  BLOCKS -->|"cotiza y reclama el checkout en prio 1"| BLUEX
+  MUS -->|"repara el campo REST de seguimiento en wc/v3"| BLUEX
+  MUS -->|"vigia semanal de includes ausentes"| BLUEX
+  BLOCKS -->|"repone dependencias que su build no declara"| FLOW
+  BLOCKS -->|"solo en /carrito/: desencola de una lista de 15 handles los que esten en cola"| MP
+  WOO -->|"cobra"| MP
+  WOO -->|"cobra"| FLOW
+
+  BUSINESS -->|"filtros y llamadas directas a sus clases"| RANK
+  MUS -->|"5 abilities propias y 2 suyas vetadas"| RANK
+  BUSINESS -->|"prueba del consentimiento con el texto visto"| BREVO
+  MUS -->|"portada JPG visible en el correo"| BREVO
+  BUSINESS -->|"clarity-commerce-events.js: 10 eventos y 2 etiquetas"| CLARITY
+  BUSINESS -->|"Maps, GA4, Ads, Merchant y Continuar con Google"| GOOGLE
+  BUSINESS -->|"lee option joinchat.telephone; respaldo +56944242844 en codigo"| JOINCHAT
+
+  MUS -->|"barandas: fija 3 opciones peligrosas al leerlas + excluye /wp-json/"| LS
+  BUSINESS -->|"purga total al guardar descuentos y textos"| LS
+  SEARCH -->|"no-store en sus respuestas REST + purga por tag del indice"| LS
+  LS -->|"cdn-cloudflare_clear propaga la purga"| CF
+  BUSINESS -->|"CF-Connecting-IP solo de rangos publicados (15 IPv4 + 7 IPv6)"| CF
+  SEARCH -->|"no-store de borde + su propia copia del limitador, que falla cerrado"| CF
+  MUS -->|"transporte SMTP y su centinela"| HOST
+  HOST -->|"dispara el reloj"| AS
+  MUS -->|"acciones recurrentes y retencion de 14 dias"| AS
+  SEARCH -->|"WC_Cache_Helper para invalidar su grupo"| WOO
+
+  WOO --> META
+  BUSINESS --> OPTS
+  BLUEX --> LOGS
+
+  class CLIENTE,DUENO,AGENTE persona
+  class BUSINESS,BLOCKS,REWARDS,SEARCH,TEMA,MUS propio
+  class WP,WOO,STOREAPI,AS,GP,BLUEX,MP,FLOW,RANK,BREVO,CLARITY,GOOGLE,JOINCHAT,LS,CF,HOST tercero
+  class META,OPTS,LOGS dato

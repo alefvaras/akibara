@@ -1,0 +1,16 @@
+%% Título: Cada cuánto corre cada trabajo del área
+%% Qué muestra: quién empuja la cola y con qué cadencia corre cada trabajo.
+%% Ninguno tiene hora fija de Chile: la hora la fija el momento en que se armó
+%% por primera vez.
+timeline
+    title Cadencia de los trabajos del área - ninguno tiene hora fija
+    section Cada 5 minutos
+        Cron del hosting : Empuja la cola de Action Scheduler y los eventos de WP-Cron pendientes : En producción el cron por tráfico está apagado
+    section Cada día
+        akibara_bluex_log_retention_cleanup : Acción propia de Action Scheduler, grupo akibara-bluex y unique : Borra de wp_bluex_logs lo anterior a 2 días, de mil en mil
+        bluex_clean_logs : Evento diario de WP-Cron del tercero : Su propio DELETE de 7 días sin lotes, y encima el nuestro por lotes en el mismo evento
+        Limpieza de Action Scheduler : Acción del propio Action Scheduler : Pregunta por filtro cuánto historial guardar y recibe 14 días
+    section Cada semana
+        akibara_bluex_integrity_weekly : Acción recurrente de Action Scheduler, sin grupo y sin unique : Relee el árbol de Blue Express buscando includes rotos : La arma la primera visita del dueño al escritorio
+    section Cuando alguien actualiza un plugin
+        upgrader_process_complete : Disparo inmediato, cualquier plugin sirve de gatillo : Mismo chequeo de integridad y correo en el acto

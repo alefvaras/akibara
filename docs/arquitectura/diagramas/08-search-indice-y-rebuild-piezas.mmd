@@ -1,0 +1,159 @@
+%% Piezas del capítulo 08 — akibara-search, el índice: quién escucha, quién escribe, quién prueba y quién vigila.
+%% Qué muestra: las 23 piezas del área agrupadas por dominio, las cinco tablas propias, las dos puertas que apagan el buscador (huella editorial y huella semántica), y las fronteras con akibara-business, el tema, LiteSpeed/Cloudflare y el correo del dueño. En gris, las piezas vecinas que intervienen en estos flujos pero se cuentan en el capítulo 09.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef guion fill:#fdf2d0,stroke:#b8860b,stroke-width:1.5px,color:#4a3a10,stroke-dasharray: 5 3
+    classDef vecino fill:#f2f2f2,stroke:#9a9a9a,stroke-width:1.5px,color:#3a3a3a,stroke-dasharray: 4 3
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    subgraph LEYENDA["Cómo leer los colores"]
+        direction LR
+        L1["Clase del plugin akibara-search"]:::propio
+        L2["Guion del repositorio (no es parte del plugin)"]:::guion
+        L3["Pieza vecina: se cuenta en el capítulo 09"]:::vecino
+        L4["Código de terceros o servicio externo"]:::tercero
+        L5["Persona"]:::persona
+        L6[("Dato guardado: tabla del índice")]:::dato
+    end
+
+    DUENO["Dueño<br/>guarda precios, términos y ajustes; recibe la alarma"]:::persona
+    CLIENTE["Cliente<br/>escribe en la caja de búsqueda y filtra el catálogo"]:::persona
+
+    subgraph ARRANQUE["Arranque y compuertas"]
+        BOOT["akibara-search.php<br/>carga clases sin Composer y deja 7 funciones puente"]:::propio
+        SEARCH["Search<br/>el interruptor general: qué se enchufa en cada petición"]:::propio
+        INSTALL["Install<br/>dueño del esquema, de la cola de solicitudes y del buzón de generación"]:::propio
+        FENCE["WriteFence<br/>candado de MariaDB atado a ESTA conexión física"]:::propio
+    end
+
+    subgraph OIDO["El oído — de un cambio a deuda durable"]
+        INDEXER["Indexer<br/>25 oyentes + 3 manejadores de cola; también es la mano que escribe"]:::propio
+        WORK["WorkRepository<br/>la libreta: wanted_seq / acked_seq, arriendos y reintentos"]:::propio
+        ARRIVAL["Arrival<br/>anota la entrada en preventa y la llegada real"]:::propio
+    end
+
+    subgraph MANO["La mano — de producto a filas"]
+        BUILDER["DocumentBuilder<br/>título, tokens, facetas, precio efectivo y precio pintado"]:::propio
+        AUTHORITY["ProductSourceAuthority<br/>el notario: verifica 15 campos contra la fila real"]:::propio
+        STOCKL["StockLabels<br/>Disponible / A pedido / Preventa / Agotado"]:::propio
+        NOVEDAD["Novedad<br/>los tramos de «recién llegado», calculados al vuelo"]:::propio
+        FAILS["Support\\FailsClosed<br/>una lectura dudosa apaga el servicio, no lo inventa"]:::propio
+        CODEC["Support\\OptionCodec<br/>reproduce al byte lo que WordPress guarda"]:::propio
+    end
+
+    subgraph RECONSTRUIR["La reconstrucción completa"]
+        REBUILD["RebuildJob<br/>director del rebuild y vigilante cada 15 minutos"]:::propio
+        RECON["Reconciler<br/>la revisión diaria: 4 detectores, muestreo y poda del qlog"]:::propio
+        RESCATE["ops/rescate-buscador.sh<br/>el rescate manual: sombra PRIMERO, option DESPUÉS<br/>guion del repositorio, no del plugin"]:::guion
+    end
+
+    subgraph PRUEBA["Las dos pruebas que apagan el buscador"]
+        EDP["EditorialDiscountPublication<br/>huella del precio: intención antes, recibo después"]:::propio
+        SEM["SemanticPublication<br/>huella de las 13 options del buscador"]:::propio
+        RESTC["Support\\RestCache<br/>no-store permanente + recibo de purga"]:::propio
+    end
+
+    subgraph MIRAR["Lo que se puede mirar"]
+        HEALTH["HealthReport<br/>termómetro puro: sano / atención / reconstruyendo"]:::propio
+        AUDIT["AuditLog<br/>anillo de 50 entradas de «qué se tocó»"]:::propio
+        CLI["Cli<br/>rebuild, status, reindex, reconcile"]:::propio
+        PANEL["SearchAdminSection<br/>Buscador → Índice, Ajustes, Facetas, Precios…<br/>admin.php?page=akibara-search&sub=…"]:::propio
+    end
+
+    subgraph TABLAS["Las cinco tablas propias"]
+        DOCS[("wp_akb_search_docs<br/>una fila por producto, con el precio ya pintado")]:::dato
+        TOKENS[("wp_akb_search_tokens<br/>palabra × campo × producto, collation BINARIA")]:::dato
+        FACETS[("wp_akb_search_facet_index<br/>espejo de filtros con ancestros materializados")]:::dato
+        QLOG[("wp_akb_search_qlog<br/>búsquedas agregadas por día UTC — FUENTE, no derivado")]:::dato
+        WORKT[("wp_akb_search_work<br/>la deuda durable: live / baseline / repair")]:::dato
+        SOMBRA[("_new y _old<br/>las gemelas del cambiazo; _old es la ÚNICA vuelta atrás")]:::dato
+    end
+
+    subgraph VECINAS["Nombradas aquí, contadas en el capítulo 09"]
+        QLOGGER["QueryLogger<br/>el ÚNICO que escribe el qlog"]:::vecino
+        NORM["Normalizer<br/>decide qué es una palabra"]:::vecino
+        FREG["FacetRegistry<br/>define las facetas y las taxonomías indexadas"]:::vecino
+        PBUCK["PriceBuckets<br/>deriva los tramos del filtro de precio"]:::vecino
+    end
+
+    subgraph FUERA["Fuera del área"]
+        BUSINESS["akibara-business<br/>proveedor del precio con descuento editorial"]:::propio
+        TEMA["tema akibara-gp<br/>pinta filtros y desplegable con function_exists"]:::propio
+        WOO["WooCommerce<br/>productos, stock, ofertas programadas, Action Scheduler"]:::tercero
+        LITE["LiteSpeed + Cloudflare<br/>sólo litespeed_purge_all llega al borde"]:::tercero
+        CORREO["wp_mail → admin_email<br/>«el buscador lleva rato caído» / «volvió»"]:::tercero
+    end
+
+    DUENO --> PANEL
+    DUENO --> CLI
+    DUENO --> RESCATE
+    CLIENTE --> SEARCH
+
+    BOOT --> SEARCH
+    BOOT --> TEMA
+    SEARCH --> INSTALL
+    SEARCH --> INDEXER
+    SEARCH --> EDP
+    SEARCH --> SEM
+    SEARCH --> RECON
+
+    WOO --> INDEXER
+    BUSINESS -- "akibara_taxonomy_discount_pct_saved" --> INDEXER
+    INDEXER --> WORK
+    INDEXER --> BUILDER
+    INDEXER --> ARRIVAL
+    INDEXER -- "¿es taxonomía indexada?" --> FREG
+    WORK --> WORKT
+    BUILDER --> AUTHORITY
+    BUILDER --> STOCKL
+    BUILDER --> NOVEDAD
+    BUILDER -- "¿qué es una palabra?" --> NORM
+    AUTHORITY --> FAILS
+    BUILDER -- "pregunta el precio con descuento<br/>filtro akb_search_effective_price" --> BUSINESS
+    BUSINESS -- "responde el precio efectivo" --> BUILDER
+    STOCKL -- "pregunta la palabra del sello<br/>filtro akb_stock_status_label" --> BUSINESS
+    BUSINESS -- "responde Disponible / A pedido / Preventa" --> STOCKL
+
+    BUILDER --> DOCS
+    BUILDER --> TOKENS
+    BUILDER --> FACETS
+
+    CLIENTE -- "cada búsqueda asentada" --> QLOGGER
+    QLOGGER -- "ESCRIBE el log, agregado por día" --> QLOG
+
+    INDEXER -- "request_rebuild()" --> INSTALL
+    INSTALL --> REBUILD
+    REBUILD --> SOMBRA
+    REBUILD --> FENCE
+    INSTALL --> FENCE
+    REBUILD --> EDP
+    REBUILD --> SEM
+    REBUILD --> RESTC
+    REBUILD -- "recalcula los tramos al publicar" --> PBUCK
+    REBUILD -- "a los 900 s caído" --> CORREO
+    RECON --> DOCS
+    RECON -- "PODA lo viejo, no escribe búsquedas" --> QLOG
+    RECON --> INDEXER
+    RESCATE --> SOMBRA
+
+    EDP --> CODEC
+    SEM --> CODEC
+    EDP -- "purga PRE y POST" --> LITE
+    RESTC --> LITE
+    EDP -- "cierra el gate si la huella no cuadra" --> SEARCH
+    SEM -- "cierra la autoridad si la foto falla" --> SEARCH
+
+    REBUILD --> AUDIT
+    EDP --> AUDIT
+    PANEL --> AUDIT
+    PANEL --> HEALTH
+    HEALTH --> REBUILD
+    HEALTH --> RECON
+    HEALTH --> WORK
+    CLI --> REBUILD
+    CLI --> RECON
+
+    SEARCH --> CLIENTE
+    TEMA --> CLIENTE

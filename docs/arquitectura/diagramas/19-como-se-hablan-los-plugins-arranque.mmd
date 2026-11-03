@@ -1,0 +1,40 @@
+%% Orden de arranque del capítulo 19 — quién habla primero en plugins_loaded, y por qué eso decide quién ve a quién.
+%% Qué muestra: el turno exacto de cada pieza, el empate de la prioridad 20 entre mu-plugins y plugins, y el punto donde el mu-plugin de Brevo pregunta por una clase de business que todavía no existe.
+sequenceDiagram
+    autonumber
+    participant WP as WordPress
+    participant MU as mu-plugins (18)
+    participant SEARCH as akibara-search
+    participant BUSINESS as akibara-business
+    participant REWARDS as akibara-rewards
+    participant BLOQUES as akibara-cart-checkout-blocks
+
+    WP->>MU: carga los 18 ficheros, uno por uno, ANTES que cualquier plugin
+    Note over MU: aquí sólo dejan apuntados sus add_action.<br/>Todavía no corre nada de ellos.
+    WP->>WP: carga los plugins (orden de carpeta, que nadie fijó)
+    WP-->>SEARCH: plugins_loaded prioridad 15
+    SEARCH->>SEARCH: arranca (akibara-search.php:80) y define las 7 funciones puente
+
+    Note over MU,REWARDS: PRIORIDAD 20 — cuatro apuntados, y el orden dentro del empate<br/>lo decide quién se apuntó antes: primero los mu-plugins.
+    WP-->>MU: prioridad 20 · akibara-brevo-portada-jpg-en-el-carrito.php:131
+    MU->>MU: class_exists SendinblueWoocommerce (:118) → true
+    MU->>BUSINESS: class_exists SocialImageDerivatives (:121)
+    BUSINESS--x MU: FALSE — el autoloader de business aún no está registrado
+    Note over MU: se va sin enganchar la ventana JPG.<br/>Este es el Caso 5: el arreglo nunca se ejecuta.
+    WP-->>MU: prioridad 20 · akibara-bluex-cotiza-solo-con-comuna.php:82
+    MU->>MU: sólo pregunta por clases de Blue Express, que ya existen → sí engancha
+    WP-->>BUSINESS: prioridad 20
+    BUSINESS->>BUSINESS: registra su autoloader DENTRO del arranque (akibara-business.php:138)
+    BUSINESS->>BUSINESS: arranca los ~70 módulos (:159)
+    WP-->>REWARDS: prioridad 20
+    REWARDS->>REWARDS: arranca (akibara-rewards.php:191)
+
+    WP-->>REWARDS: prioridad 25
+    REWARDS->>REWARDS: declara la función global spar_get_user_points() (:202-223)
+    WP-->>BLOQUES: prioridad 30
+    BLOQUES->>BUSINESS: class_exists + checkout_data() + instanceof CheckoutDataProvider
+    BUSINESS-->>BLOQUES: el contrato de seis métodos
+    BLOQUES->>BLOQUES: registra RUT, comuna, avisos, PUDO y shortcodes
+
+    WP-->>BUSINESS: init prioridad 999
+    BUSINESS->>BUSINESS: detecta cambio de versión y emite akibara_business_upgraded

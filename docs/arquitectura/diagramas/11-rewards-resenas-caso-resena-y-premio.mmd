@@ -1,0 +1,66 @@
+%% Caso «el cliente escribe la reseña con foto, el dueño la aprueba y se pagan los 500 puntos» — capítulo 11.
+%% Qué muestra: las ocho validaciones del formulario, el token que se quema ANTES de crear la reseña para resolver el doble clic en la base de datos, la retención obligatoria, la escalera de once compuertas del premio y los cuatro sellos posibles — incluido el que no deja huella.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant FORM as Reviews\ReviewForm
+    participant TAB as tabla akb_rewards_review_forms
+    participant MEDIA as Reviews\Media
+    participant WP as WordPress · comentarios
+    actor Dueno as Dueño
+    participant PTS as Reviews\ReviewPoints
+    participant LED as Points\Ledger
+    participant MAIL as Correo
+
+    Cliente->>FORM: abre /resena/{token}/
+    FORM->>TAB: ¿el token existe, no se usó y no venció?
+    alt El enlace ya se usó o venció
+        FORM-->>Cliente: «Este enlace ya no sirve» + botón a sus pedidos
+    else Devolvieron el pedido entero
+        FORM-->>Cliente: la misma página de enlace inválido
+    else Vale
+        FORM-->>Cliente: formulario oscuro, noindex, sin JavaScript<br/>tomos del pedido, estrellas, texto y FOTO obligatoria
+    end
+
+    Cliente->>FORM: envía
+    Note over FORM: ocho cortes en orden, cada uno con su aviso en castellano<br/>token · nonce · pedido · producto del pedido · estrellas 1-5<br/>texto ≥ 10 caracteres · foto presente · la foto sube
+    alt Falta la foto
+        FORM-->>Cliente: «Falta la foto de tu compra. La pedimos siempre…»
+    else El envío supera el post_max_size de PHP
+        FORM-->>Cliente: «La sesión del formulario caducó» — habla de otra cosa · D17
+    else Todo válido
+        FORM->>MEDIA: sube el adjunto · máximo 5 MB
+        FORM->>TAB: UPDATE … SET used_at WHERE token = ? AND used_at IS NULL
+        alt Pierde la carrera · segundo clic
+            TAB-->>FORM: 0 filas
+            FORM->>MEDIA: borra la foto huérfana
+            FORM-->>Cliente: «Este enlace ya se usó o caducó»
+        else Gana la carrera
+            FORM->>WP: wp_insert_comment con comment_approved = 0
+            FORM->>MEDIA: pega la foto a la reseña y la reparenta AL PRODUCTO
+            FORM->>WP: dispara comment_post a mano<br/>para que WooCommerce escriba «compra verificada»
+            FORM-->>Cliente: «Tu reseña quedó en revisión: la publicamos apenas la<br/>aprobemos y ahí mismo se acreditan tus puntos»
+            Note over WP,Dueno: el aviso de moderación depende de dos options de WordPress<br/>que NO están en la pantalla del dueño · D6
+        end
+    end
+
+    Dueno->>WP: Productos → Valoraciones · pulsa «Aprobar»
+    WP-->>PTS: transition_comment_status
+    Note over PTS: once compuertas seguidas — ReviewPoints.php:154-297
+    alt Sin foto real · un vídeo no cuenta
+        PTS-->>PTS: sale SIN sello y SIN huella<br/>indistinguible de una reseña no evaluada
+    else Sin cuenta detrás
+        PTS->>WP: sella pending_account · reversible, pero nadie lo lista · D5
+    else Sin compra verificada
+        PTS->>WP: persiste verified = 0 y no paga<br/>si «Listo para enviar» no es estado pagado, esto corta TODO · D3
+    else Cadencia «cada N» o tope por cliente
+        PTS->>WP: sella 0 y anota «1/3», que nadie ve · D11
+    else Pasa las once
+        PTS->>LED: credit 500 · clave única review_u{cliente}_p{tomo}
+        LED-->>PTS: saldo movido
+        PTS->>WP: sella los puntos pagados
+        PTS-->>MAIL: akb_rewards_review_points_paid
+        MAIL->>Cliente: «[Akibara] Tu reseña sumó 500 Puntos Akibara»<br/>en la misma petición de la aprobación
+    end
+
+    Note over Dueno,LED: si el dueño después des-aprueba, marca spam o borra la reseña,<br/>los 500 puntos se quedan pagados: NO hay reversa · D4

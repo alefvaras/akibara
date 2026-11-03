@@ -1,0 +1,41 @@
+%% Caso del capítulo 08 — el dueño pone -10 % a una editorial y el buscador se apaga DESDE EL PRIMER SEGUNDO.
+%% Qué muestra: la corrección del verificador al mapa — cuando el disparador es editorial, stage_locked sube wanted_seq ANTES de dejar pasar la escritura, así que el gate cierra al guardar y no en el cambiazo; y el atajo que evita el rebuild cuando ningún precio se movió.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant BUS as akibara-business (Akibara → Descuentos)
+    participant WP as WordPress
+    participant EDP as EditorialDiscountPublication
+    participant FEN as WriteFence
+    participant WORK as WorkRepository + Install
+    participant RJ as RebuildJob
+    participant LS as LiteSpeed / Cloudflare
+    actor Cliente
+
+    Dueno->>BUS: guarda «-10 % a Ivrea»
+    BUS->>WP: update_term_meta('_akb_taxonomy_discount_pct')
+    WP->>EDP: filtro update_term_metadata, prioridad PHP_INT_MAX
+    EDP->>FEN: toma el cerrojo
+    alt No hay cerrojo disponible
+        EDP-->>WP: devuelve false → WordPress NO escribe la meta
+        Note over Dueno,WP: La operación se cancela limpia en vez de dejar el índice mintiendo.
+    else Cerrojo tomado
+        EDP->>EDP: foto de la fuente DOS veces seguidas<br/>byte a byte iguales → huella SHA-256
+        EDP->>WORK: stage_locked() · EditorialDiscountPublication.php:2037<br/>wanted_seq N-1 → N, deuda live y repair con 10 s de barrera,<br/>request_rebuild, debt_staged = true
+        EDP->>LS: purga PRE (litespeed_purge + litespeed_purge_all)
+        Note over EDP,Cliente: El recibo sigue en N-1 y bundle_is_ready exige<br/>state.wanted_seq === receipt.wanted_seq<br/>— la función empieza en EDP.php:2508 y la comparación está en :2545.<br/>EL BUSCADOR YA ESTÁ EN 503, antes de que la meta se escriba.<br/>OJO: éste es UNO de los dos momentos en que se apaga.<br/>El otro está en el diagrama «Guardar un término»: allí el gate<br/>se cierra mucho después, en SWAP_INTENT. Mira los dos.
+        Cliente--xEDP: /suggest → 503 y catálogo sin filtros
+        WP->>WP: escribe la termmeta
+        WP->>EDP: updated_term_meta cierra el marco:<br/>re-foto, purge_post_seq, suelta el cerrojo,<br/>despierta el pump y programa el borde de la ventana
+    end
+
+    alt El cambio NO movió ningún precio
+        EDP->>EDP: reprove_physical_receipt() + editorial_materialization_is_unchanged()<br/>compara los 1.568 productos UNO A UNO, nunca por muestreo
+        EDP->>WORK: re-sella el recibo con seq N y RETIRA la señal de rebuild
+        Note over Cliente,EDP: El gate se reabre sin reconstruir nada.<br/>Coste medido en el docblock: 1,39 s en frío, ~36 MB de pico.
+    else Algún precio cambió
+        WORK->>RJ: el run consume la señal y reconstruye
+        RJ->>EDP: record_swap_receipt() sella el recibo con seq N
+        EDP->>LS: litespeed_purge_all (la única purga que llega al borde)
+        Note over Cliente,RJ: El gate se reabre cuando el recibo alcanza al estado.
+    end

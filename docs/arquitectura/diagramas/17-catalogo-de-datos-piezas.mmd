@@ -1,0 +1,102 @@
+%% Piezas del capítulo 17 — catálogo de datos: options, tablas, metas y transients, y quién las opera.
+%% Qué muestra: los cuatro cajones donde la tienda recuerda cosas, qué pieza escribe en cada uno, las tres fronteras que cruzan datos entre plugins, y las dos excepciones a la tesis del capítulo: las options sin pantalla y la tabla de terceros que poda un mu-plugin.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    DUENO["Dueño<br/>edita en pantallas, no en código"]:::persona
+    CLIENTE["Cliente<br/>compra, busca y deja su correo"]:::persona
+
+    subgraph PANTALLAS["Pantallas donde se opera el catálogo"]
+        PANEL["AdminPanel · menú akibara-panel<br/>19 secciones: nonce, validación, guardado y purga"]:::propio
+        BUSCA["SearchAdminSection · pantalla Buscador<br/>submenú de akibara-panel; 7 sub-pestañas"]:::propio
+        PUNTOS["SettingsPage · Puntos y Reseñas<br/>40 campos en seis secciones"]:::propio
+        CORREOS["WooCommerce → Ajustes → Correos<br/>el SEGUNDO interruptor de los 4 correos WC_Email"]:::tercero
+        CLAVES["akibara-provider-access.php<br/>submenú Claves y accesos"]:::propio
+    end
+
+    subgraph ESCRITORES["Código propio que guarda datos"]
+        BIZ["akibara-business 1.116.4<br/>61 módulos, ~170 options, 3 tablas, casi todas las metas"]:::propio
+        SEARCH["akibara-search 0.1.60<br/>5 tablas + sombras y ~35 options de protocolo"]:::propio
+        REW["akibara-rewards 0.3.13<br/>2 tablas de dinero y 40 options"]:::propio
+        BLOCKS["akibara-cart-checkout-blocks 2.2.17<br/>una option propia, el RUT y las metas de Blue"]:::propio
+        TEMA["Tema akibara-gp 2.1.118<br/>lee 3 textos, usa el logo y un transient propio"]:::propio
+        MU["17 mu-plugins (4 guardan estado)<br/>vigilantes del correo y de Blue, retención de logs"]:::propio
+    end
+
+    subgraph CAJONES["Los cuatro cajones de WordPress"]
+        OPT["wp_options<br/>configuración; la marca autoload decide si se lee siempre"]:::dato
+        TABLAS["10 tablas propias + 6 sombras del buscador<br/>listas largas: favoritos, avisos, índice, puntos"]:::dato
+        METAS["postmeta, termmeta, usermeta,<br/>ordermeta, orderitemmeta y commentmeta"]:::dato
+        TRANS["transients y caché de objetos<br/>de usar y tirar, con caducidad"]:::dato
+    end
+
+    subgraph FRONTERAS["Fronteras que cruzan datos"]
+        CERROJO["EditorialDiscountPublication<br/>vigila 10 options y 1 termmeta ajenos"]:::propio
+        BORRADO["uninstall.php de los 3 plugins<br/>quién puede borrar qué del prefijo akb_"]:::propio
+        PRIVACIDAD["3 exportadores y borradores de privacidad<br/>puntos, favoritos y lista de espera"]:::propio
+    end
+
+    SINUI["Options SIN pantalla<br/>akb_markdown_negotiation_enabled,<br/>akb_crossorigin_scripts_enabled<br/>y los 4 enabled de los correos"]:::alerta
+    BLUELOG["wp_bluex_logs — tabla de TERCEROS<br/>única que el código propio poda sin haberla creado"]:::alerta
+
+    WOO["WooCommerce<br/>woocommerce_update_options y las metas de pedido"]:::tercero
+    WP["WordPress<br/>zona horaria, logo del tema, página del blog"]:::tercero
+    BLUE["Blue Express<br/>agencyId, agencyName, agencyAddress, isPudoSelected"]:::tercero
+    JOIN["Joinchat<br/>option joinchat: el teléfono que se pinta al cliente"]:::tercero
+    RANK["Rank Math<br/>rank_math_focus_keyword y los ownership de la casa"]:::tercero
+
+    DUENO --> PANEL
+    DUENO --> BUSCA
+    DUENO --> PUNTOS
+    DUENO --> CORREOS
+    DUENO --> CLAVES
+    DUENO -->|"wp option update por SSH: la excepción a la regla de oro"| SINUI
+    SINUI --> OPT
+    CLIENTE -->|"elige punto de retiro, escribe su RUT"| BLOCKS
+    CLIENTE -->|"busca en el catálogo"| SEARCH
+    CLIENTE -->|"deja su correo: fila en wp_akb_bis_subscribers"| BIZ
+
+    PANEL -->|"woocommerce_update_options"| BIZ
+    BUSCA --> SEARCH
+    PUNTOS --> REW
+    CORREOS -->|"escribe 4 filas woocommerce_akb_*_settings"| OPT
+    OPT -->|"business LEE esas 4 filas al despachar"| BIZ
+
+    BIZ --> OPT
+    BIZ --> TABLAS
+    BIZ --> METAS
+    BIZ --> TRANS
+    SEARCH --> OPT
+    SEARCH --> TABLAS
+    REW --> OPT
+    REW --> TABLAS
+    REW --> METAS
+    BLOCKS --> OPT
+    BLOCKS --> METAS
+    TEMA --> TRANS
+    MU --> OPT
+    MU --> METAS
+    MU -->|"poda por lotes, no la crea"| BLUELOG
+
+    TEMA -->|"lee por el NOMBRE de la option"| OPT
+    BLOCKS -->|"lee 3 options que declara business"| OPT
+    TEMA -->|"custom_logo"| WP
+    BIZ -->|"lee como contrato"| JOIN
+    BLOCKS -->|"cuatro metas sin prefijo"| BLUE
+    MU -->|"escribe meta de tercero"| RANK
+    BIZ --> WOO
+    WOO --> METAS
+
+    CERROJO -->|"pre_update_option a PHP_INT_MAX"| OPT
+    CERROJO -->|"5 filtros y 3 acciones de termmeta"| METAS
+    WP -->|"timezone_string, gmt_offset"| CERROJO
+    BIZ -->|"6 options de descuento y el porcentaje por editorial"| CERROJO
+    SEARCH --- CERROJO
+
+    BORRADO --> OPT
+    BORRADO --> TABLAS
+    PRIVACIDAD --> TABLAS

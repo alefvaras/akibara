@@ -1,0 +1,746 @@
+/**
+ * Akibara — Popup de bienvenida primera compra (10% descuento).
+ *
+ * Estética Editorial Brutalista / Manga Dark-First alineada con tokens.css:
+ *   - Superficie oscura (--aki-surface / #121212) con screentone sutil (--aki-screentone-red)
+ *   - Borde entintado y acento rojo Akibara (--aki-red / #E60012)
+ *   - Anillo de foco de la casa (--aki-focus-ring) y respeto total a prefers-reduced-motion
+ */
+
+@keyframes akb-welcome-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes akb-welcome-card-rise {
+	from {
+		opacity: 0;
+		transform: translateY(18px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+html.akb-welcome-open {
+	overflow: hidden;
+}
+
+.akb-welcome[hidden],
+.akb-welcome [hidden] {
+	display: none !important;
+}
+
+.akb-welcome {
+	position: fixed;
+	inset: 0;
+	z-index: calc(var(--z-cart, 10400) - 50);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	font-family: var(--font-body, Inter, -apple-system, BlinkMacSystemFont, sans-serif);
+	color: var(--aki-white, #ffffff);
+	animation: akb-welcome-fade-in 0.22s ease-out;
+}
+
+.akb-welcome__backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(5, 5, 7, 0.82);
+	backdrop-filter: blur(4px);
+	cursor: pointer;
+}
+
+.akb-welcome__card {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	max-width: 480px;
+	max-height: calc(100dvh - 32px);
+	overflow-y: auto;
+	background-color: var(--aki-surface, #121212);
+	background-image: var(--aki-screentone-red);
+	border: 2px solid var(--aki-border-light, #3a3a40);
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 6px 6px 0 var(--aki-red, #e60012);
+	animation: akb-welcome-card-rise 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.akb-welcome__drag-handle {
+	display: none;
+}
+
+.akb-welcome__close {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	z-index: 100;
+	pointer-events: auto;
+	width: 40px;
+	height: 40px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--aki-black, #0a0a0a);
+	color: var(--aki-white, #ffffff);
+	border: 1px solid var(--aki-border-light, #3a3a40);
+	font-size: 24px;
+	line-height: 1;
+	cursor: pointer;
+	transition: background-color var(--transition-fast, 150ms), border-color var(--transition-fast, 150ms);
+}
+
+.akb-welcome__close:hover {
+	background: var(--aki-red, #e60012);
+	border-color: var(--aki-white, #ffffff);
+}
+
+.akb-welcome__close:focus-visible {
+	outline: none;
+	box-shadow: var(--aki-focus-ring);
+}
+
+.akb-welcome__header {
+	background: var(--aki-black, #0a0a0a);
+	padding: 20px 24px 16px;
+	border-bottom: 3px solid var(--aki-red, #e60012);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.akb-welcome__logo {
+	display: block;
+	height: 36px;
+	width: auto;
+	max-width: 155px;
+	object-fit: contain;
+}
+
+.akb-welcome__kicker {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--aki-red-text, #ff5c6a);
+}
+
+.akb-welcome__body,
+.akb-welcome__success {
+	padding: 24px;
+	background: linear-gradient(180deg, rgba(18, 18, 18, 0.94) 0%, rgba(12, 12, 14, 0.98) 100%);
+}
+
+.akb-welcome__body[hidden],
+.akb-welcome__success[hidden] {
+	display: none !important;
+}
+
+.akb-welcome__badge-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.akb-welcome__pct-badge {
+	display: inline-block;
+	background: var(--aki-red, #e60012);
+	color: var(--aki-white, #ffffff);
+	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+	font-size: 28px;
+	line-height: 1;
+	letter-spacing: 0.04em;
+	padding: 6px 12px 4px;
+	border: 1px solid var(--aki-white, #ffffff);
+}
+
+.akb-welcome__pct-tag {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--aki-gray-200, #e4e4e7);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-border, #2a2a2e);
+	padding: 5px 10px;
+}
+
+.akb-welcome__title {
+	margin: 0 0 10px;
+	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+	font-size: clamp(1.65rem, 1.35rem + 1.2vw, 2.15rem);
+	line-height: 1.08;
+	letter-spacing: var(--aki-type-heading-tracking, 0.04em);
+	color: var(--aki-white, #ffffff);
+	text-transform: uppercase;
+}
+
+.akb-welcome__subtitle {
+	margin: 0 0 18px;
+	font-size: 14px;
+	line-height: 1.55;
+	color: var(--aki-gray-200, #e4e4e7);
+}
+
+.akb-welcome__form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+/* Honeypot oculto sin display:none para atrapar bots */
+.akb-welcome__form .akb-form__hp {
+	position: absolute !important;
+	left: -9999px !important;
+	width: 1px !important;
+	height: 1px !important;
+	overflow: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
+}
+
+.akb-welcome__field {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.akb-welcome__label {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--aki-gray-200, #e4e4e7);
+}
+
+.akb-welcome__input,
+.akb-welcome input.akb-welcome__input,
+.akb-welcome input[type="text"].akb-welcome__input,
+.akb-welcome input[type="email"].akb-welcome__input {
+	width: 100%;
+	min-height: 46px;
+	padding: 10px 14px;
+	background-color: var(--aki-black, #0a0a0a) !important;
+	color: var(--aki-white, #ffffff) !important;
+	border: 1px solid var(--aki-input-border, #707070) !important;
+	-webkit-text-fill-color: var(--aki-white, #ffffff) !important;
+	font-size: 15px;
+	line-height: 1.4;
+	box-sizing: border-box;
+	box-shadow: none !important;
+	border-radius: 0;
+	transition: border-color var(--transition-fast, 150ms), background-color var(--transition-fast, 150ms);
+}
+
+.akb-welcome__input::placeholder,
+.akb-welcome input.akb-welcome__input::placeholder,
+.akb-welcome input[type="text"].akb-welcome__input::placeholder,
+.akb-welcome input[type="email"].akb-welcome__input::placeholder {
+	color: var(--aki-gray-400, #9ca3af) !important;
+	-webkit-text-fill-color: var(--aki-gray-400, #9ca3af) !important;
+	opacity: 1 !important;
+}
+
+.akb-welcome__input:focus,
+.akb-welcome__input:focus-visible,
+.akb-welcome input.akb-welcome__input:focus,
+.akb-welcome input.akb-welcome__input:focus-visible,
+.akb-welcome input[type="text"].akb-welcome__input:focus,
+.akb-welcome input[type="email"].akb-welcome__input:focus {
+	outline: none !important;
+	border-color: var(--aki-white, #ffffff) !important;
+	background-color: #141416 !important;
+	box-shadow: var(--aki-focus-ring) !important;
+}
+
+.akb-welcome__turnstile {
+	margin: 4px 0 2px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 0;
+}
+
+.akb-welcome__msg {
+	padding: 10px 12px;
+	font-size: 13px;
+	line-height: 1.45;
+	border-left: 3px solid var(--aki-border-light, #3a3a40);
+	background: var(--aki-surface-2, #1a1a1a);
+	color: var(--aki-white, #ffffff);
+}
+
+.akb-welcome__msg.is-error {
+	border-left-color: var(--aki-error, #ef4444);
+	color: var(--aki-red-text, #ff5c6a);
+}
+
+.akb-welcome__msg.is-ok {
+	border-left-color: var(--aki-success, #22c55e);
+	color: var(--aki-green-bright, #86efac);
+}
+
+.akb-welcome__submit {
+	width: 100%;
+	min-height: 48px;
+	margin-top: 4px;
+	padding: 12px 20px;
+	background: var(--aki-buy-bg, #c8102e);
+	color: var(--aki-buy-fg, #ffffff);
+	border: 2px solid var(--aki-white, #ffffff);
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background-color var(--transition-fast, 150ms), transform var(--transition-fast, 150ms);
+}
+
+.akb-welcome__submit:hover:not(:disabled) {
+	background: var(--aki-buy-bg-hover, #9e0b22);
+}
+
+.akb-welcome__submit:disabled,
+.akb-welcome__submit.is-loading {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.akb-welcome__dismiss {
+	background: transparent;
+	border: none;
+	color: var(--aki-gray-300, #d4d4d8);
+	font-size: 13px;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	padding: 8px 4px;
+	cursor: pointer;
+	align-self: center;
+}
+
+.akb-welcome__dismiss:hover {
+	color: var(--aki-white, #ffffff);
+}
+
+.akb-welcome__trust-note {
+	margin: 10px 0 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--aki-gray-300, #d4d4d8);
+	text-align: center;
+	padding: 4px 6px;
+}
+
+.akb-welcome__legal {
+	margin: 14px 0 0;
+	padding-top: 12px;
+	border-top: 1px solid var(--aki-border, #2a2a2e);
+	font-size: 11.5px;
+	line-height: 1.5;
+	color: var(--aki-gray-300, #d4d4d8);
+}
+
+/* Paso 2: código generado */
+.akb-welcome__success {
+	text-align: center;
+}
+
+.akb-welcome__success-badge {
+	display: inline-block;
+	background: var(--aki-green-deep, #14532d);
+	color: var(--aki-green-bright, #86efac);
+	border: 1px solid var(--aki-green-bright, #86efac);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 5px 12px;
+	margin-bottom: 12px;
+}
+
+.akb-welcome__success-title {
+	margin: 0 0 8px;
+	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+	font-size: 28px;
+	line-height: 1.1;
+	letter-spacing: 0.04em;
+	color: var(--aki-white, #ffffff);
+	text-transform: uppercase;
+}
+
+.akb-welcome__success-text {
+	margin: 0 0 18px;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--aki-gray-200, #e4e4e7);
+}
+
+.akb-welcome__code-box {
+	background: var(--aki-black, #0a0a0a);
+	border: 2px dashed var(--aki-red, #e60012);
+	padding: 18px 16px;
+	margin-bottom: 18px;
+}
+
+.akb-welcome__code-label {
+	display: block;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--aki-gray-300, #d4d4d8);
+	margin-bottom: 8px;
+}
+
+.akb-welcome__code-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+
+.akb-welcome__code-value {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 24px;
+	font-weight: 900;
+	letter-spacing: 0.1em;
+	color: var(--aki-white, #ffffff);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-border-light, #3a3a40);
+	padding: 8px 14px;
+}
+
+.akb-welcome__copy-btn {
+	min-height: 42px;
+	padding: 8px 14px;
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-white, #ffffff);
+	border: 1px solid var(--aki-white, #ffffff);
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.akb-welcome__copy-btn:hover {
+	background: var(--aki-red, #e60012);
+}
+
+.akb-welcome__copy-btn.is-copied {
+	background: var(--aki-green-deep, #14532d);
+	border-color: var(--aki-green-bright, #86efac);
+	color: var(--aki-green-bright, #86efac);
+}
+
+.akb-welcome__code-meta {
+	display: block;
+	font-size: 12px;
+	color: var(--aki-gray-200, #e4e4e7);
+}
+
+.akb-welcome__promo-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+	margin-bottom: 16px;
+}
+
+.akb-welcome__promo-badge {
+	display: inline-flex;
+	align-items: center;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	padding: 5px 10px;
+	background: var(--aki-surface-2, #18181b);
+	border: 1px solid var(--aki-border, #27272a);
+	color: var(--aki-green-bright, #86efac);
+}
+
+.akb-welcome__promo-meta {
+	font-size: 12.5px;
+	line-height: 1.45;
+	color: var(--aki-gray-300, #d4d4d8);
+	margin: 0 0 18px;
+	text-align: center;
+}
+
+.akb-welcome__shop-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 48px;
+	padding: 12px 20px;
+	background: var(--aki-buy-bg, #c8102e);
+	color: var(--aki-buy-fg, #ffffff);
+	border: 2px solid var(--aki-white, #ffffff);
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	text-decoration: none;
+	box-sizing: border-box;
+}
+
+.akb-welcome__shop-btn:hover {
+	background: var(--aki-buy-bg-hover, #9e0b22);
+	color: var(--aki-white, #ffffff);
+}
+
+@media (max-width: 520px) {
+	.akb-welcome {
+		padding: 0;
+		align-items: flex-end;
+	}
+
+	.akb-welcome__card {
+		max-width: 100%;
+		border-radius: 18px 18px 0 0;
+		border-bottom: none;
+		border-left: none;
+		border-right: none;
+		border-top: 3px solid var(--aki-red, #e60012);
+		box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.9), 0 -2px 0 var(--aki-red, #e60012);
+		max-height: 88dvh;
+		padding-bottom: env(safe-area-inset-bottom, 12px);
+	}
+
+	.akb-welcome__drag-handle {
+		display: block;
+		width: 38px;
+		height: 4px;
+		margin: 10px auto 2px;
+		background: rgba(255, 255, 255, 0.32);
+		border-radius: 2px;
+	}
+
+	.akb-welcome__close {
+		top: 10px;
+		right: 10px;
+		width: 36px;
+		height: 36px;
+		font-size: 22px;
+	}
+
+	.akb-welcome__header {
+		padding: 12px 18px 10px;
+		gap: 6px;
+	}
+
+	.akb-welcome__logo {
+		height: 28px;
+		max-width: 120px;
+	}
+
+	.akb-welcome__kicker {
+		font-size: 10px;
+		letter-spacing: 0.12em;
+	}
+
+	.akb-welcome__body,
+	.akb-welcome__success {
+		padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 8px));
+	}
+
+	.akb-welcome__badge-row {
+		margin-bottom: 10px;
+		gap: 8px;
+	}
+
+	.akb-welcome__pct-badge {
+		font-size: 24px;
+		padding: 4px 10px 2px;
+	}
+
+	.akb-welcome__pct-tag {
+		font-size: 10px;
+		padding: 4px 8px;
+	}
+
+	.akb-welcome__title {
+		font-size: 1.65rem;
+		margin-bottom: 8px;
+	}
+
+	.akb-welcome__subtitle {
+		font-size: 13px;
+		line-height: 1.45;
+		margin-bottom: 14px;
+	}
+
+	.akb-welcome__field {
+		gap: 4px;
+	}
+
+	.akb-welcome__input {
+		min-height: 44px;
+		font-size: 14px;
+		padding: 8px 12px;
+	}
+
+	.akb-welcome__submit {
+		min-height: 46px;
+		font-size: 14px;
+	}
+
+	.akb-welcome__trust-note {
+		margin-top: 8px;
+		font-size: 11px;
+	}
+
+	.akb-welcome__legal {
+		margin-top: 10px;
+		padding-top: 8px;
+		font-size: 10.5px;
+	}
+
+	.akb-welcome__code-box {
+		padding: 14px 12px;
+		margin-bottom: 14px;
+	}
+
+	.akb-welcome__code-value {
+		font-size: 20px;
+		padding: 6px 10px;
+	}
+}
+
+/* Distintivo flotante de reapertura (Launcher / Teaser) */
+.akb-welcome-launcher {
+	position: fixed;
+	bottom: 24px;
+	left: 24px;
+	z-index: calc(var(--z-cart, 10400) - 60);
+	display: inline-flex;
+	align-items: center;
+	background: var(--aki-surface, #121212);
+	color: var(--aki-white, #ffffff);
+	border: 2px solid var(--aki-red, #e60012);
+	box-shadow: 4px 4px 0 var(--aki-red, #e60012), 0 10px 28px rgba(0, 0, 0, 0.75);
+	font-family: var(--font-body, Inter, -apple-system, BlinkMacSystemFont, sans-serif);
+	animation: akb-welcome-card-rise 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+	transition: transform var(--transition-fast, 150ms), box-shadow var(--transition-fast, 150ms);
+	padding: 0;
+	overflow: hidden;
+}
+
+.akb-welcome-launcher:hover {
+	transform: translateY(-2px);
+	box-shadow: 5px 5px 0 var(--aki-red, #e60012), 0 14px 32px rgba(0, 0, 0, 0.85);
+}
+
+.akb-welcome-launcher:focus-within {
+	box-shadow: var(--aki-focus-ring);
+}
+
+.akb-welcome-launcher__btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	background: transparent;
+	border: none;
+	color: var(--aki-white, #ffffff);
+	font-family: inherit;
+	font-size: 11.5px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	cursor: pointer;
+	line-height: 1.2;
+}
+
+.akb-welcome-launcher__btn:focus-visible {
+	outline: none;
+	background: var(--aki-surface-2, #1a1a1a);
+}
+
+.akb-welcome-launcher__badge {
+	display: inline-block;
+	background: var(--aki-red, #e60012);
+	color: var(--aki-white, #ffffff);
+	font-size: 11px;
+	font-weight: 900;
+	padding: 2px 6px;
+	border: 1px solid var(--aki-white, #ffffff);
+	letter-spacing: 0.04em;
+	line-height: 1;
+}
+
+.akb-welcome-launcher:hover .akb-welcome-launcher__badge {
+	background: var(--aki-black, #0a0a0a);
+}
+
+.akb-welcome-launcher__close {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	min-height: 36px;
+	background: transparent;
+	border: none;
+	border-left: 1px solid var(--aki-border-light, #3a3a40);
+	color: var(--aki-gray-300, #d4d4d8);
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0;
+	transition: background-color var(--transition-fast, 150ms), color var(--transition-fast, 150ms);
+}
+
+.akb-welcome-launcher__close:hover {
+	background: var(--aki-red, #e60012);
+	color: var(--aki-white, #ffffff);
+}
+
+.akb-welcome-launcher__close:focus-visible {
+	outline: none;
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-white, #ffffff);
+}
+
+.akb-welcome-launcher[hidden] {
+	display: none !important;
+}
+
+/* En dispositivos móviles y tablets: situar el launcher sobre la barra inferior fija (bottom-nav) */
+@media (max-width: 1024px) {
+	.akb-welcome-launcher {
+		bottom: calc(var(--akb-franja-inferior, var(--bottom-nav-height, 66px)) + env(safe-area-inset-bottom, 0px) + 12px);
+		left: 14px;
+	}
+
+	.akb-welcome-launcher__btn {
+		padding: 7px 10px;
+		font-size: 10.5px;
+		gap: 6px;
+	}
+
+	.akb-welcome-launcher__close {
+		width: 26px;
+		min-height: 32px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-welcome,
+	.akb-welcome__card,
+	.akb-welcome-launcher {
+		animation: none !important;
+		transition: none !important;
+	}
+}

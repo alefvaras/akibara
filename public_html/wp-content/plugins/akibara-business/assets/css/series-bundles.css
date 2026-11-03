@@ -1,0 +1,2203 @@
+/*
+ * Series Bundles — estilos frontend del BuilderWidget "Arma tu pack".
+ * Carga condicional desde Akibara\Business\Modules\SeriesBundles (Req 12.10).
+ *
+ * BRANDING: el theme akibara-gp es DARK. El styling usa los tokens `--aki-*`
+ * definidos por el theme, con fallbacks para previews aislados.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Builder interactivo "Arma tu pack" (single product).
+ * ------------------------------------------------------------------------- */
+.akb-sb-builder {
+	margin: var(--space-5, 1.25rem) 0;
+	padding: var(--space-4, 1rem);
+	border: 4px solid var(--aki-black, #121212);
+	border-radius: 0;
+	background: var(--aki-surface-2, #1a1a1a);
+	box-shadow: 8px 8px 0px var(--aki-black, #121212);
+	/* Halftone/screentone de marca (puntos rojos sutiles) sobre el color base.
+	 * SIN skew en el contenedor raíz: rompía el position:fixed del sticky bar
+	 * móvil (ancestro transformado = containing block) e inclinaba el grid. */
+	background-image: radial-gradient( circle, rgba(230, 0, 18, 0.10) 1px, transparent 1.6px );
+	background-size: 14px 14px;
+	position: relative;
+}
+/*
+ * El widget es hermano de galería y resumen antes de tabs; clear lo sitúa bajo ambas columnas.
+ */
+.woocommerce div.product > .akb-sb-builder {
+	clear: both;
+	width: 100%;
+	box-sizing: border-box;
+}
+.akb-sb-builder__title {
+	margin: 0 0 var(--space-2, .5rem);
+	font-family: var(--font-heading);
+	font-size: var(--text-xl, 1.35rem);
+	font-weight: 400;
+	font-synthesis: none;
+	font-style: normal;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--aki-white, #fff);
+	line-height: 1.1;
+	/*
+	 * La sombra negra fina separa el glifo del rojo para mantener el trazo de impresión legible
+	 * también en líneas móviles.
+	 */
+	text-shadow: 1px 1px 0 var(--aki-black, #121212), 2px 2px 0 var(--aki-red, #E60012);
+}
+.akb-sb-builder__intro {
+	margin: 0 0 var(--space-2, .5rem);
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: var(--text-sm, .9rem);
+}
+/* Nota fina bajo los tramos: aclara que el % es sobre el precio de lista.
+   Tono secundario (más chico y atenuado que el intro) para no competir. */
+.akb-sb-builder__list-note {
+	margin: -.1rem 0 var(--space-3, .75rem);
+	color: var(--aki-gray-400, #8a8a8a);
+	font-size: var(--text-xs, .78rem);
+	line-height: 1.35;
+}
+.akb-sb-builder__rules {
+	margin: 0 0 var(--space-2, .5rem);
+}
+.akb-sb-builder__rules-toggle {
+	display: flex;
+	width: fit-content;
+	align-items: baseline;
+	gap: 6px;
+	max-width: 100%;
+	padding: 8px 0;
+	margin: -6px 0;
+	font-size: var(--text-xs, .8rem);
+	line-height: 1.3;
+	list-style: none;
+	cursor: pointer;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+.akb-sb-builder__rules-toggle::-webkit-details-marker {
+	display: none;
+}
+.akb-sb-builder__rules-toggle:focus-visible {
+	outline: 3px solid var(--aki-yellow, #ffd700);
+	outline-offset: -4px;
+}
+.akb-sb-builder__rules-label {
+	font-weight: 600;
+	text-decoration: underline;
+	text-decoration-color: var(--aki-gray-400, #8a8a8a);
+	text-underline-offset: 3px;
+}
+.akb-sb-builder__rules-label::after {
+	content: "";
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	margin: 0 2px 2px 6px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+	vertical-align: middle;
+}
+.akb-sb-builder__rules[open] .akb-sb-builder__rules-label::after {
+	margin-bottom: -1px;
+	transform: rotate(-135deg);
+}
+.akb-sb-builder__rules-body {
+	margin: var(--space-2, .5rem) 0 0;
+	padding: var(--space-2, .5rem) var(--space-3, .75rem);
+	background: var(--aki-surface, #111111);
+	border-left: 2px solid var(--aki-border, #2a2a2e);
+}
+.akb-sb-builder__rules-body .akb-sb-builder__list-note,
+.akb-sb-builder__rules-body .akb-sb-builder__preventa-note {
+	margin: 0 0 var(--space-1, .25rem);
+}
+.akb-sb-builder__rules-body > :last-child {
+	margin-bottom: 0;
+}
+.akb-sb-builder__tiers {
+	list-style: none;
+	margin: 0 0 var(--space-3, .75rem);
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2, .4rem);
+}
+/*
+ * Estilo de reposo de .akb-sb-builder__tier, la clase emitida por el builder.
+ */
+.akb-sb-builder__tier {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-1, .28rem) var(--space-3, .6rem);
+	background: var(--aki-surface-3, #222222);
+	border: 2px solid var(--aki-border, #2a2a2e);
+	font-size: var(--text-xs, .8rem);
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	color: var(--aki-gray-200, #e0e0e0);
+	white-space: nowrap;
+}
+.akb-sb-builder__progress-wrap {
+	position: relative; /* #24: ancla los ticks de tramo */
+	width: 100%;
+	height: 8px;
+	background: var(--aki-surface-3, #222222);
+	border-radius: 999px;
+	margin: var(--space-3, .75rem) 0;
+	overflow: hidden;
+}
+.akb-sb-builder__progress-bar {
+	height: 100%;
+	background: var(--aki-red, #E60012);
+	box-shadow: inset 0 -2px 0 rgba( 0, 0, 0, .28 );
+	width: 0%;
+	/* #24: easing con "pull" (overshoot backout) al avanzar. */
+	transition: width 360ms cubic-bezier( 0.34, 1.4, 0.64, 1 );
+}
+/* #24: ticks de tramo en la barra (en sus posiciones %). */
+.akb-sb-builder__progress-tick {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	margin-left: -1px;
+	background: var(--aki-surface, #111111);
+	z-index: 1;
+}
+.akb-sb-builder__tools {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2, .5rem);
+	margin: var(--space-3, .75rem) 0 var(--space-2, .5rem);
+	padding: var(--space-3, .75rem);
+	background: var(--aki-surface, #111111);
+	border: 2px solid var(--aki-black, #121212);
+	box-shadow: inset 0 0 0 1px var(--aki-border, #2a2a2e);
+}
+.akb-sb-builder__ranges,
+.akb-sb-builder__bulk {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2, .45rem);
+}
+.akb-sb-builder__ranges {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	padding: 2px 0 6px;
+	scrollbar-width: thin;
+}
+.akb-sb-builder__range,
+.akb-sb-builder__bulk-btn {
+	min-height: var(--touch-target-min, 44px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	padding: var(--space-2, .45rem) var(--space-3, .7rem);
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-gray-200, #e0e0e0);
+	border: 2px solid var(--aki-border, #2a2a2e);
+	border-radius: 0;
+	font-family: var(--font-heading);
+	font-size: var(--text-sm, .88rem);
+	font-weight: 400;
+	font-synthesis: none;
+	line-height: 1;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	cursor: pointer;
+	transition: background 150ms ease, color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+.akb-sb-builder__range {
+	flex: 0 0 auto;
+	min-width: 82px;
+}
+/* El anillo lo pinta el token del tema sobre `button:focus-visible`; este
+ * outline se apilaba encima y dejaba dos anillos amarillos. Doce controles del
+ * armador (diez rangos + dos acciones masivas) estaban así. */
+.akb-sb-builder__range.is-active {
+	/* Estado SELECCIONADO en blanco brutalista (no amarillo: amarillo = solo precio;
+	   no rojo: el rojo es acción, no se coopta para un estado). Blanco + borde/sombra
+	   dura lee "seleccionado" por peso y contraste (18.7:1). El selector .is-active no
+	   cambia → el toggle aria-pressed del JS queda intacto. */
+	background: var(--aki-white, #fff);
+	color: var(--aki-black, #121212);
+	border-color: var(--aki-black, #121212);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+}
+/*
+ * Compone la sombra de selección interior y el anillo de foco exterior en un mismo box-shadow,
+ * evitando que la mayor especificidad de selección oculte el foco.
+ */
+.akb-sb-builder__range.is-active:focus-visible {
+	box-shadow:
+		3px 3px 0 var(--aki-black, #121212),
+		0 0 0 2px var(--aki-white, #ffffff),
+		0 0 0 5px var(--aki-black, #121212);
+}
+.akb-sb-builder__bulk-btn {
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-gray-100, #f5f5f5);
+	border-color: var(--aki-gray-600, #3a3a3e);
+}
+.akb-sb-builder__bulk-btn--secondary {
+	color: var(--aki-gray-200, #e0e0e0);
+	border-color: var(--aki-border, #2a2a2e);
+}
+.akb-sb-builder__filter-status {
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: var(--text-xs, .8rem);
+	font-weight: 700;
+}
+/* #23: flash de la barra al cruzar un tramo nuevo (brillo, sin asumir color base). */
+@keyframes akb-flash {
+	0%, 100% { filter: none; }
+	30% { filter: brightness( 1.9 ) saturate( 1.4 ); }
+}
+.akb-sb-builder__progress-bar.akb-animate-flash {
+	animation: akb-flash 520ms ease;
+}
+/*
+ * Los keyframes del builder usan nombre propio porque su espacio es global.
+ * CssKeyframesSonUnicosTest protege esa unicidad frente a animaciones de otros componentes.
+ */
+@keyframes akb-sb-pulse {
+	0%, 100% { transform: none; }
+	40% { transform: scale( 1.012 ); }
+}
+.akb-sb-builder.akb-animate-pulse {
+	animation: akb-sb-pulse 360ms ease;
+}
+/* #26: stagger de entrada del grid (fade + rise, escalonado por card). */
+@keyframes akb-stagger {
+	from { opacity: 0; transform: translateY( 8px ); }
+	to { opacity: 1; transform: none; }
+}
+.akb-sb-builder__grid .akb-sb-builder__card {
+	animation: akb-stagger 320ms ease both;
+	animation-delay: calc( var( --akb-i, 0 ) * 35ms );
+}
+/* Wrapper del grid: ancla del overlay de fade (afordancia de scroll) y portador
+ * del margen externo (para que el ::after se posicione al borde real del grid). */
+.akb-sb-builder__grid-wrap {
+	position: relative;
+	margin: var(--space-4, 1rem) 0 var(--space-6, 1.5rem);
+}
+.akb-sb-builder__grid-wrap:not(.is-expanded)::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 52px;
+	height: 64px;
+	pointer-events: none;
+	background: linear-gradient( to bottom, transparent, var(--aki-surface-2, #18181c) 90% );
+	z-index: 2;
+}
+.akb-sb-builder__grid-wrap.is-expanded::after {
+	display: none !important;
+}
+.akb-sb-builder__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	gap: var(--space-2, .5rem);
+	max-height: none !important;
+	overflow-y: visible !important;
+	overscroll-behavior: auto;
+	scroll-padding-bottom: 52px;
+	padding: 4px;
+}
+.akb-sb-builder__shortcuts {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: var(--space-2, .5rem);
+}
+.akb-sb-builder__shortcut-btn {
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 12px;
+	font-family: inherit;
+	font-size: var(--text-xs, .8rem);
+	font-weight: 700;
+	color: var(--aki-white, #ffffff);
+	background: var(--aki-surface-2, #1a1a1f);
+	border: 1.5px solid var(--aki-border, #2e2e34);
+	border-radius: 3px;
+	cursor: pointer;
+	box-shadow: 2px 2px 0 var(--aki-black, #121212);
+	transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+.akb-sb-builder__shortcut-btn:hover {
+	background: var(--aki-surface-3, #26262e);
+	border-color: var(--aki-red, #E60012);
+	transform: translateY(-1px);
+}
+.akb-sb-builder__shortcut-btn:active {
+	transform: translateY(1px);
+	box-shadow: 1px 1px 0 var(--aki-black, #121212);
+}
+.akb-sb-builder__shortcut-btn--clear {
+	color: var(--aki-gray-300, #b0b0b8);
+	background: transparent;
+	border-style: dashed;
+}
+.akb-sb-builder__shortcut-btn--clear:hover {
+	color: var(--aki-red-bright, #ff3445);
+	border-color: var(--aki-red-bright, #ff3445);
+}
+.akb-sb-builder__expand-wrap {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: var(--space-3, .75rem) var(--space-2, .5rem) var(--space-1, .25rem);
+	position: relative;
+	z-index: 3;
+}
+.akb-sb-builder__expand-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	max-width: 440px;
+	min-height: 44px;
+	padding: 10px 20px;
+	font-family: inherit;
+	font-size: var(--text-sm, .875rem);
+	font-weight: 700;
+	letter-spacing: .02em;
+	color: var(--aki-white, #ffffff);
+	background: var(--aki-surface-3, #222222);
+	border: 2px solid var(--aki-border-light, #3a3a40);
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+	box-shadow: 3px 3px 0px var(--aki-black, #121212);
+}
+.akb-sb-builder__expand-btn:hover {
+	background: var(--aki-surface-3, #2a2a30);
+	border-color: var(--aki-red, #E60012);
+	transform: translateY(-1px);
+	box-shadow: 4px 4px 0px var(--aki-red, #E60012);
+}
+.akb-sb-builder__expand-btn:active {
+	transform: translateY(1px);
+	box-shadow: 2px 2px 0px var(--aki-black, #121212);
+}
+.akb-sb-builder__expand-icon {
+	font-size: 1.1em;
+	line-height: 1;
+	color: var(--aki-red-bright, #ff3445);
+	transition: transform 200ms ease;
+}
+.akb-sb-builder__card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	/* Padding acotado: la portada (ratio 2/3 exacto, `contain` no letterboxea) quedaba
+	   enmarcada por un frame grueso. Iteración: 12px → 6px → 2px. Con 6px+3px la portada
+	   llenaba solo ~88% de la card (marco oscuro de 9px/lado visible en el grid mobile);
+	   con 2px llena ~94% dejando solo el borde de 3px (que el estado is-selected repinta
+	   de amarillo). No se toca la decisión de mesa de `contain` (portada completa). */
+	gap: 4px;
+	padding: 2px;
+	border: 3px solid var(--aki-border, #2a2a2e);
+	/* Sin fondo: el gap de 2px muestra el fondo de página (no el gris surface-3),
+	   así la portada queda con solo el borde fino y sin la caja gris alrededor. El
+	   estado is-disabled fija su propio fondo (surface-2) para el atenuado. */
+	background: transparent;
+	cursor: pointer;
+	transition: border-color 200ms ease, transform 200ms cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 200ms ease, opacity 200ms ease;
+	position: relative;
+	user-select: none;
+	/* Series largas (100+ tomos render-all): el navegador NO paga layout/paint de
+	 * las cards fuera de la ventana de scroll del grid. `contain-intrinsic-size`
+	 * reserva el alto aproximado para que la scrollbar no salte. */
+	content-visibility: auto;
+	contain-intrinsic-size: auto 280px;
+}
+/* Filtro de búsqueda/rango: ocultar DE VERDAD las cards que no matchean. El
+ * atributo `[hidden]` del markup no alcanza porque `.akb-sb-builder__card`
+ * declara `display:flex` con la misma especificidad que el `[hidden]` de la UA
+ * (gana el autor) → las cards filtradas quedaban visibles aunque el contador
+ * dijera "Mostrando 1 de N". Esta clase (0,2,0) sí le gana al base (0,1,0). */
+.akb-sb-builder__card.is-filtered-out {
+	display: none;
+}
+/* El input real debe seguir en el DOM para teclado/lectores, pero no puede
+ * heredar el `screen-reader-text:focus` global que lo muestra como skip-link. */
+.akb-sb-builder__check.screen-reader-text,
+.akb-sb-builder__check.screen-reader-text:focus {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	margin: -1px !important;
+	padding: 0 !important;
+	border: 0 !important;
+	overflow: hidden !important;
+	clip: rect(0 0 0 0) !important;
+	clip-path: inset(50%) !important;
+	white-space: nowrap !important;
+}
+/*
+ * El foco del checkbox real, oculto visualmente, se presenta en la tarjeta seleccionable del
+ * grid.
+ */
+.akb-sb-builder__card:focus-within {
+	outline: 2px solid var(--aki-white, #ffffff);
+	outline-offset: 2px;
+}
+.akb-sb-builder__card.is-selected {
+	/* Selected = borde blanco nítido + lift + sombra roja + sello rojo. */
+	border-color: var(--aki-white, #ffffff);
+	transform: translateY(-6px);
+	box-shadow: 6px 6px 0px var(--aki-red, #E60012);
+	z-index: 1;
+}
+.akb-sb-builder__card.is-disabled {
+	opacity: 0.4;
+	filter: grayscale(100%);
+	pointer-events: none;
+	background: var(--aki-surface-2, #1a1a1a);
+}
+.akb-sb-builder__selection-mark {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 28px;
+	height: 28px;
+	background: var(--aki-red, #E60012);
+	color: #fff;
+	border: 3px solid #000;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 900;
+	font-size: 16px;
+	opacity: 0;
+	transform: scale(0);
+	transition: opacity 200ms ease, transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	z-index: 2;
+}
+.akb-sb-builder__card.is-selected .akb-sb-builder__selection-mark {
+	opacity: 1;
+	transform: scale(1);
+}
+.akb-sb-builder__vol-thumb {
+	width: 100%;
+	aspect-ratio: 2/3;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.akb-sb-builder__vol-thumb img {
+	max-width: 100%;
+	max-height: 100%;
+	width: auto;
+	height: auto;
+	/* contain, no cover: el cliente elige tomos puntuales. 
+	   Al aplicar background/border al img, abraza la portada sin letterbox oscuro. */
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 2px solid #000;
+	box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+	display: block;
+}
+.akb-sb-builder__vol-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	width: 100%;
+}
+.akb-sb-builder__card.is-selected .akb-sb-builder__vol-info {
+	color: var(--aki-white, #fff);
+}
+.akb-sb-builder__vol-title {
+	font-size: var(--text-xs, .8rem);
+	line-height: 1.2;
+	font-weight: 700;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.akb-sb-builder__vol-price {
+	font-weight: 900;
+	font-size: var(--text-sm, .9rem);
+	white-space: nowrap;
+	color: var(--aki-white, #ffffff);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.akb-sb-builder__card.is-selected .akb-sb-builder__vol-price {
+	color: var(--aki-red-bright, #ff0a1d);
+}
+.akb-sb-builder__vol-price del {
+	font-size: 0.85em;
+	color: var(--aki-gray-400, #8a8a8a);
+	font-weight: 400;
+}
+.akb-sb-builder__vol-price ins {
+	text-decoration: none;
+}
+.akb-sb-builder__summary {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0 0 var(--space-3, .65rem);
+	font-size: var(--text-sm, .92rem);
+}
+.akb-sb-builder__count {
+	font-weight: var(--weight-semibold, 600);
+	color: var(--aki-white, #fff);
+}
+.akb-sb-builder__disc {
+	color: var(--aki-gray-400, #8a8a8a);
+}
+.akb-sb-builder__disc.is-active {
+	color: var(--aki-red-bright, #ff3445);
+	font-weight: var(--weight-semibold, 600);
+}
+.akb-sb-builder__total {
+	color: var(--aki-white, #fff);
+	font-weight: var(--weight-bold, 700);
+}
+.akb-sb-builder__savings {
+	font-size: var(--text-sm, .9rem);
+	color: var(--aki-green-bright, #4ade80);
+	font-weight: var(--weight-bold, 700);
+	background: rgba(74, 222, 128, 0.12);
+	padding: 2px 8px;
+	border-radius: 4px;
+	display: inline-block;
+	margin-top: 4px;
+}
+/* El estilo de autor `display:inline-block` le gana al `[hidden]` del navegador.
+ * Sin esta regla, al pulsar "Quitar selección" el ahorro anterior seguía visible
+ * aunque JS hubiese restaurado correctamente el atributo hidden. */
+.akb-sb-builder__total[hidden],
+.akb-sb-builder__savings[hidden] {
+	display: none;
+}
+@keyframes akb-pop {
+	0% { transform: scale(1); }
+	50% { transform: scale(1.1); color: var(--aki-red-bright, #ff3445); }
+	100% { transform: scale(1); }
+}
+.akb-animate-pop {
+	animation: akb-pop 0.4s ease forwards;
+}
+/* Celebración breve al alcanzar un tramo; el estado persistente se estiliza
+ * por separado para no competir con la transformación de la animación. */
+@keyframes akb-unlock {
+	0%   { transform: scale(0.92); }
+	55%  { transform: scale(1.16); }
+	100% { transform: scale(1); }
+}
+.akb-sb-builder__tier.is-reached {
+	color: var(--aki-black, #121212);
+	background: var(--aki-white, #ffffff);
+	font-weight: 900;
+	border-color: var(--aki-black, #121212);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+}
+.akb-animate-unlock {
+	animation: akb-unlock 0.38s cubic-bezier(0.18, 0.9, 0.32, 1.4) both;
+}
+/* Stamp de éxito en el botón antes de redirigir al carrito. Mantiene el skewX
+ * para no perder la inclinación de marca durante la animación (motion). */
+@keyframes akb-stamp {
+	0%   { transform: skewX(-5deg) scale(1.22) rotate(-3deg); }
+	60%  { transform: skewX(-5deg) scale(0.97) rotate(1deg); }
+	100% { transform: skewX(-5deg) scale(1) rotate(0); }
+}
+.akb-animate-stamp {
+	animation: akb-stamp 0.28s cubic-bezier(0.2, 0.8, 0.3, 1.3) both;
+}
+.akb-sb-builder__add {
+	width: 100%;
+	min-height: var(--touch-target-min, 44px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	/* A11y: el CTA usa el rojo de marca (--aki-red = #E60012) oscurecido ~6% vía
+	 * color-mix para que el texto blanco quede con holgura AA (~5.35:1) sin cambiar
+	 * el hue; fallback hex para navegadores sin color-mix. El hover (amarillo) y el
+	 * disabled (este rojo atenuado) no se ven afectados. */
+	background: #d80011;
+	background: color-mix(in srgb, var(--aki-red, #E60012) 94%, #000);
+	color: var(--aki-white, #fff);
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-style: normal;
+	font-size: 1.1rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	border: 3px solid var(--aki-black, #121212);
+	border-radius: 0;
+	padding: var(--space-3, .75rem) var(--space-5, 1.25rem);
+	cursor: pointer;
+	box-shadow: 4px 4px 0px var(--aki-black, #121212);
+	transition: background 150ms ease, color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+	transform: skewX(-5deg);
+}
+.akb-sb-builder__add:focus-visible {
+	outline: 2px solid var(--aki-white, #ffffff);
+	outline-offset: 2px;
+}
+.akb-sb-builder__add[disabled] {
+	/* "Aún no listo", no "roto": superficie NEUTRA de marca (no el rojo de acción a
+	   opacity .45, que daba granate fangoso con texto 3.27:1, FALLA AA). gray-300
+	   sobre surface-3 = ~7.3:1. Conserva borde/sombra/skew nítidos. */
+	background: var(--aki-surface-3, #222);
+	color: var(--aki-gray-300, #B0B0B0);
+	border-color: var(--aki-border, #2a2a2e);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	opacity: 1;
+	cursor: not-allowed;
+}
+.akb-sb-builder__add.is-loading {
+	opacity: .7;
+	pointer-events: none;
+}
+.akb-sb-builder__msg {
+	margin: var(--space-2, .5rem) 0 0;
+	font-size: var(--text-sm, .88rem);
+	min-height: 1em;
+}
+.akb-sb-builder__msg.is-error {
+	color: var(--aki-red-bright, #ff0a1d);
+}
+.akb-sb-builder__msg.is-success {
+	color: var(--aki-green-bright, #4ade80);
+}
+
+/* Desktop: el ancho completo permite portadas legibles sin comprimir el grid. */
+@media (min-width: 769px) {
+	.woocommerce div.product > .akb-sb-builder {
+		margin-top: var(--space-8, 2rem);
+		margin-bottom: var(--space-6, 1.5rem);
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid {
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		max-height: none !important;
+		overflow-y: visible !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__tools {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+	}
+}
+
+/* Cuadrícula con Expansión Controlada en Escritorio (8 cols, 2 filas colapsadas = 16 tomos) */
+@media (min-width: 1025px) {
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid {
+		grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid-wrap:not(.is-expanded) .akb-sb-builder__card:nth-child(n+17) {
+		display: none !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid-wrap:not(:has(.akb-sb-builder__card:nth-child(17))) .akb-sb-builder__expand-wrap {
+		display: none !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid-wrap:not(:has(.akb-sb-builder__card:nth-child(17)))::after {
+		display: none !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__tools {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2, .5rem);
+		align-items: flex-start;
+	}
+}
+
+/* Tablet: 4 columnas por fila, colapso en 2 filas (8 tomos) */
+@media (min-width: 769px) and (max-width: 1024px) {
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid-wrap:not(.is-expanded) .akb-sb-builder__card:nth-child(n+9) {
+		display: none !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid-wrap:not(:has(.akb-sb-builder__card:nth-child(9))) .akb-sb-builder__expand-wrap {
+		display: none !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__grid-wrap:not(:has(.akb-sb-builder__card:nth-child(9)))::after {
+		display: none !important;
+	}
+	.woocommerce div.product > .akb-sb-builder .akb-sb-builder__tools {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2, .5rem);
+	}
+}
+
+/* Responsive del builder móvil (3 columnas por fila, colapso en 6 tomos) */
+@media (max-width: 768px) {
+	/* Resumen de acción móvil. En PDP ya convive con el CTA fijo del producto y la
+	 * navegación inferior: mantenerlo en flujo evita tres capas superpuestas. */
+	.akb-sb-builder__summary-wrap {
+		position: static;
+		bottom: auto;
+		background: var(--aki-surface, #111111);
+		border: 3px solid var(--aki-black, #121212);
+		padding: var(--space-3, .75rem) var(--space-4, 1rem);
+		z-index: auto;
+		box-shadow: 0 -4px 0 var(--aki-red, #E60012);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2, .5rem);
+		margin: var(--space-3, .75rem) calc(var(--space-3, .75rem) * -1) calc(var(--space-3, .75rem) * -1);
+	}
+	.akb-sb-builder {
+		padding: var(--space-3, .75rem);
+		padding-bottom: var(--space-4, 1rem);
+		box-shadow: 4px 4px 0 var(--aki-black, #121212);
+	}
+	.akb-sb-builder__add {
+		margin-top: 0;
+	}
+	.akb-sb-builder__grid-wrap {
+		margin: 0 0 var(--space-4, 1rem);
+	}
+	.akb-sb-builder__grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+		max-height: none !important;
+		overflow-y: visible !important;
+		padding: 2px;
+		gap: var(--space-2, .5rem);
+	}
+	.akb-sb-builder__grid-wrap:not(.is-expanded) .akb-sb-builder__card:nth-child(n+7) {
+		display: none !important;
+	}
+	.akb-sb-builder__grid-wrap:not(:has(.akb-sb-builder__card:nth-child(7))) .akb-sb-builder__expand-wrap {
+		display: none !important;
+	}
+	.akb-sb-builder__grid-wrap:not(:has(.akb-sb-builder__card:nth-child(7)))::after {
+		display: none !important;
+	}
+	.akb-sb-builder__tools {
+		margin: var(--space-2, .5rem) 0 var(--space-3, .75rem);
+		padding: var(--space-2, .5rem) var(--space-3, .75rem);
+	}
+	.akb-sb-builder__range,
+	.akb-sb-builder__bulk-btn {
+		flex: 1 1 calc(50% - var(--space-2, .45rem));
+	}
+	.akb-sb-builder__range {
+		flex: 0 0 auto;
+	}
+	.akb-sb-builder__range[data-akb-sb-range="all"] {
+		flex-basis: auto;
+	}
+	.akb-sb-builder__bulk-btn[data-akb-sb-visible-action="clear-all"] {
+		flex-basis: 100%;
+	}
+	.akb-sb-builder__filter-status {
+		flex-basis: 100%;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Progreso de colección (CollectionProgress): "Llevas X de N" + barra + el
+ * badge "Ya lo tienes" en tomos comprados. Acento amarillo (logro/colección).
+ * ------------------------------------------------------------------------- */
+.akb-sb-builder__collection {
+	margin: 0 0 var(--space-3, .75rem);
+	padding: var(--space-2, .6rem) var(--space-3, .75rem);
+	background: var(--aki-surface-3, #222222);
+	border: 2px solid var(--aki-black, #121212);
+	box-shadow: inset 0 0 0 2px rgba(255, 212, 1, .28);
+}
+.akb-sb-builder__collection-head {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2, .5rem);
+}
+.akb-sb-builder__collection-count {
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-style: normal;
+	font-size: 1.3rem;
+	color: var(--aki-white, #fff);
+	white-space: nowrap;
+}
+.akb-sb-builder__collection-label {
+	font-size: var(--text-sm, .9rem);
+	font-weight: 700;
+	color: var(--aki-white, #fff);
+}
+.akb-sb-builder__collection-track {
+	height: 6px;
+	margin: var(--space-2, .5rem) 0 4px;
+	background: var(--aki-surface, #111111);
+	border: 1px solid var(--aki-black, #121212);
+	overflow: hidden;
+}
+.akb-sb-builder__collection-fill {
+	height: 100%;
+	background: var(--aki-red-bright, #ff3445);
+	transition: width 400ms ease;
+}
+.akb-sb-builder__collection-sub {
+	margin: 0;
+	font-size: var(--text-xs, .8rem);
+	color: var(--aki-gray-300, #b0b0b0);
+}
+/* "Completá con 1 clic": CTA verde (semántica de completar) dentro de la franja.
+   Secundario al rojo de "Agregar mi pack", pero igual de tentador. */
+.akb-sb-builder__complete {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: var(--space-2, .6rem);
+	padding: 8px 14px;
+	background: var(--aki-green-bright, #4ade80);
+	color: var(--aki-black, #121212);
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-size: var(--text-sm, .85rem);
+	line-height: 1.2;
+	text-align: left;
+	border: 2px solid var(--aki-black, #121212);
+	border-radius: 0;
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	cursor: pointer;
+	transition: transform 130ms ease, box-shadow 130ms ease;
+}
+.akb-sb-builder__complete::before {
+	content: "\2713";
+	font-weight: 900;
+}
+.akb-sb-builder__complete:focus-visible {
+	outline: 2px solid var(--aki-white, #ffffff);
+	outline-offset: 2px;
+}
+.akb-sb-builder__collection-guest {
+	margin: 0 0 var(--space-3, .75rem);
+	padding: var(--space-2, .6rem) var(--space-3, .75rem);
+	background: var(--aki-surface-3, #222222);
+	border: 2px solid var(--aki-gray-700, #2a2a2e);
+	font-size: var(--text-sm, .88rem);
+	color: var(--aki-gray-300, #b0b0b0);
+}
+.akb-sb-builder__collection-guest a {
+	/*
+	 * El enlace de inicio de sesión usa red-text sobre surface-3. El amarillo se reserva a precio;
+	 * red-bright no alcanza el contraste de texto normal sobre esa superficie.
+	 */
+	color: var(--aki-red-text, #FF4756);
+	font-weight: 700;
+	text-decoration: underline;
+}
+/* Tomo ya comprado: sutil indicación + badge esmeralda, seleccionable para regalo o segunda copia. */
+.akb-sb-builder__card.is-owned {
+	opacity: 0.88;
+}
+.akb-sb-builder__owned-badge {
+	position: absolute;
+	top: 4px;
+	left: 4px;
+	z-index: 2;
+	padding: 2px 7px;
+	border-radius: 999px;
+	border: 1px solid rgba(16, 185, 129, 0.45);
+	background: #064e3b;
+	color: #a7f3d0;
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.akb-sb-builder__owned-badge::before {
+	content: "\2713\00a0";
+}
+
+/* ---------------------------------------------------------------------------
+ * Accesibilidad: respetar prefers-reduced-motion (WCAG 2.3.3). Neutraliza
+ * pop/shake/glow/unlock/stagger y las transiciones de las cards para usuarios
+ * sensibles al movimiento, sin perder los estados (solo el movimiento).
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+	.akb-sb-builder,
+	.akb-sb-builder *,
+	.akb-sb-builder__card {
+		animation: none !important;
+		transition: none !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* El builder interactivo sólo aparece después de completar init; sin JS queda
+ * un listado liviano de enlaces PDP reales dentro de <noscript>. */
+.akb-sb-builder [data-akb-sb-interactive][hidden] {
+	display: none !important;
+}
+.akb-sb-builder__noscript {
+	margin-top: var(--space-3, .75rem);
+	padding: var(--space-3, .75rem);
+	border: 2px solid var(--aki-border, #2a2a2e);
+	background: var(--aki-surface-3, #222222);
+}
+.akb-sb-builder__noscript p,
+.akb-sb-builder__noscript ul {
+	margin: 0;
+}
+.akb-sb-builder__noscript ul {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 6px;
+	padding: 8px 0 0;
+	list-style: none;
+}
+.akb-sb-builder__noscript li {
+	min-width: 0;
+}
+.akb-sb-builder__noscript a {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	min-height: var(--touch-target-min, 44px);
+	padding: 6px 9px;
+	border: 1px solid var(--aki-border, #2a2a2e);
+	color: var(--aki-white, #fff);
+	text-decoration: underline;
+}
+.akb-sb-builder__noscript li span {
+	display: block;
+	padding: 2px 9px 6px;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: var(--text-xs, .76rem);
+}
+
+/* ---------------------------------------------------------------------------
+ * Restock en tomos agotados del builder: enlace al PDP del tomo, donde el
+ * plugin BISN tiene su formulario "avísame". La card agotada re-habilita
+ * interacción (is-disabled la apaga) y atenúa solo portada+título; el enlace
+ * queda nítido. Se abre en pestaña nueva para no perder el pack en armado.
+ * ------------------------------------------------------------------------- */
+.akb-sb-builder__card.is-disabled.is-notifiable {
+	opacity: 1;
+	filter: none;
+	pointer-events: auto;
+	cursor: default;
+	background: var(--aki-surface-3, #222222);
+}
+.akb-sb-builder__card.is-notifiable .akb-sb-builder__vol-thumb,
+.akb-sb-builder__card.is-notifiable .akb-sb-builder__vol-title {
+	opacity: 0.5;
+	filter: grayscale(100%);
+}
+.akb-sb-builder__notify-link {
+	display: inline-block;
+	width: 100%;
+	margin-top: var(--space-2, .5rem);
+	padding: 6px 8px;
+	box-sizing: border-box;
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-size: 12px;
+	line-height: 1.2;
+	text-align: center;
+	text-decoration: none;
+	/*
+	 * El CTA de reposición del agotado usa outline red-text y relleno en hover. Mantiene contraste
+	 * de texto normal sobre surface-3 y comparte el color del enlace de inicio de sesión.
+	 */
+	color: var(--aki-red-text, #FF4756);
+	background: transparent;
+	border: 2px solid var(--aki-red, #E60012);
+	transition: background 130ms ease, color 130ms ease;
+}
+.akb-sb-builder__notify-link:hover,
+.akb-sb-builder__notify-link:focus-visible {
+	background: var(--aki-red, #E60012);
+	color: var(--aki-white, #fff);
+}
+.akb-sb-builder__notify-link:focus-visible {
+	outline: 2px solid var(--aki-white, #ffffff);
+	outline-offset: 2px;
+}
+
+/* #17 — Indicador de envío gratis en el builder (vivo, sobre el total del pack). */
+.akb-sb-builder__freeship {
+	display: block;
+	margin-top: 4px;
+	font-size: var(--text-sm, .88rem);
+	font-weight: 700;
+	color: var(--aki-gray-300, #b0b0b0);
+}
+.akb-sb-builder__freeship.is-reached {
+	color: var(--aki-green-bright, #4ade80);
+	font-weight: 900;
+}
+/* #18 — Línea de escasez a nivel serie (reframe del qty=1 como valor, sin ruido
+   por-tomo). Calma, acento amarillo de marca, sentence case. */
+.akb-sb-builder__scarcity-note {
+	margin: 0 0 var(--space-2, .5rem);
+	font-size: var(--text-xs, .8rem);
+	font-weight: 700;
+	/* Nota de contexto (no precio) → gris neutro, NO amarillo (amarillo = solo precio). */
+	color: var(--aki-gray-200, #E0E0E0);
+}
+
+/* ===================================================================
+   BYP-PREVENTA-CLARIDAD — etiquetar preventa + claridad de fecha (M1/M2/S1)
+   =================================================================== */
+
+/* M1 — Etiqueta de preventa por tomo (fecha inline), HERMANA del precio.
+   Distinguible SIN color: forma de píldora con borde + reloj (texto+forma),
+   no sólo un tinte. Texto claro sobre la superficie de la card → contraste AA. */
+.akb-sb-builder__vol-preventa {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	align-self: center;
+	max-width: 100%;
+	padding: 1px 6px;
+	border: 1px solid var(--aki-gray-500, #8c8c8c);
+	border-radius: 999px;
+	font-size: var(--text-2xs, .68rem);
+	font-weight: 800;
+	line-height: 1.3;
+	letter-spacing: .01em;
+	/* #e9e9e9 sobre la superficie oscura de la card ≈ 13:1 → AA holgado. */
+	color: var(--aki-gray-100, #f5f5f5);
+	white-space: normal;
+	text-align: center;
+}
+
+/* M2 — Aviso a nivel pack cuando la selección incluye ≥1 preventa. Una línea,
+   cualitativo, tono de contexto (gris, no amarillo). */
+.akb-sb-builder__preventa-note {
+	margin: 0 0 var(--space-2, .5rem);
+	font-size: var(--text-xs, .8rem);
+	line-height: 1.4;
+	color: var(--aki-gray-200, #E0E0E0);
+}
+.akb-sb-builder__preventa-note strong {
+	color: var(--aki-white, #fff);
+}
+
+/* S1 — Toggle client-side "solo en stock" dentro de la barra de herramientas. */
+.akb-sb-builder__stock-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2, .45rem);
+	min-height: var(--touch-target-min, 44px);
+	padding: var(--space-1, .25rem) 0;
+	cursor: pointer;
+	font-size: var(--text-xs, .8rem);
+	font-weight: 700;
+	color: var(--aki-gray-200, #E0E0E0);
+	user-select: none;
+}
+.akb-sb-builder__stock-toggle input {
+	width: 16px;
+	height: 16px;
+	accent-color: var(--aki-red, #E60012);
+	cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+	.akb-sb-builder__range:hover,
+	.akb-sb-builder__bulk-btn:hover {
+		color: var(--aki-white, #fff);
+		border-color: var(--aki-black, #121212);
+		transform: translate(-1px, -1px);
+		box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	}
+	/*
+	 * El tramo seleccionado conserva texto negro sobre fondo blanco también al aplicar hover.
+	 */
+	.akb-sb-builder__range.is-active:hover {
+		background: var(--aki-white, #fff);
+		color: var(--aki-black, #121212);
+	}
+	.akb-sb-builder__add:hover {
+		background: var(--aki-red, #E60012);
+		color: var(--aki-white, #fff);
+		transform: skewX(-5deg) translate(-2px, -2px);
+		box-shadow: 6px 6px 0px var(--aki-black, #121212);
+	}
+	.akb-sb-builder__complete:hover {
+		transform: translate(-2px, -2px);
+		box-shadow: 5px 5px 0 var(--aki-black, #121212);
+	}
+	.akb-sb-builder__stock-toggle:hover {
+		color: var(--aki-white, #fff);
+	}
+}
+
+/* ===========================================================================
+ * Landing `/serie/*` — riel "Completa tu colección".
+ *
+ * El estado base es compacto. Los controles por card existen en el HTML, pero
+ * `[hidden]` los saca de layout hasta que el visitante activa la selección.
+ * ======================================================================== */
+.akb-sb-landing {
+	position: relative;
+	box-sizing: border-box;
+	/* Sin margen arriba: la barra de orden del tema ya deja el suyo (12 px), y
+	   sumar otros 12-16 era alto que se le quitaba a la primera portada. */
+	margin: 0 0 var(--space-4, 1rem);
+	padding: var(--space-3, .75rem);
+	border: 3px solid var(--aki-black, #121212);
+	background: var(--aki-surface-2, #1a1a1a);
+	background-image: radial-gradient(circle, rgba(230, 0, 18, .08) 1px, transparent 1.4px);
+	background-size: 14px 14px;
+	box-shadow: 5px 5px 0 var(--aki-black, #121212);
+	color: var(--aki-gray-100, #f5f5f5);
+}
+/*
+ * Desde 769px comparte el canalón centrado de la rejilla de serie: min(1400px,100%-40px).
+ * Mantiene márgenes laterales en todo el rango de escritorio.
+ */
+@media (min-width: 769px) {
+	.akb-sb-landing {
+		max-width: min(var(--container-max, 1400px), 100% - 40px);
+		margin-inline: auto;
+	}
+}
+/*
+ * Copy, filtros y CTA conservan orden DOM y visual. Desde 1024px comparten fila; de 480 a 1023
+ * el copy ocupa arriba y filtros/CTA debajo. Bajo 480 el CTA acompaña al título y filtros
+ * tienen fila propia. align-items:start mantiene estables los controles al abrir details.
+ */
+.akb-sb-landing__head {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas:
+		"copy copy"
+		"filters cta";
+	align-items: start;
+	gap: 10px var(--space-2, .5rem);
+	/*
+	 * El ancla #tomos compensa borde y relleno para mostrar el riel completo al filtrar.
+	 */
+	scroll-margin-top: calc(var(--space-3, .75rem) + 3px);
+}
+.akb-sb-landing__copy {
+	grid-area: copy;
+	min-width: 0;
+}
+.akb-sb-landing__head > .akb-sb-landing__filters {
+	grid-area: filters;
+	min-width: 0;
+	margin: 0;
+}
+.akb-sb-landing__head > .akb-sb-landing__cta {
+	grid-area: cta;
+}
+@media (min-width: 1024px) {
+	.akb-sb-landing__head {
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		grid-template-areas: "copy filters cta";
+		column-gap: var(--space-4, 1rem);
+	}
+	/* Sin descuento el título va solo (sin gancho ni frase de intro, revisión
+	   B3-2-R4): arriba del todo quedaba más alto que los chips y el botón. Se
+	   centra en la fila. CON descuento no: al abrir «Cómo funciona» la columna
+	   crece y, centrados, los chips y el botón bajarían (revisión B3-R7). */
+	.akb-sb-landing--sin-descuento .akb-sb-landing__copy {
+		align-self: center;
+	}
+}
+.akb-sb-landing__title {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: clamp(1.05rem, 3vw, 1.35rem);
+	font-weight: 400;
+	font-synthesis: none;
+	font-style: normal;
+	line-height: 1.15;
+	text-transform: uppercase;
+	letter-spacing: .025em;
+	color: var(--aki-white, #fff);
+	text-shadow: 1px 1px 0 var(--aki-black, #121212), 2px 2px 0 var(--aki-red, #e60012);
+}
+/* En móvil el nombre de la serie sólo lo lee el lector de pantalla: a la vista
+   ya es el titular de la cabecera, y un nombre largo partía el título en dos
+   líneas entre la cabecera y la primera portada (revisión B3-2-R4). */
+@media (max-width: 600px) {
+	.akb-sb-landing__title-serie {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
+}
+.akb-sb-landing__pack-counter {
+	margin-top: var(--space-2, .5rem);
+	margin-bottom: var(--space-2, .5rem);
+	padding: 8px 12px;
+	background: rgba(245, 158, 11, 0.12);
+	border: 1.5px solid var(--aki-black, #121212);
+	border-radius: 6px;
+	box-shadow: 2px 2px 0 var(--aki-black, #121212);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.akb-sb-landing__pack-counter[hidden] {
+	display: none;
+}
+.akb-sb-landing__pack-counter.is-unlocked {
+	background: rgba(22, 163, 74, 0.15);
+}
+.akb-sb-landing__pack-counter-pill {
+	font-size: .88rem;
+	font-weight: 500;
+	color: var(--aki-white, #fff);
+	line-height: 1.35;
+}
+.akb-sb-landing__pack-counter-pill strong {
+	color: #fbbf24;
+	font-weight: 700;
+}
+.akb-sb-landing__pack-counter.is-unlocked .akb-sb-landing__pack-counter-pill strong {
+	color: #4ade80;
+}
+.akb-sb-landing__pack-progress-meter {
+	position: relative;
+	height: 6px;
+	background: rgba(255, 255, 255, 0.18);
+	border-radius: 999px;
+	overflow: hidden;
+}
+.akb-sb-landing__pack-progress-bar {
+	display: block;
+	height: 100%;
+	background: linear-gradient(90deg, #f59e0b, #fbbf24);
+	border-radius: 999px;
+	transition: width .3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.akb-sb-landing__pack-counter.is-unlocked .akb-sb-landing__pack-progress-bar {
+	background: linear-gradient(90deg, #16a34a, #4ade80);
+}
+.akb-sb-landing__intro,
+.akb-sb-landing__only,
+.akb-sb-landing__noscript,
+.akb-sb-landing__instructions,
+.akb-sb-landing__collection p,
+.akb-sb-landing__message {
+	margin: 0;
+}
+.akb-sb-landing__intro {
+	font-size: var(--text-sm, .88rem);
+	line-height: 1.35;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+.akb-sb-landing__tiers {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+}
+.akb-sb-landing__tier {
+	display: inline-flex;
+	align-items: center;
+	/* Cada tramo es una pieza que no se parte («Desde 5 tomos · 8 % dto.»). Lo
+	   ponía una copia vieja de estas reglas en loop.css del tema, que perdía en
+	   todo lo demás y se retiró (revisión B3, lote de integración). */
+	white-space: nowrap;
+	min-height: 24px;
+	margin: 0;
+	padding: 2px 7px;
+	border: 1px solid var(--aki-border, #2a2a2e);
+	background: var(--aki-surface-3, #222222);
+	font-size: var(--text-xs, .76rem);
+	font-weight: 800;
+	line-height: 1.2;
+	color: var(--aki-gray-100, #f5f5f5);
+}
+.akb-sb-landing__only {
+	margin-top: 5px;
+	font-size: var(--text-xs, .76rem);
+	line-height: 1.3;
+	color: var(--aki-gray-300, #b0b0b0);
+}
+/*
+ * details abre sin JavaScript y anuncia su estado. El disparador editable admite wrap sin
+ * overflow; padding y margen negativo amplían su área táctil a 44px conservando el espacio
+ * visual antes de los chips.
+ */
+.akb-sb-landing__rules {
+	margin: 4px 0 0;
+}
+.akb-sb-landing__rules-toggle {
+	/* Tan ancho como su texto: el blanco es el texto, no la columna entera (en
+	   escritorio medía ~840 px y un toque en el vacío de la derecha abría el
+	   desplegable). Bloque y no `inline-flex`: en línea, el renglón que lo
+	   contiene le sumaba 8 px de alto en móvil. */
+	display: flex;
+	width: fit-content;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 2px 10px;
+	max-width: 100%;
+	padding: 10px 0;
+	margin: -10px 0;
+	font-size: var(--text-sm, .84rem);
+	line-height: 1.3;
+	overflow-wrap: anywhere;
+	list-style: none;
+	cursor: pointer;
+}
+.akb-sb-landing__rules-toggle::-webkit-details-marker {
+	display: none;
+}
+.akb-sb-landing__hook {
+	color: var(--aki-white, #fff);
+	font-weight: 800;
+}
+.akb-sb-landing__rules-label {
+	color: var(--aki-gray-200, #e0e0e0);
+	font-weight: 600;
+	text-decoration: underline;
+	text-decoration-color: var(--aki-gray-400, #8a8a8a);
+	text-underline-offset: 3px;
+}
+.akb-sb-landing__rules-label::after {
+	content: "";
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin: 0 2px 3px 8px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+	vertical-align: middle;
+}
+.akb-sb-landing__rules[open] .akb-sb-landing__rules-label::after {
+	margin-bottom: -1px;
+	transform: rotate(-135deg);
+}
+.akb-sb-landing__rules-body {
+	margin: var(--space-3, .75rem) 0 var(--space-1, 4px);
+}
+.akb-sb-landing__rules-body > .akb-sb-landing__intro {
+	margin-top: var(--space-2, .5rem);
+}
+.akb-sb-landing__noscript {
+	margin: var(--space-2, .5rem) 0 0;
+	font-size: var(--text-xs, .76rem);
+	line-height: 1.35;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+.akb-sb-landing__cta,
+.akb-sb-landing__add,
+.akb-sb-landing__clear,
+.akb-sb-landing__close,
+.akb-sb-landing__collection button {
+	box-sizing: border-box;
+	min-height: var(--touch-target-min, 44px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 0;
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-style: normal;
+	cursor: pointer;
+	transition: background 150ms ease, color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+.akb-sb-landing__cta {
+	padding: 8px 14px;
+	border: 2px solid var(--aki-black, #121212);
+	background: #d80011;
+	background: color-mix(in srgb, var(--aki-red, #e60012) 94%, #000);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	color: var(--aki-white, #fff);
+	font-size: var(--text-sm, .9rem);
+	line-height: 1.1;
+	text-align: center;
+	text-decoration: none;
+	text-transform: uppercase;
+	letter-spacing: .035em;
+}
+.akb-sb-landing__filter-list {
+	display: flex;
+	align-items: stretch;
+	gap: var(--space-2, .5rem);
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+	padding: 2px 2px 6px;
+}
+.akb-sb-landing__filter {
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	min-height: var(--touch-target-min, 44px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 8px 14px;
+	border: 2px solid var(--aki-border, #2a2a2e);
+	border-radius: 0;
+	clip-path: none !important;
+	transform: skewX(-6deg);
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-gray-100, #f5f5f5);
+	font-size: var(--text-sm, .84rem);
+	font-weight: 700;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.akb-sb-landing__filter > * {
+	transform: skewX(6deg);
+}
+.akb-sb-landing__filter-count {
+	border-radius: 0 !important;
+}
+.akb-sb-landing__filter.is-active {
+	border-color: var(--aki-white, #fff);
+	background: var(--aki-white, #fff);
+	color: var(--aki-black, #121212);
+	box-shadow: 2px 2px 0 var(--aki-black, #121212);
+}
+.akb-sb-landing__filter-count {
+	min-width: 22px;
+	height: 22px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	padding: 0 5px;
+	border: 1px solid currentColor;
+	border-radius: 999px;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+.akb-sb-landing__filter[disabled] {
+	opacity: .48;
+	cursor: not-allowed;
+}
+.akb-sb-landing__panel {
+	position: relative;
+	margin: var(--space-2, .5rem) calc(var(--space-3, .75rem) * -1) calc(var(--space-3, .75rem) * -1);
+	padding: var(--space-3, .75rem);
+	border-top: 2px solid var(--aki-black, #121212);
+	background: var(--aki-surface, #111111);
+}
+.akb-sb-landing__panel[hidden],
+.akb-sb-landing__collection[hidden],
+.akb-sb-landing__collection [hidden],
+.akb-sb-card-select[hidden] {
+	display: none !important;
+}
+.akb-sb-landing__close {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	width: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--aki-gray-200, #e0e0e0);
+	font-family: inherit;
+	font-size: 1.65rem;
+	line-height: 1;
+}
+.akb-sb-landing__instructions {
+	padding-right: 46px;
+	font-size: var(--text-sm, .85rem);
+	line-height: 1.35;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+/*
+ * La ayuda de vista rápida sólo aparece donde existe su botón, desde QuickView::MEDIA de
+ * 769px.
+ */
+.akb-sb-landing__qv-hint {
+	display: none;
+}
+@media (min-width: 769px) {
+	.akb-sb-landing__qv-hint {
+		display: inline;
+	}
+}
+.akb-sb-landing__collection {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 10px;
+	margin-top: var(--space-2, .5rem);
+	padding: 7px 9px;
+	border: 1px solid var(--aki-border, #2a2a2e);
+	background: var(--aki-surface-3, #222222);
+	font-size: var(--text-xs, .78rem);
+	line-height: 1.3;
+}
+.akb-sb-landing__collection a {
+	box-sizing: border-box;
+	min-height: var(--touch-target-min, 44px);
+	display: inline-flex;
+	align-items: center;
+	color: var(--aki-red-text, #ff4756);
+	font-weight: 750;
+	text-decoration: underline;
+}
+.akb-sb-landing__collection button {
+	min-height: var(--touch-target-min, 44px);
+	padding: 6px 10px;
+	border: 2px solid var(--aki-black, #121212);
+	background: var(--aki-green-bright, #4ade80);
+	box-shadow: 2px 2px 0 var(--aki-black, #121212);
+	color: var(--aki-black, #121212);
+	font-size: var(--text-xs, .78rem);
+}
+.akb-sb-landing__summary {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--space-2, .5rem) var(--space-3, .75rem);
+	margin-top: var(--space-2, .5rem);
+}
+.akb-sb-landing__totals {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: var(--text-xs, .79rem);
+	line-height: 1.25;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+.akb-sb-landing__totals strong {
+	color: var(--aki-white, #fff);
+	font-size: var(--text-sm, .9rem);
+}
+.akb-sb-landing__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2, .5rem);
+}
+.akb-sb-landing__add,
+.akb-sb-landing__clear {
+	padding: 7px 12px;
+	border: 2px solid var(--aki-black, #121212);
+	font-size: var(--text-sm, .85rem);
+	line-height: 1.1;
+}
+.akb-sb-landing__add {
+	background: #d80011;
+	background: color-mix(in srgb, var(--aki-red, #e60012) 94%, #000);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	color: var(--aki-white, #fff);
+	text-transform: uppercase;
+	letter-spacing: .025em;
+}
+.akb-sb-landing__clear {
+	border-color: var(--aki-border, #2a2a2e);
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-gray-100, #f5f5f5);
+}
+.akb-sb-landing__add[disabled],
+.akb-sb-landing__clear[disabled] {
+	border-color: var(--aki-border, #2a2a2e);
+	background: var(--aki-surface-3, #222222);
+	box-shadow: none;
+	color: var(--aki-gray-400, #8a8a8a);
+	cursor: not-allowed;
+}
+.akb-sb-landing__add.is-loading {
+	opacity: .72;
+	pointer-events: none;
+}
+.akb-sb-landing__message {
+	grid-column: 1 / -1;
+	min-height: 1em;
+	font-size: var(--text-xs, .78rem);
+	line-height: 1.3;
+	color: var(--aki-gray-200, #e0e0e0);
+}
+.akb-sb-landing__message.is-error {
+	color: var(--aki-red-text, #ff4756);
+}
+.akb-sb-landing__message.is-success {
+	color: var(--aki-green-bright, #4ade80);
+}
+
+/* Control dentro de cada card: una sola fila, sin clonar contenido del tomo. */
+.woocommerce ul.products li.product .akb-sb-card-select {
+	position: relative;
+	z-index: 3;
+	width: 100%;
+	min-height: var(--touch-target-min, 44px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	box-sizing: border-box;
+	margin: 7px 0 5px;
+	padding: 7px 8px;
+	border: 2px solid var(--aki-border, #2a2a2e);
+	background: var(--aki-surface-3, #222222);
+	color: var(--aki-gray-100, #f5f5f5);
+	font-size: clamp(.7rem, 2.7vw, .8rem);
+	font-weight: 750;
+	line-height: 1.15;
+	text-align: center;
+	cursor: pointer;
+	touch-action: manipulation;
+	user-select: none;
+}
+/*
+ * El input transparente ocupa la etiqueta completa para que foco y área pulsada compartan
+ * rectángulo. opacity conserva tamaño y enfoque sin el recorte de screen-reader-text;
+ * position:relative establece su contenedor para inset:0.
+ */
+.akb-sb-card-select {
+	position: relative;
+}
+
+.akb-sb-card-select input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	opacity: 0;
+	border: 0;
+	cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.akb-sb-card-select.is-disabled input {
+	cursor: default;
+}
+.akb-sb-card-select__box {
+	flex: 0 0 22px;
+	width: 22px;
+	height: 22px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	border: 2px solid var(--aki-gray-200, #e0e0e0);
+	background: var(--aki-surface, #111111);
+}
+.akb-sb-card-select__box,
+.akb-sb-card-select__text,
+.akb-sb-card-owned {
+	pointer-events: none;
+}
+.akb-sb-card-select input:checked + .akb-sb-card-select__box {
+	border-color: var(--aki-white, #fff);
+	background: var(--aki-red, #e60012);
+}
+.akb-sb-card-select input:checked + .akb-sb-card-select__box::after {
+	content: "\2713";
+	color: var(--aki-white, #fff);
+	font-size: 15px;
+	font-weight: 900;
+	line-height: 1;
+}
+.akb-sb-card-select.is-selected {
+	border-color: var(--aki-white, #fff);
+}
+.akb-sb-card-select.is-disabled {
+	opacity: .55;
+	cursor: not-allowed;
+}
+.akb-sb-card-owned {
+	position: absolute;
+	top: -9px;
+	right: 6px;
+	padding: 1px 7px;
+	border-radius: 999px;
+	border: 1px solid rgba(16, 185, 129, 0.45);
+	background: #064e3b;
+	color: #a7f3d0;
+	font-size: 8.5px;
+	font-weight: 700;
+	line-height: 1.25;
+	text-transform: none;
+	letter-spacing: .01em;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+	white-space: nowrap;
+}
+.woocommerce ul.products li.product.akb-sb-is-selected {
+	outline: 3px solid var(--aki-white, #fff);
+	outline-offset: -1px;
+}
+
+body.akb-sb-selection-active a[data-akb-sb-card-toggle] {
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+.akb-sb-landing__cta:focus-visible,
+.akb-sb-landing__rules-toggle:focus-visible,
+.akb-sb-landing__filter:focus-visible,
+.akb-sb-landing__add:focus-visible,
+.akb-sb-landing__clear:focus-visible,
+.akb-sb-landing__close:focus-visible,
+.akb-sb-landing__collection button:focus-visible,
+.akb-sb-card-select:focus-within {
+	outline: 3px solid var(--aki-yellow, #ffd700);
+	outline-offset: 2px;
+}
+/* El disparador lleva 10 px de relleno arriba y abajo para el blanco táctil:
+   con el desfase común el anillo pisaba el título. Hacia dentro queda a 2 px
+   del texto, igual que en los demás controles. */
+.akb-sb-landing__rules-toggle:focus-visible {
+	outline-offset: -8px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.akb-sb-landing__cta:hover,
+	.akb-sb-landing__add:not([disabled]):hover {
+		background: var(--aki-red, #E60012);
+		color: var(--aki-white, #fff);
+		transform: translate(-1px, -1px);
+		box-shadow: 4px 4px 0 var(--aki-black, #121212);
+	}
+	.akb-sb-landing__filter:not([disabled]):hover,
+	.akb-sb-landing__clear:not([disabled]):hover,
+	.woocommerce ul.products li.product .akb-sb-card-select:not(.is-disabled):hover {
+		border-color: var(--aki-white, #fff);
+		color: var(--aki-white, #fff);
+	}
+}
+
+@media (max-width: 768px) {
+	.akb-sb-landing {
+		margin-bottom: var(--space-3, .75rem);
+		padding: var(--space-3, .75rem);
+		box-shadow: 4px 4px 0 var(--aki-black, #121212);
+	}
+	/*
+	 * En móvil los chips y el botón comparten la fila de abajo de
+	 * `.akb-sb-landing__head` (ver su comentario, arriba); el título y el
+	 * desplegable van encima a todo el ancho, y sus tramos y condiciones sólo
+	 * ocupan sitio cuando el cliente lo abre.
+	 */
+	.akb-sb-landing__tier {
+		flex: 0 0 auto;
+	}
+	.akb-sb-landing__cta {
+		padding-inline: 12px;
+		font-size: .82rem;
+	}
+	.akb-sb-landing__filter-list {
+		/* Sangra hacia el borde izquierdo del riel: a la derecha está el botón
+		   (desde 480 px; por debajo, ver el bloque `max-width: 479px`). */
+		margin-left: calc(var(--space-3, .75rem) * -1);
+		padding-left: var(--space-3, .75rem);
+		scroll-padding-inline: var(--space-3, .75rem);
+		/*
+		 * Sin barra de desplazamiento visible en táctil. `scrollbar-width: thin`
+		 * deja un riel gris permanente bajo los chips que en un teléfono no se
+		 * lee como «hay más a la derecha» sino como un elemento roto. La pista
+		 * de que hay más ya la da el chip siguiente, que asoma cortado: es la
+		 * señal que la gente sí reconoce.
+		 */
+		scrollbar-width: none;
+		padding-bottom: 2px;
+	}
+	.akb-sb-landing__filter-list::-webkit-scrollbar {
+		display: none;
+	}
+	/* La bandeja queda inmediatamente sobre la bottom-nav fija de 66px. */
+	.akb-sb-landing__panel:not([hidden]) {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+		/* Justo bajo las barras fijas del tema (--z-sticky, 200). */
+		z-index: calc(var(--z-sticky, 200) - 1);
+		max-height: min(42vh, 310px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		box-sizing: border-box;
+		margin: 0;
+		padding: 8px 12px max(9px, env(safe-area-inset-bottom, 0px));
+		border: 3px solid var(--aki-black, #121212);
+		border-width: 3px 0 0;
+		box-shadow: 0 -4px 0 var(--aki-red, #e60012);
+	}
+	body.akb-sb-selection-active {
+		padding-bottom: calc(210px + 66px + env(safe-area-inset-bottom, 0px));
+	}
+	/* El chat flotante de terceros ocupa la esquina del CTA fijo. Mientras la
+	 * bandeja está activa, la acción de compra es prioritaria; el chat reaparece
+	 * al cerrarla sin alterar su estado interno. */
+	body.akb-sb-selection-active .joinchat {
+		visibility: hidden !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	body.akb-sb-selection-active .bottom-nav {
+		transform: translateY(100%);
+		transition: transform .25s ease-out;
+		pointer-events: none;
+	}
+	.akb-sb-landing__instructions {
+		font-size: .75rem;
+	}
+	.akb-sb-landing__collection {
+		padding: 5px 7px;
+	}
+	.akb-sb-landing__summary {
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 6px 8px;
+	}
+	.akb-sb-landing__actions {
+		gap: 6px;
+	}
+	/*
+	 * Limpiar conserva su etiqueta visible para distinguir borrar la selección de cerrar el panel.
+	 */
+	.akb-sb-landing__clear {
+		width: auto;
+		padding-inline: 12px;
+		font-size: .76rem;
+	}
+	.akb-sb-landing__add {
+		max-width: none;
+		padding-inline: 9px;
+		font-size: .76rem;
+	}
+	/*
+	 * Totales arriba y acciones en su propia fila: la acción principal ocupa el
+	 * ancho útil y el botón destructivo queda claramente subordinado.
+	 */
+	.akb-sb-landing__summary {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.akb-sb-landing__actions {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 8px;
+	}
+	/*
+	 * Con algo ya seleccionado, las instrucciones sobran: el cliente demostró que
+	 * sabe usarlo. Recupera 32px de una bandeja fija que, con la barra inferior,
+	 * ocupaba el 40% de la pantalla y dejaba ver apenas dos filas de tomos.
+	 */
+	.akb-sb-landing__panel.has-selection .akb-sb-landing__instructions {
+		display: none;
+	}
+	/* Un total de $0 no informa de nada y cuesta una línea. */
+	.akb-sb-landing__panel:not(.has-selection) [data-akb-sb-landing-total] {
+		display: none;
+	}
+	/*
+	 * El bloque de «¿Ya tienes algunos tomos?» es útil UNA vez y ocupaba 78px de
+	 * una bandeja fija que, con la barra inferior, se comía el 40% de la pantalla.
+	 * Se aprieta sin quitarlo: sigue siendo la puerta a marcar lo que ya tienes.
+	 */
+	.akb-sb-landing__collection {
+		padding: 7px 9px;
+	}
+	.akb-sb-landing__collection p {
+		font-size: .78rem;
+		line-height: 1.25;
+	}
+	.akb-sb-landing__collection a {
+		font-size: .8rem;
+	}
+	/*
+	 * Las instrucciones son largas a propósito —enumeran que la PORTADA también
+	 * selecciona, que no es obvio— así que no se recortan: se retiran enteras en
+	 * cuanto el cliente elige su primer tomo (ver `.has-selection`).
+	 */
+	.akb-sb-landing__instructions {
+		font-size: .82rem;
+		line-height: 1.3;
+	}
+}
+
+/*
+ * Bajo 480px los chips disponen de fila propia. A 320px el tercer chip puede quedar
+ * parcialmente fuera; focusin lo desplaza completo al recibir foco. El CTA comparte fila con
+ * el título.
+ */
+@media (max-width: 479px) {
+	.akb-sb-landing__head {
+		grid-template-areas:
+			"copy cta"
+			"filters filters";
+	}
+	.akb-sb-landing__filter-list {
+		/* A todo el ancho: sangra también hacia el borde derecho del riel. */
+		margin-right: calc(var(--space-3, .75rem) * -1);
+		padding-right: var(--space-3, .75rem);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-sb-landing,
+	.akb-sb-landing *,
+	.akb-sb-card-select,
+	.akb-sb-card-select * {
+		animation: none !important;
+		transition: none !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/*
+ * La regla de selección sólo modifica la rejilla nativa de la landing activa.
+ */
+.woocommerce ul.products.akb-sb-selection-grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+	.woocommerce ul.products.akb-sb-selection-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 14px !important;
+	}
+}
+@media (min-width: 1280px) {
+	.woocommerce ul.products.akb-sb-selection-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+		gap: 16px !important;
+	}
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(100px, 150px);
+	align-items: center;
+	gap: 6px 12px;
+	padding: 10px;
+	min-width: 0;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__link {
+	display: grid;
+	grid-template-columns: 84px minmax(0, 1fr);
+	grid-template-rows: auto auto auto auto;
+	align-items: center;
+	gap: 4px 14px;
+	min-width: 0;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-product-cover-wrap {
+	grid-column: 1;
+	grid-row: 1 / 5;
+	width: 84px;
+	height: 120px;
+	margin: 0;
+	border-radius: 4px;
+	align-self: center;
+	overflow: hidden;
+	position: relative;
+	background: #1a1a1c;
+	box-shadow: 2px 2px 0 #000;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-product-cover-wrap::before {
+	content: none !important;
+	display: none !important;
+	padding-top: 0 !important;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__link img,
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-product-cover-wrap > img {
+	position: relative !important;
+	inset: auto !important;
+	width: 84px !important;
+	height: 120px !important;
+	object-fit: cover !important;
+	margin: 0 !important;
+	border-radius: 4px;
+	display: block;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-badge {
+	position: absolute !important;
+	top: 5px !important;
+	left: 5px !important;
+	padding: 2px 6px !important;
+	font-size: 0.72rem !important;
+	letter-spacing: 0.04em !important;
+	line-height: 1.15 !important;
+	clip-path: none !important;
+	border-radius: 3px !important;
+	white-space: nowrap !important;
+	max-width: calc(100% - 10px) !important;
+	box-sizing: border-box !important;
+	text-align: center !important;
+	transform: none !important;
+	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.75)) !important;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-badge--preorder {
+	border: 1.5px solid var(--aki-status-preorder, #ff0a1d) !important;
+	background: rgba(18, 18, 18, 0.92) !important;
+	color: #ffffff !important;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-badge--out_of_stock {
+	background: rgba(28, 28, 30, 0.92) !important;
+	color: #e2e8f0 !important;
+	border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-badge + .akb-badge {
+	top: 25px !important;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__title,
+.woocommerce ul.products.akb-sb-selection-grid li.product .price,
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-editorial-eyebrow,
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-avail-hint {
+	grid-column: 2;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+	text-align: left;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__title {
+	font-size: 1rem;
+	line-height: 1.25;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-editorial-eyebrow {
+	font-size: .68rem;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .price {
+	font-size: .95rem;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-sb-card-select {
+	grid-column: 2;
+	margin: 0;
+	min-height: 44px;
+}
+/* Keep the native link beside the selection and existing stock action. */
+.woocommerce ul.products.akb-sb-selection-grid li.product > .woocommerce-loop-product__link {
+	grid-column: 1;
+	grid-row: 1 / 5;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product > .akb-sb-card-select {
+	grid-row: 1;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product > .button {
+	grid-row: 2;
+}
+/* Preserve native stock actions and detail access; secondary tools stay in flow. */
+.woocommerce ul.products.akb-sb-selection-grid li.product > .button,
+.woocommerce ul.products.akb-sb-selection-grid li.product > .akb-qv-trigger,
+.woocommerce ul.products.akb-sb-selection-grid li.product > .akb-wl-anchor {
+	grid-column: 2;
+	min-height: 44px;
+}
+.akb-sb-landing__summary {
+	position: relative;
+	padding-right: 46px;
+}
+.akb-sb-landing__instructions {
+	padding-right: 0;
+}
+@media (max-width: 768px) {
+	.akb-sb-landing__panel:not([hidden]) {
+		position: relative;
+		left: auto;
+		right: auto;
+		bottom: auto;
+		max-height: none;
+		overflow: visible;
+		box-shadow: none;
+	}
+	.akb-sb-landing__panel.has-selection .akb-sb-landing__instructions {
+		display: block;
+	}
+	.akb-sb-landing__panel:not([hidden]) .akb-sb-landing__summary {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+		z-index: calc(var(--z-sticky, 200) - 1);
+		box-sizing: border-box;
+		margin: 0;
+		padding: 8px 56px 9px 12px;
+		max-height: min(32vh, 220px);
+		overflow-y: auto;
+		background: var(--aki-surface, #111111);
+		border-top: 3px solid var(--aki-red, #e60012);
+	}
+	body.akb-sb-selection-active {
+		padding-bottom: calc(155px + 66px + env(safe-area-inset-bottom, 0px));
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product {
+		grid-template-columns: minmax(0, 1fr) 116px;
+		gap: 6px 10px;
+		padding: 8px 10px;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__link {
+		grid-template-columns: 74px minmax(0, 1fr);
+		gap: 2px 10px;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .akb-product-cover-wrap {
+		width: 74px;
+		height: 106px;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__link img,
+	.woocommerce ul.products.akb-sb-selection-grid li.product .akb-product-cover-wrap > img {
+		width: 74px !important;
+		height: 106px !important;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .akb-badge {
+		top: 4px !important;
+		left: 4px !important;
+		font-size: 0.68rem !important;
+		padding: 2px 5px !important;
+		max-width: calc(100% - 8px) !important;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .akb-badge + .akb-badge {
+		top: 22px !important;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .woocommerce-loop-product__title {
+		font-size: 0.92rem;
+		line-height: 1.2;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product .price {
+		font-size: 0.88rem;
+	}
+	.woocommerce ul.products.akb-sb-selection-grid li.product > .button {
+		font-size: .7rem;
+		padding: 6px;
+	}
+}
+
+/* Selection owns the purchase action; closing restores the native catalog. */
+.woocommerce ul.products.akb-sb-selection-grid li.product > .add_to_cart_button,
+.woocommerce ul.products.akb-sb-selection-grid li.product > .akb-wl-anchor {
+	display: none !important;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product > .woocommerce-loop-product__link {
+	grid-row: 1 / 3;
+}
+
+/* Keep the selected label readable beside its checkbox at narrow widths. */
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-sb-card-select__text {
+	min-width: 0;
+	flex: 1 1 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	overflow-wrap: normal;
+}
+.woocommerce ul.products.akb-sb-selection-grid li.product .akb-sb-card-select__box {
+	flex: 0 0 auto;
+}

@@ -1,0 +1,19 @@
+%% Comprar un tomo «a pedido»: lo que el cliente espera y cuándo se le avisa
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant B as akibara-business
+  participant O as Dueño
+  participant W as WooCommerce
+  C->>B: compra un tomo «a pedido» (precio de reserva: lista − 5 %)
+  B-->>C: la ficha promete plazo estimado y garantía de 60 días
+  B->>B: guarda en la línea del pedido lo prometido ese día
+  Note over B: Si el tomo se atrasa, lo prometido no cambia solo:<br/>se compara con lo anterior antes de recalcular.
+  O->>W: el tomo llega a bodega y pasa a «en stock»
+  W->>B: cambio de disponibilidad
+  B->>B: recalcula qué pedidos ya están completos
+  B-->>C: correo «ya llegó, lo despachamos en 1-3 días»
+  alt el cliente pidió aviso sin comprar
+    C->>B: «Avísame cuando llegue»
+    B-->>C: correo cuando el tomo está EN BODEGA (no antes)
+  end

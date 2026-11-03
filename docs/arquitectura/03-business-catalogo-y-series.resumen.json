@@ -1,0 +1,87 @@
+{
+  "titulo": "akibara-business · catálogo, series, tomos, editoriales y packs",
+  "capitulo": "03-business-catalogo-y-series",
+  "diagramas": [
+    "diagramas/03-business-catalogo-y-series-piezas.mmd",
+    "diagramas/03-business-catalogo-y-series-caso-aviso-de-serie.mmd",
+    "diagramas/03-business-catalogo-y-series-caso-arma-tu-pack.mmd",
+    "diagramas/03-business-catalogo-y-series-caso-landing-editorial.mmd",
+    "diagramas/03-business-catalogo-y-series-caso-tomo-nuevo.mmd",
+    "diagramas/03-business-catalogo-y-series-caso-cuatro-ordenes.mmd",
+    "diagramas/03-business-catalogo-y-series-cron.mmd",
+    "diagramas/03-business-catalogo-y-series-estados-cola-avisos.mmd"
+  ],
+  "componentes": 67,
+  "componentes_nota": "67 clases más el fichero de arranque akibara-business.php, agrupadas en 31 fichas en el capítulo. Contadas sobre el paquete publicado 1.116.4.",
+  "casos": 7,
+  "cifras_de_referencia": {
+    "productos": 1568,
+    "productos_medido": "producción, 2026-08-23 (CatalogOrder.php:108 y :476)",
+    "terminos_pa_serie": 130,
+    "series_con_catalogo_indexables": 104,
+    "series_listadas_en_el_panel_de_packs": 119,
+    "productos_a_pedido": 422
+  },
+  "crons": [
+    "akibara_catalog_order_daily",
+    "akibara_catalog_order_recompute",
+    "akb_sf_scan_product",
+    "akb_sf_digest_run",
+    "akibara_business_cleanup_collection_owner_fence"
+  ],
+  "grupos_action_scheduler": [
+    "akb-catalog-order",
+    "akibara-series-follow"
+  ],
+  "registros": [
+    { "fuente": "akibara-catalog-order", "donde": "CatalogOrder.php:458-461", "que": "Chunk de N menu_order falló" },
+    { "fuente": "akibara-series-follow", "donde": "DigestRunner.php:190, :240, :346, :367", "que": "fallos del escaneo y del digest; «Digest diferido: WC_Email todavía no cargable»" },
+    { "fuente": "akibara-series-follow", "donde": "Install.php:80", "que": "la tabla de la cola no se pudo crear" }
+  ],
+  "terceros": [
+    "WooCommerce",
+    "Action Scheduler",
+    "Rank Math",
+    "LiteSpeed Cache",
+    "Cloudflare",
+    "Hostinger (cron cada 5 min)",
+    "GeneratePress (vía el tema hijo akibara-gp)"
+  ],
+  "aristas_salientes": [
+    { "a": "02-business-nucleo", "por": "Plugin.php cablea las 67 clases del área, y el hook propio akibara_business_upgraded (Plugin.php:369) es donde SeriesBundles migra sus tramos" },
+    { "a": "tema akibara-gp", "por": "hook akibara_gp_series_hero_after_title (SeriesEditions pinta «Otras ediciones en Akibara»)" },
+    { "a": "tema akibara-gp", "por": "filtro akibara/popular_product_ids — invocado UNA sola vez, con tamaño 4, desde inc/performance.php:301; su plantilla template-parts/empty/cross-sell.php se incluye desde 404.php:97, cart-empty.php:76 y no-products-found.php:100. Sin el plugin el tema fuerza post__in => array(0) y la fila no se pinta" },
+    { "a": "akibara-search", "por": "hook set_object_terms (PublishListener viaja encima del evento que dispara el reindexado)" },
+    { "a": "akibara-search", "por": "el parámetro de URL _disponibilidad con vocabulario comercial instock / a_pedido / outofstock (LandingOffer), más el redirect 301 de :854-880 que traduce el valor interno onbackorder" },
+    { "a": "akibara-search", "por": "evitar wp_update_term a propósito en EditionFacts para no reindexar los 856 productos de Ivrea Argentina" },
+    { "a": "akibara-cart-checkout-blocks", "por": "SeriesBundles::structured_cart_presentation() — etiquetas de cupón y avisos semánticos" },
+    { "a": "05-business-descuentos-y-precios", "por": "TaxonomyDiscount\\Settings::is_enabled() (calla el rango de precios) y Utilities\\DiscountCeiling (tope de porcentaje compartido)" },
+    { "a": "05-business-descuentos-y-precios", "por": "filtro akibara_taxonomy_discount_ignored_coupon_prefixes (el pack aporta akb_sb_) y prioridad 1000 tras PriceFilters" },
+    { "a": "06-business-stock-preventa-y-entrega", "por": "Stock\\StockStatus::label() (vocabulario de GRUPO: Disponible / A pedido / Agotado) y Stock\\Availability::label_of() (vocabulario POR PRODUCTO, que añade «Preventa»: no es un estado de stock)" },
+    { "a": "06-business-stock-preventa-y-entrega", "por": "EstimatedDelivery\\PedidoPolicy / DateCalculator / BannerRenderer, BackInStock\\CaptureForm::anchor() y el filtro akb_sb_waitlist_active del armador" },
+    { "a": "07-business-seo-y-schema", "por": "hook rank_math/json_ld prioridad 91 y 92, SchemaProductRankMath\\BookSchemaEnricher (identificador <url>#serie) y SeoIndexing\\SeriesSitemapLastmod" },
+    { "a": "07-business-seo-y-schema", "por": "SeriesIndex::entries() para el ItemList del hub /series/ y SeriesSchemaType::supports_comic_series() para el @type de cada elemento; y quién sirve /autor/<slug>/, que ninguna pieza de este capítulo construye" },
+    { "a": "08-business-cuenta-y-coleccion", "por": "AccountCollection\\Endpoint::url() y la ruta REST POST akibara/v1/series-follow de CollectionToggle" },
+    { "a": "09-business-correo-y-avisos", "por": "Services\\AkibaraEmail (esqueleto multipart y cabecera List-Unsubscribe-Post) y Services\\OneClickPage; el correo propio del área es akb_sf_series, en WooCommerce → Ajustes → Correos" },
+    { "a": "10-business-envio-y-blue-express", "por": "Services\\FreeShippingThreshold y la option akibara_fsp_carrier_threshold que lee BuilderWidget" },
+    { "a": "11-business-panel-y-copys", "por": "CopyManager (EditionCopy::defaults() se fusiona en el registro de copys) y las pestañas catalog_order, series_follow, series_bundles, brand_editions y home_series del menú akibara-panel" },
+    { "a": "16-todo-lo-programado", "por": "los cinco trabajos de Action Scheduler del área y la corrida de las 05:00 de Chile" },
+    { "a": "17-catalogo-de-datos", "por": "la tabla wp_akb_series_follow_queue (status con SEIS valores), wp_posts.menu_order, los 11 term meta, los 5 meta de pedido y los 12 transients" },
+    { "a": "18-fronteras-con-terceros", "por": "WooCommerce, Rank Math, LiteSpeed Cache y Cloudflare: las purgas por etiqueta y por URL se quedan en el servidor, pero litespeed_purge_all SÍ propaga al borde vía cdn-cloudflare_clear" },
+    { "a": "19-como-se-hablan-los-plugins", "por": "las aristas hacia el tema, akibara-search y akibara-cart-checkout-blocks" }
+  ],
+  "riesgos_abiertos": [
+    "BrandsDirectory/Shortcode.php:280 — único esc_url( get_term_link( $brand ) ) del área sin guarda is_wp_error(); un WP_Error acaba en ltrim() y en PHP 8 es TypeError: /editoriales/ caída",
+    "Renombrar el término exclude-from-catalog tumba a la vez SeriesCover, HomeDestacados, PopularProducts y EditionFacts (identifican por NOMBRE), mientras SeriesCatalogEligibility y SeriesFacts siguen funcionando (identifican por SLUG)",
+    "EditionFacts no escucha el borrado ni la papelera: hasta 12 h de conteo y «Desde $X» obsoletos",
+    "HomeSeriesDestacadas no versiona la clave de caché con el atributo count del shortcode: cambiarlo no hace nada durante 6 h (su gemela HomeDestacados sí lo versiona)",
+    "El panel de la vitrina imprime «Ya había un recálculo en cola» aunque no quede nada pendiente, porque as_next_scheduled_action() cuenta la acción en curso",
+    "La columna «Publicación» del listado de términos afirma « · N tomos» siempre; la landing sólo publica el total con «Completa» y «En publicación»",
+    "En CatalogOrder::recompute() el predicado tt.taxonomy='pa_serie' va en el LEFT JOIN y no en el WHERE: el resultado es correcto, el coste no"
+  ],
+  "cobertura": {
+    "leido_del_paquete_publicado": "akibara-business 1.116.4 y el tema akibara-gp",
+    "medido_en_vivo": "nada; todas las mediciones citadas son anotaciones del propio código, con su fecha cuando la traen",
+    "lectura_selectiva": "el dominio «Arma tu Pack» (8.390 líneas): BundleCouponEngine, DiscountEngine, CartSeriesCollector, OrderInstrumentation, PromotionPolicy y BypConfigController se leyeron por las reglas que se enuncian, no enteros"
+  }
+}

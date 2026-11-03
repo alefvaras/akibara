@@ -1,0 +1,63 @@
+%% Caso 6 del capítulo 16 — a un cliente se le van a vencer los Puntos Akibara.
+%% Qué muestra: el vencimiento en dos fases (primero se recolecta, después se vence), el troceo en lotes de 100, el candado de base de datos que protege el saldo, y por qué el aviso viaja en su propia acción y solo se sella con el transporte confirmado.
+sequenceDiagram
+    autonumber
+    participant Cola as Action Scheduler<br/>SIN grupo · diaria 17&#58;15
+    participant Daily as Expiry&#58;&#58;run_daily
+    participant Libro as Libro mayor de puntos<br/>la verdad contable
+    participant Lote as Expiry&#58;&#58;run_batch<br/>una acción por cada 100 usuarios
+    participant Aviso as akb_rewards_expiry_warn_async<br/>una acción por usuario avisado
+    participant Correo as Transporte de correo
+    actor Cliente
+
+    Cola->>Daily: arranca la corrida diaria
+    Daily->>Daily: ¿interruptor encendido y meses mayores que 0?
+    alt 0 meses
+        Daily-->>Cola: los puntos no vencen jamás y el módulo ni se registra
+    else hay vencimiento configurado
+        Daily->>Daily: calcula el corte restando meses SIN el desbordamiento de fin de mes de PHP
+        Note over Daily: el 31 de agosto menos 6 meses no es el 3 de marzo
+
+        rect rgb(235, 245, 255)
+            Note over Daily,Libro: PRIMERA FASE — solo lectura
+            Daily->>Libro: recolecta TODOS los identificadores con saldo mayor que cero
+            Note over Daily,Libro: se hace entera antes de tocar nada&#58; el propio vencimiento deja<br/>saldos en 0 y encogería el conjunto bajo los pies del paginador
+        end
+
+        alt más de 100 usuarios
+            Daily->>Cola: trocea en acciones de 100 usuarios
+            Cola->>Lote: arranca cada lote por separado
+            Note over Cola,Lote: un tiempo agotado no pierde la corrida entera
+        else 100 o menos
+            Daily->>Lote: los procesa en la misma corrida
+        end
+
+        loop por cada usuario del lote
+            rect rgb(255, 245, 235)
+                Note over Lote,Libro: SEGUNDA FASE — bajo candado de base de datos
+                Lote->>Libro: relee el saldo fresco y calcula lo vencible
+                Note over Lote,Libro: sin el candado, un canje simultáneo en el checkout<br/>hacía que el débito se comiera puntos NUEVOS del cliente
+            end
+            alt hay algo que vencer
+                Lote->>Libro: debita con la clave de evento expiry_{usuario}_{Ymd}
+                Note over Libro: contra un índice único&#58; correr dos veces no cobra dos veces
+            else no venció nada
+                Lote->>Libro: ¿qué vence dentro de los próximos 30 días?
+                opt hay puntos por vencer y no se avisó este mes
+                    Lote->>Cola: encola el aviso en SU PROPIA acción asíncrona
+                    Note over Lote,Cola: así un servidor de correo lento no arrastra al resto del lote
+                    Cola->>Aviso: arranca el aviso
+                    Aviso->>Correo: «{n} Puntos Akibara por vencer — úsalos antes»
+                    Correo->>Cliente: un aviso al mes como máximo
+                    alt el transporte confirmó
+                        Aviso->>Libro: sella la meta del mes
+                    else el correo no salió
+                        Aviso-->>Libro: NO sella nada&#58; la corrida de mañana reintenta
+                        Note over Aviso,Libro: esta es la disciplina correcta,<br/>y es justo la que le falta al cumpleaños (caso 5)
+                    end
+                end
+            end
+        end
+    end
+
+    Note over Libro,Cliente: los movimientos migrados del sistema anterior envejecen desde la fecha<br/>del traspaso — sin esa fecha sellada quedan protegidos (fallar hacia no quitar)

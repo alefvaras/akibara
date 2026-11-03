@@ -1,0 +1,63 @@
+%% Título: Un cliente compra un tomo desde la ficha, en el teléfono
+%% Qué muestra: el camino completo desde que se pinta la ficha hasta que el tomo
+%% entra al carrito sin recargar la página, con las dos bifurcaciones que importan
+%% — el rechazo del servidor y la ventana de dos segundos en la que el botón está
+%% habilitado pero no responde.
+sequenceDiagram
+  autonumber
+  actor Cliente
+  participant Tema as Tema akibara-gp
+  participant Woo as WooCommerce
+  participant JS as pdp-ajax-atc.js + atc-guard.js + animations.js
+  participant Bus as akibara-business
+
+  Cliente->>Tema: Abre /nombre-del-tomo/
+  Tema->>Tema: title-parser.php:84-99 pinta antetítulo de editorial y H1
+  Tema->>Tema: woocommerce.php:82-93 quita el sufijo " en Akibara" de los H2
+  Tema->>Tema: woocommerce.php:118-134 fuerza "sin barra lateral"
+
+  rect rgb(240,240,255)
+    note over Tema: Decisión de los botones menos y más<br/>woocommerce.php:511-528
+    alt El producto se vende de a uno, o el máximo es 1 o es -1
+      Tema-->>Cliente: No se pintan los botones — sólo teclado numérico
+    else Hay un máximo numérico mayor que 1
+      Tema-->>Cliente: Botones de 44 px a cada lado del campo
+    end
+  end
+
+  Tema->>Tema: trust-badges.php:77 y :79 imprime los cuatro sellos
+  Tema->>Bus: filtro akibara/product_faq_data
+  Bus-->>Tema: Preguntas frecuentes del producto
+  Tema-->>Cliente: seo-faq.php:24-43 pinta el acordeón al pie
+  Tema-->>Cliente: sticky-atc.php aparece al irse el botón real de pantalla
+
+  Cliente->>JS: Pulsa "Añadir al carrito" o "Reservar en Preventa"
+  JS->>JS: atc-guard.js:52-71 comprueba si ese producto ya tiene petición en vuelo
+  JS-->>Cliente: El botón dice "Agregando…" o "Reservando…"
+  JS->>Woo: POST /?wc-ajax=add_to_cart
+
+  alt WooCommerce acepta
+    Woo-->>JS: Fragmentos de HTML
+    JS->>Tema: Reemplaza a.header-icon--cart, el contador sube
+    JS->>Woo: dispara added_to_cart en jQuery
+    JS->>Bus: window.akbCart.open() — animations.js:237
+    JS-->>Cliente: "Agregado ✓" y aviso en región role=status
+    note over JS,Cliente: pdp-ajax-atc.js:163-165<br/>El botón sigue habilitado 2 s pero busy=true:<br/>un segundo clic no hace nada y no avisa
+    JS->>JS: A los 2.000 ms reset y busy=false
+  else WooCommerce rechaza por carrera de stock
+    Woo-->>JS: Respuesta con error y sin fragmentos
+    JS->>Bus: GET /?wc-ajax=akb_get_cart&drain_notices=1
+    alt Llega un motivo
+      Bus-->>JS: El motivo del rechazo
+      JS-->>Cliente: Motivo junto al botón y enlace "Ver carrito", 6 s, SIN recargar
+    else Responde pero sin motivo
+      Bus-->>JS: Cola de avisos vacía
+      JS->>JS: form.submit() — pdp-ajax-atc.js:140
+      JS-->>Cliente: LA PÁGINA SE RECARGA (último recurso)
+    else Esa segunda petición falla
+      JS->>JS: .catch → form.submit() — pdp-ajax-atc.js:147
+      JS-->>Cliente: LA PÁGINA SE RECARGA (último recurso)
+    end
+  else Falla la red en la PRIMERA petición
+    JS-->>Cliente: El botón dice "Reintentar" y se rehabilita — nada se recarga
+  end

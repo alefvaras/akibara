@@ -1,0 +1,46 @@
+%% Título: La portada llega en JPG al correo de carrito abandonado
+%% Qué muestra: la ventana de prioridad 9 a 11 alrededor de los oyentes de Brevo,
+%% la conversión AVIF a JPG en el acto y el correo que sale horas después desde Brevo.
+%% Medido en producción el 2026-09-15: la ventana está en los tres ganchos del carrito.
+%% Entre el 2026-09-11 y el 2026-09-12 esta secuencia NO ocurría: el mu-plugin compartía
+%% la prioridad 20 de plugins_loaded con el autocargador de akibara-business y corría
+%% antes que él. Desde entonces se registra a 25.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Tema as Tema y carrito de bloques
+    participant Store as Store API de WooCommerce
+    participant Mu as akibara-brevo-portada-jpg-en-el-carrito
+    participant Deriv as SocialImageDerivatives
+    participant Brevo as Plugin de Brevo
+    participant Plataforma as Plataforma de Brevo
+    participant Correo as Bandeja del cliente
+
+    Cliente->>Tema: pulsa Añadir al carrito
+    Tema->>Store: POST cart/add-item
+    Store->>Store: añade la línea y dispara woocommerce_add_to_cart
+    Store->>Mu: prioridad 9, abrir ventana
+    Mu->>Mu: engancha el filtro wp_get_attachment_image_src
+    Store->>Brevo: prioridad 10, arma el evento de carrito
+    Brevo->>Mu: pide la imagen de cada producto
+    alt La URL es una portada AVIF de uploads portadas
+        Mu->>Deriv: ensure_now con el slug
+        alt La hermana JPG ya existe y es más nueva
+            Deriv-->>Mu: true sin convertir
+            Mu-->>Brevo: URL terminada en -og.jpg
+        else Falta la hermana
+            Deriv->>Deriv: decodifica AVIF y escribe el JPG de calidad 82
+            Deriv-->>Mu: true
+            Mu-->>Brevo: URL terminada en -og.jpg
+        else AVIF ilegible o ya falló hace menos de 6 horas
+            Deriv-->>Mu: false
+            Mu-->>Brevo: devuelve la URL AVIF sin tocar
+        end
+    else Cualquier otra imagen
+        Mu-->>Brevo: la URL pasa intacta
+    end
+    Store->>Mu: prioridad 11, cerrar ventana
+    Mu->>Mu: desengancha el filtro, el resto de la petición vuelve a AVIF
+    Brevo->>Plataforma: manda el evento con la URL guardada
+    Note over Plataforma: Pasan horas
+    Plataforma->>Correo: correo de carrito abandonado con la portada visible

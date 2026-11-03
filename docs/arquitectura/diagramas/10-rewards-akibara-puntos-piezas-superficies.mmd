@@ -1,0 +1,79 @@
+%% Piezas del capítulo 10, mitad 2 de 2 — las superficies, la operación y los datos.
+%% Qué muestra: los seis sitios donde el cliente ve el programa (incluida la segunda caja del checkout, el gancho para invitados), las cuatro herramientas con las que se opera, lo que queda escrito en la base de datos, y la carga muerta y las alarmas huérfanas. En rojo, lo que el verificador dejó señalado como roto o muerto.
+%% La otra mitad (arranque, configuración, motor y carriles) está en 10-rewards-akibara-puntos-piezas-motor.mmd.
+flowchart LR
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    CLIENTE["Cliente"]:::persona
+    DUENO["Dueño · WP-CLI y el panel"]:::persona
+    MOTOR["El motor y los carriles<br/>(la otra mitad del mapa)"]:::propio
+
+    subgraph SUPERFICIES["Lo que ve el cliente"]
+        ACCT["Points\\AccountRewards<br/>/mi-cuenta/rewards/ — saldo, canje, últimos 10 movimientos"]:::propio
+        CAJA["Blocks\\CheckoutIntegration + checkout-blocks.js<br/>caja «⭐ Tus Puntos Akibara» — sólo con sesión iniciada"]:::propio
+        GANCHO["checkout-blocks.js :342-419 · GanchoCreaCuenta<br/>caja del checkout y del carrito, SÓLO para invitados<br/>en el checkout, botón «Crear mi cuenta» marca la casilla nativa"]:::propio
+        PDP["Points\\PdpNotice<br/>«Gana N puntos con este tomo», junto al precio"]:::propio
+        PROG["Points\\ProgramPage<br/>shortcode [akb_puntos_resumen]<br/>la página /akibara-puntos/ hay que crearla a mano"]:::propio
+        MAIL["Points\\Emails<br/>4 correos propios + el de reseñas; sella sólo con transporte confirmado"]:::propio
+        ASSETS["Support\\Assets<br/>el ?ver= de checkout-blocks.js y del carrusel de reseñas<br/>versión del plugin + fecha del fichero"]:::propio
+    end
+
+    subgraph OPERACION["Operación, traspaso y salida"]
+        MIG["Points\\Migration<br/>wp akb-rewards migrate · wp akb-rewards cleanup"]:::propio
+        AUD["Support\\Audit<br/>wp akb-rewards audit --fix: re-deriva la caché del ledger"]:::propio
+        PRIV["Support\\Privacy<br/>exportar y borrar datos personales"]:::propio
+        LOG["Support\\Log<br/>WooCommerce → Estado → Registros, origen akibara-rewards<br/>SÓLO nivel error: sin líneas NO significa sin corrida"]:::propio
+        UNINST["uninstall.php<br/>no borra nada salvo AKIBARA_REWARDS_ALLOW_WIPE<br/>y cuando borra, deja datos atrás"]:::propio
+    end
+
+    subgraph DATOS["Lo que queda escrito"]
+        TABLA[("wp_akb_rewards_ledger<br/>un renglón por movimiento, con saldo resultante")]:::dato
+        FORMS[("wp_akb_rewards_review_forms<br/>enlaces de invitación a reseñar (otro capítulo)")]:::dato
+        UMETA[("11 usermeta<br/>saldo, cumpleaños, código de invitación, marcas de aviso")]:::dato
+        OMETA[("10 order meta<br/>puntos, bono, tasa sellada y las 5 del canje")]:::dato
+        OPTS[("43 options<br/>40 con casilla + db_version, rewrite_version, migration_epoch")]:::dato
+    end
+
+    MUERTO["Carga muerta y avisos huérfanos<br/>(max_pct se borró del carrito en la 0.4.3) ·<br/>el 2º parámetro de award_base_for_cart no lo pasa ningún llamador ·<br/>total_earned se escribe y nadie la lee · 9 alarmas sin un solo oyente"]:::alerta
+
+    BUS["akibara-business · tarjeta «Recompensas» de Mi cuenta<br/>calcula el valor en pesos por su cuenta (dashboard.php:84-89):<br/>miente en cuanto un punto deje de valer $1"]:::alerta
+
+    CLIENTE --> ACCT
+    CLIENTE --> CAJA
+    CLIENTE --> GANCHO
+    CLIENTE --> PDP
+    CLIENTE --> PROG
+    MAIL --> CLIENTE
+    DUENO --> MIG
+    DUENO --> AUD
+    DUENO --> LOG
+
+    MOTOR --> MAIL
+    MOTOR --> TABLA
+    MOTOR --> UMETA
+    MOTOR --> OMETA
+    MOTOR --> LOG
+
+    ACCT --> MOTOR
+    CAJA --> MOTOR
+    PDP --> MOTOR
+    PROG --> MOTOR
+    ASSETS --> CAJA
+    ASSETS --> GANCHO
+
+    MIG --> TABLA
+    MIG --> OPTS
+    AUD --> UMETA
+    PRIV --> TABLA
+    UNINST --> TABLA
+    UNINST --> OPTS
+    MIG -.->|"--fix deshace la decisión de la migración"| AUD
+    UNINST -.->|"sobreviven: review_forms, 8 usermeta y TODAS las order meta"| FORMS
+
+    CAJA -.-> MUERTO
+    MOTOR -.-> MUERTO
+    MOTOR -->|"función global spar_get_user_points()"| BUS

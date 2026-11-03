@@ -1,0 +1,58 @@
+%% Caso 3 del capítulo 16 — se publica un tomo nuevo y hay clientes que coleccionan esa serie.
+%% Qué muestra: la cadena completa desde la publicación hasta el correo agrupado, con las dos esperas deliberadas (+120 s y +6 h) y la única bifurcación de todo el capítulo que CONGELA un carril sin dejar ninguna señal.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño o importador
+    participant WP as WordPress
+    participant Listener as PublishListener<br/>no hace ni una consulta
+    participant Cola as Action Scheduler<br/>grupo akibara-series-follow
+    participant Scan as DigestRunner&#58;&#58;scan
+    participant Fila as Tabla de cola<br/>clave única por evento
+    participant Run as DigestRunner&#58;&#58;run
+    participant Correo as Transporte de correo
+    actor Cliente
+
+    Dueno->>WP: publica el tomo 12 de la serie
+    WP->>Listener: transition_post_status y set_object_terms
+    Note over Listener: viaja encima del evento más caro de la casa (guardar un término):<br/>por eso no consulta nada, solo encola
+    Listener->>Cola: encola akb_sf_scan_product a +120 s
+    Note over Listener,Cola: la espera es deliberada&#58; el importador crea el producto ANTES<br/>de asignarle la serie, y escanear en el mismo instante<br/>lo descartaría en silencio y para siempre
+
+    Cola->>Scan: arranca el escaneo
+    Scan->>WP: ¿el tomo es anunciable? publicado, no oculto y de menos de 60 días
+    alt no es anunciable
+        Scan-->>Cola: se descarta, y el descarte también es idempotente
+    else es anunciable
+        Scan->>WP: resuelve la serie y pide una página de 200 seguidores
+        Note over Scan,WP: «seguidor» no es una fila guardada&#58; es derivado —<br/>compró al menos un tomo de la serie en un pedido pagado y no se dio de baja
+        Scan->>Fila: encola un aviso por cliente, con clave única por evento
+        opt la página venía llena
+            Scan->>Cola: se auto-pagina a +30 s con un cursor
+        end
+        Scan->>Cola: pide la corrida del resumen a +6 h
+        Note over Cola: la ventana de acumulación existe para que todo lo publicado<br/>esa tarde viaje en UN solo correo
+    end
+
+    Cola->>Run: arranca la corrida del resumen
+    Run->>Fila: ARMA el contenido antes de reclamar las filas
+    Note over Run,Fila: al revés, una excepción las dejaría marcadas como enviadas sin correo,<br/>y la clave única prohibiría volver a encolarlas
+
+    alt el correo está deshabilitado en WooCommerce
+        rect rgb(255, 235, 235)
+            Run-->>Run: return seco&#58; NO registra nada y NO re-agenda nada
+            Note over Run,Cliente: LA CADENA SE CONGELA SIN NINGUNA SEÑAL.<br/>Volver a habilitar el correo NO la retoma&#58; hay que publicar otro tomo<br/>o tocar el interruptor akb_sf_enabled. Casilla akb_sf_series en<br/>WooCommerce → Ajustes → Correos electrónicos
+        end
+    else el cliente ya recibió un correo hace menos de 7 días
+        Run->>Fila: sus filas quedan pendientes y salen después
+    else camino normal
+        Run->>Fila: re-valida en el último momento&#58; bajas, tomos ya comprados,<br/>tomos que dejaron de estar publicados
+        Run->>Fila: reclamo atómico de las filas
+        Run->>Correo: «Salió el tomo {n} de {serie}», máximo 5 series por correo
+        Correo->>Cliente: un solo correo con todas sus series
+        Run->>Fila: sella el tope semanal SOLO si el correo salió
+        opt queda gente por avisar
+            Run->>Cola: encadena la siguiente corrida a +60 s
+        end
+    end
+
+    Note over Cola,Fila: un aviso que nadie manda caduca solo a los 60 días en la cola

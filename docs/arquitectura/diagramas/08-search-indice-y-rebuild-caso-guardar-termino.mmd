@@ -1,0 +1,36 @@
+%% Caso del capítulo 08 — el dueño pulsa «Actualizar» en una editorial y se reconstruye el índice entero.
+%% Qué muestra: por qué el guard de edit_terms no evita nada, en qué punto exacto se apaga el buscador (SWAP_INTENT, no antes) y quién reabre el gate. Ficheros y líneas del snapshot de producción 0.1.60.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WP as WordPress + WooCommerce
+    participant IDX as Indexer (akibara-search)
+    participant INS as Install
+    participant AS as Action Scheduler
+    participant RJ as RebuildJob
+    participant DB as Tablas del índice
+    actor Cliente
+
+    Dueno->>WP: «Actualizar» en Ivrea Argentina<br/>el formulario reenvía siempre nombre y slug
+    WP->>IDX: edit_terms (antes del UPDATE), prioridad 10
+    IDX->>IDX: term_edit_touches_index() — ¿cambia nombre, slug o padre?<br/>Indexer.php:1298
+    Note over IDX: No cambia nada indexable → NO pide rebuild.<br/>Hasta aquí, lo que la versión 0.1.29 prometió.
+    WP->>WP: escribe el término
+    WP->>IDX: edited_term (después del UPDATE), prioridad 10
+    IDX->>INS: enqueue_term() → request_rebuild('term_fanout')<br/>SIN ninguna condición · Indexer.php:1945
+    INS-->>INS: persiste la solicitud en akb_search_pending_rebuild
+    IDX->>DB: apunta los productos del término y su subárbol<br/>como deuda live, en lotes de 100
+    WP->>INS: siguiente arranque · init prioridad 20 · consume_pending_rebuild()
+    INS->>RJ: schedule_request() crea el run durable
+    RJ->>DB: PREPARING — crea docs_new, tokens_new, facet_index_new
+    RJ->>AS: encola akb_search_rebuild_batch
+    AS->>RJ: BUILDING — lotes de 200, 20 s de presupuesto por invocación
+    Note over Cliente,DB: Mientras construye la sombra el cliente SIGUE buscando:<br/>las tablas vivas no se han tocado.
+    RJ->>RJ: CATCHING_UP — exige 0 faltantes, 0 sobrantes, 0 huérfanos<br/>y que la foto editorial no se haya movido
+    RJ->>DB: SWAP_INTENT — escribe generation_target y hace RENAME TABLE
+    Note over Cliente,RJ: AQUÍ se cierra el gate: el desplegable responde 503<br/>y el catálogo pierde los filtros.<br/>OJO: éste es UNO de los dos momentos en que se apaga.<br/>Si el disparador hubiera sido EDITORIAL (un porcentaje, una option<br/>de descuento), el gate se habría cerrado al guardar, mucho antes:<br/>está en el diagrama «Descuento editorial». Mira los dos.
+    Cliente--xRJ: /suggest → 503
+    RJ->>RJ: PUBLISHING — 6 confirmaciones en orden:<br/>buckets, generación, purga REST, huella semántica,<br/>recibo editorial e historial
+    RJ->>DB: CLEANUP — suelta las _old tras comprobar DOS veces que no queda deuda
+    RJ->>INS: DONE — borra akb_search_rebuild_state
+    Note over Cliente,RJ: El gate se reabre. Correos enviados en todo el caso: ninguno.

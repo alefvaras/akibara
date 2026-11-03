@@ -1,0 +1,45 @@
+{
+  "titulo": "akibara-rewards · reseñas con foto: invitación, moderación, puntos y carrusel",
+  "capitulo": "11-rewards-resenas",
+  "diagramas": [
+    "11-rewards-resenas-piezas.mmd",
+    "11-rewards-resenas-caso-invitacion.mmd",
+    "11-rewards-resenas-caso-resena-y-premio.mmd",
+    "11-rewards-resenas-caso-preventa.mmd",
+    "11-rewards-resenas-cron.mmd",
+    "11-rewards-resenas-estados.mmd"
+  ],
+  "componentes": 24,
+  "casos": 12,
+  "crons": [
+    "akb_rewards_send_review_invite",
+    "akb_rewards_expiry_daily (ajeno: es el cron de vencimiento de PUNTOS, y la limpieza de tokens de reseña viaja de prestado dentro de él; si el dueño apaga el vencimiento, la limpieza deja de existir)"
+  ],
+  "terceros": [
+    "WooCommerce (woocommerce_order_status_changed, woocommerce_email_order_details, woocommerce_customer_email_verified, wc_customer_bought_product, WC()->mailer y la pantalla Productos → Valoraciones)",
+    "Action Scheduler (la cola de WooCommerce que ejecuta la invitación y sus reintentos)",
+    "WordPress núcleo (comentarios, pre_comment_approved, wp_new_comment_notify_moderator, Biblioteca de Medios, flujo de datos personales, reglas de reescritura)",
+    "Customer Reviews for WooCommerce / CusRev (su sola presencia duerme el motor propio entero; se heredan sus claves ivole_* y cr_*)",
+    "Simple Points and Rewards (si sigue activo, akibara-rewards no arranca en absoluto)",
+    "Rank Math (dueño del JSON-LD de la ficha; las estrellas entran por su filtro rank_math/snippet/rich_snippet_product_entity)",
+    "LiteSpeed (litespeed_purge_url de la portada cada vez que cambia una reseña)",
+    "GSAP (la animación del carrusel sólo ocurre si el tema ya registró la librería)",
+    "Hostinger (la tarea cada 5 minutos que empuja wp-cron.php, porque DISABLE_WP_CRON está activo en producción)"
+  ],
+  "aristas_salientes": [
+    { "a": "10-rewards-akibara-puntos", "por": "Points\\Ledger::credit() con action='review', ref_type='review' y clave de evento única review_u{usuario}_p{producto}" },
+    { "a": "10-rewards-akibara-puntos", "por": "evento akb_rewards_review_points_paid → Points\\Emails::send_review_email()" },
+    { "a": "10-rewards-akibara-puntos", "por": "Points\\Expiry::run_daily() → Support\\Schema::purge_stale_review_tokens(): la higiene de los enlaces cuelga del cron de vencimiento de puntos" },
+    { "a": "10-rewards-akibara-puntos", "por": "Points\\AccountRewards::rules_signature(), que incluye el estado del motor de reseñas y hace que /resena/{token}/ exista" },
+    { "a": "10-rewards-akibara-puntos", "por": "Options::reviews_lane_on(), consumido por AccountRewards y ProgramPage para prometer el premio" },
+    { "a": "04-business-disponibilidad-preventa-y-avisos", "por": "CompletionPolicy::can_request_review() — la compuerta de preventa que corta la invitación" },
+    { "a": "04-business-disponibilidad-preventa-y-avisos", "por": "evento akb_order_preventa_marked_ready de ReadyToShipCron: existe, lleva el id del pedido y akibara-rewards NO lo escucha (defecto D2)" },
+    { "a": "13-tema-akibara-gp", "por": "assets/css/reviews-p5-v4.css, encolado en toda ficha de producto para estilizar la lista nativa de reseñas; y customer-reviews-woocommerce/form.css, código muerto" },
+    { "a": "13-tema-akibara-gp", "por": "la librería GSAP que registra el tema y que el carrusel usa sólo si ya está" },
+    { "a": "07-business-seo-ia-blog-y-correo", "por": "filtro rank_math/snippet/rich_snippet_product_entity:50 — aggregateRating y review[] dentro del JSON-LD de la ficha" },
+    { "a": "16-todo-lo-programado", "por": "akb_rewards_send_review_invite y la limpieza de tokens dentro de akb_rewards_expiry_daily" },
+    { "a": "17-catalogo-de-datos", "por": "18 options akb_rewards_*, la tabla akb_rewards_review_forms, 3 metas de pedido, 13 comment-metas, la usermeta _akb_rewards_review_qualifying y el transient akb_rewards_carousel_v1" },
+    { "a": "18-fronteras-con-terceros", "por": "class_exists('\\CR_Reviews') como gate del motor, herencia de las claves ivole_*/cr_*, y litespeed_purge_url" },
+    { "a": "05-business-carrito-checkout-y-cuenta", "por": "wc_get_account_endpoint_url('orders') — los botones «Ir a mis pedidos» de la página del token y de la página de cortesía /cusrev/" }
+  ]
+}

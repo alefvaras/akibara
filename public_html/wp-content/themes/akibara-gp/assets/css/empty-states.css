@@ -1,0 +1,358 @@
+/**
+ * Empty / error states — shared styles.
+ *
+ * Aplicado a 4 contextos:
+ *   - 404 page (404.php)
+ *   - Cart vacío (woocommerce/cart/cart-empty.php)
+ *   - Search sin resultados (woocommerce/loop/no-products-found.php)
+ *   - Wishlist vacío (enhanced via akibara-business plugin)
+ *
+ * Sin hardcoded — todo via tokens (theme.json + tokens.css).
+ */
+
+/* ─── Wrapper común ──────────────────────────────────────────── */
+.akb-empty {
+	max-width: var(--container-max);
+	margin: 0 auto;
+	padding: var(--space-12) var(--space-4);
+	text-align: center;
+}
+
+/*
+ * WooCommerce mounts empty-cart recommendations after first paint.
+ * Reserve footprint during the hydration lifecycle (.is-loading and empty-cart-block)
+ * so the footer does not shift while Store API resolves.
+ * Scoped strictly to loading states so an active cart does not retain extra space.
+ */
+.woocommerce-cart .wp-block-woocommerce-cart.is-loading,
+.wp-block-woocommerce-empty-cart-block {
+	min-height: 86rem;
+}
+
+/*
+ * Intermediate skeleton loading state: during Store API resolution React renders
+ * loading skeleton elements. Scoped via :has() to prevent layout shift before
+ * item rows hydrate. Placed in a separate rule to prevent older engines without
+ * :has() support from invalidating the primary rule above.
+ */
+.woocommerce-cart .wp-block-woocommerce-cart:has(.wc-block-cart-items .wc-block-components-skeleton__element) {
+	min-height: 86rem;
+}
+
+/* El resumen lateral se oculta hasta la resolución de líneas para prevenir saltos visuales. */
+.woocommerce-cart .wp-block-woocommerce-cart:has(.wc-block-cart-items .wc-block-components-skeleton__element) .wc-block-cart__sidebar {
+	visibility: hidden;
+}
+
+.akb-empty__hero {
+	margin-bottom: var(--space-12);
+}
+
+.akb-empty__title {
+	font-family: var(--font-heading);
+	font-size: var(--aki-type-display);
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	line-height: 1.05;
+	text-transform: uppercase;
+	color: var(--aki-white);
+	margin: 0 0 var(--space-4);
+}
+
+/* En el carrito vacío el mensaje es un H2 bajo el H1 «Tu carrito» (akibara-cart-checkout-blocks):
+ * asigna escala tipográfica de sección (--aki-type-section) para mantener la jerarquía proporcional.
+ * En la página 404 y favoritos vacíos este título funge como H1 y mantiene --aki-type-display. */
+.akb-cart-empty .akb-empty__title {
+	font-size: var(--aki-type-section);
+	letter-spacing: var(--aki-type-heading-tracking);
+}
+
+.akb-empty__subtitle {
+	font-family: var(--font-body);
+	font-size: var(--text-lg);
+	color: var(--aki-gray-300);
+	max-width: 540px;
+	margin: 0 auto var(--space-8);
+	line-height: 1.5;
+}
+
+/* ─── CTAs ───────────────────────────────────────────────────── */
+.akb-empty__cta-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	justify-content: center;
+	margin-bottom: var(--space-8);
+}
+
+.akb-empty__btn {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: var(--touch-target-min);
+	padding: 0 var(--space-6);
+	font-family: var(--font-body);
+	font-weight: var(--weight-bold);
+	font-size: var(--text-base);
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	text-decoration: none;
+	border-radius: var(--radius-lg);
+	border: 2px solid transparent;
+	transition: var(--transition-base);
+	cursor: pointer;
+}
+
+.akb-empty__btn--primary {
+	background: var(--aki-red);
+	color: var(--aki-white);
+	border-color: var(--aki-red);
+}
+
+.akb-empty__btn--primary:hover,
+.akb-empty__btn--primary:focus-visible {
+	background: var(--aki-red-hover);
+	border-color: var(--aki-red-hover);
+	color: var(--aki-white) !important;
+	text-decoration: none !important;
+}
+
+.akb-empty__btn--secondary {
+	/* Secundario en crema-outline (no amarillo — amarillo = solo precio).
+	   El primario sigue siendo rojo; este es el secundario neutro. */
+	background: transparent;
+	color: var(--aki-white);
+	border-color: var(--aki-btn-secondary-border); /* papel «secundario» (tokens.css) */
+}
+
+.akb-empty__btn--secondary:hover,
+.akb-empty__btn--secondary:focus-visible {
+	background: var(--aki-white);
+	color: var(--aki-black);
+	border-color: var(--aki-white);
+}
+
+/* ─── Search input inline ────────────────────────────────────── */
+.akb-empty__search {
+	display: flex;
+	max-width: 480px;
+	margin: 0 auto var(--space-12);
+	gap: var(--space-2);
+}
+
+.akb-empty__search-input {
+	flex: 1;
+	min-height: var(--touch-target-min);
+	padding: 0 var(--space-4);
+	background: var(--aki-surface-2);
+	border: 1px solid var(--aki-border);
+	border-radius: var(--radius-md);
+	color: var(--aki-white);
+	font-family: var(--font-body);
+	font-size: var(--text-base);
+}
+
+.akb-empty__search-input:focus {
+	border-color: var(--aki-white);
+	outline: none;
+	box-shadow: var(--aki-focus-ring);
+}
+
+.akb-empty__search-btn {
+	min-width: var(--touch-target-min);
+	min-height: var(--touch-target-min);
+	padding: 0 var(--space-5);
+	background: var(--aki-red);
+	color: var(--aki-white);
+	border: none;
+	border-radius: var(--radius-md);
+	font-family: var(--font-body);
+	font-weight: var(--weight-bold);
+	cursor: pointer;
+	transition: var(--transition-base);
+}
+
+.akb-empty__search-btn:hover,
+.akb-empty__search-btn:focus-visible {
+	background: var(--aki-red-hover);
+}
+
+/* ─── Category chips (no-products-found) ─────────────────────── */
+.akb-empty__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	justify-content: center;
+	margin: 0 auto var(--space-10);
+	max-width: 720px;
+}
+
+.akb-empty__chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 36px;
+	padding: 0 var(--space-4);
+	background: var(--aki-surface-2);
+	color: var(--aki-gray-200);
+	border: 1px solid var(--aki-border);
+	border-radius: 999px;
+	font-family: var(--font-body);
+	font-size: var(--text-sm);
+	font-weight: var(--weight-medium);
+	text-decoration: none;
+	transition: var(--transition-fast);
+}
+
+.akb-empty__chip:hover,
+.akb-empty__chip:focus-visible {
+	background: var(--aki-red);
+	color: var(--aki-white);
+	border-color: var(--aki-red);
+}
+
+/* ─── Cross-sell section ───────────────────────────────────────
+ * La venta cruzada («Más vendidos», template-parts/empty/cross-sell.php)
+ * se estiliza en loop.css para disponibilidad universal en flujos con y sin AJAX. */
+
+/* ─── Trust badges (cart-empty) ──────────────────────────────── */
+.akb-empty__trust {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var(--space-6);
+	margin: var(--space-8) 0;
+	padding: var(--space-4);
+	color: var(--aki-gray-300);
+	font-size: var(--text-sm);
+}
+
+.akb-empty__trust-item {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.akb-empty__trust-item::before {
+	content: "✓";
+	color: var(--aki-success);
+	font-weight: var(--weight-bold);
+}
+
+/* ─── Encargos hint (no-products-found) ──────────────────────── */
+.akb-empty__hint {
+	margin-top: var(--space-8);
+	padding: var(--space-5);
+	background: var(--aki-surface-2);
+	border-left: 4px solid var(--aki-yellow);
+	border-radius: var(--radius-md);
+	color: var(--aki-gray-200);
+	font-size: var(--text-base);
+	max-width: 540px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.akb-empty__hint a {
+	color: var(--aki-yellow);
+	font-weight: var(--weight-bold);
+	text-decoration: none;
+}
+
+.akb-empty__hint a:hover,
+.akb-empty__hint a:focus-visible {
+	text-decoration: underline;
+}
+
+/* ─── 404-specific ───────────────────────────────────────────── */
+.akb-404__visual {
+	display: flex;
+	justify-content: center;
+	margin-bottom: var(--space-6);
+}
+
+.akb-404__svg {
+	width: 100%;
+	max-width: 220px;
+	height: auto;
+	color: var(--aki-red);
+}
+
+.akb-404__code {
+	font-family: var(--font-heading);
+	font-size: clamp(5rem, 4rem + 8vw, 12rem);
+	font-weight: 400;
+	letter-spacing: -0.02em;
+	line-height: 0.9;
+	color: var(--aki-white);
+	margin: 0 0 var(--space-4);
+	text-shadow: var(--shadow-glow-red);
+	text-transform: none;
+}
+
+/* ─── Responsive tuning ──────────────────────────────────────── */
+@media (max-width: 720px) {
+	.akb-empty {
+		padding: var(--space-8) var(--space-4);
+	}
+	.akb-empty__title {
+		font-size: var(--text-3xl);
+	}
+	.akb-empty__cta-row {
+		flex-direction: column;
+		align-items: stretch;
+		max-width: 320px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	.akb-empty__btn {
+		width: 100%;
+	}
+	.akb-empty__trust {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 12px;
+		max-width: 420px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	.akb-empty__trust-item {
+		justify-content: center;
+		min-width: 0;
+		font-size: 0.85em;
+		line-height: 1.2;
+	}
+	.akb-empty__trust-item:nth-child(3) {
+		grid-column: 1 / -1;
+	}
+}
+
+/* ─── Search / Blog vacío (WordPress core: .no-results.not-found) ─ */
+.no-results.not-found .inside-article {
+	max-width: var(--container-max);
+	margin: 0 auto;
+	padding: var(--space-10) var(--space-4) var(--space-12);
+}
+
+.no-results.not-found .entry-header {
+	margin-bottom: var(--space-4);
+}
+
+.no-results.not-found .entry-title {
+	font-family: var(--font-heading);
+	font-size: clamp(2rem, 5vw, 3rem);
+	text-transform: uppercase;
+	letter-spacing: var(--tracking-wide);
+	color: var(--aki-white);
+}
+
+.no-results.not-found .entry-content p {
+	color: var(--aki-gray-200);
+	margin-bottom: var(--space-6);
+	font-size: var(--text-base);
+	line-height: 1.6;
+}
+
+.no-results.not-found .search-form {
+	max-width: 440px;
+}

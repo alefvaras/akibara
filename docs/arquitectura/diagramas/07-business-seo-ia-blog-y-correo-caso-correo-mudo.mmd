@@ -1,0 +1,55 @@
+%% Caso del capítulo 07 — el correo de la tienda deja de salir y el dueño se entera.
+%% Qué muestra: los tres modos de fallo del transporte (fichero desaparecido, perfil inválido, rechazo del servidor) y por qué el vigilante tiene que vivir FUERA de lo vigilado.
+sequenceDiagram
+    autonumber
+    participant HOSTCRON as Cron de Hostinger (cada 5 min)
+    participant WATCH as mu mail-transport-watch
+    participant DISCO as Disco del servidor
+    participant RUNTIME as akb-runtime/ (copia de rescate)
+    participant SMTPMU as mu akibara-correo-smtp
+    participant WPMAIL as wp_mail()
+    participant SMTP as smtp.hostinger.com
+    actor Duena as Dueño (en el admin)
+
+    rect rgb(245, 238, 230)
+    Note over WATCH,RUNTIME: Caso A — el fichero del transporte desaparece
+    HOSTCRON->>WATCH: init (prioridad 1, sólo con DOING_CRON)
+    WATCH->>DISCO: ¿está la clase cargada Y enganchada a phpmailer_init?
+    Note over WATCH: has_action() devuelve la PRIORIDAD, y 0 es falsy:<br/>por eso se compara con false !==
+    alt Falta el fichero
+        WATCH->>RUNTIME: lee la copia hermana del docroot
+        RUNTIME-->>DISCO: repone el fichero y anota la reposición (máximo 10)
+        WATCH-->>Duena: aviso rojo NO descartable
+    else Está pero no cargó
+        WATCH-->>Duena: grita y NO lo pisa
+        Note over WATCH: Reponer una copia vieja sobre una nueva<br/>fue como nació un downgrade silencioso
+    else Todo bien
+        WATCH-->>Duena: aviso ámbar si desapareció alguna vez antes
+    end
+    end
+
+    rect rgb(238, 242, 247)
+    Note over SMTPMU,SMTP: Caso B — el perfil SMTP no valida
+    WPMAIL->>SMTPMU: pre_wp_mail (PHP_INT_MAX)
+    SMTPMU-->>WPMAIL: false — corta ANTES de caer al mail() de PHP
+    SMTPMU->>SMTPMU: akibara_mail_transport_outage {kind: blocked, reason, count}
+    SMTPMU-->>Duena: aviso rojo desde el PRIMER corte (es estructural)
+    Note over SMTPMU: record_outage() tiene candado de reentrada:<br/>avisar por correo volvería a entrar en wp_mail
+    end
+
+    rect rgb(238, 247, 239)
+    Note over SMTP,Duena: Caso C — el servidor rechaza
+    WPMAIL->>SMTP: envío
+    SMTP-->>SMTPMU: wp_mail_failed (motivo recortado a 140 caracteres)
+    SMTPMU->>SMTPMU: cuenta rechazos seguidos
+    alt Menos de tres
+        SMTPMU-->>Duena: silencio (uno suelto suele ser una dirección mal escrita)
+    else Tres o más
+        SMTPMU-->>Duena: aviso rojo
+    end
+    end
+
+    WPMAIL->>SMTP: un correo sale de verdad
+    SMTP-->>SMTPMU: wp_mail_succeeded
+    SMTPMU->>SMTPMU: borra el rastro
+    Note over SMTPMU: SÓLO aquí. La sonda de salud del despliegue<br/>borraba la evidencia sin haber enviado nada

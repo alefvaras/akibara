@@ -1,0 +1,177 @@
+/*
+ * Forms — estilos para [akb_form_contacto].
+ *
+ * Cubre layout grid + inputs + submit + radios + feedback. Los inputs se
+ * estilizan acá (no via woocommerce.css) porque el shortcode renderiza el
+ * form con clase .akb-form fuera de cualquier wrapper .woocommerce, lo que
+ * hace que el bloque tokenizado de WC inputs no aplique por specificity.
+ *
+ * Tokens: --aki-surface-2, --aki-border, --radius-md, --touch-target-min,
+ * --text-sm, --space-*, --transition-fast, --aki-red.
+ */
+
+.akb-form {
+    max-width: var(--container-narrow);
+    margin: 0 auto;
+}
+
+.akb-form__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3) var(--space-4);
+}
+
+.akb-form .form-row-wide,
+.akb-form .akb-form__actions {
+    grid-column: 1 / -1;
+}
+
+.akb-form .form-row {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.akb-form label {
+    color: var(--aki-gray-200);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+}
+
+.akb-form .input-text,
+.akb-form select,
+.akb-form textarea {
+    width: 100%;
+    background: var(--aki-surface-2);
+    color: var(--aki-white);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    height: var(--touch-target-min);
+    padding: 0 var(--space-3);
+    font-family: var(--font-body);
+    /* >=16px evita el zoom automático de iOS Safari al enfocar el campo: con
+     * `--text-sm` (13,3px) la página se acerca sola y el cliente pierde de
+     * vista el formulario. Mismo piso que ya usan los campos de WooCommerce. */
+    font-size: max(16px, var(--text-sm));
+    line-height: 1;
+    transition: border-color var(--transition-fast);
+}
+
+.akb-form textarea {
+    height: auto;
+    min-height: calc(var(--touch-target-min) * 2.5);
+    padding: var(--space-3);
+    line-height: 1.5;
+    resize: vertical;
+}
+
+/* Foco: se ELIMINÓ el override fino (border rojo + 1px) — ahora hereda el foco
+   brutalista global de inputs (base.css: borde blanco + sombra dura roja),
+   consistente con el resto del sitio. */
+
+.akb-form .input-text::placeholder,
+.akb-form textarea::placeholder {
+    color: var(--aki-gray-400);
+}
+
+/* Actions row — el .form-row pone flex column por default (para label+input).
+ * Aquí lo override a row para que el botón no estire al 100% del ancho. */
+.akb-form__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: var(--space-2);
+}
+
+/* Submit button — mismo lenguaje visual que .single_add_to_cart_button.
+ * align-self: flex-start dentro del flex column del .form-row evita stretch. */
+.akb-form__submit {
+    align-self: flex-start;
+    min-width: 200px;
+    background: var(--aki-red);
+    color: var(--aki-white);
+    border: 0;
+    border-radius: var(--radius-md);
+    height: var(--touch-target-min);
+    padding: 0 var(--space-6);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.akb-form__submit:hover {
+    background: var(--aki-red-hover);
+}
+
+.akb-form__submit[data-loading="1"] {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+/* El formulario de contacto usa nombre, correo, mensaje, honeypot y botón de envío, con estilos bajo .akb-form. */
+
+/* Honeypot — visualmente oculto, accesible para screen readers que
+ * NO lo leen, pero los bots sí. NO usar display:none/visibility:hidden
+ * (los bots los detectan y skipean). */
+.akb-form__hp {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    height: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+/* Feedback inline */
+.akb-form__feedback {
+    margin-top: var(--space-3);
+    padding: 0 var(--space-3);
+    font-size: var(--text-sm);
+    min-height: 1.5em;
+}
+
+.akb-form__feedback[data-state="success"] {
+    color: var(--aki-success);
+}
+
+.akb-form__feedback[data-state="error"] {
+    color: var(--aki-red);
+}
+
+/* Error de un campo (AI-5): lo inserta akibara-forms.js justo debajo del campo
+ * y lo enlaza con aria-describedby. Texto en --aki-red-text (#FF4756: 5,6:1
+ * sobre el fondo de la página, 5,2:1 sobre el campo) y borde del campo en el
+ * mismo tono; el aviso no depende sólo del color porque además hay texto. */
+.akb-form__error {
+    display: block;
+    color: var(--aki-red-text);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+}
+
+.akb-form [aria-invalid="true"] {
+    border-color: var(--aki-red-text);
+}
+
+/* Mobile: 1 columna + botón full-width (mejor tap target) */
+@media (max-width: 640px) {
+    .akb-form__grid {
+        grid-template-columns: 1fr;
+    }
+    .akb-form .form-row-first,
+    .akb-form .form-row-last {
+        grid-column: 1 / -1;
+    }
+    .akb-form__actions {
+        justify-content: stretch;
+    }
+    .akb-form__submit {
+        align-self: stretch;
+        width: 100%;
+    }
+}

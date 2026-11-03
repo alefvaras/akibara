@@ -1,0 +1,147 @@
+%% Piezas de akibara-cart-checkout-blocks 2.2.17 y sus relaciones. Muestra quien crea a quien,
+%% que hooks de WooCommerce usa cada dominio, que terceros toca y que datos deja.
+flowchart TB
+    subgraph ARRANQUE["Arranque"]
+        BOOT["akibara-cart-checkout-blocks.php<br/>plugins_loaded @30, declara HPOS y bloques"]
+        PLUGIN["Plugin::boot<br/>exige WooCommerce + Business + contrato"]
+        PAGE["BlocksPage<br/>responde: carrito de bloques o pago de bloques"]
+    end
+
+    subgraph CHILE["Campos chilenos"]
+        FIELDS["CheckoutFields<br/>RUT, Celular, Comuna, orden Region antes que Comuna"]
+        DIR["ComunaDirectory<br/>346 comunas, normalize y suggest"]
+        CBX["comuna-combobox.js<br/>lista buscable accesible en el navegador"]
+        RUTJS["checkout-rut.js<br/>gemelo del validador de RUT"]
+        PHONEJS["checkout-phone.js<br/>gemelo del validador de celular"]
+    end
+
+    subgraph PRESENTA["Presentacion del carrito y del pago"]
+        STORE["StoreApiIntegration<br/>publica el payload, SCHEMA_VERSION 2"]
+        ASSETS["Assets<br/>decide que JS y CSS se descargan"]
+        BUNDLE["cart-checkout-blocks.js<br/>pinta packs, barra de envio, preventa"]
+        INNER["CheckoutBlockIntegration<br/>dos bloques internos del pago"]
+        INNERJS["checkout-inner-blocks-*.js<br/>editor y frente de los dos bloques"]
+    end
+
+    subgraph DIRECCION["Direccion"]
+        ADDR["AddressIntegration<br/>enciende el autocompletado solo en el pago"]
+        GPROV["GooglePlacesAddressProvider<br/>identificador unico del proveedor"]
+        GJS["google-places-address-provider.js<br/>busca, traduce region y cruza comuna"]
+    end
+
+    subgraph RETIRO["Retiro en Punto Blue Express"]
+        PUDO["PudoIntegration<br/>pisa el canal bluex_pudo y valida en servidor"]
+        ADAPT["PudoServiceAdapter<br/>envoltorio de siete metodos exactos"]
+        PLOG["PudoLog<br/>una linea por minuto y contexto"]
+        PUDOJS["pudo-blocks.js<br/>tarjeta y dialogo con el mapa"]
+    end
+
+    subgraph PARCHES["Parches y atajos"]
+        RUNTIME["RuntimeCompatibility<br/>cuatro desencolados, Flow, LiteSpeed, Salud del sitio"]
+        SHORT["Shortcodes<br/>titulo y carrito vacio"]
+        CBJS["checkout-blocks.js<br/>accesibilidad de formularios ajenos"]
+    end
+
+    subgraph WOO["WooCommerce"]
+        WC["Hooks de WooCommerce<br/>locale, Store API, envios, validacion"]
+        VALID["wc/store/validation<br/>cualquier clave en error bloquea el pago"]
+    end
+
+    subgraph TERCEROS["Terceros"]
+        BUSINESS["akibara-business<br/>decide precios, stock, fechas y PUDO"]
+        BLUE["bluex-for-woocommerce<br/>catalogo de comunas y canal bluex_pudo"]
+        WIDGET["widget-pudo.blue.cl<br/>mapa de puntos en un iframe"]
+        GOOGLE["Google Places<br/>sugerencias de direccion"]
+        MP["Mercado Pago / Flow / LiteSpeed"]
+        GLOGIN["google-login<br/>bloque permitido dentro del pago"]
+    end
+
+    subgraph DATOS["Datos que deja"]
+        META["ordermeta<br/>_billing_rut, agencyId, isPudoSelected, agencyName, agencyAddress"]
+        OPT["options<br/>akb_blocks_mp_dequeue_observed y tres de solo lectura"]
+        GLOB["globales inlinados<br/>akbComunaData, akbCheckoutInnerBlocks, akbCartCheckoutBlocksGoogle"]
+    end
+
+    CLIENTE(["Cliente"])
+    DUENO(["Dueno"])
+
+    BOOT --> PLUGIN
+    PLUGIN --> PAGE
+    PLUGIN --> FIELDS
+    PLUGIN --> STORE
+    PLUGIN --> RUNTIME
+    PLUGIN --> ASSETS
+    PLUGIN --> SHORT
+    PLUGIN --> ADDR
+    PLUGIN -->|"si interface_exists"| INNER
+    PLUGIN -->|"si Business expone pudo_checkout"| PUDO
+
+    PLUGIN --> DIR
+    DIR --> FIELDS
+    DIR --> ASSETS
+    DIR -->|"lee chile-communes.php"| BLUE
+
+    ASSETS --> BUNDLE
+    ASSETS --> CBX
+    ASSETS --> RUTJS
+    ASSETS --> PHONEJS
+    ASSETS --> CBJS
+    ASSETS --> GJS
+    ASSETS --> GLOB
+    ASSETS -->|"lee options por nombre"| OPT
+
+    FIELDS --> WC
+    FIELDS --> META
+    STORE --> WC
+    STORE --> BUNDLE
+    STORE --> INNERJS
+    INNER --> INNERJS
+    INNER --> GLOB
+    INNERJS -->|"lista blanca de hijos"| GLOGIN
+
+    ADDR --> GPROV
+    ADDR --> GJS
+    GJS --> GOOGLE
+    GJS -->|"cruza contra el catalogo"| DIR
+
+    PUDO --> ADAPT
+    PUDO --> PLOG
+    PUDO --> PUDOJS
+    PUDO --> META
+    ADAPT --> BUSINESS
+    PUDO -->|"pisa el canal y desencola sus ficheros"| BLUE
+    PUDOJS -->|"iframe sin sandbox + postMessage"| WIDGET
+
+    RUNTIME --> MP
+    RUNTIME --> BLUE
+    RUNTIME --> OPT
+
+    PAGE --> ASSETS
+    PAGE --> RUNTIME
+    PAGE --> PUDO
+    PAGE --> ADDR
+    PAGE --> STORE
+
+    PLUGIN -->|"pide el contrato CheckoutDataProvider"| BUSINESS
+    STORE -->|"structured_cart_data"| BUSINESS
+
+    CBX --> VALID
+    RUTJS --> VALID
+    PHONEJS --> VALID
+    PUDOJS --> VALID
+
+    CLIENTE --> CBX
+    CLIENTE --> PUDOJS
+    CLIENTE --> GJS
+    DUENO -->|"Akibara Carrito, en el panel de Business"| OPT
+    DUENO -->|"Herramientas Salud del sitio"| RUNTIME
+
+    classDef propio fill:#e8f0ff,stroke:#2b5cb8,stroke-width:1px,color:#10213f
+    classDef tercero fill:#fff2e0,stroke:#b06a13,stroke-width:1px,color:#3d2405
+    classDef persona fill:#eaf7ea,stroke:#2f7d32,stroke-width:1px,color:#12300f
+    classDef dato fill:#f3eaf9,stroke:#6b3fa0,stroke-width:1px,color:#2a1440
+
+    class BOOT,PLUGIN,PAGE,FIELDS,DIR,CBX,RUTJS,PHONEJS,STORE,ASSETS,BUNDLE,INNER,INNERJS,ADDR,GPROV,GJS,PUDO,ADAPT,PLOG,PUDOJS,RUNTIME,SHORT,CBJS propio
+    class BUSINESS,BLUE,WIDGET,GOOGLE,MP,GLOGIN,WC,VALID tercero
+    class CLIENTE,DUENO persona
+    class META,OPT,GLOB dato

@@ -1,0 +1,38 @@
+{
+  "name": "akibara/business-quality",
+  "description": "Herramientas locales de calidad para Akibara Business; nunca se distribuyen con el plugin.",
+  "type": "project",
+  "license": "proprietary",
+  "require-dev": {
+    "brain/monkey": "^2.7",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "doctrine/instantiator": "^1.5",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^9.6",
+    "squizlabs/php_codesniffer": "^3.10",
+    "wp-coding-standards/wpcs": "^3.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Akibara\\Business\\": "../../public_html/wp-content/plugins/akibara-business/src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Akibara\\Business\\Tests\\": "../../public_html/wp-content/plugins/akibara-business/tests/",
+      "Akibara\\CartCheckoutBlocks\\": "../../public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/",
+      "Akibara\\CartCheckoutBlocks\\Tests\\": "../../public_html/wp-content/plugins/akibara-cart-checkout-blocks/tests/php/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit --configuration phpunit.xml.dist",
+    "sniff": "phpcs --standard=phpcs.xml.dist",
+    "sniff:fix": "phpcbf --standard=phpcs.xml.dist"
+  }
+}

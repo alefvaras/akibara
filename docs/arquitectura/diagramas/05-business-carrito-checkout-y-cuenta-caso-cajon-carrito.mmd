@@ -1,0 +1,63 @@
+%% Caso 1 — del clic en «Añadir al carrito» hasta el cajón pintado.
+%% Qué muestra: por qué el HTML del cajón se sirve vacío, cómo se arma la respuesta AJAX en un solo viaje, dónde entran la barra de envío gratis y los recomendados, y por qué cada respuesta trae un nonce nuevo.
+sequenceDiagram
+  autonumber
+  actor Cliente
+  participant Tema as tema akibara-gp (la tarjeta)
+  participant JS as native-cart.js
+  participant NC as NativeCart (PHP)
+  participant Woo as WooCommerce
+  participant FSP as FreeShippingProgress
+  participant SCR as SmartCartRecommender
+
+  Note over Tema,JS: El HTML del cajón se imprimió VACÍO en wp_footer.<br/>Así la página puede venir de caché sin mentir sobre el carrito.
+
+  Cliente->>Tema: pulsa «Añadir al carrito»
+  Tema->>Woo: AJAX propio de WooCommerce
+  Woo-->>JS: evento added_to_cart
+  JS->>JS: olvida su copia en memoria (si no, se ve el carrito anterior y luego parpadea)
+  JS->>NC: GET /?wc-ajax=akb_get_cart (sin nonce: sólo lee su propia sesión)
+
+  NC->>Woo: recalcula totales SÓLO si nadie lo hizo ya en esta petición
+  NC->>NC: recorre líneas, resuelve cada miniatura una sola vez y lee el máximo comprable
+  NC->>NC: detect_cart_flags — ¿hay algo reservable? ¿arma un pack de serie?
+  NC->>FSP: filtro akb_native_cart_fsp_html
+  FSP-->>NC: el HTML de la barra, o nada si no hay promesa real
+  NC->>Woo: get_cross_sells()
+  Woo->>SCR: filtro woocommerce_cart_crosssell_ids
+  SCR-->>Woo: siguientes tomos de sus series, filtrados por stock EN VIVO
+  Woo-->>NC: la lista final de recomendados
+  NC-->>JS: JSON con líneas, totales, avisos, barra, recomendados y un NONCE NUEVO
+
+  JS->>JS: adopta el nonce (el horneado en el HTML podía venir caducado de una caché de 7 días)
+  JS->>Cliente: pinta el cajón
+
+  alt «Abrir al agregar» encendido
+    JS->>Cliente: el cajón se abre solo
+  else apagado
+    JS->>Cliente: sólo se actualiza el contador del icono
+  end
+
+  alt el carrito lleva algo reservable
+    JS->>Cliente: aviso con la palabra correcta: «pedidos», «preventas» o «preventas y pedidos»
+  end
+
+  alt una línea llega con máximo comprable 0 (se agotó)
+    JS->>Cliente: el botón «+» de esa línea se pinta DESHABILITADO (native-cart.js:610-617)
+    alt el cliente pulsa «−» y la línea tenía 2 o más
+      JS->>NC: POST akb_update_cart_item con cantidad = actual − 1 (> 0)
+      NC-->>JS: retira la línea y devuelve «X se agotó y lo quitamos de tu carrito» (NativeCart.php:458-468)
+      JS->>Cliente: lee el aviso, también con lector de pantalla
+    else el cliente pulsa «−» y la línea tenía 1 sola unidad
+      JS->>NC: POST akb_update_cart_item con cantidad = 0
+      NC-->>JS: borrado SILENCIOSO, sin pasar por el aviso (NativeCart.php:477-479)
+      JS->>Cliente: la línea desaparece sin explicación
+    end
+    Note over JS,NC: Si no toca «−», el tomo agotado sigue sumando al subtotal<br/>y al progreso de envío gratis hasta llegar a /carrito/.
+  end
+
+  alt el añadir al carrito FALLÓ
+    Tema->>NC: GET /?wc-ajax=akb_get_cart&drain_notices=1
+    NC-->>Tema: vacía la cola de errores de ESTA sesión y devuelve su texto
+    Tema->>Cliente: le explica el motivo sin recargar la página
+  end

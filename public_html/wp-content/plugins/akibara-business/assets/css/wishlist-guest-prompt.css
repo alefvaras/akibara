@@ -1,0 +1,176 @@
+/**
+ * Aviso de favoritos para invitados, apagado por defecto. wishlist.js solicita guestStyle sin
+ * bloquear el pintado sólo si está habilitado y no hay sesión; crea el diálogo al primer
+ * toque.
+ *
+ * @package Akibara\Business
+ */
+
+/* ─── Aviso para invitados: «Inicia sesión para guardar tus favoritos» ──
+ * UM-9 (GuestPrompt.php + wishlist.js). Hoja inferior en móvil —como la vista
+ * rápida— y caja centrada en escritorio. El botón rojo es la única acción
+ * fuerte; «Seguir mirando» es secundaria y deja al cliente donde estaba. Los
+ * botones llevan su propio fondo y estados porque GeneratePress y el tema
+ * pintan `button` y `button:active` en todo el sitio. */
+.akb-wl-login {
+	box-sizing: border-box;
+	width: min(440px, calc(100vw - 32px));
+	padding: 0;
+	overscroll-behavior: contain;
+	color: var(--aki-gray-100, #f0f0f0);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid rgb(255 255 255 / 18%);
+	border-top: 4px solid var(--aki-red, #d90010);
+	border-radius: 6px;
+	box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+}
+
+.akb-wl-login::backdrop {
+	background: rgb(0 0 0 / 72%);
+}
+
+html.akb-wl-login-open,
+html.akb-wl-login-open body {
+	overflow: hidden;
+}
+
+.akb-wl-login__head {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	justify-content: space-between;
+	padding: 16px 12px 0 20px;
+}
+
+.akb-wl-login__title {
+	margin: 6px 0 0;
+	color: var(--aki-white, #fff);
+	font-family: var(--font-heading, "Inter", sans-serif);
+	font-size: 26px;
+	font-weight: 400;
+	line-height: 1.15;
+	letter-spacing: 0.02em;
+}
+
+.akb-wl-login .akb-wl-login__close {
+	box-sizing: border-box;
+	display: inline-flex;
+	flex: 0 0 44px;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	color: var(--aki-white, #fff);
+	background: transparent;
+	border: 1px solid rgb(255 255 255 / 28%);
+	border-radius: 3px;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+.akb-wl-login__body {
+	margin: 10px 20px 0;
+	color: var(--aki-gray-200, #d6d6d6);
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.akb-wl-login__actions {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 20px;
+}
+
+.akb-wl-login .akb-wl-login__cta {
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 48px;
+	padding: 12px 18px;
+	color: var(--aki-white, #fff);
+	background: var(--aki-red, #d90010);
+	border-radius: 3px;
+	font-weight: 800;
+	letter-spacing: 0.03em;
+	text-align: center;
+	text-decoration: none;
+	text-transform: uppercase;
+	touch-action: manipulation;
+}
+
+.akb-wl-login .akb-wl-login__dismiss {
+	box-sizing: border-box;
+	min-height: 44px;
+	padding: 10px 18px;
+	color: var(--aki-white, #fff);
+	background: transparent;
+	border: 1px solid rgb(255 255 255 / 28%);
+	border-radius: 3px;
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+@media (hover: hover) {
+	.akb-wl-login .akb-wl-login__cta:hover {
+		color: var(--aki-white, #fff);
+		background: var(--aki-red-hover, #b8000d);
+	}
+
+	.akb-wl-login .akb-wl-login__close:hover,
+	.akb-wl-login .akb-wl-login__dismiss:hover {
+		color: var(--aki-white, #fff);
+		background: rgb(255 255 255 / 10%);
+	}
+}
+
+.akb-wl-login .akb-wl-login__close:active,
+.akb-wl-login .akb-wl-login__dismiss:active,
+.akb-wl-login .akb-wl-login__close:focus,
+.akb-wl-login .akb-wl-login__dismiss:focus {
+	color: var(--aki-white, #fff);
+	box-shadow: none;
+	transform: none;
+}
+
+.akb-wl-login .akb-wl-login__cta:focus-visible,
+.akb-wl-login .akb-wl-login__close:focus-visible,
+.akb-wl-login .akb-wl-login__dismiss:focus-visible {
+	outline: 2px solid var(--aki-white, #ffffff);
+	outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+	.akb-wl-login {
+		position: fixed;
+		inset: auto 0 0 0;
+		width: 100%;
+		max-width: none;
+		margin: 0;
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+		border-right: 0;
+		border-bottom: 0;
+		border-left: 0;
+		border-radius: 12px 12px 0 0;
+		animation: akb-wl-login-rise 0.22s ease-out;
+	}
+
+	.akb-wl-login__title {
+		font-size: 22px;
+	}
+}
+
+@keyframes akb-wl-login-rise {
+	from { transform: translateY(24px); opacity: 0.4; }
+	to { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-wl-login {
+		animation: none;
+	}
+}

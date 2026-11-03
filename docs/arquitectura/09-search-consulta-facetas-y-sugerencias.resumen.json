@@ -1,0 +1,161 @@
+{
+  "titulo": "akibara-search · lo que pasa cuando el cliente busca: motor, facetas, sugerencias y panel",
+  "capitulo": "09-search-consulta-facetas-y-sugerencias",
+  "diagramas": [
+    "09-search-consulta-facetas-y-sugerencias-piezas.svg (fuente: 09-search-consulta-facetas-y-sugerencias-piezas.mmd)",
+    "09-search-consulta-facetas-y-sugerencias-estados-autoridad.svg (fuente: 09-search-consulta-facetas-y-sugerencias-estados-autoridad.mmd)",
+    "09-search-consulta-facetas-y-sugerencias-cron.svg (fuente: 09-search-consulta-facetas-y-sugerencias-cron.mmd)",
+    "09-search-consulta-facetas-y-sugerencias-caso-editorial-equivocada.svg (fuente: 09-search-consulta-facetas-y-sugerencias-caso-editorial-equivocada.mmd)",
+    "09-search-consulta-facetas-y-sugerencias-caso-filtrar-catalogo.svg (fuente: 09-search-consulta-facetas-y-sugerencias-caso-filtrar-catalogo.mmd)",
+    "09-search-consulta-facetas-y-sugerencias-caso-panel-apaga-la-tienda.svg (fuente: 09-search-consulta-facetas-y-sugerencias-caso-panel-apaga-la-tienda.mmd)"
+  ],
+  "componentes": 40,
+  "casos": 10,
+  "crons": [
+    "akb_search_reconcile"
+  ],
+  "terceros": [
+    "WooCommerce",
+    "GeneratePress",
+    "Rank Math",
+    "LiteSpeed Cache",
+    "Cloudflare",
+    "Action Scheduler",
+    "cron de Hostinger"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "08-search-indice-y-rebuild",
+      "por": "SemanticPublication (foto autorizada y comprobante de publicación) · option akb_search_index_gen · tablas wp_akb_search_docs y wp_akb_search_facets"
+    },
+    {
+      "a": "08-search-indice-y-rebuild",
+      "por": "Reconciler::ensure_scheduled() en init:20, que agenda akb_search_reconcile sólo si akb_search_indexing está en yes (Search.php:179-186)"
+    },
+    {
+      "a": "13-tema-akibara-gp",
+      "por": "las ocho funciones puente akibara_search_facets_active/_fail_open/_view/_context, akibara_search_suggest_active, akibara_search_correction, akibara_search_relaxed_notice y akibara_search_demand_gaps (akibara-search.php:113-249 en 0.1.60; en 0.1.75 son nueve, :114-272: entra akibara_search_empty_suggestions, que sólo usa el propio frontend/facets-render.php); el tema solo consume _facets_active y _suggest_active"
+    },
+    {
+      "a": "13-tema-akibara-gp",
+      "por": "atributo data-akb-suggest del campo de búsqueda en header/shell.php:97 y header/mobile-drawer.php:64"
+    },
+    {
+      "a": "akibara-business",
+      "por": "filtro akb_search_effective_price (precio con descuento editorial, consultado por ProductPresenter)"
+    },
+    {
+      "a": "akibara-business",
+      "por": "filtro akb_stock_status_label (vocabulario Disponible / Preventa / Agotado, vía StockLabels)"
+    },
+    {
+      "a": "akibara-business",
+      "por": "filtro akb_search_availability_value (si un tomo reservable es preventa o «a pedido»)"
+    },
+    {
+      "a": "akibara-business",
+      "por": "filtro akb_search_query_vars (una ruta curada como /preventas/ preselecciona una faceta)"
+    },
+    {
+      "a": "akibara-business",
+      "por": "akibara_search_demand_gaps() alimenta «Lo más solicitado» del Centro de Mando (DemandGaps + GapDismissals)"
+    },
+    {
+      "a": "04-business-disponibilidad-preventa-y-avisos",
+      "por": "la faceta Disponibilidad y la penalización onbackorder del Scorer (Scorer.php:76-80), que no distingue a pedido de preventa"
+    },
+    {
+      "a": "06-business-panel-descuentos-textos-y-portada",
+      "por": "SearchAdminSection vive dentro del panel akibara-panel y comparte AuditLog"
+    },
+    {
+      "a": "WooCommerce",
+      "por": "woocommerce_product_query:20, woocommerce_before_shop_loop, woocommerce_no_products_found, woocommerce_page_title y la lista de woocommerce_catalog_orderby"
+    },
+    {
+      "a": "GeneratePress",
+      "por": "is_active_sidebar y dynamic_sidebar_before:4 (la barra lateral de filtros)"
+    },
+    {
+      "a": "Rank Math",
+      "por": "lectura de la termmeta rank_math_robots y filtros rank_math/frontend/title y rank_math/json_ld en prioridad 20"
+    },
+    {
+      "a": "LiteSpeed Cache",
+      "por": "litespeed_control_set_nocache y do_action('litespeed_purge','akb_search_rest') — carril muerto: litespeed_tag_add no se llama nunca (RestCache.php:77, :95-97)"
+    },
+    {
+      "a": "Cloudflare",
+      "por": "cabeceras CDN-Cache-Control y Cloudflare-CDN-Cache-Control emitidas por RestCache::no_store() (RestCache.php:105-118)"
+    },
+    {
+      "a": "08-search-indice-y-rebuild",
+      "por": "src/Arrival.php: Search::register() lo engancha incondicionalmente (Search.php:143) pero sólo ESCRIBE metas-fuente (_akb_onbackorder_at, _akb_first_instock_at) que ningún consumidor lee todavía; su ficha vive en la mitad que escribe"
+    },
+    {
+      "a": "akibara-business",
+      "por": "akibara_search_demand_gaps() corta en 10 filas por defecto (akibara-search.php:189-196) mientras el panel del buscador corta en 8 (SearchAdminSection.php:1176)"
+    }
+  ],
+  "rutas_rest": [
+    "GET  /wp-json/akibara/v1/search/suggest — pública, 60/min (SuggestController)",
+    "GET  /wp-json/akibara/v1/search/popular — pública, 60/min (SuggestController)",
+    "POST /wp-json/akibara/v1/search/track — pública, 20/min (SuggestController)",
+    "GET  /wp-json/akibara/v1/search/count — pública, 120/min (FacetQueryIntegration:218)",
+    "GET  /wp-json/akibara/v1/search/admin-status — operadores, exige manage_woocommerce y nonce; registrada SIEMPRE (Search.php:152 y :195-200)"
+  ],
+  "pantallas": {
+    "menu": "Akibara → Buscador; fallback a menú de primer nivel si akibara-business no registró el suyo (SearchAdminSection.php:110-140)",
+    "rutas": "admin.php?page=akibara-search&sub=<slug> con los slugs indice, busquedas, facetas, precios, sinonimos, stopwords, ajustes (SearchAdminSection.php:512-520)"
+  },
+  "cli": [
+    "wp akb-search status",
+    "wp akb-search rebuild",
+    "wp akb-search reindex <id>",
+    "wp akb-search reconcile",
+    "El panel publica tres de las cuatro en «Diagnóstico técnico y comandos CLI» (SearchAdminSection.php:1008 y :1079); reindex no aparece en ninguna pantalla"
+  ],
+  "options_vigiladas": [
+    "akb_search_synonyms",
+    "akb_search_stopwords",
+    "akb_search_fuzzy",
+    "akb_search_sku_fastpath",
+    "akb_search_facets_config",
+    "akb_search_precio_buckets",
+    "akb_search_precio_mode",
+    "akb_search_novedad",
+    "akb_search_popular_enabled",
+    "default_product_cat",
+    "akb_search_indexing",
+    "akb_search_suggest",
+    "akb_search_facets"
+  ],
+  "nota_options_vigiladas": "Son trece (SemanticPublication.php:65-79). default_product_cat es de WooCommerce: se puede cerrar la foto autorizada y apagar los tres servicios desde WooCommerce → Ajustes → Productos, una pantalla que no es del buscador.",
+  "pendiente_de_medir": [
+    "N1 · el grupo de Series no sale con la consulta rescatada (SuggestController.php:334 y frontend/facets-render.php:413): esperado por lectura del código, sin medir en el espejo",
+    "Las tres puertas del Caso 10 (sinónimo de 5 fichas, stopword > 64, etiqueta de faceta > 100) y los tres pasos del arreglo",
+    "Los conteos del catálogo entero en un archivo sin faceta dueña (/product-tag/…/)"
+  ],
+  "nota_verificacion": "verificacion.json del área (cobertura estimada 78): nada está medido en el espejo, todo es lectura de código. Las mediciones citadas con fecha en el capítulo son previas y ajenas a esa pasada.",
+  "actualizacion_2026_09_26": {
+    "version": "0.1.75 (en produccion 2026-09-26 06:08 UTC)",
+    "leido_contra": "dist/akibara-search-0.1.75.zip",
+    "componente_nuevo": "EmptyStateSuggestions: «Quizá buscabas» (serie parecida) y «Lo más buscado» en el aviso de sin resultados",
+    "funciones_puente": 9,
+    "hooks_nuevos": [
+      "accion akibara_search_empty_after($q, $motivo) dentro de [data-akb-empty] (la usa el tema)",
+      "filtro akb_search_result_count_extra (lo usa business para «Último tomo»)"
+    ],
+    "options_nuevas_no_vigiladas": [
+      "akb_search_empty_hint_filters",
+      "akb_search_empty_suggestions",
+      "akb_search_empty_series_label",
+      "akb_search_empty_popular_label",
+      "akb_search_empty_tail_words"
+    ],
+    "abiertos_al_desplegar": [
+      "PROD-COMP-1 (Escape reabre el desplegable)",
+      "PS-S-1 (WebKit: enlace durante un PJAX)"
+    ]
+  }
+}

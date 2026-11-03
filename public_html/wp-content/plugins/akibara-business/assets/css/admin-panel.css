@@ -1,0 +1,508 @@
+/* Akibara Business admin shell */
+.akb-panel {
+	--akb-admin-red: #d90010;
+	--akb-admin-ink: #171717;
+	--akb-admin-paper: #ffffff;
+	--akb-admin-wash: #f5f5f5;
+	--akb-admin-line: #d7d7d7;
+	--akb-admin-yellow: #ffd401;
+}
+
+.akb-panel-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 16px 0 14px;
+}
+
+.akb-panel-header h1 {
+	color: var(--akb-admin-red);
+	font-size: 26px;
+	font-weight: 700;
+	margin: 0;
+	line-height: 1;
+}
+
+.akb-panel-version {
+	background: var(--akb-admin-red);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 10px;
+	letter-spacing: .04em;
+}
+
+.akb-panel-shell {
+	display: grid;
+	grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+	gap: 20px;
+	align-items: start;
+	max-width: 1280px;
+}
+
+.akb-panel-sidebar {
+	position: sticky;
+	top: 44px;
+}
+
+.akb-panel-section-select {
+	display: none;
+	width: 100%;
+	max-width: 100%;
+	margin: 0 0 12px;
+}
+
+.akb-panel-nav {
+	display: grid;
+	gap: 6px;
+	padding: 10px;
+	background: var(--akb-admin-ink);
+	border: 2px solid #000;
+	box-shadow: 6px 6px 0 var(--akb-admin-red);
+}
+
+.akb-panel-nav__link {
+	/*
+	 * Área táctil mínima de 44px. border-box incluye el relleno en la altura total y evita que el
+	 * content-box administrativo la aumente.
+	 */
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	min-height: 44px;
+	padding: 10px 12px;
+	color: #fff;
+	text-decoration: none;
+	font-weight: 800;
+	line-height: 1.2;
+	border-left: 4px solid transparent;
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.akb-panel-nav__link:hover,
+.akb-panel-nav__link:focus {
+	color: #000;
+	background: var(--akb-admin-yellow);
+	outline: 2px solid #000;
+	outline-offset: 1px;
+}
+
+.akb-panel-nav__link.is-active {
+	color: #fff;
+	background: var(--akb-admin-red);
+	border-left-color: var(--akb-admin-yellow);
+}
+
+.akb-panel-content {
+	min-width: 0;
+	background: var(--akb-admin-paper);
+	border-top: 4px solid var(--akb-admin-red);
+	padding: 18px 20px 8px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.akb-panel-current-title {
+	margin: 0 0 16px;
+	font-size: 20px;
+	line-height: 1.25;
+	color: var(--akb-admin-ink);
+}
+
+.akb-panel-form {
+	margin-top: 0;
+}
+
+.akb-panel .form-table {
+	margin-top: 0;
+	table-layout: fixed;
+}
+
+.akb-panel .form-table th {
+	width: 240px;
+	padding: 14px 10px 14px 0;
+}
+
+.akb-panel .form-table td {
+	padding: 12px 10px;
+}
+
+/*
+ * Los selectores de email y url superan la especificidad de forms.css de wp-admin para limitar
+ * campos con anchos en línea dentro de su celda móvil.
+ */
+.akb-panel .form-table input[type="text"],
+.akb-panel .form-table input[type="email"],
+.akb-panel .form-table input[type="url"],
+.akb-panel .form-table input[type="number"],
+.akb-panel .form-table input[type="password"],
+.akb-panel .form-table textarea,
+.akb-panel .form-table select {
+	max-width: 100%;
+}
+
+.akb-panel .form-table .description {
+	max-width: 640px;
+}
+
+/*
+ * El documento es el contenedor de scroll del panel. scroll-padding-bottom reserva la altura
+ * real de la barra de guardado, publicada por admin-panel.js en --akb-panel-barra-alto, más
+ * aire. El respaldo 121px conserva espacio si JavaScript no mide la barra.
+ */
+:root {
+	--akb-panel-barra-alto: 121px;
+	--akb-panel-barra-aire: 16px;
+}
+
+html {
+	scroll-padding-bottom: calc(var(--akb-panel-barra-alto) + var(--akb-panel-barra-aire));
+}
+
+.akb-panel .submit {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	margin: 20px -20px 0;
+	padding: 12px 20px;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), #fff 30%);
+	border-top: 1px solid var(--akb-admin-line);
+}
+
+@media (max-width: 960px) {
+	.akb-panel-header {
+		flex-wrap: wrap;
+	}
+
+	.akb-panel-shell {
+		display: block;
+	}
+
+	.akb-panel-sidebar {
+		position: static;
+		margin-bottom: 12px;
+	}
+
+	.akb-panel-section-select {
+		display: block;
+	}
+
+	.akb-panel-nav {
+		display: none;
+	}
+
+	.akb-panel-content {
+		padding: 16px 14px 4px;
+	}
+
+	.akb-panel .form-table,
+	.akb-panel .form-table tbody,
+	.akb-panel .form-table tr,
+	.akb-panel .form-table th,
+	.akb-panel .form-table td {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.akb-panel .form-table th {
+		padding: 12px 0 4px;
+	}
+
+	.akb-panel .form-table td {
+		padding: 4px 0 12px;
+	}
+
+	.akb-panel .submit {
+		margin-inline: -14px;
+		padding-inline: 14px;
+	}
+}
+
+@media (max-width: 782px) {
+	.akb-panel-header {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.akb-panel-header .notice {
+		margin: 0;
+	}
+
+	.akb-panel-version {
+		align-self: flex-start;
+	}
+}
+
+/* BackInStock — tabla "Lista de espera / demanda por producto".
+ * Piso robusto: la tabla nunca empuja la página ni recorta texto en los bordes;
+ * el scroll horizontal (si hiciera falta) queda acotado a su propia envoltura. */
+.akb-bis-demand {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+/* En móvil (breakpoint de wp-admin) reapilamos cada fila como tarjeta: el
+ * encabezado de columna se rehidrata desde data-label. Sin overflow, sin
+ * recortes, legible con el pulgar.
+ *
+ * Lo comparten la tabla de demanda de «Avísame cuando llegue» y la de
+ * «Preventas»: mismo problema (muchas columnas en 375px) y misma solución, así
+ * que se listan juntas en vez de duplicar el bloque entero. */
+@media (max-width: 782px) {
+	.akb-bis-demand,
+	.akb-preventas__wrap {
+		overflow-x: visible;
+	}
+
+	.akb-bis-demand__table,
+	.akb-preventas__table,
+	.akb-bis-demand__table tbody,
+	.akb-preventas__table tbody,
+	.akb-bis-demand__table tr,
+	.akb-preventas__table tr,
+	.akb-bis-demand__table td,
+	.akb-preventas__table td {
+		display: block;
+		width: auto;
+	}
+
+	.akb-bis-demand__table thead,
+	.akb-preventas__table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.akb-bis-demand__table tr,
+	.akb-preventas__table tr {
+		margin: 0 0 12px;
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		background: #fff;
+		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	}
+
+	.akb-bis-demand__table.striped > tbody > tr:nth-child(odd),
+	.akb-preventas__table.striped > tbody > tr:nth-child(odd) {
+		background: #fff;
+	}
+
+	.akb-bis-demand__table td,
+	.akb-preventas__table td {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 12px;
+		width: auto;
+		/* Anula los anchos fijos inline (width:110px/160px) del <th> heredados. */
+		max-width: none;
+		padding: 8px 12px;
+		border-bottom: 1px solid #f0f0f1;
+		text-align: right;
+		word-break: break-word;
+	}
+
+	.akb-bis-demand__table td:last-child,
+	.akb-preventas__table td:last-child {
+		border-bottom: 0;
+	}
+
+	.akb-bis-demand__table td::before,
+	.akb-preventas__table td::before {
+		content: attr(data-label);
+		flex: 0 0 auto;
+		margin-right: 12px;
+		color: #50575e;
+		font-weight: 600;
+		text-align: left;
+	}
+
+	.akb-bis-demand__table td[data-label="Producto"],
+	.akb-preventas__table td[data-label="Tomo"] {
+		text-align: left;
+		font-weight: 600;
+	}
+}
+
+/*
+ * La tabla SeriesFollow está dentro de form-table. Usa breakpoint 960 y prefijo .akb-panel
+ * para ganar a la regla que reapila celdas WooCommerce; no comparte la geometría BIS de 782px.
+ */
+.akb-sf-pending {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 960px) {
+	.akb-sf-pending {
+		overflow-x: visible;
+	}
+
+	.akb-panel .akb-sf-pending__table,
+	.akb-panel .akb-sf-pending__table tbody,
+	.akb-panel .akb-sf-pending__table tr,
+	.akb-panel .akb-sf-pending__table td {
+		display: block;
+		width: auto;
+	}
+
+	.akb-panel .akb-sf-pending__table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.akb-panel .akb-sf-pending__table tr {
+		margin: 0 0 12px;
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		background: #fff;
+		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	}
+
+	.akb-panel .akb-sf-pending__table.striped > tbody > tr:nth-child(odd) {
+		background: #fff;
+	}
+
+	.akb-panel .akb-sf-pending__table td {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 12px;
+		width: auto;
+		max-width: none;
+		padding: 8px 12px;
+		border-bottom: 1px solid #f0f0f1;
+		text-align: right;
+		word-break: break-word;
+	}
+
+	.akb-panel .akb-sf-pending__table td:last-child {
+		border-bottom: 0;
+	}
+
+	.akb-panel .akb-sf-pending__table td::before {
+		content: attr(data-label);
+		flex: 0 0 auto;
+		margin-right: 12px;
+		color: #50575e;
+		font-weight: 600;
+		text-align: left;
+	}
+
+	.akb-panel .akb-sf-pending__table td[data-label="Serie"] {
+		text-align: left;
+		font-weight: 600;
+	}
+}
+
+/*
+ * Separadores de grupos de navegación del panel.
+ */
+.akb-panel-nav__group {
+	display: block;
+	margin: 14px 12px 4px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: #8c8f94;
+}
+.akb-panel-nav__group:first-child {
+	margin-top: 4px;
+}
+
+/*
+ * Contiene el scroll horizontal en la envoltura de la tabla de cortes. Los campos de WordPress
+ * y selectWoo no deben superar el ancho de sus celdas.
+ */
+.akb-cortes-form {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.akb-panel-content input[type="text"],
+.akb-panel-content input[type="email"],
+.akb-panel-content input[type="url"],
+.akb-panel-content input[type="number"],
+.akb-panel-content input[type="password"],
+.akb-panel-content textarea,
+.akb-panel-content select {
+	/* Los campos de la Settings API traen `min-width` inline (320-360 px);
+	 * min-width gana a max-width, así que hay que soltarlo. */
+	min-width: 0 !important;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* WooCommerce fija `min-width: 400px !important` con
+ * `.woocommerce table.form-table .select2-container` (0,3,1): hace falta
+ * más especificidad, no más !important. */
+body .akb-panel-content table.form-table .select2-container,
+.akb-panel-content .select2-container {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
+
+/* Contador de caracteres por línea (admin-panel.js, `data-akb-line-max`):
+ * avisa en rojo cuando alguna línea se cortaría en móvil; no bloquea. */
+.akb-panel .akb-line-counter {
+	margin: 4px 0 0;
+}
+.akb-panel .akb-line-counter.is-over {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+/* Buscador rápido de ajustes y navegación optimizada */
+.akb-panel-search {
+	margin-bottom: 8px;
+}
+.akb-panel-search__input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 8px 12px;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	color: #fff;
+	font-size: 13px;
+	border-radius: 4px;
+	transition: border-color 150ms ease, background 150ms ease;
+}
+.akb-panel-search__input:focus {
+	outline: none;
+	border-color: var(--akb-admin-yellow);
+	background: rgba(255, 255, 255, 0.14);
+	box-shadow: 0 0 0 2px rgba(255, 212, 1, 0.25);
+}
+.akb-panel-search__input::placeholder {
+	color: rgba(255, 255, 255, 0.5);
+}
+
+.akb-panel-nav__link.is-hidden,
+.akb-panel-nav__group.is-hidden {
+	display: none !important;
+}
+
+/* Transiciones fluidas de contenido (Client-Side Swap) */
+.akb-panel-content {
+	transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.akb-panel-content.is-loading {
+	opacity: 0.5;
+	pointer-events: none;
+}
+

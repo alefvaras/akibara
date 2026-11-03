@@ -1,0 +1,62 @@
+%% Caso del capítulo 09 — «jujutsu kaisen ivrea» en el desplegable: el rescate de editorial.
+%% Qué muestra: el camino completo desde la tecla hasta las siete tarjetas, las cuatro bifurcaciones que lo desvían, y el punto exacto donde el grupo de Series se pierde porque la consulta que se le pasa es la CRUDA y no la rescatada.
+sequenceDiagram
+    autonumber
+    actor Cliente as Cliente
+    participant JS as search-suggest.js
+    participant CTRL as SuggestController
+    participant RL as Support RateLimit
+    participant ENG as QueryEngine
+    participant BT as BrandTokens
+    participant PRES as ProductPresenter
+    participant WOO as WooCommerce y akibara-business
+    participant SER as SeriesSuggestions
+
+    Cliente->>JS: teclea "jujutsu kaisen ivrea"
+    JS->>JS: espera 220 ms y cancela la petición anterior
+    JS->>JS: ¿está en la memoria de 60 segundos, hasta 50 respuestas?
+
+    alt Ya la tenía
+        JS-->>Cliente: pinta sin salir a la red
+    else No la tenía
+        JS->>CTRL: GET /wp-json/akibara/v1/search/suggest?q=jujutsu+kaisen+ivrea
+        CTRL->>CTRL: captura el comprobante de publicación ANTES de leer nada
+
+        alt La foto de configuración está cerrada o falta el comprobante
+            CTRL-->>JS: 503 code index_unavailable
+            JS-->>Cliente: "No pudimos cargar sugerencias. Presiona Enter para buscar igual."
+            Note over CTRL,JS: Si lo caído es el comprobante de publicación,<br/>el tema ni siquiera marcó el campo:<br/>akibara_search_suggest_active() da false<br/>y el desplegable queda mudo, sin 503 visible.<br/>En el catálogo pasa igual por el otro camino:<br/>facets_active() da false porque current() es null
+        else Todo en pie
+            CTRL->>RL: ¿va por debajo de 60 por minuto para esta IP?
+            alt Se pasó
+                RL-->>CTRL: sí, limitado
+                CTRL-->>JS: 429 no-store
+            else Dentro del techo
+                CTRL->>ENG: suggest, recortado a 128 caracteres y 10 fichas
+                ENG->>ENG: normaliza, descarta relleno, expande sinónimos por segmentos
+                ENG->>ENG: JOIN por ficha contra wp_akb_search_tokens
+                ENG-->>ENG: CERO candidatos
+                ENG->>BT: ¿qué palabra nombra sólo una editorial?
+                BT-->>ENG: "ivrea": está en product_brand y en ningún título, serie, autor ni SKU
+                ENG->>ENG: suelta "ivrea", reintenta, encuentra 31 tomos
+                ENG->>ENG: vuelve a puntuar contra "jujutsu kaisen" con Scorer
+                ENG-->>CTRL: 14 identificadores más el aviso relaxed dentro del propio retorno
+                CTRL->>PRES: hidrata hasta 14 tarjetas
+                PRES->>WOO: título, foto, precio con descuento editorial y sello de stock
+                WOO-->>PRES: datos vivos
+                alt Un producto no existe o su estado no coincide
+                    PRES-->>CTRL: se cierra el LOTE ENTERO, nunca una respuesta parcial
+                else Lote sano
+                    PRES-->>CTRL: tarjetas sanas, se muestran 7
+                end
+                CTRL->>SER: suggest con la consulta CRUDA "jujutsu kaisen ivrea"
+                SER-->>CTRL: array vacío — ninguna serie casa con la editorial pegada
+                Note over CTRL,SER: DEFECTO N1 (esperado por lectura del código,<br/>todavía SIN medir en el espejo): el resaltado y el total<br/>del pie sí caen a "jujutsu kaisen" — esta llamada no.<br/>El caso estrella pierde su bloque de Series
+                CTRL->>ENG: total del pie por el MISMO camino de la página destino
+                CTRL->>CTRL: revalida el comprobante y emite Cache-Control no-store<br/>más CDN-Cache-Control y Cloudflare-CDN-Cache-Control en no-store<br/>(se verifican con curl -I sobre la misma URL)
+                CTRL-->>JS: aviso, series vacías, 7 tarjetas y total 31
+                JS-->>Cliente: "No tenemos jujutsu kaisen de Ivrea. Esto es lo que tenemos de jujutsu kaisen." y "Ver los 31 resultados"
+            end
+        end
+    end
+    Note over Cliente,SER: Correos que salen en todo el caso: ninguno

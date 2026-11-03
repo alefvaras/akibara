@@ -1,0 +1,39 @@
+%% Título: Las prioridades de woocommerce_no_products_found y por qué el botón
+%% "Filtrar" acaba al final de la página
+%% Qué muestra: el orden real en el que se imprime la pantalla "sin resultados",
+%% comparado con el orden de la rama que SÍ tiene resultados. Es §5.2 entero.
+%% Rojo = el efecto no deseado. Verde = cómo se ve la rama que funciona bien.
+flowchart TB
+  classDef woo fill:#FDF0E3,stroke:#B36B00,stroke-width:2px,color:#4A2C00
+  classDef tema fill:#E8F0FE,stroke:#1A4FBF,stroke-width:2px,color:#0B2545
+  classDef malo fill:#FBEAEA,stroke:#B02A2A,stroke-width:2px,color:#4A0E0E
+  classDef bien fill:#EAF7EC,stroke:#1E7B34,stroke-width:2px,color:#0E3A18
+  classDef nota fill:#F3F0F7,stroke:#6B4BA1,stroke-width:1px,color:#2E1A4A
+
+  subgraph VACIA["Rama SIN resultados — gancho woocommerce_no_products_found"]
+    direction TB
+    V10["PRIORIDAD 10 · WooCommerce<br/>wc_no_products_found() sirve loop/no-products-found.php ENTERA:<br/>titular + los seis chips + la rejilla de 4 más vendidos + el cierre con contacto"]:::woo
+    V11["PRIORIDAD 11 · tema<br/>akibara_gp_open_shop_toolbar() — inc/flyout-button.php:118"]:::tema
+    V13["PRIORIDAD 13 · tema<br/>akibara_gp_render_flyout_trigger() — inc/flyout-button.php:84<br/>el botón «Filtrar (N)»"]:::tema
+    V14["PRIORIDAD 14 · tema<br/>akibara_gp_close_shop_toolbar() — inc/flyout-button.php:133"]:::tema
+    V10 --> V11 --> V13 --> V14
+  end
+
+  Resultado["LO QUE VE EL CLIENTE<br/>El único control para DESHACER el filtro queda debajo de todo.<br/>En móvil son dos pantallas de desplazamiento: quien acaba de dejar la lista<br/>en cero ve primero cuatro productos que no buscaba."]:::malo
+  V14 --> Resultado
+
+  subgraph CONRES["Rama CON resultados — gancho woocommerce_before_shop_loop"]
+    direction TB
+    C4["PRIORIDAD 4 · tema<br/>akibara_gp_open_shop_toolbar() — inc/flyout-button.php:117"]:::tema
+    C7["PRIORIDAD 7 · tema<br/>akibara_gp_render_flyout_trigger() — inc/flyout-button.php:83"]:::tema
+    C35["PRIORIDAD 35 · tema<br/>akibara_gp_close_shop_toolbar() — inc/flyout-button.php:132"]:::tema
+    CRejilla["Después: la rejilla de productos"]:::woo
+    C4 --> C7 --> C35 --> CRejilla
+  end
+
+  Bien["Aquí el botón sale ARRIBA, antes de la rejilla, que es donde sirve."]:::bien
+  CRejilla --> Bien
+
+  Arreglo["ARREGLO PROPUESTO<br/>Bajar las tres prioridades de la rama vacía por debajo de 10 —<br/>por ejemplo 4 / 7 / 8, imitando la rama que ya funciona."]:::nota
+  Resultado -.-> Arreglo
+  Bien -.-> Arreglo

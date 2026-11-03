@@ -1,0 +1,41 @@
+%% Caso del capítulo 07 — un agente de IA pregunta dónde comprar manga en Chile.
+%% Qué muestra: las dos superficies para agentes (el fichero físico llms.txt y la negociación de contenido), por qué Chrome sigue recibiendo HTML, y que los alias 301 corren aunque el interruptor esté apagado.
+sequenceDiagram
+    autonumber
+    actor Agente as Agente de IA
+    actor Chrome as Navegador de una persona
+    participant HT as .htaccess / servidor
+    participant MD as MarkdownNegotiation
+    participant PARSER as AcceptParser
+    participant WP as WordPress + Rank Math
+    participant CF as Cloudflare
+
+    Agente->>HT: GET /llms.txt
+    HT-->>Agente: el fichero FÍSICO del docroot
+    Note over HT: Gana al llms.txt de Rank Math porque el .htaccess<br/>sirve los ficheros existentes antes de tocar el rewrite
+    Agente->>HT: GET /llms-full.txt
+    HT-->>Agente: lo mismo con los tomos de cada serie
+
+    Agente->>MD: GET /producto/berserk-43/ con Accept: text/markdown
+
+    alt El interruptor akb_markdown_negotiation_enabled está en «no» (NO es el estado de producción)
+        MD-->>Agente: HTML normal
+        Note over MD: Pero redirigir_alias SÍ corre: /about/, /privacy/,<br/>/contact/, /shipping/, /returns/, /terms/ siguen en 301
+    else Hay sesión iniciada, o es admin/AJAX/cron/REST/feed
+        MD-->>Agente: HTML normal (nunca se negocia)
+    else Encendido y petición pública GET/HEAD
+        MD->>PARSER: ordena por q, luego especificidad, luego preferencia del servidor
+        PARSER-->>MD: text/markdown gana
+        MD->>CF: Cache-Control no-store + CDN-Cache-Control + LiteSpeed nocache
+        MD-->>Agente: la MISMA URL en texto plano, con precio, disponibilidad y SKU
+        Note over MD,CF: Vary: Accept es obligatorio por contrato,<br/>pero Cloudflare sólo varía por Accept-Encoding:<br/>hace falta una regla de borde
+    end
+
+    Chrome->>MD: GET /producto/berserk-43/ con el Accept de un navegador (comodín con q=0,8)
+    MD->>PARSER: ese comodín TAMBIÉN acepta markdown, con q=0,8
+    PARSER-->>MD: empate resuelto a favor de HTML (va primero en OFRECIDOS)
+    MD->>WP: sigue el flujo normal
+    WP-->>Chrome: HTML, más la cabecera Link rel=alternate type=text/markdown
+    Note over MD,Chrome: Esa cabecera (RFC 8288) es la quinta pieza del contrato:<br/>anuncia la variante a quien DESCUBRE en vez de negociar
+
+    Note over MD: Huecos conocidos: publica el conteo BRUTO de WordPress,<br/>no consulta rank_math_robots, y no excluye carrito ni checkout

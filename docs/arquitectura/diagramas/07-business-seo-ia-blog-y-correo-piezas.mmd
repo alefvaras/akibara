@@ -1,0 +1,154 @@
+%% Piezas del capítulo 07 — akibara-business · SEO, descubribilidad por IA, blog y todo el correo.
+%% Qué muestra: las 30 piezas agrupadas por dominio (SEO e indexación, imagen social, agentes de IA, blog, correo), los terceros con los que hablan, los datos que dejan y quién las opera.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    CLIENTE["Cliente<br/>busca en Google, comparte por WhatsApp, lee el correo"]:::persona
+    DUENO["Dueño<br/>edita el SEO de una serie y los textos de los correos"]:::persona
+    AGENTE["Agente de IA<br/>ChatGPT, Claude, Perplexity"]:::persona
+
+    subgraph SEO["SEO — lo que Google lee"]
+        ENH["SeoEnhancements<br/>título, descripción y el texto editorial de los archivos"]:::propio
+        LASTMOD["SeriesSitemapLastmod<br/>la fecha del sitemap que no debe mentir"]:::propio
+        FILTRADAS["FilteredUrlsPolicy<br/>noindex a las URLs con filtros, y 404 si no hay nada"]:::propio
+        PAGINA["SeriesPaginationPolicy<br/>las páginas 2+ de una serie sí se indexan"]:::propio
+        DIRECTORIO["SeriesDirectorySearchPolicy<br/>/series/ es un solo documento"]:::propio
+        ORDEN["ProductSitemapStableOrder<br/>desempate por ID en el sitemap de productos"]:::propio
+        ADMINUI["RankMathAdminUi<br/>permite el robots.txt virtual, retira el editor de .htaccess"]:::propio
+    end
+
+    subgraph SCHEMA["Datos estructurados"]
+        SPRM["SchemaProductRankMath<br/>un solo dueño del nodo Product; preventa vs a pedido"]:::propio
+        BOOK["BookSchemaEnricher<br/>autor, editorial, ISBN validado, serie y tomo"]:::propio
+        SHOPPING["ProductSchemaShopping<br/>devoluciones y precio de lista tachado"]:::propio
+        ADULTO["AdultContentFeed<br/>declara +18 en el feed de Merchant"]:::propio
+        GRAFO["SchemaGraph<br/>el orden de las etapas, por escrito"]:::propio
+    end
+
+    subgraph SOCIAL["Imagen social"]
+        SOC["SeoSocial<br/>la portada del tomo 01, y el cambio a JPG<br/>SOLO cuando la hermana ya existe"]:::propio
+        DERIV["SocialImageDerivatives<br/>la fábrica de hermanas -og.jpg"]:::propio
+    end
+
+    subgraph IA["Agentes de IA"]
+        LLMS["LlmsManifest<br/>escribe /llms.txt y es la pestaña Salud SEO"]:::propio
+        MD["MarkdownNegotiation<br/>la misma URL en Markdown (prod: ENCENDIDO)<br/>+ 8 alias en inglés que corren aunque esté apagado"]:::propio
+        PARSER["AcceptParser<br/>lee la cabecera Accept como manda la norma"]:::propio
+    end
+
+    subgraph BLOG["Blog"]
+        BL["Blog<br/>enlaza la primera mención de cada serie"]:::propio
+    end
+
+    subgraph CORREO["Correo"]
+        FROM["MailFrom<br/>un solo remitente, sin excepciones"]:::propio
+        BOOT["MailerBoot<br/>arranca el motor antes de buscarlo"]:::propio
+        BASE["AkibaraEmail<br/>base de los 4 correos propios; multipart y baja en un clic"]:::propio
+        BRAND["EmailBrand<br/>botón legible y Ver mi pedido"]:::propio
+        BTN["EmailButton<br/>el único botón de correo de la casa"]:::propio
+        PLANT["8 plantillas<br/>4 correos en HTML y en texto plano"]:::propio
+    end
+
+    subgraph MU["mu-plugins del carril"]
+        SMTP["akibara-correo-smtp<br/>el transporte; corta y deja rastro si no valida"]:::propio
+        WATCH["akibara-mail-transport-watch<br/>vigila desde fuera que el transporte exista"]:::propio
+        CAPTURA["akibara-correo-no-sale-a-clientes<br/>fuera de producción todo va a la bandeja de captura"]:::propio
+        BREVOMU["akibara-brevo-portada-jpg-en-el-carrito<br/>ventana 9-11: a Brevo se le da JPG"]:::propio
+        WARM["akibara-discovery-warming<br/>los sitemaps se cachean 4 h en el CDN"]:::propio
+        HTTPS["akibara-https-urls-fuera-de-web<br/>https también desde cron y línea de comandos"]:::propio
+    end
+
+    subgraph COMPARTIDO["Autoridades de otros carriles (capítulo 03)"]
+        ELEGIB["SeriesCatalogEligibility<br/>¿esta serie tiene catálogo público de verdad?"]:::propio
+        INDEX["SeriesIndex<br/>el conjunto de series que existe para el público"]:::propio
+        FACTS["SeriesFacts<br/>tomos, autoría, editorial y precio mínimo"]:::propio
+        SSCHEMA["SeriesSchema (etapa 91)<br/>publica el ComicSeries de la landing, @id = url#serie"]:::propio
+    end
+
+    RANKMATH["Rank Math<br/>dueño oficial de title, robots, canonical y sitemap"]:::tercero
+    WOO["WooCommerce<br/>la tienda y sus ~9 correos de pedido"]:::tercero
+    LSC["LiteSpeed Cache<br/>caché de página"]:::tercero
+    CF["Cloudflare<br/>caché de borde"]:::tercero
+    GLA["Google Listings and Ads<br/>feed de Merchant"]:::tercero
+    HOST["smtp.hostinger.com<br/>quien envía el correo de verdad"]:::tercero
+    BREVO["Brevo<br/>carrito abandonado, desde su propio servicio"]:::tercero
+    TEMA["tema akibara-gp<br/>el envoltorio de marca del correo"]:::tercero
+
+    LLMSTXT[("/llms.txt y /llms-full.txt<br/>ficheros físicos en el docroot")]:::dato
+    OGJPG[("uploads/portadas/*-og.jpg<br/>la hermana compartible")]:::dato
+    TERMMETA[("termmeta de serie<br/>título, descripción, marca de propiedad y hash")]:::dato
+    OUTAGE[("akibara_mail_transport_outage<br/>la evidencia de que el correo no sale")]:::dato
+
+    CLIENTE --> RANKMATH
+    AGENTE --> LLMSTXT
+    AGENTE --> MD
+    DUENO --> ENH
+    DUENO --> LLMS
+    DUENO --> ADULTO
+    DUENO --> BASE
+
+    ENH --> RANKMATH
+    PAGINA --> RANKMATH
+    FILTRADAS --> RANKMATH
+    DIRECTORIO --> RANKMATH
+    LASTMOD --> RANKMATH
+    ORDEN --> RANKMATH
+    ADMINUI --> RANKMATH
+    SPRM --> RANKMATH
+    SHOPPING --> RANKMATH
+    SOC --> RANKMATH
+    WARM --> RANKMATH
+
+    PAGINA --> ELEGIB
+    ENH --> FACTS
+    BL --> INDEX
+    BOOK -. "isPartOf, el MISMO @id url#serie" .-> SSCHEMA
+    SSCHEMA --> GRAFO
+
+    ENH --> TERMMETA
+    LASTMOD --> TERMMETA
+    ENH --> LASTMOD
+    ENH --> DIRECTORIO
+    ENH --> LSC
+    PAGINA --> LSC
+    DIRECTORIO --> CF
+
+    SPRM --> BOOK
+    SPRM --> GRAFO
+    SHOPPING --> GRAFO
+    ENH --> GRAFO
+    SHOPPING -. "repone el priceValidUntil que el otro borró" .-> SPRM
+    SPRM --> WOO
+    ADULTO --> GLA
+
+    SOC --> DERIV
+    DERIV --> OGJPG
+    OGJPG --> CLIENTE
+    BREVOMU --> DERIV
+    BREVOMU --> BREVO
+
+    LLMS --> LLMSTXT
+    LLMS --> ENH
+    LLMS --> DERIV
+    MD --> PARSER
+    MD --> CF
+    BL --> TERMMETA
+
+    BASE --> WOO
+    BASE --> PLANT
+    BASE --> BOOT
+    BRAND --> BTN
+    BRAND --> WOO
+    BRAND --> TEMA
+    PLANT --> TEMA
+    FROM --> SMTP
+    BASE --> FROM
+    SMTP --> HOST
+    SMTP --> OUTAGE
+    WATCH --> SMTP
+    CAPTURA -. "sólo fuera de producción" .-> SMTP
+    HTTPS --> PLANT
+    PLANT --> CLIENTE

@@ -1,0 +1,60 @@
+%% Caso 1 del capítulo 06 — el dueño monta una campaña de descuento por editorial.
+%% Qué muestra: el recorrido de un guardado en Akibara → Descuentos, las dos validaciones que corren ANTES de escribir nada, por qué el action de guardado se emite para las ~277 filas aunque no se toque ninguna, por qué un guardado de sólo porcentajes no purga la caché en esa petición, y quién purga después (el buscador, minutos más tarde).
+sequenceDiagram
+    actor Dueno as Dueño
+    participant Panel as AdminPanel
+    participant Tab as TaxonomyDiscount (pestaña)
+    participant Campo as AdminFieldType
+    participant Sett as Settings
+    participant Purg as LscPurger
+    participant Search as akibara-search
+    participant Lite as LiteSpeed + Cloudflare
+
+    Dueno->>Panel: Abre Akibara → Descuentos
+    Panel->>Panel: current_user_can('manage_woocommerce')
+    Panel->>Tab: pinta la pestaña
+    Tab->>Sett: window_state_from_database()
+    Sett-->>Tab: interruptor y fechas leídos de la BASE, sin caché
+    Note over Tab: La tarjeta de Estado mezcla eso con política, alcance<br/>y acumulable leídos por get_option (caché compartida)
+    Tab-->>Dueno: tarjeta de Estado + Reglas activas + una fila por término
+
+    Dueno->>Panel: Escribe 10 % en Ivrea, marca «Activar», pulsa Guardar
+    Panel->>Panel: verifica nonce y capacidad (handle_save)
+    Panel->>Tab: filtro akibara_panel_save_errors
+
+    alt El formulario llegó truncado por max_input_vars
+        Tab-->>Panel: falta el centinela de fin de formulario
+        Panel-->>Dueno: «No se guardó ningún ajuste de esta pestaña»
+    else Una fecha no es AAAA-MM-DD real o la ventana está invertida
+        Tab-->>Panel: validate_window_dates() devuelve error
+        Panel-->>Dueno: no se guarda NADA y se explica por qué
+    else Todo válido
+        Panel->>Panel: woocommerce_update_options() recorre los campos
+        Panel->>Panel: pre_update_option → skip_untouched_default()
+        Note over Panel: si la fila no existe y lo enviado es el defecto pintado,<br/>no se escribe: crear filas de más mueve la huella editorial
+        loop Una vez por cada una de las ~277 filas de término
+            Panel->>Campo: woocommerce_update_option_akb_taxonomy_pct_row
+            Campo->>Campo: ¿lo enviado coincide con lo pintado (current_pct)?
+            alt Coincide — el dueño no tocó esa casilla
+                Note over Campo: NO se escribe nada. Sin esta guarda, UN guardado<br/>escribía las 277 filas y dejaba 7.793 pendientes<br/>y 401 bloqueadas en la cola del buscador (2026-09-05)
+            else Cambió de verdad
+                Campo->>Sett: set_term_pct() con clamp 0..tope
+                Sett->>Sett: escribe _akb_taxonomy_discount_pct
+            end
+            Campo-->>Purg: akibara_taxonomy_discount_pct_saved
+            Note over Campo,Purg: este action se emite SIEMPRE, para las 277 filas,<br/>se haya escrito o no: sólo significa «se guardó esta pestaña»
+        end
+        Purg->>Purg: ¿el POST trae akibara_panel_save? → se aparta
+        Panel->>Panel: cuenta options cambiadas ($cambios)
+        alt Cambió al menos una OPTION
+            Panel-->>Lite: litespeed_purge_all en shutdown
+        else Sólo cambiaron porcentajes (term-meta)
+            Note over Panel,Lite: $cambios = 0 → nadie purga en esta petición,<br/>y el aviso igual dice «Se limpió la caché del sitio»
+        end
+        Panel-->>Dueno: redirige a ?tab=taxonomy_discount&saved=1 con el aviso
+        Sett-->>Search: updated_term_meta (PHP_INT_MAX)
+        Search->>Search: publicación editorial del índice<br/>disparada por un guardado: ~6 min, suggest en 503<br/>(una reconstrucción PEDIDA a mano son ~30 s sin caída)
+        Search-->>Lite: litespeed_purge + litespeed_purge_all al terminar
+        Lite-->>Dueno: recién ahí el HTML público trae el precio nuevo
+        Note over Dueno,Lite: mientras tanto: NO volver a guardar (cada guardado encola otra<br/>publicación). Para ver el precio ya, abrir /tienda/?_v=… — ese<br/>parámetro esquiva la caché sin purgar nada
+    end

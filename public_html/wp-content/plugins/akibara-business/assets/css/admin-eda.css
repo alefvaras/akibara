@@ -1,0 +1,83 @@
+/**
+ * Estilos de Fecha de llegada en Datos del producto. El alcance #akb_eda_data contiene el
+ * aviso de controles deshabilitados y la vista previa de Auto por editorial, país y fecha.
+ */
+
+#akb_eda_data .akb-eda-instock-notice {
+	margin: 0 12px 12px 12px;
+	padding: 8px 12px;
+	border: 3px solid #1A1A1D;
+	border-left: 8px solid #E50914;
+	box-shadow: 4px 4px 0 #E50914;
+	background: #fff;
+	border-radius: 0;
+}
+
+#akb_eda_data .akb-eda-instock-notice p {
+	margin: 0.4em 0;
+	font-size: 13px;
+	font-weight: 800;
+	color: #1A1A1D;
+	text-transform: uppercase;
+}
+
+#akb_eda_data .akb-eda-radio-row {
+	margin: 0 0 6px 12px;
+}
+
+#akb_eda_data .akb-eda-radio-label {
+	display: inline;
+	width: auto;
+	font-weight: 400;
+}
+
+#akb_eda_data .akb-eda-radio-label input[type="radio"] {
+	margin-right: 6px;
+}
+
+#akb_eda_data .akb-eda-auto-preview {
+	margin-left: 0.5em;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #50575e;
+}
+
+#akb_eda_data .akb-eda-auto-preview::before {
+	content: "— ";
+}
+
+#akb_eda_data .akb-eda-preview-ok strong {
+	color: #1d2327;
+	font-weight: 600;
+}
+
+#akb_eda_data .akb-eda-preview-warn {
+	color: #996300;
+	font-style: italic;
+}
+
+#akb_eda_data .akb-eda-preview-warn strong {
+	font-style: normal;
+}
+
+#akb_eda_data .akb-eda-release-date-row {
+	margin-top: 12px;
+}
+
+#akb_eda_data .akb-eda-release-date-help {
+	display: inline-block;
+	margin-left: 8px;
+	line-height: 1.4;
+	max-width: 480px;
+	vertical-align: top;
+}
+
+#akb_eda_data .akb-eda-release-date-help em {
+	color: #50575e;
+}
+
+/* Cuando los radios están deshabilitados (producto in_stock), apaga el
+ * preview para reducir ruido visual. */
+#akb_eda_data .akb-eda-radio-label input[disabled] + * {
+	opacity: 0.6;
+}

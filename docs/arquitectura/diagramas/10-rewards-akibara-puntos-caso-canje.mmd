@@ -1,0 +1,53 @@
+%% Caso C del capítulo 10 — canjear puntos en el checkout de bloques.
+%% Qué muestra: el viaje de la intención desde la caja del checkout hasta el cobro real, los TRES topes que se aplican en cadena, por qué la captura cobra lo que la comisión concedió y no lo que el cliente pidió, y de dónde sale la alarma falsa de saldo insuficiente cuando el cliente canjea su saldo entero.
+sequenceDiagram
+    autonumber
+    actor Maria as María (clienta)
+    participant JS as checkout-blocks.js (caja del checkout)
+    participant CI as Blocks\CheckoutIntegration
+    participant WOO as WooCommerce (tercero)
+    participant RED as Points\Redemption
+    participant CALC as Points\Calculator
+    participant LED as Points\Ledger
+    participant SQL as MySQL · GET_LOCK
+    actor Dueno as Dueño
+
+    Note over Maria: saldo 1.099 puntos · carrito de $19.980
+    Dueno->>CI: dejó en el panel mínimo 100, tope 50% y tope $5.000
+    Maria->>JS: abre el checkout
+    JS->>CI: pide los datos del carrito por el Store API
+    CI-->>JS: saldo, mínimo, max ya resuelto EN EL SERVIDOR, teaser y etiqueta de valor (:150-166)
+    Note over CI,JS: CI también manda max_pct en CADA respuesta<br/>y el JS no lo lee nunca — carga muerta (:128, :176)
+    Maria->>JS: escribe 1.099 y pulsa «Canjear»
+    JS->>CI: handle_update (:191-202)
+    CI->>CI: TOPE 1 — mismo recorte que Mi cuenta: mínimo configurado y saldo real
+    CI->>WOO: guarda la INTENCIÓN en la sesión de WooCommerce
+    WOO-->>RED: woocommerce_cart_calculate_fees, prioridad 20 · apply_fee (:233)
+    RED->>RED: TOPE 2 — effective_points: saldo vivo y mínimo
+    RED->>RED: TOPE 3 — redeemable_gross (:208-225): 50% de $19.980 = $9.990<br/>frente al tope en pesos $5.000 → manda el MÁS ESTRICTO, $5.000
+    Note over RED: María pide 1.099, muy por debajo del techo: pasa entera.<br/>El despacho queda fuera de la base y nunca se paga con puntos
+    RED->>CALC: escribir la comisión en NETO
+    CALC-->>RED: −$923,53 (round a 6 decimales sobre gross/(1+tasa), :224-234)
+    RED->>WOO: añade la línea negativa «Puntos Akibara»
+    WOO->>WOO: reparte el IVA y redondea total e IVA a pesos enteros
+    WOO-->>Maria: descuento visible en el total de $1.099 ± $1<br/>residuo declarado por el propio Calculator.php:213-218
+    Maria->>WOO: paga
+    WOO-->>RED: checkout_order_processed y store_api_checkout_order_processed, prioridad 20
+    RED->>SQL: candado del pedido
+    RED->>WOO: granted_gross — lee lo que la COMISIÓN CONCEDIÓ, total más IVA ya horneados
+    RED->>LED: debit(puntos derivados de ese bruto, clave redeem_5530, saldo completo EXIGIDO)
+    LED->>SQL: candado del usuario y saldo releído fresco
+    LED-->>RED: débito aplicado
+    RED->>WOO: sella las cinco metas del canje y borra la intención de la sesión (:326-399)
+    RED->>WOO: nota «Puntos Akibara: canje de 1.099 puntos (descuento de $1.099).»
+    Note over Maria: NO sale ningún correo por el canje —<br/>el movimiento aparece en el historial de Mi cuenta
+    alt el bruto reconstruido quedó UN peso arriba y el canje era del saldo entero
+        LED--xRED: el débito estricto pide 1.100 sobre un saldo de 1.099 y falla
+        RED->>LED: camino de contingencia — cobra los 1.099 disponibles
+        RED->>WOO: nota «faltaron 1. Revisar con el cliente»
+        RED->>Dueno: akb_rewards_redemption_shortfall (:399) — alarma de dinero FALSA
+    else el candado del pedido estaba ocupado
+        RED--xRED: NO captura, a propósito — reintenta en la siguiente transición a un estado ALIVE (:442-453)
+    else María pidió menos del mínimo
+        CI-->>JS: lo dice en pantalla y NO toca la intención previa (:199-201)
+    end

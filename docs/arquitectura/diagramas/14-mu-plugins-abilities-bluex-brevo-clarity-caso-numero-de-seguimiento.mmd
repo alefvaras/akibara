@@ -1,0 +1,30 @@
+%% Título: Blue Express despacha y el cliente recibe su número de seguimiento
+%% Qué muestra: los dos caminos que corren en la MISMA petición REST, el correo
+%% que gatilla el tercero y la bifurcación de los códigos separados por comas.
+sequenceDiagram
+    autonumber
+    participant BlueSys as Sistema de Blue Express
+    participant WooRest as API wc/v3 de WooCommerce
+    participant Mu as akibara-bluex-rest-tracking
+    participant BluePlug as Plugin bluex-for-woocommerce
+    participant Pedido as Pedido en la tienda
+    participant Correo as Bandeja del cliente
+
+    BlueSys->>WooRest: PUT orders/123 con correios_tracking_code
+    WooRest->>WooRest: guarda el pedido
+    WooRest->>Mu: update_additional_fields_for_object llama al update_callback sustituido
+    Mu->>Mu: parte el valor por comas y limpia cada código
+    loop por cada código
+        Mu->>BluePlug: wc_correios_updateTrackingCode
+        alt El código ya estaba guardado
+            BluePlug-->>Mu: false, no hace nada
+        else Código nuevo
+            BluePlug->>Pedido: guarda _correios_tracking_code y añade nota
+            BluePlug->>Correo: aviso de despacho, asunto por defecto en inglés
+            BluePlug-->>Mu: true
+        end
+    end
+    WooRest->>Mu: do_action woocommerce_rest_insert_shop_order_object, segunda pasada
+    Mu->>BluePlug: los mismos códigos otra vez
+    BluePlug-->>Mu: ya estaban, no repite correo ni guardado
+    Note over Mu,Correo: Dos códigos separados por comas son DOS correos al mismo cliente

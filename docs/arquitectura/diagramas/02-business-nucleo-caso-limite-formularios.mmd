@@ -1,0 +1,66 @@
+%% Caso 8 del capítulo 02 — alguien manda el formulario de contacto muchas veces seguidas.
+%% Qué muestra: los DOS límites encadenados, con sus dos cubos, sus dos topes y sus dos mensajes de rechazo; por qué la cabecera CF-Connecting-IP sólo se cree si el peer es de verdad Cloudflare; y los dos correos que dependen del resultado: el de contacto sale inmediato y el de «avísame cuando llegue» sale con la cola.
+%% Nota de lectura: la flecha con una equis (--x) significa que ese mensaje NO ocurre.
+sequenceDiagram
+    autonumber
+    actor Visitante as Visitante<br/>(o un bot abusando)
+    participant Form as Forms\ContactoSubmit
+    participant RL as Utilities\RateLimit
+    participant CF as Cloudflare<br/>(borde delante del origen)
+    participant Cache as Caché de objetos<br/>(object-cache.php de LiteSpeed)
+    participant DB as wp_options<br/>(rama que en producción NO se ejecuta)
+    participant Correo as Correo saliente
+
+    Visitante->>Form: envía el formulario
+
+    Note over Form,RL: LÍMITE 1 · por MINUTO, antes de validar nada<br/>ContactoSubmit.php:91
+    Form->>RL: per_minute('contacto_attempt', 20)
+
+    alt Quien envía tiene la capacidad manage_woocommerce
+        RL-->>Form: exento · el dueño y soporte pueden probar
+        Note over RL: los clientes REGISTRADOS no quedan exentos:<br/>con el registro abierto por Google, eximirlos hacía el límite evadible
+    else Visitante corriente
+        RL->>CF: ¿el peer TCP está dentro de los rangos publicados?
+        alt El peer ES un borde de Cloudflare
+            CF-->>RL: se acepta CF-Connecting-IP como IP real
+        else El peer NO lo es
+            RL->>RL: se ignora la cabecera y se usa REMOTE_ADDR
+            Note over RL: cierra el ataque real: alcanzar el origen por IP directa<br/>y mandar una CF-Connecting-IP distinta por petición
+        end
+        RL->>RL: clave = cubo + IP + ventana de tiempo, con hash
+        alt Hay caché de objetos persistente (SIEMPRE en este sitio)
+            RL->>Cache: wp_cache_add(0) + wp_cache_incr(1), atómicos
+            Cache-->>RL: contador después de esta petición
+        else No hay drop-in (entorno sin LiteSpeed)
+            RL->>DB: INSERT ... ON DUPLICATE KEY UPDATE con forma de transient
+            Note over DB: en producción esta rama no se ejecuta nunca:<br/>no hay filas _transient_akb_rlm_* en wp_options
+            DB-->>RL: contador después de esta petición
+        end
+    end
+
+    alt Pasa de 20 intentos por minuto
+        RL-->>Form: excedido (cubo contacto_attempt)
+        Form--xCorreo: NO sale ningún correo
+        Form-->>Visitante: HTTP 429 · «Demasiados intentos. Espera un momento e intenta de nuevo.»
+    else Dentro del tope por minuto
+        RL-->>Form: cupo concedido
+
+        Form->>Form: valida nombre, correo y mensaje
+        Note over Form: si el payload es inválido se rechaza AQUÍ<br/>y no llega a gastar la cuota por hora (decisión deliberada)
+
+        Note over Form,RL: LÍMITE 2 · por HORA, sólo para envíos VÁLIDOS<br/>ContactoSubmit.php:155
+        Form->>RL: exceeded('contacto')
+
+        alt Pasa de 3 envíos por hora
+            RL-->>Form: excedido (cubo contacto)
+            Form--xCorreo: NO sale ningún correo
+            Form-->>Visitante: HTTP 429 · «Demasiados envíos. Intenta de nuevo en una hora.»
+        else Dentro de los dos topes
+            RL-->>Form: cupo concedido
+            Form->>Form: guarda el mensaje ANTES de intentar el correo
+            Form->>Correo: wp_mail INMEDIATO a contacto@akibara.cl<br/>asunto «Contacto: » + las 8 primeras palabras
+            Correo-->>Visitante: confirmación en pantalla
+        end
+    end
+
+    Note over RL,Correo: para «avísame cuando llegue» el tope por hora es 12, no 3,<br/>y su correo de confirmación lo compone BackInStock y sale CON LA COLA<br/>(la acción akb_bis_notify_product, dos o tres minutos después), no en el acto

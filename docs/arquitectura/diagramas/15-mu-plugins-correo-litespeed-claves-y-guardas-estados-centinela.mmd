@@ -1,0 +1,55 @@
+%% Máquina de estados del centinela del correo.
+%% Qué muestra: los estados por los que pasa la option akibara_mail_transport_watch y qué aviso corresponde a cada uno.
+%% Ojo con el nombre del segundo estado: lo que el código mide (transport_is_live, :120-129) NO es
+%% «el fichero está o no está», sino «la clase está cargada Y sigue enganchada a phpmailer_init».
+stateDiagram-v2
+    direction TB
+
+    [*] --> Sano: primera inspección con el transporte vivo
+
+    state "Sano y sin historial" as Sano
+    state "Transporte no vivo" as NoVivo
+    state "Repuesto" as Repuesto
+    state "Presente pero inerte" as Inerte
+    state "Sin copia de rescate" as SinCopia
+    state "Fallo al reponer" as FalloCopia
+    state "Sano con historial" as SanoConHistorial
+
+    Sano --> NoVivo: la clase no está cargada<br/>o perdió su enganche a phpmailer_init
+
+    state NoVivo {
+        direction TB
+        state "¿está el fichero en disco?" as Bifurcacion
+        Bifurcacion --> Falta: el fichero NO está
+        Bifurcacion --> Presente: el fichero SÍ está
+        state "fichero ausente" as Falta
+        state "fichero presente" as Presente
+    }
+
+    NoVivo --> Repuesto: faltaba y la copia de rescate era legible
+    NoVivo --> Inerte: estaba en disco y aun así la clase no cargó
+    NoVivo --> SinCopia: faltaba y no hay copia de rescate
+    NoVivo --> FalloCopia: había copia pero no se pudo escribir
+
+    Repuesto --> SanoConHistorial: la siguiente petición carga el transporte
+    Repuesto --> Inerte: la copia estaba truncada o vacía<br/>copy() devolvió verdadero igual
+    Inerte --> SanoConHistorial: alguien arregla la causa a mano
+    SinCopia --> SanoConHistorial: alguien sube el fichero por SSH
+    FalloCopia --> SanoConHistorial: alguien arregla permisos y sube el fichero
+
+    SanoConHistorial --> NoVivo: vuelve a desaparecer
+
+    note right of Repuesto
+        Escribe missing_since, last_seen_gmt,
+        outcome y añade una fecha a restores.
+        Aviso rojo, no descartable.
+    end note
+
+    note right of SanoConHistorial
+        clear_outage borra missing_since,
+        last_seen_gmt y outcome,
+        pero CONSERVA restores para siempre.
+        El amarillo sólo se apaga por consola:
+        wp option delete akibara_mail_transport_watch
+        (y eso borra la evidencia del incidente abierto).
+    end note
