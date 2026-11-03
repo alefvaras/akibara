@@ -51,34 +51,118 @@ final class AstScopeAnalyzer extends NodeVisitorAbstract {
 	}
 
 	/** Resuelve únicamente rutas literales; nunca ejecuta el archivo auditado. */
-	private function literal_path( Node $expression, array $values ): ?string {
+	private function literal_path( Node $expression, array $values, ?string $base_file = null ): ?string {
+		$context_file = $base_file ?? $this->current_file;
 		if ( $expression instanceof Node\Scalar\String_ ) {
 			return $expression->value;
 		}
 		if ( $expression instanceof Node\Scalar\MagicConst\Dir ) {
-			return dirname( $this->current_file );
+			return dirname( $context_file );
 		}
 		if ( $expression instanceof Expr\Variable && is_string( $expression->name ) ) {
 			return $values[ $expression->name ] ?? null;
 		}
 		if ( $expression instanceof Expr\ConstFetch && 'AKIBARA_BUSINESS_DIR' === (string) $expression->name
-			&& preg_match( '#^(.*/plugins/akibara-business/)#', $this->current_file, $matches ) ) {
+			&& preg_match( '#^(.*/plugins/akibara-business/)#', $context_file, $matches ) ) {
 			return $matches[1];
 		}
 		if ( $expression instanceof Expr\BinaryOp\Concat ) {
-			$left = $this->literal_path( $expression->left, $values );
-			$right = $this->literal_path( $expression->right, $values );
+			$left = $this->literal_path( $expression->left, $values, $context_file );
+			$right = $this->literal_path( $expression->right, $values, $context_file );
 			return null !== $left && null !== $right ? $left . $right : null;
 		}
-		if ( $expression instanceof Expr\FuncCall && $expression->name instanceof Node\Name
-			&& 'dirname' === strtolower( (string) $expression->name ) && isset( $expression->args[0] ) ) {
-			$value = $this->literal_path( $expression->args[0]->value, $values );
-			$levels = $expression->args[1]->value ?? null;
-			if ( null !== $value && ( null === $levels || ( $levels instanceof Node\Scalar\Int_ && $levels->value > 0 ) ) ) {
-				return dirname( $value, null === $levels ? 1 : $levels->value );
+		if ( $expression instanceof Expr\FuncCall && $expression->name instanceof Node\Name ) {
+			$fn = strtolower( (string) $expression->name );
+			if ( 'dirname' === $fn && isset( $expression->args[0] ) ) {
+				$value = $this->literal_path( $expression->args[0]->value, $values, $context_file );
+				$levels = $expression->args[1]->value ?? null;
+				if ( null !== $value && ( null === $levels || ( $levels instanceof Node\Scalar\Int_ && $levels->value > 0 ) ) ) {
+					return dirname( $value, null === $levels ? 1 : $levels->value );
+				}
+			}
+			if ( 'locate_template' === $fn && isset( $expression->args[0] ) ) {
+				$rel = $this->literal_path( $expression->args[0]->value, $values, $context_file );
+				if ( null !== $rel && preg_match( '#^(.*/public_html/wp-content/)#', $context_file, $matches ) ) {
+					return $matches[1] . 'themes/akibara-gp/' . ltrim( $rel, '/' );
+				}
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Resuelve rutas de plantillas incluidas, soportando sub-plantillas anidadas
+	 * por prefijo/sufijo estático (ej. `__DIR__ . '/financial-rules/tab-' . $tab . '.php'`).
+	 *
+	 * @param Node   $expression   Expresión del `include`.
+	 * @param array  $values       Mapa de valores literales conocidos en el ámbito.
+	 * @param string $context_file Archivo donde aparece el `include`.
+	 * @return list<string>
+	 */
+	private function resolve_include_candidates( Node $expression, array $values, string $context_file ): array {
+		$direct = $this->literal_path( $expression, $values, $context_file );
+		if ( null !== $direct && is_file( $direct ) && is_readable( $direct ) ) {
+			return array( $direct );
+		}
+		if ( $expression instanceof Expr\BinaryOp\Concat && $expression->left instanceof Expr\BinaryOp\Concat ) {
+			$prefix = $this->literal_path( $expression->left->left, $values, $context_file );
+			$suffix = $this->literal_path( $expression->right, $values, $context_file );
+			if ( null !== $prefix && null !== $suffix && '.php' === $suffix && is_dir( dirname( $prefix ) ) ) {
+				$matches = glob( $prefix . '*' . $suffix );
+				if ( is_array( $matches ) ) {
+					return array_values( array_filter( $matches, static fn( string $f ): bool => is_file( $f ) && is_readable( $f ) ) );
+				}
+			}
+		}
+		return array();
+	}
+
+	/**
+	 * Recolecta nombres de variables leídas dentro de una plantilla y sus
+	 * sub-plantillas directas (hasta profundidad 2).
+	 *
+	 * @param string $template_file Ruta absoluta a la plantilla.
+	 * @param int    $depth         Profundidad de recursión actual.
+	 * @return list<string>
+	 */
+	private function collect_template_variables( string $template_file, int $depth = 0 ): array {
+		if ( $depth > 2 || ! is_file( $template_file ) || ! is_readable( $template_file ) ) {
+			return array();
+		}
+		$code = file_get_contents( $template_file );
+		if ( false === $code ) {
+			return array();
+		}
+		$nodes = ( new ParserFactory() )->createForHostVersion()->parse( $code ) ?? array();
+		$finder = new \PhpParser\NodeFinder();
+		$names = array();
+		foreach ( $finder->findInstanceOf( $nodes, Expr\Variable::class ) as $variable ) {
+			if ( is_string( $variable->name ) ) {
+				$names[ $variable->name ] = true;
+			}
+		}
+		if ( $depth < 2 ) {
+			$template_values = array();
+			$template_exprs  = array();
+			foreach ( $finder->findInstanceOf( $nodes, Expr\Assign::class ) as $assign ) {
+				if ( $assign->var instanceof Expr\Variable && is_string( $assign->var->name ) ) {
+					$template_exprs[ $assign->var->name ]  = $assign->expr;
+					$template_values[ $assign->var->name ] = $this->literal_path( $assign->expr, $template_values, $template_file );
+				}
+			}
+			foreach ( $finder->findInstanceOf( $nodes, Expr\Include_::class ) as $nested_include ) {
+				$inc_expr = $nested_include->expr;
+				if ( $inc_expr instanceof Expr\Variable && is_string( $inc_expr->name ) && isset( $template_exprs[ $inc_expr->name ] ) ) {
+					$inc_expr = $template_exprs[ $inc_expr->name ];
+				}
+				foreach ( $this->resolve_include_candidates( $inc_expr, $template_values, $template_file ) as $nested_file ) {
+					foreach ( $this->collect_template_variables( $nested_file, $depth + 1 ) as $nested_var ) {
+						$names[ $nested_var ] = true;
+					}
+				}
+			}
+		}
+		return array_keys( $names );
 	}
 
 	/** Fragmentos estáticos de una consulta; los valores dinámicos no se ejecutan. */
@@ -215,16 +299,11 @@ final class AstScopeAnalyzer extends NodeVisitorAbstract {
 
 		// Las plantillas incluidas comparten las variables del método que las carga.
 		if ( $node instanceof Expr\Include_ ) {
-			$template = $this->literal_path( $node->expr, $current_scope['values'] );
-			if ( null !== $template && is_file( $template ) && is_readable( $template ) ) {
-				$nodes = ( new ParserFactory() )->createForHostVersion()->parse( file_get_contents( $template ) );
-				$variables = ( new \PhpParser\NodeFinder() )->findInstanceOf( $nodes ?? array(), Expr\Variable::class );
-				foreach ( $variables as $variable ) {
-					if ( is_string( $variable->name ) ) {
-						$current_scope['read'][ $variable->name ] = true;
-						if ( isset( $current_scope['foreach_keys'][ $variable->name ] ) ) {
-							$current_scope['foreach_keys_read'][ $variable->name ] = true;
-						}
+			foreach ( $this->resolve_include_candidates( $node->expr, $current_scope['values'], $this->current_file ) as $template ) {
+				foreach ( $this->collect_template_variables( $template ) as $var_name ) {
+					$current_scope['read'][ $var_name ] = true;
+					if ( isset( $current_scope['foreach_keys'][ $var_name ] ) ) {
+						$current_scope['foreach_keys_read'][ $var_name ] = true;
 					}
 				}
 			}

@@ -49,8 +49,8 @@ for runtime_dir in "${runtime_dirs[@]}"; do
 	done < <(find "$runtime_dir" -type f -name '*.php' -print0)
 done
 
-printf '\n[3/5] Análisis AST; avisos heurísticos visibles para revisión\n'
-php "${script_dir}/guardrail-ast-hygiene.php" --fail-on-error
+printf '\n[3/5] Análisis AST; bloqueo estricto de errores y asignaciones muertas\n'
+php "${script_dir}/guardrail-ast-hygiene.php" --fail-on-error --fail-on-warning
 
 printf '\n[4/5] Presupuesto de consultas del carrito\n'
 "$phpunit" -c "${script_dir}/akibara-business/phpunit.xml.dist" \

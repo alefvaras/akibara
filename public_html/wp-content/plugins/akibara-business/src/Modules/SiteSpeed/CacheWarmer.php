@@ -558,18 +558,21 @@ final class CacheWarmer {
 	public static function build_queue(): array {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- una consulta por noche, sin datos del usuario; WP_Query no ordena por dos metas a la vez.
-		// Preparar el estado agotado desde StockStatus, sin duplicar el literal SQL.
-		
+		// Preparar el estado agotado y el JOIN desde StockStatus, sin duplicar el literal SQL.
+		$stock_join = StockStatus::sql_postmeta_join( $wpdb->postmeta, 's', 'p.ID', 'LEFT' );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- `$stock_join` proviene de `StockStatus::sql_postmeta_join()` usando `$wpdb->postmeta` y literales de clase.
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT p.ID FROM {$wpdb->posts} p
-				LEFT JOIN {$wpdb->postmeta} s ON s.post_id = p.ID AND s.meta_key = '_stock_status'
+				{$stock_join}
 				LEFT JOIN {$wpdb->postmeta} v ON v.post_id = p.ID AND v.meta_key = 'total_sales'
 				WHERE p.post_type = 'product' AND p.post_status = 'publish' AND p.post_password = ''
 				ORDER BY ( s.meta_value = %s ) ASC, CAST( v.meta_value AS UNSIGNED ) DESC, p.post_date DESC, p.ID DESC",
 				StockStatus::OUT_OF_STOCK
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return is_array( $ids ) ? array_values( array_map( 'intval', $ids ) ) : array();
 	}

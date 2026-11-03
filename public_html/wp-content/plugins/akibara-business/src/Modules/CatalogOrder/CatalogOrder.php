@@ -591,7 +591,8 @@ final class CatalogOrder {
 	public function plan( string $showcase ): array {
 		global $wpdb;
 
-		$sql  = "
+		$stock_join = StockStatus::sql_postmeta_join( $wpdb->postmeta, 'pm', 'p.ID', 'LEFT' );
+		$sql        = "
 			SELECT p.ID AS id, p.post_date AS date, p.menu_order AS current_order,
 			       MIN( tt.term_taxonomy_id ) AS serie_tt,
 			       MAX( pm.meta_value ) AS stock_status
@@ -599,8 +600,7 @@ final class CatalogOrder {
 			LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
 			LEFT JOIN {$wpdb->term_taxonomy} tt
 				ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'pa_serie'
-			LEFT JOIN {$wpdb->postmeta} pm
-				ON pm.post_id = p.ID AND pm.meta_key = '_stock_status'
+			{$stock_join}
 			WHERE p.post_type = 'product' AND p.post_status = 'publish'
 			GROUP BY p.ID, p.post_date, p.menu_order";
 		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- sin input externo.

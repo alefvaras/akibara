@@ -202,6 +202,7 @@ final class SeriesDepth {
 	 * @return string SQL ya preparado.
 	 */
 	private function prepared_query( object $wpdb, string $select, int $term_id, string $order_by ): string {
+		$stock_join   = StockStatus::sql_postmeta_join( $wpdb->postmeta, 'sm', 'p.ID', 'INNER' );
 		$stock_clause = $this->settings->allows_backorder()
 			? "IN ( '" . StockStatus::IN_STOCK . "', '" . StockStatus::ON_BACKORDER . "' )"
 			: "= '" . StockStatus::IN_STOCK . "'";
@@ -213,8 +214,8 @@ final class SeriesDepth {
 			 JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
 			 JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 			   AND tt.term_id = %d AND tt.taxonomy = %s
-			 JOIN {$wpdb->postmeta} sm ON sm.post_id = p.ID
-			   AND sm.meta_key = '_stock_status' AND sm.meta_value {$stock_clause}
+			 {$stock_join}
+			   AND sm.meta_value {$stock_clause}
 			 WHERE p.post_type = 'product' AND p.post_status = 'publish'{$order_by}",
 			$term_id,
 			self::TAXONOMY

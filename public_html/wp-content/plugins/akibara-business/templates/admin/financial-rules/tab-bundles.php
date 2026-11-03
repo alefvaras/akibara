@@ -101,6 +101,17 @@ defined( 'ABSPATH' ) || exit;
 			<?php if ( empty( $byp_map ) ) : ?>
 				<tr><td colspan="6">No hay series autorizadas en la Lista Blanca. Agrega una arriba.</td></tr>
 			<?php else : ?>
+				<?php
+				if ( function_exists( 'get_terms' ) ) {
+					get_terms(
+						array(
+							'taxonomy'   => 'pa_serie',
+							'include'    => array_values( array_filter( array_map( 'intval', array_keys( $byp_map ) ) ) ),
+							'hide_empty' => false,
+						)
+					);
+				}
+				?>
 				<?php foreach ( $byp_map as $akb_term_id => $akb_byp_entry ) :
 					$akb_term = get_term( (int) $akb_term_id, 'pa_serie' );
 					$akb_name = $akb_term instanceof \WP_Term ? $akb_term->name : 'ID ' . $akb_term_id;

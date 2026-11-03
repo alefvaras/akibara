@@ -309,7 +309,12 @@ final class CortesPanel {
 			)
 		);
 
-		return is_array( $terms ) ? array_values( array_filter( $terms, static fn( $t ): bool => $t instanceof \WP_Term ) ) : array();
+		$valid = is_array( $terms ) ? array_values( array_filter( $terms, static fn( $t ): bool => $t instanceof \WP_Term ) ) : array();
+		if ( array() !== $valid && function_exists( 'update_termmeta_cache' ) ) {
+			update_termmeta_cache( array_map( static fn( \WP_Term $t ): int => (int) $t->term_id, $valid ) );
+		}
+
+		return $valid;
 	}
 
 	/**

@@ -424,7 +424,9 @@ final class Plugin {
 		$this->register_core_and_seo_modules();
 		$this->register_admin_and_marketing_modules();
 		$this->register_order_preventa_modules();
-		$this->register_catalog_and_sales_modules();
+		$this->register_catalog_and_vitrina_modules();
+		$this->register_cart_and_discount_modules();
+		$this->register_series_and_collection_modules();
 		$this->register_admin_panel();
 	}
 
@@ -676,11 +678,11 @@ final class Plugin {
 	}
 
 	/**
-	 * Instancia y registra los módulos de catálogo, vitrina, series y venta.
+	 * Instancia y registra los módulos de catálogo, vitrina, rutas de tienda y ficha de producto.
 	 *
 	 * @return void
 	 */
-	private function register_catalog_and_sales_modules(): void {
+	private function register_catalog_and_vitrina_modules(): void {
 		$this->modules['loop_enhancer'] = new LoopEnhancer();
 		$this->modules['loop_enhancer']->register();
 
@@ -748,7 +750,14 @@ final class Plugin {
 		// Panel administrativo de variantes físicas de tomo.
 		$this->modules['volume_variant_panel'] = new VolumeVariantPanel();
 		$this->modules['volume_variant_panel']->register();
+	}
 
+	/**
+	 * Instancia y registra los módulos de carrito, recomendaciones y campañas de descuento.
+	 *
+	 * @return void
+	 */
+	private function register_cart_and_discount_modules(): void {
 		// Carrito lateral nativo sincronizado con el renderizador de plazos de entrega estimada.
 		$this->modules['native_cart'] = new NativeCart(
 			null,
@@ -784,7 +793,14 @@ final class Plugin {
 		// Settings con el módulo de la campaña.
 		$this->modules['campaign_expiry_cron'] = new \Akibara\Business\Modules\TaxonomyDiscount\CampaignExpiryCron( $this->modules['taxonomy_discount']->settings() );
 		$this->modules['campaign_expiry_cron']->register();
+	}
 
+	/**
+	 * Instancia y registra los módulos de series, colección del lector y alertas de seguimiento.
+	 *
+	 * @return void
+	 */
+	private function register_series_and_collection_modules(): void {
 		// SeriesFacts: resumen de una línea sobre la rejilla y ficha de datos
 		// duros bajo ella, en cada landing `pa_serie`. Las 130 series ya tienen H1/título/descripción y son el
 		// 17,6% de los clics del sitio, pero no publicaban NI UNA spec ni una
@@ -798,8 +814,8 @@ final class Plugin {
 		// coincidir con lo que muestran las cards. El orden de registro no
 		// afecta al DOM: el resumen cuelga de `woocommerce_before_shop_loop`
 		// prio 2 y la ficha de `woocommerce_after_shop_loop` prio 20, sin empates.
-		$discount_settings                = $this->modules['taxonomy_discount']->settings();
-		$this->modules['series_facts']    = new SeriesFacts(
+		$discount_settings             = $this->modules['taxonomy_discount']->settings();
+		$this->modules['series_facts'] = new SeriesFacts(
 			static fn (): bool => $discount_settings->is_enabled()
 		);
 		$this->modules['series_facts']->register();
@@ -840,18 +856,18 @@ final class Plugin {
 		$this->modules['series_directory']->register();
 
 		// SeriesBundles: bundles de series (arma tu pack por volumen) con cálculo de plazos de entrega por tomo.
-		$customer_collection = new CustomerCollection();
+		$customer_collection                  = new CustomerCollection();
 		$this->modules['customer_collection'] = $customer_collection;
 		$customer_collection->register();
 
-		$series_bundles = new SeriesBundles(
+		$series_bundles                  = new SeriesBundles(
 			$this->modules['estimated_delivery']->calculator(),
 			$customer_collection
 		);
 		$this->modules['series_bundles'] = $series_bundles;
 		$series_bundles->register();
 
-		$collection_resolver = new CollectionResolver(
+		$collection_resolver                 = new CollectionResolver(
 			$customer_collection,
 			null,
 			$this->modules['estimated_delivery']->calculator(),
@@ -908,6 +924,17 @@ final class Plugin {
 	 */
 	private function register_admin_panel(): void {
 		$panel = new AdminPanel();
+		$this->register_admin_panel_sections( $panel );
+		$this->register_admin_panel_submodules( $panel );
+	}
+
+	/**
+	 * Registra las secciones de configuración en el panel administrativo principal.
+	 *
+	 * @param AdminPanel $panel Instancia del panel administrativo.
+	 * @return void
+	 */
+	private function register_admin_panel_sections( AdminPanel $panel ): void {
 		$panel->add_section(
 			'dashboard',
 			'Dashboard',
@@ -1033,7 +1060,15 @@ final class Plugin {
 			'',
 			'marketing'
 		);
+	}
 
+	/**
+	 * Instancia y registra los submódulos y servicios acoplados al panel administrativo.
+	 *
+	 * @param AdminPanel $panel Instancia del panel administrativo.
+	 * @return void
+	 */
+	private function register_admin_panel_submodules( AdminPanel $panel ): void {
 		// El buscador (plugin akibara-search) tiene su PROPIA página de admin
 		// (menú "Buscador"), NO un tab de este panel — no se registra acá.
 

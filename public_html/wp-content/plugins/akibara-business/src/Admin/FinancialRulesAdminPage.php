@@ -192,21 +192,23 @@ final class FinancialRulesAdminPage {
 			wp_send_json_success( array() );
 		}
 
-		$results = array();
-		$byp_map = BusinessOptions::series_bundles_byp();
+		$results                = array();
+		$byp_map                = BusinessOptions::series_bundles_byp();
+		$sample_product_by_term = array();
 
 		foreach ( $terms as $term ) {
-			$term_id = (int) $term->term_id;
-			$in_list = isset( $byp_map[ $term_id ] ) || isset( $byp_map[ (string) $term_id ] );
-
-			// Buscar editorial asociada
-			$editorial = 'Desconocida / Sin asignar';
-			$price_ref = 9990;
-
+			if ( ! $term instanceof \WP_Term ) {
+				continue;
+			}
+			$term_id  = (int) $term->term_id;
 			$products = get_posts( array(
-				'post_type'      => 'product',
-				'posts_per_page' => 1,
-				'tax_query'      => array(
+				'post_type'              => 'product',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				'tax_query'              => array(
 					array(
 						'taxonomy' => 'pa_serie',
 						'field'    => 'term_id',
@@ -214,9 +216,32 @@ final class FinancialRulesAdminPage {
 					),
 				),
 			) );
-
 			if ( ! empty( $products ) ) {
-				$p_id = $products[0]->ID;
+				$first_product = $products[0];
+				$sample_id     = is_object( $first_product ) && isset( $first_product->ID ) ? (int) $first_product->ID : (int) $first_product;
+				if ( $sample_id > 0 ) {
+					$sample_product_by_term[ $term_id ] = $sample_id;
+				}
+			}
+		}
+
+		if ( array() !== $sample_product_by_term && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( array_values( array_unique( $sample_product_by_term ) ), true, true );
+		}
+
+		foreach ( $terms as $term ) {
+			if ( ! $term instanceof \WP_Term ) {
+				continue;
+			}
+			$term_id = (int) $term->term_id;
+			$in_list = isset( $byp_map[ $term_id ] ) || isset( $byp_map[ (string) $term_id ] );
+
+			// Buscar editorial asociada
+			$editorial = 'Desconocida / Sin asignar';
+			$price_ref = 9990;
+
+			if ( isset( $sample_product_by_term[ $term_id ] ) ) {
+				$p_id     = $sample_product_by_term[ $term_id ];
 				$ed_terms = get_the_terms( $p_id, 'product_brand' );
 				if ( ! is_array( $ed_terms ) || empty( $ed_terms ) ) {
 					$ed_terms = get_the_terms( $p_id, 'pa_editorial' );

@@ -93,18 +93,25 @@ final class NativeAvailabilityFallback {
 			if ( ! is_array( $candidates ) ) {
 				return false;
 			}
-			$ids = array();
-			foreach ( $candidates as $id ) {
-				if ( ! is_scalar( $id ) || ! ctype_digit( (string) $id ) || (int) $id < 1 ) {
+			$candidate_ids = array();
+			foreach ( $candidates as $raw_id ) {
+				if ( ! is_scalar( $raw_id ) || ! ctype_digit( (string) $raw_id ) || (int) $raw_id < 1 ) {
 					return false;
 				}
-				$product = wc_get_product( (int) $id );
+				$candidate_ids[] = (int) $raw_id;
+			}
+			if ( array() !== $candidate_ids && function_exists( '_prime_post_caches' ) ) {
+				_prime_post_caches( $candidate_ids, false, true );
+			}
+			$ids = array();
+			foreach ( $candidate_ids as $id ) {
+				$product = wc_get_product( $id );
 				if ( ! $product instanceof \WC_Product ) {
 					return false;
 				}
-				$resolved = StockLabels::availability( $product->get_stock_status(), (int) $id );
+				$resolved = StockLabels::availability( $product->get_stock_status(), $id );
 				if ( in_array( $resolved['value'] ?? null, $availability, true ) ) {
-					$ids[] = (int) $id;
+					$ids[] = $id;
 				}
 			}
 		}

@@ -180,6 +180,16 @@ final class HomeCarousel {
 
 		$items = array();
 		if ( is_array( $terms ) ) {
+			$term_ids = array();
+			foreach ( $terms as $term ) {
+				if ( $term instanceof WP_Term && (int) $term->term_id > 0 ) {
+					$term_ids[] = (int) $term->term_id;
+				}
+			}
+			if ( array() !== $term_ids && function_exists( 'update_termmeta_cache' ) ) {
+				update_termmeta_cache( $term_ids );
+			}
+
 			foreach ( $terms as $term ) {
 				if ( ! $term instanceof WP_Term ) {
 					continue;

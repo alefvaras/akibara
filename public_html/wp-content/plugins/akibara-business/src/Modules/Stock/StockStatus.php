@@ -21,9 +21,33 @@ defined( 'ABSPATH' ) || exit;
  */
 final class StockStatus {
 
+	public const META_KEY     = '_stock_status';
 	public const IN_STOCK     = 'instock';
 	public const OUT_OF_STOCK = 'outofstock';
 	public const ON_BACKORDER = 'onbackorder';
+
+	/**
+	 * Compone el JOIN SQL canónico contra postmeta para `_stock_status`.
+	 *
+	 * Centraliza la clave de metadato de estado de stock en `StockStatus` para que
+	 * ningún consumidor (`CatalogOrder`, `SeriesDepth`, `CacheWarmer`) repita literales
+	 * crudos de `_stock_status` en consultas por lotes.
+	 *
+	 * @param string $postmeta_table Tabla `$wpdb->postmeta`.
+	 * @param string $alias          Alias SQL de la tabla (`pm`, `sm`, `s`).
+	 * @param string $post_id_expr   Expresión de ID del post (`p.ID`).
+	 * @param string $join_type      `LEFT` o `INNER`.
+	 * @return string Fragmento SQL seguro.
+	 */
+	public static function sql_postmeta_join(
+		string $postmeta_table,
+		string $alias = 'pm',
+		string $post_id_expr = 'p.ID',
+		string $join_type = 'LEFT'
+	): string {
+		$type = 'INNER' === strtoupper( $join_type ) ? 'INNER JOIN' : 'LEFT JOIN';
+		return "{$type} {$postmeta_table} {$alias} ON {$alias}.post_id = {$post_id_expr} AND {$alias}.meta_key = '" . self::META_KEY . "'";
+	}
 
 	/**
 	 * Vocabulario del estado de stock CRUDO — la palabra del GRUPO.

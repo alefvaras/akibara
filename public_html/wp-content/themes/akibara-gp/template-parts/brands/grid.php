@@ -41,10 +41,22 @@ if ( function_exists( 'get_template_part' ) ) {
  * aquí desacopla la plantilla de esa lista, que el plugin va a retirar.
  */
 $akb_total_brands  = 0;
+$akb_brand_term_ids = array();
 foreach ( $grouped as $akb_region_brands ) {
-	$akb_total_brands += is_array( $akb_region_brands ) ? count( $akb_region_brands ) : 0;
+	if ( ! is_array( $akb_region_brands ) ) {
+		continue;
+	}
+	$akb_total_brands += count( $akb_region_brands );
+	foreach ( $akb_region_brands as $akb_brand_term ) {
+		if ( $akb_brand_term instanceof WP_Term && (int) $akb_brand_term->term_id > 0 ) {
+			$akb_brand_term_ids[] = (int) $akb_brand_term->term_id;
+		}
+	}
 }
-unset( $akb_region_brands );
+if ( array() !== $akb_brand_term_ids && function_exists( 'update_termmeta_cache' ) ) {
+	update_termmeta_cache( $akb_brand_term_ids );
+}
+unset( $akb_region_brands, $akb_brand_term, $akb_brand_term_ids );
 
 $akb_regions_count = isset( $regions_meta ) && is_array( $regions_meta ) ? count( $regions_meta ) : 0;
 $akb_show_filter   = $akb_total_brands >= 6; // chips/buscador agregan ruido si hay pocas

@@ -47,6 +47,19 @@ if ( ! function_exists( 'update_object_term_cache' ) ) {
 	}
 }
 
+if ( ! function_exists( 'update_termmeta_cache' ) ) {
+	/**
+	 * Stub compartido de core para priming de termmeta en lote.
+	 *
+	 * @param array<int,int> $term_ids IDs de términos a primar.
+	 * @return array<int,mixed>
+	 */
+	function update_termmeta_cache( array $term_ids ): array {
+		unset( $term_ids );
+		return array();
+	}
+}
+
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	/**
 	 * Core lo expone SIEMPRE en runtime, con esta semántica: se lleva el CUERPO

@@ -485,3 +485,16 @@ if ( ! function_exists( 'wp_prime_option_caches' ) ) {
 		unset( $options );
 	}
 }
+
+if ( ! function_exists( '_prime_post_caches' ) ) {
+	/**
+	 * Stub compartido de core para precargar posts, términos y metadatos en lote.
+	 *
+	 * @param array<int,int> $ids               IDs de posts a precargar.
+	 * @param bool           $update_term_cache Precargar términos.
+	 * @param bool           $update_meta_cache Precargar postmeta.
+	 */
+	function _prime_post_caches( array $ids, bool $update_term_cache = true, bool $update_meta_cache = true ): void {
+		unset( $ids, $update_term_cache, $update_meta_cache );
+	}
+}

@@ -84,6 +84,21 @@ test('variables read by a statically resolved template are used', () => fixture(
   const result = spawnSync('php', [analyzer, `--path=${directory}/controller.php`, '--fail-on-warning'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stdout + result.stderr);
 }));
+test('variables read by nested sub-templates in a shell view are marked as used', () => fixture(directory => {
+  mkdirSync(path.join(directory, 'sub'), { recursive: true });
+  writeFileSync(path.join(directory, 'sub/tab-general.php'), '<?php echo $from_tab;');
+  writeFileSync(path.join(directory, 'sub/script.php'), '<?php echo $from_script;');
+  writeFileSync(
+    path.join(directory, 'shell.php'),
+    '<?php $sub = __DIR__ . "/sub/tab-" . $tab . ".php"; include $sub; $scr = __DIR__ . "/sub/script.php"; include $scr;'
+  );
+  writeFileSync(
+    path.join(directory, 'controller.php'),
+    '<?php function f($tab) { $from_tab = 1; $from_script = 2; $template = __DIR__ . "/shell.php"; include $template; }'
+  );
+  const result = spawnSync('php', [analyzer, `--path=${directory}/controller.php`, '--fail-on-warning'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+}));
 test('unknown AST flags fail rather than silently scanning another target', () => {
   const result = spawnSync('php', [analyzer, '--typo'], { encoding: 'utf8' });
   assert.equal(result.status, 2);
