@@ -1,0 +1,50 @@
+%% Máquina de estados del capítulo 07 — la vida de la hermana -og.jpg de una portada.
+%% Qué muestra: los cuatro caminos que pueden crearla, los dos estados en que la tarjeta de WhatsApp sale sin imagen, y el bucle roto del cron que deja la mayoría del catálogo atascada.
+stateDiagram-v2
+    direction TB
+
+    [*] --> SoloAvif: se sube o se reemplaza la portada
+
+    SoloAvif: Sólo existe el AVIF
+    SoloAvif: WhatsApp, X y Gmail no lo pintan
+
+    Encolada: Encolada
+    Encolada: hay un evento social_image_for_slug con su slug
+
+    Convertida: Hermana -og.jpg al día
+    Convertida: la JPG existe y es más nueva que el AVIF
+
+    Desactualizada: Hermana vieja
+    Desactualizada: existe, pero el AVIF se reemplazó después
+
+    Fallida: Conversión fallida
+    Fallida: transient akb_og_fail_slug durante 6 h
+
+    SoloAvif --> Convertida: subida de la portada<br/>(wp_generate_attachment_metadata)
+    SoloAvif --> Encolada: el front sirve su og:image<br/>ensure_for_slug() NO convierte, sólo encola
+    SoloAvif --> Convertida: ensure_now()<br/>única ruta que convierte en el acto<br/>(sólo para el carrito de Brevo)
+    SoloAvif --> Convertida: cron diario, dentro de las 100 de la corrida
+    SoloAvif --> SoloAvif: cron diario, fuera de las 100<br/>la cadena de reanudación nunca arranca
+
+    Encolada --> Encolada: el cron del hospedaje aún no pasó<br/>por este evento puntual
+    Encolada --> Convertida: corre el evento puntual
+    Encolada --> Fallida: AVIF ilegible o sin permisos de escritura
+
+    Fallida --> SoloAvif: pasan 6 h y caduca el transient
+
+    Convertida --> Desactualizada: llega una reimpresión<br/>y se reemplaza el AVIF
+    Desactualizada --> Convertida: el cron compara filemtime y la rehace
+
+    note right of Desactualizada
+        El panel Salud SEO NO cuenta este estado:
+        sólo pregunta si el fichero existe.
+        Puede decir «0 sin variante» con cientos por rehacer.
+    end note
+
+    note right of SoloAvif
+        Estado mayoritario hoy (medido el 2026-09-11):
+        1.699 hermanas escritas de unas 14.900 portadas.
+        A 100 al día, el catálogo tarda unos 132 días.
+        La tarjeta sale sin imagen y el og:image
+        pierde también type, width y height.
+    end note

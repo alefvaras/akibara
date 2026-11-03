@@ -1,0 +1,175 @@
+/**
+ * Conmutador de ediciones en el archivo de una editorial (/marca/<edición>/).
+ *
+ * Reemplaza al aviso «Ver Panini completa»: quien está en la edición argentina
+ * quiere saltar a la española (y al revés) en UN clic y con el conteo a la
+ * vista; la landing de la familia queda como enlace terciario «Comparar».
+ *
+ * Clases propias y no `.akb-series-editions` (el conmutador de series): esa
+ * hoja sólo se encola en archivos de serie y aquí el control es el principal
+ * de la página (44 px, no 36). Sin `transition: all`: los tokens --transition-*
+ * ya traen la curva y un `all` se comió el padding de un componente una vez.
+ */
+
+.akb-edition-switch {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-3, 12px) var(--space-4, 16px);
+	margin: 0 0 var(--space-5, 24px);
+	padding: var(--space-3, 12px) var(--space-4, 16px);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 1px solid var(--aki-border-light, #333);
+	border-left: 4px solid var(--aki-yellow, #ffd700);
+}
+
+.akb-edition-switch__label {
+	margin: 0;
+	color: var(--aki-gray-200, #e0e0e0);
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-synthesis: none;
+	font-size: var(--text-sm, 0.875rem);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.akb-edition-switch__label strong {
+	color: var(--aki-white, #fff);
+	font-weight: 400;
+}
+
+.akb-edition-switch__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2, 8px);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.akb-edition-switch__item {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2, 8px);
+	min-height: var(--touch-target-min, 44px);
+	padding: 0 var(--space-4, 16px);
+	color: var(--aki-white, #fff);
+	background: var(--aki-surface-3, #222);
+	border: 1px solid var(--aki-gray-600, #3a3a3e);
+	font-weight: var(--weight-semibold, 600);
+	line-height: 1.2;
+	text-decoration: none;
+	transition:
+		border-color var(--transition-fast, 150ms ease-out),
+		background-color var(--transition-fast, 150ms ease-out);
+}
+
+.akb-edition-switch__item:not([aria-current]) {
+	/* La otra edición es LA acción (la pregunta del dueño): borde rojo y flecha. */
+	border-color: var(--aki-red, #e60012);
+}
+
+.akb-edition-switch__item[aria-current="page"] {
+	/* Donde ya estás: la misma ficha «seleccionada» que usan los filtros de series. */
+	color: var(--aki-black, #121212);
+	background: var(--aki-white, #fff);
+	border-color: var(--aki-white, #fff);
+	box-shadow: 3px 3px 0 var(--aki-red, #e60012);
+}
+
+.akb-edition-switch__go {
+	color: var(--aki-red-bright, #ff0a1d);
+	font-weight: var(--weight-bold, 700);
+}
+
+.akb-edition-switch__badge {
+	padding: 1px 6px;
+	border: 1px solid currentColor;
+	font-family: var(--font-heading);
+	font-size: var(--text-xs, 0.75rem);
+	letter-spacing: 0.08em;
+}
+
+.akb-edition-switch__count {
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: var(--text-sm, 0.875rem);
+	font-weight: var(--weight-normal, 400);
+}
+
+.akb-edition-switch__item[aria-current="page"] .akb-edition-switch__count {
+	color: var(--aki-gray-700, #2a2a2e);
+}
+
+.akb-edition-switch__all {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2, 8px);
+	min-height: var(--touch-target-min, 44px);
+	margin-left: auto;
+	color: var(--aki-gray-200, #e0e0e0);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+	.akb-edition-switch__item:not([aria-current]):hover {
+		background: var(--aki-red, #e60012);
+		border-color: var(--aki-red, #e60012);
+	}
+
+	.akb-edition-switch__item:not([aria-current]):hover .akb-edition-switch__count,
+	.akb-edition-switch__item:not([aria-current]):hover .akb-edition-switch__go {
+		color: var(--aki-white, #fff);
+	}
+
+	.akb-edition-switch__all:hover {
+		color: var(--aki-white, #fff);
+	}
+}
+
+.akb-edition-switch__item:focus-visible,
+.akb-edition-switch__all:focus-visible {
+	outline: var(--aki-focus-outline, 3px solid #ffd401);
+	outline-offset: var(--aki-focus-offset, 2px);
+	box-shadow: var(--aki-focus-ring, none);
+}
+
+@media (max-width: 600px) {
+	.akb-edition-switch {
+		flex-direction: column;
+		align-items: stretch;
+		padding: var(--space-3, 12px);
+	}
+
+	.akb-edition-switch__list {
+		display: grid;
+		/*
+		 * minmax(0,1fr) permite que el texto largo reduzca su columna sin alterar la igualdad de ancho
+		 * entre fichas.
+		 */
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.akb-edition-switch__item {
+		/* La ficha llena su celda (el enlace era inline-flex y medía por su
+		 * contenido: 176/149 px en celdas de 169) y baja el padding para que
+		 * «AR Argentina 855 productos» quepa en una línea. */
+		display: flex;
+		width: 100%;
+		justify-content: center;
+		box-sizing: border-box;
+		padding: 0 var(--space-2, 8px);
+	}
+
+	.akb-edition-switch__all {
+		margin-left: 0;
+		justify-content: center;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-edition-switch__item {
+		transition: none;
+	}
+}

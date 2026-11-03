@@ -1,0 +1,56 @@
+%% Estados del pedido tal como los pinta OrderTimeline — tres pasos base y un cuarto sólo si hay espera vigente.
+%% Qué muestra: que el módulo NO crea estados nuevos (mapea los de WooCommerce más shipping-progress de Blue Express), que no existe ningún nodo «Entregado», y las tres condiciones que cierran la espera antes de que cambie el estado del pedido.
+stateDiagram-v2
+    direction TB
+
+    [*] --> EsperandoPago
+
+    state "Esperando pago<br/>(pedido sin fecha de pago)" as EsperandoPago
+    state "Pago confirmado<br/>(paso 1, siempre existe)" as PagoConfirmado
+    state "Cartel terminal<br/>(sin pasos: cancelado, reembolsado o pago fallido)" as Terminal
+    state "Espera: «Preventa» o «A pedido»<br/>(paso 2, SÓLO si quedan líneas vigentes)" as Espera
+    state "Preparando despacho<br/>(paso 3, siempre existe)" as Preparando
+    state "Despachado<br/>(paso 4, estado completed)" as Despachado
+    state "Listo para enviar<br/>(paso 4 con shipping-progress: el paquete aún no sale)" as ListoParaEnviar
+
+    EsperandoPago --> PagoConfirmado : el pedido registra fecha de pago
+    EsperandoPago --> Terminal : cancelled / refunded / failed
+    PagoConfirmado --> Terminal : cancelled / refunded / failed
+
+    PagoConfirmado --> Espera : el pedido lleva líneas reservadas TODAVÍA vigentes
+    PagoConfirmado --> Preparando : no hay espera que mostrar
+
+    Espera --> Preparando : marcado listo para despachar
+    Espera --> Preparando : todo lo esperado llegó (aunque el pedido siga en «procesando»)
+
+    Preparando --> Despachado : estado completed
+    Preparando --> ListoParaEnviar : estado shipping-progress de Blue Express
+
+    Despachado --> [*]
+    ListoParaEnviar --> Despachado : el transportista cierra el envío
+    Terminal --> [*]
+
+    note right of Espera
+      La bandera _akb_eta_has_preventa NUNCA se apaga.
+      Por eso no basta con ella: un pedido cuya única
+      reserva se reembolsó pintaba «En preventa» para siempre.
+      La pista de fecha sale de una sola fuente y, si venció,
+      dice «Llegaba ~octubre 2026 · atrasado».
+    end note
+
+    note left of EsperandoPago
+      OJO CON LA CUENTA: estas siete cajas son ESTADOS del pedido,
+      no nodos pintados. La línea de tiempo dibuja TRES nodos
+      —paso 1, «Preparando despacho» y el último—, más un CUARTO
+      sólo si hay espera vigente. El paso 1 es un único nodo que
+      se rotula «Pago confirmado» o «Esperando pago» según el
+      pedido; el último se rotula «Despachado» o «Listo para
+      enviar». Un pedido terminal no pinta línea de tiempo: pinta
+      un cartel. Y no existe ningún nodo «Entregado».
+    end note
+
+    note right of Terminal
+      Aquí no hay pasos, hay un cartel.
+      Ojo: la caja de coordinación del retiro en Metro
+      San Miguel SÍ se sigue pintando en este estado.
+    end note

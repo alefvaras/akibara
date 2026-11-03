@@ -1,0 +1,203 @@
+%% Piezas del capítulo 04 — disponible, a pedido y preventa; entrega estimada; «avísame cuando llegue».
+%% Qué muestra: quién decide el estado comercial de un tomo, quién calcula la fecha de llegada, qué se congela en el pedido al comprar, qué correos salen después, y el circuito aparte de la lista de espera para lo agotado. Naranjo = código propio; gris = tercero; verde = persona; morado = dato guardado.
+%% Cómo se leen los nombres: en «OrderPreventa\ReminderEmail» la parte de antes de la contrabarra es el módulo (la carpeta) y la de después es la clase (el fichero ReminderEmail.php dentro de ella). No existe ningún fichero llamado «OrderPreventa\ReminderEmail».
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    DUENO["Dueño<br/>marca el tipo y la fecha de salida de cada tomo"]:::persona
+    CLIENTE["Cliente<br/>lee la fecha, compra y espera"]:::persona
+
+    subgraph ORIGEN["De dónde sale el dato"]
+        WCSTOCK["WooCommerce · stock crudo<br/>instock · onbackorder · outofstock"]:::tercero
+        PANEL["EstimatedDelivery\ProductDataPanel<br/>pestaña «Disponibilidad» de la ficha"]:::propio
+        METAS["_akb_eta_type + _akb_eta_release_date<br/>las dos metas que deciden todo"]:::dato
+        TERM["termmeta de pa_pais y de product_brand<br/>días de tránsito y política de pedido"]:::dato
+    end
+
+    DUENO --> PANEL
+    PANEL --> METAS
+    DUENO --> TERM
+
+    subgraph DECIDE["Quién decide el estado comercial"]
+        AVAIL["Stock\Availability<br/>única autoridad: disponible · a pedido · preventa · agotado"]:::propio
+        STSTAT["Stock\StockStatus<br/>contrato de los tres estados crudos de WooCommerce"]:::propio
+        BRIDGE["Stock\SearchAvailabilityBridge<br/>le presta al buscador la distinción preventa/a pedido"]:::propio
+        VENCIDA["Stock\PreventaVencidaCron<br/>refresca hasta 50 fichas vencidas al día"]:::propio
+    end
+
+    WCSTOCK --> AVAIL
+    METAS --> AVAIL
+    STSTAT --> AVAIL
+    AVAIL --> BRIDGE
+    AVAIL --> VENCIDA
+
+    subgraph FECHA["Quién calcula la fecha"]
+        CALC["EstimatedDelivery\DateCalculator<br/>cerebro del cálculo; devuelve un rango o «sin fecha»"]:::propio
+        POLICY["EstimatedDelivery\PedidoPolicy<br/>continuo · por tanda · pausada, y las frases que lo explican"]:::propio
+        SETT["EstimatedDelivery\Settings<br/>días de tránsito del país, con respaldo"]:::propio
+        RESULT["EstimatedDelivery\EtaResult<br/>el paquetito inmutable del resultado"]:::propio
+        CORTES["EstimatedDelivery\CortesPanel<br/>tabla única de cortes, con deshacer"]:::propio
+    end
+
+    AVAIL --> CALC
+    TERM --> SETT
+    TERM --> POLICY
+    SETT --> CALC
+    POLICY --> CALC
+    CALC --> RESULT
+    CORTES --> TERM
+
+    subgraph VITRINA["Lo que ve el cliente antes de comprar"]
+        BANNER["EstimatedDelivery\BannerRenderer<br/>cartel de la ficha, píldora de la tarjeta y las 5 promesas"]:::propio
+        UX["OrderPreventa\PreventaUX<br/>texto del botón y nota «al llegar el stock sube a $X»"]:::propio
+        CHKSVC["Services\CheckoutDataService<br/>contrato que consume el carrito por bloques"]:::propio
+        RUTAS["PreventasRoute · DisponiblesRoute<br/>/a-pedido/ y /disponibles/ con SEO propio"]:::propio
+        GLA["EstimatedDelivery\GlaBridge<br/>manda availabilityDate al feed de Google"]:::propio
+    end
+
+    RESULT --> BANNER
+    AVAIL --> UX
+    BANNER --> CHKSVC
+    RESULT --> GLA
+    STSTAT --> RUTAS
+    BANNER --> CLIENTE
+    UX --> CLIENTE
+    RUTAS --> CLIENTE
+
+    subgraph COMPRA["Lo que se congela al comprar"]
+        SNAP["OrderPreventa\LineItemSnapshot<br/>foto de la promesa en cada línea"]:::propio
+        TAG["OrderPreventa\OrderTagging<br/>resumen del pedido: tiene espera, cuántas líneas"]:::propio
+        RECALC["OrderPreventa\SummaryRecalculator<br/>el único que escribe «para cuándo llega lo último»"]:::propio
+        ITEMS["OrderPreventa\PreventaItems<br/>dueña de «qué está esperando este cliente»"]:::propio
+        ORDMETA["metas del pedido y de sus líneas<br/>_akb_eta_was_preventa · _akb_eta_summary_max · …"]:::dato
+    end
+
+    CLIENTE --> SNAP
+    SNAP --> TAG
+    TAG --> RECALC
+    RECALC --> ORDMETA
+    ITEMS --> RECALC
+
+    subgraph ESPERA["Lo que pasa mientras el cliente espera"]
+        READYCRON["OrderPreventa\ReadyToShipCron<br/>repaso diario: marca listos y avisa de atrasos"]:::propio
+        STOCKLIS["OrderPreventa\StockChangeListener<br/>atajo a +5 s cuando el tomo vuelve a stock"]:::propio
+        RELDATE["OrderPreventa\ReleaseDateChangeListener<br/>clasifica el cambio de fecha y decide a quién escribir"]:::propio
+        REMCRON["OrderPreventa\RemindersCron<br/>domingos 03:00: «tu pedido se acerca»"]:::propio
+        REFUND["OrderPreventa\RefundListener<br/>recalcula en el acto tras un reembolso"]:::propio
+        COMPPOL["OrderPreventa\CompletionPolicy<br/>impide completar un pedido que aún espera"]:::propio
+        HANDOFF["OrderPreventa\CarrierHandoffMonitor<br/>a +2 h exige número de seguimiento"]:::propio
+        CAPS["OrderPreventa\FulfillmentCapabilities<br/>contrato neutral de estados y seguimientos"]:::propio
+        STAMP["OrderPreventa\ShippableStamp<br/>sella UNA sola vez la fecha real de despacho"]:::propio
+        STAMPMETA["_akb_eta_shippable_at<br/>el dato REAL contra el que se mide la promesa"]:::dato
+        PROMISE["OrderPreventa\ShipPromise<br/>la ventana «1-3 días hábiles», en un solo lugar"]:::propio
+    end
+
+    ORDMETA --> READYCRON
+    STOCKLIS --> READYCRON
+    REFUND --> READYCRON
+    RECALC --> RELDATE
+    CAPS --> READYCRON
+    CAPS --> HANDOFF
+    CAPS --> COMPPOL
+    CAPS --> STAMP
+    STAMP --> STAMPMETA
+    PROMISE --> MAILREADY
+    PROMISE --> VIS
+
+    subgraph CORREOS["Lo que le llega al cliente"]
+        DISP["OrderPreventa\ReadyEmailDispatcher<br/>agenda, reintenta y ofrece el reenvío manual"]:::propio
+        MAILREADY["OrderPreventa\ReadyToShipEmail<br/>«Tu pedido ya llegó a Akibara»"]:::propio
+        MAILREM["OrderPreventa\ReminderEmail<br/>tres modos: se acerca · cambio de fecha · fecha anunciada"]:::propio
+        REARM["OrderPreventa\SendFailureRearm<br/>quita la marca si el proveedor rechaza, hasta 3 veces"]:::propio
+        VIS["OrderPreventa\CustomerVisibility<br/>cartel y línea por tomo en correo y en «ver pedido»"]:::propio
+        PIE["OrderPreventa\ContactFooter<br/>pie de WhatsApp y correo"]:::propio
+    end
+
+    READYCRON --> DISP
+    DISP --> MAILREADY
+    REMCRON --> MAILREM
+    RELDATE --> MAILREM
+    MAILREADY --> REARM
+    MAILREM --> REARM
+    PIE --> MAILREADY
+    PIE --> MAILREM
+    MAILREADY --> CLIENTE
+    MAILREM --> CLIENTE
+    VIS --> CLIENTE
+
+    subgraph OPERA["Lo que opera el dueño"]
+        SETTINGS["OrderPreventa\Settings<br/>«Pedidos y preventa · Ajustes», 5 sub-pestañas"]:::propio
+        PANTALLA["OrderPreventa\PreventasScreen<br/>«Por llegar»: qué espera la gente y cambiar fecha"]:::propio
+        COL["OrderPreventa\AdminColumn + AdminFilter<br/>columna «Reserva» y filtro de la lista de pedidos"]:::propio
+        AUDIT["OrderPreventa\PromiseWindow + PromiseAudit<br/>prometido contra lo que pasó"]:::propio
+        CLI["OrderPreventa\WpCli<br/>backfill, repaso forzado e informe de cumplimiento"]:::propio
+    end
+
+    DUENO --> SETTINGS
+    DUENO --> PANTALLA
+    PANTALLA --> RELDATE
+    PANTALLA --> READYCRON
+    AUDIT --> PANTALLA
+    AUDIT --> CLI
+    STAMPMETA --> AUDIT
+    ORDMETA --> AUDIT
+    SETTINGS --> REMCRON
+
+    subgraph BIS["Circuito aparte — sólo para lo AGOTADO"]
+        FORM["BackInStock\CaptureForm<br/>«Avísame cuando vuelva» en la ficha"]:::propio
+        REST["BackInStock\CaptureRestController<br/>puerta pública con señuelo y tope por hora"]:::propio
+        REPO["BackInStock\SubscriberRepository<br/>reclamo atómico: como mucho un aviso por persona"]:::propio
+        TABLA["tabla akb_bis_subscribers<br/>producto · email · token · estado"]:::dato
+        WATCH["BackInStock\StockWatcher<br/>detecta el regreso a stock y encola"]:::propio
+        DISPBIS["BackInStock\NotificationDispatcher<br/>lotes de 20 cada 60 segundos"]:::propio
+        MAILBIS["BackInStock\InstockEmail<br/>«X está de vuelta en Akibara»"]:::propio
+        NOTICE["BackInStock\SubscriptionNotice<br/>aviso de alta inmediato, no se puede apagar"]:::propio
+        UNSUB["BackInStock\UnsubscribeHandler<br/>baja en un clic: GET confirma, POST da de baja"]:::propio
+        RET["BackInStock\Retention<br/>borra las cerradas a los 180 días"]:::propio
+    end
+
+    CLIENTE --> FORM
+    FORM --> REST
+    REST --> REPO
+    REPO --> TABLA
+    REST --> NOTICE
+    WCSTOCK --> WATCH
+    WATCH --> DISPBIS
+    DISPBIS --> MAILBIS
+    MAILBIS --> CLIENTE
+    NOTICE --> CLIENTE
+    UNSUB --> REPO
+    RET --> REPO
+
+    subgraph TERCEROS["Terceros que participan"]
+        WOO["WooCommerce<br/>pedidos, correos y Action Scheduler"]:::tercero
+        BLUEX["Blue Express<br/>aporta el estado de despacho y el seguimiento"]:::tercero
+        JOIN["Joinchat<br/>de su option sale el WhatsApp del pie"]:::tercero
+        LSCACHE["LiteSpeed Cache<br/>recibe las purgas de la ficha"]:::tercero
+        RANKMATH["Rank Math<br/>SEO propio de /a-pedido/ y /disponibles/"]:::tercero
+        GOOGLE["Google Listings & Ads<br/>feed de Google Shopping"]:::tercero
+    end
+
+    subgraph PROPIOS["Los otros plugins propios y el pegamento hacia terceros"]
+        SEARCH["akibara-search<br/>faceta de disponibilidad y badge del autocompletado"]:::propio
+        BLOCKS["akibara-cart-checkout-blocks<br/>consume Contracts\CheckoutDataProvider"]:::propio
+        REWARDS["akibara-rewards<br/>llama directo a CompletionPolicy::can_request_review()"]:::propio
+        ADAPTER["Integrations\Bluex\OrderPreventaAdapter<br/>traduce Blue Express al contrato neutral"]:::propio
+    end
+
+    BLUEX --> ADAPTER
+    ADAPTER --> CAPS
+    ADAPTER --> STAMP
+    JOIN --> PIE
+    VENCIDA --> SEARCH
+    VENCIDA --> LSCACHE
+    BRIDGE --> SEARCH
+    RUTAS --> RANKMATH
+    GLA --> GOOGLE
+    CHKSVC --> BLOCKS
+    COMPPOL --> REWARDS
+    WOO --> TAG
+    WOO --> DISP

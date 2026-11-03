@@ -1,0 +1,59 @@
+%% Caso 2 del capítulo 02 — el dueño pulsa «Activar» por primera vez.
+%% Qué muestra: los tres gates que pueden desactivar el plugin solo, por qué las clases se cargan a mano (el autoloader todavía no existe), el fallo silencioso más caro del núcleo —sellar la versión de esquema sin comprobar que dbDelta creó la tabla—, y que el flag de la migración de fechas SÓLO se sella al final del recorrido de términos: cualquiera de sus tres guardas retorna sin migrar y sin sellar.
+%% Nota de lectura: la flecha con una equis (--x) significa que ese mensaje NO ocurre.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WP as WordPress<br/>(pantalla de Plugins)
+    participant Act as register_activation_hook<br/>akibara-business.php:172-237
+    participant Install as Las 3 clases Install<br/>Wishlist · BackInStock · SeriesFollow
+    participant DB as Base de datos<br/>(tablas y wp_options)
+    participant Mig as EstimatedDelivery\Migration
+    participant Correo as Correo
+
+    Dueno->>WP: pulsa «Activar»
+    WP->>Act: dispara el hook de activación
+
+    alt PHP menor que 8.1
+        Act->>WP: deactivate_plugins() + wp_die con la versión actual
+    else Falta la clase WooCommerce
+        Act->>WP: deactivate_plugins() + wp_die
+    else WC_VERSION menor que 10.0
+        Act->>WP: deactivate_plugins() + wp_die con las dos versiones
+    else Todo en orden
+        Act->>Install: require_once a mano de los 3 ficheros
+        Note over Act,Install: el autoloader NO existe en el contexto de activación:<br/>referenciar una constante de clase fatalearía
+        Install->>DB: dbDelta de las 3 tablas
+        Act->>DB: update_option(OPTION_KEY, DB_VERSION, false) × 3
+    end
+
+    alt dbDelta falló en silencio (permisos, motor, largo de clave)
+        Note over DB: ⚠️ la option queda sellada IGUAL.<br/>maybe_install() sale por su early-return para siempre:<br/>el cliente pulsa «Avísame cuando llegue» y no se anota nadie
+        Note over Install: la SEÑAL existe: maybe_install() escribe una advertencia<br/>en el registro de WooCommerce (Install.php:73-91)…<br/>pero sellar a ciegas impide que se llegue a ella
+        Note over Install: la sonda schema_ready() existe en BackInStock y SeriesFollow<br/>y la activación NO la llama · en Wishlist NO EXISTE
+    else Las 3 tablas quedaron creadas
+        Note over DB: favoritos, lista de espera y «sigue esta serie» operativos
+    end
+
+    Act->>DB: delete_option('akb_wishlist_flushed') · código muerto: nadie la escribe ni la lee
+    Act->>Mig: Migration::on_activation() → run(false), o sea corre siempre
+
+    alt Alguna de las 3 guardas de run() se cumple
+        Note over Mig: falta el flag y se pidió saltar (:77) ·<br/>no existen get_terms/taxonomy_exists (:81) ·<br/>la taxonomía pa_pais no está registrada (:85)
+        Mig--xDB: retorna sin migrar y SIN sellar el flag
+    else Ninguna guarda se cumple: recorre los términos
+        Mig->>DB: recorre cada término de pa_pais
+
+        alt El término ya tiene valores puestos a mano
+            Mig->>DB: NO los toca
+        else El slug está en los valores por defecto o hay options antiguas
+            Mig->>DB: escribe _akb_min_days y _akb_max_days
+        else Slug nuevo y desconocido
+            Mig->>DB: no escribe nada · lo rellena el dueño desde la ficha del término
+        end
+
+        Mig->>DB: al TERMINAR el recorrido sella<br/>akibara_eda_pa_pais_migrated_at (autoload apagado, :109-113)
+    end
+
+    Act--xCorreo: ningún correo sale de la activación
+    WP-->>Dueno: «Plugin activado»

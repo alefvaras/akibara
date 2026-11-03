@@ -1,0 +1,211 @@
+/*
+ * Trust badges — banner post-hero.
+ * Extraido de legacy branding-v1.css. Se encola donde vive el markup: la
+ * portada, que en Akibara es la page 210 («Inicio», `page_on_front`), y la home
+ * alternativa — las dos las cubre `akibara_gp_is_home_surface()`.
+ *
+ * Selectores que usa el HTML del page 210 (legacy markup):
+ *   .akb-trust-section, .akb-trust-grid
+ *   .akb-trust-item, .akb-trust-item__icon, .akb-trust-item__label
+ */
+
+.akb-trust-section {
+    background-color: var(--aki-surface);
+    background-image: var(--aki-screentone);
+    background-size: 8px 8px;
+    border-top: 2px solid var(--aki-border);
+    border-bottom: 2px solid var(--aki-border);
+    padding: var(--space-4) 0;
+}
+
+.akb-trust-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+}
+
+.akb-trust-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-left: 3px solid var(--aki-red);
+    border-radius: 0;
+    box-shadow: 2px 2px 0 var(--aki-black);
+}
+
+/* Una de las cuatro tarjetas es un enlace (Akibara Puntos lleva a sus reglas):
+ * sin esto hereda el subrayado y el rojo de los enlaces del tema y rompe la
+ * simetría de la tira.
+ *
+ * Hover visual aplicado al fondo de la tarjeta y al <small> para proporcionar
+ * feedback táctil/puntero nítido sin alterar el color de texto directo. */
+a.akb-trust-item {
+    text-decoration: none;
+    transition: background-color .15s ease;
+}
+
+a.akb-trust-item:hover {
+    background: var(--aki-surface-3);
+}
+
+a.akb-trust-item:hover .akb-trust-item__label small {
+    color: var(--aki-gray-200);
+}
+
+a.akb-trust-item:focus-visible {
+    outline: none;
+    box-shadow: var(--aki-focus-ring);
+}
+
+.akb-trust-item__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 0;
+    background: rgba(217, 0, 16, 0.12);
+    border: 1px solid rgba(217, 0, 16, 0.25);
+    color: var(--aki-red-bright);
+    flex-shrink: 0;
+}
+
+.akb-trust-item__icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Equilibrado de texto (text-wrap: balance) en la etiqueta para distribuir
+ * uniformemente las líneas sin dejar palabras huérfanas en el salto. */
+.akb-trust-item__label {
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+.akb-trust-item__label strong {
+    display: block;
+    color: var(--aki-white);
+    font-weight: 700;
+    font-size: 0.95em;
+}
+
+/* Piso tipográfico accesible (12 px / 0.75rem) en small para preservar
+ * legibilidad consistente en todas las resoluciones. */
+.akb-trust-item__label small {
+    font-size: 0.75rem;
+    color: var(--aki-gray-400);
+}
+
+/* Ajuste de holgura en pantallas intermedias (1025px - 1140px) optimizando
+ * gap y padding para mantener el texto en una sola línea sin desbordamiento. */
+@media (min-width: 1025px) and (max-width: 1140px) {
+    .akb-trust-grid {
+        gap: var(--space-2);
+    }
+
+    .akb-trust-item {
+        padding-inline: var(--space-2);
+    }
+}
+
+/* Mobile densificado — antes ocupaba 148px (~22% del fold mobile)
+ * para señal terciaria. Ahora ~95-105px: padding/min-height/icon/font
+ * todos un escalón abajo, manteniendo legibilidad y branding (cards
+ * + box-shadow rojo). Trust signals son señal de respaldo, no CTA;
+ * no merecen prime real estate above-the-fold. */
+@media (max-width: 768px) {
+    .akb-trust-section {
+        padding: 8px 0;
+        background-size: 10px 10px;
+    }
+
+	.akb-trust-grid {
+		grid-template-columns: repeat(2, 1fr);
+		/* Cada fila comparte alto: una etiqueta de dos líneas no puede dejar
+		 * a su pareja con un borde rojo más corto. */
+		align-items: stretch;
+		gap: 6px;
+		padding: 0 12px;
+	}
+
+	.akb-trust-item {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+		gap: 6px;
+		box-sizing: border-box;
+		width: 100%;
+		min-width: 0;
+		min-height: 52px;
+		height: 100%;
+		padding: 6px 8px;
+		/* Keyline completo para que las cuatro tarjetas sean simétricas;
+		 * el borde rojo distintivo se reserva exclusivamente para la tarjeta navegable. */
+		border: 2px solid var(--aki-border);
+		box-shadow: none;
+    }
+
+	a.akb-trust-item {
+		border-color: var(--aki-red);
+	}
+
+	/* Anula el margen inline legado de Joinchat en la cuarta celda: en una
+	 * grilla de dos columnas todas las tarjetas deben ocupar la misma pista. */
+	body.home .akb-trust-item:nth-child(4) {
+		margin-right: 0 !important;
+	}
+
+    .akb-trust-item__icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 0px;
+    }
+
+    .akb-trust-item__icon svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Tamaño mínimo accesible (12 px / 0.75rem) para ambas líneas en móvil.
+     * La segunda línea se preserva visible en todos los anchos densificando
+     * el bloque sin duplicar altura vertical. */
+    .akb-trust-item__label strong {
+        font-size: 0.75rem;
+        line-height: 1.15;
+    }
+
+    .akb-trust-item__label small {
+        display: block;
+        margin-top: 1px;
+        line-height: 1.15;
+    }
+}
+
+@media (max-width: 480px) {
+    .akb-trust-grid {
+        gap: 5px;
+        padding: 0 10px;
+    }
+
+	.akb-trust-item {
+		min-height: 52px;
+		padding: 5px 7px;
+	}
+}
+
+/* Viewports ultra-estrechos (≤380px): oculta iconos decorativos para mantener legibilidad
+ * en dos columnas sin desbordamiento tipográfico. */
+@media (max-width: 380px) {
+    .akb-trust-item__icon {
+        display: none;
+    }
+}

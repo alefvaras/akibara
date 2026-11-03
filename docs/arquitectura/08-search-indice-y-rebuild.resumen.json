@@ -1,0 +1,106 @@
+{
+  "titulo": "akibara-search · el índice: cómo se construye, se reconstruye y se cuida",
+  "capitulo": "08-search-indice-y-rebuild",
+  "diagramas": [
+    "diagramas/08-search-indice-y-rebuild-piezas.mmd",
+    "diagramas/08-search-indice-y-rebuild-panel-indice.mmd",
+    "diagramas/08-search-indice-y-rebuild-estados-rebuild.mmd",
+    "diagramas/08-search-indice-y-rebuild-cron.mmd",
+    "diagramas/08-search-indice-y-rebuild-caso-guardar-termino.mmd",
+    "diagramas/08-search-indice-y-rebuild-caso-descuento-editorial.mmd",
+    "diagramas/08-search-indice-y-rebuild-caso-stock-incremental.mmd",
+    "diagramas/08-search-indice-y-rebuild-caso-watchdog-alarma.mmd",
+    "diagramas/08-search-indice-y-rebuild-caso-migracion-esquema.mmd",
+    "diagramas/08-search-indice-y-rebuild-caso-rescate.mmd"
+  ],
+  "componentes": 23,
+  "casos": 12,
+  "crons": [
+    "akb_search_rebuild_watchdog",
+    "akb_search_reconcile",
+    "akb_search_rebuild_batch",
+    "akb_search_pump_live",
+    "akb_search_reindex_product",
+    "akb_search_reindex_term",
+    "akb_search_editorial_discount_boundary"
+  ],
+  "terceros": [
+    "WooCommerce (fuente de productos, stock y ofertas programadas)",
+    "Action Scheduler (cola durable que trae WooCommerce; grupo akibara-search)",
+    "WordPress core (options, términos, taxonomías, wp_mail)",
+    "MariaDB / MySQL (GET_LOCK del WriteFence, RENAME TABLE atómico, information_schema)",
+    "LiteSpeed Cache (litespeed_purge, litespeed_purge_all, litespeed_control_finalize)",
+    "Cloudflare (ignora Cache-Control; sólo litespeed_purge_all llega al borde)",
+    "Hostinger (DISABLE_WP_CRON + llamada externa a wp-cron.php cada 5 minutos)",
+    "Mailpit (espejo local; por eso la alarma sólo se manda en producción)",
+    "Mailpit (buzón de correo de mentira del espejo local; wp_get_environment_type decide si el correo sale de verdad)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "03-business-catalogo-y-series",
+      "por": "filtro akb_search_effective_price (el precio efectivo lo calcula business; el índice lo materializa)"
+    },
+    {
+      "a": "04-business-disponibilidad-preventa-y-avisos",
+      "por": "filtros akb_stock_status_label y akb_search_availability_value (StockLabels) + postmeta _akb_onbackorder_at / _akb_first_instock_at"
+    },
+    {
+      "a": "06-business-panel-descuentos-textos-y-portada",
+      "por": "options akibara_taxonomy_discount_enabled/_from/_to/_apply_to/_sale_policy, akb_discount_max_pct y termmeta _akb_taxonomy_discount_pct (leídas e interceptadas por EditorialDiscountPublication)"
+    },
+    {
+      "a": "03-business-catalogo-y-series",
+      "por": "acción akibara_taxonomy_discount_pct_saved → Indexer::on_discount_pct_saved()"
+    },
+    {
+      "a": "07-business-seo-ia-blog-y-correo",
+      "por": "función puente akibara_search_demand_gaps() (ranking «Lo más solicitado» desde el qlog)"
+    },
+    {
+      "a": "09-search-consulta-facetas-y-sugerencias",
+      "por": "tablas docs/tokens/facet_index, option akb_search_index_gen y el gate de servido (bundle_is_ready)"
+    },
+    {
+      "a": "13-tema-akibara-gp",
+      "por": "ocho funciones puente con function_exists: akibara_search_facets_active, _facets_fail_open, _facets_view, _facets_context, _suggest_active, _correction, _relaxed_notice, _demand_gaps; el TEMA solo llama a dos (_facets_active y _suggest_active), business a _demand_gaps y las cinco restantes las consume frontend/facets-render.php del propio plugin"
+    },
+    {
+      "a": "15-mu-plugins-correo-litespeed-claves-y-guardas",
+      "por": "litespeed_purge / litespeed_purge_all / litespeed_control_set_nocache y el techo de TTL de página"
+    },
+    {
+      "a": "16-todo-lo-programado",
+      "por": "grupo akibara-search de Action Scheduler: watchdog 15 min, reconcile 24 h, pumps y acción de borde"
+    },
+    {
+      "a": "17-catalogo-de-datos",
+      "por": "cinco tablas propias (+ sombras _new/_old) y la familia de options akb_search_*"
+    },
+    {
+      "a": "ops/rescate-buscador.sh",
+      "por": "option akb_search_rebuild_state y las tablas sombra: el orden de liberación es el arreglo"
+    },
+    {
+      "a": "09-search-consulta-facetas-y-sugerencias",
+      "por": "piezas vecinas que este capítulo nombra sin explicar: Normalizer, QueryLogger (único escritor del qlog), PriceBuckets, FacetRegistry (taxonomías indexadas), SeriesSuggestions, FacetService y Support\\RateLimit"
+    }
+  ],
+  "deudas_anotadas": [
+    "El correo de alarma (RebuildJob.php:775-792) manda mirar «done» y «work_blocked» tras «wp akb-search status», y ese comando no los imprime (Cli.php:140-162): están en el panel, en GET /wp-json/akibara/v1/search/admin-status y en la option akb_search_rebuild_state.",
+    "La cabecera de ops/rescate-buscador.sh argumenta desde un comportamiento que el código ya no tiene (watchdog_recovers_serving cubre BLOCKED y ABORTED desde 2026-09-06) y sus citas de línea están corridas.",
+    "ops/rescate-buscador.sh fija el prefijo wp_ a mano en las consultas de topología y en el DELETE de wp_actionscheduler_actions.",
+    "El comentario de RebuildJob.php:75 indica el grupo 'akb-search' para dar de baja el watchdog; el grupo real es 'akibara-search'. El comando no cancela nada y no devuelve error.",
+    "SemanticPublication::before_add()/before_delete() todavía lanzan RuntimeException desde una acción (tumba la petición), y reconcile_fingerprint() no tiene estrangulador.",
+    "EditorialDiscountPublication::OPTION_HISTORY declara una option de historial que ni se lee ni se escribe."
+  ],
+  "revision_lector_novato": {
+    "fecha": "2026-09-12",
+    "critica": "docs/arquitectura/.criticas/08-search-indice-y-rebuild.md",
+    "puntos_aplicados": "todos los de las secciones 1 a 5",
+    "puntos_refutados": [
+      "Ninguno de fondo: los diez puntos de la sección 3 y los cinco de la 4 se comprobaron contra el snapshot y todos resultaron ciertos.",
+      "Tres erratas de línea en la propia crítica, anotadas en su «Respuesta del redactor» y aplicadas con la línea correcta: Arrival::seed_pending() está en Arrival.php:98 (no :48); el bloque del gate cerrado es Indexer.php:554-563 (no :553-563); el comentario del watchdog empieza en RebuildJob.php:63 (no :62).",
+      "Matiz sobre 2.9: los tres filtros existen y ya están documentados, pero no son «palancas invisibles» en el sentido de la regla de la casa — son puntos de extensión sin nadie enganchado hoy."
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+%% Caso 3 — toco el corazón sin haber entrado: del muro de acceso a la vuelta con el tomo ya guardado.
+%% Qué muestra: que el botón dice la verdad antes de pulsarlo, dónde se anota la intención, por qué el muro sólo nombra un producto publicado, y que los tres caminos de acceso comparten un único destino saneado.
+sequenceDiagram
+  autonumber
+  actor Cliente
+  participant Boton as Wishlist\Button (la tarjeta)
+  participant JS as wishlist.js
+  participant Wall as AccessWall + form-login.php
+  participant Nav as NavigationLinks
+  participant Google as login-with-google (tercero)
+  participant Ajax as Wishlist\Ajax
+  participant Tabla as wp_akb_wishlist
+
+  Boton->>Cliente: «Inicia sesión para guardar «Naruto 3» en favoritos»
+  Note right of Boton: Ya no se anuncia como conmutador:<br/>antes decía «Guardar» con aria-pressed y lo que hacía era cambiar de página.
+
+  Cliente->>JS: pulsa el corazón
+  JS->>JS: rememberIntent() anota el tomo en sessionStorage, clave akbWishlistPending (wishlist.js:92)
+  JS->>Wall: navega al muro con redirect_to = la página actual
+
+  Wall->>Nav: safe_internal_destination(redirect_to)
+  Nav-->>Wall: destino saneado, o vacío
+  Note right of Nav: Rechaza destinos externos, caracteres de control<br/>y /wp-admin/ o wp-login.php aunque vengan codificados varias veces.
+
+  alt el destino es una ficha de producto PUBLICADA
+    Wall->>Cliente: título y subtítulo propios del endpoint + «Vuelve a Naruto 3»
+  else borrador, privado o destino ajeno
+    Wall->>Cliente: cartel genérico, sin nombrar nada (nombrar un borrador filtraría su título)
+  end
+
+  alt entra con Google
+    Wall->>Google: el MISMO destino saneado por el filtro rtcamp.google_default_redirect
+    Google-->>Cliente: vuelve a la ficha
+  else entra con correo y contraseña, o crea cuenta
+    Wall->>Cliente: el destino va horneado como campo oculto en los dos formularios
+  end
+
+  Cliente->>JS: vuelve a la ficha
+  JS->>JS: resumePendingIntent()
+
+  alt pasó más de media hora (1.800.000 ms, wishlist.js:121)
+    JS->>Cliente: descarta la intención (completar un guardado que ya no recuerda es una sorpresa)
+  else la intención sigue viva
+    alt ya lo guardó por otro camino
+      JS->>Cliente: no repite el conmutador (repetirlo lo quitaría)
+    else aún no está guardado
+      JS->>Ajax: POST admin-ajax.php?action=akb_wishlist_toggle con el nonce
+      Ajax->>Tabla: INSERT (user_id, product_id, added_at)
+      Ajax-->>JS: total actualizado
+      JS->>Cliente: corazón lleno y contador de la cabecera al día
+    end
+  end
+
+  Note over JS,Ajax: Si la sesión caducó DESPUÉS de pintarse la página, la petición<br/>cae en wp_ajax_nopriv_: 401 con la URL del muro, y el JS redirige.<br/>Los favoritos usan wp_ajax_ de WordPress, que SÍ necesita el par nopriv.<br/>El cajón del carrito usa wc_ajax_ de WooCommerce, que atiende a todos sin él.<br/>Para ver si hay un guardado pendiente, en la consola del navegador:<br/>sessionStorage.getItem con la clave akbWishlistPending.

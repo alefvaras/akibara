@@ -1,0 +1,69 @@
+{
+  "titulo": "mu-plugins (B) · correo SMTP y su centinela, LiteSpeed, claves de proveedores, redirecciones, logs, solo-local",
+  "capitulo": "15-mu-plugins-correo-litespeed-claves-y-guardas",
+  "diagramas": [
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-piezas.mmd",
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-estados-centinela.mmd",
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-cron.mmd",
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-caso-correo-de-pedido.mmd",
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-caso-transporte-desaparecido.mmd",
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-caso-espejo-captura.mmd",
+    "15-mu-plugins-correo-litespeed-claves-y-guardas-caso-gate-del-despliegue.mmd"
+  ],
+  "componentes": 12,
+  "casos": 5,
+  "crons": [
+    "init@1 con DOING_CRON — Watch::inspect() montado sobre la tarea de hPanel (Avanzado → Trabajos cron) que llama a wp-cron.php cada 5 minutos; el area no registra cron propio y el uid de la tarea VIVA no consta en el repositorio (el unico anotado, 5WxqXVQ5zM, es el de la tarea retirada el 2026-08-23)",
+    "admin_init@1 — Watch::inspect() en cada visita de cualquier usuario autenticado a /wp-admin/, sin comprobacion de capacidad",
+    "admin_notices@10 — los tres avisos del area (rojo del transporte, rojo/amarillo del centinela, rojo del inventario) se PINTAN, no se empujan",
+    "shutdown@9999 — rotacion de debug.log, con transient akibara_debug_log_rotation_checked de 60 s (solo local)",
+    "register_shutdown_function — captura de fatales en fatal_crash.log, que nadie rota (solo local)",
+    "ops/akibara-prod-mail-health.sh — sonda de salud del correo en cada despliegue y a mano; solo lectura, no envia nada"
+  ],
+  "terceros": [
+    "LiteSpeed Cache 7.9.1 (optimize.cls.php, media.cls.php, optimizer.cls.php, placeholder.cls.php, core.cls.php, root.cls.php, vary.cls.php, base.cls.php)",
+    "Rank Math / seo-by-rank-math (sitemaps, Redirections\\DB, vendor/autoload.php, adaptador MCP en vendor/wordpress/mcp-adapter)",
+    "WooCommerce (WC_Email, asuntos por defecto de class-wc-email-customer-processing-order.php:68 y class-wc-email-new-order.php:76, catalogo de traducciones, Store API)",
+    "Hostinger (SMTP de contacto@akibara.cl, tarea de cron de hPanel cada 5 minutos, y los mu-plugins ajenos hostinger-auto-updates.php y hostinger-preview-domain.php que conviven en la misma carpeta)",
+    "PHPMailer (via el hook phpmailer_init de WordPress)",
+    "IndexNow (bloqueado fuera de produccion por akibara-local-external-indexing-guard.php, con cinco enganches en tres capas)"
+  ],
+  "aristas_salientes": [
+    { "a": "akibara-business", "por": "submenu de akibara-panel via admin_menu@99 (AdminPanel.php:172,179-187), la pantalla en /wp-admin/admin.php?page=akibara-provider-access, y wp_mail() para los avisos de «ya llego» y reseñas" },
+    { "a": "akibara-rewards", "por": "wp_mail() para los avisos del programa de puntos" },
+    { "a": "akibara-cart-checkout-blocks", "por": "cache-exc de /wp-json/wc/store/ en akibara-litespeed-guardrails.php:127" },
+    { "a": "tema akibara-gp", "por": "candado optm-css_comb, que protege los estilos diferidos de inc/performance.php (marcados con data-akb-deferred-style en :283)" },
+    { "a": "14-mu-plugins-abilities-bluex-brevo-clarity", "por": "los otros ocho mu-plugins de produccion, la categoria de abilities akibara-operations y la superficie MCP completa" },
+    { "a": "16-todo-lo-programado", "por": "el latido de hPanel cada 5 minutos y DISABLE_WP_CRON, de los que cuelga Watch::inspect()" },
+    { "a": "17-catalogo-de-datos", "por": "options akibara_mail_transport_outage y akibara_mail_transport_watch (ambas sin autoload) y el transient akibara_debug_log_rotation_checked" },
+    { "a": "18-fronteras-con-terceros", "por": "acoplamiento por hooks a LiteSpeed Cache, Rank Math y WooCommerce, sin editar su codigo" },
+    { "a": "ops/akibara-prod-muplugins-deploy.sh", "por": "cuarentena QUARANTINE_RE de los tres ficheros solo-local (:32,43), copia de rescate en ~/domains/akibara.cl/akb-runtime/ (:26,95) y llamada a mail-health.sh (:105)" },
+    { "a": "wp akibara access-check (WP-CLI)", "por": "barrera de claves de proveedores exigida por el despliegue" },
+    { "a": "ops/coordinacion/abiertos/2026-09-08-correo-repuesto-tres-domingos-causa-pendiente.md", "por": "incidente ABIERTO: tres reposiciones dominicales, mecanismo plausible (la pasada de la plataforma sobre los ficheros *hostinger* de mu-plugins) y prediccion falsable para el domingo 2026-09-13 a las 23:17-23:20 UTC" }
+  ],
+  "certeza": {
+    "cobertura_estimada": 92,
+    "ojos_que_faltan": ["el espejo Docker", "produccion"],
+    "medido": [
+      "2026-08-15 — la portada se rompe al combinar CSS (brands-home.css y search-suggest.css sin aplicar, carrusel a 1.805 px)",
+      "2026-08-18 a 2026-08-21 — tres dias sin correo, pedido 27720 incluido",
+      "2026-08-22 — imagenes en http:// en los correos generados fuera de una peticion web",
+      "2026-09-06 — 84 direcciones reales de clientes y 69 cuentas con correo real en el espejo",
+      "2026-09-06 — el carrito de un cliente CON SESION servido desde cache con x-litespeed-cache: hit,private",
+      "2026-08-23 / 2026-08-30 / 2026-09-06 — tres desapariciones del transporte en domingo, cruzadas con ctime, mtime y sha256",
+      "2026-09-11 — los dos hostinger-*.php reescritos 32 y 29 s antes de cada reposicion",
+      "2026-09-11 — smtp=auth-ok contra el servidor tras el renombrado"
+    ],
+    "deducido_sin_ejecutar": [
+      "el cepo rompe las cabeceras de todo correo de WooCommerce en el espejo (Content-Type con el Reply-to pegado detras)",
+      "el cepo no filtra un Bcc: que llegue ya como array",
+      "tres correos mal escritos seguidos encienden el aviso rojo con un texto falso",
+      "una reposicion truncada deja el fichero presente e inerte con una fila ya sumada a restores",
+      "dos inspecciones simultaneas pierden una fila del historial restores"
+    ],
+    "leido_no_remedido": [
+      "el contenido actual de la option akibara_mail_transport_watch (las tres fechas vienen de la ficha del incidente)",
+      "el wp-config.php de produccion"
+    ]
+  }
+}

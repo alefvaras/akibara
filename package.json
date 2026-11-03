@@ -1,0 +1,14 @@
+{
+  "name": "akibara-runtime-quality",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build y controles de fuentes propias; nunca contiene datos de la tienda.",
+  "scripts": {
+    "build": "bash tools/build-runtime-assets.sh",
+    "test": "bash tools/guardrail-ci.sh --full",
+    "setup:hooks": "bash tools/install-quality-hooks.sh"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

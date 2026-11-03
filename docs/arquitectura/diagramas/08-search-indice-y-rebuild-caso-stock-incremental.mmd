@@ -1,0 +1,46 @@
+%% Caso del capítulo 08 — llega stock de un tomo y el índice se pone al día en segundos, sin reconstruir nada.
+%% Qué muestra: el camino barato del índice, las DOS transacciones con la publicación de la generación en medio, y por qué la deuda sobrevive a la muerte del proceso.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WC as WooCommerce
+    participant ARR as Arrival
+    participant IDX as Indexer
+    participant WORK as WorkRepository (tabla work)
+    participant AS as Action Scheduler
+    participant FEN as WriteFence
+    participant BLD as DocumentBuilder + ProductSourceAuthority
+    participant DB as docs / tokens / facet_index
+    participant EDP as EditorialDiscountPublication
+    actor Cliente
+
+    Dueno->>WC: cambia el stock del tomo a «Disponible»
+    WC->>ARR: woocommerce_product_set_stock_status, prioridad 10
+    ARR->>ARR: anota _akb_first_instock_at si venía de preventa
+    WC->>IDX: woocommerce_product_set_stock_status, prioridad 12
+    IDX->>WORK: apunta el producto con scope live y wanted_seq +1
+    IDX->>AS: encola akb_search_pump_live<br/>deduplicado sólo contra acciones PENDIENTES
+    AS->>IDX: handle_live_pump() reclama hasta 25 tareas
+    IDX->>FEN: toma el cerrojo
+    IDX->>EDP: capture_price_authority() — adopta la foto de precio
+    alt El gate editorial está CERRADO — no hay foto de precio
+        EDP--xIDX: no devuelve foto → el claim LANZA (Indexer.php:554-563)
+        IDX->>WORK: retry_claim() — se quema un reintento y se espera 5 s, 10 s, 20 s…
+        Note over IDX,WORK: Ésta es la rama más probable durante un incidente editorial:<br/>mientras el buscador está en 503 por deuda de precio,<br/>CADA intento de reindexar gasta un reintento,<br/>y al OCTAVO el producto queda «bloqueado».<br/>Aquí no hay «segundos»: hay reintentos.
+    end
+    IDX->>BLD: build() — documento, tokens y facetas
+    Note over BLD: read_source() lanza si la base dejó error:<br/>un producto que no se puede leer entero conserva su deuda,<br/>nunca se indexa a medias.
+    IDX->>DB: TRANSACCIÓN 1 — DELETE + INSERT IGNORE,<br/>comparando filas insertadas contra enviadas
+    IDX->>FEN: suelta el cerrojo
+    IDX->>IDX: publica la generación y verifica su recibo de purga
+    IDX->>WORK: TRANSACCIÓN 2 — recién ahora se confirma la tarea
+    Note over IDX,WORK: Si el proceso muere entre medias, el claim sigue arrendado<br/>y se reintenta: ésa es la deuda durable.
+    IDX->>EDP: reconcile_now() — el recibo vuelve a cuadrar con el nuevo conteo
+    Cliente->>DB: busca el tomo y ve el sello y el precio nuevos
+
+    alt El producto ya no está publicado
+        IDX->>DB: borra sus filas en vez de reescribirlas
+    else La tabla y el objeto de WooCommerce se contradicen
+        IDX->>WORK: conserva la deuda y reintenta<br/>5 s, 10 s, 20 s… tope 1 hora
+        Note over WORK: Al OCTAVO intento la tarea queda «bloqueada»<br/>y el panel la cuenta.
+    end

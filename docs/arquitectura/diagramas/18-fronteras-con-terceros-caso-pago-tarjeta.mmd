@@ -1,0 +1,52 @@
+%% Caso 1: un cliente paga con tarjeta por Mercado Pago — muestra quien cambia el importe ANTES de que cobre la pasarela y donde no hay una sola linea de codigo propio.
+sequenceDiagram
+  autonumber
+  actor Cliente
+  participant Tema as Tema akibara-gp
+  participant Blocks as akibara-cart-checkout-blocks
+  participant Rewards as akibara-rewards
+  participant Business as akibara-business
+  participant Woo as WooCommerce + Store API
+  participant MP as Mercado Pago (tercero)
+  participant Correo as Correo (SMTP Hostinger)
+
+  opt antes, si el cliente paso por /carrito/
+    Blocks->>MP: solo ahi corre dequeue_classic_mercado_pago_assets — retira de una lista de 15 handles los que esten en cola
+  end
+
+  Cliente->>Woo: abre /checkout/
+  Blocks->>Blocks: BlocksPage::is_checkout() mira el bloque, no la URL
+  Blocks->>Blocks: excluye checkout de LiteSpeed y saca 9 fragmentos de MP de la combinacion
+  Blocks->>Blocks: dequeue_classic_city_select retira wc-city-select y bluex-blocks-city-select
+  Blocks->>Blocks: repair_flow_blocks_dependencies repone lo que el build de Flow no declara
+  Business->>MP: CrossOriginScripts marca crossorigin=anonymous (solo hosts verificados)
+
+  Cliente->>Blocks: escribe RUT, comuna y celular
+  Blocks->>Blocks: canonicalize_customer_comuna con el catalogo del propio Blue Express
+
+  rect rgb(253, 230, 138)
+    note over Rewards,Business: Aqui cambia el IMPORTE, y no lo cambia ninguna pasarela
+    Rewards->>Woo: cart_calculate_fees prio 20: add_fee() negativo por canje de puntos
+    Business->>Woo: BundleCouponEngine fabrica el cupon virtual del pack
+    Business->>Woo: CouponInteraction invalida el cupon si la campana no acumula
+  end
+
+  Business->>Woo: MarketingConsent guarda la prueba con el texto exacto que el cliente vio
+  Business->>Woo: CheckoutTaxLabels reescribe la etiqueta a IVA (los montos no se tocan)
+
+  Cliente->>MP: Finalizar compra
+  rect rgb(219, 234, 254)
+    note over MP: Ni una linea de codigo propio dentro del cobro
+    MP-->>Woo: cobro aprobado
+  end
+
+  Woo->>Business: store_api_checkout_order_processed
+  Business->>Business: 6 callbacks — PhoneValidation (10), MarketingConsent (10), BundleCouponEngine (15), OrderTagging (20), OrderInstrumentation (20), Redemption::capture_from_order (20)
+  Woo->>Correo: correo del pedido
+  Business->>Correo: MailFrom firma contacto@akibara.cl — EmailBrand anade Ver mi pedido
+  Correo-->>Cliente: Pedido recibido / Tu pedido esta en proceso (inmediato)
+  Blocks-->>Cliente: clarity-commerce-events.js emite purchase y fuerza upgrade
+
+  alt el cliente recarga la pagina de gracias
+    Blocks-->>Cliente: purchase se emite otra vez (el deduplicador vive en memoria)
+  end

@@ -1,0 +1,338 @@
+/*
+ * Free Shipping Progress — barra nativa Akibara (sin dependencias).
+ *
+ * Markup contract (ver FreeShippingProgress.php):
+ *
+ *   .akb-fsp-wrap.akb-fsp-active
+ *     ├── .akb-fsp-title         (sello editorial uppercase)
+ *     ├── .akb-fsp-track         (pista gris)
+ *     │     └── .akb-fsp-fill    (relleno rojo brand, width inline)
+ *     └── .akb-fsp-message       (mensaje principal, monto destacado)
+ *
+ *   .akb-fsp-wrap.akb-fsp-qualified
+ *     └── .akb-fsp-message       (banda verde discreta con checkmark)
+ *
+ *   .akb-fsp-wrap.akb-fsp-empty   (placeholder vacío para fragments AJAX)
+ *
+ * Solo el width del fill usa style inline (legítimo: progresivo).
+ */
+
+.akb-fsp-wrap {
+	/* Defaults asumen dark theme (Akibara cart/checkout body bg #0a0a0a). */
+	--akb-fsp-track:   rgba(255, 255, 255, 0.12);
+	--akb-fsp-fill:    #d90010;
+	--akb-fsp-ink:     #e0e0e0;
+	--akb-fsp-tag-ink: #9a9a9a;
+	--akb-fsp-success: #4cd16a;
+
+	padding: 14px 0;
+	font-family: inherit;
+	color: var(--akb-fsp-ink);
+	line-height: 1.4;
+	/* El skew(-15deg) del track proyecta sus esquinas ~3px fuera del ancho
+	   del contenedor (overflow horizontal en /carrito/ desktop); el camión
+	   (right:-12px) también puede sobresalir con fill alto. Contener aquí. */
+	overflow: hidden;
+}
+
+.akb-fsp-wrap.akb-fsp-empty {
+	padding: 0;
+	margin: 0;
+}
+
+.akb-fsp-title {
+	font-family: var(--font-heading, "Inter", sans-serif);
+	font-size: 13px;
+	font-weight: 400;
+	font-synthesis: none;
+	font-style: normal;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--aki-black, #0a0a0a);
+	background: var(--aki-white, #fff);
+	padding: 6px 14px;
+	margin: 0 0 16px;
+	display: inline-block;
+	transform: skew(-10deg);
+	/* Sombra dura hacia abajo-DERECHA, no abajo-izquierda. El wrap recorta con
+	   `overflow:hidden` (necesario: el skew del track y el camión se salen del
+	   ancho del contenedor), y ese recorte sí afecta al box-shadow de los hijos:
+	   con el offset a la izquierda, el sello arrancaba en x=0 y la sombra roja
+	   llegaba cortada de plano. Hacia la derecha siempre tiene sitio, porque el
+	   sello es más angosto que la barra. La banda de "calificado" usa el mismo
+	   sentido para que los dos estados del componente se lean igual. */
+	box-shadow: 4px 4px 0 var(--akb-fsp-fill);
+}
+
+.akb-fsp-track {
+	height: 10px;
+	margin: 22px 0 14px;
+	background-color: var(--aki-black, #0a0a0a);
+	border: 1px solid var(--akb-fsp-track);
+	border-radius: 0;
+	position: relative;
+	transform: skew(-15deg);
+}
+
+.akb-fsp-fill {
+	display: block;
+	position: relative;
+	height: 100%;
+	background: var(--akb-fsp-fill);
+	border-radius: 0;
+	border-right: 3px solid var(--aki-white, #fff);
+	transition: width 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Camión que viaja con la barra de progreso. SVG inline via mask para que herede el color brand. */
+.akb-fsp-truck {
+	position: absolute;
+	right: -12px;
+	top: -8px;
+	width: 24px;
+	height: 24px;
+	background-color: var(--aki-white, #fff);
+	transform: skew(15deg); /* Un-skew truck so it's not distorted by the track skew */
+	-webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
+	mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+	pointer-events: none;
+	transition: right 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.akb-fsp-message {
+	font-family: var(--font-heading, "Inter", sans-serif);
+	font-style: normal;
+	font-size: 15px;
+	font-weight: 400;
+	font-synthesis: none;
+	text-transform: uppercase;
+	color: var(--akb-fsp-ink);
+	margin: 0;
+	letter-spacing: 0.02em;
+}
+
+.akb-fsp-active .akb-fsp-message bdi,
+.akb-fsp-active .akb-fsp-message .amount,
+.akb-fsp-active .akb-fsp-message .woocommerce-Price-amount {
+	font-weight: 400;
+	font-synthesis: none;
+	color: var(--aki-white, #ffffff);
+	font-size: 1.15em;
+	font-variant-numeric: tabular-nums;
+	text-shadow: -1px 1px 0 var(--aki-black, #0a0a0a);
+}
+
+/* — Estado calificado: Banda MISSION ACCOMPLISHED — */
+.akb-fsp-qualified {
+	padding: 14px 20px;
+	background: var(--aki-black, #0a0a0a);
+	border: none;
+	border-radius: 0;
+	box-shadow: 4px 4px 0 var(--akb-fsp-success);
+	transform: skew(-10deg);
+	margin-top: 10px;
+}
+
+.akb-fsp-qualified .akb-fsp-message {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-family: var(--font-heading, "Inter", sans-serif);
+	font-style: normal;
+	font-size: 15px;
+	font-weight: 400;
+	font-synthesis: none;
+	text-transform: uppercase;
+	color: var(--akb-fsp-success);
+	letter-spacing: 0.04em;
+	transform: skew(4deg);
+}
+
+.akb-fsp-qualified .akb-fsp-message::before {
+	content: "";
+	flex-shrink: 0;
+	width: 16px;
+	height: 16px;
+	background-color: var(--akb-fsp-success);
+	-webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHBhdGggZmlsbD0nYmxhY2snIGQ9J002LjMgMTEuMyAzIDhsMS40LTEuNCAxLjkgMS45IDUuMy01LjNMMTMgNC42eicvPjwvc3ZnPg==");
+	mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHBhdGggZmlsbD0nYmxhY2snIGQ9J002LjMgMTEuMyAzIDhsMS40LTEuNCAxLjkgMS45IDUuMy01LjNMMTMgNC42eicvPjwvc3ZnPg==");
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+}
+
+/* — Mini-cart drawer y widget nativo: densidad alta — */
+.widget_shopping_cart_content .akb-fsp-wrap {
+	padding: 12px 0 14px;
+}
+
+.widget_shopping_cart_content .akb-fsp-title {
+	font-size: 10px;
+	margin-bottom: 8px;
+}
+
+.widget_shopping_cart_content .akb-fsp-message {
+	font-size: 13px;
+}
+
+/* — Drawer nativo (off-canvas Akibara): máxima densidad —
+ * La barra se comía 137-150px del drawer. El TÍTULO ("Envío GRATIS por compras
+ * sobre $X") es redundante con el mensaje accionable ("Agrega $X más para envío
+ * gratis", que ya nombra el beneficio) → se oculta. Track y paddings se aprietan
+ * para dejar la barra en ~55px y devolverle alto a la lista de productos.
+ * Scope por .akb-cart-progress-slot (clase del drawer): NO toca PDP, /carrito/,
+ * checkout ni el mini-cart de Woo Fly (.woofc-cart-area). */
+.akb-cart-progress-slot .akb-fsp-wrap:not(.akb-fsp-empty) {
+	padding: 2px 0 2px;
+}
+.akb-cart-progress-slot .akb-fsp-title {
+	display: none;
+}
+.akb-cart-progress-slot .akb-fsp-track {
+	height: 6px;
+	margin: 6px 0 6px;
+}
+.akb-cart-progress-slot .akb-fsp-message {
+	font-size: 12px;
+	letter-spacing: 0.03em;
+}
+/* — Drawer, estado LOGRADO —
+ * Micro-cinta esbelta: comunica el logro con máximo contraste y estilo brutalista
+ * sin bloquear la visualización vertical de los tomos. */
+.akb-cart-progress-slot .akb-fsp-wrap.akb-fsp-qualified {
+	padding: 6px 12px;
+	margin: 2px 0 4px;
+	background: var(--aki-success, #00c853);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	transform: skew(-6deg);
+}
+
+.akb-cart-progress-slot .akb-fsp-qualified .akb-fsp-message {
+	color: var(--aki-black, #121212);
+	font-size: 12.5px;
+	font-weight: 800;
+	letter-spacing: 0.03em;
+	gap: 6px;
+	transform: skew(3deg);
+}
+
+.akb-cart-progress-slot .akb-fsp-qualified .akb-fsp-message::before {
+	background-color: var(--aki-black, #121212);
+	width: 14px;
+	height: 14px;
+}
+
+/* El guard anti-CLS de 58px está dimensionado para la barra de progreso (sello
+ * oculto + track + mensaje). La banda de logrado es más baja, así que ese mismo
+ * guard le dejaba ~14px de aire muerto debajo. Con el estado ya resuelto no hay
+ * nada que reservar. (La regla vive aquí y no en native-cart-v2.css a propósito:
+ * es un estado de ESTE componente, y ese archivo lo está editando otra sesión.) */
+.akb-cart-progress-slot:has(.akb-fsp-qualified) {
+	min-height: 0;
+}
+
+/* — Cart page: espacioso — */
+.woocommerce-cart .akb-fsp-wrap {
+	padding: 18px 0 22px;
+}
+
+/* — Checkout: densidad media — */
+.woocommerce-checkout .akb-fsp-wrap {
+	padding: 14px 0 18px;
+}
+
+/* — Mobile — */
+@media (max-width: 480px) {
+	.akb-fsp-title { font-size: 9.5px; letter-spacing: 0.12em; }
+	.akb-fsp-message { font-size: 13px; }
+	/* 8px, no 4px: con un track de 4px el camión de 24px quedaba flotando
+	   desprendido de la barra, y el propio progreso era casi imperceptible.
+	   8px sigue siendo compacto y mantiene la relación camión/track del desktop. */
+	.akb-fsp-track { height: 8px; }
+}
+
+/*
+ * Desde 80% del umbral, la clase de render_progress destaca el progreso con amarillo de marca
+ * y especificidad superior a la base. Sólo se anima el ancho del fill cuando cambia el
+ * progreso; el bloque completo permanece estable.
+ */
+.akb-fsp-almost-there .akb-fsp-track {
+	/* La pista pendiente debe seguir siendo neutral. Un borde amarillo alrededor
+	   de TODO el track dibuja una segunda figura a la derecha del fill y, en
+	   mobile, se confunde con un remolque sin ruedas. La urgencia ya la comunica
+	   el relleno amarillo; el resto conserva el borde tenue del estado base. */
+	background-color: var(--aki-black, #0a0a0a);
+	border: 1px solid var(--akb-fsp-track);
+}
+
+.akb-fsp-almost-there .akb-fsp-fill {
+	background: var(--aki-yellow, #ffd700);
+	/* Sobre relleno amarillo, el filo y el camión blancos se pierden. */
+	border-right-color: var(--aki-black, #0a0a0a);
+}
+
+.akb-fsp-almost-there .akb-fsp-truck {
+	/* El icono mide 24px. Con right:-12px quedaba exactamente medio camión
+	   sobre el tramo negro: desaparecían la cabina y una rueda (negro/negro).
+	   Cuatro píxeles de resguardo lo mantienen completo dentro del fill incluso
+	   con el skew compensatorio del track.
+
+	   Aun dentro del fill, el camión sobresale 8px arriba y abajo de una pista de
+	   8px. La silueta exterior amarilla delimita el vehículo sobre el tramo negro
+	   y la copia interior negra lo dibuja sobre el fill amarillo. Ambas capas
+	   usan la misma máscara: el contorno sigue cabina, caja y dos ruedas sin crear
+	   una caja rectangular ni depender de filtros que Safari rasteriza distinto. */
+	right: 4px;
+	background-color: var(--aki-yellow, #ffd700);
+}
+
+.akb-fsp-almost-there .akb-fsp-truck::after {
+	content: "";
+	position: absolute;
+	inset: 2px;
+	background-color: var(--aki-black, #0a0a0a);
+	-webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
+	mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+	pointer-events: none;
+}
+
+.akb-fsp-almost-there .akb-fsp-message {
+	color: var(--aki-white, #ffffff);
+	font-weight: 400;
+	font-synthesis: none;
+}
+
+.akb-fsp-almost-there .akb-fsp-message bdi,
+.akb-fsp-almost-there .akb-fsp-message .amount,
+.akb-fsp-almost-there .akb-fsp-message .woocommerce-Price-amount {
+	color: var(--aki-white, #ffffff);
+}
+
+/* El ícono de aviso es un SVG inline con `fill:currentColor`; basta con darle
+   color propio. (La regla anterior apuntaba a `.dashicons`, una clase que este
+   módulo dejó de emitir cuando el glifo pasó a SVG: era CSS muerto.) */
+.akb-fsp-almost-there .akb-fsp-warn {
+	color: var(--aki-yellow, #ffd700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-fsp-fill,
+	.akb-fsp-truck {
+		transition: none;
+	}
+}

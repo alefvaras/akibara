@@ -1,0 +1,41 @@
+%% Caso 7 del capítulo 08 — un despliegue cambia la forma de las tablas del índice.
+%% Qué muestra: por qué NADA se sella hasta el final, la precondición que impide migrar con un rebuild vivo, el único paso que escribe datos (backfill_sku_norm) y puede abortar la instalación entera, la gracia de 300 s que después bloquea el carril asíncrono, y el camino que sorprende: la versión IGUAL también pide rebuild.
+flowchart TB
+    classDef paso fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef decision fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef malo fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5a1a14
+    classDef bueno fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef cliente fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    INICIO["Cualquier petición del sitio<br/>Search::register() llama a Install::maybe_install()<br/>src/Search.php:103"]:::paso
+
+    D1{"¿La versión guardada en akb_search_db_version<br/>coincide con DB_VERSION (1.9.0)?"}:::decision
+    INICIO --> D1
+    D1 -- "sí, y el sello también está" --> NADA["No hay nada que hacer.<br/>Sale en una sola lectura."]:::bueno
+
+    D1 -- "no coincide, O falta el sello" --> LOCK["Toma el WriteFence + un candado propio de migración<br/>UNA sola petición migra; las demás esperan o salen"]:::paso
+
+    LOCK --> PRE{"PRECONDICIÓN: ¿la topología está limpia?<br/>(sólo las tablas vivas, sin _new ni _old)"}:::decision
+    PRE -- "hay un rebuild vivo con sombras" --> ABORTA["NO se migra.<br/>Migrar ahora dejaría una sombra de esquema VIEJO<br/>lista para swaparse encima de tablas ya migradas."]:::malo
+
+    PRE -- "limpia" --> DDL["Cambia la forma de las tablas:<br/>dbDelta + motor InnoDB + collation binaria en tokens<br/>+ sustituye idx_post por idx_post_token en UNA sola sentencia"]:::paso
+    DDL --> VERIF{"¿La base confirma el contrato FÍSICO?<br/>se le pregunta a information_schema:<br/>columnas exactas, en orden exacto, índices exactos"}:::decision
+    VERIF -- "no cuadra algo" --> REINTENTA["NO se sella la versión.<br/>La petición siguiente reintenta: la migración es idempotente."]:::malo
+
+    VERIF -- "cuadra" --> BACKFILL["backfill_sku_norm() · src/Install.php:1633-1642<br/>UPDATE sobre las filas VIVAS para rellenar sku_norm<br/><b>el único paso de una migración que escribe DATOS</b>"]:::paso
+    BACKFILL --> D2{"¿El backfill funcionó?"}:::decision
+    D2 -- "no" --> FALLO["install() devuelve false en :1583-1585<br/>y NO se sella nada. Se aborta la instalación entera."]:::malo
+
+    D2 -- "sí" --> SENAL["Persiste una SEÑAL de rebuild completo<br/>con 300 s de gracia (not_before = ahora + 300)<br/>· src/Install.php:683"]:::paso
+    SENAL --> SELLO["<b>Y SÓLO ENTONCES</b> sella las dos options,<br/>releyéndolas para comprobar que quedaron:<br/>akb_search_db_version = 1.9.0<br/>akb_search_schema_seal = 1.7.0-exact-1"]:::bueno
+    SELLO --> REBUILD["Pasados los 300 s, init:20 consume la señal<br/>y arranca un rebuild completo"]:::bueno
+
+    SORPRESA["EL CAMINO QUE SORPRENDE<br/>La condición literal es<br/>should_flag_rebuild(previo) <b>||</b> DB_VERSION === previo<br/>O sea: si la versión es EXACTAMENTE la vigente pero el sello se perdió,<br/>también se reconstruye el índice entero. Un rebuild que nadie pidió."]:::paso
+    D1 -. "sello perdido con versión al día" .-> SORPRESA
+    SORPRESA -.-> SENAL
+
+    GRACIA["EFECTO LATERAL DE LOS 300 s<br/>Mientras no venzan, pending_rebuild_is_ready() es false,<br/>así que runtime_ready() es false y<br/>«wp akb-search rebuild --async» responde<br/>«Ya hay un rebuild en curso — no se encoló otro»<br/>con código de salida 0. Es el live-lock del 2026-09-05.<br/>La vía manual («wp akb-search rebuild», síncrona) sí pasa."]:::malo
+    SENAL -.-> GRACIA
+
+    CLI503["MIENTRAS EL SELLO NO ESTÉ PUESTO<br/>Search::register() sale en :172-174:<br/>las rutas del buscador responden 503, no 404,<br/>y las purgas de la caché REST (:176-177) NO se enganchan:<br/>cambiar la generación no purga nada."]:::cliente
+    VERIF -.-> CLI503

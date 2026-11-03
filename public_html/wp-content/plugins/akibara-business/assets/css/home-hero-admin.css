@@ -1,0 +1,1293 @@
+/* ==========================================================================
+   AKIBARA HOME HERO — admin UI (panel Akibara → tab Slider de Inicio)
+   Custom repeater de slides + media uploader + validador de dimensiones +
+   focal point picker + color pickers + visibility toggle + duplicate.
+   ========================================================================== */
+
+.akb-hero-admin {
+	max-width: 1400px;
+}
+
+/* === Toolbar arriba del form === */
+
+.akb-hero-admin__toolbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	background: #fff;
+	border: 3px solid #1A1A1D;
+	border-radius: 0;
+	margin: 0 0 16px;
+	box-shadow: 6px 6px 0 #E50914;
+}
+
+.akb-hero-admin__toolbar-spacer {
+	flex: 1;
+}
+
+.akb-hero-admin__toolbar-hint {
+	font-size: 12px;
+	color: #6c7178;
+}
+
+/* === Submit con 2 botones (capa 4) === */
+
+.akb-hero-admin__submit {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.akb-hero-admin__intro {
+	margin: 14px 0 24px;
+	padding: 18px 22px;
+	background: #fff;
+	border: 3px solid #1A1A1D;
+	border-left: 8px solid #E50914;
+	border-radius: 0;
+	box-shadow: 6px 6px 0 #E50914;
+}
+
+.akb-hero-admin__intro-head h2 {
+	margin: 0 0 4px;
+	font-size: 18px;
+	font-weight: 800;
+	color: #1d2327;
+	font-style: italic;
+	text-transform: uppercase;
+}
+
+.akb-hero-admin__intro-head p {
+	margin: 0 0 10px;
+	font-size: 13.5px;
+	line-height: 1.5;
+	color: #50575e;
+}
+
+.akb-hero-admin__help summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: #1d2327;
+	padding: 4px 0;
+	font-size: 13px;
+}
+
+.akb-hero-admin__help ul {
+	margin: 8px 0 0 22px;
+	font-size: 12.5px;
+	color: #50575e;
+}
+
+.akb-hero-admin__help li {
+	margin-bottom: 5px;
+	line-height: 1.5;
+}
+
+.akb-hero-admin__help code {
+	background: #f0f0f1;
+	padding: 1px 5px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+/* ---- Slides container ---- */
+
+.akb-hero-admin__slides {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.akb-hero-admin__empty {
+	margin: 0;
+	padding: 32px;
+	background: #fafafa;
+	border: 3px dashed #1A1A1D;
+	border-radius: 0;
+	color: #1A1A1D;
+	font-weight: 800;
+	text-transform: uppercase;
+	text-align: center;
+	font-size: 14px;
+}
+
+/* ---- Slide fieldset ---- */
+
+.akb-hero-slide {
+	margin: 0;
+	padding: 0;
+	background: #fff;
+	border: 3px solid #1A1A1D;
+	border-radius: 0;
+	box-shadow: 6px 6px 0 #E50914;
+	/*
+	 * overflow visible permite que el panel de vista previa sticky se ancle durante el scroll del
+	 * fieldset.
+	 */
+	overflow: visible;
+	transition: opacity 200ms ease, border-color 200ms ease;
+}
+
+.akb-hero-slide.is-off {
+	opacity: 0.55;
+	border-color: #1A1A1D;
+	background: #fafafa;
+}
+
+.akb-hero-slide.is-off::after {
+	content: 'Oculto — este slide no se mostrará en el sitio';
+	display: block;
+	padding: 8px 16px;
+	background: #fcf9e8;
+	border-top: 3px solid #1A1A1D;
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+	color: #1A1A1D;
+	font-weight: 800;
+	font-size: 12px;
+	text-align: center;
+}
+
+.akb-hero-slide__legend {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	margin: 0;
+	padding: 12px 18px;
+	background: #f0f0f1;
+	border-bottom: 3px solid #1A1A1D;
+	font-size: 14px;
+	font-weight: 800;
+	color: #1A1A1D;
+	text-transform: uppercase;
+	font-style: italic;
+}
+
+.akb-hero-slide__drag {
+	cursor: grab;
+	color: #6c7178;
+	font-size: 14px;
+	user-select: none;
+	letter-spacing: -2px;
+}
+
+.akb-hero-slide__title { font-size: 14px; }
+.akb-hero-slide__legend-spacer { flex: 1; }
+
+/* S-8f270422: aviso de que la slide guardada sin imagen no sale en el sitio. */
+.akb-hero-slide__warning {
+	font-size: 11.5px;
+	font-weight: 700;
+	font-style: normal;
+	text-transform: none;
+	letter-spacing: 0;
+	color: #8a4b00;
+	background: #fff3cd;
+	border: 1px solid #ffe08a;
+	border-radius: 3px;
+	padding: 3px 8px;
+	white-space: nowrap;
+}
+
+.akb-hero-slide__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12.5px;
+	font-weight: 500;
+	color: #50575e;
+	cursor: pointer;
+}
+
+.akb-hero-slide__toggle input { margin: 0; }
+
+.akb-hero-slide__action,
+.akb-hero-slide__remove,
+.akb-hero-slide__move {
+	background: transparent;
+	border: 0;
+	color: #2271b1;
+	cursor: pointer;
+	padding: 4px 8px;
+	font-size: 12.5px;
+	text-decoration: underline;
+	border-radius: 3px;
+}
+
+.akb-hero-slide__remove { color: #b32d2e; }
+.akb-hero-slide__move   { color: #646970; text-decoration: none; font-weight: 600; }
+.akb-hero-slide__move:hover { background: #fff; color: #1d2327; }
+.akb-hero-slide__action:hover { background: #fff; }
+
+.akb-hero-slide__grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr 320px;
+	grid-template-areas:
+		"mediadesk mediamob preview"
+		"fields    fields    preview";
+	gap: 20px;
+	padding: 20px;
+}
+
+.akb-hero-slide__media:nth-of-type(1) { grid-area: mediadesk; }
+.akb-hero-slide__media:nth-of-type(2) { grid-area: mediamob; }
+
+.akb-hero-slide__media {
+	display: flex;
+	flex-direction: column;
+}
+
+.akb-hero-slide__fields {
+	grid-area: fields;
+	padding-top: 10px;
+	border-top: 1px dashed #dcdcde;
+}
+
+.akb-hero-slide__preview-pane {
+	grid-area: preview;
+	position: sticky;
+	top: 50px;
+	align-self: start;
+	margin: 0;
+	max-height: calc(100vh - 100px);
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+/* Custom scrollbar discreto para el preview pane cuando overflow */
+.akb-hero-slide__preview-pane::-webkit-scrollbar {
+	width: 4px;
+}
+.akb-hero-slide__preview-pane::-webkit-scrollbar-thumb {
+	background: #c3c4c7;
+	border-radius: 2px;
+}
+
+/* === Mini-preview card (capa 1: live update sin AJAX) ===
+ *
+ * AU1 fix: por default los previews por-slide están ocultos. Solo se muestra
+ * el del slide que tiene focus interno O hover. Si ningún slide está activo,
+ * el primer slide muestra su preview como fallback. Esto reemplaza el patrón
+ * legacy donde TODOS los previews quedaban visibles en columna derecha
+ * generando overlap visual en pantallas con scroll.
+ *
+ * Requiere CSS `:has()` (Chrome 105+, Safari 15.4+, Firefox 121+ — coverage
+ * ~93% en 2026). Sin `:has()` el fallback es: todos visibles (comportamiento
+ * legacy, no degradación funcional). */
+.akb-hero-slide .akb-hero-preview {
+	display: none;
+}
+
+.akb-hero-slide:focus-within .akb-hero-preview,
+.akb-hero-slide:hover .akb-hero-preview {
+	display: block;
+}
+
+/* Fallback: si ningún slide está focused/hovered, el primero se muestra. */
+.akb-hero-admin__slides:not(:hover):not(:focus-within) .akb-hero-slide:first-child .akb-hero-preview {
+	display: block;
+}
+
+/* Browser sin :has(): fallback gracioso — todos los previews visibles (legacy). */
+@supports not (selector(:has(*))) {
+	.akb-hero-slide .akb-hero-preview {
+		display: block;
+	}
+}
+
+.akb-hero-preview {
+	background: #1A1A1D;
+	border: 3px solid #1A1A1D;
+	border-radius: 0;
+	padding: 12px;
+	color: #fff;
+	box-shadow: 6px 6px 0 #E50914;
+}
+
+.akb-hero-preview__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.akb-hero-preview__title-head {
+	font-size: 14px;
+	font-weight: 800;
+	color: #fff;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-style: italic;
+}
+
+.akb-hero-preview__device-toggle {
+	display: flex;
+	gap: 2px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	padding: 2px;
+}
+
+.akb-hero-preview__device-toggle button {
+	background: transparent;
+	border: none;
+	padding: 3px 8px;
+	font-size: 13px;
+	cursor: pointer;
+	border-radius: 2px;
+	transition: background 120ms ease;
+	line-height: 1;
+}
+
+.akb-hero-preview__device-toggle button:hover {
+	background: #f0f0f1;
+}
+
+.akb-hero-preview__device-toggle button.is-active {
+	background: #2271b1;
+	color: #fff;
+}
+
+.akb-hero-preview__device-toggle button:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+/* ---- Mini-preview FIEL (iframe con el Renderer real) ---- */
+.akb-hero-preview__frame-wrap {
+	position: relative;
+	width: 100%;
+	overflow: hidden;
+	background: #0f0f10;
+	border: 1px solid #1A1A1D;
+	/* height la fija el JS (alto escalado del iframe por device). */
+	min-height: 120px;
+	transition: height 180ms ease;
+}
+
+.akb-hero-preview__frame {
+	display: block;
+	border: 0;
+	background: #0f0f10;
+	/* width/height/transform los setea el JS (applyMiniDevice): el iframe
+	 * renderiza al ancho del device y se escala para caber en la columna. */
+}
+
+.akb-hero-preview__skeleton {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #0f0f10;
+	overflow: hidden;
+}
+
+.akb-hero-preview__skeleton img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	opacity: 0.35;
+	filter: blur(1px);
+}
+
+.akb-hero-preview__skeleton-label {
+	position: relative;
+	z-index: 1;
+	font-size: 11px;
+	color: #fff;
+	background: rgba(0, 0, 0, 0.6);
+	padding: 4px 10px;
+	letter-spacing: 0.02em;
+}
+
+.akb-hero-preview__hint {
+	margin: 8px 0 0;
+	font-size: 11px;
+	color: #6c7178;
+	text-align: center;
+	line-height: 1.3;
+}
+
+/* Responsive: collapse layout en viewports estrechos del admin */
+@media (max-width: 1280px) {
+	.akb-hero-slide__grid {
+		grid-template-columns: 1fr 1fr;
+		grid-template-areas:
+			"mediadesk mediamob"
+			"fields    fields"
+			"preview   preview";
+	}
+
+	.akb-hero-slide__preview-pane {
+		position: relative;
+		top: auto;
+		max-width: 400px;
+		margin: 0 auto;
+		justify-self: center;
+	}
+}
+
+.akb-hero-slide__fieldgroup {
+	padding: 12px 14px;
+	margin: 10px 0;
+	background: #fafafa;
+	border: 2px solid #1A1A1D;
+	border-radius: 0;
+}
+
+.akb-hero-slide__fieldgroup p { margin: 8px 0; }
+
+.akb-hero-slide__inline {
+	display: flex;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+
+.akb-hero-slide__inline label {
+	flex: 1 1 220px;
+	min-width: 0;
+}
+
+.akb-hero-slide__label {
+	display: block;
+	font-weight: 600;
+	font-size: 13px;
+	color: #1d2327;
+	margin-bottom: 6px;
+}
+
+.akb-hero-slide__rec {
+	font-weight: 400;
+	font-size: 11px;
+	color: #6c7178;
+}
+
+.akb-hero-slide__fields p { margin: 12px 0; }
+.akb-hero-slide__fields label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px; }
+.akb-hero-slide__fields input[type="text"],
+.akb-hero-slide__fields input[type="url"],
+.akb-hero-slide__fields input[type="number"] {
+	width: 100%;
+	max-width: 540px;
+}
+
+.akb-hero-slide__advanced {
+	margin-top: 16px;
+	padding-top: 12px;
+	border-top: 1px dashed #dcdcde;
+}
+
+.akb-hero-slide__advanced summary {
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 12.5px;
+	color: #2c3338;
+	padding: 4px 0;
+}
+
+/* ---- Media uploader widget + focal picker ---- */
+
+.akb-hero-media {
+	display: flex;
+	flex-direction: column;
+}
+
+.akb-hero-media__preview {
+	position: relative;
+	width: 100%;
+	min-height: 130px;
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 8px;
+	cursor: crosshair;
+	user-select: none;
+}
+
+.akb-hero-media__preview img {
+	max-width: 100%;
+	max-height: 280px;
+	display: block;
+	pointer-events: none;
+}
+
+.akb-hero-media__preview.is-empty {
+	min-height: 130px;
+	cursor: default;
+}
+
+.akb-hero-media__placeholder {
+	color: #6c7178;
+	font-size: 12px;
+}
+
+/* Focal point pin: círculo + cross-hair sobre la imagen */
+.akb-hero-media__focal {
+	position: absolute;
+	width: 22px;
+	height: 22px;
+	margin-left: -11px;
+	margin-top: -11px;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	box-shadow: 0 0 0 2px #D90010, 0 2px 8px rgba( 0, 0, 0, 0.5 );
+	background: rgba( 217, 0, 16, 0.18 );
+	pointer-events: none;
+	transition: left 200ms ease, top 200ms ease;
+	display: none;
+}
+
+.akb-hero-media__preview:not(.is-empty) .akb-hero-media__focal {
+	display: block;
+}
+
+.akb-hero-media__focal-hint {
+	margin: 0 0 8px;
+	font-size: 11.5px;
+	color: #6c7178;
+	font-style: italic;
+}
+
+.akb-hero-media__preview.is-empty + .akb-hero-media__buttons + .akb-hero-media__focal-hint {
+	display: none;
+}
+
+/* Hint del encuadre tablet (solo bajo el picker mobile, y solo cuando el
+ * focal se capa o hay override manual — lo togglea el JS). Ámbar suave:
+ * informa un ajuste automático, no es error. */
+.akb-hero-media__tablet-hint {
+	margin: 0 0 8px;
+	padding: 6px 8px;
+	font-size: 11.5px;
+	color: #7a5d00;
+	background: #fdf6e3;
+	border-left: 3px solid #dba617;
+}
+
+.akb-hero-media__buttons {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.akb-hero-media__edit {
+	background: transparent;
+	border: 0;
+	color: #2271b1;
+	cursor: pointer;
+	font-size: 12.5px;
+	text-decoration: underline;
+	padding: 2px 4px;
+}
+
+.akb-hero-media__edit[hidden] { display: none; }
+
+.akb-hero-media__remove {
+	background: transparent;
+	border: 0;
+	color: #b32d2e;
+	cursor: pointer;
+	font-size: 12px;
+	text-decoration: underline;
+	padding: 2px 4px;
+}
+
+.akb-hero-media__hint {
+	margin: 6px 0 0;
+	padding: 6px 10px;
+	border-radius: 3px;
+	font-size: 12px;
+	line-height: 1.4;
+	display: none;
+}
+
+.akb-hero-media__hint.is-ok {
+	display: block;
+	background: #edfaef;
+	color: #1d6334;
+	border: 1px solid #88c5a0;
+}
+
+.akb-hero-media__hint.is-warn {
+	display: block;
+	background: #fcf9e8;
+	color: #8a6a18;
+	border: 1px solid #dba617;
+}
+
+.akb-hero-media__hint.is-error {
+	display: block;
+	background: #fcebec;
+	color: #8a1f1f;
+	border: 1px solid #d63638;
+}
+
+/* ---- CTAs ---- */
+
+.akb-hero-slide__ctas {
+	margin-top: 14px;
+}
+
+.akb-hero-ctas {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 6px 0;
+}
+
+.akb-hero-cta {
+	display: grid;
+	grid-template-columns: 1fr 1.6fr 1fr auto;
+	gap: 8px;
+	align-items: center;
+	padding: 8px;
+	background: #fafafa;
+	border: 2px solid #1A1A1D;
+	border-radius: 0;
+}
+
+.akb-hero-cta input,
+.akb-hero-cta select {
+	width: 100%;
+}
+
+.akb-hero-cta__remove {
+	background: transparent;
+	border: 0;
+	color: #b32d2e;
+	cursor: pointer;
+	font-size: 18px;
+	line-height: 1;
+	padding: 0 6px;
+}
+
+.akb-hero-cta__add {
+	background: transparent;
+	border: 0;
+	color: #2271b1;
+	cursor: pointer;
+	font-size: 12.5px;
+	text-decoration: underline;
+	padding: 2px 4px;
+	margin-top: 4px;
+}
+
+/* ---- Add slide button row ---- */
+
+.akb-hero-admin__add-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 22px 0;
+}
+
+.akb-hero-admin__count {
+	font-size: 12.5px;
+	color: #646970;
+}
+
+/* ---- Height presets fieldset ---- */
+
+.akb-hero-height {
+	margin: 0 0 18px;
+	padding: 14px 22px;
+	background: #fff;
+	border: 3px solid #1A1A1D;
+	border-radius: 0;
+	box-shadow: 6px 6px 0 #E50914;
+}
+
+.akb-hero-height legend {
+	padding: 0 8px;
+	font-size: 14px;
+	font-weight: 800;
+	color: #1A1A1D;
+	text-transform: uppercase;
+	font-style: italic;
+}
+
+.akb-hero-height .description {
+	margin: 6px 0 12px;
+	color: #646970;
+	font-size: 12.5px;
+}
+
+.akb-hero-height__presets {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 150px, 1fr ) );
+	gap: 8px;
+	margin: 6px 0;
+	max-width: 800px;
+}
+
+.akb-hero-height__option {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 12px 14px;
+	background: #fafafa;
+	border: 2px solid #1A1A1D;
+	border-radius: 0;
+	cursor: pointer;
+	transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.akb-hero-height__option:hover {
+	border-color: #c3c4c7;
+	background: #fff;
+}
+
+.akb-hero-height__option.is-active {
+	border-color: #1A1A1D;
+	background: #fff;
+	box-shadow: 4px 4px 0 #E50914;
+}
+
+.akb-hero-height__option input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.akb-hero-height__option-label {
+	font-weight: 800;
+	font-size: 13px;
+	color: #1A1A1D;
+	text-transform: uppercase;
+}
+
+.akb-hero-height__option-meta {
+	font-size: 11.5px;
+	color: #6c7178;
+}
+
+/* ---- Carousel fieldset ---- */
+
+.akb-hero-carousel {
+	margin: 0;
+	padding: 14px 22px;
+	background: #fff;
+	border: 3px solid #1A1A1D;
+	border-radius: 0;
+	box-shadow: 6px 6px 0 #E50914;
+}
+
+.akb-hero-carousel legend {
+	padding: 0 8px;
+	font-size: 14px;
+	font-weight: 800;
+	color: #1A1A1D;
+	text-transform: uppercase;
+	font-style: italic;
+}
+
+.akb-hero-carousel__note {
+	font-weight: 400;
+	font-size: 12px;
+	color: #6c7178;
+}
+
+.akb-hero-carousel .form-table {
+	margin: 8px 0 0;
+}
+
+.akb-hero-carousel .form-table th {
+	width: 200px;
+	padding: 10px 10px 10px 0;
+	font-weight: 600;
+	font-size: 13px;
+}
+
+.akb-hero-carousel .form-table td {
+	padding: 10px 10px;
+}
+
+/* ---- Position picker (steps 1-2-3: grid + alignment + mobile layout) ---- */
+
+.akb-hero-position__layout {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin: 8px 0;
+}
+
+.akb-hero-position__step {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.akb-hero-position__step-num {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: #2271b1;
+	color: #fff;
+	font-weight: 700;
+	font-size: 13px;
+	line-height: 1;
+}
+
+.akb-hero-position__step-content {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.akb-hero-position__step-title {
+	font-weight: 600;
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.akb-hero-position__step-title small {
+	font-weight: 400;
+	color: #646970;
+	font-size: 12px;
+	margin-left: 4px;
+}
+
+.akb-hero-position__pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+/* ---- Mobile layout: pills con preview SVG ---- */
+.akb-hero-position__pill--svg {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 12px 8px;
+	min-width: 88px;
+}
+
+.akb-hero-position__pill-svg {
+	display: inline-flex;
+}
+
+.akb-hero-position__pill-svg svg {
+	width: 32px;
+	height: 32px;
+	color: #50575e;
+}
+
+.akb-hero-position__pill--svg.is-active .akb-hero-position__pill-svg svg {
+	color: #fff;
+}
+
+.akb-position-grid {
+	display: grid;
+	grid-template-columns: repeat( 3, 36px );
+	grid-template-rows: repeat( 3, 26px );
+	gap: 4px;
+	padding: 6px;
+	background: #f6f7f7;
+	border: 2px solid #1A1A1D;
+	border-radius: 0;
+	flex-shrink: 0;
+}
+
+.akb-position-grid__cell {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #fff;
+	border: 2px solid #1A1A1D;
+	border-radius: 0;
+	cursor: pointer;
+	transition: background 120ms ease, border-color 120ms ease;
+	margin: 0;
+}
+
+.akb-position-grid__cell input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.akb-position-grid__cell:hover {
+	background: #f0f6fc;
+	border-color: #c3c4c7;
+}
+
+.akb-position-grid__cell.is-active {
+	background: #D90010;
+	border-color: #D90010;
+}
+
+.akb-position-grid__dot {
+	width: 6px;
+	height: 6px;
+	background: #8c8f94;
+	border-radius: 50%;
+	transition: background 120ms ease, transform 120ms ease;
+}
+
+.akb-position-grid__cell.is-active .akb-position-grid__dot {
+	background: #fff;
+	transform: scale( 1.3 );
+}
+
+.screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect( 0, 0, 0, 0 );
+	border: 0;
+}
+
+/* Pills (alineación + layout mobile) — usa estructura `__step` arriba.
+ * Legacy classes (__controls/__group/__group-label) removidas en 1.44.0
+ * porque se reemplazaron por el patrón numerado paso 1-2-3. */
+
+.akb-hero-position__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	background: #fff;
+	border: 2px solid #1A1A1D;
+	border-radius: 0;
+	font-size: 12px;
+	font-weight: 500;
+	color: #50575e;
+	cursor: pointer;
+	transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+	margin: 0;
+}
+
+.akb-hero-position__pill input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.akb-hero-position__pill:hover {
+	background: #f0f6fc;
+	border-color: #2271b1;
+}
+
+.akb-hero-position__pill.is-active {
+	background: #D90010;
+	border-color: #D90010;
+	color: #fff;
+}
+
+/* ---- WP color picker integration ---- */
+.akb-color-picker { width: 100px !important; }
+
+/* ---- Drag-and-drop visual cue ---- */
+.akb-hero-slide.is-dragging {
+	opacity: 0.6;
+	border-color: #D90010;
+}
+
+/* ---- Responsive admin ---- */
+@media ( max-width: 782px ) {
+	.akb-hero-slide__grid {
+		grid-template-columns: 1fr;
+	}
+	.akb-hero-cta {
+		grid-template-columns: 1fr;
+	}
+	.akb-hero-height__presets {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+/* === Capa 2: Modal vista previa completa — <dialog> nativo === */
+
+body.akb-hero-modal-open {
+	overflow: hidden;
+}
+
+/* <dialog> nativo: cuando NO está abierto el browser lo esconde con
+ * display:none por default. Solo aplicamos estilos al estado abierto. */
+.akb-hero-modal {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	max-width: none;
+	max-height: none;
+	width: 100%;
+	height: 100%;
+}
+
+/* Backdrop nativo del <dialog> — mucho mejor que un overlay manual: el browser
+ * lo gestiona en el top-layer, no se puede tabbear por debajo, ESC lo cierra. */
+.akb-hero-modal::backdrop {
+	background: rgba(0, 0, 0, 0.65);
+	backdrop-filter: blur(2px);
+}
+
+/* Mientras open, el dialog ocupa el viewport completo y centra el contenido. */
+.akb-hero-modal[open] {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+}
+
+.akb-hero-modal__dialog {
+	position: relative;
+	z-index: 1;
+	width: min(1400px, calc(100% - 40px));
+	max-height: calc(100vh - 40px);
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.akb-hero-modal__header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	/*
+	 * El encabezado de la vista previa permite wrap para mantener siempre accesible el botón de
+	 * cerrar en pantallas estrechas, incluso con el scroll de body bloqueado.
+	 */
+	flex-wrap: wrap;
+	position: relative;
+}
+
+.akb-hero-modal__title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: #1d2327;
+	flex: 1;
+}
+
+.akb-hero-modal__devices {
+	display: flex;
+	gap: 2px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	padding: 2px;
+}
+
+.akb-hero-modal__devices button {
+	background: transparent;
+	border: none;
+	padding: 4px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	border-radius: 2px;
+	transition: background 120ms ease;
+}
+
+.akb-hero-modal__devices button:hover {
+	background: #f0f0f1;
+}
+
+.akb-hero-modal__devices button.is-active {
+	background: #2271b1;
+	color: #fff;
+}
+
+.akb-hero-modal__devices button:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+.akb-hero-modal__close {
+	background: transparent;
+	border: 1px solid transparent;
+	font-size: 18px;
+	width: 32px;
+	height: 32px;
+	cursor: pointer;
+	border-radius: 3px;
+	color: #50575e;
+	transition: background 120ms ease, color 120ms ease;
+}
+
+.akb-hero-modal__close:hover {
+	background: #dcdcde;
+	color: #1d2327;
+}
+
+.akb-hero-modal__close:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+.akb-hero-modal__body {
+	flex: 1;
+	min-height: 400px;
+	padding: 20px;
+	background: #f0f0f1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: auto;
+}
+
+.akb-hero-modal__loading,
+.akb-hero-modal__error {
+	font-size: 14px;
+	color: #50575e;
+	text-align: center;
+	padding: 40px;
+}
+
+.akb-hero-modal__error {
+	color: #b32d2e;
+	background: #fcf0f1;
+	border: 1px solid #f0c0c0;
+	border-radius: 4px;
+	max-width: 480px;
+}
+
+.akb-hero-modal__error[hidden] {
+	display: none;
+}
+
+.akb-hero-modal__iframe {
+	border: none;
+	background: #fff;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+	border-radius: 4px;
+	width: 100%;
+	height: 700px;
+	max-height: calc(100vh - 200px);
+	transition: width 200ms ease, height 200ms ease;
+}
+
+.akb-hero-modal__iframe[hidden] {
+	display: none;
+}
+
+.akb-hero-modal__footer {
+	padding: 8px 16px;
+	background: #f6f7f7;
+	border-top: 1px solid #dcdcde;
+	font-size: 11px;
+	color: #6c7178;
+	text-align: center;
+}
+
+/* === Confirm modal (eliminar slide) — variante chica del <dialog> === */
+
+.akb-hero-modal__dialog--sm {
+	max-width: 440px;
+}
+
+.akb-hero-modal__body--text {
+	padding: 16px 20px;
+	color: #1d2327;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.akb-hero-modal__body--text p {
+	margin: 0;
+}
+
+.akb-hero-modal__footer--actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 16px;
+}
+
+.akb-hero-modal__btn-danger {
+	background: #b32d2e !important;
+	border-color: #8a1f1f !important;
+	color: #fff !important;
+}
+
+.akb-hero-modal__btn-danger:hover,
+.akb-hero-modal__btn-danger:focus {
+	background: #8a1f1f !important;
+	border-color: #6b1818 !important;
+}
+
+/* En el admin móvil el ✕ se ancla arriba a la derecha del header, con área
+ * táctil de 44 px, y el título le deja el espacio libre. Los botones de
+ * dispositivo pasan a su propia fila: en un teléfono la vista previa ya ES
+ * móvil, así que elegir «Desktop» es secundario frente a poder salir. */
+@media ( max-width: 782px ) {
+	.akb-hero-modal__header {
+		padding-right: 56px;
+		align-items: flex-start;
+	}
+
+	.akb-hero-modal__title {
+		flex: 1 1 100%;
+		line-height: 44px;
+	}
+
+	.akb-hero-modal__devices {
+		flex: 1 1 100%;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.akb-hero-modal__close {
+		position: absolute;
+		top: 6px;
+		right: 8px;
+		width: 44px;
+		height: 44px;
+		font-size: 22px;
+		border-color: #c3c4c7;
+		background: #fff;
+		z-index: 1;
+	}
+}
+
+
+/* Warning de contraste vignette/título — solo visible cuando JS detecta
+ * vignette < 30 + título claro. Mismo lenguaje visual que `.is-off::after`
+ * (amber WP standard: #fcf9e8 / #dba617 / #8a6a18). */
+.akb-hero-slide__vignette-warning {
+	margin: 6px 0 0;
+	padding: 8px 12px;
+	background: #fcf9e8;
+	border: 1px solid #dba617;
+	border-radius: 4px;
+	color: #8a6a18;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.akb-hero-slide__vignette-warning[hidden] {
+	display: none;
+}
+

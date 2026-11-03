@@ -1,0 +1,46 @@
+%% Caso 3 del capítulo 17 — un cliente se apunta a la lista de espera y el tomo llega.
+%% Qué muestra: que las puertas del despachador son SECUENCIALES, no alternativas: en una misma pasada se comprueban una tras otra y cada una tiene su propia salida. La última vive en otra pantalla (WooCommerce → Ajustes → Correos) y el panel Akibara no sabe de ella.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Ficha as Ficha del producto (business)
+    participant Tabla as wp_akb_bis_subscribers
+    actor Dueno as Dueño
+    participant Watcher as StockWatcher
+    participant AS as Action Scheduler
+    participant Disp as NotificationDispatcher
+    participant Correo as Correo al cliente
+    participant Cron as Cron de Hostinger
+
+    Cliente->>Ficha: abre un tomo agotado
+    alt akb_bis_capture_enabled vale no
+        Ficha-->>Cliente: no se pinta el formulario — no hay dónde dejar el correo
+    else akb_bis_capture_enabled vale yes
+        Cliente->>Ficha: deja su correo
+        Ficha->>Tabla: INSERT con UNIQUE (product_id, email) y token único
+        Tabla-->>Cliente: "te avisamos cuando llegue"
+    end
+    Dueno->>Watcher: repone stock del tomo
+    Watcher->>AS: encola la acción asíncrona akb_bis_notify_product
+    Cron->>AS: wp-cron.php cada 5 minutos (DISABLE_WP_CRON está puesto)
+    AS->>Disp: ejecuta el lote
+
+    Note over Disp: las tres puertas se comprueban EN ORDEN, en la misma pasada
+    Disp->>Disp: Puerta 1 — ¿akb_bis_dispatch_enabled vale yes? (:209)
+    alt vale no
+        Disp->>AS: reagenda sin marcar ni enviar (corte seguro: al encender, retoma)
+    end
+    Disp->>Disp: Puerta 2 — ¿la clase WC_Email ya es cargable? (:224)
+    alt todavía no
+        Disp->>AS: re-encola con contador acotado (Action Scheduler NO reintenta un fatal)
+    end
+    Disp->>Disp: Puerta 3 — ¿la clave enabled de woocommerce_akb_bis_instock_settings vale yes? (:233)
+    alt vale no
+        Disp->>Disp: NO quema el lote a notified y no envía
+        Note over Disp,Dueno: la pestaña Akibara → Lista de espera sigue diciendo que los avisos están activos
+    end
+
+    Disp->>Correo: las tres puertas abiertas: plantilla customer-bis-instock.php
+    Correo-->>Cliente: asunto «{product_name} está de vuelta en Akibara» (2-3 min después de reponer)
+    Disp->>Tabla: marca la fila como notificada y suma un intento
+    Note over Tabla: el cron diario akb_bis_cleanup_terminal borra los estados terminales a los 180 días

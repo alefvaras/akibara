@@ -1,0 +1,308 @@
+/*
+ * Vista rápida con dialog centrado desde 769px. En teléfono no se muestra el disparador ni se
+ * carga esta presentación. Usa tokens del tema con fallback; el foco lo presenta el tema para
+ * evitar anillos duplicados.
+ */
+
+/*
+ * Presentación base del disparador con área 44px, disponible aunque el tema se despliegue por
+ * separado. Su display respeta hidden y el soporte de dialog. Usa especificidad de clase para
+ * superar estilos genéricos de button; el tema puede ampliar su diseño.
+ */
+.akb-qv-trigger {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	margin-top: 4px;
+	padding: 6px 10px;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	touch-action: manipulation;
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid var(--aki-border-light, #333);
+	border-radius: 3px;
+}
+
+.akb-qv-trigger:hover {
+	color: var(--aki-white, #fff);
+	border-color: var(--aki-gray-300, #b0b0b0);
+}
+
+/* `display:inline-flex` no puede ganar al atributo de mejora progresiva. */
+.akb-qv-trigger[hidden] {
+	display: none;
+}
+
+/* ─── Sheet ────────────────────────────────────────────────────── */
+
+.akb-qv {
+	box-sizing: border-box;
+	width: min(620px, calc(100vw - 32px));
+	max-height: min(82dvh, 720px);
+	padding: 0;
+	overflow: hidden auto;
+	overscroll-behavior: contain;
+	color: var(--aki-gray-100, #f0f0f0);
+	background: var(--aki-surface-2, #1a1a1a);
+	border: 2px solid var(--aki-border, #2a2a2e);
+	border-radius: 2px;
+	box-shadow: 8px 8px 0 var(--aki-black, #121212);
+}
+
+.akb-qv[open] {
+	animation: akb-qv-fade-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+html.akb-qv-open,
+body.akb-qv-open {
+	overflow: hidden;
+	overscroll-behavior: none;
+}
+
+/*
+ * Las jaulas de portada de las tarjetas pertenecen al CSS del loop del tema, compartido por
+ * todas las superficies. Aquí sólo se define la media del modal.
+ */
+
+.akb-qv::backdrop {
+	background: rgb(0 0 0 / 72%);
+}
+
+.akb-qv[open]::backdrop {
+	animation: akb-qv-backdrop-fade 220ms ease-out forwards;
+}
+
+/*
+ * La cabecera sticky usa z-index 2 para quedar sobre portada, precio y aviso de red mientras
+ * el diálogo se desplaza, manteniendo accesible el cierre.
+ */
+.akb-qv__head {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	box-sizing: border-box;
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 12px 14px 20px;
+	background: var(--aki-surface-2, #1a1a1a);
+	border-bottom: 1px solid var(--aki-border, #2a2a2e);
+}
+
+.akb-qv__title {
+	margin: 0;
+	color: var(--aki-white, #fff);
+	font-size: 26px;
+	line-height: 1.2;
+	letter-spacing: 0.02em;
+}
+
+.akb-qv__close {
+	box-sizing: border-box;
+	display: inline-flex;
+	flex: 0 0 44px;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	color: var(--aki-white, #fff);
+	touch-action: manipulation;
+	cursor: pointer;
+	background: transparent;
+	border: 1px solid rgb(255 255 255 / 28%);
+	border-radius: 2px;
+	transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);
+}
+
+.akb-qv__close:hover,
+.akb-qv__close:focus-visible {
+	background: var(--aki-red, #e60012);
+	border-color: var(--aki-red, #e60012);
+	color: var(--aki-white, #fff);
+}
+
+.akb-qv__body {
+	display: grid;
+	grid-template-columns: 196px 1fr;
+	gap: 22px;
+	padding: 20px;
+}
+
+.akb-qv__media {
+	position: relative;
+	align-self: start;
+
+	/*
+	 * El ancho 100% vincula la portada a su columna y aspect-ratio deriva la altura. No se fija
+	 * min-height, que invertiría esa relación al estrechar la columna.
+	 */
+	width: 100%;
+	aspect-ratio: 2 / 3;
+
+	background: var(--aki-surface-3, #222);
+	border-radius: 2px;
+
+	/* Sombra dura, no difusa: es el mismo lenguaje del badge
+	 * (drop-shadow 4px 4px 0) y de los focus ring de la casa. */
+	box-shadow: 6px 6px 0 var(--aki-black, #121212);
+}
+
+.akb-qv__media img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border-radius: 4px;
+	object-fit: cover;
+}
+
+.akb-qv__media.akb-cover--error > img {
+	opacity: 0;
+}
+
+.akb-qv__media.akb-cover--error::after {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	padding: 12px;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: 13px;
+	font-weight: 600;
+	text-align: center;
+	content: "Portada no disponible";
+}
+
+.akb-qv__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 10px;
+	font-size: 14px;
+
+	/* Contenedor de posicionamiento. La fila se rellena CLONANDO nodos de la card
+	 * (.akb-badge, .akb-editorial-eyebrow, .price, .akb-avail-hint, .akb-eta-loop),
+	 * y cualquiera de ellos puede traerse un position:absolute de su hoja de
+	 * origen. Sin esto, el ancestro posicionado más cercano es el propio diálogo
+	 * y el clon aterriza sobre el título. Ya pasó con .akb-badge. */
+	position: relative;
+}
+
+/*
+ * La fila clona badge, editorial, precio y ETA desde la tarjeta. Reconstruye su jerarquía en
+ * el modal mediante tipografía y flex-basis, con mayor énfasis para el precio.
+ */
+
+.akb-qv__meta .akb-editorial-eyebrow {
+	font-size: 11px;
+	color: var(--aki-gray-400, #8a8a8a);
+}
+
+/* El precio manda: Bebas grande y amarillo de marca (14,97:1 sobre la
+ * superficie). El rojo NO se usa aquí — está reservado a comprar. */
+.akb-qv__meta .price {
+	flex: 0 0 100%;
+	margin-top: 12px;
+	color: var(--aki-white, #ffffff);
+	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+	font-size: 38px;
+	line-height: 1;
+}
+
+/* La llegada deja de ser texto suelto y pasa a chip, con el mismo filete rojo
+ * del banner de ETA de la ficha. `box-sizing` NO es opcional: con
+ * `flex-basis: 100%` el padding y el borde se suman al ancho del contenedor y
+ * desbordaba 23px en móvil. */
+.akb-qv__meta .akb-eta-loop {
+	box-sizing: border-box;
+	flex: 0 0 100%;
+	margin-top: 10px;
+	padding: 8px 12px;
+	color: var(--aki-gray-200, #e0e0e0);
+	font-size: 13px;
+	background: var(--aki-surface-3, #222);
+	border-left: 3px solid var(--aki-red, #e60012);
+	border-radius: 3px;
+}
+
+/*
+ * El badge clonado vuelve al flujo de la fila, sin posicionamiento absoluto sobre el título.
+ * Conserva el recorte y la sombra de marca, sin un hover dependiente de li.product.
+ */
+.akb-qv .akb-badge {
+	position: static;
+	transform: none;
+}
+
+.akb-qv__synopsis {
+	margin: 0 0 14px;
+	color: var(--aki-gray-300, #b0b0b0);
+	font-size: 14px;
+	line-height: 1.65;
+}
+
+.akb-qv__actions {
+	margin-bottom: 12px;
+}
+
+.akb-qv__actions .button,
+.akb-qv__actions .add_to_cart_button {
+	width: 100%;
+	height: 52px;
+	font-size: 17px;
+	letter-spacing: 0.06em;
+	text-align: center;
+}
+
+/* Gris, no rojo. `loop.css` deja escrito que el rojo sólido queda reservado a
+ * comprar, y aquí competía con el CTA a dos centímetros de distancia; el rojo
+ * se queda sólo en el subrayado. */
+.akb-qv__link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	color: var(--aki-gray-200, #e0e0e0);
+	text-decoration-color: var(--aki-red, #e60012);
+	text-underline-offset: 4px;
+	font-size: 14px;
+	font-weight: 700;
+	text-decoration: underline;
+}
+
+/* ─── Animación de apertura — estilo viñeta manga (220ms, 60fps) ─── */
+@keyframes akb-qv-fade-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96) translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+@keyframes akb-qv-backdrop-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-qv[open],
+	.akb-qv[open]::backdrop {
+		animation: none;
+	}
+}
+
+

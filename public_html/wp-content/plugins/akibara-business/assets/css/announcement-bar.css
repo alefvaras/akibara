@@ -1,0 +1,416 @@
+/*
+ * Announcement Bar — carril manual de promociones.
+ *
+ * Markup contract (emitido por AnnouncementBar.php):
+ *   <div id="akb-ann-bar" class="akb-ann-bar" style="--akb-ann-bg:...;--akb-ann-color:...;" role="region">
+ *     <div class="akb-ann-content">
+ *       <span class="akb-ann-msg akb-on">Mensaje 1</span>
+ *       <span class="akb-ann-msg">Mensaje 2</span>
+ *     </div>
+ *     <button class="akb-ann-next" aria-label="Siguiente anuncio">1/2 →</button>
+ *   </div>
+ */
+
+#akb-ann-bar {
+    background: transparent;
+    color: inherit;
+    text-align: center;
+    min-height: 48px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 2px 16px;
+    box-sizing: border-box;
+    transition: opacity 0.3s ease, margin-top 0.3s ease;
+    overflow: hidden;
+}
+
+#akb-ann-bar.akb-hidden {
+    display: none !important;
+}
+
+/* En modo carrusel reservamos el mismo ancho a ambos lados. El botón vive en
+ * la tercera columna y la primera actúa como contrapeso: así el mensaje queda
+ * centrado respecto del viewport, no respecto del espacio sobrante. */
+#akb-ann-bar.akb-ann-bar--multi {
+    display: grid;
+    grid-template-columns: 60px minmax(0, 1fr) 60px;
+}
+
+.akb-ann-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    width: 100%;
+    min-width: 0;
+}
+
+.akb-ann-bar--multi .akb-ann-content {
+    grid-column: 2;
+    width: 100%;
+    max-width: none;
+}
+
+.akb-ann-msg {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    justify-self: center;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    max-width: 100%;
+    
+    /* Persona 5 Tape Style */
+    font-family: var(--font-heading, "Inter", sans-serif);
+    /*
+     * Bebas usa su peso 400 y postura normal; el sesgo procede del contenedor para no sintetizar
+     * italic ni bold inexistentes.
+     */
+    font-style: normal;
+    font-weight: 400;
+    font-synthesis: none;
+    transform: skewX(-5deg);
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 6px 20px;
+    
+    position: relative;
+    color: var(--akb-ann-color, #fff);
+    z-index: 1;
+}
+
+/* Sombra roja (aparece primero y se queda estática) */
+.akb-ann-msg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    box-shadow: -4px 4px 0 var(--akb-ann-border, #D90010);
+    transform: skew(-12deg);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0s linear 0.16s;
+    z-index: -1;
+}
+
+/* Fondo negro deslizable (se mueve detrás del texto) */
+.akb-ann-msg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--akb-ann-bg, #0a0a0a);
+    transform: skew(-12deg) translateX(28px);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.18s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.16s ease, visibility 0s linear 0.18s;
+    z-index: 0;
+}
+
+/* Texto interior (slidable y centrado encima) */
+.akb-ann-msg-inner {
+    position: relative;
+    z-index: 1;
+    /* Un-skew para la lectura */
+    transform: skew(4deg) translateX(28px);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.18s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.16s ease, visibility 0s linear 0.18s;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Estado activo: entrada rápida y deliberada, sin rebote. */
+.akb-ann-msg.akb-on::before {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.16s ease 0.04s, visibility 0s linear 0.04s;
+}
+
+.akb-ann-msg.akb-on::after {
+    opacity: 1;
+    visibility: visible;
+    transform: skew(-12deg) translateX(0);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.04s, opacity 0.14s ease 0.04s, visibility 0s linear 0.04s;
+}
+
+.akb-ann-msg.akb-on .akb-ann-msg-inner {
+    opacity: 1;
+    visibility: visible;
+    transform: skew(4deg) translateX(0);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.06s, opacity 0.14s ease 0.06s, visibility 0s linear 0.06s;
+    pointer-events: auto;
+}
+
+/* Salida (el JS añade .akb-out un tick antes de pasar la posta): la cinta se
+ * ARRANCA hacia la izquierda — dirección opuesta a la entrada, así el ciclo
+ * lee como cintas que atraviesan, no como un crossfade blando. */
+.akb-ann-msg.akb-out::after {
+    opacity: 0;
+    visibility: hidden;
+    transform: skew(-12deg) translateX(-32px);
+    transition: transform 0.16s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.14s ease, visibility 0s linear 0.16s;
+}
+
+.akb-ann-msg.akb-out .akb-ann-msg-inner {
+    opacity: 0;
+    visibility: hidden;
+    transform: skew(4deg) translateX(-32px);
+    transition: transform 0.16s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.14s ease, visibility 0s linear 0.16s;
+}
+
+.akb-ann-msg.akb-out::before {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.14s ease, visibility 0s linear 0.14s;
+}
+
+.akb-ann-msg-inner a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+/* Mensaje-enlace («Texto | /url/» en el panel, UM-5): la cinta entera se toca.
+ * El relleno pasa de la cinta al <a> interior —misma caja, mismo dibujo— para
+ * que el área táctil sea la cinta completa y no sólo las letras. El subrayado
+ * es lo que la distingue de un mensaje que sólo informa. */
+.akb-ann-msg--link {
+    padding: 0;
+}
+
+.akb-ann-msg--link .akb-ann-msg-inner {
+    box-sizing: border-box;
+    padding: 6px 20px;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.akb-ann-msg--link .akb-ann-msg-inner:hover,
+.akb-ann-msg--link .akb-ann-msg-inner:focus-visible {
+    color: var(--aki-yellow, #FFD700);
+    text-decoration-thickness: 2px;
+}
+
+.akb-ann-msg--link .akb-ann-msg-inner:focus-visible {
+    outline: 2px solid var(--aki-yellow, #FFD700);
+    outline-offset: 2px;
+}
+
+/* Un mensaje sin enlace no se puede tocar: ni mano ni cursor de texto que
+ * sugiera otra cosa. */
+.akb-ann-msg:not(.akb-ann-msg--link) .akb-ann-msg-inner {
+    cursor: default;
+}
+
+/* Navegación manual: el contador deja claro que existen más promociones sin
+ * competir visualmente con el hero. El hit conserva 44px de alto. */
+#akb-ann-bar .akb-ann-next {
+    grid-column: 3;
+    flex: 0 0 60px;
+    width: 60px;
+    height: 44px;
+    margin-left: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--akb-ann-color, #fff);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    opacity: 0.74;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: opacity 0.18s ease, color 0.18s ease !important;
+    will-change: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.akb-ann-next__count {
+    font-family: var(--font-heading, "Inter", sans-serif);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.06em;
+}
+
+.akb-ann-next__arrow {
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg);
+}
+
+#akb-ann-bar .akb-ann-next:hover,
+#akb-ann-bar .akb-ann-next:focus-visible {
+    opacity: 1;
+    color: var(--aki-yellow, #FFD700);
+}
+
+#akb-ann-bar .akb-ann-next:hover,
+#akb-ann-bar .akb-ann-next:focus {
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+/* GeneratePress aplica fondo gris a button:hover/:focus y el theme aplica
+ * fondo negro + escala a button:active. Este control es deliberadamente
+ * chromeless: el reset scoped evita que esos estados globales se filtren sin
+ * borrar la afordancia de teclado definida en :focus-visible. */
+#akb-ann-bar .akb-ann-next:active {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+#akb-ann-bar .akb-ann-next:disabled {
+    cursor: default;
+}
+
+/* El outline de la casa (DS-5), por dentro: la barra recorta lo que sale. */
+#akb-ann-bar .akb-ann-next:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffffff);
+    outline-offset: -4px;
+}
+
+.akb-ann-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #akb-ann-bar,
+    .akb-ann-msg,
+    .akb-ann-msg::before,
+    .akb-ann-msg::after,
+    .akb-ann-msg-inner,
+    .akb-ann-msg.akb-on::before,
+    .akb-ann-msg.akb-on::after,
+    .akb-ann-msg.akb-on .akb-ann-msg-inner,
+    .akb-ann-msg.akb-out::before,
+    .akb-ann-msg.akb-out::after,
+    .akb-ann-msg.akb-out .akb-ann-msg-inner {
+        transition: none;
+    }
+
+    #akb-ann-bar .akb-ann-next {
+        transition: none !important;
+    }
+}
+
+/* ── Mobile responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+    #akb-ann-bar {
+        min-height: 44px;
+        padding: 0 8px;
+    }
+
+    #akb-ann-bar.akb-ann-bar--multi {
+        grid-template-columns: 56px minmax(0, 1fr) 56px;
+    }
+
+    .akb-ann-bar--multi .akb-ann-content {
+        max-width: none;
+    }
+
+    /*
+     * El relleno 3px y los bordes enteros mantienen dos líneas dentro de 44px, con espacio para
+     * sombra y foco. Valores fraccionales de borde pueden redondearse por densidad y desplazar las
+     * letras al enfocar.
+     */
+    .akb-ann-msg {
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        padding: 3px 8px;
+    }
+
+    .akb-ann-msg--link {
+        padding: 0;
+    }
+
+    /*
+     * Bordes transparentes y márgenes negativos amplían el enlace a toda la barra sin cambiar la
+     * cinta. Se usa borde, no padding inferior: overflow recorta en la caja de relleno y el
+     * padding dejaría asomar una tercera línea. Los bordes enteros conservan geometría al enfocar.
+     */
+    .akb-ann-msg--link .akb-ann-msg-inner {
+        padding: 3px 8px 0;
+        border-block: 12px solid transparent;
+        border-block-end-width: 15px;
+        margin: -12px 0;
+    }
+
+    /*
+     * El anillo de teclado rodea la cinta. Borde y margen se compensan para no mover el texto; la
+     * zona inferior sigue siendo borde y no relleno, manteniendo el recorte de la tercera línea.
+     */
+    .akb-ann-msg--link .akb-ann-msg-inner:focus-visible {
+        border-block-width: 0 3px;
+        margin: 0;
+    }
+
+    /*
+     * El subrayado de 2px sube 1px en foco y toque para conservar el borde inferior del trazo de
+     * 1px cuando WebKit recorta cerca del texto.
+     */
+    .akb-ann-msg--link .akb-ann-msg-inner:hover,
+    .akb-ann-msg--link .akb-ann-msg-inner:focus-visible {
+        text-underline-offset: 2px;
+    }
+
+    /*
+     * En teléfono se permiten dos líneas dentro de 44px, con line-height 1.3 y especificidad
+     * suficiente para superar el CSS crítico. La tercera línea se recorta; sus emojis a color
+     * pueden asomar junto al subrayado por métricas de la fuente.
+     *
+     * LINE_MAX está medido a 360px; a 320px caben 71–78 caracteres y puede no advertir la tercera
+     * línea. Si aparece ese límite, acortar el mensaje; el recorte no puede separar tinta de emoji
+     * que comparte píxeles con el subrayado.
+     */
+    #akb-ann-bar .akb-ann-msg-inner {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    #akb-ann-bar .akb-ann-next {
+        flex-basis: 56px;
+        width: 56px;
+        margin-left: 0;
+    }
+}
+
+/* Colores forzados (alto contraste de Windows, también con zoom a ≤768px): el
+ * navegador pinta los bordes transparentes con el color del enlace. El borde
+ * que agranda el área táctil salía como dos barras gruesas sobre y bajo las
+ * letras, y el del foco como una raya de 3px. Del color del fondo no se ven.
+ * `#akb-ann-bar` delante por lo mismo que arriba: el CSS crítico repite
+ * `border-block: … transparent` después de esta hoja. */
+@media (max-width: 768px) and (forced-colors: active) {
+    #akb-ann-bar .akb-ann-msg--link .akb-ann-msg-inner {
+        border-color: Canvas;
+    }
+}

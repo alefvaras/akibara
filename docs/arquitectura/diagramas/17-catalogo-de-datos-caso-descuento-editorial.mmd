@@ -1,0 +1,42 @@
+%% Caso 2 del capítulo 17 — el dueño pone un 20 % a una editorial y el buscador vigila la escritura.
+%% Qué muestra: el cerrojo que akibara-search monta sobre options y termmeta que no son suyos, y las TRES bifurcaciones: cerrojo ocupado, cerrojo tomado, y la cara —un valor fuera del dominio cerrado, que es la familia de fallo de las tres horas sin buscador del 2026-09-05.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Panel as AdminPanel (business)
+    participant Meta as wp_termmeta
+    participant Cerrojo as EditorialDiscountPublication (search)
+    participant DB as MariaDB GET_LOCK
+    participant Indice as Tablas del índice
+    participant Correo as Correo a admin_email
+    actor Cliente
+
+    Dueno->>Panel: Akibara → Descuentos (tab taxonomy_discount), escribe 20 en Ivrea
+    Panel->>Panel: validate_window_dates() revisa las fechas de vigencia
+    alt fecha inventada o ventana invertida
+        Panel-->>Dueno: guardado bloqueado con una frase — no se escribe nada
+    else fechas correctas
+        Panel->>Meta: AdminFieldType::save_row() intenta escribir _akb_taxonomy_discount_pct
+        Meta->>Cerrojo: filter_update_term_metadata (prioridad PHP_INT_MAX)
+        Cerrojo->>DB: pide el candado y saca la foto de la fuente
+        Note over Cerrojo,DB: la foto son las 10 options vigiladas + el termmeta de cada editorial
+        alt A — hay un rebuild en vuelo: no hay candado
+            Cerrojo-->>Meta: devuelve el valor viejo (la escritura NO ocurre)
+            Panel-->>Dueno: "Se guardó todo menos esto: el buscador no acepta cambios de precio ahora"
+        else B — candado tomado y todos los valores dentro del dominio
+            Cerrojo->>Cerrojo: monta la deuda en akb_search_editorial_discount_state
+            Cerrojo->>Indice: pide reindexar los productos de esa editorial
+            Note over Cerrojo,Indice: mientras el recibo no iguale a la fuente, suggest responde 503
+            Indice-->>Cerrojo: precio nuevo publicado — akb_search_editorial_discount_receipt coincide con la fuente
+            Cerrojo-->>Cliente: ficha, listado e índice muestran el mismo precio
+        else C — algún valor queda FUERA del dominio cerrado
+            Note over Cerrojo: p. ej. akibara_taxonomy_discount_sale_policy con algo que no es<br/>greatest_wins, skip_if_on_sale, from_regular o stack_on_sale
+            Cerrojo->>Cerrojo: valid_source_option_value() dice no — la foto deja de ser autoritativa
+            Cerrojo-->>Cliente: el buscador deja de servir hasta que el valor vuelva al dominio
+            Note over Cerrojo,Cliente: 2026-09-05: tres horas sin buscador ni filtros por esta rama
+        end
+        opt el serving sigue caído 15 minutos
+            Cerrojo->>Correo: akb_search_serving_alarm — un solo aviso por episodio
+            Correo-->>Dueno: "Akibara: el buscador lleva rato caído"
+        end
+    end

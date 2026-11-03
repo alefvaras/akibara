@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="../../public_html/wp-content/plugins/akibara-business/tests/bootstrap.php"
+	cacheResult="false"
+	colors="true"
+	failOnRisky="true"
+	failOnWarning="true"
+>
+	<php>
+		<!-- 3.146 pruebas pican 128,5 MB (2026-09-13): el límite por defecto de
+		     la CLI (128 MB) tumbaba la suite con un fatal a mitad de corrida. -->
+		<ini name="memory_limit" value="512M"/>
+	</php>
+	<testsuites>
+		<testsuite name="Akibara Business">
+			<directory suffix="Test.php">../../public_html/wp-content/plugins/akibara-business/tests</directory>
+		</testsuite>
+		<testsuite name="Akibara Cart and Checkout Blocks">
+			<directory suffix="Test.php">../../public_html/wp-content/plugins/akibara-cart-checkout-blocks/tests/php</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

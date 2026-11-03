@@ -1,0 +1,581 @@
+/*
+ * Base — site-wide normalize + body defaults + defensive constraints.
+ * Carga después de tokens, antes de header/footer.
+ *
+ * Site-wide. Pequeño, solo reglas foundational.
+ */
+
+/* ─── Body — dark theme legacy "Akibara Manga Crimson v3" ──────── */
+body {
+    font-family: var(--font-body);
+    color: var(--aki-gray-200);
+    background: var(--aki-black);
+    line-height: 1.6;
+}
+
+/* ─── Global OS/Browser Overrides (100% Brand Immersion) ──────── */
+::selection {
+    background: var(--aki-red);
+    color: var(--aki-white);
+}
+::-moz-selection {
+    background: var(--aki-red);
+    color: var(--aki-white);
+}
+
+/* Brutalist / Persona 5 dark mode scrollbars */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+::-webkit-scrollbar-track {
+    background: var(--aki-black);
+    border-left: 2px solid var(--aki-surface-2); /* Separador sutil, no rojo */
+}
+::-webkit-scrollbar-thumb {
+    background: var(--aki-surface-2);
+    border: 2px solid var(--aki-black);
+    border-radius: 0; /* Brutalista: Cero bordes redondeados */
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--aki-red);
+    border: 2px solid var(--aki-black);
+}
+
+/* GP wrappers heredan el dark bg para que no haya islas blancas
+ * entre header y footer (page wrappers, archive, single product).
+ *
+ * Specificity: GP define `.separate-containers .inside-article` (0,2,0)
+ * con `var(--base-3)` blanco. Replicamos el chain `.separate-containers`
+ * para vencer sin !important. */
+.site-content,
+.site-content .container,
+.separate-containers .inside-article,
+.separate-containers .comments-area,
+.separate-containers .page-header,
+.entry-content,
+.page-content,
+.woocommerce-page .site-content {
+    background: var(--aki-black);
+    color: var(--aki-gray-200);
+}
+
+/* Mobile: reducir el padding de 30px de GP `.separate-containers
+ * .inside-article` a `--space-3` (~12px). En 390px viewport, el
+ * chain main(16) + inside(30) = 46px por lado = 92px perdidos
+ * (21% del ancho). Reduciendo a 12px por lado: 16+12 = 28px por
+ * lado = 56px total. Ganamos 36px de ancho útil para grid de
+ * productos, tablas de carrito, formularios.
+ * Specificity matched con GP (0,0,2,1) — gana por orden de carga. */
+@media (max-width: 768px) {
+    .separate-containers .inside-article,
+    .separate-containers .comments-area,
+    .separate-containers .page-header {
+        padding: var(--space-3);
+    }
+}
+
+/* Archives WC (shop, categorías, marcas, taxonomías): full-width
+ * mobile como home. El home tiene `body.home .inside-article {
+ * padding: 0 }` en `home.css`; replicamos el patrón para que las
+ * pages de catálogo tampoco pierdan ancho horizontal. Las cards de
+ * productos ya tienen border + bg + padding propio (.products
+ * li.product en loop.css), así que no necesitan respiro extra
+ * del container. main padding: 0 también para máximo aprovecha-
+ * miento (igual que home).
+ *
+ * Toda taxonomía de producto con archivo público va en la lista para que las
+ * portadas aprovechen el ancho completo y el cálculo de responsive `sizes`
+ * de `inc/performance.php` mantenga paridad geométrica.
+ *
+ * Nota: `.separate-containers` es una class del BODY (no de un
+ * ancestor del .inside-article), por eso va sin espacio en el
+ * selector — ambas clases en el mismo elemento. */
+@media (max-width: 768px) {
+    body.post-type-archive-product .inside-article,
+    body.tax-product_cat .inside-article,
+    body.tax-product_brand .inside-article,
+    body.tax-pa_serie .inside-article,
+    body.tax-pa_genero .inside-article,
+    body.tax-pa_pais .inside-article,
+    body.tax-pa_autor .inside-article,
+    body.tax-product_tag .inside-article {
+        padding: 0;
+    }
+    /* `#main-content` es el wrapper outer (un <div>, ver header.php),
+     * distinto del `<main id="main">` interno. GP lo pinta con padding
+     * 16px lateral en mobile; usar el ID gana specificity sobre la regla
+     * GP sin afectar el inner. */
+    body.post-type-archive-product #main-content,
+    body.tax-product_cat #main-content,
+    body.tax-product_brand #main-content,
+    body.tax-pa_serie #main-content,
+    body.tax-pa_genero #main-content,
+    body.tax-pa_pais #main-content,
+    body.tax-pa_autor #main-content,
+    body.tax-product_tag #main-content {
+        padding: 0;
+    }
+}
+
+/* Pages full-width custom (editoriales): replican el patrón de home
+ * (`body.home .inside-article { padding: 0 }`) para aprovechar 100%
+ * del viewport. Tienen sus propios componentes internos (.akb-section,
+ * .akb-form, hero-style banners) que ya incluyen su propio padding.
+ *
+ * Sin @media wrap: aplica desktop Y mobile (igual que home). Si una
+ * page nueva necesita el mismo tratamiento, agregar su page-id o
+ * page-template aquí. */
+body.page-id-24356 .inside-article {    /* editoriales */
+    padding: 0;
+}
+
+/* ─── Regla defensiva: imágenes y SVGs respetan su contenedor ───
+ * Evita desbordamiento de SVGs o imágenes sin dimensiones explícitas. */
+img,
+svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* SVG dentro de iconos UI (header, footer, mainnav) NO debe
+ * heredar este max-width — sus parents tienen width:auto.
+ * Excepción: SVG con explicit width attr lo respeta. */
+.header-icon svg,
+.bottom-nav__item svg,
+.footer-social__link svg,
+.mobile-drawer__close svg,
+.mobile-drawer__toggle svg {
+    width: auto;
+    height: auto;
+}
+
+/* ─── Form controls — global reset ─────────────────────────────
+ * Site-wide form normalize. Vive aquí (y NO en woocommerce.css)
+ * por tres razones:
+ *
+ * 1. Browser defaults inconsistentes con dark theme:
+ *    - `accent-color: auto` pinta radios/checkboxes azul.
+ *    - `<input type="search">` viene con bg blanco en algunos browsers.
+ *    - `<select>` muestra dropdown nativo sin styling base.
+ *
+ * 2. GeneratePress parent + WC core dejan reglas que solo aplican
+ *    cuando hay ancestor `.woocommerce form .form-row`. En pages con
+ *    shortcode (carrito armado en WP page con [woocommerce_cart],
+ *    widgets en sidebar custom, plugins de terceros) ese ancestor no
+ *    existe → inputs salen sin styling y rompen la paleta.
+ *
+ * 3. Aplicar global con tokens del DS evita duplicados scoped y
+ *    previene inconsistencias por selectores anidados a body classes específicas.
+ *
+ * Excepciones documentadas:
+ * - `.akibara-search__input` (header search): bg transparent en
+ *   `header.css`. Excluido aquí con `:not()` para no pisarlo.
+ * - `.akb-form` (shortcode [akb_form_contacto]): styling propio en
+ *   `forms.css` con scope por class.
+ * - `.woocommerce .quantity input.qty`: width 64px específico en
+ *   `woocommerce.css` (caso especial: número compacto centrado).
+ * - `.adminbar-input` (WP Admin Bar search, `#wpadminbar` wrapper):
+ *   hidden por defecto y solo visible para usuarios logueados con
+ *   admin bar visible. Pertenece al chrome del dashboard de WP, no
+ *   al frontend público — se respeta su styling nativo. Si aparece
+ *   en un audit de inputs sin styling, es falso positivo (filtrar
+ *   por `:not(#wpadminbar input)` o `offsetParent !== null`).
+ *
+ * Patrón: WC core y plugins de pago pueden tener reglas con
+ * specificity > 0,0,1,1 (ej. `.woocommerce form .form-row .input-text`
+ * = 0,0,3,1). Los overrides matched-specificity viven en
+ * `woocommerce.css` para no contaminar este reset global.
+ */
+
+input[type="radio"],
+input[type="checkbox"] {
+    accent-color: var(--aki-red);
+    /* ~20px: el default del UA (~13px) era un tap target chico para checks
+     * obligatorios (terminos del checkout, "recuerdame"). Las facetas propias
+     * usan inputs nativos, así que este tamaño aplica también a sus checks. */
+    width: 20px;
+    height: 20px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="url"],
+input[type="search"]:not(.akibara-search__input),
+textarea,
+select {
+    background: var(--aki-surface-1);
+    color: var(--aki-white);
+    /* Borde ≥3:1 sobre el fondo oscuro: sin esto el input vacío se lee como
+       hueco (WCAG 1.4.11). El foco da borde blanco + el anillo amarillo. */
+    border: 2px solid var(--aki-input-border);
+    border-radius: 0;
+    height: var(--touch-target-min);
+    box-sizing: border-box;
+    padding: 0 var(--space-3);
+    font-family: var(--font-body);
+    font-size: max(16px, var(--text-sm)); /* piso 16px: evita el auto-zoom de iOS Safari al enfocar inputs (qty, login, etc.) */
+    line-height: 1;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+textarea {
+    height: auto;
+    min-height: calc(var(--touch-target-min) * 2);
+    padding: var(--space-3);
+    line-height: 1.5;
+    resize: vertical;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="url"]:focus,
+input[type="search"]:not(.akibara-search__input):focus,
+textarea:focus,
+select:focus {
+    border-color: var(--aki-white);
+    outline: none;
+    /* Enfoque accesible sin translate para prevenir desplazamientos durante el foco. */
+    box-shadow: var(--aki-focus-ring);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--aki-gray-400);
+    opacity: 1;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Link "He leído y estoy de acuerdo con los términos y condiciones"
+ * — WC inyecta `<a class="woocommerce-terms-and-conditions-link">`
+ * en checkout. Aplicamos global porque la class no depende de body
+ * context y queremos que el link siga yellow brand siempre que aparezca
+ * (consistente con breadcrumb hover, product_meta, etc. del theme). */
+.woocommerce-terms-and-conditions-link {
+    color: var(--aki-red-text);
+    text-decoration: underline;
+}
+
+.woocommerce-terms-and-conditions-link:hover {
+    color: var(--aki-white);
+}
+
+/* ─── A11y skip-link visible cuando enfocado ─────────────────── *
+ * (.skip-link styles ya están en footer.css — esta es solo el
+ * estado .focus visible; consolidar más adelante si crece) */
+
+/* El skip-link mueve el foco a #main (main.js le pone tabindex=-1 y lo enfoca).
+ * Como #main no es tabulable, su outline de foco sería un recuadro a todo el
+ * ancho del contenido al usar el skip-link; lo suprimimos —el foco programático
+ * basta para que el lector de pantalla anuncie el landmark <main>. */
+#main:focus {
+    outline: none;
+}
+
+/* Estado visual de interacción temprana (toque-temprano.js): indica visualmente
+ * estado ocupado mientras se inicializan los manejadores asíncronos. */
+.akb-toque-pendiente {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+/* Estilos de identidad de marca. */
+
+/* 2. Button Micro-Animations (Hover Lift & Glow) */
+.button, 
+button, 
+input[type="button"], 
+input[type="reset"], 
+input[type="submit"], 
+.wc-block-grid__product-add-to-cart.wp-block-button .wp-block-button__link,
+.single_add_to_cart_button {
+	/* Herencia tipográfica explícita en controles para mantener consistencia de fuentes. */
+	font-family: inherit;
+	transition: transform var(--wp--custom--transition--base), box-shadow var(--wp--custom--transition--base), background-color var(--wp--custom--transition--base) !important;
+	will-change: transform, box-shadow;
+}
+
+/* Gate (hover:hover): en touch el :hover se activa con el tap y PERSISTE hasta
+   tocar fuera — los !important de estos bloques le ganan al reset táctil de
+   loop.css, dejando botón escalado / card levantada pegados tras cada tap. */
+@media (hover: hover) {
+	.button:hover,
+	input[type="button"]:hover,
+	input[type="reset"]:hover,
+	input[type="submit"]:hover,
+	button[type="submit"]:hover,
+	.wc-block-grid__product-add-to-cart.wp-block-button .wp-block-button__link:hover,
+	.single_add_to_cart_button:hover {
+		transform: scale(1.03) translateY(-1px);
+		box-shadow: var(--wp--custom--shadow--glow-red) !important;
+		color: var(--aki-white);
+		text-decoration: none;
+	}
+}
+
+/* 3. Tarjeta de producto para bloques de WooCommerce (.wc-block-grid).
+ * Las rejillas clásicas viven unificadas en loop.css; esta regla da soporte específico
+ * al renderizado por bloques. */
+.wc-block-grid__product {
+	border: 1px solid var(--wp--preset--color--border);
+	border-radius: var(--wp--custom--radius--md);
+	background-color: var(--wp--preset--color--surface);
+	padding: var(--wp--preset--spacing--3);
+	transition: border-color var(--wp--custom--transition--base), transform var(--wp--custom--transition--base), box-shadow var(--wp--custom--transition--base);
+}
+
+@media (hover: hover) {
+	.wc-block-grid__product:hover {
+		border-color: var(--aki-white);
+		transform: translate(-6px, -6px);
+		box-shadow: var(--shadow-glow-red);
+	}
+}
+
+/* ─── Persona 5 Styling Overrides ─────────────── */
+/* Angular cutouts for buttons */
+.button,
+.wp-block-button__link,
+.wc-block-components-button,
+a.button,
+button[type="submit"] {
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.15s linear;
+    text-transform: uppercase;
+    font-family: var(--font-heading);
+    /* Bebas solo existe en 400: el 700 que hereda de WC core se sintetizaba
+       (faux bold = trazo engordado por el browser, contadores tapados).
+       Jerarquía por tamaño/letter-spacing, nunca por peso falso. */
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 1px;
+}
+
+/* Foco visible en botones con clip-path (WCAG 2.4.7/2.4.11). El `clip-path` de
+   arriba recorta el anillo global (box-shadow de --aki-focus-ring, tokens.css →
+   button/a:focus-visible): el anillo cae 100% fuera del polígono → invisible.
+   `filter: drop-shadow` TAMPOCO sirve acá (aunque loop.css lo insinúe para los
+   badges): el navegador aplica el filter ANTES del clip-path, así que el clip
+   recorta también el drop-shadow — verificado en render real (un drop-shadow con
+   offset 10px sobre #place_order no pinta un solo píxel). Solución que SÍ se ve:
+   en el foco de teclado quitamos el clip-path — es pintura, no reflow (0 layout
+   shift) — y el anillo box-shadow estándar aparece completo, idéntico al foco del
+   resto del sitio (inputs, links, etc.). El corte angular vuelve al salir del foco. */
+.button:focus-visible,
+.wp-block-button__link:focus-visible,
+.wc-block-components-button:focus-visible,
+a.button:focus-visible,
+button[type="submit"]:focus-visible {
+    clip-path: none !important;
+    outline: none;
+    box-shadow: var(--aki-focus-ring) !important;
+}
+
+/* Bebas (--font-heading) no tiene cortes bold/italic: prohibir la síntesis en
+   todos los headings evita el faux bold si algún CSS pide 700+ por costumbre. */
+h1, h2, h3, h4, h5, h6 {
+    font-synthesis: none;
+}
+
+/* Aggressive hover state — mismo gate (hover:hover) que los otros dos bloques
+   :hover de este archivo: este es el ganador REAL del transform del CTA (orden +
+   especificidad 0,2,1) y sin gate el botón queda escalado/rotado tras cada tap. */
+@media (hover: hover) {
+    .button:hover,
+    .wp-block-button__link:hover,
+    .wc-block-components-button:hover,
+    a.button:hover,
+    button[type="submit"]:hover {
+        transform: scale(1.05) rotate(-2deg);
+        box-shadow: 6px 6px 0px var(--aki-black);
+        color: var(--aki-white);
+        text-decoration: none !important;
+    }
+}
+
+/* Halftone background for the site shell. */
+.site-header, .site-footer {
+    background-image: radial-gradient(var(--aki-black) 20%, transparent 20%),
+                      radial-gradient(var(--aki-black) 20%, transparent 20%);
+    background-color: var(--aki-surface);
+    background-position: 0 0, 4px 4px;
+    background-size: 8px 8px;
+}
+
+/* Make headers skewed */
+h1, h2, h3 {
+    text-transform: uppercase;
+    transform: skewX(-5deg);
+    text-shadow: 3px 3px 0px var(--aki-black);
+}
+
+.button:active, 
+.wp-block-button__link:active,
+.wc-block-components-button:active,
+a.button:active,
+button:active,
+input[type="button"]:active,
+input[type="reset"]:active,
+input[type="submit"]:active {
+    transform: translate(2px, 2px) scale(0.98);
+    box-shadow: 1px 1px 0px var(--aki-black);
+    transition: transform 50ms ease, box-shadow 50ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button,
+    button,
+    input[type="button"],
+    input[type="reset"],
+    input[type="submit"],
+    .wp-block-button__link,
+    .wc-block-components-button,
+    a.button,
+    button[type="submit"],
+    .wc-block-grid__product-add-to-cart.wp-block-button .wp-block-button__link,
+    .single_add_to_cart_button,
+    .wc-block-grid__product,
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="password"],
+    input[type="url"],
+    input[type="search"],
+    textarea,
+    select {
+        transition: none !important;
+        animation: none !important;
+        will-change: auto !important;
+    }
+
+    .button:hover,
+    .wp-block-button__link:hover,
+    .wc-block-components-button:hover,
+    a.button:hover,
+    button:hover,
+    button[type="submit"]:hover,
+    .button:active,
+    .wp-block-button__link:active,
+    .wc-block-components-button:active,
+    a.button:active,
+    button:active,
+    .wc-block-grid__product:hover,
+    input:focus,
+    textarea:focus,
+    select:focus {
+        transform: none !important;
+    }
+}
+
+/* Títulos de widgets en pie de página con visualización estable sin recortes */
+.site-footer h1, 
+.site-footer h2, 
+.site-footer h3, 
+.site-footer .widget-title {
+    transform: none !important;
+    text-shadow: none !important;
+    line-height: 1.4 !important;
+    overflow: visible !important;
+    padding-top: 5px !important;
+}
+
+/* Force footer widget containers to not clip their contents */
+.site-footer,
+.site-info,
+.footer-widgets,
+.footer-widgets-container,
+.inside-footer-widgets,
+.footer-widget-1,
+.footer-widget-2,
+.footer-widget-3,
+.widget {
+    overflow: visible !important;
+}
+
+/* ==========================================================================
+   Comic/Manga Empty States (Híbrido)
+   ========================================================================== */
+body.error404 .akb-404,
+body.woocommerce-cart .woocommerce {
+    position: relative;
+    overflow: hidden;
+}
+
+body.woocommerce-cart .woocommerce .cart-empty::before {
+    content: "OOPS! / ガーン";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-10deg);
+    font-size: clamp(4rem, 12vw, 10rem);
+    font-family: var(--font-heading);
+    font-weight: 400; /* Bebas Neue estándar: peso nominal 400 */
+    color: transparent;
+    -webkit-text-stroke: 3px var(--aki-gray-700);
+    opacity: 0.3;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1;
+}
+
+body.error404 .akb-404::before {
+    content: "WHAM! / ドン";
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-10deg);
+    font-size: clamp(4rem, 12vw, 10rem);
+    font-family: var(--font-heading);
+    font-weight: 400; /* Bebas Neue estándar: peso nominal 400 */
+    color: transparent;
+    -webkit-text-stroke: 3px var(--aki-gray-700);
+    opacity: 0.3;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1;
+}
+
+/* ─── El foco de teclado no puede quedar bajo las barras fijas ──────
+ *
+ * WCAG 2.2 SC 2.4.11 (Focus Not Obscured). Al tabular, cuando el elemento ya
+ * está GEOMÉTRICAMENTE dentro del viewport pero tapado por una barra fija,
+ * ningún motor hace scroll: el usuario avanza y el foco desaparece debajo de la
+ * barra sin que nada se mueva. Medido en el theme: el header sticky (70px,
+ * header.css `.site-header{position:sticky}`) y la franja inferior fija
+ * (bottom-nav de footer.css más, en la ficha, la barra de compra apilada
+ * encima; visible ≤1024px) ocultan POR COMPLETO un CTA de 44px de la rejilla
+ * de productos.
+ *
+ * `scroll-padding` no existía en NINGÚN CSS del theme. Va en `html` porque el
+ * scroll port de la página es el elemento raíz.
+ *
+ * NO se toca `scroll-behavior`: eso es preferencia de movimiento, un eje
+ * distinto, y tiene su propia regla de reduced-motion.
+ */
+html {
+    scroll-padding-top: calc(var(--header-height, 70px) + var(--space-2, 8px));
+}
+
+@media (max-width: 1024px) {
+    html {
+        /* Reserva inferior reactiva medida dinámicamente por franja-inferior.js
+           mediante ResizeObserver (--akb-franja-inferior). El fallback cubre
+           el caso estático con ambas barras apiladas más safe-area-inset. */
+        scroll-padding-bottom: calc(var(--akb-franja-inferior, calc(var(--franja-inferior-peor, 134px) + env(safe-area-inset-bottom, 0px))) + var(--space-2, 8px));
+    }
+}

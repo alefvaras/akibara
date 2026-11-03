@@ -1,0 +1,52 @@
+%% Caso 2 del capítulo 19 — del carrito al pago, y de ahí a los correos de puntos y de reseña.
+%% Qué muestra: las cuatro piezas propias turnándose sobre el mismo pedido, quién habla de verdad con Blue Express, qué correo sale en cada momento y qué se cae si business no está.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Tema as Tema akibara-gp
+    participant Bloques as akibara-cart-checkout-blocks
+    participant Business as akibara-business
+    participant Woo as WooCommerce
+    participant Rewards as akibara-rewards
+    participant Bluex as Blue Express
+    participant Cola as Action Scheduler
+    participant Correo as Correo (SMTP)
+
+    Cliente->>Tema: pulsa el carrito (.akb-cart-trigger)
+    Tema->>Bloques: la clase CSS es todo el contrato
+    Bloques->>Business: class_exists + checkout_data() + instanceof CheckoutDataProvider
+    alt business no está
+        Bloques-->>Cliente: no registra nada — checkout sin RUT, comuna ni PUDO
+    else business responde
+        Business-->>Bloques: el contrato de seis métodos + el servicio PUDO
+        Bloques-->>Cliente: campos RUT, comuna y celular en el checkout
+        Cliente->>Bloques: escribe su RUT
+        Bloques->>Business: is_valid_rut() / format_rut()
+        Business-->>Bloques: válido o mensaje de error
+        Cliente->>Bloques: elige su comuna
+        Note over Bloques: el catálogo de comunas lo lee del fichero de datos<br/>del propio plugin de Blue (ComunaDirectory.php:26)
+        Bloques->>Woo: escribe la comuna CANÓNICA en la sesión<br/>(canonicalize_address_comuna, CheckoutFields.php:223)
+        Woo->>Bluex: cotiza el despacho con región y comuna ya canónicas
+        Bluex-->>Woo: precio del despacho o retiro PUDO
+        Woo-->>Cliente: opciones de envío
+    end
+    Cliente->>Woo: paga
+    Woo->>Correo: «Pedido recibido» (inmediato)
+    Correo-->>Cliente: correo de WooCommerce
+    Woo->>Business: woocommerce_order_status_changed prio 10 y 20
+    Woo->>Rewards: woocommerce_order_status_changed prio 10 y 20
+    Rewards->>Cola: encola el correo de puntos acreditados
+    Cola->>Correo: Rewards\Points\Emails::send_order_email
+    Correo-->>Cliente: «Sumaste puntos Akibara»
+    Rewards->>Business: CompletionPolicy::can_request_review($order)
+    alt el pedido tiene preventa sin cumplir
+        Business-->>Rewards: todavía no
+        Rewards-->>Rewards: no agenda invitación
+    else business da el pedido por cumplido
+        Business-->>Rewards: sí
+        Rewards->>Cola: agenda akb_rewards_send_review_invite<br/>con el retraso de akb_rewards_invite_delay_days (3 por defecto)
+        Cola->>Rewards: al dispararse vuelve a preguntar lo mismo
+        Cola->>Correo: Rewards\Reviews\Invitations::send_invite
+        Correo-->>Cliente: «¿Nos cuentas qué te pareció?»
+    end
+    Note over Rewards,Business: sin business, rewards invita SIEMPRE: falla hacia invitar

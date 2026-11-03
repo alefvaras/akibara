@@ -1,0 +1,60 @@
+%% Caso 3 del capítulo 03 — el dueño configura la landing paraguas de una editorial (/panini/) y las tres superficies que cambian a la vez.
+%% Qué muestra: por qué el código NO crea la página, qué se escribe como term meta directo y por qué, las dos clases de purga (por URL y la de toda la caché de página) y —esto es lo importante— que los dos avisos que lee el dueño están CRUZADOS respecto de lo que hacen: el que promete el borde es el del camino que no lo toca.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WP as WordPress
+    participant Panel as EditionsPanel<br/>Akibara → Sitio → Editoriales · Ediciones
+    participant EF as EditionFacts
+    participant BL as BrandLandings
+    participant LS as LiteSpeed Cache
+    participant CF as Cloudflare
+    participant Front as Front del sitio
+    actor Cliente
+
+    Dueno->>WP: crea la página con slug «panini» y pega [akibara_brand_family]
+    Note over Dueno,WP: el código NO crea páginas — una página publicada desde código<br/>es un efecto que el dueño no pidió y que después hay que explicar
+
+    Dueno->>Panel: entra a «Editoriales · Ediciones»
+    Panel->>BL: ¿está publicada la landing de esta familia?
+    BL-->>Panel: la URL resuelta POR SLUG DE PÁGINA, nunca por ID
+    Panel->>EF: vista previa de lo automático: cuántos productos y desde qué precio
+    EF-->>Panel: conteo y «Desde $X» leídos de wc_product_meta_lookup
+
+    Dueno->>Panel: escribe 2 etiquetas de familia, 3 hechos por edición<br/>y elige hasta 6 series destacadas de una lista con filtro
+    Dueno->>Panel: Guardar
+    Panel->>Panel: compara con lo que había y cuenta los cambios
+
+    alt No cambió nada
+        Panel-->>Dueno: «Sin cambios que guardar» y NO purga nada
+    else Cambió algo
+        Panel->>Panel: guarda un respaldo (hasta 3) antes de escribir
+        Panel->>EF: escribe los hechos como TERM META DIRECTO
+        Note over Panel,EF: nunca wp_update_term — eso dispararía el reindexado<br/>del buscador sobre los 856 productos de Ivrea Argentina
+        Panel->>BL: guarda las etiquetas (una vacía borra la option y vuelve al literal de fábrica)
+
+        alt Cambió el texto del menú
+            Panel->>LS: litespeed_purge_all — el menú sale en TODAS las páginas
+            LS->>CF: cdn-cloudflare_clear: ESTO SÍ llega al borde
+            Panel-->>Dueno: «Cambió el texto del menú: se purgó la caché de página entera»
+            Note over Panel,CF: este aviso NO promete nada sobre el borde…<br/>y es justo el camino que sí lo invalida. Cuesta caro: 48 → 1.057 ms en la landing de serie
+        else Sólo cambiaron hechos o series
+            Panel->>LS: litespeed_purge_url de la landing y de los archives de sus ediciones
+            LS-->>CF: una purga por URL NO propaga al borde
+            Panel-->>Dueno: «…el borde (Cloudflare) las renueva al vencer su caché, en unos minutos»
+            Note over Panel,CF: este aviso SÍ promete el borde… y es el camino que no lo toca.<br/>Ese plazo no lo controla el código: es el TTL de la zona
+        end
+    end
+
+    Cliente->>Front: abre /panini/
+    Front->>EF: facts(), featured_series() y price_from() por edición
+    EF-->>Front: tarjeta por edición con portada de serie, conteo y «Desde $X» (caché de 12 h)
+    Front-->>Cliente: /panini/ con la tabla de comparación
+    Front-->>Cliente: el megamenú con «Panini · todas las ediciones» arriba del listado por país
+    Front-->>Cliente: en /marca/panini-argentina/, el conmutador a la edición hermana<br/>con el número de productos de cada una
+
+    opt El dueño se equivocó
+        Dueno->>Panel: «Deshacer el último guardado»
+        Panel->>EF: repone el estado anterior desde el respaldo
+        Panel->>LS: purga igual
+    end

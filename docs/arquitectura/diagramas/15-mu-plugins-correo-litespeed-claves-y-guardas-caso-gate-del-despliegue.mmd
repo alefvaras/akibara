@@ -1,0 +1,44 @@
+%% Caso 4 — el despliegue de mu-plugins pasa por el gate de claves y la sonda de correo.
+%% Qué muestra: qué comprueba cada eslabón antes de dar por bueno un despliegue, el hueco entre el gate y el transporte, y las dos salidas que frenan.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Deploy as ops/akibara-prod-muplugins-deploy.sh
+    participant Prod as Producción por SSH
+    participant Gate as wp akibara access-check
+    participant Health as ops/akibara-prod-mail-health.sh
+    participant Sonda as ops/lib/akibara-mail-probe.php
+    participant Correo as smtp.hostinger.com
+
+    Dueno->>Deploy: ejecuta el despliegue
+    Deploy->>Deploy: aparta los ficheros en cuarentena<br/>akibara-local- y akibara-debug-log-rotation.php
+    Deploy->>Deploy: comprueba que cada fichero compile con php -l
+    Deploy->>Prod: sube los ficheros y actualiza la copia de rescate en akb-runtime
+    Deploy->>Gate: comprueba las claves obligatorias
+    Gate->>Gate: recorre las siete entradas del catálogo
+    alt falta una clave obligatoria o el fichero que la consume
+        Gate-->>Deploy: sale con error y el despliegue se detiene
+    else todo verde
+        Note over Gate: sólo valida la FORMA de cada constante,<br/>no el perfil exacto que el transporte exige:<br/>gate verde con el correo caído es posible
+        Gate-->>Deploy: Todos los accesos obligatorios están configurados
+    end
+    Deploy->>Health: comprueba la salud del correo
+    Health->>Prod: compara el md5 del transporte y de la copia de rescate
+    Health->>Sonda: ejecuta la sonda con wp eval-file
+    Sonda->>Sonda: dispara phpmailer_init SIN enviar nada
+    Sonda->>Correo: abre conexión, autentica y cierra
+    alt las cinco comprobaciones pasan
+        Correo-->>Sonda: autenticación correcta
+        Sonda-->>Health: env production, enabled true, hook true,<br/>transport smtp, smtp auth-ok
+    else falla cualquiera de las cinco
+        Sonda-->>Health: la que falló
+        Health-->>Deploy: sale con código 1, el despliegue se marca como NO sano
+    end
+    Health->>Prod: repasa el log transaccional de WooCommerce de las últimas 48 h
+    alt la última caída a mail() es MÁS RECIENTE que el último envío correcto
+        Health-->>Deploy: frena
+    else el incidente ya está resuelto
+        Health-->>Deploy: sólo informa, no frena dos días por algo cerrado
+    end
+    Health-->>Deploy: correo de producción sano
+    Deploy-->>Dueno: despliegue terminado

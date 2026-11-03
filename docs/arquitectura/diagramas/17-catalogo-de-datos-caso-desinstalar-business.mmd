@@ -1,0 +1,30 @@
+%% Caso 5 del capítulo 17 — alguien pulsa «Eliminar» en el plugin akibara-business.
+%% Qué muestra: qué barre el desinstalador y de QUÉ CAJÓN lo barre, qué respeta a propósito (el registro comercial), y los dos daños colaterales medidos: las options de mu-plugins vivos que caen dentro, y el candado con guion bajo que ningún patrón alcanza.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WP as WordPress (pantalla de plugins)
+    participant Unins as uninstall.php de business
+    participant Opts as wp_options
+    participant Tablas as Tablas propias
+    participant Metas as wp_termmeta y wp_usermeta
+    participant Registro as Metas de pedido y de producto
+    participant MU as mu-plugins vivos
+
+    Dueno->>WP: pulsa Eliminar en akibara-business
+    WP->>Unins: ejecuta el desinstalador una sola vez
+    Unins->>Tablas: DROP de wp_akb_wishlist, wp_akb_bis_subscribers y wp_akb_series_follow_queue
+    Unins->>Unins: limpia sus crons propios
+    Unins->>Opts: DELETE de akb_% y akibara_% EXCEPTO siete prefijos hermanos
+    Note over Unins,Opts: akb_search_, akb_vocab_, akb_lc_, akb_rlm_, akb_rewards_, akb_blocks_ y akb_pudo_log_
+    Unins->>Metas: DELETE de termmeta _akb_% y usermeta _akb_sf_%
+    Unins->>Registro: NO toca ninguna meta de pedido ni de producto
+    Note over Registro: son el registro comercial — mutilar pedidos pasados es peor que dejar residuo
+    par daño colateral 1
+        Opts-->>MU: se llevan akibara_mail_transport_watch y akibara_mail_transport_outage
+        Opts-->>MU: se llevan akb_bluex_watch_baseline_seen y akb_bluex_watch_resolved_notified
+        MU-->>Dueno: el vigilante del correo pierde su memoria de cortes
+    and daño colateral 2
+        Opts-->>Opts: _akb_preventa_datechg_lock sobrevive
+        Note over Opts: empieza por guion bajo — akb\_% no lo alcanza, y queda para siempre
+    end

@@ -1,0 +1,72 @@
+%% Caso del capítulo 09 — el cliente tilda «A pedido» y ordena por precio en /tienda/.
+%% Qué muestra: cómo el filtrado se monta ENCIMA del listado de WooCommerce en vez de reemplazarlo, por qué el orden elegido sobrevive al tildar una casilla, y en qué se diferencia el teléfono del escritorio.
+sequenceDiagram
+    autonumber
+    actor Cliente as Cliente
+    participant JS as akb-search.js
+    participant WP as WordPress y WooCommerce
+    participant FQI as FacetQueryIntegration
+    participant FS as FilterSet
+    participant SRV as FacetService
+    participant VIEW as FacetsView
+    participant REN as facets-render.php
+
+    Cliente->>WP: elige "Ordenar por precio, menor a mayor"
+    WP-->>Cliente: /tienda/?orderby=price
+    Cliente->>JS: tilda "A pedido" en Disponibilidad
+
+    alt Sin JavaScript
+        JS-->>WP: el formulario GET navega a /tienda/?_disponibilidad=a_pedido&orderby=price
+    else Con JavaScript en el escritorio
+        JS->>JS: serializa el formulario con los valores unidos por coma
+        JS->>WP: pide la misma URL por detrás y reemplaza siete bloques
+    else Con JavaScript en el teléfono
+        JS->>JS: tildar NO recarga: el filtro se acumula en el cajón
+        Note over Cliente,JS: El cliente puede tildar varias casillas seguidas y ninguna navega.<br/>Los filtros sólo se acumulan en el cajón
+        JS->>FQI: GET /wp-json/akibara/v1/search/count con TODO lo acumulado (con antirrebote)
+        alt Más de 120 conteos por minuto para esa IP
+            FQI-->>JS: 429
+            JS-->>Cliente: el pie conserva el número anterior en vez de mentir
+        else Dentro del techo
+            FQI-->>JS: total
+            JS-->>Cliente: el botón dice "Ver N productos"
+        end
+        Cliente->>WP: recién al tocar el botón se navega y se cierra el cajón
+    end
+
+    Note over JS,WP: El orden viaja porque el formulario lleva un campo oculto con él.<br/>Sin ese oculto, tildar una faceta devolvía el catálogo a "Destacados"
+
+    WP->>FQI: woocommerce_product_query prioridad 20
+    FQI->>FQI: ¿es el listado principal de productos?
+    FQI->>FS: lee la URL
+    FS-->>FQI: sólo params que empiezan con guion bajo y existen en el registro, máximo 200 valores cada uno
+
+    alt Hay texto en _buscar
+        FQI->>FQI: llama al motor con política de corrección LAXA y proyecta el orden de relevancia
+    else Sólo filtros, sin texto
+        FQI->>SRV: filter directo, sin tocar el motor
+        Note over FQI,SRV: Como no hay búsqueda, el orden NO se toca:<br/>WooCommerce aplica su propio orden por precio
+    end
+
+    SRV->>SRV: un SELECT con uniones sobre wp_akb_search_facets, siempre unido a wp_posts exigiendo publish
+    SRV-->>FQI: identificadores que pasan el filtro
+    FQI->>SRV: conteos de cada faceta contra todos los filtros MENOS el propio
+    SRV-->>FQI: "Disponible" sigue mostrando su número real
+
+    alt El filtro dio vacío y el índice también está vacío
+        FQI->>WP: se degrada al catálogo SIN filtrar y se escribe un error en el log
+    else El filtro dio vacío pero el índice tiene datos
+        FQI->>WP: post__in con el identificador imposible -1 y estado vacío
+    else Hay resultados
+        FQI->>WP: post__in con la lista
+    end
+
+    alt El cliente está en una etiqueta de producto (/product-tag/…/)
+        FQI->>FQI: ninguna faceta es DUEÑA de ese archivo: archive_context() es null
+        Note over FQI,SRV: Los conteos de la barra lateral son los del CATÁLOGO ENTERO,<br/>mientras el total impreso es el de la etiqueta.<br/>Tildar cualquiera de esos números puede dar 0
+    end
+
+    FQI->>VIEW: build con los conteos ya congelados
+    VIEW-->>REN: qué facetas se muestran, cuáles se esconden y la etiqueta activa "Disponibilidad: A pedido"
+    REN-->>Cliente: barra lateral, etiqueta con su botón de quitar y el contador
+    Note over Cliente,REN: Correos que salen en todo el caso: ninguno

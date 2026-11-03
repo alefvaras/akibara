@@ -1,0 +1,37 @@
+%% Estados del transporte de correo (Caso 6) — que ve el centinela, cuando repone el fichero y cuando se niega a pisarlo, y por que el aviso rojo no sale al primer rechazo.
+stateDiagram-v2
+  direction TB
+  [*] --> Sano
+
+  state "Sano: clase cargada y enganchada a phpmailer_init" as Sano
+  state "Fichero ausente: hay copia legible" as Ausente
+  state "Presente pero inerte: el fichero esta, la clase no cargo" as Inerte
+  state "Repuesto: copiado desde la copia de respaldo" as Repuesto
+  state "Rechazos acumulandose (1 o 2 seguidos)" as Rechazos
+  state "Corte declarado: aviso rojo no descartable" as Rojo
+  state "Recordatorio ambar: revisar el Malware scanner" as Ambar
+
+  Sano --> Ausente: en admin_init prio 1, o en el cron, Watch inspect no ve la clase ni el hook
+  Sano --> Inerte: la clase no carga pero el fichero existe
+  Ausente --> Repuesto: restore_plan decide copiar y anota la reposicion (historial de 10)
+  Inerte --> Inerte: NO se pisa — podria ser un fatal dentro o una version mas nueva que la copia
+  Repuesto --> Rojo: aviso rojo mientras el transporte no vuelva
+  Inerte --> Rojo: aviso rojo
+  Rojo --> Ambar: el transporte vuelve
+  Ambar --> Sano: el dueno revisa hPanel y descarta
+
+  Sano --> Rechazos: contrasena rotada — el perfil valida (solo exige no vacia) y falla al enviar
+  Rechazos --> Rechazos: wp_mail_failed → record_send_failure, causa recortada a 140 caracteres
+  Rechazos --> Rojo: tercer rechazo seguido (uno suelto suele ser una direccion mal escrita)
+  Rechazos --> Sano: wp_mail_succeeded — el rastro solo se borra cuando un correo SALE de verdad
+  Rojo --> Sano: wp_mail_succeeded
+
+  state "Corte por configuracion (kind=blocked)" as Bloqueado
+  Sano --> Bloqueado: es estructural
+  Bloqueado --> Rojo: se grita desde el PRIMERO
+
+  note right of Rojo
+    El correo no puede avisar de que el correo esta roto.
+    La senal son los dos avisos del escritorio.
+    El inspector corre UNA sola vez por peticion.
+  end note

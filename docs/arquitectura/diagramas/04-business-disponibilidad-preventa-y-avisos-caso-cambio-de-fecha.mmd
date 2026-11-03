@@ -1,0 +1,51 @@
+%% Caso «la editorial mueve, anuncia o retira la fecha de salida de un tomo» — capítulo 04.
+%% Qué muestra: las dos puertas que disparan el mismo hook, por qué el trabajo se hace en la cola y no en el guardado, el candado global que evita dos correos, la clasificación del cambio en cuatro ramas y el tope de frecuencia que puede suprimir el correo dejando nota.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant PANEL as ProductDataPanel / PreventasScreen
+    participant LIS as OrderPreventa\ReleaseDateChangeListener
+    participant AS as Action Scheduler
+    participant LOCK as wp_options (candado)
+    participant REC as OrderPreventa\SummaryRecalculator
+    participant MAIL as OrderPreventa\ReminderEmail
+    actor Cliente
+
+    Dueno->>PANEL: cambia la fecha de salida del tomo<br/>ficha del producto o «Por llegar»
+    PANEL->>PANEL: guarda _akb_eta_release_date por el CRUD de WooCommerce<br/>«Por llegar» además purga la página en LiteSpeed
+    PANEL-->>LIS: akb_eta_release_date_changed (id, vieja, nueva)
+    LIS->>AS: agenda akb_order_preventa_release_date_changed_batch<br/>recorrer todos los pedidos no cabe en el guardado
+    AS->>LIS: ejecuta la pasada
+    LIS->>LOCK: toma _akb_preventa_datechg_lock con INSERT IGNORE<br/>sin pasar por la caché de options
+    alt El candado ya estaba tomado
+        LOCK-->>LIS: perdido
+        LIS->>AS: reintenta en 1 minuto
+    end
+
+    LIS->>LIS: clasifica el cambio
+
+    alt Retraso de 7 días o más
+        LIS->>REC: recalcula SIEMPRE el estimado del pedido
+        LIS->>LIS: registra la firma vieja__nueva una sola vez y deja nota
+        LIS-->>MAIL: akb_order_preventa_date_changed
+        alt Dentro de la ventana de 14 días desde el último aviso
+            MAIL->>MAIL: deja nota y NO envía
+        else Fuera de la ventana
+            MAIL->>Cliente: «Actualización de tu preventa/pedido {n}: nueva fecha»<br/>nombra el tomo, sus dos fechas y la del pedido completo
+        end
+    else Antes no había fecha y ahora sí
+        LIS->>REC: recalcula el estimado
+        alt Tras recalcular el cliente no puede ver ninguna fecha
+            LIS->>LIS: suprime el correo con nota operativa
+        else Hay fecha visible
+            LIS-->>MAIL: akb_order_preventa_date_announced
+            MAIL->>Cliente: «¡Ya tenemos fecha para tu preventa {n}!»<br/>o «la editorial anunció fecha de salida» si compró a pedido
+        end
+    else Se retiró la fecha
+        LIS->>REC: recalcula y deja nota interna
+        Note over LIS,Cliente: decisión sellada 2026-07-17: NO sale ningún correo
+    else Adelanto, cambio menor a 7 días o fecha ya pasada
+        Note over LIS: no se avisa — el adelanto sólo si el dueño enciende el interruptor
+    end
+
+    LIS->>LOCK: suelta el candado (caduca solo a los 15 minutos)

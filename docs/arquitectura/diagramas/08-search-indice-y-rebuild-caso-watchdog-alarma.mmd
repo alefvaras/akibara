@@ -1,0 +1,48 @@
+%% Caso del capítulo 08 — el vigilante encuentra el buscador caído y le escribe al dueño.
+%% Qué muestra: los dos correos con su asunto y su momento, y los TRES casos de la vuelta según el estado del rebuild (S-190efeef y S-8ab53cfb, 2026-09-19; versión siguiente a search 0.1.67). El serving se mide en TODAS las vueltas, con bytes frescos y después de actuar; el rebuild de recuperación sólo se pide SIN fila de estado, que es cuando alguien puede consumirlo. Hasta 0.1.67 el run vivo no medía nada (no salía correo) y bajo BLOCKED se pedía cada 15 min un rebuild imposible, con su entrada de auditoría.
+sequenceDiagram
+    autonumber
+    participant CRON as Tarea de Hostinger (cada 5 min)
+    participant AS as Action Scheduler
+    participant RJ as RebuildJob (watchdog, cada 15 min)
+    participant EDP as EditorialDiscountPublication
+    participant INS as Install
+    participant LOG as AuditLog (anillo de 50)
+    participant MAIL as wp_mail → admin_email
+    actor Dueno as Dueño
+    actor Cliente
+
+    Cliente--xEDP: /suggest → 503 · el catálogo pierde los filtros
+    CRON->>AS: empuja la cola
+    AS->>RJ: akb_search_rebuild_watchdog
+    RJ->>INS: consume publicaciones pendientes y recupera arriendos vencidos
+    RJ->>RJ: handle_recovery(true) — reconcilia fase y topología
+    alt No hay estado
+        RJ->>EDP: primero la reparación BARATA: reconcile_now()
+    else Estado trabado: BLOCKED / ABORTED
+        RJ->>EDP: la reparación BARATA y nada más: reconcile_now()
+        Note over RJ,INS: NO se pide rebuild: schedule_request() devuelve cadena vacía<br/>mientras exista la fila de estado, así que nadie podría consumirlo.<br/>El cuaderno conserva lo que pasó ANTES del bloqueo.
+    else Run vivo (PREPARING … CLEANUP, DONE)
+        RJ->>RJ: resume_run() — lo que levanta el serving es que el run termine
+        Note over RJ,EDP: Ni se reconcilia ni se pide otro rebuild por encima: sólo se mide.
+    end
+    RJ->>EDP: serving_ready_fresh() — bytes frescos, DESPUÉS de reanudar y reconciliar
+    Note over RJ,EDP: serving_ready() es UNA foto por petición, y en la de cron ya la tomó<br/>reconcile_on_init() (init:23) con el buscador caído: sin releer,<br/>el «volvió» salía una vuelta tarde.
+    alt El serving sirve
+        RJ->>RJ: note_serving_up()
+        opt Ya se había avisado
+            RJ->>MAIL: «Akibara: el buscador volvió»
+            MAIL->>Dueno: correo de vuelta, texto plano
+        end
+    else Sigue caído
+        opt No hay estado
+            RJ->>INS: request_rebuild('serving_recovery') + consume_pending_rebuild()
+            RJ->>LOG: escribe la entrada serving_recovery
+        end
+        RJ->>RJ: note_serving_down() — arranca el reloj, esté el rebuild como esté
+        alt Lleva 900 s caído y todavía no se avisó
+            RJ->>MAIL: «Akibara: el buscador lleva rato caído»
+            MAIL->>Dueno: qué ve el cliente, que ya se intentó solo,<br/>y dos órdenes en orden: wp akb-search status y rebuild
+            Note over MAIL,Dueno: UN solo correo por episodio, y sólo en producción:<br/>en el espejo hay Mailpit y un aviso ahí enseña a ignorar los de verdad.
+        end
+    end

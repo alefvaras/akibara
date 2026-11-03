@@ -1,0 +1,140 @@
+%% Piezas del capítulo 06 — akibara-business: el panel del dueño, campañas de descuento, textos, portada, ficha y formularios.
+%% Qué muestra: las pantallas donde el dueño opera, la maquinaria de precio que traduce un porcentaje en el número que paga el cliente, los textos de una sola fuente, las piezas de portada y ficha, y los cuatro sitios donde se guarda todo. Las líneas punteadas son purgas de caché. La leyenda de colores va dentro del propio diagrama.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef vecino fill:#fdf1d6,stroke:#b8860b,stroke-width:1.5px,color:#4a3a10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    subgraph LEY["Leyenda — qué significa cada color"]
+        L1["Este capítulo<br/>codigo propio de akibara-business"]:::propio
+        L2["Otro codigo propio<br/>akibara-search y el tema akibara-gp:<br/>tambien se pueden modificar"]:::vecino
+        L3["De terceros<br/>solo se toca por hooks, nunca su codigo"]:::tercero
+        L4["Persona"]:::persona
+        L5[("Dato guardado")]:::dato
+        L6["Flecha llena: el flujo normal<br/>Flecha punteada: una purga de cache"]
+    end
+
+    DUENO["Dueño<br/>cambia precios, textos y portada sin código"]:::persona
+    CLIENTE["Cliente<br/>ve precios, sellos y carteles"]:::persona
+
+    subgraph PANEL_G["El panel — menú Akibara, slug akibara-panel"]
+        PANEL["AdminPanel<br/>pinta, valida, guarda y decide si purga"]:::propio
+        DASH["AdminDashboard · Centro de Mando<br/>estado, alertas y Lo más solicitado"]:::propio
+        TABDESC["Pestaña Descuentos · TaxonomyDiscount<br/>un porcentaje por término + vigencia"]:::propio
+        CAMPO["AdminFieldType<br/>pinta y guarda cada una de las ~277 filas;<br/>si el valor no cambió, NO reescribe"]:::propio
+        TABTXT["Pestaña Textos · CopyManager<br/>~45 frases que antes vivían en el código"]:::propio
+        TABBAR["Pestaña Barra de anuncios · AnnouncementBar<br/>cinta superior con mensaje promocional"]:::propio
+        TABHERO["Pestaña Slider de Inicio · HomeHero<br/>formulario propio, hasta 8 diapositivas"]:::propio
+        TABSERIES["Pestaña Series en la portada<br/>HomeSeriesDestacadas: un slug por línea"]:::propio
+        TABMARCA["Pestaña Branding y UX · ThemeCustomizer<br/>dos colores de marca"]:::propio
+    end
+
+    subgraph PRECIO_G["La maquinaria del precio"]
+        SET["TaxonomyDiscount\\Settings<br/>¿campaña viva? ¿este producto entra?"]:::propio
+        RES["DiscountResolver<br/>la calculadora: precio final o 'no aplica'"]:::propio
+        PF["PriceFilters<br/>ocho filtros de WooCommerce, no toca la base"]:::propio
+        CUP["CouponInteraction<br/>rechaza el cupón si hay línea descontada"]:::propio
+        LSC["LscPurger<br/>purga cuando el cambio NO viene del panel"]:::propio
+        AUT["SearchPriceProvider + AdoptedSnapshot<br/>AuthoritativeReader + PriceAuthority<br/>o precio cierto, o excepción"]:::propio
+        TOPE["Utilities\\DiscountCeiling<br/>el techo de la tienda, 1..90, defecto 15"]:::propio
+    end
+
+    subgraph TEXTO_G["Textos de una sola fuente"]
+        COPY["CopyManager + Utilities\\Text<br/>sanea al leer y al guardar, 300 caracteres"]:::propio
+        SHIP["ShippingCopy<br/>[akb_envio_gratis]"]:::propio
+        DCOPY["DiscountCopy<br/>[akb_descuento_pct] y [akb_descuento_editorial]"]:::propio
+    end
+
+    subgraph VITRINA_G["Lo que se pinta en el sitio: cinta, portada, listado y ficha"]
+            BARRA["Cinta superior — se pinta en TODAS las páginas<br/>promocional primero, después los fijos"]:::propio
+        HERO["HomeHero · [akb_hero]<br/>cartel o carrusel con preload de la primera imagen"]:::propio
+        DEST["HomeDestacados<br/>[akb_destacados] y [akb_preventas_destacadas]"]:::propio
+        SERIES["HomeSeriesDestacadas · [akb_series_destacadas]"]:::propio
+        LOOP["LoopEnhancer + SaleDiscount<br/>sellos de la tarjeta y el rojo -NN%"]:::propio
+        PDP["PdpEnhancer + PdpSeriesEnhancer<br/>rejilla de especificaciones y navegación de tomos"]:::propio
+        FAQ["ProductFaq<br/>datos del acordeón; el tema lo pinta"]:::propio
+    end
+
+    subgraph BORDE_G["Parches con terceros"]
+        FCOMP["FrontendCompatibility<br/>apaga la analítica fuera de akibara.cl"]:::propio
+        XORIG["CrossOriginScripts<br/>crossorigin en seis hosts verificados"]:::propio
+        FORMS["Forms · POST /wp-json/akibara/v1/contacto<br/>bitácora primero, correo después"]:::propio
+    end
+
+    subgraph DATOS_G["Dónde queda todo"]
+        OPT[("wp_options<br/>akibara_taxonomy_discount_*, akb_copy_*,<br/>akibara_announcement_*, akibara_hero_settings")]:::dato
+        TMETA[("termmeta _akb_taxonomy_discount_pct<br/>el porcentaje de cada grupo")]:::dato
+        TRANS[("transients<br/>akb_discount_top_rule, akb_home_series_v1_*,<br/>akb_pdp_specs_* en el object cache")]:::dato
+    end
+
+    WOO["WooCommerce<br/>dueño del precio, del cupón y de la tarjeta"]:::tercero
+    LITE["LiteSpeed Cache + Cloudflare<br/>guardan el HTML ya pintado"]:::tercero
+    SEARCH["akibara-search<br/>sella el precio dentro de su índice<br/>(codigo propio, capitulos 08 y 09)"]:::vecino
+    TEMA["tema akibara-gp<br/>pie del sitio, acordeón y tokens --aki-*<br/>(codigo propio, capitulo 13)"]:::vecino
+    CLAR["Microsoft Clarity<br/>grabaciones y eventos de comercio"]:::tercero
+
+    DUENO --> PANEL
+    PANEL --> DASH
+    PANEL --> TABDESC
+    PANEL --> TABTXT
+    PANEL --> TABBAR
+    PANEL --> TABHERO
+    PANEL --> TABSERIES
+    PANEL --> TABMARCA
+
+    TABDESC --> CAMPO
+    CAMPO --> TMETA
+    TABDESC --> OPT
+    TABTXT --> OPT
+    TABBAR --> OPT
+    TABHERO --> OPT
+    TABSERIES --> OPT
+
+    TMETA --> SET
+    OPT --> SET
+    TOPE --> SET
+    SET --> RES
+    RES --> PF
+    RES --> CUP
+    RES --> AUT
+    PF --> WOO
+    CUP --> WOO
+    AUT --> SEARCH
+
+    SET --> DCOPY
+    DCOPY --> TRANS
+    TABBAR --> BARRA
+    DCOPY --> BARRA
+    SHIP --> BARRA
+    BARRA --> CLIENTE
+    COPY --> OPT
+    OPT --> PDP
+    OPT --> TEMA
+
+    TABHERO --> HERO
+    TABSERIES --> SERIES
+    SERIES --> TRANS
+    HERO --> CLIENTE
+    DEST --> CLIENTE
+    SERIES --> CLIENTE
+    WOO --> LOOP
+    LOOP --> CLIENTE
+    PDP --> TRANS
+    PDP --> CLIENTE
+    FAQ --> TEMA
+    TEMA --> CLIENTE
+    TABMARCA --> TEMA
+
+    CLIENTE --> FORMS
+    FORMS --> OPT
+    FORMS --> DASH
+    FCOMP --> CLAR
+    XORIG --> CLIENTE
+
+    PANEL -.->|litespeed_purge_all en shutdown, sólo si cambió algo| LITE
+    LSC -.->|purga las escrituras que no pasan por el formulario| LITE
+    TABBAR -.->|purga en línea, una por option guardada| LITE
+    TABHERO -.->|purga siempre, haya cambiado algo o no| LITE
+    LITE --> CLIENTE

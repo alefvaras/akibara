@@ -1,0 +1,813 @@
+/* Akibara Native Cart CSS - Brutalismo */
+:root {
+	--akb-cart-width: 420px;
+	/* Capa con nombre del tema (theme.json → custom.z.cart, tokens.css --z-cart):
+	   sobre el chat y la barra de progreso, bajo «saltar al contenido». El
+	   respaldo es su valor, para una página que cargue la hoja sin el tema. */
+	--akb-cart-z: var(--z-cart, 10400);
+}
+
+/* Overlay oscuro */
+.akb-cart-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(4px);
+	z-index: calc(var(--akb-cart-z) - 1);
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.akb-cart-overlay.akb-open {
+	opacity: 1;
+	visibility: visible;
+}
+
+/* Drawer / Off-canvas */
+.akb-cart-drawer {
+	position: fixed;
+	top: 0;
+	right: 0;
+	width: 100%;
+	max-width: var(--akb-cart-width);
+	height: 100vh;
+	height: 100dvh;
+	background: var(--aki-surface-1, #111);
+	color: var(--aki-white, #fff); /* --aki-text-main no existe en el tema (DS-10). */
+	z-index: var(--akb-cart-z);
+	display: flex;
+	flex-direction: column;
+	border-left: 4px solid #000;
+	box-shadow: 0 0 0 transparent;
+	transform: translate3d(100%, 0, 0);
+	transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+	visibility: hidden; /* Evita que exista interactivamente o cause overflow cuando está cerrado */
+}
+.akb-cart-drawer[data-side="left"] {
+	right: auto;
+	left: 0;
+	border-left: none;
+	border-right: 4px solid #000;
+	transform: translate3d(-100%, 0, 0);
+}
+.akb-cart-drawer.akb-open {
+	transform: translate3d(0, 0, 0);
+	box-shadow: -10px 0 0 var(--aki-red, #e60012);
+	visibility: visible;
+}
+.akb-cart-drawer[data-side="left"].akb-open {
+	box-shadow: 10px 0 0 var(--aki-red, #e60012);
+}
+
+/* Header */
+.akb-cart-header {
+	padding: 12px 18px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 2px solid var(--aki-border, #2a2a2e);
+	background: var(--aki-black, #121212);
+}
+.akb-cart-header h3 {
+	margin: 0;
+	font-family: var(--font-heading, "Bebas Neue", sans-serif);
+	font-size: 1.35rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	line-height: 1;
+}
+.akb-cart-close {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	color: #fff;
+	cursor: pointer;
+	padding: 0;
+	/*
+	 * Área táctil mínima 44px con el glifo centrado de 2rem.
+	 */
+	width: var(--touch-target-min, 44px);
+	height: var(--touch-target-min, 44px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.akb-cart-close svg {
+	width: 24px;
+	height: 24px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+}
+.akb-cart-close:hover {
+	color: var(--aki-red, #e60012);
+}
+/*
+ * Un solo anillo de foco en todo el drawer.
+ *
+ * Estos seis controles compartían regla pero NO resultado: `.akb-cart-close`,
+ * `.akb-cart-item-remove` y `.akb-cart-checkout-btn` llevan `box-shadow: none
+ * !important` en su regla base, que también borra el anillo `--aki-focus-ring`
+ * que el tema pinta sobre `button:focus-visible`, así que se quedaban con el
+ * outline amarillo suelto. Los otros tres sí recibían el anillo y encima el
+ * outline: dos anillos amarillos separados por el negro. Tres tratamientos en
+ * un mismo panel.
+ *
+ * Se declara el token de marca como box-shadow para todos. El `!important` es
+ * el que le gana al `box-shadow: none !important` de arriba, no un atajo.
+ */
+.akb-cart-close:focus-visible,
+.akb-cart-checkout-btn:focus-visible,
+.akb-cart-continue-btn:focus-visible,
+.akb-cart-item-remove:focus-visible,
+.akb-cart-qty-ctrl button:focus-visible,
+.akb-cs-add-btn:focus-visible,
+.akb-cart-empty__cta:focus-visible {
+	outline: none;
+	box-shadow: var(--aki-focus-ring, 0 0 0 2px #FFFFFF, 0 0 0 5px #121212) !important;
+}
+
+/* En alto contraste forzado el navegador descarta box-shadow: el anillo vuelve
+ * como outline para no dejar el drawer sin indicador de teclado. */
+@media (forced-colors: active) {
+	.akb-cart-close:focus-visible,
+	.akb-cart-checkout-btn:focus-visible,
+	.akb-cart-continue-btn:focus-visible,
+	.akb-cart-item-remove:focus-visible,
+	.akb-cart-qty-ctrl button:focus-visible,
+	.akb-cs-add-btn:focus-visible,
+	.akb-cart-empty__cta:focus-visible {
+		outline: 3px solid CanvasText;
+		outline-offset: 2px;
+	}
+}
+
+.akb-cart-live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Body */
+.akb-cart-body {
+	flex: 1;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 12px 14px;
+}
+
+.akb-cart-status {
+	display: grid;
+	gap: 6px;
+	min-height: 0;
+	margin-bottom: 10px;
+}
+.akb-cart-status[hidden] {
+	display: none;
+}
+.akb-cart-status__item {
+	padding: 8px 10px;
+	background: #090909;
+	border-left: 4px solid var(--aki-warning, #d97706);
+	color: var(--aki-text-muted, #8a8a8a);
+	font-size: 0.8rem;
+	line-height: 1.3;
+}
+/* Fallo de mutación (remove/qty): mensaje visible, acento rojo de error. */
+.akb-cart-status__item--error {
+	border-left-color: var(--aki-red, #e60012);
+	color: var(--aki-gray-100, #f5f5f5); /* --aki-text no existe en el tema (DS-10). */
+}
+
+/* Items */
+.akb-cart-item {
+	display: flex;
+	/* Top-align: la portada arranca a la altura del título; el botón eliminar
+	   se fija en la esquina superior derecha con padding de resguardo en el título. */
+	align-items: flex-start;
+	position: relative;
+	padding: 10px 12px;
+	border: 1px solid #28282e;
+	margin-bottom: 8px;
+	gap: 12px;
+	background: #141416;
+	box-shadow: 2px 2px 0 #000;
+	transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.akb-cart-item-img {
+	/* Proporción 2:3 del catálogo Manga. */
+	width: 56px;
+	height: 84px;
+	background: #222;
+	flex-shrink: 0;
+	overflow: hidden;
+	/* Borde óptico 1px hacia adentro */
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.akb-cart-item-img img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.akb-cart-item-details {
+	flex: 1;
+	min-width: 0; /* permite que el clamp del título trunque en flex sin desbordar */
+}
+.akb-cart-item-title {
+	font-weight: 800;
+	font-size: 0.92rem;
+	margin-bottom: 3px;
+	line-height: 1.25;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	padding-right: 28px; /* Resguardo para el botón de eliminar */
+}
+.akb-cart-item-title .akb-vol,
+.akb-cs-title .akb-vol {
+	color: #ffffff;
+	background: var(--aki-red, #E60012);
+	font-family: var(--font-accent, 'Bebas Neue', sans-serif);
+	font-size: 1.05em;
+	font-weight: 700;
+	line-height: 1.1;
+	margin-left: 0.25em;
+	padding: 1px 6px;
+	transform: skew(-6deg);
+	display: inline-block;
+	box-shadow: 2px 2px 0 #000;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+.akb-cart-item-availability,
+.akb-cart-item-eta {
+	font-size: 0.78rem;
+	line-height: 1.25;
+	margin-bottom: 2px;
+}
+.akb-cart-item-availability {
+	font-weight: 700;
+}
+.akb-cart-item-eta {
+	color: var(--aki-gray-400, #94a3b8);
+}
+.akb-cart-item-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 6px;
+	flex-wrap: wrap;
+}
+.akb-cart-item-price {
+	color: var(--aki-white, #ffffff);
+	font-size: 0.92rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	display: flex;
+	align-items: baseline;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+.akb-cart-item-price del {
+	color: var(--aki-gray-400, #94a3b8);
+	font-size: 0.78rem;
+	font-weight: 500;
+	text-decoration: line-through;
+	opacity: 0.8;
+}
+.akb-cart-item-price ins {
+	color: var(--aki-red, #e60012);
+	font-weight: 700;
+	text-decoration: none;
+}
+.akb-cart-item-qty {
+	display: flex;
+	align-items: center;
+	margin-top: 0;
+}
+.akb-cart-qty-ctrl {
+	display: flex;
+	align-items: center;
+	border: 1px solid var(--aki-border, #2a2a2e);
+	border-radius: 0;
+	overflow: hidden;
+	height: 28px;
+}
+.akb-cart-qty-ctrl button {
+	background: var(--aki-surface-3, #222222);
+	border: none;
+	color: #fff;
+	padding: 0 8px;
+	min-width: 28px;
+	height: 28px;
+	cursor: pointer;
+	font-weight: 900;
+	font-size: 0.85rem;
+	line-height: 1;
+	transition: background 0.2s, color 0.2s;
+}
+.akb-cart-qty-ctrl button:hover {
+	background: var(--aki-black, #121212);
+	color: var(--aki-white, #fff);
+}
+.akb-cart-qty-ctrl button:disabled,
+.akb-cart-qty-ctrl button[aria-disabled="true"] {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+.akb-cart-qty-ctrl button:disabled:hover,
+.akb-cart-qty-ctrl button[aria-disabled="true"]:hover {
+	background: var(--aki-surface-3, #222222);
+	color: #fff;
+}
+/* Carrito vacío: el JS oculta el footer entero (atributo [hidden] no le gana al
+   display:flex de autor → hace falta esta regla) para no dejar "Pagar pedido"
+   activo sobre $0 ni la barra de envío congelada. */
+.akb-cart-footer[hidden] {
+	display: none;
+}
+.akb-cart-qty-ctrl input,
+.akb-cart-qty-ctrl input[type="number"] {
+	background: transparent !important;
+	border: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	color: #ffffff !important;
+	width: 32px !important;
+	min-width: 32px !important;
+	height: 28px !important;
+	line-height: 28px !important;
+	font-family: inherit;
+	font-size: 0.85rem !important;
+	font-weight: 700 !important;
+	text-align: center !important;
+	box-shadow: none !important;
+	outline: none !important;
+	-moz-appearance: textfield !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+}
+.akb-cart-qty-ctrl input::-webkit-outer-spin-button,
+.akb-cart-qty-ctrl input::-webkit-inner-spin-button {
+	-webkit-appearance: none !important;
+	margin: 0 !important;
+}
+.akb-cart-item-remove {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	background: transparent !important;
+	border: 2px solid transparent !important;
+	box-shadow: none !important;
+	color: var(--aki-text-muted, #8a8a8a);
+	cursor: pointer;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	padding: 0;
+	transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+	z-index: 2;
+}
+/* Ícono basurero (SVG con stroke=currentColor → hereda color de reposo/hover). */
+.akb-cart-item-remove svg {
+	width: 16px;
+	height: 16px;
+	display: block;
+}
+
+/* Cross-Sells Gamification */
+.akb-cart-cross-sells {
+	margin-top: 30px;
+	padding-top: 20px;
+	border-top: 2px dashed var(--aki-border, #2a2a2e);
+	min-height: 120px;
+}
+.akb-cart-cross-sells h4 {
+	margin: 0 0 15px 0;
+	font-size: 1.1rem;
+	font-weight: 800;
+	text-transform: uppercase;
+	color: var(--aki-text-muted, #8a8a8a);
+}
+.akb-cs-item {
+	display: flex;
+	align-items: center;
+	padding: 10px;
+	background: var(--aki-surface-2, #1a1a1a);
+	margin-bottom: 10px;
+	border: 2px solid var(--aki-black, #121212);
+	border-radius: 0;
+	gap: 10px;
+	transition: transform 0.2s, box-shadow 0.2s;
+}
+.akb-cs-img {
+	width: 40px;
+	height: 55px;
+	background: #222;
+	flex-shrink: 0;
+	overflow: hidden;
+}
+.akb-cs-img img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.akb-cs-details {
+	flex: 1;
+}
+.akb-cs-title {
+	font-weight: bold;
+	font-size: 0.9rem;
+	margin-bottom: 3px;
+	line-height: 1.2;
+}
+.akb-cs-price {
+	color: var(--aki-white, #ffffff);
+	font-size: 0.8rem;
+}
+.akb-cs-add-btn {
+	background: var(--aki-black, #121212);
+	color: var(--aki-white, #fff);
+	border: 2px solid var(--aki-border, #2a2a2e);
+	padding: 5px 10px;
+	text-decoration: none;
+	font-size: 0.8rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	cursor: pointer;
+	border-radius: 0;
+	min-height: var(--touch-target-min, 44px);
+	transition: background-color 0.2s, color 0.2s;
+}
+.akb-cs-add-btn:disabled {
+	opacity: 0.65;
+	cursor: progress;
+}
+
+/* Empty State */
+.akb-cart-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 18px;
+	text-align: center;
+	padding: 40px 0;
+	color: var(--aki-text-muted, #8a8a8a);
+}
+
+.akb-cart-empty__message {
+	max-width: 32ch;
+	margin: 0;
+}
+
+.akb-cart-empty__cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-height: var(--touch-target-min, 44px);
+	padding: 10px 18px;
+	border: 2px solid var(--aki-red, #e60012);
+	background: var(--aki-red, #e60012);
+	color: var(--aki-white, #fff);
+	font: inherit;
+	font-weight: 900;
+	text-decoration: none;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.akb-cart-empty__cta:hover {
+	background: var(--aki-white, #fff);
+	color: var(--aki-black, #121212);
+}
+
+/* El anillo de `.akb-cart-empty__cta` va con el resto del drawer, más arriba. */
+
+/* Loading & Skeleton */
+.akb-cart-loading {
+	padding: 12px 0;
+	min-height: 120px;
+}
+.akb-cart-skeleton-list {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 8px 0;
+}
+.akb-cart-skeleton-item {
+	display: flex;
+	gap: 14px;
+	align-items: flex-start;
+	padding: 12px;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 8px;
+}
+.akb-cart-skeleton-thumb {
+	width: 64px;
+	height: 90px;
+	border-radius: 6px;
+	background: #242424;
+	flex-shrink: 0;
+}
+.akb-cart-skeleton-details {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding-top: 4px;
+}
+.akb-cart-skeleton-line {
+	height: 12px;
+	border-radius: 4px;
+	background: #242424;
+}
+.akb-cart-skeleton-line--title {
+	width: 85%;
+	height: 14px;
+}
+.akb-cart-skeleton-line--sub {
+	width: 55%;
+}
+.akb-cart-skeleton-line--price {
+	width: 35%;
+	height: 16px;
+	margin-top: 6px;
+}
+/*
+ * El shimmer sólo corre con el cajón .akb-open. Ocultarlo mediante visibility no detendría por
+ * sí solo una animación infinita.
+ */
+.akb-cart-drawer.akb-open .akb-cart-loading {
+	animation: akb-cart-loading-pulse 1.5s infinite;
+}
+@keyframes akb-cart-loading-pulse {
+	0% { opacity: 0.6; }
+	50% { opacity: 1; }
+	100% { opacity: 0.6; }
+}
+.akb-cart-drawer.akb-open .akb-cart-skeleton-thumb,
+.akb-cart-drawer.akb-open .akb-cart-skeleton-line {
+	background: linear-gradient(90deg, #1f1f1f 25%, #2c2c2c 50%, #1f1f1f 75%);
+	background-size: 200% 100%;
+	animation: akb-cart-skeleton-shimmer 1.6s infinite ease-in-out;
+}
+@keyframes akb-cart-skeleton-shimmer {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+
+/*
+ * Durante añadir, quitar o cambiar cantidad se conserva el contenido del cajón, atenuado y
+ * bloqueado. El pie de envío, totales y pago permanece visible.
+ */
+.akb-cart--busy .akb-cart-items-container {
+	opacity: 0.5;
+	pointer-events: none;
+	transition: opacity 120ms ease-out;
+}
+
+.akb-cart--busy .akb-cart-totals,
+.akb-cart--busy .akb-cart-progress-slot {
+	/* Las cifras del footer están un instante desfasadas respecto a la lista;
+	   atenuarlas lo comunica sin moverlas ni ocultarlas. */
+	opacity: 0.6;
+	transition: opacity 120ms ease-out;
+}
+
+/* Footer */
+.akb-cart-footer {
+	/* Alta densidad: devuelve hasta 130px de alto útil a la lista de productos */
+	padding: 10px 14px max(12px, env(safe-area-inset-bottom));
+	background: var(--aki-black, #121212);
+	border-top: 2px solid var(--aki-border, #2a2a2e);
+}
+.akb-cart-progress-slot {
+	/* min-height = guard anti-CLS mientras llega el fragment FSP async */
+	min-height: 44px;
+	margin-bottom: 8px;
+}
+
+/* Cuando el estado resuelto es "sin barra" (carrito vacío, retiro en punto, zona
+   sin envío gratis) el backend emite `.akb-fsp-empty`. Ahí el guard anti-CLS ya
+   no protege nada: sólo dejaba 50px de vacío entre las recomendaciones y el
+   subtotal, que se leía como un bloque roto. */
+.akb-cart-progress-slot:has(.akb-fsp-empty),
+.akb-cart-progress-slot:empty {
+	min-height: 0;
+	margin-bottom: 0;
+}
+.akb-cart-totals {
+	display: grid;
+	gap: 4px;
+	margin-bottom: 8px;
+	font-variant-numeric: tabular-nums;
+}
+.akb-cart-totals__row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+}
+.akb-cart-subtotal,
+.akb-cart-discount {
+	font-size: 0.85rem;
+	font-weight: 650;
+	color: var(--aki-text-muted, #8a8a8a);
+}
+.akb-cart-discount-val {
+	color: var(--aki-gray-100, #f5f5f5);
+}
+.akb-cart-total {
+	padding-top: 5px;
+	border-top: 1px solid var(--aki-border, #2a2a2e);
+	font-size: 1.15rem;
+	font-weight: 900;
+}
+.akb-cart-discount[hidden],
+.akb-cart-total[hidden] {
+	display: none;
+}
+.akb-cart-shipping-notice {
+	display: none;
+	font-size: 0.8rem;
+	color: var(--aki-text-muted, #8a8a8a);
+	text-align: center;
+	margin-bottom: 10px;
+}
+.akb-cart-checkout-btn {
+	display: block;
+	box-sizing: border-box;
+	text-align: center;
+	/* Fallback duro: si --aki-red no resuelve (invitado cacheado / combine
+	   LiteSpeed sin tokens), el CTA NO debe colapsar a transparente y dejar ver
+	   el footer negro (síntoma "botón negro" reportado). */
+	background: var(--aki-red, #E60012) !important;
+	color: #fff !important;
+	padding: 11px 14px;
+	font-family: var(--font-heading, "Bebas Neue", sans-serif);
+	font-size: 1.25rem;
+	font-weight: 400;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	text-decoration: none;
+	border-radius: 0 !important;
+	border: none !important;
+	clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%) !important;
+	transform: skew(-3deg) !important;
+	filter: drop-shadow(4px 4px 0 #000) !important;
+	transition: background-color 0.15s ease, transform 0.15s ease, filter 0.15s ease, color 0.15s ease;
+}
+.akb-cart-checkout-btn:hover {
+	background: var(--aki-red-dark, #99000C) !important;
+	color: #fff !important;
+	transform: skew(-3deg) translate(-2px, -2px) !important;
+	filter: drop-shadow(6px 6px 0 var(--aki-white)) !important;
+}
+.akb-cart-checkout-btn:active {
+	transform: skew(-3deg) translate(2px, 2px) !important;
+	filter: drop-shadow(1px 1px 0 #000) !important;
+	transition: transform 50ms ease, filter 50ms ease !important;
+}
+.akb-cart-checkout-btn:focus-visible {
+	clip-path: none !important;
+	transform: none !important;
+	filter: none !important;
+	box-shadow: var(--aki-focus-ring) !important;
+}
+.akb-cart-continue-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	margin-top: 6px;
+	text-align: center;
+	color: var(--aki-text-muted, #8a8a8a);
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	text-decoration: none;
+	padding: 4px 8px;
+	border: none;
+	background: transparent;
+	transition: color 0.15s ease;
+}
+.akb-cart-continue-btn:hover {
+	color: var(--aki-white, #fff);
+	text-decoration: underline;
+	background: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.akb-cart-item:hover,
+	.akb-cart-item:focus-within {
+		transform: translate(-4px, -4px);
+		box-shadow: 6px 6px 0 var(--aki-black, #121212);
+		border-color: var(--aki-black, #121212);
+		z-index: 10;
+	}
+
+	.akb-cart-item-remove:hover {
+		background: var(--aki-red, #e60012) !important;
+		color: var(--aki-white, #fff) !important;
+		border-color: var(--aki-black, #121212) !important;
+		transform: translate(-2px, -2px) !important;
+		box-shadow: 4px 4px 0 var(--aki-black, #121212) !important;
+	}
+
+	.akb-cs-item:hover,
+	.akb-cs-item:focus-within {
+		transform: translate(-2px, -2px);
+		box-shadow: 4px 4px 0 var(--aki-black, #121212);
+	}
+
+	.akb-cs-add-btn:hover {
+		background: var(--aki-yellow, #ffd700);
+		color: var(--aki-black, #121212);
+		border-color: var(--aki-black, #121212);
+		transform: translate(-2px, -2px);
+		box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	}
+}
+
+.akb-reduced-motion,
+.akb-reduced-motion *,
+.akb-reduced-motion::before,
+.akb-reduced-motion::after {
+	animation-duration: 0.01ms !important;
+	animation-iteration-count: 1 !important;
+	scroll-behavior: auto !important;
+	transition-duration: 0.01ms !important;
+}
+
+/* Responsiveness (Mobile/Tablet) */
+@media (max-width: 480px) {
+	.akb-cart-drawer.akb-cart-drawer--mobile-full {
+		max-width: none;
+		border-left: none; /* En mobile ocupa toda la pantalla */
+		border-right: none;
+	}
+	.akb-cart-header {
+		padding: 10px 14px;
+	}
+	.akb-cart-body {
+		padding: 10px 12px;
+	}
+	.akb-cart-item {
+		gap: 10px;
+		padding: 10px;
+	}
+	.akb-cart-item-img {
+		/* Mismo 2:3 del catálogo que en escritorio */
+		width: 50px;
+		height: 75px;
+	}
+	.akb-cart-item-title {
+		font-size: 0.88rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-cart-drawer,
+	.akb-cart-overlay {
+		transition-duration: 0.01ms;
+	}
+
+	.akb-cart-overlay,
+	.akb-cart-drawer,
+	.akb-cart-item,
+	.akb-cs-item,
+	.akb-cart-checkout-btn,
+	.akb-cart-loading {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	.akb-cart--busy .akb-cart-items-container,
+	.akb-cart--busy .akb-cart-totals,
+	.akb-cart--busy .akb-cart-progress-slot {
+		transition: none !important;
+	}
+
+	.akb-cart-item:hover,
+	.akb-cs-item:hover,
+	.akb-cart-checkout-btn:hover {
+		transform: none !important;
+	}
+}

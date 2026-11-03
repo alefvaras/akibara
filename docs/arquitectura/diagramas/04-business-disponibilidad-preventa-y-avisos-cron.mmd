@@ -1,0 +1,19 @@
+%% Reloj del capítulo 04 — cuándo corre cada trabajo de disponibilidad, preventa y avisos, en hora de Chile.
+%% Qué muestra: los cuatro trabajos con reloj y los seis que dispara un hecho. Las horas «heredadas» no están escritas en el código: salieron del instante en que el evento se agendó por primera vez, y cambian tras una reinstalación. La única hora fija del capítulo es el domingo a las 03:00. Horas medidas en producción el 2026-09-11.
+timeline
+    title Disponibilidad, preventa y avisos, en hora de Chile
+    section Con reloj — WP-Cron
+        02&#58;37 aprox, cada día : akb_preventa_vencida_sweep — toca hasta 50 fichas cuya fecha de salida ya pasó, para que el buscador y la caché dejen de decir «Preventa». Hora heredada
+        Domingo 03&#58;00 : akb_order_preventa_t7_reminder_scan — el aviso «tu pedido se acerca». Única hora escrita en el código; el correo llega el lunes por la mañana
+        19&#58;30 aprox, cada día : akb_order_preventa_recompute_ready — marca listos los pedidos completos y deja notas internas de atraso. Hora heredada
+        20&#58;30 aprox, cada día : akb_bis_cleanup_terminal — borra las inscripciones cerradas de la lista de espera con más de 180 días. Hora heredada
+    section Sin reloj — los dispara un hecho, por Action Scheduler
+        Al reponer un tomo, +5 s : akb_order_preventa_recompute_for_product — revisa los pedidos que esperaban ese tomo; por eso el aviso «ya llegó» sale en minutos y no al día siguiente
+        Al reponer un tomo, de inmediato : akb_bis_notify_product — avisos de la lista de espera en tandas de 20 cada 60 s; con el envío pausado reintenta 4 veces cada 900 s
+        Al marcar un pedido listo : akb_order_preventa_dispatch_ready_email — «tu pedido ya llegó»; reintento a +305 s si el obrero falla
+        Al cambiar la fecha de salida : akb_order_preventa_release_date_changed_batch — recalcula y notifica; si pierde el candado global, reintenta en 1 minuto
+        Al entregar al transportista, +2 h : akb_order_preventa_verify_carrier_handoff — exige número de seguimiento y, si no está, deja una alerta en el pedido
+        Heredado, mismo trabajo : akb_order_preventa_verify_bluex_handoff — el hook antiguo de Blue Express, que el adaptador sigue atendiendo para las acciones encoladas antes de 1.87.0
+    section El empuje
+        Cada 5 minutos : una tarea del panel de Hostinger llama a wp-cron.php; DISABLE_WP_CRON está encendido, así que el tráfico de clientes NO empuja nada
+        Agendado cada minuto : action_scheduler_run_queue drena la cola de WooCommerce, pero agendado no es ejecutado: sin empuje ese minuto no llega, así que en la práctica la cola avanza cada 5 minutos

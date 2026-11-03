@@ -1,0 +1,18 @@
+%% Reloj de Chile del capítulo 08 — cuándo actúa cada trabajo programado del índice.
+%% Qué muestra: lo único recurrente con reloj propio (el vigilante cada 15 min y la revisión diaria), lo que no tiene hora porque lo dispara un hecho, y la advertencia de que la hora de la revisión diaria es HEREDADA del instante en que se agendó por primera vez, no un valor escrito en el código.
+timeline
+    title Lo programado del índice del buscador, en hora de Chile
+    section Latido permanente
+        Cada minuto EN TEORÍA, aquí NO : action_scheduler_run_queue — el motor de la cola de WooCommerce. Está agendado cada minuto, pero en producción NADIE lo empuja cada minuto porque DISABLE_WP_CRON está encendido: lo real es lo de la línea siguiente
+        Cada 5 minutos, LO REAL : La tarea del panel de Hostinger llama a wp-cron.php — el ÚNICO empuje que existe. Ésa es la latencia mínima de cualquier cosa asíncrona de este capítulo
+        Cada 15 minutos : akb_search_rebuild_watchdog — rescata arriendos vencidos, despierta deuda, reconcilia fase y topología, intenta levantar el buscador y manda la alarma a los 900 s caído
+    section Una vez al día
+        12&#58;50 aprox, HORA HEREDADA — medido en producción el 2026-09-06 : akb_search_reconcile — cuatro detectores, muestreo de 10 documentos, poda del qlog a 180 días y siembra de hasta 200 preventas antiguas. El código sólo dice «dentro de una hora, y luego cada 24 h» (Reconciler.php:115), así que la hora real es la del primer agendado y cambia tras una reinstalación. COMPROBARLA HOY: WooCommerce → Estado → Acciones programadas, grupo akibara-search; o wp action-scheduler list --group=akibara-search --status=pending
+    section Sin reloj — los dispara un hecho
+        Al guardar un producto o cambiar su stock : akb_search_pump_live asíncrona, drena hasta 25 tareas de la deuda live
+        Antes de una escritura que aún no persistió : akb_search_pump_live con barrera, programada a ahora + 10 + 2 segundos
+        Mientras un rebuild tenga deuda : akb_search_rebuild_batch, lotes de 200 tareas con 20 s de presupuesto de reloj por invocación
+        Al empezar o terminar una campaña de descuento : akb_search_editorial_discount_boundary en el segundo exacto — la medianoche de Santiago del día SIGUIENTE al último día
+        Al pedir un reindexado puntual : akb_search_reindex_product y akb_search_reindex_term
+    section Memos que pueden dejar huecos
+        Cada 12 horas : akb_search_watchdog_guard_v2 y akb_search_reconciler_scheduled — memos que evitan consultar Action Scheduler en cada petición. Si la acción recurrente desaparece justo después de sellarse el memo, nadie la recrea hasta que caduque

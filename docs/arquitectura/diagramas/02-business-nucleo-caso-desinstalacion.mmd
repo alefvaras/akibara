@@ -1,0 +1,41 @@
+%% Caso 4 del capítulo 02 — el dueño elimina el plugin y uninstall.php ejecuta el consentimiento destructivo.
+%% Qué muestra: qué se borra, qué sobrevive a propósito, y el daño colateral que el barrido por prefijo hace fuera de su propio territorio: dos options del mu-plugin de Blue Express, un transient de otro mu-plugin y un transient del TEMA, ninguno en la lista de exclusiones.
+%% Nota de lectura: la flecha con una equis (--x) significa que ese mensaje NO ocurre.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WP as WordPress
+    participant Uni as uninstall.php
+    participant Tablas as Tablas propias
+    participant Cron as WP-Cron
+    participant AS as Action Scheduler
+    participant Opts as wp_options
+    participant Vecinos as Vecinos alcanzados<br/>(mu-plugins y tema)
+
+    Dueno->>WP: pulsa «Eliminar»
+    WP->>Uni: ejecuta el desinstalador (consentimiento destructivo)
+
+    Uni->>Tablas: drop() de akb_wishlist, akb_bis_subscribers y akb_series_follow_queue
+    Note over Tablas: cada drop() borra también su option de versión de esquema
+
+    Uni->>Cron: wp_clear_scheduled_hook × 8 (uninstall.php:40-47)
+    Note over Cron: los 6 de la desactivación MÁS los dos de imágenes sociales<br/>(incluido el que lleva argumento, el de por slug)
+
+    Uni--xAS: ⚠️ NINGUNA acción de Action Scheduler se retira: viven en<br/>wp_actionscheduler_actions, fuera del alcance de wp_options
+    Note over AS: la recurrente akibara_catalog_order_daily (se re-agenda sola, para siempre)<br/>y las sueltas akb_bis_notify_product, akibara_catalog_order_recompute<br/>y las de SeriesFollow
+    Uni--xCron: ⚠️ NO retira el evento único akibara_business_cleanup_collection_owner_fence
+
+    Uni->>Opts: DELETE de akb_% y akibara_% con sus transients,<br/>excluyendo 7 prefijos hermanos
+    Note over Opts: akb_search_, akb_vocab_, akb_lc_, akb_rlm_,<br/>akb_rewards_, akb_blocks_, akb_pudo_log_
+
+    Uni->>Vecinos: ⚠️ se lleva akb_bluex_watch_baseline_seen y akb_bluex_watch_resolved_notified
+    Note over Vecinos: el vigilante de Blue Express pierde su línea base<br/>y su marca de «ya avisé»: volverá a alertar de cosas resueltas
+    Uni->>Vecinos: ⚠️ se lleva el transient akibara_debug_log_rotation_checked
+    Uni->>Vecinos: ⚠️ se lleva el transient akb_gp_series_hub_url, que es del TEMA
+    Note over Vecinos: el comentario del fichero afirma que akibara_* es exclusivo<br/>de este plugin y que los hermanos son sólo plugins. Las dos cosas son falsas.
+
+    Uni->>Opts: DELETE de termmeta _akb_% (:108-110) y de usermeta _akb_sf_% (:116-118)
+
+    Note over Uni,Opts: SOBREVIVE A PROPÓSITO:<br/>la meta de pedidos y de productos (registro comercial e histórico)<br/>y las options del plugin de bloques, que aún no tiene desinstalador propio
+
+    WP-->>Dueno: «Plugin eliminado»

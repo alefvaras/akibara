@@ -1,0 +1,129 @@
+{
+  "titulo": "Transversal · cómo se hablan entre sí los plugins, el tema y los mu-plugins; qué se rompe si falta uno",
+  "capitulo": "19-como-se-hablan-los-plugins",
+  "diagramas": [
+    "diagramas/19-como-se-hablan-los-plugins-piezas.mmd",
+    "diagramas/19-como-se-hablan-los-plugins-arranque.mmd",
+    "diagramas/19-como-se-hablan-los-plugins-caso-busqueda.mmd",
+    "diagramas/19-como-se-hablan-los-plugins-caso-compra.mmd",
+    "diagramas/19-como-se-hablan-los-plugins-caso-descuento.mmd",
+    "diagramas/19-como-se-hablan-los-plugins-cron.mmd",
+    "diagramas/19-como-se-hablan-los-plugins-estados-precio.mmd"
+  ],
+  "componentes": 19,
+  "casos": 6,
+  "alcance": {
+    "revisado_entero": ["akibara-business", "akibara-search", "akibara-cart-checkout-blocks", "akibara-rewards", "tema akibara-gp"],
+    "mu_plugins_totales": 17,
+    "mu_plugins_revisados": [
+      "akibara-as-retention.php",
+      "akibara-brevo-portada-jpg-en-el-carrito.php",
+      "akibara-bluex-cotiza-solo-con-comuna.php",
+      "akibara-clarity-production-only.php",
+      "akibara-correo-no-sale-a-clientes.php",
+      "akibara-correo-smtp.php",
+      "akibara-https-urls-fuera-de-web.php",
+      "akibara-litespeed-guardrails.php",
+      "akibara-mail-transport-watch.php",
+      "akibara-woo-blocks-i18n.php"
+    ],
+    "mu_plugins_nombrados_sin_auditar": [
+      "akibara-abilities-denylist.php",
+      "akibara-bluex-integrity-watch.php",
+      "akibara-bluex-log-retention.php",
+      "akibara-bluex-rest-tracking.php",
+      "akibara-discovery-warming.php",
+      "akibara-provider-access.php",
+      "akibara-rankmath-redirections-abilities.php"
+    ],
+    "fuera_de_alcance": ["los bundles .min servidos al navegador", "la superficie de admin de rewards en detalle"]
+  },
+  "crons": [
+    "akb_preventa_vencida_sweep",
+    "akb_order_preventa_t7_reminder_scan",
+    "akb_search_pump_live",
+    "akb_search_rebuild_watchdog",
+    "akb_search_reconcile",
+    "akibara_catalog_order_daily",
+    "akb_sf_digest_run",
+    "akibara_business_social_image_derivatives",
+    "akb_rewards_expiry_daily",
+    "akb_rewards_birthday_daily",
+    "akibara_bluex_log_retention_cleanup"
+  ],
+  "pantallas": {
+    "panel Akibara (portada: Centro de Mando)": "admin.php?page=akibara-panel",
+    "Buscador": "admin.php?page=akibara-search",
+    "Puntos y Reseñas": "admin.php?page=akb-rewards-settings"
+  },
+  "terceros": [
+    "WooCommerce",
+    "GeneratePress",
+    "LiteSpeed Cache",
+    "Cloudflare",
+    "Blue Express",
+    "Brevo",
+    "Rank Math",
+    "Action Scheduler",
+    "Microsoft Clarity",
+    "Google Places",
+    "Simple Points and Rewards (SPAR, inactivo por diseño)",
+    "Hostinger (SMTP y cron cada 5 min)"
+  ],
+  "hallazgos_clave": [
+    "La AUSENCIA de oyente en akb_search_effective_price es un caso válido y documentado (EditorialDiscountPublication.php:2992, :2996-2998, :3017-3019, :3074-3082): sin business el buscador SIGUE sirviendo, con precio base. Lo que lo apaga es un oyente DE MÁS (1 !== count($flat), :3020).",
+    "akibara-cart-checkout-blocks/src/ComunaDirectory.php:26 y :377-394 cargan un fichero de datos de DENTRO del plugin ajeno de Blue Express por ruta, sin pasar por ningún hook; no lo modifica y falla hacia abierto (is_available() en :120-122).",
+    "El contrato CheckoutDataProvider tiene SEIS métodos (:74, :90, :100, :110, :120, :129), no dos; el arranque del plugin de bloques se aborta en TRES return (Plugin.php:30-32, :35-37, :40-42), y hay dos puertas parciales más (:58-60 interface_exists, :62-64 PUDO).",
+    "Las portadas de la tienda son AVIF, no WebP (akibara-brevo-portada-jpg-en-el-carrito.php:3-4, :67); la «ventana» del mu-plugin son los add_filter de :128-129 y hay DOS class_exists (:118 Brevo, :121 business).",
+    "akibara_gp_asset_ver() está en themes/akibara-gp/inc/enqueue.php:37, no en functions.php.",
+    "El Indexer registra 25 oyentes (Indexer.php:157 y :160-183), no veinte.",
+    "Las ocho funciones puente se DEFINEN en akibara-search.php:118, 131, 141, 152, 163, 175, 197 y 227 (las líneas anteriores son sus guardas function_exists); la octava, akibara_search_facets_fail_open, faltaba en el inventario hasta la ronda 10.",
+    "facets-render.php:1150 engancha dynamic_sidebar_before prio 4: es donde el buscador imprime de verdad la barra lateral (is_active_sidebar en :1077 sólo abre el hueco).",
+    "La comuna la canonicaliza el propio plugin de bloques (CheckoutFields.php:42-44, :64-65, :223-240), no business.",
+    "El comentario del tema que justifica suprimir el <h1> (inc/page-header.php:50) es falso: woocommerce/cart/cart-empty.php no contiene ningún <h1>; y no existe shortcode de título para el checkout (Shortcodes.php:38-43 devuelve «Tu carrito»).",
+    "Fuera de producción no se mide NADA con Clarity: akibara-clarity-production-only.php:15-28 quita los tres hooks del tag.",
+    "Las horas de los crons son de dos familias: ancladas (CatalogOrder.php:143-163, RemindersCron.php:92) y heredadas/derivantes (Reconciler.php:115, Expiry.php:93, Birthday.php:72, SocialImageDerivatives.php:90, PreventaVencidaCron.php:89, akibara-bluex-log-retention.php:112-119)."
+  ],
+  "aristas_salientes": [
+    { "a": "akibara-business", "por": "clase Akibara\\Business\\Services\\NavigationLinks (llamada dura desde 6 plantillas del tema)" },
+    { "a": "akibara-search", "por": "filtro akb_search_effective_price (oyente único, prioridad 10, clase exacta SearchPriceProvider; cero oyentes es válido)" },
+    { "a": "akibara-search", "por": "filtros akb_search_availability_value y akb_stock_status_label (puente SearchAvailabilityBridge, prioridad 10)" },
+    { "a": "akibara-search", "por": "option akibara_business_search_feed_contract_version (contrato de alimentación, valor '2')" },
+    { "a": "akibara-search", "por": "hook akibara_taxonomy_discount_pct_saved (business emite, Indexer escucha; tres oyentes en total)" },
+    { "a": "akibara-search", "por": "filtros akibara_taxonomy_discount_taxonomies y akibara_taxonomy_discount_max_pct (emitidos por los dos plugins)" },
+    { "a": "akibara-search", "por": "menú admin akibara-panel (SearchAdminSection cuelga su pantalla como submenú, admin_menu prioridad 20)" },
+    { "a": "akibara-cart-checkout-blocks", "por": "interfaz CheckoutDataProvider (6 métodos) + checkout_data() y pudo_checkout() de Akibara\\Business\\Plugin" },
+    { "a": "akibara-cart-checkout-blocks", "por": "options akibara_blocks_shipping_hint_text, akibara_blocks_collection_notice_text y akb_sf_enabled (leídas por nombre)" },
+    { "a": "akibara-cart-checkout-blocks", "por": "shortcodes [akibara_cart_blocks_title] y [akibara_cart_blocks_empty] (el tema suprime su H1 contando con el primero, que vive en el contenido de la página)" },
+    { "a": "akibara-rewards", "por": "clase CompletionPolicy::can_request_review() y función global spar_get_user_points()" },
+    { "a": "akibara-rewards", "por": "Store API CartSchema de WooCommerce, extendido a la vez por rewards y por cart-checkout-blocks, sin contrato entre ellos" },
+    { "a": "tema akibara-gp", "por": "funciones globales akibara_gp_asset_ver() (inc/enqueue.php:37) y akibara_gp_brand_logo() (inc/woocommerce.php:169)" },
+    { "a": "tema akibara-gp", "por": "options de copy akb_copy_promise_installments, akb_copy_footer_support_hours, akb_copy_footer_phone" },
+    { "a": "tema akibara-gp", "por": "funciones puente akibara_search_facets_active() y akibara_search_suggest_active()" },
+    { "a": "tema akibara-gp", "por": "parámetro de URL _buscar (5 superficies) y clase CSS .akb-cart-trigger" },
+    { "a": "Blue Express (tercero)", "por": "fichero bluex-for-woocommerce/includes/data/chile-communes.php leído por ruta desde ComunaDirectory" },
+    { "a": "16-todo-lo-programado", "por": "los 11 trabajos de Action Scheduler y WP-Cron que cruzan de una pieza a otra" },
+    { "a": "17-catalogo-de-datos", "por": "options, tablas akb_search_docs y akb_rewards_ledger, postmeta _akb_eta_* y namespace REST akibara/v1" },
+    { "a": "18-fronteras-con-terceros", "por": "WooCommerce Store API, LiteSpeed, Cloudflare, Blue Express, Brevo y Rank Math" },
+    { "a": "14-mu-plugins-abilities-bluex-brevo-clarity", "por": "akibara-brevo-portada-jpg-en-el-carrito.php, akibara-clarity-production-only.php, clarity-commerce-events.js" },
+    { "a": "15-mu-plugins-correo-litespeed-claves-y-guardas", "por": "akibara-correo-smtp.php, akibara-correo-no-sale-a-clientes.php, akibara-mail-transport-watch.php, akibara-litespeed-guardrails.php, akibara-as-retention.php, akibara-https-urls-fuera-de-web.php, akibara-woo-blocks-i18n.php" }
+  ],
+  "actualizacion_2026_09_26": {
+    "seccion_nueva": "§19 Las costuras del lote del 2026-09-26, con el orden de despliegue y sus acoples",
+    "orden_de_despliegue": "search 0.1.75 -> business 1.117.0 -> checkout-blocks 2.2.26 -> rewards 0.4.18 -> tema 2.1.143 (06:08-06:11 UTC)",
+    "costuras_nuevas": [
+      "akibara_search_empty_after (search -> tema)",
+      "akibara_show_popular_in_empty_search (tema pregunta, business responde)",
+      "mainGrid() de akb-search.js (contrato de DOM con la venta cruzada del tema)",
+      "akb_search_result_count_extra (business -> search)",
+      "akibara_gp_asset_servido() / ThemeAssetVersion::served_path() (tema -> business)",
+      "akb_eta_linea_corta y akb_guide_series_card (tema pregunta, business responde)",
+      "motivo de akb_get_cart (business -> tema)",
+      "data-akb-qv-label (business -> tema)",
+      "AkibaraFormsConfig.messages (business -> tema)",
+      "akb_rewards_carousel_title (rewards -> tema)",
+      "gsap registrado por el tema para el carrusel de rewards",
+      "prioridades de woocommerce_after_add_to_cart_form: despacho 5, puntos 10, sellos 15"
+    ]
+  }
+}

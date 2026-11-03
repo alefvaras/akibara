@@ -1,0 +1,92 @@
+%% Título: Piezas del área mu-plugins (A) y con quién habla cada una
+%% Qué muestra: los ocho mu-plugins de este capítulo agrupados por dominio,
+%% el tercero al que cada uno se engancha, los datos que tocan y quién los opera.
+%% Leyenda de colores: azul = código nuestro, naranja = tercero,
+%% verde = persona o agente, morado = dato que queda guardado.
+%% Las flechas punteadas son enganches que hoy NO corren.
+flowchart LR
+  classDef propio fill:#E8F0FE,stroke:#1A4FBF,stroke-width:2px,color:#0B2545
+  classDef tercero fill:#FDF0E3,stroke:#B36B00,stroke-width:2px,color:#4A2C00
+  classDef persona fill:#EAF7EC,stroke:#1E7B34,stroke-width:2px,color:#0E3A18
+  classDef dato fill:#F3F0F7,stroke:#6B4BA1,stroke-width:2px,color:#2E1A4A
+  classDef inerte fill:#FBEAEA,stroke:#B02A2A,stroke-width:2px,color:#4A0E0E
+
+  subgraph LEYENDA["Leyenda"]
+    LP["código nuestro"]:::propio
+    LT["tercero"]:::tercero
+    LQ["persona o agente"]:::persona
+    LD[("dato guardado")]:::dato
+    LI["hoy no corre"]:::inerte
+  end
+
+  Duenno["Dueño<br/>lee los correos"]:::persona
+  Cliente["Cliente<br/>compra y recibe avisos"]:::persona
+  Agente["Agente de IA<br/>llama abilities por MCP"]:::persona
+
+  subgraph BLUEX["Blue Express - el transportista"]
+    Cotiza["akibara-bluex-cotiza-solo-con-comuna<br/>calla la cotización imposible"]:::propio
+    Vigia["akibara-bluex-integrity-watch<br/>avisa si el paquete llega roto"]:::propio
+    Logs["akibara-bluex-log-retention<br/>2 días de registros, por lotes"]:::propio
+    Track["akibara-bluex-rest-tracking<br/>rescata el número de seguimiento"]:::propio
+    BlueP["bluex-for-woocommerce<br/>tercero"]:::tercero
+    TablaLogs[("wp_bluex_logs")]:::dato
+    OptVigia[("akb_bluex_watch_baseline_seen<br/>akb_bluex_watch_resolved_notified")]:::dato
+  end
+
+  subgraph CORREOMK["Brevo - los correos de marketing"]
+    Brevo["akibara-brevo-portada-jpg-en-el-carrito<br/>INERTE: no engancha, empate en plugins_loaded 20"]:::inerte
+    BrevoP["plugin de Brevo<br/>tercero"]:::tercero
+    Deriv["SocialImageDerivatives<br/>akibara-business"]:::propio
+  end
+
+  subgraph ANALITICA["Clarity - la analítica"]
+    Clar["akibara-clarity-production-only<br/>apaga la etiqueta fuera de producción"]:::propio
+    FrontC["FrontendCompatibility<br/>akibara-business, segundo apagado más estricto"]:::propio
+    ClarP["microsoft-clarity<br/>tercero"]:::tercero
+  end
+
+  subgraph COLA["La cola de tareas de fondo"]
+    Reten["akibara-as-retention<br/>14 días de historial"]:::propio
+    AS["Action Scheduler<br/>tercero"]:::tercero
+  end
+
+  subgraph ABIL["Abilities y MCP - las operaciones para agentes"]
+    Deny["akibara-abilities-denylist<br/>veta dos abilities de Rank Math"]:::propio
+    API["Abilities API + adaptador MCP<br/>tercero"]:::tercero
+    RM["Rank Math<br/>24 abilities públicas"]:::tercero
+    WooAb["WooCommerce<br/>7 abilities públicas"]:::tercero
+    Nuestras["De la casa<br/>5 abilities públicas:<br/>set-focus-keyword y 4 de redirecciones"]:::propio
+    Cat["akibara-rankmath-redirections-abilities<br/>registra la categoría akibara-operations"]:::propio
+  end
+
+  Woo["WooCommerce<br/>carrito, pedidos y envíos"]:::tercero
+
+  Cliente --> Woo
+  Woo -->|"is_available"| Cotiza
+  Cotiza -->|"dice no sin comuna"| BlueP
+  BlueP --> TablaLogs
+  Logs -->|"borra de mil en mil"| TablaLogs
+  Vigia -->|"lee el árbol"| BlueP
+  Vigia --> OptVigia
+  Vigia -->|"correo"| Duenno
+  BlueP -->|"PUT wc/v3"| Track
+  Track -->|"guarda y gatilla aviso"| BlueP
+  BlueP -->|"correo de despacho"| Cliente
+
+  Woo -.->|"eventos de carrito"| Brevo
+  Brevo -.->|"URL en JPG"| BrevoP
+  Brevo -.-> Deriv
+  BrevoP -->|"carrito abandonado, hoy con el hueco"| Cliente
+
+  Clar -.->|"remove_action"| ClarP
+  FrontC -.->|"remove_action, más estricto"| ClarP
+  Reten -->|"filtro de retención"| AS
+  Logs --> AS
+  Vigia --> AS
+
+  Agente --> API
+  API --> RM
+  API --> WooAb
+  API --> Nuestras
+  Deny -.->|"veta en el registro"| RM
+  Cat --> Nuestras

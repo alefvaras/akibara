@@ -1,0 +1,34 @@
+%% Pieza 6 del capítulo 02 — quién presta qué a quién dentro de register_modules().
+%% Qué muestra: las seis dependencias de construcción que fijan el orden de los 74 módulos; mover una línea por encima de otra deja al de abajo sin su colaborador. Incluye el caso raro de marca_term_fields, el único módulo que se CONSTRUYE en la posición 43 y se REGISTRA al final del bloque.
+flowchart LR
+    classDef presta fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef consume fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef raro fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    EDA["estimated_delivery<br/>(src/Plugin.php:1002)"]:::presta
+    TAX["taxonomy_discount"]:::presta
+    ELEG["series_catalog_eligibility<br/>colaborador sin register() propio"]:::presta
+    FACTS["series_facts"]:::presta
+    COLL["customer_collection<br/>(:1175)"]:::presta
+
+    C1["order_preventa (:1044)<br/>series_bundles · series_follow · CollectionResolver"]:::consume
+    C2["native_cart<br/>CheckoutDataService (:1202-1208)"]:::consume
+    C3["series_facts<br/>proveedor de precio del buscador (:1221-1223)"]:::consume
+    C4["series_pagination_policy · seo_enhancements<br/>llms_manifest · series_editions · SeriesIndex"]:::consume
+    C5["series_schema<br/>el bloque visible y el JSON-LD comparten transient"]:::consume
+    C6["series_bundles · account_collection<br/>series_follow (:1252-1260)"]:::consume
+
+    EDA -->|"calculator() — el calculador de fechas"| C1
+    EDA -->|"renderer() — cómo se pinta esa fecha"| C2
+    TAX -->|"settings() y resolver()"| C3
+    ELEG -->|"se le pasa a cinco consumidores"| C4
+    FACTS -->|"la MISMA instancia, no una copia"| C5
+    COLL -->|"la colección del cliente"| C6
+
+    subgraph RARO["El único caso en que construir ≠ registrar"]
+        M1["marca_term_fields<br/>se INSTANCIA en la posición 43 (:1020)"]:::raro
+        M2["crossorigin_scripts (:1025-1026)"]:::consume
+        M3["markdown_negotiation (:1032-1033)"]:::consume
+        M4["marca_term_fields->register() (:1034)"]:::raro
+        M1 --> M2 --> M3 --> M4
+    end

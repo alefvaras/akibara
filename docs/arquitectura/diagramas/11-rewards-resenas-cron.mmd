@@ -1,0 +1,32 @@
+%% Lo programado del capítulo 11 — reseñas con foto.
+%% Qué muestra: que este carril NO tiene ninguna corrida con hora fija de Chile; tiene un trabajo que se agenda por un hecho (la invitación, a +3 días del cambio de estado) y una limpieza que viaja de prestado dentro del cron diario de vencimiento de PUNTOS, anclado a la hora en que se armó.
+timeline
+    title Lo programado de las reseñas (no hay hora de Chile elegida por nadie)
+    section Cuando se activa el plugin
+        Minuto 0 : Expiry ensure_scheduled arma el cron diario de vencimiento de puntos
+                 : queda a +2 h del arranque — esa hora es la que haya sido, no una elegida
+                 : si el vencimiento de puntos está APAGADO, no se arma NADA y no hay limpieza de tokens
+    section Cuando un pedido entra al estado disparador
+        Ese instante : Invitations on_status_changed agenda akb_rewards_send_review_invite
+                     : uno por pedido, con el id del pedido como argumento
+                     : de fábrica el estado es «Completado»
+        Mas 3 dias : send_invite emite el token y manda «[Akibara] ¿Qué te pareció tu pedido?»
+                   : los 3 días son configurables en «Días de espera antes de invitar»
+                   : el pedido sólo se sella si el transporte de correo confirmó
+        Mas 6 horas si fallo : reintento del mismo trabajo
+                             : tope de 3 intentos, y el contador no se reinicia jamás
+                             : cada vuelta deja un token nuevo vivo en la tabla
+    section Cada 24 horas desde que se armó
+        Misma hora mas 2 h : akb_rewards_expiry_daily vence los puntos que tocan
+                           : y DE PASO llama a purge_stale_review_tokens
+                           : borra hasta 500 tokens vencidos hace más de 6 meses y sin usar
+                           : los tokens ya usados se conservan a propósito, para auditar
+    section Como se disparan de verdad
+        Siempre : los dos viven en Action Scheduler, la cola de WooCommerce
+                : DISABLE_WP_CRON está activo en producción
+                : el cron de Hostinger llama a wp-cron.php cada 5 minutos
+                : «a los 3 días» significa «en la primera corrida tras vencer el plazo»
+    section Si corre dos veces
+        La invitación : seguro — sale a la primera línea si el pedido ya tiene _akb_rewards_invite_sent
+                      : y antes de agendar comprueba que no haya otro trabajo en cola
+        La limpieza : seguro — el DELETE es idempotente y acotado con LIMIT 500

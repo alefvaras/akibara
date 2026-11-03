@@ -1,0 +1,51 @@
+%% Máquina de estados del capítulo 09 — los tres estados en que puede estar cada servicio del buscador.
+%% Qué muestra: por qué «configurado» no es lo mismo que «efectivo», qué lo mueve de un estado a otro, y qué ve el cliente y qué ve el dueño en cada uno. Indexación automática es la excepción: no tiene el estado del medio.
+stateDiagram-v2
+    direction TB
+
+    [*] --> Apagado
+
+    Apagado: Apagado — flag OFF
+    Apagado: La option dice no, o la foto autorizada está cerrada
+    Apagado: Panel en gris. Cliente sin desplegable ni filtros propios
+    Apagado: El PANEL sigue entero y operable — se registra fuera de los flags
+
+    NoDisponible: No disponible
+    NoDisponible: La option dice yes pero falta el comprobante de publicación
+    NoDisponible: Panel en naranja CON la causa escrita en castellano
+    NoDisponible: El cliente NO ve un 503: el desplegable y los filtros no se imprimen
+
+    Activo: Activo
+    Activo: Option en yes y comprobante de servido vigente
+    Activo: Panel en verde. Todo funcionando
+
+    Cerrado: Foto autorizada cerrada
+    Cerrado: Un solo byte inválido en cualquiera de las trece options vigiladas
+    Cerrado: Una de las trece es default_product_cat, de WooCommerce
+    Cerrado: Los TRES servicios caen juntos y el panel culpa al flag
+    Cerrado: El panel SIGUE disponible: es desde donde se arregla
+
+    Apagado --> Activo: el dueño enciende el interruptor<br/>y el comprobante está vigente
+    Activo --> Apagado: el dueño apaga el interruptor<br/>en Buscador → Ajustes
+    Activo --> NoDisponible: los precios y facetas publicados<br/>quedaron atrás del catálogo
+    NoDisponible --> Activo: vuelve solo al terminar la próxima<br/>reconstrucción del índice. Para forzarla,<br/>botón Reconstruir del panel<br/>o wp akb-search rebuild
+    NoDisponible --> Apagado: el dueño apaga el interruptor
+    Activo --> Cerrado: se guarda un sinónimo de 5 fichas,<br/>una palabra ignorada de más de 64 caracteres<br/>o una etiqueta de faceta de más de 100
+    NoDisponible --> Cerrado: la misma escritura inválida
+    Cerrado --> Apagado: el panel pinta gris porque<br/>suggest_configured pasa por la foto y da false
+    Cerrado --> Activo: 1. wp option get akb_search_synonyms para ver qué se guardó<br/>2. corregir el valor en su pestaña del panel:<br/>4 fichas por término contando TODAS las palabras<br/>3. recargar Índice → Servicios y probar una búsqueda.<br/>ops/rescate-buscador.sh NO sirve aquí
+
+    note right of Cerrado
+        Esta es la transición cara: nada la avisa.
+        Apagar no borra el índice, y volver a guardar
+        Ajustes NO repara la option que cerró la foto.
+        El motivo existe en authoritative_error pero
+        ninguna pantalla lo imprime.
+    end note
+
+    note left of NoDisponible
+        Indexación automática nunca llega aquí:
+        HealthReport le devuelve un booleano pelado,
+        así que configurado y efectivo son lo mismo
+        por construcción y el panel nunca pinta la causa.
+    end note

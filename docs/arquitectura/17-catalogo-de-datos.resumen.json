@@ -1,0 +1,117 @@
+{
+  "titulo": "Transversal · catálogo de datos: options, tablas, metas y transients, y quién las opera",
+  "capitulo": "17-catalogo-de-datos",
+  "diagramas": [
+    "17-catalogo-de-datos-piezas.mmd",
+    "17-catalogo-de-datos-caso-texto-del-panel.mmd",
+    "17-catalogo-de-datos-caso-descuento-editorial.mmd",
+    "17-catalogo-de-datos-caso-lista-de-espera.mmd",
+    "17-catalogo-de-datos-estado-rebuild.mmd",
+    "17-catalogo-de-datos-caso-desinstalar-business.mmd",
+    "17-catalogo-de-datos-cron.mmd"
+  ],
+  "componentes": 16,
+  "casos": 7,
+  "crons": [
+    "akb_order_preventa_t7_reminder_scan",
+    "akb_bis_cleanup_terminal",
+    "akb_search_reconcile",
+    "akb_search_rebuild_watchdog",
+    "akb_search_editorial_discount_boundary",
+    "akb_rewards_expiry_daily",
+    "akb_rewards_expiry_warn_async",
+    "akb_rewards_birthday_daily",
+    "akb_preventa_vencida_sweep",
+    "akibara_catalog_order_daily",
+    "akibara_business_llms_manifest_refresh",
+    "akibara_business_social_image_derivatives",
+    "akibara_bluex_log_retention_cleanup",
+    "akibara_bluex_integrity_weekly",
+    "delete_expired_transients",
+    "akb_bis_notify_product",
+    "akb_search_pump_live"
+  ],
+  "terceros": [
+    "WordPress (wp_options, wp_postmeta, wp_termmeta, wp_usermeta, wp_commentmeta, theme_mods_akibara-gp, page_for_posts, wp_page_for_privacy_policy, exportadores de privacidad)",
+    "WooCommerce (woocommerce_<id>_settings de los 4 correos WC_Email, HPOS y sus ordermeta incluida _wc_other/akibara/rut, woocommerce_price_num_decimals, woocommerce_default_catalog_orderby, woocommerce_enable_myaccount_registration, campos adicionales de checkout, WooCommerce -> Estado -> Registros)",
+    "Action Scheduler (cola de trabajos; no reintenta un fatal; akibara-as-retention.php acorta su retencion a 14 dias POR FILTRO, no por cron)",
+    "Blue Express / plugin Correios (woocommerce_correios_settings, tabla wp_bluex_logs, metas sin prefijo agencyId/agencyName/agencyAddress/isPudoSelected)",
+    "Rank Math (postmeta rank_math_focus_keyword escrita por mu-plugin propio)",
+    "Creame Joinchat (option joinchat: el telefono que se pinta al cliente)",
+    "Microsoft Clarity (option clarity_project_id)",
+    "LiteSpeed Cache (purga litespeed_purge_all tras guardar el panel)",
+    "GeneratePress (tema padre de akibara-gp)",
+    "Mercado Pago (observacion de scripts, akb_blocks_mp_dequeue_observed con {retirados, at})",
+    "Google Maps / Places (akibara_google_maps_api_key, o la constante AKB_GOOGLE_MAPS_API_KEY en wp-config.php)",
+    "Hostinger (empuja wp-cron.php cada 5 minutos; DISABLE_WP_CRON puesto)",
+    "MariaDB/MySQL (GET_LOCK y los indices UNIQUE que sostienen la idempotencia)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "akibara-search",
+      "por": "EditorialDiscountPublication::options() — cerrojo pre_update_option (PHP_INT_MAX) sobre diez options ajenas, incluida akibara_business_search_feed_contract_version, mas 5 filtros y 3 acciones de termmeta sobre _akb_taxonomy_discount_pct"
+    },
+    {
+      "a": "akibara-business",
+      "por": "options akibara_taxonomy_discount_* y akb_discount_max_pct, escritas en Akibara -> Descuentos (tab taxonomy_discount) y vigiladas por el buscador"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "tres options declaradas por business y leidas por el plugin de bloques: akibara_blocks_shipping_hint_text, akibara_blocks_collection_notice_text y akb_sf_enabled (Assets.php:33, :60, :86)"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "CheckoutFields::RUT_FIELD_ID (akibara/rut) -> meta _wc_other/akibara/rut + sincronia a la ordermeta _billing_rut y la customer meta billing_rut"
+    },
+    {
+      "a": "akibara-rewards",
+      "por": "wp_akb_rewards_ledger.event_key (nullable) + GET_LOCK por usuario + usermeta _akb_rewards_points; 40 options en SettingsPage::FIELDS; correos que NO son WC_Email"
+    },
+    {
+      "a": "tema akibara-gp",
+      "por": "options akb_copy_promise_installments, akb_copy_footer_support_hours y akb_copy_footer_phone leidas por nombre, no por clase; transient akb_gp_series_hub_url en inc/series-breadcrumb.php:90-94"
+    },
+    {
+      "a": "Capitulo · todo lo programado (16)",
+      "por": "los hooks de cron y Action Scheduler que crean, podan o sellan datos; los dos de rewards van SIN grupo"
+    },
+    {
+      "a": "Capitulo · fronteras con terceros (18)",
+      "por": "options de terceros leidas como contrato (joinchat, woocommerce_correios_settings, clarity_project_id) y postmeta rank_math_focus_keyword"
+    },
+    {
+      "a": "Capitulo · como se hablan los plugins (19)",
+      "por": "la frontera de nombres akb_/akibara_ y las listas de exclusion de los tres uninstall.php"
+    },
+    {
+      "a": "Capitulo · mu-plugins (14 y 15)",
+      "por": "de los 17 mu-plugins, cuatro guardan estado; el desinstalador de business borra cuatro de sus options"
+    },
+    {
+      "a": "ops/rescate-buscador.sh",
+      "por": "akb_search_rebuild_state y las tablas sombra _new: la sombra primero, la option despues; verificacion con wp akb-search status / rebuild"
+    },
+    {
+      "a": "WooCommerce -> Ajustes -> Correos",
+      "por": "woocommerce_akb_bis_instock_settings, _akb_sf_series_, _akb_preventa_reminder_ y _akb_preventa_ready_settings (segunda puerta de los 4 correos WC_Email; los de puntos no la tienen)"
+    }
+  ],
+  "correcciones_aplicadas": {
+    "fuente": ".criticas/17-catalogo-de-datos.md (critica de lector novato)",
+    "contradicciones_corregidas": [
+      "El watchdog SI actua con la fase BLOCKED o ABORTED (RebuildJob.php:692-700): 'permanente' es el rebuild, no el rescate del serving",
+      "akibara-business tiene 61 modulos, no ~40",
+      "akibara-rewards tiene 40 campos en seis secciones, no 36",
+      "Los correos de puntos NO son WC_Email y no tienen segundo interruptor (Points/Emails.php:125, :142-162)",
+      "Son OCHO hooks de termmeta (5 filtros + 3 acciones), no tres",
+      "La retencion de Action Scheduler es un FILTRO, no un cron",
+      "akb_sf_enabled es la TERCERA option de business que lee el plugin de bloques",
+      "AKIBARA_REWARDS_ALLOW_WIPE debe estar definida Y en true",
+      "uninstall.php:16-18 (metas respetadas) y ReadyToShipEmail.php:82 (literal del asunto)",
+      "48 claves akb_copy_* distintas en el snapshot"
+    ],
+    "refutado_al_critico": [
+      "2.17: guardar sinonimos o palabras ignoradas NO dispara reconstruccion; la propia pantalla promete 'sin reindexar' y el guardado solo persiste la option y vacia la memoria del proceso"
+    ]
+  }
+}

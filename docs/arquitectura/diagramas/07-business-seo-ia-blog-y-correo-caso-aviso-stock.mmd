@@ -1,0 +1,53 @@
+%% Caso del capítulo 07 — un cliente pidió aviso de stock y el tomo vuelve a bodega.
+%% Qué muestra: las cinco capas que atraviesa un correo propio (base, remitente, transporte, guardarraíl del espejo) y las tres bifurcaciones que lo cortan.
+sequenceDiagram
+    autonumber
+    actor Duena as Dueño (repone stock)
+    participant WOO as WooCommerce
+    participant CRON as Cola / WP-Cron
+    participant DISP as BackInStock NotificationDispatcher
+    participant BOOT as MailerBoot
+    participant MAIL as InstockEmail (AkibaraEmail)
+    participant FROM as MailFrom
+    participant MU as mu akibara-correo-smtp
+    participant CAP as mu correo-no-sale-a-clientes
+    participant SMTP as smtp.hostinger.com
+    actor Cliente as Cliente
+
+    Duena->>WOO: guarda stock del tomo
+    WOO->>CRON: encola el trabajo de avisos
+    Note over CRON: 2-3 minutos: el correo NO sale al reponer
+    CRON->>DISP: akb_bis_notify_product (StockWatcher.php:119)
+    DISP->>DISP: claim atómico (at-most-once por suscripción)
+    Note over DISP: No se registra en woocommerce_email_actions<br/>para que el re-dispatch de WooCommerce no lo repita
+    DISP->>BOOT: from_mailer()
+    BOOT->>WOO: WC()->mailer() si WC_Email no está cargada
+    BOOT-->>DISP: la instancia de InstockEmail
+    DISP->>MAIL: trigger(suscripción)
+
+    alt El correo del suscriptor está vacío
+        MAIL-->>DISP: no se envía nada
+    else Hay destinatario
+        MAIL->>MAIL: cuerpo HTML + cuerpo en texto plano (multipart)
+        MAIL->>MAIL: get_headers(): List-Unsubscribe y List-Unsubscribe-Post
+        MAIL->>FROM: wp_mail()
+        FROM-->>MAIL: From: Akibara <contacto@akibara.cl> (ignora lo entrante)
+
+        alt El entorno NO es producción
+            MAIL->>CAP: filtro wp_mail en PHP_INT_MAX
+            CAP-->>MAIL: destinatario reescrito a capturado@akibara.test<br/>y «[para dirección original]» en el asunto
+        end
+
+        MAIL->>MU: pre_wp_mail (PHP_INT_MAX)
+        alt El perfil SMTP no valida
+            MU-->>MAIL: false — se corta antes del mail() de PHP
+            MU->>MU: escribe akibara_mail_transport_outage y grita en el admin
+        else El perfil valida
+            MU->>SMTP: PHPMailer configurado (465/ssl o 587/tls)
+            SMTP-->>Cliente: «{product_name} está de vuelta en Akibara»
+            Note over SMTP,Cliente: El marcador es LITERALMENTE lo que se escribe<br/>en WooCommerce → Ajustes → Correos.<br/>El cliente lee «Berserk 43 está de vuelta en Akibara»
+            SMTP->>MU: wp_mail_succeeded → borra el rastro
+        end
+    end
+
+    Note over Cliente: Hoy la portada incrustada es el AVIF que Gmail no pinta,<br/>y el texto plano pierde apóstrofos (sospecha S2 y el escapado doble)

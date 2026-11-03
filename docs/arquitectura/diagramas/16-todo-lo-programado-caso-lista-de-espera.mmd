@@ -1,0 +1,56 @@
+%% Caso 2 del capítulo 16 — un tomo agotado vuelve a bodega y hay gente apuntada.
+%% Qué muestra: el carril «avísame cuando llegue» desde la reposición hasta el correo, con las tres bifurcaciones que lo pausan sin perder suscriptores y el reparto en tandas de 20.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant Woo as WooCommerce
+    participant Watcher as StockWatcher<br/>BackInStock, prioridad 11
+    participant Cola as Action Scheduler<br/>grupo akibara-bis
+    participant Disp as NotificationDispatcher
+    participant Tabla as Tabla de inscripciones
+    participant Alta as SubscriptionNotice<br/>colgado del aviso akb_bis_subscribed
+    participant Correo as Transporte de correo
+    actor Cliente
+
+    Cliente->>Tabla: se anota en la lista de espera del tomo
+    Tabla->>Alta: dispara el aviso akb_bis_subscribed
+    Alta->>Correo: «Te anotamos en la lista de espera de {producto}»
+    Correo->>Cliente: llega en el momento del alta
+    Note over Alta,Correo: sale con wp_mail() plano, no es un WC_Email:<br/>no se puede apagar desde WooCommerce<br/>ni depende del interruptor de despacho
+
+    Dueno->>Woo: repone el tomo, pasa a «en stock»
+    Woo->>Watcher: woocommerce_product_set_stock_status, prioridad 11
+    Note over Watcher: prioridad 11, justo DESPUÉS del listener de preventa, que va en 10
+    Watcher->>Tabla: ¿cuánta gente espera?
+    alt no hay nadie apuntado
+        Watcher-->>Woo: sale sin hacer nada
+    else hay al menos una inscripción
+        Watcher->>Cola: encola akb_bis_notify_product, dedupea por argumentos
+        Cola->>Disp: arranca el despachador
+        Disp->>Woo: RE-VALIDA el stock — pudo volver a caer entre el encolado y el trabajador
+        Disp->>Disp: dispara akb_bis_subscribers_ready con producto y cuántos esperan
+        Note over Disp: nunca con correos ni tokens, para no filtrar datos a oyentes de terceros
+
+        alt Bifurcación A — el interruptor de despacho está apagado
+            Disp->>Cola: no marca ni envía, se re-agenda máximo 4 veces cada 15 min
+            Note over Cola: el contador viaja en los args como pause_try
+            Note over Dueno,Disp: por qué estaría apagado&#58; es el freno de mano de un envío masivo<br/>(reposición parcial, devolución, inventario a corregir, dudas del correo).<br/>El cliente no ve NADA distinto y no hay alarma&#58; solo lo delata<br/>la tabla de demanda de Akibara → Lista de espera
+        else Bifurcación B — las clases de correo de WooCommerce aún no cargan
+            Disp->>Cola: se re-agenda a +60 s con el MISMO contador acotado
+        else Bifurcación C — el correo está deshabilitado en WooCommerce
+            Disp->>Cola: se re-agenda acotado y registra el hecho UNA sola vez
+            Note over Disp: no quema el lote marcándolo como notificado.<br/>La casilla está en WooCommerce → Ajustes → Correos electrónicos,<br/>fila akb_bis_instock
+        else Camino normal
+            loop tandas de 20 suscriptores, la siguiente a +60 s
+                Disp->>Tabla: reclamo atómico mark_notified
+                Disp->>Correo: «{producto} está de vuelta en Akibara»
+                Correo->>Cliente: correo recibido 2 o 3 minutos tras reponer
+                opt el envío falla
+                    Disp->>Tabla: registra el intento y la fila vuelve al conjunto hasta el máximo
+                    Note over Tabla: agotados los intentos, queda en failed
+                end
+            end
+        end
+    end
+
+    Note over Watcher,Cola: trampa conocida&#58; apagar y volver a encender el interruptor<br/>con jobs en pausa pendientes duplica un job por producto —<br/>esos llevan args product_id + pause_try y el guard de alta solo consulta product_id

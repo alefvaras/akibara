@@ -1,0 +1,97 @@
+{
+  "titulo": "akibara-business · disponible, a pedido y preventa; entrega estimada; «avísame cuando llegue»",
+  "capitulo": "04-business-disponibilidad-preventa-y-avisos",
+  "diagramas": [
+    "04-business-disponibilidad-preventa-y-avisos-piezas.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-caso-compra-a-pedido.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-caso-ya-llego.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-caso-cambio-de-fecha.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-caso-lista-de-espera.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-cron.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-estados-disponibilidad.mmd",
+    "04-business-disponibilidad-preventa-y-avisos-estados-pedido.mmd"
+  ],
+  "componentes": 73,
+  "casos": 18,
+  "crons": [
+    "akb_preventa_vencida_sweep",
+    "akb_order_preventa_recompute_ready",
+    "akb_order_preventa_t7_reminder_scan",
+    "akb_bis_cleanup_terminal",
+    "akb_order_preventa_recompute_for_product",
+    "akb_order_preventa_dispatch_ready_email",
+    "akb_order_preventa_release_date_changed_batch",
+    "akb_order_preventa_verify_carrier_handoff",
+    "akb_order_preventa_verify_bluex_handoff",
+    "akb_bis_notify_product"
+  ],
+  "terceros": [
+    "WooCommerce (pedidos, clases WC_Email, Action Scheduler y los hooks de stock, checkout y Store API)",
+    "Blue Express / WC Correios (option woocommerce_correios_settings['noBlueStatus'], función wc_correios_getTrackingCodes, meta _correios_tracking_code, API eplin.api.blue.cl bloqueada en local)",
+    "Joinchat (option joinchat['telephone']: el WhatsApp del pie de los correos de preventa, con respaldo a fuego +56944242844)",
+    "LiteSpeed Cache (purga de página tras el barrido de vencidas y tras cambiar una fecha desde «Por llegar»; filtro litespeed_ucss_whitelist)",
+    "Rank Math (siete filtros de SEO propios de /a-pedido/ y /disponibles/)",
+    "Google Listings & Ads (filtro woocommerce_gla_product_attribute_values: availabilityDate del feed de Google Shopping)",
+    "Hostinger (la tarea del panel que llama a wp-cron.php cada 5 minutos; DISABLE_WP_CRON está encendido)",
+    "WordPress (privacidad: wp_privacy_personal_data_exporters y _erasers; wp_insert_post_data para preservar post_modified)",
+    "Gmail y Yahoo (RFC 8058: el par List-Unsubscribe / List-Unsubscribe-Post y el botón nativo de baja por POST)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "akibara-search",
+      "por": "filtros akb_search_availability_value y akb_stock_status_label (Stock\\SearchAvailabilityBridge); akb_search_query_vars desde las dos rutas; y el reindexado que dispara save_post_product tras el barrido de preventas vencidas"
+    },
+    {
+      "a": "akibara-cart-checkout-blocks",
+      "por": "Contracts\\CheckoutDataProvider, implementado por Services\\CheckoutDataService (CheckoutDataService.php:31) — product_availability() y summarize_cart(): palabra del estado, si es reservable, fecha formateada y nota de la tanda del corte más tardío"
+    },
+    {
+      "a": "akibara-rewards",
+      "por": "llamada estática directa desde akibara-rewards/src/Reviews/Invitations.php:131-132 y :175-176 a OrderPreventa\\CompletionPolicy::can_request_review(), protegida por class_exists(): dependencia dura, no un filtro. Los filtros akb_order_preventa_can_complete_order y akb_order_preventa_can_request_review existen como punto de extensión pero HOY NO LOS ENGANCHA NADIE (sólo las dos líneas que los declaran, CompletionPolicy.php:161 y :174)"
+    },
+    {
+      "a": "akibara-business · los 13 ficheros de fuera del área que llaman a Stock\\Availability (24 en total en el corte): LoopEnhancer, PdpEnhancer, ProductFaq, TaxonomyDiscount\\Settings, SchemaProductRankMath, SeoEnhancements, AgentReadiness\\MarkdownNegotiation, SeriesFollow\\DigestRunner, SeriesBundles\\{BuilderWidget,LandingOffer,BypCartNoticeProvider,CartSeriesCollector}, AccountCollection\\CollectionResolver, NativeCart",
+      "por": "Stock\\Availability::label_of(), ::is_preventa() y ::is_valid_release_date(), más la constante Availability::LABELS; y LoopEnhancer\\SaleDiscount::configured_min_pct() vía el filtro akibara_loop_sale_badge_min_pct. Dos de esos consumidores llegan a Google: SchemaProductRankMath:443,449 decide PreOrder vs BackOrder y si sale availabilityStarts, y ProductFaq:108 escribe literales propios ('disponible en preventa'/'disponible a pedido') en texto indexable"
+    },
+    {
+      "a": "akibara-business · BackInStock hacia las tarjetas y el constructor de packs",
+      "por": "filtros akibara_loop_waitlist_active, akb_sb_waitlist_active y akibara_bis_form_anchor"
+    },
+    {
+      "a": "16-todo-lo-programado",
+      "por": "los 4 eventos de WP-Cron y los 6 de Action Scheduler de este capítulo, con sus horas de Chile y los grupos akibara-order-preventa y akibara-bis"
+    },
+    {
+      "a": "17-catalogo-de-datos",
+      "por": "metas _akb_eta_*, _akb_preventa_vencida_swept, la tabla akb_bis_subscribers, las options akb_preventa_*, akb_bis_* y akb_copy_eta_*, y los seis transients del área"
+    },
+    {
+      "a": "18-fronteras-con-terceros",
+      "por": "el contrato neutral OrderPreventa\\FulfillmentCapabilities con sus nueve filtros, el adaptador Integrations\\Bluex\\OrderPreventaAdapter y las dos options de terceros que se leen directo"
+    },
+    {
+      "a": "19-como-se-hablan-los-plugins",
+      "por": "akb_eta_release_date_changed, akb_order_preventa_marked_ready, akb_bis_subscribed, akb_bis_subscribers_ready y akb_bis_notify_product"
+    },
+    {
+      "a": "15-mu-plugins-correo-litespeed-claves-y-guardas",
+      "por": "sin el transporte de correo de los mu-plugins no sale ninguno de los cinco correos de este capítulo; y las barandas de LiteSpeed condicionan las purgas y el recorte de CSS"
+    },
+    {
+      "a": "Servicios compartidos de akibara-business",
+      "por": "Services\\AkibaraEmail (esqueleto de los tres correos, enabled por defecto yes, cabeceras RFC 8058), Services\\MailerBoot::ready() y Services\\OneClickPage"
+    },
+    {
+      "a": "akibara-gp (tema)",
+      "por": "ninguna: el tema no sobreescribe ninguna plantilla de correo de este capítulo (woocommerce/emails/ sólo tiene header, footer, new-account, refunded-order y reset-password)"
+    },
+    {
+      "a": "Utilidades compartidas de akibara-business",
+      "por": "Utilities\\StoreTime (la zona America/Santiago de las 7 menciones de «hora de Chile»; se cambia en Ajustes → Generales de WordPress), Utilities\\RateLimit (12 altas/hora/IP con exención manage_woocommerce y ventana de balde fijo), Utilities\\Text::length() y Modules\\Forms\\Honeypot (campo akb_hp_url, compartido con el formulario de contacto)"
+    },
+    {
+      "a": "Hostinger · el empuje de wp-cron.php",
+      "por": "DISABLE_WP_CRON encendido y una tarea del panel cada 5 minutos: action_scheduler_run_queue está AGENDADO cada minuto pero sólo avanza con ese empuje, así que la latencia real de los correos por cola es de 1 a ~10 minutos, no «menos de un minuto»"
+    }
+  ]
+}

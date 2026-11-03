@@ -1,0 +1,45 @@
+%% Caso 5 del capítulo 03 — no hay UN orden de los tomos: hay cuatro, con cuatro reglas distintas.
+%% Qué muestra: qué pregunta contesta cada orden, quién lo calcula, contra qué dato desempata y con qué caducidad. Los cuatro conviven en el mismo sitio y confundirlos es lo que hace que «el orden está mal» sea un diagnóstico imposible sin decir PRIMERO cuál de los cuatro.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef pregunta fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+
+    Q["«¿Por qué salen en ese orden?»<br/>La respuesta empieza por: ¿en QUÉ pantalla?"]:::pregunta
+
+    Q --> A
+    Q --> B
+    Q --> C
+    Q --> D
+
+    subgraph A_["1 · El del catálogo — /tienda/ y cualquier listado sin criterio elegido"]
+        A["Lo llaman «Destacados»"]:::pregunta
+        A1["CatalogOrder + Interleaver<br/>UNA consulta trae todos los productos publicados con su serie, su stock y su orden actual"]:::propio
+        A2["Interleaver: agrupa por serie · ordena las series por su tomo VENDIBLE más nuevo · dentro de cada serie, lo vendible antes que lo agotado · y reparte POR RONDAS"]:::propio
+        A3["wp_posts.menu_order<br/>se escriben SÓLO los que cambian, en lotes de 200, sin wp_update_post"]:::dato
+        A --> A1 --> A2 --> A3
+    end
+
+    subgraph B_["2 · El de dentro de una serie — /serie/&lt;slug&gt;/"]
+        B["«¿Por qué el tomo 10 está antes que el 2?» — la pregunta clásica"]:::pregunta
+        B1["Lo da el MISMO menu_order, pero como todos los tomos comparten serie quedan consecutivos y el desempate real lo pone el TÍTULO"]:::propio
+        B2["Por eso el bootstrap rellena el número a dos dígitos al guardar: «Gannibal 1» → «Gannibal 01». El slug NO se toca, para no cambiar URLs"]:::propio
+        B3["Es un PROCESO, no un arreglo puntual: sin él, el primer tomo nuevo de una serie rompe el orden al llegar al 10"]:::dato
+        B --> B1 --> B2 --> B3
+    end
+
+    subgraph C_["3 · El del armador de packs y las listas de faltantes"]
+        C["Aquí el alfabético ya no alcanza"]:::pregunta
+        C1["Con más de 99 tomos, «100» cae antes que «11» INCLUSO con el relleno a dos dígitos"]:::dato
+        C2["El SQL ordena por título y después PHP reordena por NÚMERO DE TOMO extraído del título (VolumeTitle::sort_records)"]:::propio
+        C3["VolumeTitle es deliberadamente estricto: devuelve «no sé» para los decimales (1.5), los omnibus y los especiales, y ésos quedan AL FINAL de todas las listas"]:::propio
+        C --> C1 --> C2 --> C3
+    end
+
+    subgraph D_["4 · El del directorio de series — /series/"]
+        D["Distinto en naturaleza: no ordena TOMOS, ordena NOMBRES"]:::pregunta
+        D1["strcmp sobre el nombre plegado, y NUNCA strcoll: strcoll depende del idioma del proceso y daría un orden distinto según dónde corra el código"]:::propio
+        D2["Se ordena por el nombre TAL COMO SE VE: «El Verano que Hikaru Murió» se archiva en la E, no en la V"]:::propio
+        D3["Congelado 6 h en el transient del directorio"]:::dato
+        D --> D1 --> D2 --> D3
+    end

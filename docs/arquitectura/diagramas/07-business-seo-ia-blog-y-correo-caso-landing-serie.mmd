@@ -1,0 +1,55 @@
+%% Caso del capítulo 07 — una búsqueda en Google cae en la landing de una serie.
+%% Qué muestra: el orden real de las decisiones (primero si la página merece indexarse, después qué título se publica) y las cuatro bifurcaciones que la desvían.
+sequenceDiagram
+    autonumber
+    actor Cliente as Cliente (desde Google)
+    participant WP as WordPress
+    participant RM as Rank Math (tercero)
+    participant PAG as SeriesPaginationPolicy
+    participant ELE as SeriesCatalogEligibility
+    participant ENH as SeoEnhancements
+    participant FACTS as SeriesFacts
+    participant LSC as LiteSpeed Cache
+
+    Cliente->>WP: GET /serie/the-climber/
+    WP->>PAG: wp_robots (98) y rank_math/frontend/robots (98)
+    PAG->>ELE: ¿esta serie tiene productos publicados y visibles?
+
+    alt No hay catálogo público
+        ELE-->>PAG: 0 productos
+        PAG-->>WP: noindex,follow (aunque el conteo bruto diga otra cosa)
+        Note over PAG,WP: Aquí acaba la historia
+    else La lectura de catálogo falla
+        ELE-->>PAG: no fiable
+        PAG->>LSC: litespeed_control_set_nocache
+        Note over PAG,LSC: No se decide nada: el próximo request reintenta
+    else La URL trae cualquier parámetro
+        Note over PAG: applies_to_current_request() se inhibe<br/>y manda FilteredUrlsPolicy (noindex,follow)
+    else Hay catálogo y la URL está limpia
+        ELE-->>PAG: N productos
+        PAG-->>WP: index,follow + canonical a sí misma
+    end
+
+    WP->>RM: arma title y description
+    RM->>ENH: rank_math/frontend/title (20)
+    ENH->>ENH: ¿hay rank_math_title a mano? (hash != guardado)
+
+    alt Lo escribió una persona
+        ENH-->>RM: no se toca
+    else Vacío o foto generada reconocible
+        ENH->>ENH: medio de la serie — transient de 36 h, y el vacío no se cachea
+        ENH->>FACTS: tomos, autor único, editorial única, precio mínimo, cuántos en stock
+        FACTS-->>ENH: los hechos del catálogo de hoy
+        ENH->>ENH: compose_series_meta(): variantes ENTERAS, 62 caracteres
+        alt Alguna variante cabe
+            ENH-->>RM: «The Climber manga completo: 17 tomos»
+        else Ninguna cabe
+            ENH-->>RM: cadena vacía → se publica la plantilla de Rank Math
+        end
+    end
+
+    RM->>ENH: rank_math/frontend/title (99)
+    ENH-->>RM: sufija «Página 2 de 4» si toca
+    RM->>ENH: rank_math/json_ld (92)
+    ENH-->>RM: miga de pan alineada con la visible
+    RM-->>Cliente: HTML con title, description, canonical y datos estructurados

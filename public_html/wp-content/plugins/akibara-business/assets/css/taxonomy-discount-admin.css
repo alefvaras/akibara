@@ -1,0 +1,274 @@
+/*
+ * Descuentos por taxonomía — interfaz de administración.
+ *
+ * Se carga únicamente en Akibara > Descuentos. Mantener estos estilos fuera
+ * del render PHP permite cachearlos y evita reglas globales en otros tabs.
+ */
+
+.akb-discount-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 16px 20px;
+	margin: 16px 0;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.akb-discount-card__heading {
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin: 0 0 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.akb-status {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 32px;
+	align-items: center;
+}
+
+.akb-status__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.akb-status__dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.akb-status__dot--on {
+	background: #00a32a;
+	box-shadow: 0 0 0 3px rgba(0, 163, 42, 0.15);
+}
+
+.akb-status__dot--off {
+	background: #c3c4c7;
+}
+
+.akb-status__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.akb-status__meta strong {
+	color: #1d2327;
+}
+
+.akb-status__cta {
+	margin-left: auto;
+}
+
+.akb-active-rules {
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+}
+
+.akb-active-rules th,
+.akb-active-rules td {
+	padding: 10px 12px;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 13px;
+	text-align: left;
+}
+
+.akb-active-rules th {
+	color: #50575e;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.akb-active-rules tr:last-child td {
+	border-bottom: none;
+}
+
+.akb-active-rules .akb-pct-cell {
+	color: #b32d2e;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.akb-active-rules .akb-empty {
+	padding: 16px 12px;
+	color: #50575e;
+	font-style: italic;
+}
+
+.akb-explore-intro {
+	margin: 24px 0 8px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #c3c4c7;
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.akb-accordion {
+	margin: 8px 0;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.akb-accordion[open] {
+	border-color: #2271b1;
+}
+
+.akb-accordion__summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 44px;
+	padding: 10px 16px;
+	cursor: pointer;
+	font-size: 14px;
+	list-style: none;
+	user-select: none;
+}
+
+.akb-accordion__summary::-webkit-details-marker {
+	display: none;
+}
+
+.akb-accordion__summary::before {
+	content: "▸";
+	display: inline-block;
+	margin-right: 10px;
+	color: #50575e;
+	transition: transform 0.15s ease;
+	transform: rotate(0deg);
+}
+
+.akb-accordion[open] > .akb-accordion__summary::before {
+	transform: rotate(90deg);
+}
+
+.akb-accordion__title {
+	flex: 1;
+	color: #1d2327;
+	font-weight: 600;
+}
+
+.akb-accordion__meta {
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 400;
+}
+
+.akb-accordion__body {
+	padding: 4px 16px 16px;
+	border-top: 1px solid #f0f0f1;
+}
+
+.akb-accordion__body .form-table {
+	margin-top: 0;
+}
+
+.akb-accordion--general {
+	background: #f6f7f7;
+}
+
+.akb-tax-filter-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	margin: 12px 0;
+}
+
+.akb-tax-filter-bar input[type="search"] {
+	min-width: 240px;
+	min-height: 40px;
+}
+
+.akb-tax-filter-bar__search {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-weight: 600;
+}
+
+.akb-tax-filter-bar .akb-counter {
+	color: #50575e;
+	font-size: 12px;
+}
+
+.akb-filter-bar-cell {
+	padding: 0 !important;
+}
+
+.akb-taxonomy-discount-row input.akb-pct-active {
+	background-color: #fffbeb;
+	border-color: #dba617;
+}
+
+.akb-sticky-save-bar {
+	display: none;
+	position: sticky;
+	bottom: 0;
+	z-index: 100;
+	margin: 20px -22px -22px;
+	padding: 12px 20px;
+	background: #fffbeb;
+	border-top: 2px solid #dba617;
+	box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.akb-sticky-save-bar.is-active {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+@media (max-width: 782px) {
+	.akb-status {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.akb-status__cta {
+		margin-left: 0;
+	}
+
+	.akb-active-rules {
+		display: block;
+		overflow-x: auto;
+	}
+
+	.akb-accordion__summary {
+		align-items: flex-start;
+		gap: 6px;
+	}
+
+	.akb-tax-filter-bar,
+	.akb-tax-filter-bar__search,
+	.akb-tax-filter-bar input[type="search"] {
+		width: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.akb-accordion__summary::before {
+		transition: none;
+	}
+}

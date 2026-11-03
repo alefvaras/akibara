@@ -1,0 +1,100 @@
+/* Vitrina «Series más buscadas» de la portada (HomeSeriesDestacadas).
+ * Tokens del tema; portada 2:3 con la misma jaula de portada rota que el
+ * resto del sitio (.akb-cover-cage + .akb-cover--error, main.js/woocommerce.css). */
+.akb-home-series {
+    margin: var(--space-10, 40px) 0;
+}
+
+/*
+ * Hasta 768px, el tema convierte la vitrina de portada en fila horizontal desplazable; este
+ * componente no impone columnas móviles alternativas.
+ */
+.akb-home-series__grid {
+    display: grid;
+    gap: var(--space-4, 16px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@media (min-width: 769px) {
+    .akb-home-series__grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 900px) {
+    .akb-home-series__grid--cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .akb-home-series__grid--cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .akb-home-series__grid--cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+.akb-home-series__item {
+    margin: 0;
+    min-width: 0;
+}
+
+.akb-home-series__link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2, 8px);
+    color: var(--aki-white, #fff);
+    text-decoration: none;
+    border-radius: var(--radius-md, 8px);
+}
+
+/* El foco de la casa es amarillo (DS-5); el rojo es de comprar. */
+.akb-home-series__link:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-home-series__cover {
+    position: relative;
+    display: block;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border-radius: var(--radius-md, 8px);
+    background: var(--aki-surface-3, #222);
+}
+
+.akb-home-series__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (hover: hover) {
+    .akb-home-series__link:hover .akb-home-series__cover img {
+        transform: scale(1.04);
+    }
+    .akb-home-series__link:hover .akb-home-series__name {
+        color: var(--aki-red, #d90010);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .akb-home-series__cover img {
+        transition: none;
+    }
+}
+
+.akb-home-series__name {
+    font-family: var(--font-heading, inherit);
+    font-size: 1rem;
+    line-height: 1.2;
+    /* Bebas Neue sólo tiene 400: con 700 el navegador inventaba un trazo
+       grueso (negrita falsa, DS-17). Mismo criterio que los títulos del tema. */
+    font-weight: 400;
+    font-synthesis: none;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.akb-home-series__meta {
+    font-size: 0.85rem;
+    color: var(--aki-gray-300, #b0b0b0);
+}

@@ -1,0 +1,66 @@
+%% Máquina de estados del capítulo 08 — las fases de un rebuild y la topología de tablas que le corresponde.
+%% Qué muestra: las diez fases de akb_search_rebuild_state (RebuildJob.php:87-96) cruzadas con las cuatro topologías posibles, el punto exacto en que se apaga el buscador, y por qué BLOCKED es un pestillo que ni el panel ni la consola deshacen.
+stateDiagram-v2
+    direction TB
+    [*] --> Reposo
+
+    Reposo: Reposo sano
+    Reposo: option AUSENTE · topología clean_pre (sólo las vivas)
+    Reposo: el buscador sirve
+
+    Preparando: PREPARING
+    Preparando: crea docs_new, tokens_new y facet_index_new
+    Preparando: topología clean_pre → ready_swap
+
+    Construyendo: BUILDING
+    Construyendo: lotes de 200 tareas baseline, 20 s de reloj por invocación
+    Construyendo: el cliente SIGUE buscando con el índice viejo
+
+    Alcanzando: CATCHING_UP
+    Alcanzando: drena la deuda «repair» acumulada mientras construía
+    Alcanzando: exige 0 faltantes, 0 sobrantes, 0 huérfanos y foto editorial quieta
+
+    Intento: SWAP_INTENT
+    Intento: escribe generation_target y ejecuta el RENAME TABLE
+    Intento: AQUÍ SE CIERRA EL GATE PÚBLICO — 503 en suggest y filtros
+
+    Cambiado: SWAPPED
+    Cambiado: las vivas pasaron a _old y las _new a vivas
+    Cambiado: topología swapped
+
+    Publicando: PUBLISHING
+    Publicando: seis confirmaciones idempotentes en orden
+    Publicando: buckets, generación, purga REST, huella semántica, recibo editorial, historial
+
+    Limpiando: CLEANUP
+    Limpiando: suelta las _old tras comprobar DOS veces que no queda deuda
+
+    Hecho: DONE
+    Hecho: borra akb_search_rebuild_state — el gate se REABRE
+
+    Trabado: BLOCKED o ABORTED
+    Trabado: topología ambiguous, o una lectura de metadata que falló
+    Trabado: nadie lo reanima — recovery_decision devuelve idle y schedule() sale ante fase terminal
+
+    Rescate: bash ops/rescate-buscador.sh produccion
+
+    Reposo --> Preparando: llega una solicitud en akb_search_pending_rebuild
+    Preparando --> Construyendo: manifiesto baseline sembrado
+    Construyendo --> Alcanzando: se agotó la deuda baseline
+    Alcanzando --> Intento: cobertura EXACTA y la foto editorial no se movió
+    Alcanzando --> Construyendo: apareció deuda nueva — se vuelve a drenar<br/>(es lo que alarga un rebuild sobre una tienda viva)
+    Intento --> Cambiado: RENAME TABLE atómico
+    Cambiado --> Publicando: topología swapped confirmada
+    Publicando --> Limpiando: las seis confirmaciones cumplidas
+    Publicando --> Trabado: block_locked() — el fallo de publicación se persiste y SÍ alarma
+    Limpiando --> Trabado: block_locked() — igual desde la limpieza
+    Publicando --> Publicando: una confirmación que no se cumple gira cada 15 min EN SILENCIO
+    Limpiando --> Hecho: las _old desaparecieron
+    Hecho --> Reposo: estado retirado
+    Preparando --> Trabado: ambigüedad de topología
+    Intento --> Trabado: swap_intent_recovery_mismatch
+    Reposo --> Trabado: primer arranque con tablas _new y sin estado (orphan_topology_without_state)
+    Trabado --> Trabado: el vigilante entra igual cada 15 min, intenta el arreglo barato y avisa por correo
+    Trabado --> Rescate: una persona ejecuta el guion
+    Rescate --> Reposo: suelta la sombra PRIMERO y retira la option DESPUÉS
+    Rescate --> Rescate: si aparecen tablas _old el guion PARA — ahí _old es la marcha atrás, no residuo

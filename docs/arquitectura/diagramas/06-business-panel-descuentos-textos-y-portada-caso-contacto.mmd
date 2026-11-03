@@ -1,0 +1,62 @@
+%% Caso 7 del capítulo 06 — un cliente escribe por el formulario de contacto.
+%% Qué muestra: el orden exacto de las guardas del endpoint público (incluida la de campos vacíos, que es el corte más frecuente), por qué el mensaje se guarda ANTES de intentar el correo, y el único correo que sale de este capítulo con su asunto, su remitente y su momento.
+sequenceDiagram
+    actor Cliente
+    participant Tema as tema akibara-gp (JS del formulario)
+    participant REST as ContactoSubmit (endpoint REST)
+    participant RL as RateLimit
+    participant Log as ContactoLog
+    participant Mail as wp_mail
+    participant Dueno as Bandeja del dueño
+    participant Dash as Centro de Mando
+
+    Cliente->>Tema: rellena nombre, correo y mensaje en /contacto/
+    Tema->>REST: POST /wp-json/akibara/v1/contacto (SIN nonce, a propósito)
+    Note over Tema,REST: la página se sirve cacheada — un nonce caducado<br/>rompía el formulario a las 12–24 horas
+
+    REST->>REST: esquema: nombre ≤120, correo ≤120, mensaje ≤4000
+    alt Algún campo excede su largo
+        REST-->>Cliente: 400 antes de llegar al handler
+    else Campos dentro del largo
+        REST->>RL: ¿más de 20 intentos por minuto desde esta IP?
+        alt Cuota de minuto excedida
+            RL-->>Cliente: 429
+        else Dentro de la cuota
+            REST->>REST: ¿el campo trampa viene relleno?
+            alt Honeypot activado
+                REST-->>Cliente: 200 «todo bien» y se descarta en silencio
+            else Campo trampa vacío
+                REST->>REST: Origin/Referer de otro dominio → 403 — sin cabecera, se permite
+                REST->>REST: ¿falta nombre, correo o mensaje?
+                Note over REST: el correo se mide EN CRUDO, no saneado:<br/>sanitize_email() vacía lo mal formado y<br/>«juan@correo» se contaba como campo ausente
+                alt Falta alguno de los tres
+                    REST-->>Cliente: 400 «Nombre, email y mensaje son requeridos»
+                else Los tres vienen
+                    REST->>REST: sanea el correo
+                    alt Sanear lo CAMBIA o lo vacía
+                        REST-->>Cliente: 400 «Email inválido» — nunca se responde a otra dirección
+                    else El correo sobrevive intacto
+                        REST->>RL: ¿más de 3 envíos válidos por hora desde esta IP?
+                        alt Cuota de hora excedida
+                            RL-->>Cliente: 429
+                        else Dentro de la cuota
+                            REST->>Log: record() — una fila akb_contacto_log_{uuid}
+                            Log->>Log: prune() barre wp_options con LIKE y deja 100 entradas
+                            REST->>Mail: asunto «Contacto: <8 primeras palabras>», Reply-To del cliente
+                            Note over Mail: el remitente lo fija MailFrom — siempre contacto@akibara.cl<br/>con el nombre Akibara. El Reply-To es la dirección del propio cliente
+                            alt El correo sale
+                                Mail-->>Dueno: llega el mensaje, inmediato y en la misma petición
+                                REST->>Log: marca la entrada como entregada
+                                REST-->>Cliente: «Mensaje recibido»
+                            else wp_mail falla pero la bitácora guardó
+                                REST-->>Cliente: «Mensaje recibido» igual
+                                Log-->>Dash: alerta roja «mensajes que no salieron por correo»
+                            else Ni correo ni bitácora
+                                REST-->>Cliente: 503 con la dirección de contacto escrita
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end

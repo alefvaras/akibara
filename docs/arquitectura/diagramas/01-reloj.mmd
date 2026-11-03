@@ -1,0 +1,24 @@
+%% El reloj de la tienda: qué corre solo y a qué hora (hora de Chile, UTC-3 en septiembre)
+flowchart LR
+  subgraph MADRU["Madrugada"]
+    A1["21:55 · limpia registros de Blue Express"]
+    A2["00:00-05:00 · apaga campañas vencidas<br/>y degrada preventas caducadas"]
+    A3["05:00 · recalcula el orden del catálogo"]
+  end
+  subgraph MANANA["Mañana"]
+    B1["06:30 · avisa a quien sigue una serie<br/>de los tomos nuevos"]
+    B2["cada 5 min · la cola de trabajos avanza"]
+  end
+  subgraph TARDE["Tarde"]
+    C1["12:50 · el buscador se compara<br/>consigo mismo y se corrige"]
+    C2["16:10 · saludo de cumpleaños con puntos"]
+    C3["17:15 · avisa de puntos por vencer"]
+  end
+  subgraph SIEMPRE["Todo el día"]
+    D1["cada pocos minutos · vigilante del buscador:<br/>si el índice se cae, lo levanta"]
+    D2["diario · portadas para redes, /llms.txt,<br/>recordatorios de preventa, limpieza de avisos"]
+    D3["lunes 19:23 · comprueba que Blue Express<br/>no cambió por dentro"]
+  end
+  MADRU --> MANANA --> TARDE --> SIEMPRE
+  classDef c fill:#eef2f7,stroke:#6b7a90,color:#111
+  class A1,A2,A3,B1,B2,C1,C2,C3,D1,D2,D3 c

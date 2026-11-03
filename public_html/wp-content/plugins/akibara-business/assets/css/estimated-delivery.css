@@ -1,0 +1,361 @@
+/**
+ * Akibara EstimatedDelivery — banner ETA brand-aligned.
+ *
+ * Lenguaje visual:
+ *   - Dark surface (--aki-surface = #111) + accent stripe izquierda roja brand.
+ *   - Label uppercase Bebas Neue (--font-heading) consistente con .akb-badge.
+ *   - Value blanco semibold (alto contraste sobre surface oscuro).
+ *   - TBA modifier: stripe + icon cambian a --aki-warning (semantic "pendiente").
+ *   - NO usa --aki-yellow (reservado para precios per feedback_akibara_yellow_for_critical_money).
+ *
+ * BEM:
+ *   .akb-eta (block) → __icon / __body / __label / __value (elements)
+ *   --single / --cart-overall / --tba (modifiers)
+ *
+ * Tokens consumidos: --aki-surface, --aki-border-light, --aki-red, --aki-black,
+ * --aki-text-muted, --aki-warning, --space-*, --radius-md, --font-heading,
+ * --font-body, --text-xs/sm/base, --weight-semibold/bold.
+ *
+ * Mobile-first. Sin !important. Fallbacks hex por si el theme no carga tokens.css.
+ */
+
+.akb-eta {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-3, 12px);
+	padding: var(--space-3, 12px) var(--space-4, 16px);
+	margin: var(--space-4, 16px) 0;
+	box-sizing: border-box;
+
+	background: var(--aki-surface, #111111);
+	border: 1px solid var(--aki-border, #2a2a2e);
+	border-left: 3px solid var(--aki-red, #d90010);
+	border-radius: var(--radius-md, 6px);
+
+	color: var(--aki-white, #ffffff);
+	font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+	font-size: var(--text-sm, 14px);
+	line-height: 1.4;
+}
+
+.akb-eta__icon {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	color: var(--aki-red, #d90010);
+}
+
+.akb-eta__body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.akb-eta__label {
+	font-family: var(--font-heading, "Bebas Neue", "Oswald", sans-serif);
+	font-size: var(--text-xs, 11px);
+	/* Bebas Neue sólo tiene 400: el 700 era una negrita falsa (DS-17). */
+	font-weight: 400;
+	font-synthesis: none;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	line-height: 1;
+	color: var(--aki-text-muted, #8a8a8a);
+}
+
+.akb-eta__value {
+	font-weight: var(--weight-semibold, 600);
+	font-size: var(--text-base, 15px);
+	line-height: 1.3;
+	color: var(--aki-white, #ffffff);
+}
+
+/* Cart overall ocupa ancho completo del container del cart. */
+.akb-eta--cart-overall {
+	display: flex;
+	width: 100%;
+}
+
+/* TBA — accent + icon cambian a warning semantic. Resto del shell idéntico. */
+.akb-eta--tba {
+	border-left-color: var(--aki-warning, #d97706);
+}
+
+.akb-eta--tba .akb-eta__icon {
+	color: var(--aki-warning, #d97706);
+}
+
+/* Mobile (~390px viewport: feedback_always_test_mobile). */
+@media (max-width: 600px) {
+	.akb-eta {
+		font-size: var(--text-xs, 13px);
+		padding: var(--space-2, 8px) var(--space-3, 12px);
+		gap: var(--space-2, 8px);
+	}
+
+	.akb-eta__value {
+		font-size: var(--text-sm, 14px);
+	}
+
+	.akb-eta__label {
+		letter-spacing: 0.06em;
+	}
+}
+
+/* Pildora compacta de ETA en las cards del loop/archive (solo preventa). Texto en
+   neutro de card; el label es el eyebrow de la casa (ver abajo). */
+.akb-eta-loop {
+	margin: 4px 0 0;
+	/* var(--text-xs), no 0.78rem clavado: este texto comparte nivel de jerarquía con
+	   .akb-avail-hint del theme, que sí usa el token. Con 0.78rem el mismo slot
+	   renderizaba dos escalas distintas (12,48px contra 12,14–12,8px). */
+	font-size: var(--text-xs, 0.8rem);
+	line-height: 1.3;
+	/*
+	 * El fallback literal conserva el valor del token --aki-gray-300.
+	 */
+	color: var(--aki-gray-300, #B0B0B0);
+}
+.akb-eta-loop__label {
+	/*
+	 * El label de espera usa gray-200 y Bebas 400 sin síntesis. El rojo sólido y el peso de Inter
+	 * se reservan al CTA; el amarillo identifica precio. Mantiene al label por debajo del precio y
+	 * sobre el valor secundario en la jerarquía de luminancia.
+	 */
+	color: var(--aki-gray-200, #E0E0E0);
+	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+	font-weight: 400;
+	font-synthesis: none;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+/* Cuenta atrás del corte en la tarjeta (≤7 días).
+ *
+ * En su propio renglón: pegada al rango de fechas, «30 sep – 10 oct Quedan 5
+ * días para entrar» se lee como una sola frase rota, el mismo defecto que ya
+ * documenta .akb-sb-landing__tier unas líneas más abajo.
+ *
+ * Blanco y NO rojo, al contrario que en la ficha, y por la misma razón escrita
+ * en el comentario de .akb-eta-loop__label: en una card de preventa con oferta
+ * el rojo ya aparece en el badge, en la estampilla del precio y en el CTA, así
+ * que un cuarto rojo haría que el mismo color dijera «comprar» y «apúrate». Con
+ * el valor de la píldora en gris (#B0B0B0), el blanco a peso 600 basta para que
+ * la línea destaque sin sumar otro acento a los 40 px de la card. La ficha, que
+ * no tiene esa competencia, sí lleva el rojo de texto. */
+.akb-eta-loop__urgencia {
+	display: block;
+	margin-top: 2px;
+	color: var(--aki-white, #ffffff);
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+/*
+ * Intro editorial de las dos rutas gemelas del catálogo:
+ *   - PreventasRoute::render_intro()    → /preventas/
+ *   - DisponiblesRoute::render_intro()  → /disponibles/
+ *
+ * Comparten reglas a propósito: son la misma pieza en el mismo punto del
+ * archive (woocommerce_before_shop_loop, prio 3) y una diferencia visual entre
+ * ellas sería accidental, no una decisión. Se listan como selectores hermanos y
+ * no con una clase base común porque el marcado ya está publicado y renombrar
+ * `.akb-preventas-intro` dejaría sin estilo la ruta viva hasta el purge del CSS.
+ */
+.akb-preventas-intro,
+.akb-disponibles-intro {
+	margin: 0 0 var(--space-5, 20px);
+	padding: var(--space-4, 16px) var(--space-5, 20px);
+	background: var(--aki-surface-2, #1a1a1a);
+	border-left: 4px solid var(--aki-red-bright, #FF0A1D);
+}
+.akb-preventas-intro__lead,
+.akb-disponibles-intro__lead {
+	margin: 0;
+	color: var(--aki-gray-200, #e5e5e5);
+	font-size: 0.95rem;
+	line-height: 1.5;
+}
+.akb-preventas-intro__guide,
+.akb-preventas-intro__sibling,
+.akb-disponibles-intro__sibling {
+	margin: var(--space-3, 12px) 0 0;
+	color: var(--aki-gray-300, #cccccc);
+	font-size: 0.9rem;
+	line-height: 1.55;
+}
+.akb-preventas-intro__guide a,
+.akb-preventas-intro__sibling a,
+.akb-disponibles-intro__sibling a {
+	color: var(--aki-white, #fff);
+	font-weight: 700;
+	text-decoration-color: var(--aki-red-text, #ff4756);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+}
+.akb-preventas-intro__guide a:hover,
+.akb-disponibles-intro__sibling a:hover {
+	color: var(--aki-red-text, #ff4756);
+}
+.akb-preventas-intro__guide a:focus-visible,
+.akb-disponibles-intro__sibling a:focus-visible {
+	/*
+	 * Usa el token de anillo de foco de la marca con su color de respaldo correspondiente.
+	 */
+	outline: var(--aki-focus-outline, 3px solid #FFD700);
+	outline-offset: var(--aki-focus-offset, 2px);
+}
+
+/*
+ * Timestamp visible de frescura para las rutas de disponibilidad, con tono secundario que no
+ * compite con la rejilla.
+ */
+.akb-route-updated {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xs);
+    color: var(--aki-gray-400);
+}
+
+/*
+ * Estructura mínima de la nota .akb-preventa-alza dentro del precio. Separa la indicación de
+ * cambio futuro del importe, aunque tema y plugin se desplieguen independientemente. Las
+ * landings de pack reciben su diseño desde series-bundles.css.
+ */
+.akb-preventa-alza {
+    /* En su propio renglón y NO al lado del importe: inline, dentro del `<span
+       class="price">`, un tercer texto a la altura del precio se lee como un
+       tercer precio — que es exactamente lo que esta línea vino a desmentir. */
+    display: block;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+/* En la tarjeta de catálogo ya están el badge superior «A pedido», el precio
+ * rebajado, el precio de lista tachado y la píldora de fecha «Llegada: …».
+ * Ocultar `.akb-preventa-alza` en la grilla (`ul.products`) evita repetir 3
+ * veces el importe y acorta la tarjeta en móvil, mientras la ficha individual
+ * (PDP) y el modal de vista rápida conservan la nota completa. */
+.woocommerce ul.products li.product .price .akb-preventa-alza,
+ul.products li.product .price .akb-preventa-alza {
+    display: none;
+}
+
+/*
+ * La nota de tanda explica desde qué cierre corren las semanas. Se sitúa bajo la fecha, con
+ * tamaño de lectura y énfasis un paso menor al valor principal; admite varias líneas en móvil.
+ */
+.akb-eta__nota {
+    display: block;
+    margin-top: 4px;
+    color: var(--aki-gray-200, #E0E0E0);
+    font-size: var(--text-sm, .875rem);
+    line-height: 1.45;
+}
+
+/* Cuenta atrás del corte (≤7 días).
+ *
+ * Rojo de marca, pero el de TEXTO (--aki-red-text, #FF4756), no --aki-red
+ * (#E60012): el segundo mide ~3:1 sobre la superficie #111 del banner y falla
+ * AA para texto chico. Ese token existe exactamente para esto y ya lo usan el
+ * theme y el loop. Semibold y --text-sm: mismo peso visual que la nota, con el
+ * color haciendo el trabajo de urgencia. */
+.akb-eta__urgencia {
+    display: block;
+    margin-top: 4px;
+    color: var(--aki-red-text, #FF4756);
+    font-size: var(--text-sm, .875rem);
+    font-weight: var(--weight-semibold, 600);
+    line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+ * Promesas de preventa (ficha, debajo del boton de compra)
+ *
+ * Deliberadamente MAS discreto que .akb-eta: el banner es el dato y tiene que
+ * ganar la mirada; esto es el respaldo y se lee despues de decidir. Por eso no
+ * lleva la barra roja ni el fondo de superficie, solo un filete.
+ *
+ * `transition` NO se declara aqui a proposito: no hay estado que animar, y un
+ * shorthand de mas en esta hoja ya se comio el padding del banner una vez.
+ * -------------------------------------------------------------------------- */
+.akb-promesas {
+	margin: var(--space-4, 16px) 0 0;
+	padding: var(--space-3, 12px) 0 0;
+	border-top: 1px solid var(--aki-border, #2a2a2e);
+	font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+	font-size: var(--text-sm, 14px);
+	line-height: 1.5;
+}
+
+.akb-promesas__titulo {
+	margin: 0 0 var(--space-2, 8px);
+	color: var(--aki-white, #ffffff);
+	font-size: var(--text-xs, 12px);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.akb-promesas__lista {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2, 8px);
+}
+
+.akb-promesas__lista li {
+	margin: 0;
+	padding-left: 20px;
+	position: relative;
+	color: var(--aki-text-muted, #b8b8bd);
+}
+
+/* El check va en ::before y no como caracter en el texto: asi el lector de
+ * pantalla lee la promesa limpia, sin un simbolo suelto delante de cada linea. */
+.akb-promesas__lista li::before {
+	content: "";
+	position: absolute;
+	left: 2px;
+	top: 0.45em;
+	width: 9px;
+	height: 5px;
+	border-left: 2px solid var(--aki-red, #d90010);
+	border-bottom: 2px solid var(--aki-red, #d90010);
+	transform: rotate(-45deg);
+}
+
+/* ---------------------------------------------------------------------------
+ * Plazo de despacho de un tomo EN STOCK (UC-2): una línea bajo el botón.
+ *
+ * Es texto, no un control: no necesita área táctil. Blanco sobre la
+ * superficie de la ficha (#121212) y el camión en el rojo de marca, el mismo
+ * icono del banner de fecha de los tomos «a pedido», para que las dos
+ * promesas se lean como la misma familia. Se imprime en el servidor dentro del
+ * resumen: no mueve nada al cargar.
+ * ------------------------------------------------------------------------- */
+.akb-despacho {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2, 8px);
+	margin: var(--space-3, 12px) 0 0;
+	color: var(--aki-white, #ffffff);
+	font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+	font-size: var(--text-sm, 14px);
+	font-weight: var(--weight-semibold, 600);
+	line-height: 1.4;
+}
+
+.akb-despacho__icon {
+	flex-shrink: 0;
+	display: inline-flex;
+	color: var(--aki-red, #d90010);
+}
+
+.akb-despacho__icon svg {
+	width: 18px;
+	height: 18px;
+}

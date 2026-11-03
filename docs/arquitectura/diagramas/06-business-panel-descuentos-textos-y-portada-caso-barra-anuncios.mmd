@@ -1,0 +1,48 @@
+%% Caso 6 del capítulo 06 — el dueño anuncia la promoción en la barra de anuncios.
+%% Qué muestra: por qué esta pestaña es la que más caro sale de guardar (una purga del borde POR CADA option escrita, en línea, más la del panel en shutdown), cómo se compone la cinta en el front, y la ventana del promocional que puede no caducar nunca porque sus fechas no se validan.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef riesgo fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    DUENO["Dueño<br/>Akibara → Barra de anuncios"]:::persona
+
+    subgraph GUARDA["Al pulsar Guardar"]
+        POST["AdminPanel::handle_save<br/>nonce + capacidad + saneado"]:::propio
+        O1["update_option_ de cada option escrita<br/>5 base + 4 promocionales"]:::propio
+        PURGA["AnnouncementBar::purge_cache_on_save<br/>do_action litespeed_purge_all EN LÍNEA"]:::riesgo
+        SHUT["AdminPanel programa OTRA purga en shutdown<br/>la pestaña no está exenta"]:::propio
+    end
+
+    COSTE["Cada purga devuelve al origen<br/>~1.568 fichas, 106 landings, portada y blog<br/>una landing pasa de 48 a 1.057 ms"]:::riesgo
+    COMPARA["LscPurger sí deduplica, difiere a shutdown<br/>y se aparta si el POST viene del panel.<br/>La barra no hace ninguna de las tres"]:::propio
+
+    subgraph FRONT["Al pintar cualquier página"]
+        VENT["¿Se muestra el promocional?"]:::propio
+        SIGUE["«Seguir la vigencia del descuento» marcado<br/>manda el mismo booleano que el precio"]:::propio
+        PROPIA["Ventana propia: from y to, ambos extremos incluidos"]:::propio
+        FECHAS["Las fechas NO se validan: type date sin saneador.<br/>Con un valor que no sea AAAA-MM-DD la comparación<br/>de cadenas falla y el banner NO CADUCA NUNCA"]:::riesgo
+        COMPO["Compone la lista: promocional primero, fijos después"]:::propio
+        SHORT["Resuelve SÓLO los tres shortcodes propios<br/>akb_envio_gratis, akb_descuento_pct, akb_descuento_editorial"]:::propio
+        HTML["Filtra el HTML: sólo a href target, strong y em.<br/>Los tres colores entran al atributo style SIN validar"]:::riesgo
+        CINTA["Cinta arriba del todo, en TODAS las páginas.<br/>Con 2+ mensajes rota sola cada 6 s"]:::propio
+    end
+
+    CLIENTE["Cliente"]:::persona
+    LITE["LiteSpeed + Cloudflare"]:::tercero
+
+    DUENO --> POST --> O1 --> PURGA
+    POST --> SHUT
+    PURGA -.->|una por option guardada| LITE
+    SHUT -.->|una más, al final de la petición| LITE
+    PURGA --> COSTE
+    COSTE --- COMPARA
+
+    LITE --> VENT
+    VENT --> SIGUE
+    VENT --> PROPIA
+    PROPIA --> FECHAS
+    SIGUE --> COMPO
+    PROPIA --> COMPO
+    COMPO --> SHORT --> HTML --> CINTA --> CLIENTE

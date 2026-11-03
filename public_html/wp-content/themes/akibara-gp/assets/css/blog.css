@@ -1,0 +1,1352 @@
+/*
+ * Blog — index (.akb-blog) + single post (.akb-post).
+ *
+ * Reusa tokens del design system (--aki-*, --space-*, --text-*, --radius-*).
+ * Arquitectura limpia: tokens de diseño estandarizados, especificidad controlada.
+ *
+ * Patrones:
+ *   .akb-blog        wrapper del index (/blog/)
+ *   .akb-blog__hero  hero centered con título "Blog" — reusa .akb-page__hero
+ *   .akb-blog__grid  grid responsive 1→2→3 columnas
+ *   .akb-blog-card   card con media + body (date/cat/title/excerpt/cta)
+ *
+ *   .akb-post           wrapper del single post
+ *   .akb-post__hero     breadcrumb + h1 + meta
+ *   .akb-post__media    featured image
+ *   .akb-post__content  prose (reset h2/h3/p/ul/img/blockquote)
+ *   .akb-post__tags     chips con #tag
+ *   .akb-post__siblings prev/next post
+ */
+
+/* GP imprime un page_title via .entry-header — lo ocultamos porque
+ * .akb-blog__hero / .akb-post__hero ya proveen el H1. */
+.blog .entry-header,
+.single-post .entry-header {
+    display: none;
+}
+
+/* ─── Index wrap ───────────────────────────────────────────────── */
+.akb-blog {
+    color: var(--aki-white);
+}
+
+.akb-blog__wrap {
+    max-width: var(--container-max, 1200px);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-4) var(--space-12);
+}
+
+/* ─── Persona 5 / Manga Style Blog Hero ──────────────────────────
+ * Editorial manga zine aesthetic with red slash, speedlines, speedruns. */
+.akb-blog__hero {
+    position: relative;
+    overflow: visible;
+    border-bottom: 1px solid var(--aki-border);
+    padding: clamp(2rem, 4vw, 4rem) 0 clamp(1.25rem, 3vw, 2.5rem);
+    text-align: left;
+}
+
+.akb-blog__hero::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: clamp(2rem, 4vw, 4rem);
+    width: 7px;
+    height: clamp(2rem, 5vw, 4.5rem);
+    background: var(--aki-red-readable);
+    transform: skewX(-12deg);
+    box-shadow: 5px 5px 0 var(--aki-black);
+}
+
+
+
+.akb-blog__hero h1 {
+    margin: 0 0 var(--space-3);
+    padding-left: var(--space-5);
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 1.15rem + 4vw, 4.75rem);
+    line-height: 0.95;
+    color: var(--aki-white);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-shadow: 3px 3px 0 var(--aki-black);
+}
+
+.akb-blog__hero p {
+    max-width: 680px;
+    margin: 0;
+    padding-left: var(--space-5);
+    color: var(--aki-gray-300);
+    font-size: var(--text-base);
+    line-height: 1.6;
+}
+
+/* ─── Grid ─────────────────────────────────────────────────────── */
+.akb-blog__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+    gap: var(--space-6);
+}
+
+/* ─── Persona 5 / Manga Style Blog Card ──────────────────────────
+ * Speedlines, speedruns, halftone dots — editorial manga zine feel. */
+.akb-blog-card {
+    position: relative;
+    background: var(--aki-surface);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    transition:
+        border-color var(--transition-base),
+        transform var(--transition-base),
+        box-shadow var(--transition-base);
+    isolation: isolate;
+}
+
+.akb-blog-card::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--space-2));
+    z-index: -1;
+    background:
+        linear-gradient(var(--aki-white), var(--aki-white)) top right / 42px 2px no-repeat,
+        linear-gradient(var(--aki-white), var(--aki-white)) top right / 2px 42px no-repeat,
+        linear-gradient(var(--aki-white), var(--aki-white)) bottom left / 34px 2px no-repeat,
+        linear-gradient(var(--aki-white), var(--aki-white)) bottom left / 2px 34px no-repeat;
+    opacity: 0;
+    transform: skew(-6deg) translate(2px, -2px);
+    transition:
+        opacity var(--transition-base),
+        transform var(--transition-base);
+    pointer-events: none;
+}
+
+.akb-blog-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -14%;
+    bottom: 0;
+    width: 54%;
+    z-index: -1;
+    background: repeating-linear-gradient(118deg,
+        rgba(255, 255, 255, 0.15) 0 1px, transparent 1px 9px);
+    clip-path: polygon(34% 0, 100% 0, 100% 100%, 0 100%);
+    opacity: 0;
+    transform: translateX(18px);
+    transition:
+        opacity var(--transition-base),
+        transform var(--transition-base);
+    pointer-events: none;
+}
+
+@media (hover: hover) {
+    .akb-blog-card:hover,
+    .akb-blog-card:focus-within {
+        border-color: var(--aki-red-bright);
+        transform: translate(-6px, -6px);
+        box-shadow: 8px 8px 0px var(--aki-black);
+    }
+
+    .akb-blog-card:hover::after,
+    .akb-blog-card:focus-within::after {
+        opacity: 0.8;
+        transform: translateX(0);
+    }
+
+    .akb-blog-card:hover::before,
+    .akb-blog-card:focus-within::before {
+        opacity: 0.8;
+        transform: skew(-6deg) translate(0, 0);
+    }
+}
+
+/* Anchors dentro de la card heredan color del contenedor parent en vez
+ * de mantener el celeste por defecto del tema base. */
+.akb-blog-card a {
+    color: inherit;
+}
+
+.akb-blog-card__media {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    display: block;
+    background: var(--aki-surface-2);
+}
+
+/* Filete de marca al pie de la miniatura. Vive en el CSS y NO quemado en cada
+ * JPG: así lo llevan las 35 entradas del blog —las antiguas incluidas— sin
+ * reprocesar una sola imagen, y un cambio de diseño no obliga a regenerarlas.
+ * Arranca al 42% y se completa al pasar el cursor, acompañando el zoom del
+ * `__img`.
+ *
+ * OJO: los tokens --transition-* ya traen su propia timing function
+ * (`250ms cubic-bezier(.4,0,.2,1)`). Añadir `ease` fuera del var() deja dos
+ * funciones en la declaración, la invalida y el navegador cae a `all`. */
+.akb-blog-card__media::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 6px;
+    background: var(--aki-red);
+    transform: scaleX(0.42);
+    transform-origin: left center;
+    transition: transform var(--transition-base, 250ms ease-out);
+    pointer-events: none;
+}
+
+@media (hover: hover) {
+    .akb-blog-card:hover .akb-blog-card__media::after {
+        transform: scaleX(1);
+    }
+}
+
+.akb-blog-card:focus-within .akb-blog-card__media::after {
+    transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .akb-blog-card__media::after {
+        transition: none;
+    }
+}
+
+.akb-blog-card__media--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--aki-gray-400);
+}
+
+.akb-blog-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow, 400ms ease);
+    display: block;
+}
+
+@media (hover: hover) {
+    .akb-blog-card:hover .akb-blog-card__img {
+        transform: scale(1.05);
+    }
+}
+
+.akb-blog-card__body {
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    flex: 1;
+}
+
+.akb-blog-card__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--aki-gray-400);
+}
+
+.akb-blog-card__meta time {
+    /* Native time tag, neutral color */
+}
+
+.akb-blog-card__cat {
+    color: var(--aki-red-bright);
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--text-xs);
+}
+
+.akb-blog-card__title {
+    margin: 0;
+    font-family: var(--font-heading);
+    /* Bebas Neue: caja alta y compensación de tracking. */
+    font-size: var(--text-xl);
+    font-weight: 400;
+    line-height: 1.15;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.akb-blog-card__title a {
+    color: var(--aki-white);
+    text-decoration: none;
+}
+
+.akb-blog-card__title a:hover,
+.akb-blog-card__title a:focus-visible {
+    color: var(--aki-red-bright);
+}
+
+.akb-blog-card__excerpt {
+    margin: 0;
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}
+
+/* Enlace sobre tarjeta: utiliza token de texto (--aki-btn-link-color) para garantizar ratio de contraste accesible WCAG AA sobre fondos oscuros. */
+.akb-blog-card__cta {
+    color: var(--aki-btn-link-color);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    margin-top: auto;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.akb-blog-card__cta:hover,
+.akb-blog-card__cta:focus-visible {
+    color: var(--aki-white);
+    text-decoration: underline;
+}
+
+/* ─── Pagination ──────────────────────────────────────────────── */
+.akb-blog__nav {
+    margin-top: var(--space-10);
+}
+
+.akb-blog__nav .page-numbers {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 2.75rem = 44px: mínimo táctil WCAG 2.5.8/iOS (medido 42px con 2.5rem). */
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 var(--space-3);
+    margin: 0 var(--space-1);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-sm, 4px);
+    color: var(--aki-gray-300);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    background: transparent;
+}
+
+.akb-blog__nav .page-numbers.current {
+    background: var(--aki-red);
+    border-color: var(--aki-red);
+    color: var(--aki-white);
+}
+
+.akb-blog__nav a.page-numbers:hover,
+.akb-blog__nav a.page-numbers:focus-visible {
+    border-color: var(--aki-red-bright);
+    color: var(--aki-white);
+}
+
+.akb-blog__empty {
+    text-align: center;
+    color: var(--aki-gray-400);
+    padding: var(--space-12) 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+ * SINGLE POST (.akb-post)
+ * ════════════════════════════════════════════════════════════════ */
+
+.akb-post {
+    color: var(--aki-white);
+}
+
+.akb-post__article {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-4) var(--space-12);
+}
+
+.akb-post__hero {
+    margin-bottom: var(--space-6);
+}
+
+.akb-post__crumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--aki-gray-400);
+    margin-bottom: var(--space-4);
+}
+
+.akb-post__crumb a {
+    position: relative;
+    color: var(--aki-gray-300);
+    text-decoration: none;
+}
+
+/* Zona táctil mínima (WCAG 2.5.8) mediante pseudo-elemento ::after transparente
+ * expandiendo el área interactiva sin desplazar visualmente el flujo de texto. */
+.akb-post__crumb a::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+}
+
+.akb-post__crumb a:hover,
+.akb-post__crumb a:focus-visible {
+    color: var(--aki-red-bright);
+}
+
+.akb-post__crumb span {
+    color: var(--aki-gray-500);
+}
+
+.akb-post__title {
+    margin: 0 0 var(--space-3);
+    font-family: var(--font-heading);
+    font-size: var(--aki-type-page);
+    line-height: 1.15;
+    color: var(--aki-white);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* `.akb-post__dek` se retiró con el shim del hero legacy: la bajada la producía
+   ese shim releyendo `post_content`, y ninguna entrada conserva ya el marcado
+   que lo activaba. Nada emite la clase. */
+
+.akb-post__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    color: var(--aki-gray-400);
+    font-size: var(--text-sm);
+}
+
+.akb-post__author {
+    color: var(--aki-gray-300);
+}
+
+/* ─── Featured image ──────────────────────────────────────────── */
+.akb-post__media {
+    margin: 0 0 var(--space-6);
+    border-radius: 0;
+    overflow: hidden;
+    border: 1px solid var(--aki-border);
+    max-height: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #141418;
+}
+
+.akb-post__img {
+    width: auto;
+    max-width: 100%;
+    max-height: 480px;
+    height: auto;
+    object-fit: contain;
+    margin: 0 auto;
+    display: block;
+}
+
+/* ─── Content prose ───────────────────────────────────────────── */
+.akb-post__content {
+    color: var(--aki-gray-200);
+    font-size: var(--text-base);
+    line-height: 1.7;
+}
+
+.akb-post__content > * + * {
+    margin-top: var(--space-4);
+}
+
+.akb-post__content h2,
+.akb-post__content h3,
+.akb-post__content h4 {
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    line-height: 1.25;
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-3);
+}
+
+/* H2 con accent rojo izquierdo — mismo patrón visual que
+ * `.akb-brands-section__title` en /editoriales/ y `.akb-section`
+ * en home. Da consistencia entre contenido editorial y e-commerce. */
+.akb-post__content h2 {
+    position: relative;
+    padding-left: var(--space-3);
+    font-size: var(--text-2xl);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.akb-post__content h2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 4px;
+    background: var(--aki-red);
+    border-radius: 2px;
+}
+
+.akb-post__content h3 {
+    font-size: var(--text-xl);
+}
+
+.akb-post__content h4 {
+    font-size: var(--text-lg);
+}
+
+.akb-post__content p {
+    margin: 0;
+}
+
+/* Separación entre bloques consecutivos de texto y listas dentro del contenido. */
+.akb-post__content p + p,
+.akb-post__content ul + p,
+.akb-post__content ol + p,
+.akb-post__content p + ul,
+.akb-post__content p + ol {
+    margin-top: var(--space-4);
+}
+
+.akb-post__content a {
+    color: var(--aki-red-bright);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+}
+
+.akb-post__content a:hover,
+.akb-post__content a:focus-visible {
+    color: var(--aki-white);
+    text-decoration-color: var(--aki-red-bright);
+}
+
+/* CTA-boton terminal en posts (clase .aki-btn en el contenido): sin esto caia al
+   estilo de link inline (rojo subrayado) en vez de leerse como boton. Pill rojo de
+   marca; #fff sobre --aki-red pasa AA por ser bold uppercase >=14px (large text). */
+.akb-post__content .aki-btn,
+.akb-post__cta .aki-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    min-height: var(--touch-target-min, 44px);
+    padding: 0 var(--space-5, 24px);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    /* Bebas Neue estándar: peso nominal 400 y desactivación de síntesis artificial. */
+    font-weight: 400;
+    font-synthesis: none;
+    text-transform: uppercase;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    border-radius: 0;
+    transition: background var(--transition-fast, 150ms), transform var(--transition-fast, 150ms);
+}
+.akb-post__content .aki-btn:hover,
+.akb-post__content .aki-btn:focus-visible,
+.akb-post__cta .aki-btn:hover,
+.akb-post__cta .aki-btn:focus-visible {
+    background: var(--aki-red-readable);
+    color: var(--aki-white);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+/* ─── Tarjeta de serie en guías editoriales (inc/guide-series.php) ───
+ * Va dentro del contenido, antes del primer H2: quien llega desde Google por
+ * «cuántos tomos tiene X» ve la portada, cuántos tomos hay en cada estado y el
+ * enlace a la serie en el primer tercio de la lectura, no a 4.000 px.
+ * Misma firma que el CTA del cierre (superficie + barra roja izquierda) para que
+ * se lea como la misma voz de la tienda. La portada tiene su alto declarado
+ * (2:3): la tarjeta no desplaza el texto al llegar la imagen. */
+.akb-post__content .akb-guide-series {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-4);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-left: 4px solid var(--aki-red-bright);
+}
+
+.akb-post__content .akb-guide-series__cover {
+    position: relative;
+    display: block;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background: var(--aki-surface-3);
+    border-radius: var(--radius-sm, 4px);
+}
+
+.akb-post__content .akb-guide-series__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.akb-post__content .akb-guide-series__cover.akb-cover--error img {
+    opacity: 0;
+}
+
+.akb-post__content .akb-guide-series__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.akb-post__content .akb-guide-series__kicker {
+    margin: 0;
+    color: var(--aki-gray-300);
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: var(--weight-bold, 700);
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+.akb-post__content .akb-guide-series__name {
+    margin: 0;
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-xl, 1.5rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.akb-post__content .akb-guide-series__stock {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1, 4px) var(--space-3);
+    margin: 0;
+    padding: 0;
+    color: var(--aki-gray-200);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    list-style: none;
+}
+
+.akb-post__content .akb-guide-series__stock li + li {
+    margin-top: 0;
+}
+
+.akb-post__content .akb-guide-series__state {
+    color: var(--aki-white);
+    font-weight: var(--weight-bold, 700);
+}
+
+.akb-post__content .akb-guide-series__cta {
+    margin-top: var(--space-1, 4px);
+    /* El contenido va a line-height 1.7: un texto del dueño que parta en dos
+     * líneas dejaba el botón con 50 px de aire entre renglones. */
+    padding-block: var(--space-2);
+    line-height: 1.15;
+}
+
+@media (min-width: 600px) {
+    .akb-post__content .akb-guide-series {
+        grid-template-columns: 112px minmax(0, 1fr);
+        gap: var(--space-5);
+        padding: var(--space-5);
+    }
+}
+
+/* Bloque CTA terminal del post (single.php): cierra el contenido empujando a la
+   tienda (conversion content→commerce). */
+.akb-post__cta {
+    margin: var(--space-8, 40px) 0 0;
+    padding: var(--space-6, 32px) var(--space-5, 24px);
+    background: var(--aki-surface-2);
+    border-left: 4px solid var(--aki-red-bright);
+    text-align: center;
+}
+.akb-post__cta-text {
+    margin: 0 0 var(--space-4, 16px);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-lg, 1.25rem);
+    text-transform: uppercase;
+}
+
+.akb-post__content ul,
+.akb-post__content ol {
+    padding-left: 1.5em;
+    margin: 0;
+}
+
+.akb-post__content li + li {
+    margin-top: var(--space-2);
+}
+
+.akb-post__content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0;
+}
+
+.akb-post__content blockquote {
+    margin: var(--space-6) 0;
+    padding: var(--space-4) var(--space-5);
+    border-left: 3px solid var(--aki-red);
+    background: var(--aki-surface-2);
+    color: var(--aki-gray-200);
+    font-style: italic;
+}
+
+.akb-post__content code {
+    background: var(--aki-surface-2);
+    padding: 0.15em 0.4em;
+    border-radius: 0px;
+    font-size: 0.9em;
+    color: var(--aki-red-text);
+}
+
+.akb-post__content pre {
+    background: var(--aki-surface-2);
+    padding: var(--space-4);
+    border-radius: var(--radius-md, 8px);
+    overflow-x: auto;
+}
+
+.akb-post__content pre code {
+    background: transparent;
+    padding: 0;
+    color: var(--aki-gray-200);
+}
+
+/* ─── Tags ────────────────────────────────────────────────────── */
+.akb-post__tags {
+    margin-top: var(--space-8);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.akb-post__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25em 0.75em;
+    border: 1px solid var(--aki-border);
+    border-radius: 999px;
+    color: var(--aki-gray-300);
+    font-size: var(--text-xs);
+    text-decoration: none;
+    transition: border-color var(--transition-fast, 150ms ease),
+                color var(--transition-fast, 150ms ease);
+}
+
+.akb-post__tag:hover,
+.akb-post__tag:focus-visible {
+    border-color: var(--aki-red-bright);
+    color: var(--aki-white);
+}
+
+/* ─── Footer + back link ─────────────────────────────────────── */
+.akb-post__footer {
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--aki-border);
+}
+
+.akb-post__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--aki-red-bright);
+    font-weight: var(--weight-semibold);
+    text-decoration: none;
+}
+
+.akb-post__back:hover,
+.akb-post__back:focus-visible {
+    color: var(--aki-white);
+}
+
+/* ─── Prev / next ─────────────────────────────────────────────── */
+.akb-post__siblings {
+    max-width: 880px;
+    margin: 0 auto var(--space-12);
+    padding: 0 var(--space-4);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+.akb-post__sibling {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    border: 1px solid var(--aki-border);
+    border-radius: 0;
+    color: var(--aki-white);
+    text-decoration: none;
+    background: var(--aki-surface);
+    transition: border-color var(--transition-base, 200ms ease), transform 200ms ease, box-shadow 200ms ease;
+}
+
+.akb-post__sibling:hover {
+    border-color: var(--aki-red-bright);
+    color: var(--aki-white);
+    background: var(--aki-surface-2);
+    transform: translateY(-4px);
+    box-shadow: 6px 6px 0px var(--aki-black);
+}
+
+/* Navegación por teclado: aplica anillo de foco estándar (--aki-focus-ring) independiente del hover. */
+.akb-post__sibling:focus-visible {
+    background: var(--aki-surface-2);
+    box-shadow: var(--aki-focus-ring);
+}
+
+.akb-post__sibling:hover .akb-post__sibling-label,
+.akb-post__sibling:focus-visible .akb-post__sibling-label {
+    color: var(--aki-gray-200);
+}
+
+.akb-post__sibling--next {
+    text-align: right;
+}
+
+.akb-post__sibling-label {
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.akb-post__sibling-title {
+    font-weight: var(--weight-semibold);
+    line-height: 1.3;
+}
+
+/* ─── Comments wrapper ───────────────────────────────────────── */
+.akb-post__comments {
+    max-width: 880px;
+    margin: 0 auto var(--space-12);
+    padding: 0 var(--space-4);
+    color: var(--aki-gray-200);
+}
+
+/* Comments title — mismo accent rojo que los H2 del content. WP injecta
+ * #reply-title como H3 con texto "Deja un comentario / Cancelar respuesta"
+ * (el "Cancelar" se renderea a veces como link inline). */
+.akb-post__comments #reply-title,
+.akb-post__comments .comments-title {
+    position: relative;
+    padding-left: var(--space-3);
+    margin: var(--space-8) 0 var(--space-4);
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    color: var(--aki-white);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.akb-post__comments #reply-title::before,
+.akb-post__comments .comments-title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 4px;
+    background: var(--aki-red);
+    border-radius: 2px;
+}
+
+/* "Conectado como X. Edita tu perfil. ¿Salir?" — links rojo brand. */
+.akb-post__comments .logged-in-as a,
+.akb-post__comments .comment-notes a,
+.akb-post__comments .must-log-in a {
+    color: var(--aki-red-bright);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+}
+
+.akb-post__comments .logged-in-as a:hover,
+.akb-post__comments .comment-notes a:hover {
+    color: var(--aki-white);
+}
+
+/* Form fields: textarea (comentario) + inputs (nombre/email/url para
+ * comentarios anónimos). Estilo brand consistente con WC inputs. */
+.akb-post__comments .comment-form textarea,
+.akb-post__comments .comment-form input[type="text"],
+.akb-post__comments .comment-form input[type="email"],
+.akb-post__comments .comment-form input[type="url"] {
+    width: 100%;
+    padding: var(--space-3);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-sm, 6px);
+    color: var(--aki-white);
+    font-family: inherit;
+    /* 16 px exactos para prevenir zoom automático no deseado en iOS Safari al enfocar. */
+    font-size: 16px;
+    transition: border-color var(--transition-fast),
+                background-color var(--transition-fast);
+}
+
+.akb-post__comments .comment-form textarea:focus-visible,
+.akb-post__comments .comment-form input[type="text"]:focus-visible,
+.akb-post__comments .comment-form input[type="email"]:focus-visible,
+.akb-post__comments .comment-form input[type="url"]:focus-visible {
+    outline: none;
+    border-color: var(--aki-white);
+    background: var(--aki-black);
+    box-shadow: var(--aki-focus-ring);
+}
+
+.akb-post__comments .comment-form textarea {
+    min-height: calc(var(--touch-target-min) * 3);
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.akb-post__comments .comment-form label {
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--aki-gray-200);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+}
+
+/* Asterisco de campo obligatorio: lo inyecta el filtro de inc/blog.php al
+ * retirar el placeholder de GeneratePress, que era donde vivía. Rojo de marca
+ * para que se lea como marca y no como parte del nombre del campo. */
+.akb-post__comments .comment-form .akb-required {
+    color: var(--aki-red);
+    margin-left: 2px;
+}
+
+/* Etiquetas visibles del formulario de comentarios con clase propia (.akb-comment-label)
+ * inyectada por akibara_blog_prepare_comment_field() en inc/blog.php. */
+.akb-post__comments .comment-form label.akb-comment-label {
+    display: block;
+    margin: 0 0 var(--space-1);
+    padding: 0;
+}
+
+/* Casilla de consentimiento de cookies con objetivo táctil accesible (WCAG 2.5.8). */
+.akb-post__comments .comment-form-cookies-consent input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    margin: 0 var(--space-2) 0 0;
+}
+
+/* "Publicar comentario" — botón brand rojo, sin gris WP default. */
+.akb-post__comments .comment-form input[type="submit"],
+.akb-post__comments .comment-form button[type="submit"],
+.akb-post__comments .form-submit .submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) var(--space-5);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    border: 0;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 400; /* Bebas Neue estándar en 400 */
+    font-synthesis: none;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.akb-post__comments .comment-form input[type="submit"]:hover,
+.akb-post__comments .comment-form button[type="submit"]:hover,
+.akb-post__comments .form-submit .submit:hover {
+    background: var(--aki-red-hover);
+}
+
+/* Lista de comentarios existentes — tipografía + spacing. */
+.akb-post__comments .comment-list {
+    list-style: none;
+    margin: 0 0 var(--space-6);
+    padding: 0;
+}
+
+.akb-post__comments .comment-list .comment {
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.akb-post__comments .comment-list .comment-author cite {
+    color: var(--aki-white);
+    font-style: normal;
+    font-weight: var(--weight-semibold);
+}
+
+.akb-post__comments .comment-list .comment-meta a {
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    text-decoration: none;
+}
+
+.akb-post__comments .comment-list .reply a {
+    color: var(--aki-red-bright);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+}
+
+/* ─── Mobile (≤ 768px) ───────────────────────────────────────── */
+@media (max-width: 768px) {
+    .akb-blog__wrap {
+        padding: var(--space-6) var(--space-3) var(--space-10);
+    }
+
+    .akb-blog__grid {
+        gap: var(--space-4);
+    }
+
+    .akb-post__article {
+        padding: var(--space-6) var(--space-3) var(--space-10);
+    }
+
+    .akb-post__siblings {
+        grid-template-columns: 1fr;
+        padding: 0 var(--space-3);
+    }
+
+    .akb-post__sibling--next {
+        text-align: left;
+    }
+
+    .akb-post__comments {
+        padding: 0 var(--space-3);
+    }
+}
+
+/* ── Hero centrado ────────────────────────────────────────────────────
+ * El `.akb-blog__hero` está fuera del `.akb-blog__wrap` y por tanto sin
+ * container. Centramos con max-width 1200 + box-sizing:border-box +
+ * padding lateral generoso. Aplica al hero Y al wrap para que el grid
+ * de cards quede consistente.
+ */
+.site-main.akb-blog .akb-blog__hero,
+.site-main.akb-blog .akb-blog__wrap {
+    box-sizing: border-box;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--space-6, 1.5rem);
+    padding-right: var(--space-6, 1.5rem);
+}
+
+.site-main.akb-blog .akb-blog__hero {
+    padding-top: var(--space-8, 2rem);
+    padding-bottom: var(--space-2, 0.5rem);
+}
+
+@media (max-width: 768px) {
+    .site-main.akb-blog .akb-blog__hero,
+    .site-main.akb-blog .akb-blog__wrap {
+        padding-left: var(--space-4, 1rem);
+        padding-right: var(--space-4, 1rem);
+    }
+}
+
+/* ─── Blog Stats Grid (.aki-stat) ─────────────────────────────────── */
+.aki-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-4);
+    margin: var(--space-6) 0;
+}
+.aki-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    text-align: center;
+}
+.aki-stat-num {
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: 400; /* Bebas Neue estándar: peso nominal 400 */
+    color: var(--aki-red-bright);
+    line-height: 1;
+    margin-bottom: var(--space-2);
+}
+.aki-stat-label {
+    font-size: var(--text-sm);
+    color: var(--aki-gray-300);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ─── Table of Contents (bloque oficial de Rank Math) ─────────────── */
+#rank-math-toc {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin: var(--space-6) 0;
+    font-size: var(--text-sm);
+}
+#rank-math-toc > h2 {
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: 400; /* Bebas Neue estándar: peso nominal 400 */
+    color: var(--aki-white);
+}
+#rank-math-toc nav > ul {
+    margin: 0;
+    padding-left: var(--space-4);
+}
+#rank-math-toc ul {
+    list-style: none;
+    color: var(--aki-gray-400);
+}
+#rank-math-toc li {
+    margin-bottom: var(--space-2);
+}
+#rank-math-toc li:last-child {
+    margin-bottom: 0;
+}
+#rank-math-toc ul ul {
+    margin-top: var(--space-2);
+    padding-left: var(--space-4);
+}
+#rank-math-toc a {
+    color: var(--aki-gray-300);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    /* Objetivo táctil y legibilidad accesible en elementos del índice. */
+    display: inline-block;
+    padding: 6px 0;
+    line-height: 1.4;
+}
+/* El plugin fija el tamaño en el <li> (id + tag = 1,0,1); (1,0,2) lo supera. */
+#rank-math-toc li a,
+#rank-math-toc ul ul li a {
+    font-size: 0.875rem; /* 14 px */
+}
+#rank-math-toc a:hover,
+#rank-math-toc a:focus-visible {
+    color: var(--aki-white);
+    text-decoration: underline;
+    text-decoration-color: var(--aki-red-bright);
+}
+/* Sección activa (scroll-spy de page-toc.js setea aria-current="true"). Sin esta
+   regla el aria-current no tiene efecto visual. Blanco+bold = AA-safe sobre dark y
+   distinto del gris base; el matiz rojo lo aporta el text-decoration. */
+#rank-math-toc a[aria-current="true"] {
+    color: var(--aki-white);
+    font-weight: var(--weight-bold, 700);
+    text-decoration: underline;
+    text-decoration-color: var(--aki-red-bright);
+}
+
+.akb-post__content :is(h2, h3)[id] {
+    /* Margen de desplazamiento coordinado con la cabecera fija y el scroll-spy de page-toc.js. */
+    scroll-margin-top: 16px;
+}
+
+@media (min-width: 769px) {
+    .akb-post__content :is(h2, h3)[id] {
+        scroll-margin-top: 42px;
+    }
+}
+
+@media (max-width: 600px) {
+    #rank-math-toc {
+        padding: var(--space-4);
+    }
+}
+
+/* El bloque `.aki-page-hero` de las guías repetía el título del artículo dentro
+ * de un <h1>, que competía con el `h1.akb-post__title` de la plantilla y dejaba
+ * dos H1 en la página. El marcado pasó a <p>; esta regla conserva el aspecto
+ * que le daba la hoja de encabezados. */
+.aki-page-hero__title {
+	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+	font-synthesis: none;
+	font-size: 1.05rem;
+	line-height: 1.05;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--aki-white);
+	margin: 0.65em 0;
+}
+
+/* ─── Guías con marcado propio (.aki-page) ────────────────────────────
+ * Estilos para componentes editoriales estructurados (.aki-card, .aki-card-grid,
+ * .aki-highlight, .aki-about-intro, .aki-page-section-header).
+ *
+ * Sin `transition` de propiedad compuesta ni `transition: all` para evitar
+ * sobreescritura accidental de paddings en estados interactivos. */
+.akb-post__content .aki-page-section {
+    margin: var(--space-8, 48px) 0;
+}
+
+.akb-post__content .aki-page-section-header {
+    border-bottom: 2px solid var(--aki-border);
+    margin-bottom: var(--space-5, 24px);
+    padding-bottom: var(--space-2, 8px);
+}
+
+.akb-post__content .aki-page-section-header :is(h2, h3) {
+    margin: 0;
+}
+
+/* Entradilla: es el primer párrafo del artículo y debe leerse como tal. */
+.akb-post__content .aki-about-intro {
+    font-size: var(--text-lg, 1.125rem);
+    line-height: 1.7;
+    color: var(--aki-gray-100);
+    border-left: 3px solid var(--aki-red);
+    padding-left: var(--space-4, 16px);
+    margin-bottom: var(--space-6, 32px);
+}
+
+.akb-post__content .aki-card-grid {
+    display: grid;
+    /* `min(260px, 100%)` y no `260px` a secas: con el mínimo fijo, una columna
+     * de 260px desborda cualquier contenedor más estrecho y saca scroll
+     * horizontal al documento. Medido a 280px de ancho: 18px de desborde. */
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    gap: var(--space-4, 16px);
+    margin: var(--space-5, 24px) 0;
+}
+
+.akb-post__content .aki-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md, 4px);
+    padding: var(--space-5, 24px);
+}
+
+.akb-post__content .aki-card :is(h2, h3) {
+    margin-top: 0;
+}
+
+/* El botón queda pegado abajo para que dos tarjetas contiguas alineen su
+ * llamada a la acción aunque los textos midan distinto. */
+.akb-post__content .aki-card > :last-child {
+    margin-top: auto;
+}
+
+.akb-post__content .aki-card > p:last-of-type {
+    margin-bottom: 0;
+}
+
+/* Destacado: mismo peso visual que la tarjeta, pero a ancho completo y con
+ * la banda de marca al costado. */
+.akb-post__content .aki-highlight {
+    background: var(--aki-surface-2);
+    border-left: 4px solid var(--aki-red);
+    border-radius: 0 var(--radius-md, 4px) var(--radius-md, 4px) 0;
+    padding: var(--space-5, 24px);
+    margin: var(--space-6, 32px) 0;
+}
+
+.akb-post__content .aki-highlight :is(h2, h3) {
+    margin-top: 0;
+}
+
+.akb-post__content .aki-highlight > p:last-child {
+    margin-bottom: 0;
+}
+
+/* Lista de fichas (saga, arco, perfil de lector). El marcador por defecto
+ * competía con la etiqueta en negrita que abre cada ítem. */
+.akb-post__content .aki-blog-list {
+    list-style: none;
+    margin: var(--space-5, 24px) 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3, 12px);
+}
+
+.akb-post__content .aki-blog-list > li {
+    background: var(--aki-surface-2);
+    border-left: 3px solid var(--aki-border-light);
+    border-radius: 0 var(--radius-sm, 2px) var(--radius-sm, 2px) 0;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    margin: 0;
+}
+
+.akb-post__content .aki-blog-list > li > strong:first-child {
+    color: var(--aki-white);
+}
+
+@media (max-width: 600px) {
+    .akb-post__content .aki-card,
+    .akb-post__content .aki-highlight {
+        padding: var(--space-4, 16px);
+    }
+
+    .akb-post__content .aki-page-section {
+        margin: var(--space-6, 32px) 0;
+    }
+}
+
+/* ─── Puente de la búsqueda nativa a la tienda ──────────────────
+ * `/?s=` sólo mira entradas; el motor propio sólo indexa productos. Quien llega
+ * aquí buscando un tomo necesita ver la salida ANTES de leer los resultados del
+ * blog, así que el bloque va arriba y con el acento de marca. */
+.akb-search-bridge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: var(--container-max, 1200px);
+    margin: var(--space-6) auto 0;
+    padding: var(--space-4) var(--space-5);
+    background: var(--aki-surface);
+    border-left: 4px solid var(--aki-red-readable);
+}
+
+.akb-search-bridge__text {
+    margin: 0;
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm);
+}
+
+.akb-search-bridge__cta {
+    display: inline-flex;
+    align-items: center;
+    /* 44px: mínimo táctil, igual que el resto de controles del tema. */
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    border-radius: var(--radius-sm, 4px);
+}
+
+.akb-search-bridge__cta:hover,
+.akb-search-bridge__cta:focus-visible {
+    background: var(--aki-red-bright);
+    color: var(--aki-white);
+}
+

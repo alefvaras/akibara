@@ -1,0 +1,121 @@
+%% Piezas del capítulo 19 — cómo se hablan entre sí los plugins, el tema y los mu-plugins.
+%% Qué muestra: los seis componentes propios agrupados por dominio, las cinco clases de costura que los unen y los terceros y datos que quedan en medio.
+%% CÓMO LEER LAS LÍNEAS (ver también el nodo LEYENDA, abajo a la derecha):
+%%   ==>  línea gruesa  = LLAMADA DURA de clase o función (si el otro no está: fatal, salvo class_exists)
+%%   -.-> línea punteada = HOOK (do_action / apply_filters): si nadie escucha, normalmente no pasa nada
+%%   -->  línea sólida   = DATO COMPARTIDO por nombre (option, tabla, fichero, clase CSS, namespace REST)
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    LEYENDA["LEYENDA<br/>Color del nodo: naranja = código propio de Akibara · gris = software de terceros ·<br/>verde = persona · morado = dato compartido (no es código de nadie)<br/>Forma de la línea: gruesa = llamada dura de clase · punteada = hook · sólida = dato por nombre"]:::dato
+
+    CLIENTE["Cliente<br/>busca, agrega al carrito y paga"]:::persona
+    DUENO["Dueño<br/>edita textos y precios en el panel Akibara"]:::persona
+
+    subgraph VISTA["Lo que ve el cliente en pantalla"]
+        TEMA["tema akibara-gp 2.1.118<br/>pinta cada página y emite los hooks donde otros entran"]:::propio
+        BLOQUES["akibara-cart-checkout-blocks 2.2.17<br/>traduce el negocio chileno al carrito y checkout de bloques"]:::propio
+    end
+
+    subgraph NEGOCIO["El centro de gravedad: todo lo chileno de la tienda"]
+        BUSINESS["akibara-business 1.116.4<br/>precios, preventa, envíos, textos y el panel del dueño"]:::propio
+        NAV["NavigationLinks<br/>única fuente de las URLs canónicas"]:::propio
+        PRECIO["SearchPriceProvider<br/>el único que sabe el precio con descuento"]:::propio
+        DISPO["SearchAvailabilityBridge<br/>traduce 'reservable' a 'A pedido' o 'Preventa'"]:::propio
+    end
+
+    subgraph BUSQUEDA["Búsqueda: índice propio y filtros del catálogo"]
+        SEARCH["akibara-search 0.1.60<br/>índice propio, autocompletar y filtros"]:::propio
+        FACETS["frontend/facets-render.php<br/>el plugin pintando dentro de las plantillas del tema"]:::propio
+    end
+
+    subgraph FIDELIDAD["Fidelidad: puntos y reseñas"]
+        REWARDS["akibara-rewards 0.3.13<br/>puntos Akibara y reseñas con foto"]:::propio
+    end
+
+    subgraph MU["17 mu-plugins · se cargan antes que todo y no se pueden apagar"]
+        SMTP["akibara-correo-smtp.php<br/>único transporte real del correo"]:::propio
+        WATCH["akibara-mail-transport-watch.php<br/>centinela: repone el transporte si desaparece"]:::propio
+        NOSALE["akibara-correo-no-sale-a-clientes.php<br/>fuera de producción desvía todo correo"]:::propio
+        LS["akibara-litespeed-guardrails.php<br/>fija por código tres ajustes que rompen el sitio"]:::propio
+        AS14["akibara-as-retention.php<br/>acorta a 14 días la memoria de las tareas"]:::propio
+        HTTPS["akibara-https-urls-fuera-de-web.php<br/>imágenes en https en los correos de cron"]:::propio
+        I18N["akibara-woo-blocks-i18n.php<br/>arregla el mensaje de error de los campos propios"]:::propio
+        BREVO["akibara-brevo-portada-jpg-en-el-carrito.php<br/>portada JPG para el correo de carrito abandonado"]:::propio
+        COMUNA["akibara-bluex-cotiza-solo-con-comuna.php<br/>apaga la cotización de Blue sin región y comuna"]:::propio
+    end
+
+    WOO["WooCommerce<br/>carrito, pedidos, Store API"]:::tercero
+    LSC["LiteSpeed Cache<br/>caché de página y optimización"]:::tercero
+    CF["Cloudflare<br/>borde y cabeceras de caché"]:::tercero
+    BLUEX["Blue Express<br/>cotización, catálogo de comunas y retiro PUDO"]:::tercero
+    BREVOP["Brevo<br/>correo de carrito abandonado"]:::tercero
+    RANK["Rank Math<br/>título y datos estructurados"]:::tercero
+
+    OPTS[("Options compartidas<br/>el nombre es todo el contrato")]:::dato
+    TABLAS[("Tablas propias<br/>akb_search_docs · akb_rewards_ledger")]:::dato
+    RESTNS[("Namespace REST akibara/v1<br/>compartido por business y el buscador")]:::dato
+    PJAX[("Evento de JavaScript akb:pjax<br/>«cambié el HTML, vuelvan a engancharse»")]:::dato
+    TRIGGER[("Clase CSS .akb-cart-trigger<br/>el marcado ES el contrato")]:::dato
+    COMUNAS[("chile-communes.php<br/>fichero de datos DENTRO del plugin de Blue Express")]:::dato
+
+    CLIENTE --> TEMA
+    DUENO --> BUSINESS
+
+    TEMA ==>|"llamada dura: sin business, pantalla en blanco"| NAV
+    TEMA -.->|"function_exists sobre las 7 funciones puente: si falta, degrada mudo"| SEARCH
+    TEMA -->|"get_option por nombre, nunca por clase"| OPTS
+    BUSINESS ==> NAV
+    BUSINESS ==> PRECIO
+    BUSINESS ==> DISPO
+    SEARCH -.->|"hook akb_search_effective_price<br/>EL CASAMIENTO: dos oyentes y se apaga entero"| PRECIO
+    SEARCH -.->|"hooks akb_stock_status_label<br/>y akb_search_availability_value"| DISPO
+    BUSINESS -.->|"hook akibara_taxonomy_discount_pct_saved"| SEARCH
+    SEARCH ==> FACETS
+    FACETS -.->|"entra por los hooks de WooCommerce que emite el tema"| TEMA
+    FACETS -.->|"hooks rank_math/frontend/title y rank_math/json_ld (prio 20)"| RANK
+    BUSINESS ==>|"función global akibara_gp_asset_ver() y akibara_gp_brand_logo()"| TEMA
+
+    BLOQUES ==>|"class_exists + instanceof CheckoutDataProvider (6 métodos)"| BUSINESS
+    BLOQUES -->|"shortcode que el tema da por hecho para el h1 del carrito"| TEMA
+    BLOQUES -.->|"extiende CartSchema del Store API"| WOO
+    BLOQUES -->|"lee el catálogo de comunas POR RUTA DE FICHERO"| COMUNAS
+    COMUNAS --> BLUEX
+    BLOQUES ==>|"servicio PUDO que le presta business"| BLUEX
+
+    REWARDS ==>|"CompletionPolicy: ¿se puede pedir reseña?"| BUSINESS
+    REWARDS ==>|"declara spar_get_user_points() para Mi cuenta"| BUSINESS
+    REWARDS -.->|"extiende CartSchema del Store API"| WOO
+    REWARDS -.->|"los dos extienden el MISMO CartSchema, sin contrato entre ellos"| BLOQUES
+
+    BUSINESS --> TABLAS
+    SEARCH --> TABLAS
+    BUSINESS --> RESTNS
+    SEARCH --> RESTNS
+    BLOQUES --> OPTS
+    BUSINESS --> OPTS
+    SEARCH --> PJAX
+    PJAX --> TEMA
+    PJAX --> BUSINESS
+    TEMA --> TRIGGER
+    TRIGGER --> BLOQUES
+    TRIGGER --> BUSINESS
+
+    SMTP -.->|"pre_wp_mail y phpmailer_init: todo correo de business pasa por aquí"| BUSINESS
+    SMTP -.->|"mismo corte para los correos de rewards"| REWARDS
+    WATCH -->|"comprueba que el fichero siga cargado y lo repone"| SMTP
+    NOSALE -.->|"hook wp_mail: desvía los correos fuera de producción"| REWARDS
+    NOSALE -.->|"hook wp_mail: desvía los correos fuera de producción"| BUSINESS
+    HTTPS -.->|"hook set_url_scheme: imágenes en https en los correos de cron"| BUSINESS
+    AS14 -.->|"filtro action_scheduler_retention_period (global: afecta a los tres)"| SEARCH
+    AS14 -.->|"filtro action_scheduler_retention_period"| REWARDS
+    AS14 -.->|"filtro action_scheduler_retention_period"| BUSINESS
+    I18N -.->|"filtro de traducción del error de rut, comuna y celular"| BLOQUES
+    BREVO -.->|"quiere usar SocialImageDerivatives: HOY NO SE ENGANCHA NUNCA"| BUSINESS
+    BREVO -.->|"abre una ventana durante el armado del correo de carrito"| BREVOP
+    COMUNA -.->|"filtro que apaga los métodos de cotización de Blue sin comuna"| BLUEX
+    LS -.->|"fija en la lectura tres ajustes y excluye rutas de caché"| LSC
+    LSC --> CF

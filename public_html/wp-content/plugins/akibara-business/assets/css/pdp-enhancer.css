@@ -1,0 +1,472 @@
+/**
+ * Estilos propios de la ficha de producto, encolados sólo en is_product. Los prefijos akb-pdp,
+ * akb-spec y akb-badge evitan colisiones con el tema.
+ */
+
+/* ---------- Star rating del summary ---------- */
+.akb-pdp-rating {
+	display: flex; align-items: center; gap: 10px;
+	margin: 8px 0 4px; font-size: 0.95rem;
+}
+.akb-pdp-rating__stars {
+	position: relative; display: inline-block;
+	font-size: 1.1rem; line-height: 1; letter-spacing: 2px;
+	color: var(--aki-text-muted, #8a8a8a);
+}
+.akb-pdp-rating__filled {
+	position: absolute; top: 0; left: 0; overflow: hidden;
+	white-space: nowrap;
+	/* Rojo, no oro: amarillo = SOLO dinero (competía con el precio a
+	   ~200px) y #reviews ya pinta estrellas red-bright — un solo sistema. */
+	color: var(--aki-red-bright, #FF0A1D);
+}
+.akb-pdp-rating__empty {
+	color: var(--aki-text-muted, #8a8a8a); letter-spacing: 2px;
+}
+.akb-pdp-rating__link,
+.akb-pdp-rating__link:link,
+.akb-pdp-rating__link:visited {
+	color: var(--aki-text-muted, #8a8a8a) !important;
+	text-decoration: none !important;
+	font-size: 0.85rem;
+	font-weight: 800;
+	text-transform: uppercase;
+	border-bottom: 2px solid transparent;
+	transition: all 0.2s;
+	letter-spacing: 1px;
+}
+.akb-pdp-rating__link:hover,
+.akb-pdp-rating__link:active {
+	color: var(--aki-white, #fff) !important;
+	border-bottom-color: var(--aki-red, #e60012);
+}
+.akb-pdp-rating--empty .akb-pdp-rating__link,
+.akb-pdp-rating--empty .akb-pdp-rating__link:link,
+.akb-pdp-rating--empty .akb-pdp-rating__link:visited {
+	color: var(--aki-white, #fff) !important;
+	background: transparent;
+	padding: 2px 0;
+	border-bottom: 2px solid var(--aki-red, #e60012);
+	font-size: 0.75rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	font-weight: 800;
+	transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.akb-pdp-rating--empty .akb-pdp-rating__link:hover,
+.akb-pdp-rating--empty .akb-pdp-rating__link:active {
+	border-color: var(--aki-red, #e60012) !important;
+	color: var(--aki-white, #fff) !important;
+	background-color: var(--aki-red, #e60012) !important;
+	box-shadow: none;
+	transform: translateY(-1px);
+}
+
+/* ---------- Grilla de especificaciones ---------- */
+.akb-pdp-specs-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 8px;
+	margin-bottom: 30px;
+	border: 2px solid var(--aki-black, #121212);
+	background: var(--aki-black, #121212);
+	padding: 2px;
+}
+
+/* 769 y no 768 (DS-13): el móvil del sitio es ≤768, y con 768 los dos tramos
+   se pisaban en ese ancho exacto. */
+@media (min-width: 769px) {
+	.akb-pdp-specs-grid {
+		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+		gap: 12px;
+		border: 3px solid var(--aki-black, #121212);
+		padding: 3px;
+	}
+}
+
+.akb-spec-panel {
+	background: var(--aki-surface-1, #111);
+	padding: 8px 10px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, border-color 0.2s;
+	border: 2px solid transparent;
+	clip-path: polygon(0 0, 100% 2%, 98% 100%, 2% 98%);
+}
+
+.akb-spec-panel:hover {
+	background: var(--aki-black, #121212);
+	border-color: var(--aki-red, #e60012);
+	transform: scale(1.05) skew(-1deg);
+	clip-path: polygon(0 2%, 100% 0, 100% 100%, 0 98%);
+	z-index: 2;
+}
+
+.akb-spec-label {
+	font-size: 0.65rem;
+	text-transform: uppercase;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: var(--aki-text-muted, #8a8a8a);
+	margin-bottom: 2px;
+}
+
+.akb-spec-value {
+	font-size: 0.75rem;
+	font-weight: 800;
+	color: var(--aki-white, #fff);
+	line-height: 1.2;
+}
+
+.akb-spec-value a {
+	color: var(--aki-white, #fff);
+	text-decoration: none;
+	border-bottom: 2px solid var(--aki-red, #e60012);
+	transition: color 0.2s, background-color 0.2s;
+}
+
+.akb-spec-value a:hover {
+	background-color: var(--aki-red, #e60012);
+	color: #fff;
+	text-decoration: none;
+}
+
+/* Panel del estado comercial (preventa / a pedido). El tomo disponible ya no
+   lleva panel: su despacho va junto al botón (DS-9, PdpEnhancer). Quieto a
+   propósito: el clip-path recortaría cualquier pulso de sombra (revisión B5-R5). */
+.akb-badge-panel--preventa {
+	background: var(--aki-black, #121212);
+	border: 2px solid var(--aki-red, #e60012);
+	clip-path: polygon(2% 0, 100% 2%, 98% 100%, 0 98%);
+}
+
+.akb-badge-panel--preventa:hover {
+	border-color: var(--aki-red-bright, #ff0a1d) !important;
+	background: var(--aki-black, #121212) !important;
+	transform: scale(1.05) skew(-1deg);
+	z-index: 2;
+}
+
+.akb-badge-panel--preventa .akb-spec-label { color: var(--aki-red-text, #ff4756); margin-bottom: 4px; font-weight: 900; }
+.akb-badge-panel--preventa .akb-spec-value { color: var(--aki-white, #ffffff); font-size: 0.85rem; font-weight: 900; }
+
+/* Tabs brutalistas */
+.woocommerce-tabs.wc-tabs-wrapper { margin-top: 40px; }
+.woocommerce-tabs ul.tabs {
+	border-bottom: 3px solid var(--aki-black, #121212) !important;
+	padding: 0 !important; margin: 0 0 30px 0 !important;
+	display: flex; gap: 10px;
+}
+.woocommerce-tabs ul.tabs li {
+	background: transparent !important;
+	border: 3px solid var(--aki-black, #121212) !important;
+	border-bottom: none !important; margin: 0 !important;
+	padding: 0 !important; border-radius: 0 !important;
+}
+.woocommerce-tabs ul.tabs li::before, .woocommerce-tabs ul.tabs li::after { display: none !important; }
+.woocommerce-tabs ul.tabs li a {
+	/* 400, no 900: las tabs son Bebas y solo existe el corte 400 — el 900
+	   se sintetizaba (faux bold emborronado). */
+	font-weight: 400 !important; font-synthesis: none; text-transform: uppercase !important;
+	padding: 12px 24px !important; color: var(--aki-text-muted, #8a8a8a) !important;
+	display: block; transition: all 0.2s;
+}
+.woocommerce-tabs ul.tabs li.active { background: var(--aki-black, #121212) !important; border-color: var(--aki-black, #121212) !important; }
+.woocommerce-tabs ul.tabs li.active a { color: var(--aki-white, #fff) !important; }
+.woocommerce-tabs ul.tabs li:not(.active):hover a { background: var(--aki-red, #e60012); color: #fff !important; }
+.woocommerce-Tabs-panel > h2:first-of-type { display: none !important; }
+
+/* === MOBILE: stacked layout — todas las secciones visibles === */
+@media (max-width: 768px) {
+	.akb-pdp-specs-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+	
+	.akb-pdp-specs-grid .akb-badge-panel--preventa {
+		grid-column: 1 / -1;
+	}
+
+	/* Tabs → stacked: todas visibles simultáneamente */
+	.woocommerce-tabs ul.tabs {
+		display: none !important;
+	}
+	.woocommerce-tabs .woocommerce-Tabs-panel {
+		display: block !important;
+		border-top: 3px solid var(--aki-black, #121212);
+		padding: 20px 15px 0 15px;
+		margin-bottom: 24px;
+	}
+	/* Label visible para cada sección en mobile */
+	.woocommerce-tabs .woocommerce-Tabs-panel::before {
+		content: attr(data-section-label);
+		display: block;
+		font-weight: 900;
+		text-transform: uppercase;
+		font-size: 0.9rem;
+		letter-spacing: 1px;
+		color: var(--aki-white, #fff);
+		margin-bottom: 16px;
+		padding-left: 12px;
+		border-left: 4px solid var(--aki-red, #e60012);
+	}
+}
+
+/* Datos comparables de edición, sin convertir el resumen en otra ficha técnica. */
+.akb-pdp-edition-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0 0 16px;
+    padding: 12px 0;
+    border-block: 1px solid var(--aki-border, #343434);
+    font-family: var(--font-body, sans-serif);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+.akb-pdp-edition-summary > div { min-width: 0; max-width: 100%; }
+.akb-pdp-edition-summary dt { color: var(--aki-text-muted, #b8b8b8); font-weight: 400; }
+.akb-pdp-edition-summary dd { margin: 2px 0 0; color: var(--aki-gray-100, #f5f5f5); font-weight: 600; overflow-wrap: anywhere; }
+.akb-pdp-edition-summary .akb-edition-field--reading dd { display: inline-flex; align-items: center; gap: 4px; }
+.akb-pdp-edition-summary .akb-reading--manga dd::before { content: "📖 "; font-size: 0.95em; }
+.akb-pdp-edition-summary .akb-reading--comic dd::before { content: "📚 "; font-size: 0.95em; }
+
+/* ---------- Otras ediciones de esta obra (comparador en PDP) ---------- */
+.akb-pdp-other-editions {
+	margin: 20px 0 18px;
+	padding: 14px 16px;
+	background: var(--aki-surface-1, #111);
+	border: 1px solid var(--aki-border, #2a2a2a);
+	border-left: 3px solid var(--aki-red, #e60012);
+	font-family: var(--font-body, sans-serif);
+}
+
+.akb-pdp-other-editions__header {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: 12px;
+}
+
+.akb-pdp-other-editions__eyebrow {
+	font-size: 0.68rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--aki-red-text, #ff4d5e);
+}
+
+.akb-pdp-other-editions__title {
+	margin: 0 !important;
+	font-size: 0.95rem !important;
+	font-weight: 800 !important;
+	line-height: 1.25 !important;
+	color: var(--aki-white, #fff) !important;
+	letter-spacing: 0.02em;
+}
+
+.akb-pdp-other-editions__grid {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.akb-pdp-other-editions__card {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 10px 12px;
+	background: var(--aki-black, #121212);
+	border: 1px solid var(--aki-border, #262626);
+	transition: border-color 0.18s ease;
+}
+
+.akb-pdp-other-editions__card:hover {
+	border-color: var(--aki-gray-500, #555);
+}
+
+.akb-pdp-other-editions__thumb {
+	flex: 0 0 58px;
+	width: 58px;
+	height: 84px;
+	display: block;
+	overflow: hidden;
+	border-radius: 2px;
+	border: 1px solid var(--aki-border, #2a2a2a);
+	background: #1a1a1a;
+}
+
+.akb-pdp-other-editions__thumb img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	color: transparent;
+}
+
+.akb-pdp-other-editions__body {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.akb-pdp-other-editions__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 10px;
+	font-size: 0.72rem;
+	line-height: 1.2;
+}
+
+.akb-pdp-other-editions__origin {
+	display: inline-block;
+	padding: 2px 6px;
+	background: #1f1f1f;
+	border: 1px solid var(--aki-border, #333);
+	color: var(--aki-white, #fff);
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+
+.akb-pdp-other-editions__count {
+	color: var(--aki-text-muted, #9a9a9a);
+	font-weight: 600;
+}
+
+.akb-pdp-other-editions__vol-link {
+	color: var(--aki-white, #fff);
+	text-decoration: none;
+	font-size: 0.88rem;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.akb-pdp-other-editions__vol-link:hover {
+	color: var(--aki-red, #e60012);
+	text-decoration: underline;
+}
+
+.akb-pdp-other-editions__availability {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 10px;
+	margin-top: 2px;
+}
+
+.akb-pdp-other-editions__badge {
+	display: inline-block;
+	padding: 2px 7px;
+	font-size: 0.68rem;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	border-radius: 2px;
+}
+
+.akb-pdp-other-editions__badge--disponible {
+	background: rgba(22, 163, 74, 0.18);
+	border: 1px solid rgba(34, 197, 94, 0.45);
+	color: #4ade80;
+}
+
+.akb-pdp-other-editions__badge--a_pedido,
+.akb-pdp-other-editions__badge--preventa {
+	background: rgba(245, 158, 11, 0.18);
+	border: 1px solid rgba(251, 191, 36, 0.45);
+	color: #fbbf24;
+}
+
+.akb-pdp-other-editions__badge--agotado {
+	background: rgba(148, 163, 184, 0.14);
+	border: 1px solid rgba(148, 163, 184, 0.35);
+	color: #94a3b8;
+}
+
+.akb-pdp-other-editions__price {
+	font-size: 0.85rem;
+	font-weight: 800;
+	color: var(--aki-white, #ffffff);
+}
+
+.akb-pdp-other-editions__cta {
+	margin-left: auto;
+	font-size: 0.76rem;
+	font-weight: 700;
+	color: var(--aki-white, #fff);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.akb-pdp-other-editions__cta:hover {
+	color: var(--aki-red, #e60012);
+}
+
+.akb-pdp-other-editions__note {
+	margin: 0;
+	font-size: 0.78rem;
+	line-height: 1.35;
+	color: var(--aki-text-muted, #a0a0a0);
+}
+
+.akb-pdp-other-editions__series-link {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--aki-text-muted, #b3b3b3);
+	text-decoration: none;
+	margin-top: 2px;
+}
+
+.akb-pdp-other-editions__series-link:hover {
+	color: var(--aki-white, #fff);
+	text-decoration: underline;
+}
+
+/* ---------- Badge / Callout "¿Vienes del anime?" (Alineado a DS-8 / DS-9 / DS-12) ---------- */
+.akb-anime-badge {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: start;
+	column-gap: var(--space-3, 12px);
+	row-gap: 2px;
+	margin: var(--space-3, 12px) 0 var(--space-4, 16px);
+	padding: var(--space-3, 12px) var(--space-4, 16px);
+	background: var(--aki-surface-1, #141416);
+	border: 1px solid var(--aki-border, #2a2a2e);
+	border-left: 3px solid var(--aki-red, #e60012);
+	border-radius: 0;
+	box-shadow: 4px 4px 0 var(--aki-black, #121212);
+	font-family: var(--font-body, sans-serif);
+}
+
+.akb-anime-badge__icon {
+	grid-row: 1 / span 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 2px;
+	color: var(--aki-red-text, #ff4756);
+}
+
+.akb-anime-badge__label {
+	grid-column: 2;
+	font-family: var(--font-heading, "Bebas Neue", sans-serif);
+	font-size: var(--text-sm, 0.875rem);
+	font-weight: 400;
+	font-synthesis: none;
+	letter-spacing: 0.08em;
+	line-height: 1.1;
+	text-transform: uppercase;
+	color: var(--aki-red-text, #ff4756); /* 5.3:1 sobre surface-1 -> Pasa WCAG AA holgado */
+}
+
+.akb-anime-badge__text {
+	grid-column: 2;
+	font-size: var(--text-sm, 0.875rem);
+	font-weight: var(--weight-medium, 500);
+	line-height: 1.45;
+	color: var(--aki-gray-100, #f5f5f5);
+}
+

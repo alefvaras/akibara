@@ -1,0 +1,46 @@
+%% Máquina de estados del capítulo 06 — la autoridad de precio que alimenta al buscador. Los cuatro estados son constantes de SearchPriceProvider (STATE_EMPTY/PENDING/ACTIVE/FAILED, :52-55); PriceAuthority es otra cosa: un único booleano monótono de «sigo teniendo certeza» compartido por Settings, DiscountResolver y el proveedor.
+%% Qué muestra: por qué el precio que se sella dentro del índice sigue un contrato distinto del de la tienda: aquí un fallo no se corrige solo, así que el estado FALLIDO es pegajoso y se prefiere no publicar precio antes que publicar uno inventado.
+stateDiagram-v2
+    direction TB
+
+    [*] --> VACIO
+
+    VACIO: VACIO (EMPTY) — el estado normal de TODA la tienda
+    VACIO: Nadie entregó foto de configuración todavía.<br/>Una visita de cliente nunca saca la máquina de aquí:<br/>sólo la mueve el buscador al publicar o reconstruir.
+
+    PENDIENTE: PENDIENTE (PENDING)
+    PENDIENTE: El buscador entregó su foto y fue validada entera:<br/>forma, dominio de cada option, zona horaria canónica,<br/>ventana activa y boundary_at recalculados aparte.
+
+    ACTIVA: ACTIVA (ACTIVE)
+    ACTIVA: El resolver quedó ligado a esa foto y lee en crudo:<br/>options, atributos, decimales y relaciones producto-término<br/>sin pasar por ninguna caché de WordPress.
+
+    FALLIDA: FALLIDA (FAILED)
+    FALLIDA: Estado pegajoso: no se vuelve de aquí en esta petición.<br/>Cada llamada lanza PriceAuthorityUnavailable.
+
+    VACIO --> PENDIENTE: adopt_search_snapshot()<br/>la foto pasa las validaciones
+    VACIO --> FALLIDA: la foto no cuadra<br/>(ventana o caducidad recalculadas difieren)
+    PENDIENTE --> ACTIVA: primera llamada a akb_search_effective_price<br/>bind_adopted_snapshot()
+    PENDIENTE --> FALLIDA: se intenta adoptar una foto DISTINTA<br/>en la misma petición
+    ACTIVA --> ACTIVA: producto siguiente<br/>se comprueba al entrar y al salir que la foto es la misma
+    ACTIVA --> FALLIDA: lectura fallida, foto cambiada<br/>o se cruzó boundary_at (fin de la ventana)
+
+    FALLIDA --> [*]: el documento NO se publica y la deuda queda pendiente:<br/>sigue sirviendo el índice anterior
+    ACTIVA --> [*]: fin de la publicación:<br/>precios efectivos verificados dentro del índice
+
+    note right of FALLIDA
+        El contrato de la tienda es el contrario:
+        allí un fallo devuelve el precio normal
+        y se corrige en la siguiente visita.
+        Aquí un error queda SELLADO en el índice
+        sin que nada lo delate — por eso NO se
+        publica un documento parcial ni uno con
+        el precio base (DocumentBuilder.php:248-252).
+    end note
+
+    note left of VACIO
+        El «token» que devuelve adopt_search_snapshot()
+        vive sólo en memoria, dentro del objeto de esa
+        petición (SearchPriceProvider.php:63). No está
+        en la base ni en ningún transient: no se puede
+        mirar después para depurar.
+    end note

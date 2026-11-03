@@ -1,0 +1,35 @@
+%% Máquina de estados del capítulo 17 — la option akb_search_rebuild_state y las tablas sombra del buscador.
+%% Qué muestra: cada estado con sus DOS coordenadas —la fase que se lee en la option y la topología de tablas que se ve en la base—, el camino normal de una reconstrucción, y el único orden que saca de un atasco.
+%% Fases reales de la option: RebuildJob.php:87-96. Topologías: Install.php:103-106.
+stateDiagram-v2
+    direction TB
+    [*] --> Reposo
+
+    Reposo: Reposo sano
+    Reposo: fase — option AUSENTE
+    Reposo: topología — clean_pre (sólo las tablas vivas)
+    Construyendo: Construyendo en la sombra
+    Construyendo: fase — PREPARING, BUILDING, CATCHING_UP
+    Construyendo: topología — ready_swap (viven las vivas y las _new)
+    ListoParaCambiar: A punto de intercambiar
+    ListoParaCambiar: fase — SWAP_INTENT
+    ListoParaCambiar: topología — ready_swap
+    Servido: Índice nuevo servido
+    Servido: fase — SWAPPED, PUBLISHING, CLEANUP, DONE
+    Servido: topología — swapped (quedan las _old como marcha atrás)
+    Bloqueado: Rebuild trabado
+    Bloqueado: fase — BLOCKED (motivo orphan_topology_without_state) o ABORTED
+    Bloqueado: topología — ambiguous
+    Rescate: ops/rescate-buscador.sh produccion
+
+    Reposo --> Construyendo: llega una solicitud (akb_search_pending_rebuild)
+    Construyendo --> ListoParaCambiar: 1.631 documentos en unos 30 segundos
+    ListoParaCambiar --> Servido: renombrado atómico de las tablas
+    Servido --> Reposo: se sueltan las _old y se retira el estado
+    Construyendo --> Bloqueado: se borra la option DEJANDO puestas las tablas _new
+    ListoParaCambiar --> Bloqueado: primer arranque de WordPress sin dueño del estado
+    Bloqueado --> Bloqueado: el REBUILD no lo reanuda nadie — ni el panel ni la consola del plugin
+    Bloqueado --> Bloqueado: pero el vigilante SÍ entra cada 15 min, intenta el arreglo barato del serving y avisa a admin_email
+    Bloqueado --> Rescate: alguien ejecuta el guion del repositorio
+    Rescate --> Reposo: suelta la sombra PRIMERO y retira la option DESPUÉS
+    Rescate --> Rescate: si aparecen tablas _old el guion PARA (ahí _old es el rollback)

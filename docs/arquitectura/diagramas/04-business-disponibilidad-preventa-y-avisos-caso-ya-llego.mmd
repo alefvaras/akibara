@@ -1,0 +1,44 @@
+%% Caso «el tomo llega a bodega y el cliente recibe "tu pedido ya llegó"» — capítulo 04.
+%% Qué muestra: el camino completo desde que el dueño pone un tomo en stock hasta que sale el correo, con los dos oyentes que comparten el mismo hook de stock (pedidos en prioridad 10, lista de espera en 11), la cola de Action Scheduler, el bloqueo por pedido y las tres bifurcaciones que suprimen el correo.
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WC as WooCommerce
+    participant SCL as OrderPreventa\StockChangeListener
+    participant AS as Action Scheduler
+    participant CRON as OrderPreventa\ReadyToShipCron
+    participant DISP as OrderPreventa\ReadyEmailDispatcher
+    participant MAIL as OrderPreventa\ReadyToShipEmail
+    actor Cliente
+
+    Dueno->>WC: pone el producto en stock<br/>ficha, edición en lote, importación o WP-CLI
+    WC-->>SCL: woocommerce_product_set_stock_status (prio 10)
+    Note over SCL: la lista de espera escucha el MISMO hook en prio 11<br/>audiencias disjuntas por diseño
+    SCL->>AS: agenda akb_order_preventa_recompute_for_product a +5 s<br/>deduplicando POR ARGUMENTOS, no con el flag global
+    AS->>SCL: ejecuta el obrero
+    SCL->>SCL: reclama las acciones hermanas del mismo lote
+    SCL->>CRON: process_order() por cada pedido activo con «listo = no»
+
+    alt Todavía falta algún tomo
+        CRON->>CRON: actualiza _akb_eta_pending_count y recalcula el estimado
+        Note over CRON: no se dispara ningún correo
+    else Ya no queda nada pendiente
+        CRON->>CRON: _akb_eta_ready_to_ship = yes + _akb_eta_ready_date<br/>nota en el pedido — la marca yes es INMUTABLE
+        CRON-->>DISP: akb_order_preventa_marked_ready
+        DISP->>AS: agenda akb_order_preventa_dispatch_ready_email<br/>una por pedido — reintento a +305 s si el obrero falla
+        AS->>DISP: ejecuta el obrero
+        DISP->>MAIL: resuelve el correo desde el mailer de WooCommerce
+        MAIL->>MAIL: GET_LOCK por pedido, arma TODO el mensaje,<br/>escribe la marca y la relee sin caché
+        MAIL->>Cliente: «Tu pedido {n} ya llegó a Akibara»<br/>+ ventana de despacho de ShipPromise
+    else Quedó todo reembolsado
+        CRON->>CRON: marca listo con nota «no se envía aviso de llegada»
+        Note over CRON,Cliente: no sale ningún correo
+    end
+
+    alt El proveedor de correo RECHAZA el envío
+        MAIL->>MAIL: SendFailureRearm quita la marca y cuenta el intento
+        Note over MAIL: hasta 3 veces — a la tercera, nota pidiendo reenvío manual<br/>desde «Acciones del pedido»
+    end
+
+    Cliente->>WC: abre /mi-cuenta/ver-pedido/
+    WC-->>Cliente: cartel verde «Tu pedido está listo para despachar»<br/>CustomerVisibility

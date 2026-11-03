@@ -1,0 +1,41 @@
+%% Las fases de la selección de un Punto Blue Express, tal como las guarda PudoMutationGuard en la fila akb_pudo_state_<hmac>.
+%% Qué muestra: los tiempos de vida escritos en la clase (60 s pendiente, 1 h confirmada, 30 s en checkout, 900 s de lápida — PudoMutationGuard.php:22-25) y los mensajes que el cliente puede leer cuando una transición se deniega. NINGUNA fila queda para siempre: fallida y liberada caducan igual.
+stateDiagram-v2
+    direction TB
+
+    [*] --> Pendiente : begin_selection() abre un arriendo<br/>e invalida cualquier intento anterior
+
+    state "Pendiente (pending)<br/>vive 60 s — se está preguntando a Blue Express" as Pendiente
+    state "Confirmada (committed)<br/>vive hasta 1 h — atada a la huella del carrito" as Confirmada
+    state "En checkout (checkout)<br/>congelada 30 s mientras se copia al pedido" as EnCheckout
+    state "Fallida (failed)<br/>lápida de 900 s, igual que Liberada" as Fallida
+    state "Liberada (cleared)<br/>lápida de 900 s" as Liberada
+
+    Pendiente --> Confirmada : commit_selection() — sólo si ESTE arriendo sigue vigente<br/>(comparar-y-cambiar, hasta 8 intentos)
+    Pendiente --> Fallida : la geolocalización o la cotización no pasan los controles
+    Pendiente --> Liberada : llegó una selección más nueva (la vieja recibe pudo_stale_attempt)
+
+    Confirmada --> Pendiente : el cliente elige otro punto
+    Confirmada --> Liberada : cambió el carrito o el destino → la huella deja de coincidir
+    Confirmada --> Liberada : pasó una hora sin tocar el carrito
+    Confirmada --> EnCheckout : claim_for_checkout() al pulsar «Realizar pedido»
+
+    EnCheckout --> Confirmada : release_checkout_claim() tras copiar los datos al pedido
+    EnCheckout --> EnCheckout : intento de cambiar el punto → pudo_checkout_in_progress
+
+    Fallida --> Pendiente : el cliente vuelve a elegir
+    Fallida --> [*] : caduca a los 900 s (TOMBSTONE_TTL) y la barre la misma cleanup_expired()
+    Liberada --> [*] : cleanup_expired() borra hasta 25 filas caducadas por vez
+
+    note right of Confirmada
+      Mientras la selección esté confirmada, filter_package_rates
+      retira del checkout toda tarifa de retiro que no coincida
+      con la cotización guardada dentro de un céntimo.
+    end note
+
+    note right of Liberada
+      No hay cron: la limpieza es oportunista, dentro de la
+      propia petición que abre o confirma una selección.
+      El borrado es una sola sentencia SQL gracias a que la
+      caducidad va delante del valor con ancho fijo.
+    end note

@@ -1,0 +1,55 @@
+%% Caso 2 del capítulo 06 — el cliente ve el precio con descuento en listado, ficha y carrito.
+%% Qué muestra: cómo un porcentaje guardado en un término se convierte al vuelo en el número que paga el cliente, sin tocar la base; las cuatro políticas frente a una rebaja manual; y las dos reescrituras posteriores del HTML del precio (sello rojo y producto agotado).
+sequenceDiagram
+    actor Cliente
+    participant Woo as WooCommerce
+    participant PF as PriceFilters
+    participant Res as DiscountResolver
+    participant Sett as Settings
+    participant Sellos as LoopEnhancer + SaleDiscount
+    participant Lite as LiteSpeed + Cloudflare
+
+    Cliente->>Lite: pide /tienda/ o una ficha
+    alt El HTML ya está cacheado
+        Lite-->>Cliente: copia guardada — puede traer el precio anterior
+    else Hay que armar la página
+        Lite->>Woo: pasa al origen
+        Woo->>PF: woocommerce_product_get_price
+        PF->>Res: resolve(producto)
+        Res->>Sett: is_enabled() — ¿interruptor en yes Y hoy dentro de la ventana?
+        Sett-->>Res: sí (día del SITIO, zona horaria de Chile)
+        Res->>Sett: is_stock_eligible() — estado comercial del producto
+        Note over PF: tres de los ocho filtros son para VARIACIONES —<br/>productos con tallas o colores—. En Akibara no hay ninguna:<br/>el catálogo es 100 % simple. Esas tres filas son preventivas
+        Note over Sett: instock_only = sólo Disponible —<br/>instock_and_onbackorder = Disponible + A pedido —<br/>las PREVENTAS quedan fuera de las dos
+        Res->>Res: recorre los grupos del producto, gana el % MÁS ALTO
+        alt El producto tiene una rebaja manual VIGENTE
+            Res->>Sett: get_sale_policy()
+            Note over Res: skip_if_on_sale → no aplica<br/>greatest_wins → el más bajo de los dos<br/>from_regular → recalcula sobre el precio normal<br/>stack_on_sale → encadena SOBRE el precio ya rebajado
+        else Sin rebaja manual vigente
+            Res->>Res: regular × (100 − pct) / 100, redondeado
+        end
+        alt Alguna lectura falló
+            Res-->>PF: null — la autoridad se pierde para toda la petición
+            PF-->>Woo: precio normal (se corrige solo en la siguiente petición)
+        else Cálculo autoritativo
+            Res-->>PF: precio con descuento (memoizado por producto)
+            PF-->>Woo: ese número
+        end
+        Woo->>PF: woocommerce_get_price_html (prioridad 20)
+        PF-->>Woo: «antes tachado / ahora»
+        Woo->>Sellos: woocommerce_before_shop_loop_item_title (prioridad 9)
+        Sellos->>Sellos: SaleDiscount calcula el % sobre el precio YA filtrado
+        Note over Sellos: dos pisos para el sello rojo: si la tarjeta ya lleva «Preventa»<br/>y el rojo va encima, sólo aparece por encima del umbral configurado<br/>(10 % de fábrica). Si el rojo va solo, aparece desde el 1 %
+        Sellos-->>Woo: sellos de la tarjeta (Agotado suprime a los demás)
+        opt El producto está AGOTADO
+            Sellos->>Woo: woocommerce_get_price_html (prioridad 30)
+            Sellos-->>Woo: un solo importe, sin tachado
+        end
+        Woo-->>Lite: HTML terminado
+        Lite-->>Cliente: página con el precio de campaña
+    end
+
+    Cliente->>Woo: añade al carrito
+    Woo->>PF: woocommerce_before_calculate_totals (prioridad 20)
+    PF-->>Woo: re-sella el precio en la línea antes de sumar totales
+    Woo-->>Cliente: carrito, checkout y correo con el mismo número

@@ -1,0 +1,222 @@
+/**
+ * CollectionBadges — Estilos globales de posesión de colección ("✓ En tu colección").
+ *
+ * Se muestran en tarjetas de catálogo general, búsqueda, categorías, editorial y PDP.
+ * Coherente con el sistema de diseño Akibara y la pastilla esmeralda de SeriesBundles.
+ */
+
+/* ─── Insignia en Tarjetas de Catálogo / Rejilla de Productos ─────────── */
+.products li.product {
+	position: relative;
+}
+
+.akb-card-collection-badge {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	z-index: 3;
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid rgba(16, 185, 129, 0.45);
+	background: #064e3b;
+	color: #a7f3d0;
+	font-family: inherit;
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+	pointer-events: none;
+	white-space: nowrap;
+	line-height: 1.35;
+	transition: opacity 180ms ease, transform 180ms ease;
+}
+
+/* En móvil se compacta para no tapar la portada */
+@media (max-width: 600px) {
+	.akb-card-collection-badge {
+		top: 6px;
+		right: 6px;
+		font-size: 8px;
+		padding: 1px 6px;
+	}
+}
+
+/* Si la tarjeta ya tiene un badge superior izquierdo visible (PREVENTA, OFERTA, AGOTADO),
+ * desplazamos "✓ En tu colección" a la esquina inferior izquierda de la portada
+ * (opuesta al corazón de favoritos) para evitar cualquier colisión horizontal en móvil. */
+.products li.product:has(.akb-badge:not(.akb-badge--available)) .akb-card-collection-badge {
+	top: auto;
+	right: auto;
+	bottom: 14px;
+	left: 8px;
+	max-width: calc(100% - 64px);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+	.products li.product:has(.akb-badge:not(.akb-badge--available)) .akb-card-collection-badge {
+		bottom: 12px;
+		left: 6px;
+	}
+}
+
+/* Si la tarjeta ya tiene el badge de SeriesBundles (en la landing de serie),
+ * ocultamos el global para evitar duplicados en la misma card. */
+.products li.product:has(.akb-sb-card-owned) .akb-card-collection-badge {
+	display: none !important;
+}
+
+/* ─── Banner en Ficha de Producto (PDP) ─────────────────────────────── */
+.akb-pdp-collection-banner[hidden],
+.akb-pdp-shelve-action[hidden] {
+	display: none !important;
+}
+
+.akb-pdp-collection-banner {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2, 8px);
+	margin: 0 0 var(--space-3, 12px);
+	padding: 6px 12px;
+	background: rgba(6, 78, 59, 0.22);
+	border: 1px solid rgba(16, 185, 129, 0.35);
+	border-radius: 8px;
+	color: #a7f3d0;
+	font-size: 13px;
+	line-height: 1.4;
+	box-sizing: border-box;
+}
+
+.akb-pdp-collection-banner .akb-badge-collection {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	background: #064e3b;
+	color: #a7f3d0;
+	border: 1px solid rgba(16, 185, 129, 0.45);
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	white-space: nowrap;
+	letter-spacing: 0.02em;
+}
+
+.akb-pdp-collection-banner .akb-pdp-collection-hint {
+	color: var(--aki-gray-200, #e5e7eb);
+	font-size: 12.5px;
+	font-weight: 500;
+}
+
+.akb-pdp-collection-banner .akb-pdp-divider {
+	color: rgba(167, 243, 208, 0.4);
+	margin: 0 2px;
+}
+
+.akb-pdp-collection-banner .akb-pdp-unmark-btn {
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin: 0;
+	color: var(--aki-gray-400, #9ca3af);
+	font-family: inherit;
+	font-size: 11.5px;
+	font-weight: 500;
+	cursor: pointer;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	transition: color 150ms ease;
+}
+
+.akb-pdp-collection-banner .akb-pdp-unmark-btn:hover {
+	color: #fca5a5;
+}
+
+.akb-pdp-collection-banner .akb-pdp-unmark-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	text-decoration: none;
+}
+
+/* ─── Acción Discreta en Ficha de Producto (PDP): Marcar en Estantería ─── */
+.akb-pdp-shelve-action {
+	margin: 14px 0 0;
+	padding-top: 10px;
+	border-top: 1px dashed rgba(255, 255, 255, 0.12);
+	font-size: 13px;
+	color: var(--aki-gray-300, #cbd5e1);
+	line-height: 1.4;
+}
+
+.akb-pdp-shelve-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.akb-pdp-shelve-text {
+	color: var(--aki-gray-300, #cbd5e1);
+	font-size: 12.5px;
+}
+
+.akb-pdp-shelve-btn {
+	background: transparent;
+	border: none;
+	padding: 0;
+	margin: 0;
+	color: #6ee7b7;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 12.5px;
+	font-weight: 600;
+	transition: color 150ms ease, opacity 150ms ease;
+}
+
+.akb-pdp-shelve-btn:hover {
+	color: #a7f3d0;
+	text-decoration: underline;
+}
+
+.akb-pdp-shelve-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	text-decoration: none;
+}
+
+@media (max-width: 600px) {
+	.akb-pdp-collection-banner {
+		width: 100%;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+		padding: 8px 10px;
+	}
+	.akb-pdp-collection-banner .akb-badge-collection {
+		font-size: 10px;
+	}
+	.akb-pdp-collection-banner .akb-pdp-collection-hint {
+		font-size: 11.5px;
+	}
+	.akb-pdp-shelve-action {
+		margin-top: 10px;
+		font-size: 12px;
+	}
+	.akb-pdp-shelve-text,
+	.akb-pdp-shelve-btn {
+		font-size: 12px;
+	}
+}
+
+/* Accesibilidad: prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+	.akb-card-collection-badge,
+	.akb-pdp-collection-banner,
+	.akb-pdp-shelve-action {
+		transition: none;
+	}
+}

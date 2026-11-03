@@ -1,0 +1,80 @@
+%% Máquina de estados del capítulo 11 — los dos ciclos que conviven: el enlace de invitación y la reseña.
+%% Qué muestra: cómo el token pasa de emitido a usado por una escritura condicional de la base de datos y puede volver atrás; y cómo una reseña aprobada se resuelve en uno de CUATRO sellos, incluido el «sin sello» que la hace indistinguible de una que nadie ha evaluado todavía.
+stateDiagram-v2
+    direction TB
+
+    state "EL ENLACE · tabla akb_rewards_review_forms" as TOKEN {
+        [*] --> Emitido
+
+        Emitido: Emitido
+        Emitido: token de 40 caracteres, vence a los 30 días, used_at NULL
+        Emitido: lo escribe Invitations issue_token antes de intentar el envío
+
+        Usado: Usado
+        Usado: used_at con fecha
+        Usado: lo ganó el UPDATE ... WHERE used_at IS NULL — la carrera la resuelve la base
+
+        Vencido: Vencido
+        Vencido: pasó su expires_at y nunca se usó
+
+        Borrado: Borrado
+        Borrado: vencido hace más de 6 meses y sin usar, 500 por corrida
+        Borrado: sólo si el vencimiento de PUNTOS está encendido
+
+        Emitido --> Usado: el cliente envía el formulario y gana la carrera
+        Usado --> Emitido: el INSERT de la reseña falló y release_token lo devuelve al ruedo
+        Emitido --> Vencido: pasan los 30 días
+        Vencido --> Borrado: el cron diario de vencimiento de puntos pasa por aquí
+        Usado --> Usado: los usados se conservan a propósito, para auditar qué reseña vino de qué pedido
+    }
+
+    state "LA RESEÑA · un comentario de WordPress" as RESENA {
+        [*] --> EnEspera
+
+        EnEspera: En espera
+        EnEspera: comment_approved = 0
+        EnEspera: el formulario lo fija a mano y Moderation retiene el resto en pre_comment_approved:50
+
+        Aprobada: Aprobada
+        Aprobada: el dueño pulsa Aprobar
+        Aprobada: aquí, y sólo aquí, se resuelve el premio
+
+        Rechazada: No aprobada, spam o papelera
+        Rechazada: desaparece de la ficha, del carrusel y del bloque para Google
+
+        EnEspera --> Aprobada: el dueño la acepta
+        EnEspera --> Rechazada: el dueño la rechaza
+        Aprobada --> Rechazada: se retira después, y los puntos ya pagados NO vuelven
+    }
+
+    state "EL VEREDICTO DEL PREMIO · sello _akb_rewards_review_points" as SELLO {
+        [*] --> Sin_evaluar
+
+        Sin_evaluar: Sin evaluar
+        Sin_evaluar: la reseña todavía no se ha aprobado
+
+        Pagada: Pagada
+        Pagada: el sello lleva los puntos y hay fila en el ledger con clave única
+        Pagada: sale el correo «Tu reseña sumó 500 Puntos Akibara»
+
+        Cero: Descartada CON huella
+        Cero: sello 0 — cupón del plugin viejo, tope por cliente o cadencia «cada N»
+
+        Pendiente: Pendiente de cuenta
+        Pendiente: sello pending_account, reversible
+        Pendiente: ninguna pantalla ni comando lista las que se quedan aquí
+
+        SinSello: SIN SELLO
+        SinSello: sin foto real, sin compra verificada, producto no publicado o candado ocupado
+        SinSello: no queda ninguna huella — desde fuera es idéntica a una no evaluada
+
+        Sin_evaluar --> Pagada: pasa las once compuertas
+        Sin_evaluar --> Cero: corta una compuerta que sí deja huella
+        Sin_evaluar --> Pendiente: no hay cuenta detrás del correo del autor
+        Sin_evaluar --> SinSello: corta una compuerta que NO deja huella
+        Pendiente --> Pagada: el invitado VERIFICA su correo, no basta con registrarse
+        Pagada --> Pagada: des-aprobar, marcar spam o borrar no devuelve los puntos
+    }
+
+    TOKEN --> RESENA: el token quemado da a luz la reseña
+    RESENA --> SELLO: la aprobación dispara ReviewPoints maybe_pay

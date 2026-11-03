@@ -1,0 +1,76 @@
+%% Máquina de estados del capítulo 10 — el ciclo de vida del CANJE dentro de un pedido.
+%% Qué muestra: cómo la intención guardada en la sesión se convierte en comisión concedida, cuándo se cobran de verdad los puntos, las TRES cuentas que lleva la reposición (RESTORED acumulado, REVIVAL_DEBT re-cobrable y UNSETTLED irrecuperable), por qué un reembolso parcial NO se re-cobra nunca, y el único agujero real — el pedido que nace y muere dentro de un estado a medida que no está ni en ALIVE ni en DOWN.
+%% Las tres cuentas son constantes de PHP; en el pedido se guardan como _akb_rewards_redeemed_restored, _akb_rewards_redeemed_revival_debt y _akb_rewards_redeemed_unsettled (Redemption.php:53, :54, :55).
+stateDiagram-v2
+    direction TB
+    [*] --> SinCanje
+
+    SinCanje: Sin canje
+    SinCanje: el carrito no tiene intención en la sesión de WooCommerce
+    SinCanje: no hay comisión ni metas en el pedido
+
+    Intencion: Intención guardada
+    Intencion: SESSION_KEY en la sesión de WooCommerce · Redemption.php:49
+    Intencion: la fijan Mi cuenta y la caja del checkout, con el MISMO recorte
+    Intencion: recorte por mínimo configurado y por saldo real · clamp_requested
+
+    Concedido: Comisión concedida
+    Concedido: woocommerce_cart_calculate_fees prioridad 20 · apply_fee, Redemption.php:233
+    Concedido: effective_points vuelve a topar por saldo vivo, mínimo y techo del pedido
+    Concedido: redeemable_gross manda el MÁS ESTRICTO entre el porcentaje y el monto en pesos
+    Concedido: línea negativa «Puntos Akibara» escrita en NETO — el despacho queda fuera de la base
+
+    Capturado: Capturado
+    Capturado: al crear el pedido · prioridad 20 en checkout_order_processed y en el Store API
+    Capturado: cobra lo que la comisión CONCEDIÓ, nunca la intención cruda · Redemption.php:326-338
+    Capturado: bajo candado de pedido, meta releída fresca, clave de evento redeem_ID
+    Capturado: sella las cinco metas y borra la intención de la sesión
+
+    Faltante: Capturado con faltante
+    Faltante: el saldo no alcanzó — compra concurrente en otra pestaña, o el residuo de ±$1
+    Faltante: cobra lo disponible, deja nota «Revisar con el cliente»
+    Faltante: dispara akb_rewards_redemption_shortfall · Redemption.php:399
+
+    Pendiente: Pendiente de captura
+    Pendiente: el candado del pedido estaba ocupado — NO se captura, a propósito
+    Pendiente: hay comisión nuestra sin cobro, es decir un descuento regalado
+
+    Repuesto: Repuesto por muerte del pedido
+    Repuesto: cancelled, refunded, failed o trash · la lista DOWN de OrderStates
+    Repuesto: prioridad 10, ANTES de la reversa de la acreditación
+    Repuesto: devuelve canjeado menos ya repuesto — suma RESTORED y suma REVIVAL_DEBT
+
+    Parcial: Repuesto por reembolso parcial
+    Parcial: proporción medida sobre los ÍTEMS — un reembolso sólo del envío no devuelve canje
+    Parcial: suma RESTORED y NO suma deuda — Redemption.php:504-523
+    Parcial: es DEFINITIVO, el pedido sigue vivo y re-cobrarlo le robaría al cliente
+
+    Recobrado: Deuda de revival re-cobrada
+    Recobrado: el pedido muerto vuelve a un estado ALIVE y recapture_after_revival cobra la deuda
+    Recobrado: si el cliente ya gastó lo repuesto, el débito se recorta y la deuda se cancela con alarma
+    Recobrado: la porción que no se pudo recobrar se anota como UNSETTLED · Redemption.php:55
+    Recobrado: el cliente conserva esos puntos Y el descuento, así que la base puntuable deja de perdonar esa parte
+    Recobrado: RESTORED conserva la verdad para que el bucle failed → pending no acuñe puntos
+
+    Regalado: Descuento regalado
+    Regalado: el pedido nació y murió dentro de un estado a medida
+    Regalado: ese estado no está ni en ALIVE ni en DOWN, así que nadie reintenta ni repone
+
+    SinCanje --> Intencion: el cliente pide canjear
+    Intencion --> SinCanje: Quitar canje, o woocommerce_cart_emptied
+    Intencion --> Concedido: WooCommerce recalcula el carrito
+    Concedido --> Capturado: se crea el pedido y el candado estaba libre
+    Concedido --> Faltante: saldo insuficiente al debitar
+    Concedido --> Pendiente: candado de pedido ocupado
+    Pendiente --> Capturado: el pedido entra a CUALQUIER estado ALIVE y se reintenta
+    Pendiente --> Regalado: el pedido muere sin pasar nunca por un estado ALIVE
+    Capturado --> Repuesto: el pedido cae a un estado DOWN
+    Faltante --> Repuesto: el pedido cae a un estado DOWN
+    Capturado --> Parcial: woocommerce_order_refunded parcial
+    Repuesto --> Recobrado: el pedido revive a un estado ALIVE
+    Recobrado --> Repuesto: vuelve a morir — repone canjeado menos RESTORED
+    Parcial --> Repuesto: además acaba muriendo
+    Recobrado --> [*]
+    Parcial --> [*]
+    Capturado --> [*]
+    Regalado --> [*]

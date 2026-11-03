@@ -1,0 +1,38 @@
+%% Caso 3 — QA prueba una plantilla de correo en el espejo Docker.
+%% Qué muestra: cómo el cepo desvía el correo a una bandeja falsa, qué ve QA y las dos bifurcaciones que hoy arruinan la prueba.
+sequenceDiagram
+    autonumber
+    actor QA
+    participant Semilla as tools/qa-seed-preventa.php
+    participant Woo as WooCommerce
+    participant Core as wp_mail de WordPress
+    participant Cepo as Cepo akibara-correo-no-sale-a-clientes
+    participant Cartero as Transport akibara-correo-smtp
+    participant Mailpit as Mailpit en localhost 8025
+
+    QA->>Semilla: crea un pedido con los hooks reales del checkout
+    Semilla->>Woo: cambia el estado del pedido
+    Woo->>Core: wp_mail a la dirección real del cliente de prueba
+    Core->>Cepo: filtro wp_mail, prioridad PHP_INT_MAX
+    Cepo->>Cepo: el entorno es local, no production
+    alt el destinatario es de un dominio reservado
+        Note over Cepo: .test, .example, .invalid, .localhost,<br/>example.com y example.org pasan tal cual
+        Cepo-->>Core: argumentos intactos
+    else el destinatario es una dirección real
+        Cepo->>Cepo: reescribe el destino a capturado arroba akibara.test
+        Cepo->>Cepo: antepone al asunto el destinatario original entre corchetes
+        Cepo->>Cepo: añade las cabeceras X-Akibara-Destinatario-Original<br/>y X-Akibara-Entorno
+        Note over Cepo: DEFECTO DEDUCIDO DEL CÓDIGO, sin medir en el espejo:<br/>envuelve las cabeceras de WooCommerce, que llegan como una<br/>sola cadena multilínea, en un único elemento de array
+        Cepo-->>Core: argumentos reescritos
+    end
+    Core->>Cartero: filtro pre_wp_mail y luego phpmailer_init
+    alt AKIBARA_HOSTINGER_MAIL_ENABLED está definida (wp-config.php:42-46)
+        Cartero->>Cartero: perfil de local: mailpit puerto 1025, sin autenticación
+        Core->>Mailpit: entrega
+        QA->>Mailpit: abre la bandeja y ve a quién habría ido
+        Note over QA,Mailpit: si el defecto de cabeceras se confirma, el cuerpo llegaría<br/>como HTML crudo y sin Reply-to. Comprobación de una línea:<br/>mandar un correo de pedido y mirar el Content-Type en Mailpit.
+    else alguien quitó esa constante del wp-config local
+        Cartero-->>Core: NO corta, NO deja option de corte y NO enciende aviso
+        Core->>Core: cae al mail() de PHP del contenedor y se pierde
+        Note over QA: QA ve «se envió», la bandeja está vacía<br/>y no hay ni rastro ni rojo que lo explique
+    end

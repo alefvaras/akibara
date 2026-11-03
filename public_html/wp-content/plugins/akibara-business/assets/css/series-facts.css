@@ -1,0 +1,307 @@
+/**
+ * Estilos de resumen, Último tomo y ficha de datos de serie. SeriesFacts los encola sólo en
+ * landings pa_serie, sin depender de la hoja EstimatedDelivery.
+ *
+ * @package Akibara\Business
+ */
+
+/*
+ * El resumen fluye en línea entre hero y rejilla, fuera de la toolbar, y enlaza a la ficha
+ * completa situada bajo la rejilla. Último tomo pertenece a la línea del total. Mantiene el
+ * sangrado de la ficha sin añadir una regla superior.
+ */
+/* La separación entre el dato y «Ver ficha completa ↓» es el ESPACIO que los
+   separa en el HTML, ensanchado 12 px, y no un margen del enlace (revisión
+   B3-D2): un margin-left viajaba con el enlace cuando bajaba a la línea
+   siguiente y lo dejaba 12 px a la derecha de «EDICIÓN …». Un espacio al final
+   de una línea se descarta, así que el enlace que baja arranca alineado. Y no
+   es un margen al final del dato: ése sí cuenta al partir la línea, y en
+   /serie/jujutsu-kaisen/ a 390 px mandaba «en 30 tomos» a la segunda línea. Los
+   hijos vuelven al espaciado normal: sólo se ensancha ese espacio, lo mismo
+   que sumaba el margen (espacio + 12 px), así que en la misma línea el enlace
+   no se mueve. */
+.akb-series-summary {
+    margin: 0 0 var(--space-2, 8px);
+    padding: 0 calc(var(--space-5, 20px) + 5px);
+    color: var(--aki-white, #fff);
+    font-size: var(--text-sm, 0.875rem);
+    line-height: 1.45;
+    word-spacing: var(--space-3, 12px);
+}
+.akb-series-summary > * {
+    word-spacing: normal;
+}
+.akb-series-summary__facts,
+.akb-series-summary__item,
+.akb-series-summary__label,
+.akb-series-summary__value {
+    display: inline;
+    margin: 0;
+}
+.akb-series-summary__label {
+    margin-right: var(--space-2, 8px);
+    color: var(--aki-gray-400, #9e9e9e);
+    font-size: var(--text-xs, 0.75rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.akb-series-summary__value {
+    font-weight: 600;
+}
+.akb-series-summary__value .woocommerce-Price-amount {
+    color: inherit;
+    text-decoration: none;
+}
+/* El detalle («38 tomos previstos») no se parte: si no cabe, baja entero a la
+   línea siguiente junto al enlace, en vez de dejar «38» arriba y «tomos
+   previstos» abajo. Es un dato corto del catálogo, no un texto del dueño. */
+.akb-series-summary__note {
+    white-space: nowrap;
+}
+/*
+ * Los enlaces editables admiten wrap y bajan enteros cuando no caben; sólo parten dentro si
+ * exceden una línea completa. La flecha queda unida mediante espacio duro. ::after amplía el
+ * toque sin invadir al vecino:4px hacia él y mayor extensión sólo donde hay espacio. El foco
+ * queda próximo al texto.
+ */
+.akb-series-summary__more {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    color: var(--aki-white, #fff);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+    text-decoration-color: var(--aki-red-text, #ff4756);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+.akb-series-summary__more::after {
+    content: "";
+    position: absolute;
+    inset: -10px 0 -4px;
+}
+.akb-series-summary__more:hover {
+    color: var(--aki-red-text, #ff4756);
+}
+.akb-series-summary__more:focus-visible {
+    /*
+     * Anillo de foco con el token y fallback amarillo de la marca.
+     */
+    outline: var(--aki-focus-outline, 3px solid #FFD700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+@media (max-width: 600px) {
+    .akb-series-summary {
+        padding-right: calc(var(--space-4, 16px) + 5px);
+        padding-left: calc(var(--space-4, 16px) + 5px);
+    }
+}
+
+/*
+ * Último tomo aparece en la línea del total de la toolbar. Admite wrap y límite en em, con
+ * ::after 4px para no solapar enlaces vecinos. La separación se aplica al espacio HTML
+ * ensanchado 12px, que se descarta al terminar línea y mantiene alineado el enlace que baja.
+ */
+.akb-result-count--extra {
+    word-spacing: var(--space-3, 12px);
+}
+.akb-result-count--extra > * {
+    word-spacing: normal;
+}
+.akb-series-latest {
+    position: relative;
+    display: inline-block;
+    max-width: 18em;
+    color: var(--aki-white, #fff);
+    font-weight: 600;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+    text-decoration-color: var(--aki-red-text, #ff4756);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+.akb-series-latest::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+}
+.akb-series-latest:hover {
+    color: var(--aki-red-text, #ff4756);
+}
+.akb-series-latest:focus-visible {
+    /*
+     * Anillo de foco con el token y fallback amarillo de la marca.
+     */
+    outline: var(--aki-focus-outline, 3px solid #FFD700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+/*
+ * Ficha de datos de la serie — `SeriesFacts::render()`, hook
+ * `woocommerce_after_shop_loop` prio 20: bajo la rejilla y la paginación, con
+ * el ancla `#ficha-de-la-serie` a la que lleva el resumen de arriba.
+ *
+ * Vive en esta hoja y no en una propia porque el guard de enqueue de
+ * `EstimatedDelivery\BannerRenderer` ya la carga en todo archive de taxonomía de
+ * producto — `is_product_taxonomy()` cubre `pa_serie` —, y un request extra por
+ * ~20 líneas no se paga solo.
+ *
+ * Deliberadamente sin caja ni borde de acento: la intro de las rutas de estado
+ * (arriba) es una pieza editorial que pide ser leída; esta es una ficha de
+ * datos. Sólo una línea superior que la separa de la rejilla y la paginación, y
+ * el dato en el peso tipográfico de la marca. Autofit en vez
+ * de columnas fijas: la ficha tiene entre 4 y 8 pares según lo que el catálogo
+ * permita declarar —y según si el dueño cargó el estado de publicación de esa
+ * serie, que es el único par que no sale del catálogo—, así que la grilla no
+ * puede asumir un número.
+ */
+.akb-series-facts {
+    /* El borde de texto de este archive NO está en 0 ni en `--space-5`: está en
+       25px. El hero suma su `padding: var(--space-5)` al `border-left: 5px` rojo
+       (loop.css) y las cards del grid caen exactamente ahí (13px de margen del
+       `ul.products` + 12px de padding del `li`). Sin este inset la ficha era el
+       ÚNICO elemento de la página cuyo texto tocaba el borde del viewport, y
+       "Disponible" quedaba 25px a la izquierda del H1 que tiene encima.
+       Los 5px van explícitos y no dentro de un token porque replican el ancho de
+       ese borde de acento, que no es un espacio del sistema. La regla superior
+       sí queda a sangre completa: separa de la rejilla, que también lo es. */
+    margin: var(--space-6, 32px) 0 var(--space-5, 20px);
+    padding: var(--space-4, 16px) calc(var(--space-5, 20px) + 5px) 0;
+    border-top: 1px solid var(--aki-border, #2a2a2a);
+}
+@media (max-width: 600px) {
+    /* El hero baja a `--space-4` en este breakpoint (loop.css): la ficha lo
+       sigue, o el texto se desalinearía justo donde el ancho es más escaso. */
+    .akb-series-facts {
+        padding-right: calc(var(--space-4, 16px) + 5px);
+        padding-left: calc(var(--space-4, 16px) + 5px);
+    }
+
+}
+.akb-series-facts__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-3, 12px) var(--space-5, 20px);
+    margin: 0;
+}
+.akb-series-facts__item {
+    min-width: 0;
+}
+.akb-series-facts__label {
+    margin: 0;
+    color: var(--aki-gray-400, #9e9e9e);
+    font-size: var(--text-xs, 0.75rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.akb-series-facts__value {
+    /* Bebas Neue es display-only y no tiene bold: `font-synthesis: none` evita
+       que el navegador invente un trazo grueso (mismo criterio que el kicker
+       del hero, más arriba en esta hoja). */
+    margin: 2px 0 0;
+    color: var(--aki-white, #fff);
+    font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+    font-size: 1.15rem;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+}
+/* El renglón de editorial enlaza al archive de la marca. Sin esta regla el
+   enlace caía en el `a` global del theme —rojo de marca #ff4756 y subrayado—,
+   y en este bloque ese rojo es el color del PRECIO y de los CTA: un valor rojo
+   entre otros seis blancos del mismo tamaño se lee como una alerta, no como un
+   enlace. Hereda el color y se señala con un subrayado tenue que se afirma al
+   pasar el cursor o al recibir foco. */
+.akb-series-facts__link {
+    position: relative;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--aki-gray-400, #9e9e9e);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 150ms ease;
+}
+.akb-series-facts__link:hover,
+.akb-series-facts__link:focus-visible {
+    text-decoration-color: currentColor;
+}
+/* Zona táctil (UM-15 = AI-7, lote de integración): el enlace mide 20 px de alto
+   (77 y 98 de ancho en /serie/jujutsu-kaisen/). Un ::after transparente de 2 px
+   arriba y abajo lo lleva a 24 (WCAG 2.5.8) sin mover el texto ni el
+   subrayado; el mismo recurso que las migas y la meta del tema. No más: con
+   dos editoriales el valor parte en dos líneas de 22 px de paso, y una zona
+   mayor tocaría el enlace de la otra línea. */
+.akb-series-facts__link::after {
+    content: "";
+    position: absolute;
+    inset: -2px 0;
+}
+
+/* `wc_price()` envuelve el monto en su propio span; hereda todo salvo el
+   subrayado que algunos temas ponen a `.woocommerce-Price-amount`. */
+.akb-series-facts__value .woocommerce-Price-amount {
+    color: inherit;
+    text-decoration: none;
+}
+/* Los números de los tomos agotados ("03, 06, 08 y 11"). Mismo criterio que la
+   fecha, un poco más abajo: no es UNA cifra, es una enumeración, y en Bebas
+   —display, condensada— compite con los conteos, que son el titular del
+   renglón. En su propio renglón y no a continuación porque en móvil la rejilla
+   es de 2 columnas de ~140 px: en línea, "4 tomos: 03, 06, 08 y 11" parte donde
+   caiga y el conteo deja de leerse como conteo. Así el `<dd>` crece UNA línea
+   previsible en vez de dos impredecibles. */
+.akb-series-facts__vols {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--font-body, Inter, system-ui, sans-serif);
+    font-size: 0.95rem;
+    letter-spacing: 0;
+    /* Los dígitos van tabulares para que la lista no baile: en Inter los
+       proporcionales hacen que "11" mida distinto que "03" y la coma quede a
+       otra altura óptica en cada elemento. */
+    font-variant-numeric: tabular-nums;
+}
+/* El detalle del renglón "Publicación" ("en 23 tomos", bajo "Completa"). Mismo
+   tratamiento que `__vols` y que la fecha, y por la misma razón: no es la cifra
+   que titula el renglón, es la prosa que la acota.
+   Lo que obliga a separarlo en su propio renglón es la medida: «Completa en 23
+   tomos» en Bebas a 1,15 rem mide ~155 px dentro de una columna de ~156 px en un
+   iPhone de 375 —y menos en uno de 360—, así que en línea parte por donde caiga
+   («Completa en 23» / «tomos») y el titular deja de leerse como titular. Partido
+   acá, el `<dd>` crece UNA línea previsible, que es el argumento con el que
+   `__vols` se separó doce líneas más arriba.
+   Sin `tabular-nums`, a diferencia de `__vols`: acá el número es UNO y va dentro
+   de una frase; los dígitos tabulares están para que una enumeración no baile. */
+.akb-series-facts__note {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--font-body, Inter, system-ui, sans-serif);
+    font-size: 0.95rem;
+    letter-spacing: 0;
+}
+.akb-series-facts__value time {
+    /* La fecha es prosa corta, no una cifra: en Bebas se lee peor y compite con
+       los conteos, que son el dato que la ficha viene a dar. */
+    font-family: var(--font-body, Inter, system-ui, sans-serif);
+    font-size: 0.95rem;
+    letter-spacing: 0;
+}
+
+/*
+ * La ficha móvil mantiene dos columnas y etiquetas 0.75rem. Ajusta altura de línea, valor y
+ * hueco entre filas; estas reglas finales ganan por orden con igual especificidad. Tres
+ * columnas estrecharían demasiado los datos largos y devolverían el alto mediante wrap.
+ */
+@media (max-width: 600px) {
+    .akb-series-facts__list {
+        row-gap: 10px;
+    }
+    .akb-series-facts__label {
+        line-height: 1.25;
+    }
+    .akb-series-facts__value {
+        font-size: 1.05rem;
+    }
+}

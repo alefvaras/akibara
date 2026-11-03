@@ -1,0 +1,38 @@
+%% Crons del capítulo 09 — lo único programado que toca el área de consulta.
+%% Qué muestra: que el área LECTORA no agenda nada por sí misma; hereda una sola recurrente diaria de Action Scheduler que poda el registro de búsquedas, y esa recurrente depende del interruptor de indexación. Todo lo demás caduca solo, por tiempo de vida de transient.
+timeline
+    title Lo programado que afecta al buscador cuando el cliente busca (hora de Chile)
+    section Al activar el plugin o en la primera visita
+        init prioridad 20 : Reconciler ensure_scheduled mira si ya existe la recurrente
+                          : si falta, la agenda para dentro de 1 hora y cada 24 h
+                          : sólo corre si akb_search_indexing está en yes
+        Memo de 12 h : un transient evita preguntarle a Action Scheduler en cada visita
+                     : si el memo caduca o alguien borra la recurrente, la siguiente visita la vuelve a agendar
+                     : TRAMPA: borrar la acción NO se nota hasta que el memo vence, o sea hasta 12 h después
+    section Cada 24 horas, sin hora fija
+        akb_search_reconcile : verifica que el índice y el catálogo digan lo mismo
+                             : borra del registro de búsquedas las filas de más de 180 días
+                             : si aún se pasa de 50.000 filas, recorta por día ascendente
+                             : correr dos veces es inofensivo — borra por fecha, es idempotente
+    section Cómo se dispara de verdad
+        Siempre : DISABLE_WP_CRON está activo en producción
+                : el cron de Hostinger llama a wp-cron.php cada 5 minutos
+                : «diario» significa «en la primera corrida tras vencer el plazo»
+    section Lo que NO está programado y caduca solo
+        1 día : akb_vocab_titles — el vocabulario del corrector
+              : akb_search_brand_tokens — las palabras de editorial soltables
+              : akb_lc_… — los conteos de facetas del listado
+        12 horas : akb_search_popular — el top del desplegable vacío
+        6 horas : akb_search_series_catalog — el catálogo de series sugeribles
+        1 hora : akb_search_zero_rescue_… — el veredicto de «hueco real» del panel
+        2 minutos : akb_search_notice_detail_… — el detalle del último aviso de guardado
+    section Cómo se comprueba que existe
+        En el panel : WooCommerce → Estado → Acciones programadas
+                    : filtrar por el grupo akibara-search y el hook akb_search_reconcile
+        Por consola : wp action-scheduler list --hook=akb_search_reconcile --group=akibara-search
+                    : wp akb-search reconcile fuerza una corrida ahora, sin esperar
+                    : wp akb-search status dice si el índice y los servicios están sanos
+    section La trampa
+        Si el dueño apaga «Indexación automática» : Search register sale ANTES de agendar el reconciliador
+                                                  : la poda del registro deja de correr
+                                                  : pero /track sigue escribiendo filas, porque sólo exige el interruptor de autocompletado

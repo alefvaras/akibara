@@ -1,0 +1,39 @@
+%% Máquina de estados del capítulo 03 — la vida de una fila en la cola de «Sigue esta serie».
+%% Qué muestra: los SEIS estados de la tabla wp_akb_series_follow_queue, quién escribe cada transición, cuáles son terminales y el único caso en que la fila desaparece en vez de cambiar de estado. Los nombres son literales del código: DigestQueue.php:57-62.
+stateDiagram-v2
+    direction TB
+
+    [*] --> pending: DigestRunner encola con INSERT IGNORE<br/>tras los cuatro descartes por comprador
+
+    pending --> pending: el cliente recibió correo hace menos de 7 días<br/>(el tope semanal deja la fila donde está)
+    pending --> pending: el correo de WooCommerce está deshabilitado<br/>run() sale sin enviar y SIN re-agendarse
+
+    pending --> sent: UPDATE atómico tras armar el correo Y enviarlo bien
+    pending --> coalesced: el correo NOMBRÓ el tomo dentro del bloque de su serie<br/>pero no le dio ficha propia
+    pending --> dropped: drop() con motivo DROP_OPTOUT (se dio de baja)<br/>o DROP_OWNED (ya tiene el tomo)
+    pending --> failed: tercer intento fallido (attempts alcanza 3)<br/>se drena en vez de reintentar para siempre
+    pending --> expired: pendiente de más de 60 días<br/>lo caduca la corrida antes de trabajar
+    pending --> BORRADA: drop() con DROP_UNPUBLISHED<br/>el tomo se despublicó, y esto es un DELETE, no un UPDATE
+
+    state "sent · terminal" as sent
+    state "coalesced · terminal" as coalesced
+    state "dropped · terminal" as dropped
+    state "failed · terminal" as failed
+    state "expired · terminal (UPDATE: la fila SE QUEDA)" as expired
+    state "la fila deja de existir" as BORRADA
+
+    sent --> [*]: la fila NO se barre nunca<br/>borrarla reabriría la ventana de idempotencia
+    coalesced --> [*]: ni «enviado» ni «descartado»<br/>el tomo ya se nombró, no se vuelve a nombrar
+    dropped --> [*]: NO vuelve a pending.<br/>Si el cliente se reactiva, los tomos de su periodo de baja NO se recuperan
+    failed --> [*]
+    expired --> [*]: sigue ocupando su clave UNIQUE,<br/>así que ese tomo tampoco se volverá a avisar
+    BORRADA --> [*]: es lo que permite que un tomo despublicado<br/>y vuelto a publicar SÍ se pueda avisar
+
+    note right of pending
+        El UNIQUE de la tabla («u» + id de cliente, «p» + id de producto)
+        ES la marca de avisado: republicar el mismo tomo afecta 0 filas.
+        No es una lectura previa, que tendría carrera.
+
+        Por eso «expired» borrando la fila sería un cambio de comportamiento
+        y no una limpieza: mientras la fila está, la clave está ocupada.
+    end note

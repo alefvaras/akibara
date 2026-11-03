@@ -1,0 +1,53 @@
+%% Piezas del capítulo 02 (1 de 2) — arranque y ciclo de vida, todo en los dos ficheros de la raíz.
+%% Qué muestra: las siete piezas que viven en akibara-business.php y uninstall.php (1, 2, 3, 4, 11, 12 y 13), de qué aviso de WordPress cuelga cada una, y los tres momentos destructivos que el dueño dispara con un clic.
+%% El segundo diagrama, «piezas-nucleo», dibuja las ocho piezas de src/ y las fronteras hacia los otros plugins.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    DUENO["Dueño<br/>activa, desactiva, elimina y despliega"]:::persona
+    CLIENTE["Cliente o rastreador<br/>su petición es la que enciende el plugin"]:::persona
+
+    WP["WordPress 6.8"]:::tercero
+    WOO["WooCommerce ≥ 10.0<br/>sin ella el plugin no arranca"]:::tercero
+
+    subgraph ARRANQUE["Piezas 1 a 4 · se encienden en cada petición"]
+        CAB["1 · Cabecera y constantes<br/>versión 1.116.4, mínimos de PHP, WP y WC<br/>akibara-business.php:1-48"]:::propio
+        HPOS["1b · before_woocommerce_init (:54)<br/>declara HPOS y bloques de carrito"]:::propio
+        GATE["2 · Gate de dependencias<br/>sin WC ≥ 10.0 retorna false y pone un cartel rojo<br/>:86-120"]:::propio
+        AUTO["3 · Autoloader PSR-4<br/>Akibara\\Business\\ vive en src/ · sin vendor/<br/>:138-154"]:::propio
+        FILTROS["4 · Cuatro filtros de catálogo<br/>stock en portada (:277), etiquetas de orden (:320),<br/>orden por título (:369), relleno de ceros (:424)"]:::propio
+    end
+
+    subgraph CICLOVIDA["Piezas 11 a 13 · los tres momentos que el dueño dispara"]
+        ACT["11 · Hook de activación (:172-237)<br/>crea 3 tablas y sella su versión SIN comprobar que existan"]:::propio
+        DES["12 · Hook de desactivación (:239-268)<br/>retira 6 crons, borra llms.txt, NO borra datos"]:::propio
+        UNI["13 · uninstall.php (118 líneas)<br/>3 tablas, 8 crons, options akb_/akibara_ menos 7 hermanos"]:::propio
+    end
+
+    SELLOCIEGO["El sello a ciegas del esquema<br/>si dbDelta falla, el módulo queda muerto<br/>y la advertencia del registro nunca se alcanza"]:::alerta
+    SINFLUSH["Reactivar ya no regenera las URLs<br/>/favoritos/, /preventas/ y /disponibles/ quedan en 404"]:::alerta
+    VECINOS["El barrido se pasa de territorio<br/>2 options de Blue Express y 2 transients ajenos"]:::alerta
+
+    CLIENTE --> WP
+    DUENO -->|"sube el ZIP nuevo"| WP
+    DUENO -->|"pulsa Activar"| ACT
+    DUENO -->|"pulsa Desactivar"| DES
+    DUENO -->|"pulsa Eliminar"| UNI
+
+    WP -->|"plugins_loaded turno 20"| CAB
+    CAB --> GATE
+    GATE -->|"falta WooCommerce o es vieja"| WOO
+    GATE -->|"todo en orden"| AUTO
+    AUTO -->|"llama a Plugin::boot()"| NUCLEO2["Sigue en el diagrama<br/>«el núcleo en src/»"]:::propio
+    CAB --> HPOS
+    HPOS --> WOO
+    WP -->|"filtros de WooCommerce y wp_insert_post_data"| FILTROS
+    FILTROS -->|"lo ÚNICO del núcleo que el cliente ve"| WOO
+
+    ACT --> SELLOCIEGO
+    DES --> SINFLUSH
+    ACT --> SINFLUSH
+    UNI --> VECINOS

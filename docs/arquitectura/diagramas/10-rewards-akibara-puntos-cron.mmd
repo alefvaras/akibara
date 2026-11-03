@@ -1,0 +1,20 @@
+%% Reloj del capítulo 10 — cuándo actúa cada trabajo programado de Akibara Puntos.
+%% Qué muestra: las DOS únicas acciones recurrentes del programa y la advertencia honesta de que ninguna tiene una hora de Chile escrita en el código — la hora real es la del instante en que se agendaron por primera vez, más 2 h (vencimiento) o más 1 h (cumpleaños). Debajo, los dos ganchos troceados que no tienen reloj porque los encola la propia corrida, y el único punto donde correr dos veces duele.
+%% AVISO A QUIEN EDITE ESTE FICHERO: los &#40; &#41; y &#58; son entidades HTML a propósito.
+%% El diagrama `timeline` de Mermaid corta el texto en los paréntesis y en los dos puntos, así que
+%% escribirlos tal cual rompe el renderizado. NO los «arregles»: se ven como ( ) y : ya compilados.
+timeline
+    title Lo programado de Akibara Puntos, en hora de Chile
+    section Latido permanente — no es del plugin
+        Cada 5 minutos : La tarea del panel de Hostinger llama a wp-cron.php — el único empuje, porque DISABLE_WP_CRON está encendido y el tráfico no mueve el reloj
+        Cada minuto : action_scheduler_run_queue, el motor de la cola que trae WooCommerce dentro; sin él no corre ninguna de las dos acciones de abajo
+    section Una vez al día — HORA HEREDADA, no escrita
+        Primer agendado más 1 h : akb_rewards_birthday_daily &#40;Birthday.php&#58;72&#41; — paga 1.000 puntos a los cumpleañeros de HOY y de AYER. Se crea la primera vez que alguien entra al escritorio, corre el cron o usa WP-CLI, y desde ahí se repite cada 24 h
+        Primer agendado más 2 h : akb_rewards_expiry_daily &#40;Expiry.php&#58;93&#41; — vence lo ganado hace más de 12 meses y nunca usado, avisa lo que vence en 30 días y limpia de paso los enlaces de reseña caducados
+    section Sin reloj — los encola la corrida diaria
+        Cuando hay más de 100 usuarios con saldo : akb_rewards_expiry_batch &#40;Expiry.php&#58;245&#41; — procesa un lote de 100 usuarios contra un corte YA calculado, para que un corte por tiempo no pierda el trabajo
+        Al detectar puntos por vencer en un cliente, y sólo si hay Action Scheduler : akb_rewards_expiry_warn_async &#40;Expiry.php&#58;368&#41; — manda el aviso de UN solo cliente, para que un servidor de correo lento no arrastre al lote entero
+    section Qué pasa si algo corre dos veces
+        El vencimiento, inofensivo : la fórmula FIFO es autocorrectiva &#40;el propio vencimiento es un débito&#41; y la clave de evento expiry_usuario_AAAAMMDD es única por día
+        El cumpleaños, inofensivo : la meta del año ya pagado más la clave birthday_usuario_año impiden el doble regalo
+        El AVISO de vencimiento, NO : el guard lee una marca que sólo se sella DESPUÉS de que el correo salga, así que dos corridas antes de que drene la cola encolan dos avisos idénticos. Los disparadores reales son la recuperación de Action Scheduler tras una caída y una ejecución manual, NO el cron de 5 minutos

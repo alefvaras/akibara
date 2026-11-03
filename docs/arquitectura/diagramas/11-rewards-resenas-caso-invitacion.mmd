@@ -1,0 +1,52 @@
+%% Caso «el pedido cambia de estado y tres días después sale la invitación a reseñar» — capítulo 11.
+%% Qué muestra: las siete comprobaciones de la agenda, la espera en la cola de Action Scheduler, las cinco comprobaciones que se repiten al enviar, el sellado que sólo ocurre si el correo salió de verdad, y los tres caminos por los que el cliente nunca recibe nada.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant WC as WooCommerce
+    participant INV as Reviews\Invitations
+    participant CPOL as Business\CompletionPolicy
+    participant AS as Action Scheduler
+    participant TAB as tabla akb_rewards_review_forms
+    participant MAIL as Correo
+
+    Cliente->>WC: compra y paga
+    WC->>WC: el pedido avanza hasta el estado configurado<br/>de fábrica «Completado»
+    WC-->>INV: woocommerce_order_status_changed prio 20
+
+    Note over INV: siete cortes en orden — Invitations.php:100-147
+    alt El carril está apagado o no hay Action Scheduler
+        INV-->>INV: no hace nada
+    else El pedido cayó · cancelado, reembolsado, fallido, papelera
+        INV->>AS: DESAGENDA lo que hubiera pendiente
+    else El estado nuevo no es el configurado
+        INV-->>INV: no hace nada — y con «completed» de fábrica<br/>un pedido que muere en «Listo para enviar» NUNCA entra · D1
+    else Ya se invitó alguna vez en la historia del pedido
+        INV-->>INV: no hace nada — una invitación por pedido
+    else Hay preventa pendiente
+        INV->>CPOL: can_request_review
+        CPOL-->>INV: no · falta algún tomo o el pedido no está en completed
+        Note over INV,CPOL: sale sin agendar y sin marcar<br/>confía en una transición futura que puede no llegar · D2
+    else Todo en orden
+        INV->>AS: agenda akb_rewards_send_review_invite a +3 días<br/>uno por pedido
+        INV->>WC: anota _akb_rewards_invite_scheduled en el pedido
+    end
+
+    Note over AS: pasan tres días · el latido de WooCommerce lo empuja<br/>cada minuto, y en producción lo despierta Hostinger cada 5 min
+    AS->>INV: send_invite con el id del pedido
+
+    INV->>INV: revalida: interruptor, no enviado aún,<br/>el pedido SIGUE en el estado disparador, preventa, correo de facturación
+    alt El estado disparador cambió en el panel mientras tanto
+        INV-->>INV: sale sin marcar, sin reagendar y sin registro · D16
+    else Sigue todo en pie
+        INV->>TAB: emite un token de 40 caracteres que vence en 30 días
+        INV->>MAIL: «[Akibara] ¿Qué te pareció tu pedido?»
+        alt El transporte confirma
+            MAIL->>Cliente: enlace personal a /resena/{token}/
+            INV->>WC: sella _akb_rewards_invite_sent
+        else El transporte falla
+            INV->>WC: suma _akb_rewards_invite_attempts y NO sella
+            INV->>AS: reagenda a +6 h · tope de 3 intentos
+            Note over INV,TAB: cada vuelta deja un token nuevo vivo<br/>y el contador de intentos no se reinicia jamás · D15
+        end
+    end

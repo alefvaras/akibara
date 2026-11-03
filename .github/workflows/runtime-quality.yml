@@ -1,0 +1,74 @@
+name: Runtime quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.5.12']
+    steps:
+      - name: Checkout the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up supported and production PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gd, mbstring, mysqli
+          tools: composer:2.11.1
+          coverage: none
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Verify runner prerequisites
+        run: |
+          php --version
+          composer --version
+          python3 --version
+          command -v rsync zip unzip shasum
+      - name: Reject private mirror data and secret signatures
+        run: python3 tools/guard-private-data.py --revision HEAD
+      - name: Materialize the exact vendor contract inputs
+        run: python3 tools/ci-dependencies/materialize.py
+      - name: Install locked PHP quality dependencies
+        run: composer install --working-dir=tools/akibara-business --no-interaction --prefer-dist --no-progress
+      - name: Build the assets served to customers
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          git diff --exit-code -- public_html/wp-content/themes/akibara-gp/assets public_html/wp-content/plugins/akibara-search/assets
+      - name: Run syntax, guardrail, PHP and JavaScript suites
+        run: bash tools/guardrail-ci.sh --full
+      - name: Package verified runtime components
+        if: matrix.php == '8.5.12'
+        run: |
+          for component in business search checkout rewards theme; do
+            bash tools/akibara-releases/package-runtime.sh "$component" --output-dir dist/ci
+          done
+      - name: Retain runtime artifacts for review
+        if: matrix.php == '8.5.12'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: runtime-${{ github.sha }}
+          path: dist/ci/
+          if-no-files-found: error
+          retention-days: 7
+# Deployment remains an explicit operation after the local and public QA gates.
+# This workflow has no SSH/CDN credentials and never modifies the store.

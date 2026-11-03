@@ -1,0 +1,130 @@
+{
+  "titulo": "Transversal · fronteras con WooCommerce, Blue Express, Brevo, Mercado Pago, Flow, Rank Math, LiteSpeed, Cloudflare, Clarity, Google",
+  "capitulo": "18-fronteras-con-terceros",
+  "diagramas": [
+    "18-fronteras-con-terceros-piezas.mmd",
+    "18-fronteras-con-terceros-cron.mmd",
+    "18-fronteras-con-terceros-caso-pago-tarjeta.mmd",
+    "18-fronteras-con-terceros-caso-pudo.mmd",
+    "18-fronteras-con-terceros-caso-integridad-bluex.mmd",
+    "18-fronteras-con-terceros-estados-correo.mmd"
+  ],
+  "componentes": 25,
+  "casos": 10,
+  "crons": [
+    "akibara_bluex_log_retention_cleanup",
+    "akibara_bluex_integrity_weekly",
+    "action_scheduler_retention_period (filtro, no tarea)",
+    "purga de LiteSpeed en shutdown:99 tras guardar descuentos (no periódica)"
+  ],
+  "terceros": [
+    "WordPress (núcleo, Abilities API, adapter MCP)",
+    "WooCommerce",
+    "WooCommerce Blocks / Store API",
+    "Action Scheduler (dos copias en el árbol)",
+    "GeneratePress (tema padre)",
+    "Blue Express (bluex-for-woocommerce)",
+    "Mercado Pago",
+    "Flow",
+    "Brevo",
+    "Rank Math",
+    "LiteSpeed Cache",
+    "Cloudflare",
+    "Microsoft Clarity",
+    "Google (Maps/Places, GA4, Ads, Merchant Center, Google Listings & Ads)",
+    "login-with-google (rtcamp)",
+    "Hostinger (SMTP y reloj externo cada 5 min)",
+    "Joinchat (WhatsApp)",
+    "CusRev (retirado, deja huella de datos)",
+    "Simple Points and Rewards (retirado, deja huella de datos y de funciones globales)",
+    "Jetpack y Cloudinary (presentes, sin frontera de código propio)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "akibara-cart-checkout-blocks (capítulo del carrito y checkout)",
+      "por": "woocommerce_store_api_register_endpoint_data namespace bluex_pudo; woocommerce_package_rates prio 999; rewrite_checkout_request prio 1"
+    },
+    {
+      "a": "akibara-rewards (puntos y reseñas)",
+      "por": "woocommerce_store_api_register_endpoint_data namespace akibara-rewards; woocommerce_cart_calculate_fees prio 20; funciones globales spar_get_user_points()/spar_update_user_points()"
+    },
+    {
+      "a": "akibara-business · OrderPreventa (preventa y pedidos)",
+      "por": "woocommerce_email_enabled_customer_completed_order; woocommerce_email_after_order_table; new ActionScheduler_DBStore()"
+    },
+    {
+      "a": "akibara-business · TaxonomyDiscount (descuentos por serie)",
+      "por": "woocommerce_coupon_is_valid; LscPurger en shutdown:99; litespeed_purge_all"
+    },
+    {
+      "a": "akibara-business · SeriesBundles (packs)",
+      "por": "woocommerce_coupon_discount_types, woocommerce_coupon_get_discount_amount, woocommerce_checkout_create_order_coupon_item"
+    },
+    {
+      "a": "akibara-business · AdminPanel (panel del dueño)",
+      "por": "AdminPanel::handle_save() y should_purge_after_save(); options de Settings y DiscountCeiling"
+    },
+    {
+      "a": "akibara-search (buscador)",
+      "por": "\\WC_Cache_Helper::get_cache_prefix() e invalidate_cache_group() desde ProductSourceAuthority; option akb_search_rest_purge_receipt"
+    },
+    {
+      "a": "akibara-business · SeoEnhancements / SeoIndexing",
+      "por": "\\RankMath\\Helper::*, \\RankMath\\Sitemap\\Cache::invalidate_storage('product'), Cache_Watcher"
+    },
+    {
+      "a": "Capítulo 14 · mu-plugins de abilities, Blue Express, Brevo y Clarity",
+      "por": "wp_register_ability_args, rest_api_init:101, upgrader_process_complete"
+    },
+    {
+      "a": "Capítulo 15 · mu-plugins de correo, LiteSpeed, claves y guardas",
+      "por": "phpmailer_init, wp_mail_failed, wp_mail_succeeded, litespeed_* y la baranda de opciones"
+    },
+    {
+      "a": "Capítulo 16 · todo lo programado",
+      "por": "action_scheduler_init:20, init:30, action_scheduler_retention_period"
+    },
+    {
+      "a": "Capítulo 17 · catálogo de datos",
+      "por": "options akb_bluex_watch_*, metas agencyId/agencyName/agencyAddress/isPudoSelected, tabla wp_bluex_logs"
+    },
+    {
+      "a": "Tema akibara-gp",
+      "por": "woocommerce_locate_template y 14 plantillas del núcleo sustituidas (9 del tema + 5 del plugin), más 9 plantillas propias; woocommerce_bacs_account_fields; woocommerce_email_footer_text"
+    },
+    {
+      "a": "Muro de acceso y checkout (acceso con Google)",
+      "por": "filtro rtcamp.google_default_redirect y el bloque interno google-login/login-button"
+    },
+    {
+      "a": "akibara-search · facets-render.php",
+      "por": "rank_math/json_ld a prioridad 20, fuera del contrato de SchemaGraph: reescribe el potentialAction de búsqueda del sitio"
+    },
+    {
+      "a": "Módulos con exclusiones y purga de LiteSpeed repartidas (≈30 ficheros)",
+      "por": "litespeed_control_set_nocache (11 ficheros), litespeed_ucss_whitelist (9), litespeed_purge_url (6), litespeed_purge_all (11), litespeed_purge_post, _control_set_ttl, _control_finalize, _media_lazy_img_excludes, _optm_gm_js_exc"
+    }
+  ],
+  "correcciones_de_esta_revision": [
+    "El desencolado de Mercado Pago corre SOLO en /carrito/ (RuntimeCompatibility.php:158-160), no en /checkout/; el Caso 1 y su diagrama lo situaban en el checkout",
+    "«Quince» es el tamaño de la lista de handles, no el número vigente de retirados: el código se niega a congelar esa cifra (:172-174)",
+    "La línea del carrito se llama «Puntos Akibara», no «Canje de Puntos Akibara» (Redemption.php:50)",
+    "CLOUDFLARE_RANGES tiene 15 IPv4 y 7 IPv6, no 14 y 7 (RateLimit.php:328-351)",
+    "akibara-rewards precarga NUEVE options, no ocho (CheckoutIntegration.php:96-112); el comentario del propio código dice ocho",
+    "Las metas de PUDO se escriben en :741-748, no en :714; isPudoSelected guarda la cadena 'pudoShipping'; agencyName y agencyAddress sólo si no vienen vacías",
+    "El @graph son SEIS etapas con nombre y DIEZ callbacks de siete clases (el docblock de SchemaGraph dice nueve); más un undécimo de akibara-search a prioridad 20, fuera del contrato",
+    "De las 23 plantillas, sólo 14 sustituyen una del núcleo; las otras 9 son propias (8 correos + collection.php)",
+    "RuntimeCompatibility tiene TRES parches, no cuatro: dequeue_classic_cart_empty_reload se retiro con su hook en checkout 2.2.21 (2026-09-18, S-d334fd55) por ser pegamento sin tercero; no volver a listarlo",
+    "akibara_fsp_* son ONCE options, no diez (FreeShippingProgress.php:39-49)",
+    "En el escritorio hay TRES avisos de correo, no dos: dos rojos de mu-plugins distintos y uno ámbar descartable",
+    "La fecha de la política de privacidad se anota en GMT y se pinta como fecha chilena sin convertir (MarketingConsent.php:348-356, :366-369)",
+    "exclude_checkout_from_litespeed() está en un fichero con strict_types y tipa el parámetro como array: si LiteSpeed pasa una cadena es un fatal, no una degradación",
+    "is_production_frontend() se apoya en HTTP_HOST y devuelve false en cron y WP-CLI aunque el sitio sea el real; con él se apaga el seguimiento de Google Ads",
+    "rtcamp.google_user_created existe como palanca y está deliberadamente sin usar (GuestOrderLinking.php:54)"
+  ],
+  "notas_de_lectura": [
+    "Bloque «Cómo leer este capítulo»: puntero al glosario, ruta única del panel (/wp-admin/admin.php?page=akibara-panel) con sus pestañas y sus dos excepciones, aviso de que «correios» es Blue Express, y qué dibuja cada tipo de diagrama",
+    "Cada imagen lleva ahora un pie que explica cómo se lee",
+    "Las abilities traen ejemplo de llamada por WP-CLI: ensayo en seco y escritura"
+  ]
+}

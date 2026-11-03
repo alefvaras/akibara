@@ -1,0 +1,169 @@
+%% Piezas del capítulo 16 — todo lo programado: WP-Cron, Action Scheduler y trabajos diferidos.
+%% Qué muestra: el único latido que empuja todo (la tarea de Hostinger cada 5 minutos), los dos mecanismos de cola, las 28 piezas propias agrupadas por dominio, y las salidas que el cliente y el dueño llegan a ver.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+
+    DUENO["Dueño<br/>pulsa botones del panel; recibe las alarmas"]:::persona
+    CLIENTE["Cliente<br/>no pulsa nada: solo recibe correos"]:::persona
+
+    subgraph LATIDO["El latido — sin esto no corre nada"]
+        HOSTINGER["Tarea del panel de Hostinger<br/>llama a wp-cron.php cada 5 minutos"]:::tercero
+        DISABLE["DISABLE_WP_CRON = true<br/>el tráfico de clientes NO empuja la lista"]:::dato
+        WPCRON["WP-Cron · option cron<br/>lista de recados de WordPress, barata y frágil"]:::tercero
+        ASQUEUE["Action Scheduler · de WooCommerce<br/>cola durable con estados, args y grupos"]:::tercero
+        RUNQ["action_scheduler_run_queue<br/>evento de WP-Cron cada minuto: drena la cola"]:::tercero
+        ENSURE["action_scheduler_ensure_recurring_actions<br/>aviso oficial de «revisa tus recurrentes»<br/>SOLO se engancha el buscador: es la red que<br/>los dos carriles de puntos NO tienen"]:::tercero
+    end
+
+    HOSTINGER --> WPCRON
+    DISABLE -. "por eso hace falta Hostinger" .-> WPCRON
+    WPCRON --> RUNQ
+    RUNQ --> ASQUEUE
+    ASQUEUE --> ENSURE
+
+    subgraph PREVENTA["akibara-business · preventa y pedidos"]
+        PVENCIDA["Stock\PreventaVencidaCron<br/>degrada hasta 50 fichas vencidas al día"]:::propio
+        READYCRON["OrderPreventa\ReadyToShipCron<br/>recalcula pendientes y marca pedidos listos<br/>DOS pasadas completas por corrida"]:::propio
+        PAGINATOR["OrderPreventa\OrderQueryPaginator<br/>motor de las pasadas; recorre de la última página a la primera"]:::propio
+        REMINDERS["OrderPreventa\RemindersCron<br/>manda 'tu pedido se acerca' los domingos"]:::propio
+        READYMAIL["OrderPreventa\ReadyEmailDispatcher<br/>encola y manda 'tu pedido ya llegó'"]:::propio
+        STOCKLIS["OrderPreventa\StockChangeListener<br/>atajo a +5 s cuando llega el stock"]:::propio
+        RELDATE["OrderPreventa\ReleaseDateChangeListener<br/>recalcula arribos al cambiar la fecha de salida"]:::propio
+        CARRIER["OrderPreventa\CarrierHandoffMonitor<br/>a +2 h comprueba que haya seguimiento"]:::propio
+        BLUEXAD["Integrations\Bluex\OrderPreventaAdapter<br/>adaptador de acciones antiguas; nadie lo agenda hoy"]:::propio
+        PANTALLA["OrderPreventa\PreventasScreen<br/>pantalla «Por llegar»: dispara pasadas completas a demanda"]:::propio
+    end
+
+    subgraph AVISOS["akibara-business · avisos al cliente"]
+        BIS["BackInStock<br/>lista 'avísame cuando llegue', tandas de 20"]:::propio
+        SF["SeriesFollow<br/>escaneo de tomo nuevo y digest por cliente"]:::propio
+    end
+
+    subgraph VITRINA["akibara-business · catálogo y contenido"]
+        CATORDER["CatalogOrder<br/>reordena la vitrina, diaria 05:00 y a demanda"]:::propio
+        UPSELLS["UpsellsAutofill<br/>rellena hasta 100 productos sin recomendaciones"]:::propio
+        LLMS["LlmsManifest<br/>regenera llms.txt y llms-full.txt"]:::propio
+        SOCIAL["SeoSocial\SocialImageDerivatives<br/>convierte hasta 100 portadas a JPG"]:::propio
+        FENCE["SeriesBundles\CustomerCollection<br/>valla de propietario: cadena +2 d, cada 12 h, tope 7 d"]:::propio
+    end
+
+    subgraph BUSCADOR["akibara-search · el carril del buscador"]
+        INDEXER["Search\Indexer<br/>25 oyentes anotan deuda; la bomba la drena"]:::propio
+        REBUILD["Search\RebuildJob<br/>vigilante cada 900 s: recupera y alarma"]:::propio
+        RECON["Search\Reconciler<br/>auditoría diaria 12:50 contra el catálogo"]:::propio
+        EDPUB["Search\EditorialDiscountPublication<br/>frontera exacta de inicio y fin de campaña"]:::propio
+    end
+
+    subgraph PUNTOS["akibara-rewards · puntos y reseñas"]
+        EXPIRY["Rewards\Points\Expiry<br/>diaria 17:15: vence puntos y avisa antes"]:::propio
+        BIRTH["Rewards\Points\Birthday<br/>diaria 16:10: acredita el regalo"]:::propio
+        INVIT["Rewards\Reviews\Invitations<br/>invita a reseñar a +3 días"]:::propio
+    end
+
+    subgraph MU["mu-plugins · higiene, transporte y vigilancia"]
+        BXLOG["akibara-bluex-log-retention<br/>poda los registros de envíos, 21:55"]:::propio
+        BXINT["akibara-bluex-integrity-watch<br/>escanea el árbol del tercero, lunes 19:23<br/>se agenda SIN grupo"]:::propio
+        ASRET["akibara-as-retention<br/>un solo add_filter: acorta la retención a 14 días<br/>NO borra nada por su cuenta"]:::propio
+        MAILW["akibara-mail-transport-watch<br/>centinela del correo; también en init:1 bajo DOING_CRON"]:::propio
+        SMTP["akibara-correo-smtp.php<br/>transporte: sin él no sale NINGÚN correo"]:::propio
+    end
+
+    subgraph SALUD["Dónde se ve el estado"]
+        DASH["AdminDashboard<br/>tarjeta de salud. Fíjate en las flechas:<br/>solo le llega una, desde WP-Cron.<br/>De Action Scheduler no mira NADA"]:::propio
+    end
+
+    subgraph DATOS["Lo que queda escrito"]
+        OPTS["Options y transitorios<br/>estado del rebuild, cursores, candados, sellos"]:::dato
+        METAS["Metas de pedido y de usuario<br/>_akb_eta_*, _akb_rewards_*"]:::dato
+        TABLAS["Tablas propias<br/>deuda del índice, inscripciones, seguidores"]:::dato
+    end
+
+    subgraph TERCEROS["Terceros que reciben o conviven"]
+        WOO["WooCommerce<br/>dueño de la cola y de las clases de correo"]:::tercero
+        LSCACHE["LiteSpeed Cache<br/>recibe las purgas; Cloudflare va detrás"]:::tercero
+        BLUEX["Blue Express<br/>envíos: le purgamos logs y le vigilamos ficheros"]:::tercero
+        AJENOS["gla/*, rank_math/*, clarity, jetpack<br/>tienen sus tareas y NO se tocan"]:::tercero
+    end
+
+    WPCRON --> PVENCIDA
+    WPCRON --> READYCRON
+    WPCRON --> REMINDERS
+    WPCRON --> UPSELLS
+    WPCRON --> LLMS
+    WPCRON --> SOCIAL
+    WPCRON --> BIS
+
+    ASQUEUE --> READYMAIL
+    ASQUEUE --> STOCKLIS
+    ASQUEUE --> RELDATE
+    ASQUEUE --> CARRIER
+    ASQUEUE --> BLUEXAD
+    ASQUEUE --> BIS
+    ASQUEUE --> SF
+    ASQUEUE --> CATORDER
+    ASQUEUE --> FENCE
+    ASQUEUE --> INDEXER
+    ASQUEUE --> REBUILD
+    ASQUEUE --> RECON
+    ASQUEUE --> EDPUB
+    ASQUEUE --> EXPIRY
+    ASQUEUE --> BIRTH
+    ASQUEUE --> INVIT
+    ASQUEUE --> BXLOG
+    ASQUEUE --> BXINT
+
+    ASRET -. "acorta la retención a 14 días:<br/>solo completadas y canceladas" .-> ASQUEUE
+    ENSURE -. "repara el vigilante si falta" .-> REBUILD
+
+    READYCRON --> PAGINATOR
+    REMINDERS --> PAGINATOR
+    STOCKLIS --> PAGINATOR
+    PANTALLA --> PAGINATOR
+    READYCRON --> READYMAIL
+    STOCKLIS --> READYCRON
+    RELDATE --> READYCRON
+    CARRIER -. "delega" .- BLUEXAD
+    BLUEX -. "si el plugin de envíos no está, BLUEXAD no se registra<br/>y las acciones legadas corren SIN manejador" .-> BLUEXAD
+
+    INDEXER --> REBUILD
+    EDPUB --> INDEXER
+    REBUILD --> RECON
+
+    READYMAIL --> WOO
+    BIS --> WOO
+    SF --> WOO
+    EXPIRY --> WOO
+    INVIT --> WOO
+    BIRTH --> WOO
+    WOO --> SMTP
+    SMTP --> CLIENTE
+    MAILW -. "vigila que exista" .-> SMTP
+
+    REBUILD -- "correo de alarma" --> DUENO
+    BXINT -- "correo de alarma" --> DUENO
+    WPCRON -. "vigila 3 de los 7 recurrentes" .-> DASH
+    DASH --> DUENO
+    DUENO -- "botones: recalcular, reindexar, regenerar" --> ASQUEUE
+    DUENO -- "abre «Por llegar»" --> PANTALLA
+
+    CATORDER --> LSCACHE
+    FENCE --> LSCACHE
+    BXLOG --> BLUEX
+    BXINT --> BLUEX
+    AJENOS -. "conviven en la MISMA cola" .-> ASQUEUE
+
+    PVENCIDA --> METAS
+    READYCRON --> METAS
+    EXPIRY --> METAS
+    BIRTH --> METAS
+    INDEXER --> TABLAS
+    BIS --> TABLAS
+    SF --> TABLAS
+    REBUILD --> OPTS
+    RECON --> OPTS
+    CATORDER --> OPTS
+    LLMS --> OPTS
+    SOCIAL --> OPTS

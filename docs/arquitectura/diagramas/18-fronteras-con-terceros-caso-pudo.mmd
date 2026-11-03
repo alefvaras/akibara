@@ -1,0 +1,47 @@
+%% Caso 3: retiro en Punto Blue Express de punta a punta — muestra que el servidor nunca cree al navegador y donde Akibara se adelanta al plugin del tercero.
+sequenceDiagram
+  autonumber
+  actor Cliente
+  participant Blocks as akibara-cart-checkout-blocks
+  participant Woo as WooCommerce + Store API
+  participant BlueX as Blue Express (tercero)
+
+  Blocks->>BlueX: dequeue_vendor_pudo_assets retira el selector del proveedor
+  Cliente->>Blocks: elige una agencia en el selector propio
+  Blocks->>Woo: Store API, namespace bluex_pudo, solo 4 claves
+  note right of Blocks: agency_id, address, region_code, attempt_id<br/>cualquier otra clave: akibara_pudo_untrusted_payload<br/>attempt_id debe ser 32 hex en minuscula
+
+  Blocks->>Blocks: handle_store_api_update exige PUDO elegido y UN solo paquete
+  Blocks->>Blocks: toma comuna y region calculadas por el SERVIDOR (pais CL, region /^CL-[A-Z]{2}$/)
+  Blocks->>Blocks: PudoCheckoutService::select_agency abre arrendamiento (dos pestanas no se pisan)
+
+  Blocks->>BlueX: PickupPointProvider::resolve → get_geolocation()
+  BlueX-->>Blocks: agencia, region, confianza
+  alt confianza menor a 80, pais distinto de CL o region que no casa por los dos caminos
+    Blocks-->>Cliente: se descarta la seleccion y se pide elegir de nuevo
+  else todo cuadra
+    Blocks->>BlueX: quote() → get_pricing() con el bulto armado como lo arma el propio plugin
+    BlueX-->>Blocks: codigo 00 o 01 con el total
+    Blocks->>Blocks: exige coherencia — total 0 solo si viene marcado gratis, y al reves
+    Blocks->>Blocks: guarda la seleccion con huella sha256 del carrito
+  end
+
+  Woo->>Blocks: woocommerce_package_rates prio 999
+  Blocks->>Blocks: retira la tarifa bluex-pudo si no casa la agencia o el coste difiere mas de 0,01
+
+  Cliente->>Woo: pulsa pagar
+  rect rgb(253, 230, 138)
+    note over Blocks,BlueX: rewrite_checkout_request corre a PRIORIDAD 1, antes que el plugin de Blue
+    Blocks->>Blocks: revalida todo y reclama el checkout
+    Blocks->>Woo: escribe direccion del punto y metas agencyId, agencyName, agencyAddress, isPudoSelected
+    Blocks->>BlueX: reescribe las extensiones de la peticion con los valores canonicos
+  end
+  Blocks->>Blocks: el bloque finally libera la reclamacion pase lo que pase
+
+  alt otra peticion reemplazo la seleccion en vuelo
+    Blocks-->>Cliente: 409 — otra seleccion de punto de retiro reemplazo esta solicitud
+  end
+  alt agency_address llega vacio
+    Blocks-->>Cliente: la seleccion se invalida entera (con vacio el tercero caia a su copia en sesion)
+  end
+  note over Cliente: Correos que salen — ninguno

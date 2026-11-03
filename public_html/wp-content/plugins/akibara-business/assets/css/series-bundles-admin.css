@@ -1,0 +1,245 @@
+/*
+ * Series Bundles — interfaz de administración.
+ *
+ * Este archivo solo contiene selectores emitidos por AdminSection y
+ * BypConfigController. La antigua interfaz de packs curados fue retirada y no
+ * debe volver a cargar estilos ni estados que ya no tienen markup asociado.
+ */
+
+/* Resumen del módulo. */
+.akb-sb-status-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 16px 20px;
+	margin: 16px 0;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.akb-sb-status-card__heading {
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin: 0 0 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.akb-sb-status {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 32px;
+	align-items: center;
+}
+
+.akb-sb-status__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.akb-sb-status__dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.akb-sb-status__dot--on {
+	background: #00a32a;
+	box-shadow: 0 0 0 3px rgba(0, 163, 42, 0.15);
+}
+
+.akb-sb-status__dot--off {
+	background: #c3c4c7;
+}
+
+.akb-sb-status__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.akb-sb-status__meta strong {
+	color: #1d2327;
+}
+
+/* Buscador y resumen de series. */
+.akb-sb-byp-filter {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 8px;
+	max-width: 420px;
+	margin-bottom: 24px;
+	padding: 10px 12px;
+	background: #fff;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+}
+
+.akb-sb-byp-filter .dashicons {
+	color: #50575e;
+}
+
+.akb-sb-byp-filter label {
+	flex: 1 1 calc(100% - 32px);
+	font-weight: 600;
+}
+
+.akb-sb-byp-filter input {
+	flex: 1 1 100%;
+	width: 100%;
+	min-height: 40px;
+	margin: 0;
+}
+
+.akb-sb-byp-summary {
+	font-size: 14px;
+	margin: 14px 0 6px;
+}
+
+.akb-sb-byp-summary strong {
+	font-size: 18px;
+}
+
+.akb-sb-byp-bulk {
+	margin: 0 0 18px;
+	padding: 12px 14px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #2271b1;
+}
+
+.akb-sb-byp-bulk .description {
+	display: block;
+	margin-top: 6px;
+}
+
+/* Acordeones de configuración por serie. */
+.akb-sb-series {
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 0 0 10px;
+	background: #fff;
+}
+
+/* Serie que el último guardado rechazó.
+   El formulario la vuelve a pintar con lo que se escribió —no con lo que había
+   antes—, así que tiene que distinguirse de las que sí se guardaron: si no, el
+   dueño no puede saber cuáles de los tramos que está viendo están en la base y
+   cuáles siguen pendientes de corregir. */
+.akb-sb-series--rejected {
+	border-color: #d63638;
+	box-shadow: 0 0 0 1px #d63638;
+}
+
+.akb-sb-series--rejected > .akb-accordion__summary .akb-accordion__meta {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.akb-accordion__summary {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	min-height: 44px;
+	padding: 10px 16px;
+	cursor: pointer;
+	font-weight: 600;
+	list-style: none;
+}
+
+.akb-accordion__summary::-webkit-details-marker {
+	display: none;
+}
+
+.akb-accordion__meta {
+	color: #646970;
+	font-weight: 400;
+	font-size: 12px;
+	text-align: right;
+}
+
+.akb-accordion__body {
+	padding: 4px 16px 16px;
+	border-top: 1px solid #f0f0f1;
+}
+
+/* Tramos dinámicos. */
+.akb-sb-tier-table {
+	max-width: 520px;
+	margin: 8px 0;
+}
+
+.akb-sb-tier-table__actions {
+	width: 48px;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.akb-sb-tier-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+	color: #b32d2e;
+	text-decoration: none;
+	font-size: 22px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.akb-sb-tier-remove:hover,
+.akb-sb-tier-remove:focus-visible {
+	color: #8a2424;
+}
+
+.akb-sb-tier-input--min {
+	width: 120px;
+}
+
+.akb-sb-tier-input--pct {
+	width: 90px;
+}
+
+.akb-sb-tier-table input.akb-sb-input-error {
+	border-color: #d63638;
+	box-shadow: 0 0 0 1px #d63638;
+}
+
+.akb-sb-tier-error-msg {
+	display: block;
+	margin-top: 8px;
+	color: #b32d2e;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+@media (max-width: 782px) {
+	.akb-sb-status {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.akb-accordion__summary {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.akb-accordion__meta {
+		text-align: left;
+	}
+
+	.akb-sb-tier-table {
+		max-width: 100%;
+	}
+}

@@ -1,0 +1,42 @@
+%% Caso «un cliente compra un tomo a pedido» — capítulo 04.
+%% Qué muestra: el caso normal de la tienda, desde la fecha que el cliente lee en la ficha hasta las metas que quedan congeladas en el pedido, y por qué lo que compró no cambia aunque el catálogo cambie después.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant TEMA as Tema akibara-gp + WooCommerce
+    participant BANNER as EstimatedDelivery\BannerRenderer
+    participant CALC as EstimatedDelivery\DateCalculator
+    participant POL as EstimatedDelivery\PedidoPolicy
+    participant SNAP as OrderPreventa\LineItemSnapshot
+    participant TAG as OrderPreventa\OrderTagging
+    participant REC as OrderPreventa\SummaryRecalculator
+    participant VIS as OrderPreventa\CustomerVisibility
+
+    Cliente->>TEMA: abre la ficha de un tomo en estado onbackorder
+    TEMA->>BANNER: woocommerce_single_product_summary prio 25
+    BANNER->>CALC: ¿cuándo llega este tomo?
+    CALC->>POL: ¿la editorial trabaja por tanda, continuo o está pausada?
+    alt Editorial o país en modo «por tanda»
+        POL-->>CALC: el plazo corre desde el próximo cierre del mes
+        BANNER-->>Cliente: «Sale en el pedido que cierra el 5 de septiembre —<br/>desde ahí viaja 2–3 semanas» + cuenta atrás si faltan ≤7 días
+    else Editorial «pausada»
+        POL-->>CALC: sin fecha a propósito
+        BANNER-->>Cliente: «Te avisamos en cuanto tengamos fecha»
+    else Plazo continuo
+        CALC-->>BANNER: rango calculado desde hoy con los días de tránsito del país
+        BANNER-->>Cliente: «Fecha estimada de llegada: 27 may – 1 jun»
+    end
+    BANNER-->>Cliente: prio 31, bajo el botón: las 5 promesas<br/>«Cómo funciona este pedido»
+    Note over Cliente: el botón dice «A pedido» en vez de «Añadir al carrito»<br/>(PreventaUX)
+
+    Cliente->>TEMA: finaliza la compra
+    TEMA-->>SNAP: woocommerce_checkout_create_order_line_item
+    SNAP->>SNAP: congela en la línea: era reservable, tipo auto,<br/>país, nombre del país y el rango prometido
+    TEMA-->>TAG: woocommerce_checkout_create_order prio 20<br/>(o los dos hooks de la Store API en el checkout de bloques)
+    TAG->>TAG: _akb_eta_has_preventa = yes, _akb_eta_pending_count,<br/>_akb_eta_ready_to_ship = no
+    TAG->>REC: recalcula el estimado del pedido
+    REC->>REC: guarda _akb_eta_summary_max, o la BORRA si no hay fecha
+
+    TEMA->>VIS: compone el correo de confirmación de WooCommerce
+    VIS-->>Cliente: cartel «Tu pedido incluye productos a pedido…»<br/>y bajo el tomo «📦 A pedido · Llega entre el 27 de mayo y el 1 de junio · Argentina»
+    Note over VIS,Cliente: la línea por tomo NO se pinta si el correo se compone<br/>dentro de una petición de wp-admin (guard is_admin)

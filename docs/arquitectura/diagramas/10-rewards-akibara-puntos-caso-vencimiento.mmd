@@ -1,0 +1,42 @@
+%% Caso G del capítulo 10 — la corrida diaria que vence puntos y avisa antes de hacerlo.
+%% Qué muestra: por qué recolecta en dos fases antes de procesar, cómo trocea el trabajo en lotes de 100, la contabilidad FIFO contra el ledger que hace la corrida autocorrectiva, el correo que sale CON LA COLA y no al instante, y las dos verdades incómodas — que al vencer de verdad no sale ningún correo, y que el aviso se puede duplicar.
+sequenceDiagram
+    autonumber
+    participant CRON as Hostinger cada 5 min → wp-cron.php
+    participant AS as Action Scheduler (tercero)
+    participant EXP as Points\Expiry
+    participant LED as Points\Ledger
+    participant SQL as MySQL · GET_LOCK
+    participant MAIL as Points\Emails → wp_mail
+    actor Maria as María (clienta)
+    actor Dueno as Dueño
+
+    Dueno->>EXP: dejó en el panel «Meses de vida» = 12 y «Aviso previo» = 30 días
+    Note over EXP,AS: el interruptor del vencimiento NO vive en Support\Options:<br/>se lee con get_option crudo dentro de Expiry.months y warn_days (:46, :49, :58)
+    CRON->>AS: empuja la cola
+    AS-->>EXP: akb_rewards_expiry_daily — recurrente, cada 24 h (Expiry.php:93)
+    EXP->>EXP: corte = hoy menos 12 meses, en hora de Chile,<br/>sin el desborde de fin de mes de PHP (months_before, :111-118)
+    EXP->>SQL: recolecta en DOS FASES todos los usuarios con saldo mayor que 0 (:205-232)
+    Note over EXP: recolectar primero y procesar después:<br/>paginar mientras el propio vencimiento deja saldos en 0 saltaría usuarios (:201-204)
+    EXP->>EXP: de paso limpia los enlaces de reseña caducados sin usar (:235)
+    alt son más de 100 usuarios
+        EXP->>AS: trocea en acciones akb_rewards_expiry_batch de 100, con el corte YA calculado (:243-248)
+        AS-->>EXP: cada lote vuelve por akb_rewards_expiry_batch (:260-270)
+    end
+    loop por cada usuario del lote
+        EXP->>SQL: candado del usuario y saldo releído FRESCO (:319-322)
+        EXP->>LED: expirable_for — FIFO honesta contra el ledger
+        LED-->>EXP: vencible = ganado antes del corte menos TODO lo debitado histórico
+        Note over EXP,LED: los movimientos migrados de SPAR envejecen desde la época del cambio<br/>de plugin (:131-138) — sin época sellada el valor de reserva es 9999-12-31, es decir<br/>fallar hacia NO quitar
+        alt hay algo que vencer
+            EXP->>LED: debit con la clave expiry_88_20270912
+            Note over Maria: NO sale ningún correo al vencer — return en Expiry.php:341-343.<br/>María sólo lo ve en su historial de Mi cuenta
+        else no vence nada, pero vence algo en 30 días
+            EXP->>AS: as_enqueue_async_action akb_rewards_expiry_warn_async, un cliente por acción (:368)
+            Note over EXP,AS: ese desvío sólo ocurre si use_batches() es cierto (:277-289), es decir si Action Scheduler<br/>está disponible — que en producción es SIEMPRE, porque viene dentro de WooCommerce.<br/>Sin él, Expiry dispara el aviso en la MISMA corrida, de forma síncrona (:372-379)
+            AS-->>MAIL: dispara el aviso de ESE cliente, para que un SMTP lento no arrastre al lote
+            MAIL->>Maria: «[Akibara] 850 Puntos Akibara por vencer — úsalos antes» (Emails.php:283)<br/>botón «Canjear mis puntos» al panel de puntos, NO al checkout (:266-272)
+            MAIL->>MAIL: sella «un aviso al mes» SÓLO si el transporte confirmó (:289-297)
+        end
+    end
+    Note over AS,MAIL: si la corrida se repite antes de que drene la cola —recuperación de Action Scheduler<br/>tras una caída, o una ejecución manual— el guard lee una marca aún sin sellar<br/>y María recibe DOS avisos idénticos. El vencimiento en sí no se duplica: la fórmula<br/>FIFO es autocorrectiva y la clave del día es única

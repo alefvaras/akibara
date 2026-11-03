@@ -1,0 +1,54 @@
+%% Maquina de estados de la seleccion de Punto Blue Express en el navegador (pudo-blocks.js).
+%% Muestra por que el boton de pagar sigue bloqueado, los dos topes de tiempo y el callejon
+%% sin salida de volver a elegir el mismo punto tras un error.
+stateDiagram-v2
+    [*] --> SinPudo
+
+    SinPudo: Sin retiro en punto
+    SinPudo: El cliente no eligio la tarifa bluex-pudo
+
+    SinSeleccion: Tarifa elegida, sin punto
+    SinSeleccion: wc/store/validation tiene akibara-pudo-selection en error
+    SinSeleccion: El boton de pagar no responde
+
+    MultiPaquete: Pedido dividido en mas de un envio
+    MultiPaquete: Rechazo explicito, el foco se mueve al mensaje
+
+    Cargando: Dialogo abierto, mapa cargando
+    Cargando: Tope de 12 s (FRAME_TIMEOUT_MS)
+
+    MapaListo: Mapa listo
+    MapaListo: Esperando el postMessage del widget
+
+    Guardando: Guardando la seleccion
+    Guardando: Cola serializada, tope de 15 s (UPDATE_TIMEOUT_MS)
+
+    Error: Error visible en el dialogo
+    Error: Se pinta el mensaje del servidor, no uno generico
+
+    Elegido: Punto elegido
+    Elegido: agencyId en extensions, tarifas recalculadas, validacion limpia
+
+    SinPudo --> SinSeleccion: elige la tarifa Punto Blue Express
+    SinPudo --> MultiPaquete: el carrito se parte en varios envios
+    MultiPaquete --> SinSeleccion: el carrito vuelve a un solo paquete
+
+    SinSeleccion --> Cargando: pulsa el boton del mapa
+    Elegido --> Cargando: pulsa para cambiar de punto
+
+    Cargando --> MapaListo: el iframe carga
+    Cargando --> Error: se agotan los 12 s
+    Error --> Cargando: pulsa Reintentar (recarga el iframe y vacia replayRef)
+
+    MapaListo --> MapaListo: mensaje descartado por las cinco comprobaciones
+    MapaListo --> MapaListo: region del mapa fuera de la tabla de literales
+    MapaListo --> Guardando: mensaje valido, se anade attempt_id
+
+    Guardando --> Elegido: el servidor confirma
+    Guardando --> Error: rechazo del servidor, 409 o se agotan los 15 s
+
+    Error --> MapaListo: elige OTRO punto
+    Error --> Error: elige EL MISMO punto (markMessageProcessed lo trata como repetido)
+
+    Elegido --> SinSeleccion: elige otro metodo de envio (se invalida la seleccion)
+    Elegido --> [*]: realiza el pedido

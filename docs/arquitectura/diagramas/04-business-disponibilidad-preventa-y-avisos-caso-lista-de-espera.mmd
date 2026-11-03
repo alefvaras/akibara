@@ -1,0 +1,60 @@
+%% Caso «avísame cuando llegue»: alta en la lista de espera y aviso de reposición — capítulo 04.
+%% Qué muestra: el circuito aparte que sólo atiende productos ESTRICTAMENTE agotados, la puerta pública sin contraseña con su antispam en capas, el correo de consentimiento que no se puede apagar, y el reclamo atómico en la base que garantiza «como mucho un aviso por persona».
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant FORM as BackInStock\CaptureForm
+    participant REST as /wp-json/akibara/v1/back-in-stock
+    participant REPO as BackInStock\SubscriberRepository
+    participant TAB as tabla akb_bis_subscribers
+    participant NOTICE as BackInStock\SubscriptionNotice
+    actor Dueno as Dueño
+    participant WC as WooCommerce
+    participant WATCH as BackInStock\StockWatcher
+    participant AS as Action Scheduler
+    participant DISP as BackInStock\NotificationDispatcher
+
+    Cliente->>FORM: abre la ficha de un tomo agotado
+    Note over FORM: sólo se pinta si la captura está encendida<br/>y el producto está estrictamente agotado —<br/>sin nonce, porque la ficha se sirve cacheada a invitados
+    Cliente->>REST: POST con su email
+    REST->>REST: guards en orden: interruptor · email válido de 100 bytes<br/>· producto existe · producto agotado · 12 altas por hora y por IP
+    alt El producto es reservable
+        REST-->>Cliente: 409 «está en preventa: puedes reservarlo ahora»<br/>o «está a pedido: puedes pedirlo ahora»
+    else El señuelo antispam viene relleno
+        REST-->>Cliente: exactamente la misma respuesta que un alta real
+    else Alta o re-alta
+        REST->>REPO: subscribe() apoyado en la clave única (producto, email)
+        REPO->>TAB: inserta con token de 64 hex, estado «suscrito»
+        REST-->>NOTICE: akb_bis_subscribed
+        NOTICE->>Cliente: «Te anotamos en la lista de espera de {tomo}»<br/>síncrono, con enlace de baja — NO se puede apagar desde el panel
+    end
+
+    Dueno->>WC: repone el tomo
+    WC-->>WATCH: woocommerce_product_set_stock_status (prio 11)
+    WATCH->>REPO: ¿alguien espera este producto?
+    alt Nadie espera
+        Note over WATCH: sale barato, no encola nada
+    else Hay gente esperando
+        WATCH->>AS: akb_bis_notify_product, deduplicando POR ARGUMENTOS
+        AS->>DISP: ejecuta el lote
+        DISP->>WC: revalida que el producto SIGUE en stock
+        alt El envío está pausado, el correo deshabilitado o el mailer no carga
+            DISP->>AS: reagenda un número acotado de veces y deja de rebotar<br/>la cola se retoma al GUARDAR el interruptor
+        else Todo listo
+            loop hasta 20 suscriptores por lote
+                DISP->>REPO: mark_notified() — UPDATE condicional
+                alt Otra ejecución ya se lo llevó
+                    REPO-->>DISP: falso — se salta a esta persona
+                else Reclamo ganado
+                    DISP->>Cliente: «{tomo} está de vuelta en Akibara»
+                    alt El envío falla
+                        DISP->>REPO: cuenta el intento — a los 3 queda en «fallido»
+                    end
+                end
+            end
+            DISP->>AS: siguiente lote a +60 s
+        end
+    end
+
+    Cliente->>REPO: pulsa el enlace de baja<br/>GET confirma, POST da de baja
+    REPO->>TAB: estado «dado de baja» — Retention la borra a los 180 días

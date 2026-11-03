@@ -1,0 +1,31 @@
+%% Crons del capítulo 02 — las ocho tareas recurrentes que el núcleo retira (o deja vivas) y los CINCO eventos únicos de WP-Cron.
+%% Qué muestra: cuándo corre cada una en hora de Chile, quién la retira y quién no. Sólo dos tienen hora fija en el código; las demás se agendan relativas al momento de instalarse, así que la hora real hay que leerla en producción — al final está la orden exacta para hacerlo.
+timeline
+    title Tareas programadas que el núcleo de akibara-business retira o abandona (hora de Chile)
+    section Hora fija en el código
+        Domingo 03&#58;00 · akb_order_preventa_t7_reminder_scan : recordatorio 7 días antes de la llegada · WP-Cron semanal · SÍ la retira la desactivación · sólo corre si akb_preventa_t7_enabled está en yes
+        05&#58;00 · akibara_catalog_order_daily : reordena la vitrina del catálogo · Action Scheduler, grupo akb-catalog-order, cada 24 h · re-anclada si deriva más de 15 min (CatalogOrder.php&#58;45, 54, 163) · NO la retira NI la desactivación NI la desinstalación
+    section Diarias, a la hora en que se agendaron
+        akb_order_preventa_recompute_ready : recalcula qué pedidos de preventa ya se pueden despachar · SÍ la retiran las dos · vigilada por el panel
+        akb_bis_cleanup_terminal : limpia suscripciones terminales de la lista de espera · SÍ la retiran las dos · vigilada por el panel
+        akb_preventa_vencida_sweep : degrada preventas cuya fecha ya pasó · SÍ la retiran las dos · sin vigilancia
+        akb_upsells_autofill_cron : rellena recomendaciones de productos · SÍ la retiran las dos · sin vigilancia
+        akibara_business_llms_manifest_refresh : regenera llms.txt y llms-full.txt bajo cerrojo de option · agendada a +1 h · SÍ la retiran las dos · sin vigilancia
+        akibara_business_social_image_derivatives : genera las portadas JPG que WhatsApp y X sí saben leer · agendada a +2 h · la desactivación NO la retira — la desinstalación SÍ
+    section Los CINCO eventos únicos de WP-Cron, disparados por un hecho
+        akibara_business_social_image_derivatives (reintento a los 60 s) : SocialImageDerivatives.php&#58;240 · segundo intento si el primero no terminó
+        akibara_business_social_image_for_slug : SocialImageDerivatives.php&#58;383 · genera la portada de un slug concreto · la desactivación NO lo retira — la desinstalación SÍ
+        akibara_business_llms_manifest_refresh (inmediato) : LlmsManifest.php&#58;496 · refresco a demanda del manifiesto
+        Segundo evento único de LlmsManifest : LlmsManifest.php&#58;521 · el nombre del hook es variable
+        akibara_business_cleanup_collection_owner_fence : SeriesBundles/CustomerCollection.php&#58;850 · retira la valla de propiedad de una colección · NO lo retira NINGUNO de los dos
+    section Acciones sueltas de Action Scheduler que nadie retira nunca
+        akb_bis_notify_product : StockWatcher.php&#58;41, &#58;110 · el correo de «ya llegó»
+        akibara_catalog_order_recompute : CatalogOrder.php&#58;38, &#58;259 · recalcula el orden tras publicar, con 120 s de espera
+        Las de «sigue esta serie» : PublishListener.php&#58;150 · DigestRunner.php&#58;722, &#58;753, &#58;809
+    section Vigilancia desde el panel
+        3 de 8 : health_alerts() comprueba que el evento esté agendado Y que no esté atrasado · no puede ver las acciones de Action Scheduler ni queriendo
+    section Cómo mirar la hora real
+        WP-Cron : ssh akibara · wp cron event list --fields=hook,next_run,next_run_relative
+        Action Scheduler : escritorio · WooCommerce → Estado → Acciones programadas · filtrar por el grupo akb-catalog-order
+    section Quién empuja el reloj
+        Hostinger cada 5 minutos : DISABLE_WP_CRON está puesto — el tráfico NO empuja el cron de este sitio

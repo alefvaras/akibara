@@ -1,0 +1,831 @@
+/*
+ * Pages — patrones compartidos para páginas estáticas
+ * (contacto, sobre-nosotros, faq, etc.).
+ *
+ * Bloques exportables:
+ *   .akb-page              wrapper con max-width + padding vertical
+ *   .akb-page__hero        hero centered con eyebrow, h1, subtitle
+ *   .akb-page__section     sección con heading opcional + accent rule
+ *   .akb-info-grid         grid responsive 1→2→4 col para info cards
+ *   .akb-info-card         tarjeta surface-2 con icono SVG + label + value
+ *   .akb-step-list         lista numerada con círculos rojos
+ *
+ * Tokens del proyecto. Cero hardcoded.
+ */
+
+/* ─── Wrapper ──────────────────────────────────────────────── */
+.akb-page {
+    max-width: var(--container-narrow);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.akb-page > * + * {
+    margin-top: var(--space-8);
+}
+
+/* ─── Hero ─────────────────────────────────────────────────── */
+.akb-page__hero {
+    text-align: center;
+    padding: var(--space-6) 0 var(--space-4);
+    border-bottom: 1px solid var(--aki-border);
+}
+
+.akb-page__hero h1 {
+    margin: 0 0 var(--space-2);
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    line-height: 1.05;
+    color: var(--aki-white);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.akb-page__hero p {
+    margin: 0;
+    color: var(--aki-gray-300);
+    font-size: var(--text-lg);
+    line-height: 1.4;
+}
+
+/* ─── Sections ─────────────────────────────────────────────── */
+.akb-page__section {
+    margin-top: var(--space-8);
+}
+
+.akb-page__section-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    color: var(--aki-white);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.akb-page__section-heading::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.4em;
+    background: var(--aki-red);
+    border-radius: 2px;
+}
+
+.akb-page__section-lead {
+    margin: 0 0 var(--space-5);
+    color: var(--aki-gray-300);
+    font-size: var(--text-base);
+    line-height: 1.5;
+}
+
+/* ─── Medida de línea de la prosa ──────────────────────────────
+ * En las páginas de una sola columna (nosotros, faq) la prosa llenaba el
+ * container (~84–97ch en desktop), arriba del óptimo de lectura (~65-75ch).
+ * Cap a 68ch SOLO en los elementos de texto corrido (párrafos directos de
+ * sección, leads, cuerpo legal, respuestas del FAQ). NO toca los grids
+ * (.akb-info-grid, .akb-step-list) ni los valores de info-card, que no son
+ * `> p` directos. En las páginas de 2 columnas (términos/privacidad) el cuerpo
+ * ya queda ~59ch por la grilla del TOC, así que el cap no tiene efecto ahí. */
+.akb-page__body,
+.akb-page__section > p,
+.akb-page__section-lead,
+.akb-faq__item > div {
+    max-width: 68ch;
+}
+
+/* ─── Info grid (Email, Horario, Retiro, WhatsApp...) ──────── */
+.akb-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+}
+
+.akb-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast);
+}
+
+.akb-info-card:hover {
+    border-color: var(--aki-border-light);
+}
+
+.akb-info-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--aki-surface-3);
+    /* Iconos de info-card en rojo de marca (no amarillo — amarillo = solo precio). */
+    color: var(--aki-red-bright);
+}
+
+.akb-info-card__icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.akb-info-card__label {
+    margin: 0;
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: var(--weight-semibold);
+}
+
+.akb-info-card__value {
+    margin: 0;
+    color: var(--aki-white);
+    font-size: var(--text-base);
+    line-height: 1.4;
+}
+
+.akb-info-card__value a {
+    /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre #1a1a1a:
+       AA pleno (1.4.3). --aki-red-bright puro daba 4.40 (near-miss). El :hover
+       propio (--aki-red-hover) se conserva abajo. */
+    color: #FF2738;
+    color: color-mix(in srgb, var(--aki-red-bright) 88%, #fff);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: var(--weight-semibold);
+}
+
+.akb-info-card__value a:hover {
+    color: var(--aki-red-hover);
+    text-decoration: underline;
+}
+
+/* Mobile: layout horizontal (icon izq, label+value der) en lugar de
+ * vertical. Antes generaba ~150px de espacio vacío al costado del icon
+ * cuando flex-direction:column lo apilaba todo. Grid 2-col con icon
+ * spanning ambas filas + align-content:center centra el contenido
+ * verticalmente cuando el parent .akb-info-grid stretchea el card al
+ * más alto del row (e.g. "Retiro coordinado" tiene más texto). */
+@media (max-width: 768px) {
+    .akb-info-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        /* 1fr 1fr forza ambas rows a stretch; con align-self end/start
+         * en label/value los junta en el centro vertical del card.
+         * Sin esto, las rows quedan auto y el contenido se top-aligna
+         * dejando espacio vacío abajo cuando el parent grid stretch. */
+        grid-template-rows: 1fr 1fr;
+        column-gap: var(--space-3);
+        row-gap: 2px;
+        padding: var(--space-4);
+    }
+    /* Hide <p></p> empty injectado por wpautop/editor — sin esto crea
+     * una grid row implícita extra (29px) que empuja el contenido arriba
+     * y deja espacio vacío abajo. */
+    .akb-info-card > p:empty {
+        display: none;
+    }
+    .akb-info-card__icon {
+        grid-row: 1 / span 2;
+        grid-column: 1;
+        align-self: center;
+    }
+    .akb-info-card__label {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+    }
+    .akb-info-card__value {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: start;
+    }
+}
+
+/* ─── Step list (Cómo funciona) ────────────────────────────── */
+.akb-step-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-4);
+    counter-reset: akb-step;
+}
+
+.akb-step-list li {
+    counter-increment: akb-step;
+    position: relative;
+    padding: var(--space-5) var(--space-5) var(--space-5) calc(var(--space-12) + var(--space-2));
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    color: var(--aki-light);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.akb-step-list li::before {
+    content: counter(akb-step);
+    position: absolute;
+    top: var(--space-5);
+    left: var(--space-5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-8);
+    height: var(--space-8);
+    border-radius: 999px;
+    background: var(--aki-red);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    font-weight: 400; /* Bebas Neue en peso nominal 400 */
+}
+
+/* ─── Note / callout ───────────────────────────────────────── */
+.akb-page__note {
+    padding: var(--space-4) var(--space-5);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-left: 3px solid var(--aki-yellow);
+    border-radius: var(--radius-md);
+    color: var(--aki-light);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.akb-page__note strong {
+    color: var(--aki-white);
+}
+
+.akb-page__note a {
+    /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre #1a1a1a
+       (--aki-surface-2): AA pleno (1.4.3); red-bright puro daba 4.40 (near-miss).
+       Subrayado EN REPOSO cubre 1.4.1 (uso de color). */
+    color: #FF2738;
+    color: color-mix(in srgb, var(--aki-red-bright) 88%, #fff);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: var(--weight-semibold);
+}
+
+.akb-page__note a:hover {
+    text-decoration: underline;
+}
+
+
+/* ─── Lead paragraph (debajo del hero, intro de la página) ────── */
+.akb-page__lead {
+    margin: 0 auto;
+    max-width: 720px;
+    padding: 0 var(--space-2);
+    color: var(--aki-light);
+    font-size: var(--text-lg);
+    line-height: 1.55;
+    text-align: center;
+}
+
+/* ─── Feature grid (Lo que nos mueve, propositions con icon+h3+texto)─ */
+.akb-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-4);
+}
+
+.akb-feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.akb-feature-card:hover {
+    border-color: var(--aki-border-light);
+    transform: translateY(-2px);
+}
+
+.akb-feature-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    background: var(--aki-surface-3);
+    color: var(--aki-red);
+}
+
+.akb-feature-card__icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.akb-feature-card h3 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    color: var(--aki-white);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.akb-feature-card p {
+    margin: 0;
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+/* ─── FAQ accordion (<details class="akb-faq__item">) ──────────── */
+.akb-faq {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.akb-faq__item {
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.akb-faq__item[open] {
+    border-color: var(--aki-border-light);
+}
+
+.akb-faq__item > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    list-style: none;
+    transition: background var(--transition-fast);
+}
+
+.akb-faq__item > summary::-webkit-details-marker { display: none; }
+
+/* Override del outline azul nativo. `:focus:not(:focus-visible)` limpia
+ * el ring tras click con mouse; `:focus-visible` muestra el outline amarillo de
+ * la casa solo en navegación por teclado (WCAG 2.4.13). outline-offset negativo
+ * por overflow:hidden del parent — mismo patrón que .akb-account-disclosure. */
+.akb-faq__item > summary:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.akb-faq__item > summary:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: -3px;
+}
+
+.akb-faq__item > summary::after {
+    content: '▶';
+    flex: 0 0 auto;
+    font-size: var(--text-base);
+    color: var(--aki-red);
+    transition: none;
+}
+
+.akb-faq__item[open] > summary::after {
+    transform: rotate(90deg);
+}
+
+.akb-faq__item > summary:hover {
+    background: var(--aki-surface-3);
+}
+
+.akb-faq__item > div {
+    padding: 0 var(--space-5) var(--space-4);
+    color: var(--aki-gray-300);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}
+
+.akb-faq__item > div p:first-child { margin-top: 0; }
+.akb-faq__item > div p:last-child  { margin-bottom: 0; }
+
+/* Links dentro de respuestas FAQ — mismo tratamiento accesible que el resto de
+ * la prosa (ver `.akb-page__body a`). El FAQ vive bajo .akb-page__section, por
+ * eso comparte el selector consolidado de abajo. */
+
+/* ─── CTA row (botón centrado al cierre de página) ─────────────── */
+.akb-page__cta-row {
+    margin: var(--space-8) 0 0;
+    text-align: center;
+}
+
+.akb-page__cta-row .akb-btn,
+.akb-page__cta-row a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.akb-page__cta-row .akb-btn:hover,
+.akb-page__cta-row a:hover {
+    background: var(--aki-red-hover);
+}
+
+/* ─── Embalaje reforzado ───────────────────────────────────────
+ * La página conserva sus fotos reales y comparte tipografía, enlaces y CTA
+ * con el resto del sistema de páginas. Estas reglas reemplazan el <style>
+ * incrustado en el contenido, que impedía mantener y cachear el diseño como
+ * parte del theme. */
+.akb-emb-page .akb-page__hero p {
+    max-width: 68ch;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.akb-emb-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-6);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.akb-emb-box--reverse {
+    flex-direction: row-reverse;
+}
+
+.akb-emb-img-wrap,
+.akb-emb-text {
+    flex: 1 1 300px;
+    min-width: 0;
+}
+
+.akb-emb-img-wrap {
+    text-align: center;
+}
+
+.akb-emb-img {
+    display: inline-block;
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.akb-emb-label {
+    display: inline-block;
+    margin: 0 0 var(--space-3);
+    padding: var(--space-1) var(--space-3);
+    color: var(--aki-white);
+    background: var(--aki-red);
+    border-radius: 999px;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.akb-emb-text .akb-page__section-heading {
+    margin-bottom: var(--space-3);
+}
+
+.akb-emb-text > p:last-child {
+    margin: 0;
+    color: var(--aki-gray-300);
+    font-size: var(--text-base);
+    line-height: 1.6;
+}
+
+/* ─── Two-column layout con TOC sticky (legales largos) ────────── */
+.akb-page__layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-8);
+    align-items: start;
+}
+
+@media (max-width: 880px) {
+    .akb-page__layout {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+    }
+}
+
+.akb-page__toc {
+    position: sticky;
+    top: calc(var(--header-height, 80px) + var(--space-4));
+    max-height: calc(100vh - var(--header-height, 80px) - var(--space-8));
+    overflow-y: auto;
+    padding: var(--space-4);
+    background: var(--aki-surface-2);
+    border: 1px solid var(--aki-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+}
+
+@media (max-width: 880px) {
+    .akb-page__toc {
+        position: static;
+        max-height: none;
+    }
+}
+
+/* Anclas del TOC. `html { scroll-padding-top: 78px }` ya compensa el header
+   sticky, así que aquí solo va el respiro: con 132 encima el título aterrizaba
+   210 px por debajo del borde. Mismos valores medidos que en blog.css (header
+   compacto de 73 px en móvil, 104 en escritorio). */
+.akb-page__body :is(h2, h3)[id],
+.akb-page__section :is(h2, h3)[id] {
+    scroll-margin-top: 16px;
+}
+
+@media (min-width: 769px) {
+    .akb-page__body :is(h2, h3)[id],
+    .akb-page__section :is(h2, h3)[id] {
+        scroll-margin-top: 42px;
+    }
+}
+
+.akb-page__toc-title {
+    margin: 0 0 var(--space-3);
+    color: var(--aki-gray-400);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: var(--weight-semibold);
+}
+
+.akb-page__toc ol {
+    list-style: none;
+    counter-reset: akb-toc;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.akb-page__toc li {
+    counter-increment: akb-toc;
+}
+
+.akb-page__toc a {
+    display: block;
+    padding: var(--space-1) var(--space-2);
+    color: var(--aki-gray-300);
+    text-decoration: none;
+    border-radius: var(--radius-xs);
+    line-height: 1.4;
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.akb-page__toc a::before {
+    content: counter(akb-toc) '.';
+    margin-right: var(--space-1);
+    color: var(--aki-red);
+    font-weight: var(--weight-semibold);
+}
+
+.akb-page__toc a:hover {
+    color: var(--aki-white);
+    background: var(--aki-surface-3);
+}
+
+/* Sección activa (scroll-spy de page-toc.js setea aria-current="true"). Sin esta
+   regla el aria-current no tiene efecto visual. Estado persistente tipo hover +
+   acento rojo a la izquierda (inset box-shadow → sin reflow). */
+.akb-page__toc a[aria-current="true"] {
+    color: var(--aki-white);
+    background: var(--aki-surface-3);
+    box-shadow: inset 3px 0 0 var(--aki-red-bright);
+    font-weight: var(--weight-semibold);
+}
+
+.akb-page__body {
+    min-width: 0; /* permite que el contenido respete el grid */
+}
+
+.akb-page__body h2 {
+    scroll-margin-top: calc(var(--header-height, 80px) + var(--space-4));
+    margin: var(--space-6) 0 var(--space-3);
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    color: var(--aki-white);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.akb-page__body h2:first-child { margin-top: 0; }
+
+.akb-page__body p,
+.akb-page__body ul,
+.akb-page__body ol {
+    color: var(--aki-light);
+    font-size: var(--text-base);
+    line-height: 1.6;
+}
+
+.akb-page__body strong { color: var(--aki-white); }
+
+/* ─── Links de prosa (accesibles) ──────────────────────────────────
+ * Tratamiento unificado para todos los links inline de contenido:
+ *   - `.akb-page__body a`      (nosotros, términos, privacidad)
+ *   - `.akb-faq__item > div a` (respuestas del FAQ)
+ *   - `.akb-page__section :is(p,li) a` (listas de pasos / párrafos sueltos, p.ej.
+ *                               devoluciones — antes caían al azul #1E73BE de WP).
+ *                               Scopeado a p/li para NO pisar el CTA-row ni los
+ *                               info-card (que tienen su propio tratamiento).
+ *
+ * Color: --aki-red-bright (#FF0A1D), la mayor luminancia del rojo de marca y la
+ * única que el ThemeCustomizer NO repinta (sí pisa --aki-red a #f5001c, que daba
+ * solo 4.06:1 sobre tarjetas). + SUBRAYADO EN REPOSO: cue no-cromático que el
+ * link sea distinguible sin depender del color (WCAG 1.4.1), criterio que el
+ * tratamiento border-on-hover anterior no cumplía.
+ *
+ * NOTA de contraste: sobre los surfaces elevados #1a1a1a/#121212 el rojo de marca
+ * topa ~4.40:1 (near-miss de AA 4.5 para texto normal); ningún rojo "puro" pasa
+ * 4.5 sobre #1a1a1a sin volverse salmón fuera de marca. El subrayado garantiza el
+ * criterio de uso-de-color. Para AA pleno (1.4.3) sin oscurecer el surface se
+ * aclara levemente el rojo (ver color abajo). */
+.akb-page__body a,
+.akb-faq__item > div a,
+.akb-page__section :is(p, li):not(.akb-info-card__value) a {
+    /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre #1a1a1a:
+       AA pleno (1.4.3) manteniéndose en rojo de marca (--aki-red-bright #FF0A1D
+       daba solo 4.40:1). El subrayado en reposo cubre además 1.4.1 (uso de color).
+       Las info-card (.akb-info-card__value) se excluyen: tienen su propio hover
+       (--aki-red-hover) que este selector pisaría por especificidad. */
+    color: #FF2738;
+    color: color-mix(in srgb, var(--aki-red-bright) 88%, #fff);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition: text-decoration-thickness var(--transition-fast);
+}
+
+.akb-page__body a:hover,
+.akb-faq__item > div a:hover,
+.akb-page__section :is(p, li):not(.akb-info-card__value) a:hover {
+    color: #FF2738;
+    color: color-mix(in srgb, var(--aki-red-bright) 88%, #fff);
+    text-decoration-thickness: 2px;
+}
+
+/* ─── Responsive tuning ────────────────────────────────────────
+ * Mobile-first ya está implícito en los grids `auto-fit minmax(...)`
+ * (1 columna por debajo del minmax). Este bloque resuelve casos
+ * que no se arreglan solos: TOC vertical demasiado largo en mobile,
+ * code que rompe layout, padding lateral apretado en pantallas chicas.
+ */
+@media (max-width: 768px) {
+    .akb-page {
+        padding: var(--space-5) var(--space-3) var(--space-10);
+    }
+
+    .akb-page__hero {
+        padding: var(--space-4) 0 var(--space-3);
+    }
+
+    .akb-page__hero h1 {
+        letter-spacing: 0.01em;
+    }
+
+    .akb-page__lead {
+        font-size: var(--text-base);
+    }
+
+    .akb-emb-box,
+    .akb-emb-box--reverse {
+        flex-direction: column;
+        gap: var(--space-4);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        text-align: center;
+    }
+
+    .akb-emb-img-wrap,
+    .akb-emb-text {
+        flex-basis: auto;
+        width: 100%;
+    }
+
+    .akb-emb-img {
+        max-height: 350px;
+        object-fit: contain;
+    }
+
+    .akb-emb-text .akb-page__section-heading {
+        justify-content: center;
+    }
+
+    /* TOC en mobile: grid de 2 columnas para no llenar la pantalla
+     * antes de llegar al contenido. 16 secciones en una columna sería
+     * un wall vertical; en grid se compacta a ~8 filas. */
+    .akb-page__toc {
+        padding: var(--space-3);
+    }
+
+    .akb-page__toc ol {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-2);
+    }
+
+    .akb-page__toc li {
+        display: flex;
+        min-width: 0;
+    }
+
+    .akb-page__toc a {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: var(--touch-target-min);
+        padding: var(--space-2);
+        font-size: max(var(--text-sm), 0.875rem);
+        line-height: 1.35;
+    }
+
+    /* FAQ summary: question larga + toggle no debe overflow.
+     * `min-width: 0` permite que el texto trunque/wrap dentro del flex item. */
+    .akb-faq__item > summary {
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--text-sm);
+        line-height: 1.4;
+    }
+
+    .akb-faq__item > div {
+        padding: 0 var(--space-4) var(--space-3);
+    }
+
+    /* `code` inline (ej. akibara.cl/?ref=CODE en T&C): si es ancho fijo,
+     * en mobile causa overflow horizontal del body. break-all garantiza wrap. */
+    .akb-page__body code {
+        word-break: break-all;
+        font-size: 0.92em;
+    }
+
+    /* Step list: en mobile el padding-left grande deja la card vacía
+     * a la derecha. Reducimos para aprovechar ancho — pero dejando gap
+     * de 16px entre el círculo numerado y el texto (sin gap se ven pegados).
+     * circle: left 16px + width 32px = 48px → padding-left 64px = gap 16px. */
+    .akb-step-list li {
+        padding: var(--space-4) var(--space-4) var(--space-4) var(--space-16);
+    }
+
+    .akb-step-list li::before {
+        top: var(--space-4);
+        left: var(--space-4);
+    }
+}
+
+/* Pantallas muy chicas (iPhone SE, ~360px y abajo) — ajustes finales
+ * para que el hero no parta palabras feo. */
+@media (max-width: 380px) {
+    .akb-page {
+        padding-left: var(--space-2);
+        padding-right: var(--space-2);
+    }
+
+    .akb-page__hero h1 {
+        font-size: clamp(1.75rem, 1.25rem + 2vw, 2.25rem);
+    }
+}
+
+/* Cuatro canales: una pareja por fila evita un canal aislado. */
+.akb-info-grid:has(> .akb-info-card:nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 600px) {
+    .akb-info-grid:has(> .akb-info-card:nth-child(4):last-child) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

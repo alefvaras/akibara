@@ -1,0 +1,51 @@
+%% Caso 5 — pagar eligiendo un Punto Blue Express (PUDO), de punta a punta.
+%% Qué muestra: que del navegador sólo se acepta el identificador del punto, dónde se vuelve a preguntar todo al transportista, cómo la huella del carrito y el arriendo impiden cobrar una tarifa ajena, y las cinco bifurcaciones que cortan el flujo.
+sequenceDiagram
+  autonumber
+  actor Cliente
+  participant Blocks as akibara-cart-checkout-blocks
+  participant PCS as PudoCheckoutService
+  participant Guard as PudoMutationGuard (wp_options)
+  participant Prov as PickupPointProvider
+  participant BlueX as Blue Express (tercero)
+  participant Woo as WooCommerce
+  participant Correo as Correo al cliente
+
+  Cliente->>Blocks: elige un local en el mapa
+  Blocks->>PCS: sólo agency_id + attempt_id
+  Note right of PCS: Nombre, dirección, comuna, región y PRECIO<br/>no se aceptan del navegador: se vuelven a pedir.
+
+  PCS->>PCS: cart_fingerprint() — sha256 del carrito, cantidades, totales de línea y destino
+  PCS->>Guard: begin_selection() abre un arriendo e invalida cualquier intento anterior
+
+  PCS->>Prov: resolve() con MI comuna y MI región
+  Prov->>BlueX: get_geolocation()
+  BlueX-->>Prov: agencia, región, confianza
+
+  alt confianza < 80 %, país distinto de CL, región incoherente o punto distinto del elegido
+    Prov-->>Cliente: se descarta la selección y hay que elegir de nuevo
+  else todo cuadra
+    Prov->>BlueX: get_pricing() con el bulto armado como lo armaría el propio plugin del transportista
+    BlueX-->>Prov: total y marca de «es gratis»
+    alt el total y la marca se contradicen
+      Prov-->>Cliente: se rechaza la cotización entera
+    else coherentes
+      Prov-->>PCS: cotización limpia de etiquetas
+      PCS->>PCS: sella la selección con la huella y una hora de vida
+      PCS->>Guard: commit_selection() — sólo si ESTE arriendo sigue siendo el vigente
+      alt llegó una respuesta vieja
+        Guard-->>Cliente: pudo_stale_attempt — la vieja no gana
+      else es la vigente
+        PCS->>Woo: proyecta la selección en la sesión con la forma que espera el plugin de Blue Express
+        PCS->>Woo: filter_package_rates retira toda tarifa de retiro que no coincida al céntimo
+        Cliente->>Woo: pulsa «Realizar pedido»
+        Woo->>PCS: validate_checkout()
+        PCS->>Guard: claim_for_checkout() congela la selección 30 segundos
+        PCS->>Woo: copia punto, dirección y precio al pedido
+        PCS->>Guard: release_checkout_claim()
+        Woo->>Correo: correo de pedido (SIN la caja de Metro San Miguel: este retiro lo coordina el transportista)
+      end
+    end
+  end
+
+  Note over PCS,Guard: Otras dos salidas — pedido partido en varios envíos → pudo_multiple_packages.<br/>Carrito cambiado → la huella no coincide y hay que elegir otra vez.

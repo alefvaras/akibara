@@ -1,0 +1,52 @@
+%% Caso 9 del capítulo 06 — el dueño arma el cartel de la portada (Slider de Inicio).
+%% Qué muestra: por qué esta pestaña se comporta distinta de todas las demás (es una «sección de acción»: trae su propio formulario y se salta las redes del panel), y las dos pérdidas silenciosas que eso permite — la diapositiva sin imagen que se descarta con todo su texto, y el formulario truncado por max_input_vars que borra diapositivas enteras sin un solo aviso.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef persona fill:#e8f5e9,stroke:#4c8c4a,stroke-width:1.5px,color:#1b3a1c
+    classDef riesgo fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    DUENO["Dueño<br/>Akibara → Slider de Inicio"]:::persona
+
+    subgraph EDITA["En la pantalla"]
+        MEDIA["Se carga el selector de medios SÓLO en esta pestaña"]:::propio
+        IMG["Elige imagen de escritorio y de móvil<br/>el JS compara con 1920x811 y 768x1377, tolerancia 8 %<br/>avisa pero NO bloquea"]:::propio
+        FOCO["Clic en la miniatura fija el punto focal<br/>el encuadre de tablet se deriva del de móvil, Y capada al 50 %"]:::propio
+        TEXTO["Título, bajada, hasta 3 botones y posición en rejilla 3x3"]:::propio
+        PREV["Vista previa por AJAX: el MISMO Renderer del front"]:::propio
+    end
+
+    subgraph GUARDA["Al pulsar Guardar — formulario PROPIO"]
+        DEST["admin-post.php?action=akibara_hero_save<br/>capacidad + nonce"]:::propio
+        NORED["Sección de acción: NO pasa por akibara_panel_save_errors,<br/>ni por el contador de cambios, ni por skip_untouched_default"]:::riesgo
+        SANEA["Settings::save sanea el árbol entero<br/>y REEMPLAZA la option completa"]:::propio
+        SINIMG["Diapositiva sin ninguna imagen:<br/>se DESCARTA con título, bajada y botones,<br/>sin aviso y sin bloqueo"]:::riesgo
+        TRUNCA["Si PHP truncó el POST por max_input_vars,<br/>las diapositivas que no llegaron DESAPARECEN.<br/>Descuentos evita esto con un centinela de fin de formulario<br/>que esta pestaña no puede tener"]:::riesgo
+        PURGA["litespeed_purge_all SIEMPRE,<br/>haya cambiado algo o no"]:::riesgo
+    end
+
+    subgraph FRONT["En la portada"]
+        SC["Shortcode akb_hero"]:::propio
+        CERO["0 diapositivas: no pinta nada"]:::propio
+        UNA["1 diapositiva: cartel estático, sin JavaScript"]:::propio
+        DOS["2 o más: carrusel con scroll-snap, flechas, puntos y arrastre.<br/>Autoplay APAGADO de fábrica, citando WCAG 2.2.2"]:::propio
+        PRELOAD["preload de la PRIMERA imagen: suele ser el elemento<br/>más grande de la página, el que Google mide"]:::propio
+        DIFER["Diapositivas 2+ diferidas dentro de un template,<br/>con noscript de respaldo"]:::propio
+    end
+
+    LITE["LiteSpeed + Cloudflare"]:::tercero
+    CLIENTE["Cliente"]:::persona
+
+    DUENO --> MEDIA --> IMG --> FOCO --> TEXTO --> PREV
+    TEXTO --> DEST
+    DEST --> NORED --> SANEA
+    SANEA --> SINIMG
+    SANEA --> TRUNCA
+    SANEA --> PURGA
+    PURGA -.->|devuelve al origen ~1.568 fichas y 106 landings| LITE
+    SANEA --> SC
+    SC --> CERO
+    SC --> UNA
+    SC --> DOS
+    DOS --> PRELOAD --> DIFER --> CLIENTE
+    UNA --> CLIENTE

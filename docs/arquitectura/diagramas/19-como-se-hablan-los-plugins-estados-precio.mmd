@@ -1,0 +1,27 @@
+%% Máquina de estados del capítulo 19 — la autoridad de precio dentro de UNA sola petición.
+%% Qué muestra: los cuatro estados de SearchPriceProvider, qué los mueve y por qué de FAILED no se vuelve hasta la siguiente petición.
+stateDiagram-v2
+    direction TB
+    [*] --> EMPTY : arranca cada petición sin foto
+    EMPTY --> PENDING : adopt_search_snapshot(foto válida)<br/>devuelve un token sha256
+    EMPTY --> FAILED : la foto llega rota o no se puede serializar
+    PENDING --> ACTIVE : primer cálculo de precio con el token vigente
+    PENDING --> FAILED : se intenta adoptar una foto DISTINTA
+    PENDING --> FAILED : la autoridad se invalidó tras adoptar
+    ACTIVE --> ACTIVE : siguientes precios de la misma petición
+    ACTIVE --> FAILED : el resolver deja de estar ligado a esa foto
+    FAILED --> [*] : lanza PriceAuthorityUnavailable en cada llamada
+    ACTIVE --> [*] : termina la petición
+    note right of FAILED
+        De aquí no se vuelve.
+        El buscador marca la lectura como
+        no autoritativa, serving_ready() pasa
+        a false y desaparecen el autocompletar
+        y los filtros, sin aviso al cliente.
+    end note
+    note left of EMPTY
+        Aquí empieza TODA petición: sin foto adoptada
+        (SearchPriceProvider.php:52-59). El estado vive
+        en memoria, no en la base: cada petición
+        empieza de cero.
+    end note

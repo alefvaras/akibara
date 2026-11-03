@@ -1,0 +1,71 @@
+%% Caso 1 del capítulo 03 — sale el tomo 74 de Kingdom y el aviso llega a quien compró los anteriores.
+%% Qué muestra: el camino completo desde la publicación del tomo hasta el correo «Salió el tomo 74 de Kingdom», con los cuatro descartes por comprador, la bifurcación del correo de WooCommerce deshabilitado (la cola se detiene en silencio) y el orden deliberado «armar antes de reclamar».
+sequenceDiagram
+    autonumber
+    actor Dueno as Dueño
+    participant WP as WordPress + WooCommerce
+    participant PL as PublishListener<br/>akibara-business
+    participant AS as Action Scheduler
+    participant DR as DigestRunner
+    participant FF as FollowerFinder<br/>+ CustomerCollection
+    participant DQ as DigestQueue<br/>tabla akb_series_follow_queue
+    participant Mail as SeriesFollowEmail<br/>WC_Email
+    actor Cliente as Sofía
+
+    Dueno->>WP: publica el tomo 74 y le asigna la serie Kingdom
+    WP->>PL: transition_post_status, prioridad 10
+    WP->>PL: set_object_terms, prioridad 10
+    Note over PL: el importador escribe el post ANTES de asignar los términos,<br/>por eso el escaneo se agenda a +120 s y no al instante
+    PL->>AS: encola akb_sf_scan_product a +120 s
+    Note over PL: cero consultas: viaja encima del evento más caro de la casa<br/>(guardar un término dispara el reindexado del buscador)
+
+    AS->>DR: a los 2 minutos arranca scan()
+    DR->>WP: revalida: ¿publicado? ¿no oculto del catálogo? ¿menos de 60 días?
+    DR->>DR: SeriesResolver exige UNA sola pa_serie y un número inequívoco
+    DR->>FF: ¿quién compró Kingdom en un pedido pagado? (páginas de 200)
+
+    alt La lectura de compradores no fue fiable
+        FF-->>DR: null
+        DR->>AS: sale sin marcar nada — Action Scheduler reintenta
+        Note over DR,AS: convertir una caída en «nadie sigue esta serie»<br/>marcaría el tomo como avisado sin haber avisado
+    else Lista autoritativa
+        FF-->>DR: los compradores de Kingdom
+        loop por cada comprador — cuatro descartes
+            DR->>DR: ¿ya tiene el 74? ¿su tomo más alto es ≥74?<br/>¿no tiene ningún tomo numerado? ¿se dio de baja?
+        end
+        DR->>DQ: INSERT IGNORE una fila pending por superviviente
+        Note over DQ: el UNIQUE «u + id de cliente : p + id de producto» ES la marca de avisado:<br/>republicar el mismo tomo afecta 0 filas
+        DR->>AS: agenda akb_sf_digest_run a las 6 h configuradas<br/>sólo si NO hay ya una acción PENDIENTE
+    end
+
+    AS->>DR: a las ~6 h arranca run()
+    DR->>Mail: ¿existe la clase del correo? (hasta 4 reintentos de 60 s)
+
+    alt El correo de WooCommerce está deshabilitado
+        Mail-->>DR: is_enabled() = false
+        DR-->>DR: sale sin enviar y SIN re-agendarse
+        Note over DR,DQ: la cola se queda quieta hasta que alguien publique otro tomo,<br/>mientras el panel sigue diciendo «avisos activos»
+    else El correo está habilitado
+        DR->>DQ: caduca lo pendiente de más de 60 días (UPDATE a expired: la fila SE QUEDA)
+        DR->>DQ: toma 50 clientes y descarta a quien recibió correo hace menos de 7 días
+        DR->>FF: revalida AHORA la baja, la propiedad y la publicación
+        DR->>DQ: y deja escrito el resultado: dropped/DROP_OPTOUT si se dio de baja,<br/>dropped/DROP_OWNED si ya lo tiene, y DELETE de la fila si el tomo se despublicó
+        Note over DR,DQ: dropped es TERMINAL: si el cliente se reactiva, los tomos de su<br/>periodo de baja no se recuperan. El DELETE del despublicado es lo contrario, y a propósito:<br/>sin él, un tomo republicado no podría avisarse nunca
+        DR->>DR: agrupa por serie y corta a 5 series
+        DR->>Mail: ARMA el correo
+        DR->>DQ: sólo entonces reclama las filas con un UPDATE atómico pending → sent
+        Note over DR,DQ: al revés, una excepción dejaría filas «enviadas» sin correo<br/>y el UNIQUE prohibiría reencolarlas: el aviso se perdería para siempre
+
+        alt El UPDATE afectó 0 filas
+            DQ-->>DR: otro trabajador se adelantó
+            DR-->>DR: se retira sin enviar
+        else Filas reclamadas
+            Mail->>Cliente: «Salió el tomo 74 de Kingdom»<br/>portada, «Kingdom — tomos 71 al 74», precio, estado y baja por serie
+            alt El envío falla
+                Mail-->>DQ: las filas vuelven a pending — al tercer intento quedan failed
+            else El envío va bien
+                DQ->>DQ: los tomos nombrados sin ficha propia quedan en coalesced
+                DR->>Cliente: se sella _akb_sf_last_sent (el tope de 7 días)
+            end
+        end
+    end

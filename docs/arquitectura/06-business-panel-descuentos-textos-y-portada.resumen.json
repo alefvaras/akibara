@@ -1,0 +1,157 @@
+{
+  "titulo": "akibara-business · el panel del dueño: campañas de descuento, textos, portada, ficha y formularios",
+  "capitulo": "06-business-panel-descuentos-textos-y-portada",
+  "diagramas": [
+    "06-business-panel-descuentos-textos-y-portada-piezas.mmd",
+    "06-business-panel-descuentos-textos-y-portada-caso-campana-descuento.mmd",
+    "06-business-panel-descuentos-textos-y-portada-caso-precio-cliente.mmd",
+    "06-business-panel-descuentos-textos-y-portada-caso-barra-anuncios.mmd",
+    "06-business-panel-descuentos-textos-y-portada-caso-contacto.mmd",
+    "06-business-panel-descuentos-textos-y-portada-caso-hero.mmd",
+    "06-business-panel-descuentos-textos-y-portada-estados-autoridad-precio.mmd"
+  ],
+  "componentes": 22,
+  "casos": 10,
+  "crons": [],
+  "terceros": [
+    "WooCommerce (ocho filtros de precio, woocommerce_coupon_is_valid, woocommerce_product_tabs, woocommerce_admin_fields/update_options, wc_clean que no valida fechas ni colores)",
+    "LiteSpeed Cache (litespeed_purge_all, litespeed_ucss_whitelist, litespeed_media_lazy_img_excludes, litespeed_optimize_js_excludes; object cache persistente por su drop-in)",
+    "Cloudflare (borde; recibe la purga vía la integración cdn-cloudflare_clear de LiteSpeed)",
+    "Microsoft Clarity (option clarity_project_id; remove_action fuera de producción y window.clarity('upgrade','purchase') en pedido recibido)",
+    "Google Analytics de Rank Math, Google Analytics de WooCommerce y Google Ads (apagados fuera de akibara.cl)",
+    "MercadoPago (scripts excluidos del combinado y del diferido de LiteSpeed, y marcados con crossorigin)",
+    "Cloudinary (cloudinary_lazy_load_bypass_classes → skip-lazy)",
+    "Creame Joinchat (el botón flotante de WhatsApp, apartado de la rejilla de confianza de la portada)",
+    "GeneratePress (tema padre; se le retira la imagen destacada duplicada de la ficha)",
+    "Google Tag Manager (host verificado de la lista de crossorigin)",
+    "Biblioteca de medios de WordPress (selector de imágenes del hero)",
+    "PHP max_input_vars (trunca en silencio el formulario del hero y el de descuentos)"
+  ],
+  "aristas_salientes": [
+    {
+      "a": "akibara-search",
+      "por": "filtro akb_search_effective_price (SearchPriceProvider::__invoke) + adopt_search_snapshot()/snapshot_is_fresh()/authoritative_snapshot(); contrato estricto que lanza PriceAuthorityUnavailable en vez de devolver el precio base"
+    },
+    {
+      "a": "akibara-search",
+      "por": "termmeta _akb_taxonomy_discount_pct: EditorialDiscountPublication engancha added/updated/deleted_term_meta en PHP_INT_MAX y su publicación editorial dispara litespeed_purge + litespeed_purge_all (es quien purga de verdad tras un cambio de porcentajes, minutos después)"
+    },
+    {
+      "a": "akibara-search",
+      "por": "Plugin::maybe_upgrade llama a \\Akibara\\Search\\RebuildJob::schedule(true) cuando cambia akibara_business_search_feed_contract_version"
+    },
+    {
+      "a": "akibara-search",
+      "por": "AdminDashboard usa las funciones puente akibara_search_demand_gaps() y SearchAdminSection::gap_action_url(); degrada mudo si el plugin no está"
+    },
+    {
+      "a": "akibara-rewards",
+      "por": "AdminDashboard hace SUM(delta) sobre wp_akb_rewards_ledger para los puntos vivos; el panel enlaza a «Puntos y Reseñas» si el plugin está activo"
+    },
+    {
+      "a": "tema akibara-gp",
+      "por": "options akb_copy_footer_support_hours y akb_copy_footer_phone (inc/site-copy.php), filtro de datos akibara/product_faq_data (ProductFaq), tokens CSS --aki-red y --aki-surface-1 (ThemeCustomizer) y template-parts/forms/contacto.php + su JS (Forms)"
+    },
+    {
+      "a": "Capítulo · disponibilidad y preventa (biz-disponibilidad-preventa)",
+      "por": "Stock\\Availability y Stock\\StockStatus deciden la elegibilidad del descuento y qué promesa pinta la ficha; CustomerVisibility y PreventaItems consumen los akb_copy_eta_*"
+    },
+    {
+      "a": "Capítulo · compra y cuenta (biz-compra-cuenta)",
+      "por": "PriceFilters::apply_to_cart sella el precio en cada línea del carrito; CouponInteraction rechaza el cupón en woocommerce_coupon_is_valid; AccessWall::OPTION_* se editan en Textos"
+    },
+    {
+      "a": "Capítulo · catálogo y series (biz-catalogo-series)",
+      "por": "Services\\SeriesCover y SeriesFacts\\PublicationStatus (vitrina de series y barra de tomos); SeriesBundles comparte el DiscountResolver y el tope DiscountCeiling"
+    },
+    {
+      "a": "Capítulo · núcleo de business (biz-nucleo)",
+      "por": "Plugin.php registra las 19 secciones del panel, emite akibara_business_booted y akibara_business_upgraded, y ofrece el filtro akibara_trusted_proxy_ranges"
+    },
+    {
+      "a": "Módulo FreeShippingProgress",
+      "por": "option akibara_fsp_carrier_threshold: ShippingCopy sólo la LEE para resolver [akb_envio_gratis]"
+    },
+    {
+      "a": "Módulo BackInStock",
+      "por": "CaptureForm::anchor() alimenta el CTA «Avísame cuando vuelva» de las tarjetas agotadas, tras el filtro akibara_loop_waitlist_active"
+    },
+    {
+      "a": "Capítulo · catálogo de datos (17)",
+      "por": "las options akibara_taxonomy_discount_*, akb_discount_max_pct, akb_copy_*, akibara_announcement_*, akibara_hero_settings y el termmeta _akb_taxonomy_discount_pct"
+    },
+    {
+      "a": "Capítulo · todo lo programado (16)",
+      "por": "esta área no programa NADA (cero wp_schedule_*/as_schedule_*); sólo difiere purgas a shutdown y vigila desde el Centro de Mando una lista literal de DOS hooks ajenos (akb_order_preventa_recompute_ready, akb_bis_cleanup_terminal) más akb_order_preventa_t7_reminder_scan si su interruptor está en yes, con umbral de atraso de 6 h. NO vigila el resto de los crons del sitio. Al cruzar el fin de la ventana sí corre una acción agendada, pero la agenda akibara-search: akb_search_editorial_discount_boundary"
+    }
+  ],
+  "correcciones_del_verificador_aplicadas": [
+    "Regla nº11 del mapa corregida: sólo TRES de las cuatro políticas calculan sobre el precio normal; stack_on_sale calcula sobre el precio ya rebajado (DiscountResolver.php:322-323)",
+    "Once textos desprotegidos = OCHO akb_copy_eta_* + TRES akb_copy_promise_*, no nueve + tres (akb_copy_eta_overdue está en required_one_line_copies y akb_copy_eta_item_arrived está protegido al leer por Text::one_line_option)",
+    "AnnouncementBar NO purga al guardar «cualquiera de sus options»: sólo update_option_ de las nueve y add_option_ de las cuatro promocionales; delete_option_ no está en ninguna",
+    "PdpEnhancer: el hash de la clave de caché cubre DOS promesas de las tres; akb_copy_promise_pedido_transit se pinta y no entra en la clave (sospecha ALTA nueva)",
+    "ProductFaq: Services\\VolumeTitle es un import MUERTO, no una dependencia del grafo",
+    "Sospecha ALTA nº1 recalificada: sí hay quien purga tras cambiar porcentajes (akibara-search, ~6 min después). El defecto vivo es la VENTANA y el aviso que la niega, no una caché eterna; la prueba mide el retardo, no la ausencia",
+    "Vitrina de series: el síntoma del transient compartido está invertido a medias — items() no vuelve a recortar, así que count=4 tras count=12 muestra DOCE",
+    "Settings::get_from_date() y get_to_date() tampoco tienen las tres ramas; stacks_with_coupons() no es la única, y como defecto queda refutado (deuda de simetría)",
+    "Añadido el hook wp_head prioridad 0 de FrontendCompatibility (sólo con WP_DEBUG) y que el remove_action de Clarity corre en register(), no por hook",
+    "Añadida la option legacy akb_contacto_log y su migración en la PRIMERA lectura, disparada desde el endpoint público",
+    "Añadido window.clarity('upgrade','purchase') como cambio de POLÍTICA DE GRABACIÓN en la página de pedido recibido",
+    "Añadidas las dos funciones extra de admin-panel.js: medición de --akb-panel-barra-alto con ResizeObserver + red de seguridad en focusin, y aria-label de los select2-search__field con MutationObserver",
+    "Añadido remove_action('woocommerce_single_product_summary','woocommerce_template_single_rating',10) de PdpEnhancer:70 a la tabla de hooks y a las reglas de negocio",
+    "Añadido que HomeHero\\AdminUI::handle_save() dispara litespeed_purge_all en línea y SIEMPRE, haya cambiado algo o no"
+  ],
+  "tareas_agendadas_por_terceras_areas_que_tocan_a_esta": [
+    "akb_search_editorial_discount_boundary — acción ÚNICA de Action Scheduler que agenda akibara-search para el instante exacto de boundary_at (fin de la ventana de la campaña). Su manejador reconcilia la huella y dispara litespeed_purge + litespeed_purge_all. La agenda akibara-search (EditorialDiscountPublication.php:2255-2279, constante en :32, enganche en :251), no este capítulo; en producción llega con hasta ~5 min de retraso porque el cron lo empuja Hostinger cada 5 minutos."
+  ],
+  "correcciones_de_la_critica_del_lector_aplicadas": [
+    "3.1/4.4 — Los carteles de fecha son DIEZ, no nueve (CopyManager.php:174,182,190,198,206,214,222,230,238,246). Con diez cierra la cuenta de once desprotegidos (10 − _overdue − _item_arrived = 8, más los tres akb_copy_promise_*). Se añadió la tabla con los diez, nombre por nombre y línea por línea.",
+    "3.2 — La pestaña Textos tiene OCHO secciones (títulos en :167, :305, :358, :417, :451, :512, :538, :623) y CINCUENTA campos editables (46 text + 2 textarea + 1 email + 1 select), no siete y ~45.",
+    "3.3/regla 58 — La analítica exige DOS condiciones: wp_get_environment_type() === 'production' Y host akibara.cl/www.akibara.cl (FrontendCompatibility.php:208-209). Explicado por qué importa para QA y para un clon.",
+    "3.4 — CORRECCIÓN MAYOR: era falso que «nada purga la caché al cruzar la medianoche». akibara-search agenda una acción única de Action Scheduler en boundary_at (akb_search_editorial_discount_boundary, EditorialDiscountPublication.php:2255-2279) cuyo manejador (:1112-1122) reconcilia la huella y dispara litespeed_purge + litespeed_purge_all (:1074, :1078 → :2235-2239). Además, mientras la campaña está viva —y durante las 12 h previas al borde— el buscador NO autoriza guardar la página (cap_page_cache_ttl :567-597, authorized_page_cache_ttl :636-664): en el camino normal no hay HTML guardado que pueda envejecer. Reescritos «Lo programado» y el caso 4.",
+    "3.5/4.5 — module_toggles() (AdminDashboard.php:719-727) tiene CINCO filas: announcement, fsp, native_cart, taxonomy_discount, address. akb_preventa_t7_enabled NO está ahí (se lee en :94, la vigilancia de crons); el interruptor que faltaba nombrar es akibara_announcement_enabled. El verificador se equivocó en este punto y el capítulo lo repetía.",
+    "3.6 — Los contadores del limitador NO son transients en producción: con object cache persistente bump() usa wp_cache_add()+wp_cache_incr() en el grupo akb_rl (RateLimit.php:147-160); la forma de transient sólo aparece sin drop-in. Corregida la tabla de datos.",
+    "3.7 — Añadida a caso 7 y al diagrama la guarda que faltaba: 400 «Nombre, email y mensaje son requeridos» (ContactoSubmit.php:127-133), que corre ANTES del 400 de correo inválido, y la razón de medir el correo en crudo (:113-121).",
+    "3.9 — Citas corregidas: akibara_business_catalog_order_label() está en akibara-business.php:315-318 (no :311-314) y el add_action('shutdown',…,99) de LscPurger en :73 (no :74). El filtro wp_insert_post_data va de :424 a :448.",
+    "3.10/regla 55 — El relleno del número de tomo lo dispara wp_insert_post_data, que corre en CUALQUIER inserción o actualización de producto (editor, edición rápida, importación, API REST), no «al guardar un producto».",
+    "4.1 — Retiradas las dos etiquetas de «medido» que no correspondían: la bifurcación de las cinco purgas de la barra y la «trampa medida» de DiscountCeiling son lectura de código. El verificador escribió «esperado hoy», no una medición.",
+    "4.2 — Añadida nota de confianza a la sección de la autoridad de precio: el verificador no leyó SearchPriceProvider.php, AuthoritativeReader.php ni AdoptedSnapshot.php completos (cobertura del área: 82 %).",
+    "4.3 — Incorporados los dos hallazgos confirmados que se habían caído: (a) los tres colores de la barra no se validan como colores y salen a un atributo style con sólo esc_attr() (AnnouncementBar.php:416-433 y :172), ahora defecto de la pieza y regla 26b; (b) la barra rota sola cada 6 s mientras el hero trae el autoplay apagado citando WCAG 2.2.2 — criterios opuestos sobre lo mismo, ahora regla 27b y decisión explícita del dueño.",
+    "1.1 — «Arma tu Pack» presentado en su primera aparición (CouponInteraction): el módulo SeriesBundles, pestaña series_bundles (Plugin.php:1393-1401), capítulo 03.",
+    "1.2 — Definida «publicación editorial» con su tabla de los dos caminos: pedida a mano ~30 s sin caída, disparada por un guardado ~6 min con suggest en 503.",
+    "1.3 — Definida la «huella» y explicado por qué crear una fila de option que no existía la mueve.",
+    "1.4 — Explicado qué es una «sección de acción» y que de ahí salen los dos defectos del hero: se salta akibara_panel_save_errors, el contador de cambios y skip_untouched_default().",
+    "1.5 — Reescrito el sello rojo sin la palabra «apilar»: dos pisos según si comparte tarjeta con «Preventa» (umbral configurado) o va solo (1 %), con el argumento $suppress_trivial nombrado.",
+    "1.6 — Explicado qué es una variación y que en Akibara no hay ninguna (DocumentBuilder.php:295-296): las tres filas de PriceFilters son preventivas.",
+    "1.7 — Añadido al caso 1 qué hacer mientras la publicación editorial está en vuelo: no volver a guardar, verificar con /tienda/?_v=…, esperar.",
+    "1.8 — Al glosario: combinado y diferido de LiteSpeed, skip-lazy, drop-in.",
+    "1.9 — Dicho que el token vive sólo en memoria (SearchPriceProvider.php:63) y no se puede buscar en la base.",
+    "2.1 — Tabla nueva con las ocho pantallas: slug, grupo, si es sección de acción y dónde se registra.",
+    "2.2 — Los diez akb_copy_eta_* listados por nombre y línea, con su estado de protección.",
+    "2.3 — Remedio operativo para la caché de 12 h de la ficha: wp cache flush, o tocar el producto (woocommerce_update_product → PdpEnhancer.php:87).",
+    "2.4 — Cómo se purga a mano (LiteSpeed → Toolbox → Purge All, o do_action('litespeed_purge_all')), qué cuesta, y qué es el ?_v= del aviso.",
+    "2.5 — El comando completo del interruptor sin pantalla: ssh akibara + wp option update akb_crossorigin_scripts_enabled no, y que sólo el literal 'no' lo apaga (CrossOriginScripts.php:91).",
+    "2.6/3.8/regla 62 — El Centro de Mando vigila DOS hooks (tres con el interruptor de preventa), nombrados en una tabla, y se dice explícitamente qué NO vigila.",
+    "2.7 — Añadido el botón «Descargar CSV» (AdminDashboard.php:953) y que «descartar» BORRA la fila del mensaje no entregado (ContactoLog::forget_undelivered, :136-143): es irreversible.",
+    "2.8/regla 63 — El ranking mezcla tres clases de fila (product, serie_gap, gap) con puntajes distintos, ahora en tabla.",
+    "2.9 — Tabla de «qué ve el dueño / qué hacer» para los dos transients de error del panel, con el mensaje literal del formulario truncado.",
+    "2.10 — El remitente lo fija MailFrom (contacto@akibara.cl, capítulo 07); el Reply-To es el cliente; y los tres días de agosto de 2026 sin correo, con el sitio donde mirar.",
+    "2.11 — Sección nueva «Cómo se reproduce cada defecto en el espejo», con la receta de cada defecto vivo y lo que sólo se puede medir en producción.",
+    "2.12 — Ficha propia para AdminFieldType; explicados Renderer.php y AdminUI.php del hero uno por uno; añadidos a PdpEnhancer los hooks :59, :79 y :84; añadido el remove_action del rating del listado (LoopEnhancer.php:155); añadido el segundo prefijo akb_rlm_ del limitador.",
+    "5.1 — El diagrama del formulario de contacto decía «Caso 3»: corregido a «Caso 7».",
+    "5.2 — La máquina de estados decía que el índice «guarda SIN precio»: el documento NO se publica y sigue sirviendo el índice anterior (DocumentBuilder.php:248-252).",
+    "5.3 — La máquina de estados es de SearchPriceProvider (STATE_EMPTY/PENDING/ACTIVE/FAILED, :52-55); PriceAuthority es el booleano monótono compartido. Corregidos diagrama y capítulo.",
+    "5.4 — VACÍO explicado como «el estado normal de toda la tienda», en el diagrama y en el texto.",
+    "5.5 — akibara-search y el tema akibara-gp dejan de estar pintados como terceros: clase nueva «vecino» (otro código propio).",
+    "5.6 — El diagrama de piezas lleva ahora un subgrafo Leyenda con un nodo por clase y la explicación de la flecha punteada.",
+    "5.7 — Añadido el nodo BARRA («cinta superior, todas las páginas») con TABBAR/DCOPY/SHIP → BARRA → CLIENTE; las flechas hacia la pantalla de administración estaban al revés.",
+    "5.8 — AdminFieldType añadido al diagrama de piezas, entre la pestaña Descuentos y el term-meta.",
+    "5.9 — El diagrama del caso 1 muestra ahora el bucle de las ~277 filas y que akibara_taxonomy_discount_pct_saved se emite aunque no se escriba nada (AdminFieldType.php:142 y :147).",
+    "5.10 — Dos diagramas nuevos: caso 6 (la barra, con sus purgas en línea y la ventana que no caduca) y caso 9 (el hero, con el truncado silencioso)."
+  ],
+  "refutaciones_a_la_critica": [
+    "3.9 (tercer punto) — La crítica pedía mover la cita del if del correo inválido de :144-150 a :145-151. El if está en la línea 144 y el bloque cierra en 150 (ContactoSubmit.php): la cita del capítulo era correcta y se conserva.",
+    "3.9 (cuarto punto) — La crítica situaba el add_filter('wp_insert_post_data', …) entre :426 y :450. Empieza en :424 (el add_filter) y cierra en :448; el :426 es la función anónima. Corregido a :424-448, que no es lo que pedía la crítica.",
+    "1.1 (referencia de capítulo) — «Arma tu Pack» no se describe en el capítulo 05 sino en el 03 (03-business-catalogo-y-series.md, dominio 5)."
+  ]
+}

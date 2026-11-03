@@ -1,0 +1,45 @@
+%% Caso 5: Blue Express embarca una actualizacion rota — muestra el vigia que descubre includes ausentes, los dos correos que salen y el hueco de que las marcas se escriben antes del envio.
+sequenceDiagram
+  autonumber
+  participant WP as WordPress (upgrader)
+  participant Mu as mu-plugins/akibara-bluex-integrity-watch.php
+  participant Arbol as Arbol de bluex-for-woocommerce (tercero)
+  participant Marcas as Options akb_bluex_watch_*
+  participant Correo as Correo al admin_email
+  actor Dueno
+
+  WP->>Mu: upgrader_process_complete
+  Mu->>Mu: comprueba que el tipo de actualizacion es plugin
+  Mu->>Arbol: akibara_bluex_broken_includes() recorre todo el arbol
+  note right of Arbol: solo los include y require resolubles estaticamente<br/>las rutas con variables se descartan — no se pueden resolver sin ejecutar
+  Arbol-->>Mu: por cada uno, prueba dos rutas candidatas
+
+  alt hay includes ausentes
+    Mu->>Mu: escribe una linea en el error_log con fichero y linea
+    rect rgb(254, 226, 226)
+      note over Marcas,Correo: las dos options se escriben ANTES del wp_mail y sin mirar su resultado
+      Mu->>Marcas: marca baseline_seen y borra resolved_notified
+      Mu->>Correo: [Akibara] Blue Express embarco includes rotos — checkout en riesgo
+    end
+    Correo-->>Dueno: inmediato tras la actualizacion
+    loop en cada barrido semanal mientras dure la rotura
+      Mu->>Correo: la alarma se REPITE a proposito (desde 2026-09-01 no hay guard amortiguando)
+      Correo-->>Dueno: el mismo aviso otra vez
+    end
+  else el arbol esta sano
+    Mu->>Mu: nada que avisar
+  end
+
+  opt cuando Blue Express publica el paquete arreglado
+    Note over Arbol: el tercero embarca los ficheros que faltaban
+    Mu->>Arbol: siguiente barrido
+    Mu->>Correo: [Akibara] Blue Express arreglo su paquete
+    Correo-->>Dueno: una sola vez, en el primer barrido limpio
+  end
+
+  opt si el directorio del plugin no existe
+    Mu->>Mu: no hay nada que vigilar y no se avisa
+  end
+  opt si admin_email esta vacio (Ajustes - Generales)
+    Mu->>Marcas: la marca queda escrita igual — el aviso de arreglado puede llegar sin que llegara el de la rotura
+  end

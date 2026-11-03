@@ -1,0 +1,59 @@
+%% Caso 2: el cliente elige un Punto Blue Express. Muestra el iframe del widget, las cinco
+%% comprobaciones del postMessage, las guardas del servidor y las seis bifurcaciones de fallo.
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Pudo as pudo-blocks.js (navegador)
+    participant Widget as widget-pudo.blue.cl (iframe)
+    participant Woo as WooCommerce Store API
+    participant Plugin as PudoIntegration
+    participant Business as akibara-business (servicio PUDO)
+    participant Blue as Blue Express (API)
+    participant Log as WooCommerce Estado Registros
+
+    Cliente->>Woo: Elige la tarifa "Punto Blue Express"
+    Woo->>Pudo: Pinta la tarjeta en el SlotFill de envios
+    Pudo->>Woo: Publica error en wc/store/validation (akibara-pudo-selection)
+    Note over Pudo,Woo: "Selecciona un Punto Blue Express antes de realizar el pedido" (polite, no alert)
+
+    Cliente->>Pudo: Pulsa el boton del mapa
+    Pudo->>Widget: Abre el dialogo modal con el iframe (sin sandbox)
+    Note over Pudo: Foco atrapado, resto del documento inerte, tope de carga de 12 s
+
+    Cliente->>Widget: Pincha su punto de retiro
+    Widget-->>Pudo: postMessage {type:"pudo:select", payload}
+    Pudo->>Pudo: Cinco comprobaciones: origen, iframe conectado, source, 8 KB, claves
+    alt La region del mapa no esta en la tabla de literales
+        Pudo-->>Cliente: No pasa nada: ni error, ni spinner, ni reintento
+    else Mensaje aceptado
+        Pudo->>Woo: POST /cart/extensions namespace bluex_pudo (4 claves + attempt_id)
+        Woo->>Plugin: handle_store_api_update()
+        Plugin->>Plugin: Rechaza claves extra, exige un solo paquete y PUDO unico metodo
+        Plugin->>Plugin: Saca el destino del paquete del SERVIDOR, no del navegador
+        Plugin->>Business: select_agency validado
+        Business->>Blue: Consulta la agencia
+        alt Blue confirma la misma agencia
+            Blue-->>Business: Agencia con nombre y direccion
+            Business-->>Plugin: Seleccion valida
+            Plugin->>Woo: Borra shipping_for_package_N para recalcular tarifas
+            Plugin-->>Pudo: 200
+            Pudo->>Cliente: Cierra el dialogo y muestra nombre y direccion del punto
+        else Blue devuelve otra agencia
+            Plugin-->>Cliente: Blue Express no confirmo el punto seleccionado
+        else Otra pestana esta confirmando
+            Plugin-->>Cliente: 409 con explicacion
+        else El servicio de Business no expone los siete metodos
+            Plugin->>Woo: filter_package_rates retira TODAS las tarifas PUDO
+            Woo-->>Cliente: Solo despacho a domicilio
+        else Excepcion inesperada
+            Plugin->>Log: PudoLog escribe fuente akibara-pudo (max 1 por minuto y contexto)
+            Plugin-->>Cliente: Mensaje de recuperacion del servidor
+        end
+    end
+
+    Cliente->>Woo: Pulsa "Realizar el pedido"
+    Woo->>Plugin: woocommerce_store_api_checkout_update_order_from_request @1 (antes que Blue @10)
+    Plugin->>Plugin: Valida otra vez y reescribe extensions
+    Plugin->>Woo: Escribe agencyId, isPudoSelected, agencyName, agencyAddress
+    Plugin->>Woo: Sustituye la direccion de envio por la del punto
+    Woo-->>Cliente: Correo "Tu pedido en Akibara ha sido recibido", ya con la direccion del punto

@@ -1,0 +1,93 @@
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: akibara
+      MARIADB_USER: akibara
+      MARIADB_PASSWORD: akibara_local
+      MARIADB_ROOT_PASSWORD: root_local
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  wordpress:
+    image: wordpress:7.1.4-php8.5-apache@sha256:41666f6d61dd038f87ceacd6323685bd9818a3a9b3d80d98af3ce9797c403dce
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: akibara
+      WORDPRESS_DB_USER: akibara
+      WORDPRESS_DB_PASSWORD: akibara_local
+      WP_ENVIRONMENT_TYPE: local
+    volumes:
+      - ./public_html:/var/www/html
+      - ./public_html/php.ini:/usr/local/etc/php/conf.d/zz-akibara.ini:ro
+
+  # Ejecutor de la cola. El mu-plugin `akibara-local-cron-spawn` ya arregla el
+  # auto-disparo (site_url apunta a localhost:8080, que solo existe en el host),
+  # pero WP-Cron sigue dependiendo de que ALGUIEN visite el sitio. En local nadie
+  # navega durante días: así se congelaron Action Scheduler, el índice de Search
+  # y los jobs de preventa hasta acumular 221 acciones vencidas. Este servicio
+  # cierra esa brecha ejecutando los eventos vencidos cada minuto.
+  cron:
+    image: wordpress:cli-php8.5@sha256:8175cf3199f08662ccace7a5c7b95cf3af165ac46c10039a9af58c7854084aff
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: akibara
+      WORDPRESS_DB_USER: akibara
+      WORDPRESS_DB_PASSWORD: akibara_local
+      WP_ENVIRONMENT_TYPE: local
+    volumes:
+      - ./public_html:/var/www/html
+      - ./ops/php-cli.ini:/usr/local/etc/php/conf.d/zz-akibara-cli.ini:ro
+    working_dir: /var/www/html
+    entrypoint: ["sh", "-c", "while true; do wp cron event run --due-now --quiet || true; sleep 60; done"]
+
+  # Buzón de pruebas: captura TODO el correo saliente de WordPress en local
+  # (wp-config define AKIBARA_HOSTINGER_SMTP_HOST=mailpit:1025 sólo en `local`).
+  # UI: http://localhost:8025 — sirve para previsualizar los correos de
+  # WooCommerce local con el branding real sin tocar Hostinger.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+  cli:
+    image: wordpress:cli-php8.5@sha256:8175cf3199f08662ccace7a5c7b95cf3af165ac46c10039a9af58c7854084aff
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: akibara
+      WORDPRESS_DB_USER: akibara
+      WORDPRESS_DB_PASSWORD: akibara_local
+      WP_ENVIRONMENT_TYPE: local
+    volumes:
+      - ./public_html:/var/www/html
+      - ./ops/php-cli.ini:/usr/local/etc/php/conf.d/zz-akibara-cli.ini:ro
+    working_dir: /var/www/html
+
+volumes:
+  db_data:

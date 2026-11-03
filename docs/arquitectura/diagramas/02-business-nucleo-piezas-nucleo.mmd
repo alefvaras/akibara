@@ -1,0 +1,77 @@
+%% Piezas del capítulo 02 (2 de 2) — el núcleo dentro de src/ y sus fronteras.
+%% Qué muestra: las ocho piezas que viven en src/ (5, 6, 7, 8, 9, 10, 14 y 15), las tres options del motor de upgrade —ninguna con pantalla—, y las fronteras que salen hacia los otros plugins propios, el tema y los terceros.
+%% El primer diagrama, «piezas-arranque», dibuja las siete piezas de los dos ficheros de la raíz.
+flowchart TB
+    classDef propio fill:#fff3e0,stroke:#e07b39,stroke-width:1.5px,color:#4a2c10
+    classDef tercero fill:#eef2f7,stroke:#7a90a8,stroke-width:1.5px,color:#22303f
+    classDef dato fill:#f3e8fd,stroke:#8b5cf6,stroke-width:1.5px,color:#3a1d5c
+    classDef alerta fill:#fdecea,stroke:#c0392b,stroke-width:1.5px,color:#5c1a12
+
+    ENTRADA["Viene del autoloader<br/>(diagrama «arranque»)"]:::propio
+    WP["WordPress<br/>init, turno 999"]:::tercero
+
+    subgraph NUCLEO["Núcleo · src/Plugin.php"]
+        direction TB
+        BOOT["5 · boot()<br/>:147-286 · idempotente"]:::propio
+        REG["6 · register_modules()<br/>:801-1417 · 74 módulos<br/>en orden fijo"]:::propio
+        CEBA["7 · Cebado del front<br/>:790-804 · 7 claves<br/>+ BrandLandings"]:::propio
+        UPG["8 · Motor de upgrade<br/>:290-337 · CAS<br/>+ arriendo de 600 s"]:::propio
+        CONTRATO["9 · Contrato de<br/>alimentación · :715-741"]:::propio
+        LIMPIA["10 · Limpieza de huérfanas<br/>:1434-1463"]:::propio
+    end
+
+    subgraph COMPARTIDO["Lo que ofrece · piezas 14 y 15"]
+        direction TB
+        CONTRATOS["14 · 3 contratos públicos"]:::propio
+        UTILS["15 · 13 utilidades"]:::propio
+    end
+
+    subgraph OPTIONS["3 options · autoload apagado, sin pantalla"]
+        direction TB
+        OVER["…_version_installed"]:::dato
+        OTASK["…_upgrade_tasks_pending<br/>JSON: queued / running"]:::dato
+        OFEED["…_search_feed_contract_version<br/>la constante vale 2 ·<br/>producción NO está medida"]:::dato
+    end
+
+    LISTENERS["5 oyentes de<br/>akibara_business_upgraded"]:::propio
+    LLMS["1 oyente de<br/>akibara_business_booted"]:::propio
+
+    subgraph FRONTERAS["Fronteras"]
+        direction TB
+        SEARCH["akibara-search 0.1.60"]:::propio
+        BLOCKS["akibara-cart-checkout-blocks<br/>arranca en el turno 30"]:::propio
+        TEMA["Tema akibara-gp"]:::propio
+        WOO["WooCommerce"]:::tercero
+        RANK["Rank Math"]:::tercero
+        CF["Cloudflare"]:::tercero
+    end
+
+    SINPANTALLA["⚠️ Sin pantalla<br/>las 3 options y<br/>akb_crossorigin_scripts_enabled"]:::alerta
+    ROLLBACK["⚠️ El rollback degrada el contrato<br/>la option se mueve HACIA la constante,<br/>también hacia atrás"]:::alerta
+
+    ENTRADA --> BOOT
+    BOOT --> REG
+    REG -->|"primeras 2 líneas"| CEBA
+    REG --> COMPARTIDO
+    BOOT -->|"init:999"| UPG
+    BOOT -->|"do_action"| LLMS
+    WP --> UPG
+
+    UPG --> CONTRATO
+    UPG -->|"CAS"| OVER
+    UPG -->|"CAS con token"| OTASK
+    CONTRATO -->|"CAS sin<br/>comprobar dirección"| OFEED
+    UPG -->|"flush de URLs<br/>+ do_action"| LISTENERS
+    LISTENERS -->|"1º de los 5"| LIMPIA
+
+    CONTRATO -->|"RebuildJob::schedule(true)"| SEARCH
+    REG -->|"akb_search_effective_price<br/>y akibara_trusted_proxy_ranges"| SEARCH
+    CONTRATOS -->|"checkout_data()<br/>y pudo_checkout()"| BLOCKS
+    UTILS -->|"ThemeAssetVersion,<br/>con rama de repuesto"| TEMA
+    UTILS -->|"SchemaGraph<br/>y RobotsMeta"| RANK
+    UTILS -->|"RateLimit cree<br/>la cabecera"| CF
+    UTILS -->|"OrderStorage<br/>pregunta por HPOS"| WOO
+
+    OFEED --> ROLLBACK
+    ROLLBACK --> SEARCH
+    OPTIONS --> SINPANTALLA

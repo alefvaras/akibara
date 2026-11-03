@@ -1,0 +1,21 @@
+%% Cron del capítulo 19 — los trabajos programados que CRUZAN de una pieza a otra, en hora de Chile.
+%% Qué muestra: a qué hora corre cada trabajo transversal y qué componente ajeno despierta al correr.
+%% ↩ = HORA HEREDADA: quedó del primer agendado y se mueve sola (deriva medida ~131 s/día y una hora de golpe con el cambio de horario). Sin ↩ = hora anclada, el código la recalcula y se corrige sola.
+timeline
+    title Trabajos que cruzan de una pieza a otra (hora de Chile · ↩ = hora heredada, se mueve sola)
+    section Madrugada
+        02h37 ↩ akb_preventa_vencida_sweep (business) : toca hasta 50 fichas de preventa vencida : cada guardado despierta al buscador y purga LiteSpeed
+        03h00 domingo akb_order_preventa_t7_reminder_scan (business) : recordatorio T-7 de los pedidos con preventa : hora anclada al domingo por next_sunday_03_ts()
+    section Mañana
+        05h00 akibara_catalog_order_daily (business) : recalcula el orden del catálogo : hora anclada y re-anclada en cada corrida
+        06h30 ↩ akb_sf_digest_run (business) : avisos de tomo nuevo de la colección : cadena de acciones únicas; el checkout de bloques promete este correo
+    section Tarde
+        12h50 ↩ akb_search_reconcile (buscador) : compara el índice con el catálogo real : vuelve a pedirle el precio a business
+        16h10 ↩ akb_rewards_birthday_daily (rewards) : puntos de cumpleaños : correo por la cola
+        17h15 ↩ akb_rewards_expiry_daily (rewards) : caducidad de puntos : correo de aviso por la cola
+    section Noche
+        19h05 ↩ akibara_business_social_image_derivatives (business) : genera portadas JPG : es lo que el mu-plugin de Brevo quiere usar
+        21h55 ↩ akibara_bluex_log_retention_cleanup (mu-plugin) : poda los registros de Blue Express : engancha encima del cron del tercero
+    section Todo el dia
+        cada 15 min akb_search_rebuild_watchdog (buscador) : vigila que la reconstrucción no quede colgada : intervalo, no hora
+        al vuelo akb_search_pump_live (buscador) : indexa lo que alguien acaba de guardar : lo disparan business y el mu-plugin del catálogo

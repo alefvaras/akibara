@@ -1,0 +1,18 @@
+%% Lo programado en esta frontera — las dos acciones recurrentes, el reloj que las empuja desde fuera y la purga que no es periodica. Horas de Chile, aproximadas por diseno.
+timeline
+  title Lo que corre solo en la frontera con terceros (hora de Chile)
+  section El reloj
+    Cada 5 minutos, todo el dia : Hostinger dispara wp-cron desde fuera (DISABLE_WP_CRON activo, el trafico NO lo empuja)
+                                : Action Scheduler toma de la cola lo que le toque
+  section Diaria
+    Hora siguiente a programarse, y esa misma hora cada dia : akibara_bluex_log_retention_cleanup — grupo akibara-bluex — borra filas de wp_bluex_logs con mas de 2 dias, en lotes de 1.000
+                                                            : Correr dos veces es inocuo — la segunda pasada no encuentra filas. El guard as_has_scheduled_action impide la doble programacion
+  section Semanal, SI llega a programarse
+    Solo se programa desde /wp-admin/ o desde un cron que se identifique como tal : en produccion el disparo entra por WP-CLI, donde wp_doing_cron() es false — con eso, la semanal NO se programa hasta que alguien abre el escritorio
+                                                                                  : akibara_bluex_integrity_weekly — recorre el arbol de bluex-for-woocommerce buscando include o require de ficheros ausentes
+                                                                                  : Sin grupo de Action Scheduler — en WooCommerce Estado Acciones programadas hay que buscarla por nombre
+                                                                                  : Correr dos veces manda el correo otra vez — la alarma se repite a proposito mientras dure la rotura
+  section No es periodico
+    Al guardar descuentos en el panel : purga de LiteSpeed en shutdown prio 99, que con cdn-cloudflare_clear propaga a Cloudflare
+                                      : La propiedad scheduled de LscPurger impide programarla dos veces en la misma peticion
+    En cada barrido de Action Scheduler : el filtro action_scheduler_retention_period acota a 14 dias lo completado y cancelado

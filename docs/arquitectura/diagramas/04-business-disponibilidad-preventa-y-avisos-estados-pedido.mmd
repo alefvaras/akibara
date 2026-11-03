@@ -1,0 +1,46 @@
+%% Máquina de estados del capítulo 04 — la vida de un pedido que espera mercadería.
+%% Qué muestra: qué marca lleva el pedido en cada momento, qué correo sale en cada transición, y las dos reglas duras: la marca «listo» no vuelve atrás nunca, y un pedido con espera pendiente no se puede completar.
+stateDiagram-v2
+    [*] --> SinEspera: el cliente compra
+
+    state "Pedido sin espera<br/>ninguna línea era reservable; no lleva metas" as SinEspera
+    SinEspera --> [*]: sigue el camino normal de WooCommerce
+
+    [*] --> Esperando: al menos una línea era reservable al comprar
+
+    state "Esperando<br/>_akb_eta_has_preventa = yes<br/>_akb_eta_ready_to_ship = no<br/>_akb_eta_pending_count = N" as Esperando
+
+    Esperando --> Esperando: llega uno de los tomos<br/>baja el contador y el estimado
+    Esperando --> Esperando: la editorial mueve la fecha<br/>correo «cambio de fecha», tope de 1 cada 14 días
+    Esperando --> Esperando: la editorial anuncia la primera fecha<br/>correo «ya tenemos fecha»
+    Esperando --> Esperando: el dueño retira la fecha<br/>sólo nota interna, NINGÚN correo
+    Esperando --> Esperando: faltan entre 1 y 10 días<br/>correo «tu pedido se acerca», una sola vez en toda su vida
+    Esperando --> Esperando: pasan 30 días de la fecha prometida<br/>o 120 desde la primera: nota interna «revisar»
+
+    Esperando --> Bloqueado: el dueño intenta completarlo
+    state "Completado bloqueado<br/>se restaura el estado anterior antes de guardar" as Bloqueado
+    Bloqueado --> Esperando: aviso amarillo en pantalla<br/>nombrando los tomos que faltan
+
+    Esperando --> Listo: ya no queda nada pendiente
+    state "Listo para despachar<br/>_akb_eta_ready_to_ship = yes<br/>_akb_eta_ready_date sellada" as Listo
+    note right of Listo
+        Marca INMUTABLE: aunque el tomo vuelva a agotarse,
+        el pedido no regresa a «Esperando».
+    end note
+
+    Esperando --> ListoSinAviso: se reembolsó todo lo que esperaba
+    state "Listo sin aviso<br/>nota «no se envía aviso de llegada»" as ListoSinAviso
+    ListoSinAviso --> Despachable: SIN correo:<br/>al cliente le reembolsaron todo lo que esperaba
+
+    Listo --> Despachable: sale el correo «tu pedido ya llegó»
+    state "Despachable<br/>el cliente ve el cartel verde.<br/>El correo sólo salió por el camino de la izquierda" as Despachable
+
+    Despachable --> Sellado: primer cruce a «completado»<br/>o al estado de entrega al transportista
+    state "Sellado<br/>_akb_eta_shippable_at escrita UNA sola vez" as Sellado
+    note left of Sellado
+        A las 2 horas se comprueba que el transportista
+        haya puesto el número de seguimiento; si no,
+        una alerta en el pedido.
+    end note
+
+    Sellado --> [*]: entra en el informe de cumplimiento<br/>dentro · tarde · antes
