@@ -110,6 +110,7 @@ use Akibara\Business\Modules\SiteSpeed\SiteSpeed;
 use Akibara\Business\Modules\CopyManager\CopyManager;
 use Akibara\Business\Modules\PdpEnhancer\PdpEnhancer;
 use Akibara\Business\Modules\PdpEnhancer\PdpSeriesEnhancer;
+use Akibara\Business\Modules\PricingMatrix\PricingMatrix;
 use Akibara\Business\Modules\VolumeVariant\ProductDataPanel as VolumeVariantPanel;
 use Akibara\Business\Services\CheckoutDataService;
 use Akibara\Business\Utilities\RateLimit;
@@ -793,6 +794,9 @@ final class Plugin {
 		// Settings con el módulo de la campaña.
 		$this->modules['campaign_expiry_cron'] = new \Akibara\Business\Modules\TaxonomyDiscount\CampaignExpiryCron( $this->modules['taxonomy_discount']->settings() );
 		$this->modules['campaign_expiry_cron']->register();
+
+		$this->modules['pricing_matrix'] = new PricingMatrix();
+		$this->modules['pricing_matrix']->register();
 	}
 
 	/**

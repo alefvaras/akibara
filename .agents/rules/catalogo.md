@@ -36,8 +36,8 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
    - Si no se ejecuta el relleno, «También te recomendamos…» no aparece en esos tomos.
    - Tras subir tomos nuevos, ejecutar SIEMPRE `wp akibara:upsells-fill` para encadenar la secuencia y purgar la caché de las fichas afectadas.
 
-8. **Descuento de Reserva / A Pedido (5% obligatorio):**
-   - Todo producto en estado `onbackorder` ("A pedido") DEBE tener configurado un 5% de descuento sobre el precio regular en `_sale_price` (`_price` = `_sale_price` = `round(_regular_price * 0.95)`).
+8. **Descuento de Reserva / A Pedido (5% obligatorio con `round_100`):**
+   - Todo producto en estado `onbackorder` ("A pedido") DEBE tener configurado un 5% de descuento sobre el precio regular en `_sale_price` redondeado a la centena más cercana (`_price` = `_sale_price` = `round((_regular_price * 0.95) / 100) * 100`, ej. `$10.600` -> `$10.100`).
    - Esto activa el aviso oficial de reserva («Precio de reserva: $X. Al llegar el stock sube a $Y») y el tachado comercial.
 
 9. **Higiene de Atributos de Producto (`_product_attributes`):**
@@ -113,7 +113,7 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
          - `_manage_stock = 'no'`
          - `_stock = null` (o `0`)
          - `_backorders = 'no'` (valor nativo de WooCommerce cuando no se gestionan cantidades; el estado `onbackorder` mantiene el producto comprable).
-         - `_sale_price = round(_regular_price * 0.95)` (5% de descuento obligatorio de reserva)
+         - `_sale_price = round((_regular_price * 0.95) / 100) * 100` (5% de descuento obligatorio de reserva con redondeo a la centena `round_100`)
          - `_price = _sale_price`
          - Término `outofstock` REMOVIDO de `product_visibility`.
          - No forzar `notify` mediante metadatos ni hooks: WooCommerce lo restablece a `no` al guardar un producto sin gestión de cantidades. Los avisos, la distinción A pedido/Preventa y las fechas de Akibara dependen del estado comercial y sus snapshots, no de ese permiso de cantidades gestionadas.

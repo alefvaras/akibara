@@ -46,6 +46,7 @@ class InventoryGateTest(unittest.TestCase):
 
     def test_valid_reserve_and_half_up_rounding(self):
         self.assertTrue(self.approved())
+        self.assertTrue(self.approved(regular_price='10600', sale_price='10100', price='10100'))
         self.assertTrue(self.approved(regular_price='1010', sale_price='960', price='960'))
 
     def test_exact_reserve_price_required(self):

@@ -256,7 +256,7 @@ if ( ! function_exists( 'akb_inv_norm_snapshot_product' ) ) {
 			if ( ! is_numeric( $regular ) || ( 'onbackorder' === $status ? (float) $regular <= 0 : (float) $regular < 0 ) ) {
 				$reasons[] = 'invalid_regular_price';
 			} else {
-				$sale  = 'onbackorder' === $status ? (string) round( (float) $regular * 0.95 ) : '';
+				$sale  = 'onbackorder' === $status ? (string) ( (int) ( round( ( (float) $regular * 0.95 ) / 100.0, 0, PHP_ROUND_HALF_UP ) * 100 ) ) : '';
 				$price = 'onbackorder' === $status ? $sale : $regular;
 				$candidate->set_sale_price( $sale );
 				$candidate->set_price( $price );
