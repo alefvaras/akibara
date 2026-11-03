@@ -82,8 +82,9 @@ producto.
 La reserva sin unidades físicas usa el contrato nativo de WooCommerce:
 `manage_stock=false`, cantidad vacía, `stock_status=onbackorder` y `backorders=no`.
 El estado mantiene la compra; `no` no prohíbe vender esta reserva sin cantidades
-gestionadas. No se fuerza `notify` después de guardar. La regla 18 de `AGENTS.md`
-protege los productos vinculados a pedidos pendientes durante cualquier migración.
+gestionadas. No se fuerza `notify` después de guardar. La regla 18 de la
+[política de catálogo](../../.agents/rules/catalogo.md) protege los productos
+vinculados a pedidos pendientes durante cualquier migración.
 
 ---
 

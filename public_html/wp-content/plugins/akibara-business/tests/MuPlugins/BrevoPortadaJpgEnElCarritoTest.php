@@ -22,6 +22,7 @@ namespace Akibara\Business\Tests\MuPlugins {
 		private string $root;
 		private array $transients = array();
 		private array $scheduled = array();
+		private array $source_metadata = array();
 		private const BASE = 'https://akibara.cl/wp-content/uploads/';
 		private const ENDPOINT = 'https://in-automate.brevo.com/api/v2/trackEvent';
 
@@ -35,6 +36,11 @@ namespace Akibara\Business\Tests\MuPlugins {
 			Functions\when( 'content_url' )->alias( fn( $path ) => 'https://akibara.cl/wp-content' . $path );
 			Functions\when( 'wp_mkdir_p' )->alias( fn( $dir ) => mkdir( $dir, 0777, true ) );
 			Functions\when( 'wp_convert_hr_to_bytes' )->justReturn( 512 * 1024 * 1024 );
+			// This unit double knows the dimensions of fixtures it just generated.
+			// The separate-process test below exercises the actual WordPress reader.
+			Functions\when( 'wp_getimagesize' )->alias(
+				fn( string $path ) => $this->source_metadata[ realpath( $path ) ] ?? @getimagesize( $path )
+			);
 			Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
 			Functions\when( 'set_transient' )->alias( function ( $key, $value ) { $this->transients[ $key ] = $value; return true; } );
 			Functions\when( 'delete_transient' )->alias( function ( $key ) { unset( $this->transients[ $key ] ); return true; } );
@@ -68,12 +74,22 @@ namespace Akibara\Business\Tests\MuPlugins {
 			$image = imagecreatetruecolor( $width, $height );
 			imagefill( $image, 0, 0, imagecolorallocate( $image, 190, 30, 40 ) );
 			$path = $this->root . '/2026/10/' . $name;
-			str_ends_with( $name, '.webp' ) ? imagewebp( $image, $path ) : imageavif( $image, $path );
+			$written = str_ends_with( $name, '.webp' ) ? imagewebp( $image, $path ) : imageavif( $image, $path );
+			self::assertTrue( $written, 'The source fixture encoder failed.' );
+			self::assertFileExists( $path );
+			self::assertGreaterThan( 0, filesize( $path ), 'The source fixture is empty.' );
 			imagedestroy( $image );
+			$this->source_metadata[ realpath( $path ) ] = array(
+				$width, $height, str_ends_with( $name, '.webp' ) ? IMAGETYPE_WEBP : IMAGETYPE_AVIF,
+				'mime' => str_ends_with( $name, '.webp' ) ? 'image/webp' : 'image/avif',
+			);
+			// Fixture validation must not prime the PHP 8.1 stat cache before tests overwrite a source.
+			clearstatcache();
 			return self::BASE . '2026/10/' . $name;
 		}
 
 		private function file( string $url ): string {
+			self::assertStringStartsWith( self::BASE, $url, 'Expected a generated uploads image, received a fallback.' );
 			return $this->root . '/' . substr( $url, strlen( self::BASE ) );
 		}
 
@@ -95,6 +111,30 @@ namespace Akibara\Business\Tests\MuPlugins {
 				self::assertInstanceOf( \GdImage::class, imagecreatefromjpeg( $file ) );
 			}
 			self::assertSame( array(), glob( $this->root . '/akibara-email/.email-*' ) );
+		}
+
+
+		/** @testdox Native WordPress reads real AVIF dimensions before bounded JPEG conversion on every supported PHP. */
+		public function test_native_core_metadata_and_conversion(): void {
+			$source = $this->file( $this->source( 'native-core.avif', 800, 1200 ) );
+			$target = $this->root . '/native-core.jpg';
+			$process = proc_open(
+				array( PHP_BINARY, __DIR__ . '/fixtures/email-image-native-probe.php', ABSPATH, $source, $target ),
+				array( 1 => array( 'pipe', 'w' ), 2 => array( 'pipe', 'w' ) ),
+				$pipes
+			);
+			self::assertIsResource( $process );
+			$output = stream_get_contents( $pipes[1] );
+			$error = stream_get_contents( $pipes[2] );
+			fclose( $pipes[1] );
+			fclose( $pipes[2] );
+			self::assertSame( 0, proc_close( $process ), $error );
+			$data = json_decode( $output, true, 512, JSON_THROW_ON_ERROR );
+			self::assertSame( array( 800, 1200 ), array_slice( $data['core'], 0, 2 ) );
+			self::assertTrue( $data['converted'], $output . $error );
+			self::assertSame( array( 427, 640, IMAGETYPE_JPEG ), array_slice( $data['jpeg'], 0, 3 ) );
+			self::assertTrue( $data['original_unchanged'] );
+			self::assertSame( array(), $data['temporaries'] );
 		}
 
 		/** @testdox Query, crop and upload share a reusable JPEG without touching the source. */
@@ -139,7 +179,7 @@ namespace Akibara\Business\Tests\MuPlugins {
 			$this->reset_request();
 			self::assertSame( $fallback, EmailImageDerivatives::url( $url ) );
 			for ( $n = 0; $n < 3; ++$n ) {
-				self::assertStringEndsWith( '.jpg', EmailImageDerivatives::url( $this->source( "cover{$n}.avif" ) ) );
+				self::assertStringEndsWith( '.jpg', EmailImageDerivatives::url( $this->source( "cover{$n}.avif" ) ), "Conversion {$n} within the request budget must succeed." );
 			}
 			self::assertSame( $fallback, EmailImageDerivatives::url( $this->source( 'last.avif' ) ) );
 			self::assertCount( 1, $this->scheduled );

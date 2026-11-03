@@ -15,6 +15,8 @@ DIRECTORIES = [
 FILES = [
     'package.json', 'package-lock.json', 'tools/build-runtime-assets.sh',
     'AGENTS.md', 'compose.yaml', 'ops/php-cli.ini', 'public_html/php.ini',
+    '.agents/rules/catalogo.md', '.agents/rules/entrega.md',
+    'tools/check-antigravity-policy.py', 'tools/test-antigravity-policy.py',
     'docs/REGLAS_DE_NEGOCIO_DINERO_TRANSACCIONAL.md',
     'tools/akibara-releases/build-search-assets.mjs', 'tools/test-source-export.py', 'tools/test-build-search-assets.mjs',
     '.gitignore', '.githooks/pre-push', '.github/workflows/runtime-quality.yml',

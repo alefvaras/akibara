@@ -28,6 +28,8 @@ node --test "${script_dir}/akibara-releases/rewards-qa/test-qa-paridad-espejo.mj
 python3 "${repo_root}/ops/test-guardrail-inventario-akibara.py"
 python3 "${script_dir}/test-private-data-guard.py"
 python3 "${script_dir}/test-source-export.py"
+python3 "${script_dir}/check-antigravity-policy.py"
+python3 "${script_dir}/test-antigravity-policy.py"
 python3 "${script_dir}/test-runtime-artifact-boundary.py"
 python3 "${script_dir}/ci-dependencies/test_materialize.py"
 

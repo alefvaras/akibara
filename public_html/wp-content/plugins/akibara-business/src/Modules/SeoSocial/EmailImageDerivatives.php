@@ -122,7 +122,8 @@ final class EmailImageDerivatives {
 
 	/** Decode limitado, fondo blanco, sin ampliación y publicación atómica. */
 	private static function convert( string $source, string $target ): bool {
-		$size = @getimagesize( $source );
+		// Core reads AVIF dimensions from headers on PHP 8.1, before any pixel decode.
+		$size = wp_getimagesize( $source );
 		if ( ! is_array( $size ) || ! in_array( $size['mime'] ?? '', array( 'image/avif', 'image/webp' ), true )
 			|| filesize( $source ) > 20 * 1024 * 1024 ) {
 			return false;

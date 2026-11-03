@@ -14,6 +14,12 @@ Las entradas de terceros se materializan desde [un lock de origen, versión y SH
 
 El punto de entrada de compilación es `npm ci --no-audit --no-fund` seguido de `npm run build`. El lock fija esbuild 0.28.2; el mismo binario verificado genera tema y los cuatro bundles de Search. El gate comprueba hashes de fuentes y bytes publicados, por lo que editar un fuente sin reconstruir su minificado bloquea la entrega.
 
+## Antigravity
+
+La política se carga desde `AGENTS.md` y dos archivos nativos `always_on` en `.agents/rules/`. El catálogo conserva una única fuente, sin copias por modelo. Se separó de AGENTS.md para respetar el límite oficial de 24.000 bytes por archivo; CI verifica existencia, activación y tamaño. La instalación local observada es Antigravity 2.28.2. Estas reglas del proyecto aplican al modelo seleccionado; no fijan nombres de modelos que la aplicación no ofrezca.
+
+La carga de reglas sigue la [documentación oficial de Antigravity](https://antigravity.google/docs/rules/). La configuración global del usuario también puede aportar reglas; los controles de Git, build, paquetes y CI siguen siendo necesarios. Las instrucciones orientan al agente y los controles automáticos validan lo que se entrega. Ninguno sustituye el QA independiente en producción.
+
 ## Producción
 
 `package-runtime.sh` y `verify-runtime-package.py` sellan y verifican el contenido permitido. El carril de MU respeta los componentes locales en cuarentena y mantiene sincronizado el transporte SMTP con su recurso de rescate fuera del docroot. Los respaldos de recuperación se descargan únicamente a local.

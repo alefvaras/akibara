@@ -43,11 +43,41 @@ final class AssetsTest extends TestCase {
 		);
 	}
 
-	/** @testdox Dos ficheros distintos dan tokens distintos. */
-	public function test_dos_ficheros_dan_tokens_distintos(): void {
-		$uno = Assets::version( 'akibara-rewards.php' );
-		$dos = Assets::version( 'uninstall.php' );
+	/** @testdox Cambiar un fichero invalida su token sin depender de las fechas del checkout. */
+	public function test_cambiar_un_fichero_invalida_solo_su_token(): void {
+		$directory = sys_get_temp_dir() . '/akb-asset-version-' . uniqid();
+		mkdir( $directory );
+		try {
+			foreach ( array( 'a.js', 'b.js' ) as $name ) {
+				file_put_contents( $directory . '/' . $name, '/* synthetic fixture */' );
+				touch( $directory . '/' . $name, 1700000000 );
+			}
+			$before = $this->tokens_from( $directory );
+			self::assertSame( $before[0], $before[1], 'Un checkout puede dar la misma fecha a dos URLs distintas.' );
+			touch( $directory . '/a.js', 1700000001 );
+			$after = $this->tokens_from( $directory );
+			self::assertNotSame( $before[0], $after[0] );
+			self::assertSame( $before[1], $after[1] );
+		} finally {
+			unlink( $directory . '/a.js' );
+			unlink( $directory . '/b.js' );
+			rmdir( $directory );
+		}
+	}
 
-		self::assertNotSame( $uno, $dos, 'Si coincidieran, tocar uno no invalidaría la caché del otro.' );
+	/** Ejecuta el helper real con una raíz efímera, sin modificar fuentes del repo. */
+	private function tokens_from( string $directory ): array {
+		$program = "define('ABSPATH', '/'); define('AKIBARA_REWARDS_VERSION', '1.2.3');"
+			. 'define("AKIBARA_REWARDS_DIR", ' . var_export( $directory . '/', true ) . ');'
+			. 'require ' . var_export( AKIBARA_REWARDS_DIR . 'src/Support/Assets.php', true ) . ';'
+			. 'echo json_encode([Akibara\\Rewards\\Support\\Assets::version("a.js"), Akibara\\Rewards\\Support\\Assets::version("b.js")]);';
+		$output = array();
+		$status = 0;
+		exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( $program ), $output, $status );
+		self::assertSame( 0, $status, 'La medición del helper debe terminar correctamente.' );
+		$tokens = json_decode( implode( "\n", $output ), true );
+		self::assertIsArray( $tokens );
+		self::assertCount( 2, $tokens );
+		return $tokens;
 	}
 }
