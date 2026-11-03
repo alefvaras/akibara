@@ -576,7 +576,9 @@ final class PricingSynchronizer {
 			'target_sale'          => $target_sale,
 			'updated_count'        => 0,
 			'skipped_locked_count' => 0,
+			'dry_run'              => $dry_run,
 			'items'                => array(),
+			'skipped_locked_items' => array(),
 		);
 
 		$runner = static function () use (
@@ -612,6 +614,7 @@ final class PricingSynchronizer {
 
 				if ( 'skipped_locked' === $res['status'] ) {
 					++$summary['skipped_locked_count'];
+					$summary['skipped_locked_items'][] = $res;
 				} elseif ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
 					++$summary['updated_count'];
 				}
