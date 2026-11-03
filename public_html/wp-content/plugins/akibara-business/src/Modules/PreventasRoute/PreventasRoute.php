@@ -66,7 +66,7 @@ final class PreventasRoute {
 	public const OPTION_GUIDE = 'akb_preventas_guide_post_id';
 
 	/** Copy inicial sin wrapper; admite únicamente énfasis editorial básico. */
-	public const DEFAULT_INTRO_CONTENT = 'Un tomo a pedido <strong>ya está publicado y lo traemos por encargo</strong>: entra en el próximo pedido a la editorial y te avisamos apenas llega a Akibara. La <strong>fecha estimada de llegada</strong> está en cada título.';
+	public const DEFAULT_INTRO_CONTENT = 'Un tomo a pedido <strong>ya está publicado y lo traemos especialmente para ti</strong>: entra en el próximo pedido a la editorial y te avisamos apenas llega a Akibara. La <strong>fecha estimada de llegada</strong> está en cada título.';
 
 	/** Apertura breve del CTA editorial. Default del campo homónimo en Textos. */
 	public const GUIDE_PREFIX = '¿Es tu primera reserva?';

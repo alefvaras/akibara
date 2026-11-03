@@ -551,8 +551,9 @@ final class QueryEngine {
 					$as_prefix = ! ctype_digit( $token ) || ( $suggest && $is_last );
 
 					if ( $as_prefix ) {
-						$predicate     = "{$alias}.token LIKE %s";
-						$escaped = $this->guarded_call( fn() => $this->db->esc_like( $token ), 'Could not escape synonym candidate.' );
+						$field_guard = strlen( $token ) < 5 ? ' AND ' . $alias . '.field < ' . DocumentBuilder::FIELD_DESCRIPTION : '';
+						$predicate   = "{$alias}.token LIKE %s{$field_guard}";
+						$escaped     = $this->guarded_call( fn() => $this->db->esc_like( $token ), 'Could not escape synonym candidate.' );
 						if ( ! $this->available || ! is_string( $escaped ) ) {
 							return array();
 						}
@@ -656,9 +657,10 @@ final class QueryEngine {
 				if ( ! $this->available || ! is_string( $escaped ) ) {
 					return array();
 				}
+				$field_guard   = strlen( $token ) < 5 ? ' AND ' . $alias . '.field < ' . DocumentBuilder::FIELD_DESCRIPTION : '';
 				$prepared_join = $this->guarded_call( fn() => $this->db->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tokens_table() es identificador interno; token preparado con %s.
-					"JOIN {$tokens_table} {$alias} ON {$alias}.post_id = d.post_id AND {$alias}.token LIKE %s",
+					"JOIN {$tokens_table} {$alias} ON {$alias}.post_id = d.post_id AND {$alias}.token LIKE %s{$field_guard}",
 					$escaped . '%'
 				), 'Could not prepare candidate read.' );
 			} else {

@@ -105,7 +105,7 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 		<details class="akb-sb-builder__rules">
 			<summary class="akb-sb-builder__rules-toggle">
-				<span class="akb-sb-builder__rules-label">Condiciones del descuento y encargos</span>
+				<span class="akb-sb-builder__rules-label">Condiciones del descuento y tomos a pedido</span>
 			</summary>
 			<div class="akb-sb-builder__rules-body">
 				<p class="akb-sb-builder__list-note">Cada tomo distinto cuenta una vez; el descuento aplica a una unidad de cada tomo elegible.</p>

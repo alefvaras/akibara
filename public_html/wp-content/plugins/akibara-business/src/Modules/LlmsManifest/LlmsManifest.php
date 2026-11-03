@@ -1378,7 +1378,7 @@ final class LlmsManifest {
 		$lines[] = '- [Manga](' . $home . '/manga/): catálogo de manga en español';
 		$lines[] = '- [Cómics](' . $home . '/comics/): cómic occidental en español';
 		$lines[] = '- [Manhwa](' . $home . '/manhwa/): manhwa en español';
-		$lines[] = '- [A pedido](' . $home . '/a-pedido/): importaciones por encargo y preventas reservables';
+		$lines[] = '- [A pedido](' . $home . '/a-pedido/): importaciones a pedido y preventas reservables';
 		$lines[] = '- [Disponibles](' . $home . '/disponibles/): productos disponibles para comprar ahora, sin espera de importación';
 		// Las URLs de directorios se inyectan mediante el parámetro $hubs, preservando la pureza referencial de render().
 		$lines[] = '- [Series](' . $series_hub . '): directorio de todas las series';

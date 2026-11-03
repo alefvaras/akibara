@@ -352,7 +352,7 @@
 				open( '<div class="akb-suggest-empty" role="status">Sin resultados para «' +
 					escapeHtml( q ) + '». ' + escapeHtml( EMPTY_HINT ) + '</div>' +
 					'<div class="akb-suggest-empty-cta"><button type="button" class="akb-suggest-request-btn" data-akb-request-q="' +
-					escapeHtml( q ) + '">📋 Solicitar «<strong>' + escapeHtml( q ) + '</strong>» por encargo</button></div>' );
+					escapeHtml( q ) + '">📋 Solicitar «<strong>' + escapeHtml( q ) + '</strong>» a pedido</button></div>' );
 				return;
 			}
 			// La corrección fuzzy es un nodo no interactivo con role=status y sin data-idx: queda fuera de
@@ -394,7 +394,7 @@
 				if ( i === 0 && bodegaItems.length > 0 ) {
 					subhead = '<div class="akb-suggest-subhead akb-subhead--bodega" role="presentation"><span class="akb-subhead-dot akb-dot--ok"></span> En Bodega · Entrega Inmediata</div>';
 				} else if ( i === bodegaItems.length && encargoItems.length > 0 ) {
-					subhead = '<div class="akb-suggest-subhead akb-subhead--encargo" role="presentation"><span class="akb-subhead-dot akb-dot--encargo"></span> Disponibles para Encargo</div>';
+					subhead = '<div class="akb-suggest-subhead akb-subhead--encargo" role="presentation"><span class="akb-subhead-dot akb-dot--encargo"></span> Disponibles a Pedido</div>';
 				}
 				var isEnc = !! it.isEncargo;
 				var isReq = !! it.isRequestable;
@@ -416,7 +416,7 @@
 			} ).join( '' );
 
 			if ( encargoItems.length > 0 || ( bodegaItems.length > 0 && total <= items.length ) ) {
-				html += '<div class="akb-suggest-request-banner" role="presentation"><button type="button" class="akb-suggest-request-trigger" data-akb-request-term="' + escapeHtml( q ) + '">¿Buscas otro tomo o edición? <strong>Pedir por Encargo »</strong></button></div>';
+				html += '<div class="akb-suggest-request-banner" role="presentation"><button type="button" class="akb-suggest-request-trigger" data-akb-request-term="' + escapeHtml( q ) + '">¿Buscas otro tomo o edición? <strong>Solicitar a Pedido »</strong></button></div>';
 			}
 
 			// Añadir «Ver los N resultados» como rama propia fuera de la plantilla de producto. Comparte
@@ -881,12 +881,12 @@
 		var q = ( it && it.query ) || title;
 		var productId = ( it && it.id ) ? Number( it.id ) : 0;
 
-		var badgeText = 'Encargo Especial';
+		var badgeText = 'Solicitud a Pedido';
 		var badgeClass = 'akb-req-pill--encargo';
 		var helpText = 'Traemos este título directamente con la editorial o distribuidor. Te avisaremos apenas llegue a bodega en Santiago.';
 
 		if ( 'a_pedido' === status ) {
-			badgeText = 'Disponible para Encargo (~15-20 días hábiles)';
+			badgeText = 'Disponible a Pedido (~15-20 días hábiles)';
 			badgeClass = 'akb-req-pill--pedido';
 			helpText = 'Título disponible en catálogo editorial. Tiempo estimado: 15 a 20 días hábiles. Te avisamos apenas ingrese a bodega.';
 		} else if ( 'agotado' === status ) {
@@ -903,7 +903,7 @@
 			'<button type="button" class="akb-modal-close" aria-label="Cerrar ventana">✕</button>' +
 			'<div class="akb-modal-header">' +
 				'<span class="akb-modal-badge ' + badgeClass + '">' + escapeHtml( badgeText ) + '</span>' +
-				'<h2 id="akb-req-modal-title" class="akb-modal-title">Solicitud de Tomo por Encargo</h2>' +
+				'<h2 id="akb-req-modal-title" class="akb-modal-title">Solicitud de Tomo a Pedido</h2>' +
 				'<p class="akb-modal-intro">' + escapeHtml( helpText ) + '</p>' +
 			'</div>' +
 			'<form class="akb-modal-form" id="akb-request-form">' +
@@ -934,7 +934,7 @@
 						'<span>Confirmar Solicitud</span>' +
 					'</button>' +
 				'</div>' +
-				'<p class="akb-modal-disclaimer">🔒 Sin cobro por adelantado. Cero spam: tus datos sólo se usan para informarte el estado de este encargo.</p>' +
+				'<p class="akb-modal-disclaimer">🔒 Sin cobro por adelantado. Cero spam: tus datos sólo se usan para informarte el estado de tu solicitud a pedido.</p>' +
 			'</form>' +
 		'</div>';
 
@@ -997,7 +997,7 @@
 						'<div class="akb-modal-success">' +
 							'<div class="akb-success-icon" aria-hidden="true">✓</div>' +
 							'<h3 class="akb-success-title">¡Solicitud recibida con éxito!</h3>' +
-							'<p class="akb-success-desc">Anotamos tu encargo para <strong>' + escapeHtml( payload.title ) + '</strong>. Nuestro equipo verificará el tomo con la editorial y te contactaremos a <strong>' + escapeHtml( payload.customer_contact ) + '</strong> apenas tengamos confirmación.</p>' +
+							'<p class="akb-success-desc">Anotamos tu solicitud a pedido para <strong>' + escapeHtml( payload.title ) + '</strong>. Nuestro equipo verificará el tomo con la editorial y te contactaremos a <strong>' + escapeHtml( payload.customer_contact ) + '</strong> apenas tengamos confirmación.</p>' +
 							'<button type="button" class="akb-modal-btn-submit akb-modal-close-trigger">Entendido</button>' +
 						'</div>';
 					var closeBtn = m.querySelector( '.akb-modal-close-trigger' );

@@ -684,7 +684,7 @@ final class DigestRunner {
 		} elseif ( Availability::A_PEDIDO === $availability_state ) {
 			$timeframe_copy = '' !== $cutoff
 				? $cutoff
-				: 'Encargo a editorial · Si lo solicitas hoy, entra en el próximo corte de importación.';
+				: 'A pedido a editorial · Si lo solicitas hoy, entra en el próximo corte de importación.';
 		} else {
 			$timeframe_copy = 'En stock en bodega · Si compras hoy, despachamos en 24 a 48 h hábiles.';
 		}

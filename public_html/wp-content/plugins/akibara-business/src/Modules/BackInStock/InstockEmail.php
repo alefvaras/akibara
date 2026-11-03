@@ -180,9 +180,9 @@ class InstockEmail extends AkibaraEmail {
 		} elseif ( Availability::A_PEDIDO === $availability_state ) {
 			$timeframe_copy = '' !== $cutoff_phrase
 				? $cutoff_phrase
-				: 'Encargo a editorial · Si lo solicitas hoy, entra en el próximo corte de importación.';
+				: 'A pedido a editorial · Si lo solicitas hoy, entra en el próximo corte de importación.';
 			$cta_label      = 'Pedir ahora';
-			$footnote_copy  = 'Al encargarlo hoy aseguras tu ejemplar en la tanda actual y te avisaremos por correo en cuanto llegue a nuestra bodega.';
+			$footnote_copy  = 'Al pedirlo hoy aseguras tu ejemplar en la tanda actual y te avisaremos por correo en cuanto llegue a nuestra bodega.';
 		} else {
 			$timeframe_copy = 'En stock en bodega · Si compras hoy, despachamos en 24 a 48 h hábiles.';
 			$cta_label      = 'Comprar ahora';

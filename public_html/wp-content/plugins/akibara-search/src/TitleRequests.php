@@ -341,7 +341,7 @@ final class TitleRequests {
 		}
 
 		$title     = sanitize_text_field( (string) ( $data['title'] ?? 'Tomo manga' ) );
-		$subject   = sprintf( '[Akibara] Nueva solicitud de encargo: %s', $title );
+		$subject   = sprintf( '[Akibara] Nueva solicitud a pedido: %s', $title );
 		$panel_url = admin_url( 'admin.php?page=akibara-search&sub=encargos' );
 		$contact   = sanitize_text_field( (string) ( $data['customer_contact'] ?? '' ) );
 		$type      = sanitize_text_field( (string) ( $data['contact_type'] ?? '' ) );
@@ -356,7 +356,7 @@ final class TitleRequests {
 		}
 
 		$message = "Hola,\n\n"
-			. "Un cliente ha registrado una solicitud de tomo por encargo en el buscador de Akibara:\n\n"
+			. "Un cliente ha registrado una solicitud de tomo a pedido en el buscador de Akibara:\n\n"
 			. "• Título: {$title}\n"
 			. "• Editorial: {$editorial}\n"
 			. "• Modalidad: {$intent}\n"

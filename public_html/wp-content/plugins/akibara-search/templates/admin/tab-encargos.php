@@ -35,7 +35,7 @@ $filter_labels = array(
 	</div>
 <?php endif; ?>
 
-<h2>Solicitudes de Tomos por Encargo</h2>
+<h2>Solicitudes de Tomos a Pedido</h2>
 <p class="description" style="font-size:14px;margin-bottom:16px">Títulos y tomos solicitados por clientes a través del buscador que no están en bodega física (a pedido, preventa, agotados o sin catálogo). Cada solicitud se conserva en local en MariaDB y suma urgencia en el radar de «Lo más solicitado».</p>
 
 <ul class="subsubsub" style="margin-bottom:16px">
@@ -119,7 +119,7 @@ $filter_labels = array(
 							$clean_phone = '56' . $clean_phone;
 						}
 						$wa_msg = sprintf(
-							'¡Hola %s! Te escribimos de Akibara Manga. Recibimos tu solicitud por encargo de «%s». Queríamos comentarte la disponibilidad y tiempos de entrega estimados:',
+							'¡Hola %s! Te escribimos de Akibara Manga. Recibimos tu solicitud a pedido de «%s». Queríamos comentarte la disponibilidad y tiempos de entrega estimados:',
 							'' !== $name ? $name : 'hola',
 							$req_title
 						);
@@ -130,9 +130,9 @@ $filter_labels = array(
 							esc_html( $contact )
 						);
 					} else {
-						$mail_subject = sprintf( 'Tu solicitud de tomo por encargo: %s — Akibara Manga', $req_title );
+						$mail_subject = sprintf( 'Tu solicitud de tomo a pedido: %s — Akibara Manga', $req_title );
 						$mail_body    = sprintf(
-							"Hola %s,\n\nTe escribimos de Akibara Manga respecto a tu solicitud de encargo de «%s».\n\nTenemos la siguiente información sobre disponibilidad y tiempos:",
+							"Hola %s,\n\nTe escribimos de Akibara Manga respecto a tu solicitud a pedido de «%s».\n\nTenemos la siguiente información sobre disponibilidad y tiempos:",
 							'' !== $name ? $name : 'cliente',
 							$req_title
 						);

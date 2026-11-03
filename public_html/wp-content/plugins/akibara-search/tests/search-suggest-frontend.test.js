@@ -799,7 +799,7 @@ test( 'REV-S-S-2o-1: Enter sobre un Reciente de consulta lo sigue escribiendo en
 	assert.deepEqual( asignadas, [] );
 } );
 
-test( 'separa resultados en «En Bodega · Entrega Inmediata» y «Disponibles para Encargo»', async () => {
+test( 'separa resultados en «En Bodega · Entrega Inmediata» y «Disponibles a Pedido»', async () => {
 	const mixto = {
 		items: [
 			{ id: 101, title: 'Tomo Disponible', url: '/p/disp', thumb: '/d.jpg', price_html: '$1', badge: 'Disponible', badge_tone: 'ok', availability: 'instock' },
@@ -813,18 +813,19 @@ test( 'separa resultados en «En Bodega · Entrega Inmediata» y «Disponibles p
 	await tick();
 
 	assert.match( app.panel.innerHTML, /En Bodega · Entrega Inmediata/, 'muestra cabecera de bodega' );
-	assert.match( app.panel.innerHTML, /Disponibles para Encargo/, 'muestra cabecera de encargo' );
+	assert.match( app.panel.innerHTML, /Disponibles a Pedido/, 'muestra cabecera de a pedido' );
 	assert.match( app.panel.innerHTML, /data-akb-encargo="1"/, 'marca el item de encargo' );
 	assert.match( app.panel.innerHTML, /akb-suggest-reservar-tag/, 'incluye tag reservar para tomos con precio' );
 	assert.match( app.panel.innerHTML, /akb-suggest-encargo-tag/, 'incluye tag solicitar para tomos agotados' );
+	assert.match( app.panel.innerHTML, /Solicitar a Pedido »/, 'incluye pie homologado a pedido' );
 } );
 
-test( 'el estado vacío ofrece botón para solicitar el tomo por encargo', async () => {
+test( 'el estado vacío ofrece botón para solicitar el tomo a pedido', async () => {
 	const app = montar( [ { items: [], total: 0 } ] );
 	app.escribir( 'inuyasha' );
 	await tick();
 
 	assert.match( app.panel.innerHTML, /class="akb-suggest-empty" role="status"/ );
-	assert.match( app.panel.innerHTML, /data-akb-request-q="inuyasha"/, 'ofrece botón con la query para encargar' );
-	assert.match( app.panel.innerHTML, /Solicitar «<strong>inuyasha<\/strong>» por encargo/ );
+	assert.match( app.panel.innerHTML, /data-akb-request-q="inuyasha"/, 'ofrece botón con la query para solicitar a pedido' );
+	assert.match( app.panel.innerHTML, /Solicitar «<strong>inuyasha<\/strong>» a pedido/ );
 } );
