@@ -49,3 +49,10 @@ Iteración 2 (Verificación & Prod): En ejecución...
 - Iteración 3: Registrado en backlog y sellado.
 
 [2026-11-04 18:04] TICKET-008 TOMADO: Fallback de Upsells en 70 tomos finales/únicos de series concluidas (Regla 7).
+
+[2026-11-04 18:19] TICKET-008 COMPLETADO & CERTIFICADO:
+- Iteración 1: Implementado sistema de fallbacks en UpsellsAutofill.php (Fallback 1: inicio de misma serie para tomos finales; Fallback 2: mismo autor para tomos únicos; Fallback 3: mismo género). Corrección en CatalogOrder.php y OwnCrons.php. Bump a akibara-business 1.120.15. 4.642 tests de phpunit en 100% OK y wp akb-pricing self-test 6/6 PASS.
+- Iteración 2: Agente independiente 68b142e1-3ddc-484b-8fc8-816bd2150222 verificó SHA-256/MD5 exactos, desplegó a producción viva, ejecutó akibara:upsells-fill (70 de 70 productos completados, 0 remanentes), purgó LiteSpeed y Cloudflare, auditó watchdog (1.992 productos, 0 anomalías) y auditó URLs en vivo con curl (Boticaria 16, Vinland Saga 29, Look Back sirviendo sección «También te recomendamos…» con HTTP 200). Dictamen: APROBADO.
+- Iteración 3: Registrado en backlog y sellado.
+
+[2026-11-04 18:20] TICKET-009 TOMADO: Normalización masiva de Focus Keywords en Rank Math (Regla 13).

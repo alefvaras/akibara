@@ -199,7 +199,9 @@ final class OwnCrons {
 	 */
 	public static function unschedule_retired(): void {
 		foreach ( array_keys( self::RETIRED ) as $hook ) {
-			wp_unschedule_hook( $hook );
+			if ( function_exists( 'wp_unschedule_hook' ) ) {
+				wp_unschedule_hook( $hook );
+			}
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( $hook );
 			}

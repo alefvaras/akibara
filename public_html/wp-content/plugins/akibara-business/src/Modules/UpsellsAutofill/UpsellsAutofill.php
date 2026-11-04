@@ -1225,9 +1225,6 @@ final class UpsellsAutofill {
 		}
 
 		$current_number = VolumeTitle::extract_number( $current->post_title );
-		if ( null === $current_number ) {
-			return array();
-		}
 
 		$candidates = array();
 		foreach ( $serie_tt_ids as $term_taxonomy_id ) {
@@ -1236,11 +1233,148 @@ final class UpsellsAutofill {
 			}
 		}
 
-		$next = VolumeTitle::next_records( $candidates, $current_number, $count, array( $product_id ) );
-		return array_map(
-			static fn( array $record ): int => (int) $record['id'],
-			$next
+		if ( null !== $current_number ) {
+			$next = VolumeTitle::next_records( $candidates, $current_number, $count, array( $product_id ) );
+			if ( ! empty( $next ) ) {
+				return array_map(
+					static fn( array $record ): int => (int) $record['id'],
+					$next
+				);
+			}
+		}
+
+		// Fallback 1: Si no hay tomos siguientes (tomo final de serie o número especial),
+		// recomendar los primeros tomos de la misma serie (Vol 01, Vol 02, etc.) disponibles.
+		$sorted_candidates = VolumeTitle::sort_records( $candidates );
+		$fallback_series   = array();
+		foreach ( $sorted_candidates as $record ) {
+			$id = (int) $record['id'];
+			if ( $id !== $product_id && ! in_array( $id, $fallback_series, true ) ) {
+				$fallback_series[] = $id;
+				if ( count( $fallback_series ) >= $count ) {
+					break;
+				}
+			}
+		}
+		if ( ! empty( $fallback_series ) ) {
+			return $fallback_series;
+		}
+
+		// Fallback 2: Serie de tomo único (standalone / one-shot) -> obras del mismo autor.
+		$author_fallback = $this->find_author_fallback( $product_id, $count );
+		if ( ! empty( $author_fallback ) ) {
+			return $author_fallback;
+		}
+
+		// Fallback 3: Obras del mismo género o demografía.
+		return $this->find_genre_fallback( $product_id, $count );
+	}
+
+	/**
+	 * Fallback para productos sin otros tomos en su serie (ej. tomos únicos):
+	 * recomienda otros productos del mismo autor (pa_autor) que estén publicados y en catálogo.
+	 *
+	 * @param int $product_id ID del producto.
+	 * @param int $count      Cantidad de recomendaciones deseadas.
+	 * @return array<int,int>
+	 */
+	private function find_author_fallback( int $product_id, int $count ): array {
+		$author_terms = get_the_terms( $product_id, 'pa_autor' );
+		if ( ! is_array( $author_terms ) || empty( $author_terms ) ) {
+			return array();
+		}
+
+		$author_ids = array_map(
+			static fn( \WP_Term $t ): int => (int) $t->term_id,
+			$author_terms
 		);
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => $count + 5,
+				'exclude'        => array( $product_id ),
+				'tax_query'      => array(
+					array(
+						'taxonomy' => 'pa_autor',
+						'field'    => 'term_id',
+						'terms'    => $author_ids,
+					),
+				),
+			)
+		);
+
+		$results = array();
+		foreach ( $posts as $p ) {
+			if ( function_exists( 'wc_get_product' ) ) {
+				$prod = wc_get_product( $p->ID );
+				if ( $prod instanceof \WC_Product ) {
+					if ( ! $prod->is_visible() || ! $prod->is_purchasable() || ! $prod->is_in_stock() ) {
+						continue;
+					}
+				}
+			}
+			$results[] = (int) $p->ID;
+			if ( count( $results ) >= $count ) {
+				break;
+			}
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Fallback por género cuando no hay tomos de la misma serie ni del mismo autor.
+	 *
+	 * @param int $product_id ID del producto.
+	 * @param int $count      Cantidad de recomendaciones deseadas.
+	 * @return array<int,int>
+	 */
+	private function find_genre_fallback( int $product_id, int $count ): array {
+		$genre_terms = get_the_terms( $product_id, 'pa_genero' );
+		if ( ! is_array( $genre_terms ) || empty( $genre_terms ) ) {
+			return array();
+		}
+
+		$genre_ids = array_map(
+			static fn( \WP_Term $t ): int => (int) $t->term_id,
+			$genre_terms
+		);
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => $count + 5,
+				'exclude'        => array( $product_id ),
+				'tax_query'      => array(
+					array(
+						'taxonomy' => 'pa_genero',
+						'field'    => 'term_id',
+						'terms'    => $genre_ids,
+					),
+				),
+			)
+		);
+
+		$results = array();
+		foreach ( $posts as $p ) {
+			if ( function_exists( 'wc_get_product' ) ) {
+				$prod = wc_get_product( $p->ID );
+				if ( $prod instanceof \WC_Product ) {
+					if ( ! $prod->is_visible() || ! $prod->is_purchasable() || ! $prod->is_in_stock() ) {
+						continue;
+					}
+				}
+			}
+			$results[] = (int) $p->ID;
+			if ( count( $results ) >= $count ) {
+				break;
+			}
+		}
+
+		return $results;
 	}
 
 	/**

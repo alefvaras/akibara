@@ -374,6 +374,9 @@ final class CatalogOrderVitrinaTest extends TestCase {
 final class VitrinaWpdbDouble {
 
 	/** @var string */
+	public $prefix = 'wp_';
+
+	/** @var string */
 	public $posts = 'wp_posts';
 
 	/** @var string */

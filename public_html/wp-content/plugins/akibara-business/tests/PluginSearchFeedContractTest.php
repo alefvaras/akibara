@@ -218,6 +218,8 @@ namespace Akibara\Business\Tests {
 					: $default
 			);
 			Functions\when( 'wp_cache_delete' )->justReturn( true );
+			Functions\when( 'wp_unschedule_hook' )->justReturn( 0 );
+			Functions\when( 'as_unschedule_all_actions' )->justReturn( null );
 			Functions\when( 'flush_rewrite_rules' )->alias(
 				function ( bool $hard ): void {
 					self::assertTrue( $hard, 'Upgrade rewrite flushes must be hard flushes.' );

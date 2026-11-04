@@ -695,7 +695,8 @@ final class CatalogOrder {
 		// Si se aplicaron cambios de orden en el catálogo, se sincroniza la tabla
 		// de búsqueda akibara-search y se ejecuta una purga integral de caché.
 		if ( $applied > 0 ) {
-			$search_table = $wpdb->prefix . 'akb_search_docs';
+			$prefix       = isset( $wpdb->prefix ) ? $wpdb->prefix : 'wp_';
+			$search_table = $prefix . 'akb_search_docs';
 			// Sincronizar d.menu_order directamente para garantizar paridad estricta con wp_posts.
 			$wpdb->query(
 				"UPDATE {$search_table} d

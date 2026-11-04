@@ -8,9 +8,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 ## Estado Global del Backlog
 
 - **Total Tickets:** 10
-- **En Progreso:** TICKET-008
-- **Completados:** 7 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005, TICKET-006, TICKET-007)
-- **Pendientes:** 3
+- **En Progreso:** TICKET-009
+- **Completados:** 8 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005, TICKET-006, TICKET-007, TICKET-008)
+- **Pendientes:** 2
 
 ---
 
@@ -62,9 +62,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 - **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (8 productos sincronizados a 4 atributos canónicos ordenados, 0 faltantes en todo el catálogo, renderizado verificado en PDP, watchdog 100% verde).
 
 #### [TICKET-008] Fallback de Upsells en 70 tomos finales/únicos de series concluidas (Regla 7)
-- **Impacto:** 70 tomos no muestran «También te recomendamos…» al ser el último volumen.
-- **Archivos:** `public_html/wp-content/plugins/akibara-business/src/Modules/Upsells/UpsellsAutofill.php`.
-- **Estado:** ⏳ **PENDIENTE**.
+- **Impacto:** 70 tomos finales o únicos no mostraban «También te recomendamos…» al no existir un tomo con número superior.
+- **Archivos:** `public_html/wp-content/plugins/akibara-business/src/Modules/UpsellsAutofill/UpsellsAutofill.php`, `akibara-business.php` (v1.120.15).
+- **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (Fallbacks 1, 2 y 3 implementados; 70 de 70 productos con upsells asignados en prod, 0 huérfanos remanentes, DOM verificado con HTTP 200 en Boticaria 16, Vinland Saga 29 y Look Back, watchdog 100% verde).
 
 #### [TICKET-009] Normalización masiva de Focus Keywords en 1.357 tomos legados (Regla 13)
 - **Impacto:** 1.357 tomos usan el nombre de la serie como focus keyword en vez del título exacto del producto, causando canibalización SEO y scores < 70 en Rank Math.
