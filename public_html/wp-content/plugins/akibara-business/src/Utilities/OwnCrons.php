@@ -62,6 +62,7 @@ final class OwnCrons {
 		'akb_upsells_autofill_cron'                 => 'Recomendaciones automáticas: rellenado diario',           // UpsellsAutofill::CRON_HOOK
 		'akibara_business_llms_manifest_refresh'    => 'Salud SEO: regeneración diaria de llms.txt',              // LlmsManifest::HOOK
 		'akibara_business_social_image_derivatives' => 'Salud SEO: portadas JPG para redes y correos',            // SeoSocial\SocialImageDerivatives::HOOK
+		'akb_unpaid_orders_sweep'                   => 'Pedidos: barrido diario de órdenes pendientes sin pago tras 24h', // Stock\UnpaidOrdersSweeper::HOOK
 	);
 
 	/**

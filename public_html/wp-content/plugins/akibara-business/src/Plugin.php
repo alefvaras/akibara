@@ -1115,6 +1115,10 @@ final class Plugin {
 		$this->modules['bacs_lifecycle'] = $bacs_lifecycle;
 		$bacs_lifecycle->register();
 
+		$unpaid_orders_sweeper = new \Akibara\Business\Modules\Stock\UnpaidOrdersSweeper();
+		$this->modules['unpaid_orders_sweeper'] = $unpaid_orders_sweeper;
+		$unpaid_orders_sweeper->register();
+
 		$mixed_cart_guard = new \Akibara\Business\Modules\Logistics\MixedCartShipmentGuard();
 		$this->modules['mixed_cart_guard'] = $mixed_cart_guard;
 		$mixed_cart_guard->register();

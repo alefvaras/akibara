@@ -7,8 +7,9 @@
  *    wp_woocommerce_order_itemmeta son 100% de solo lectura.
  * 2. En cualquier producto presente en get_locked_product_ids(), está prohibido
  *    modificar _stock, _stock_status, _backorders, _akb_onbackorder_at o _akb_sf_restocked_at.
- * 3. Incluye todos los estados activos/no terminales (wc-processing, wc-on-hold,
- *    wc-pending, wc-shipping-progress) más productos con _stock < 0.
+ * 3. Incluye todos los estados activos/comprometidos (wc-processing, wc-on-hold,
+ *    wc-shipping-progress) más productos con _stock < 0.
+ *    Los estados no pagados/no confirmados (wc-pending) y terminales están excluidos.
  *
  * @package Akibara\Business\Modules\PricingMatrix
  */
@@ -24,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
 final class OrderLockGuard {
 
 	/**
-	 * Estados terminales de pedido; todo estado fuera de esta lista se protege.
+	 * Estados terminales o no comprometidos de pedido; pedidos en estos estados no bloquean el catálogo.
 	 *
 	 * @var list<string>
 	 */
@@ -36,6 +37,7 @@ final class OrderLockGuard {
 		'trash',
 		'checkout-draft',
 		'auto-draft',
+		'pending',
 	);
 
 	/**
@@ -159,7 +161,7 @@ final class OrderLockGuard {
 				LEFT JOIN {$wpdb->postmeta} pm_stock
 					ON CAST(oim_pid.meta_value AS UNSIGNED) = pm_stock.post_id AND pm_stock.meta_key = '_stock'
 				WHERE o.type = 'shop_order'
-				  AND o.status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft')
+				  AND o.status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
 				ORDER BY o.id DESC, oi.order_item_id ASC",
 				'_stock_status'
 			);
@@ -195,7 +197,7 @@ final class OrderLockGuard {
 				LEFT JOIN {$wpdb->postmeta} pm_stock
 					ON CAST(oim_pid.meta_value AS UNSIGNED) = pm_stock.post_id AND pm_stock.meta_key = '_stock'
 				WHERE o.post_type = 'shop_order'
-				  AND o.post_status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft')
+				  AND o.post_status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
 				ORDER BY o.ID DESC, oi.order_item_id ASC",
 				'_stock_status'
 			);

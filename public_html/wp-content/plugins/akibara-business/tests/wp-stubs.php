@@ -869,6 +869,20 @@ if ( ! class_exists( 'WC_Order' ) ) {
 
 		/** @var array<int, string> */
 		public array $akb_notes = array();
+
+		public function update_status( string $new_status, string $note = '', bool $manual = false ): bool {
+			unset( $manual );
+			$this->akb_status = $new_status;
+			if ( '' !== $note ) {
+				$this->add_order_note( $note );
+			}
+			return true;
+		}
+	}
+}
+
+if ( ! class_exists( 'WC_DateTime' ) ) {
+	class WC_DateTime extends \DateTime {
 	}
 }
 

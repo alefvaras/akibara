@@ -60,6 +60,9 @@ final class PricingMatrixTest extends TestCase {
 		self::assertTrue( class_exists( OrderLockGuard::class ) );
 		self::assertTrue( class_exists( '\\AKB_Batch_Guard' ) );
 		self::assertTrue( class_exists( '\\AKB_Order_Lock_Guard' ) );
+		self::assertContains( 'pending', OrderLockGuard::TERMINAL_STATUSES );
+		self::assertContains( 'cancelled', OrderLockGuard::TERMINAL_STATUSES );
+		self::assertContains( 'failed', OrderLockGuard::TERMINAL_STATUSES );
 
 		$hooks    = new ReactiveStockPriceHooks();
 		$excluded = $hooks->exclude_duplicate_meta( array( '_custom_existing' ) );
