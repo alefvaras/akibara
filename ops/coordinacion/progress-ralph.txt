@@ -23,3 +23,9 @@ Iteración 2 (Verificación & Prod): En ejecución...
 - Iteración 3: Registrado en backlog y sellado.
 
 [2026-11-04 17:32] TICKET-004 TOMADO: Purga automática de hooks retirados (OwnCrons::RETIRED) en UpgradeManager.
+[2026-11-04 17:40] TICKET-004 COMPLETADO & CERTIFICADO:
+- Iteración 1: Implementado OwnCrons::unschedule_retired() y llamado en UpgradeManager::run_upgrade_tasks(). Bump a versión 1.120.14. Self-test local 6/6 PASS.
+- Iteración 2: Agente independiente eb55e99d-83dd-4332-8a94-5e8e61ed53ba validó bit a bit (SHA-256), desplegó a producción, purgó LiteSpeed y Cloudflare, verificó UpgradeManager::maybe_upgrade() (0 eventos retirados remanentes en WP-Cron y AS), y watchdog en 100% verde (1.992 productos). Dictamen: APROBADO.
+- Iteración 3: Registrado en backlog y sellado.
+
+[2026-11-04 17:40] TICKET-005 TOMADO: Normalización de 6 autores con macrones en pa_autor (Regla 12).

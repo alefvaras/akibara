@@ -101,6 +101,11 @@ final class UpgradeManager {
 	public function run_upgrade_tasks( string $current, string $stored ): void {
 		flush_rewrite_rules( true );
 
+		// Purgar de WP-Cron y Action Scheduler cualquier trabajo retirado en versiones previas.
+		if ( class_exists( '\Akibara\Business\Utilities\OwnCrons' ) ) {
+			\Akibara\Business\Utilities\OwnCrons::unschedule_retired();
+		}
+
 		/**
 		 * Fires después de auto-flush al detectar upgrade del plugin.
 		 *

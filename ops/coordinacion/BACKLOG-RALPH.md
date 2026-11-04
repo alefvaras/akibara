@@ -8,9 +8,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 ## Estado Global del Backlog
 
 - **Total Tickets:** 10
-- **En Progreso:** TICKET-004
-- **Completados:** 3 (TICKET-001, TICKET-002, TICKET-003)
-- **Pendientes:** 7
+- **En Progreso:** TICKET-005
+- **Completados:** 4 (TICKET-001, TICKET-002, TICKET-003, TICKET-004)
+- **Pendientes:** 6
 
 ---
 
@@ -39,7 +39,16 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 
 #### [TICKET-004] Purga automática de hooks retirados (`OwnCrons::RETIRED`) en `UpgradeManager`
 - **Impacto:** Crons descontinuados como `akb_unpaid_orders_sweep` permanecían programados en Docker local al subir de versión.
-- **Archivos:** `public_html/wp-content/plugins/akibara-business/src/Modules/Upgrade/UpgradeManager.php`.
+- **Archivos:** `public_html/wp-content/plugins/akibara-business/src/Internal/UpgradeManager.php`, `public_html/wp-content/plugins/akibara-business/src/Utilities/OwnCrons.php`.
+- **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (akibara-business 1.120.14, OwnCrons::unschedule_retired() ejecutado y certificado).
+
+---
+
+### 🟢 P2 — Catálogo Canónico & SEO Rank Math
+
+#### [TICKET-005] Normalización de 6 autores con macrones en `pa_autor` (Regla 12)
+- **Impacto:** 108 tomos de 6 autores (`Gorō Taniguchi`, `Ichirō Ōkouchi`, `Kentarō Yabuki`, `Ryōko Kui`, `Tatsuya Endō`, `Yūsei Matsui`) usan caracteres diacríticos, violando la regla canónica de Akibara.
+- **Herramienta:** Script de normalización de términos `pa_autor` y reindexación.
 - **Estado:** 🔄 **EN PROGRESO**.
 
 #### [TICKET-004] Purga automática de hooks retirados (`OwnCrons::RETIRED`) en `UpgradeManager`

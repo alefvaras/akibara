@@ -188,4 +188,21 @@ final class OwnCrons {
 			as_unschedule_all_actions( $hook );
 		}
 	}
+
+	/**
+	 * Retira únicamente los hooks retirados (OwnCrons::RETIRED) de WP-Cron y Action Scheduler.
+	 *
+	 * Llamado automáticamente en cada upgrade de versión para no dejar eventos
+	 * huérfanos agendados sin callback en sitios existentes.
+	 *
+	 * @return void
+	 */
+	public static function unschedule_retired(): void {
+		foreach ( array_keys( self::RETIRED ) as $hook ) {
+			wp_unschedule_hook( $hook );
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( $hook );
+			}
+		}
+	}
 }
