@@ -63,14 +63,8 @@ final class PricingMatrixCli {
 			);
 		}
 
-		if ( ! $report['ok'] ) {
-			\WP_CLI::error(
-				sprintf(
-					'Self-test falló: %d/%d tests en PASS.',
-					$report['passed_count'],
-					$report['total_count']
-				)
-			);
+		if ( ! empty( $report['error'] ) ) {
+			\WP_CLI::error( $report['error'] );
 			return;
 		}
 
@@ -129,7 +123,7 @@ final class PricingMatrixCli {
 	public function cmd_sync_backorders( array $args = array(), array $assoc_args = array() ): void {
 		unset( $args );
 		$dry_run        = isset( $assoc_args['dry-run'] );
-		$protect_orders = ! isset( $assoc_args['unprotect-orders'] );
+		$protect_orders = true; // Blindaje obligatorio sin bypass
 		$brand_id       = isset( $assoc_args['brand-id'] ) ? (int) $assoc_args['brand-id'] : null;
 
 		$summary = PricingSynchronizer::sync_all_backorders( $protect_orders, $dry_run, $brand_id );
@@ -268,10 +262,10 @@ final class PricingMatrixCli {
 		$target_regular = isset( $assoc_args['target-regular'] ) ? (int) $assoc_args['target-regular'] : 0;
 		$brand_id       = isset( $assoc_args['brand-id'] ) ? (int) $assoc_args['brand-id'] : 0;
 		$dry_run        = isset( $assoc_args['dry-run'] );
-		$protect_orders = ! isset( $assoc_args['unprotect-orders'] );
+		$protect_orders = true; // Blindaje obligatorio sin bypass
 
 		if ( $serie_id <= 0 || $target_regular <= 0 ) {
-			\WP_CLI::error( 'Uso: wp akb-pricing level-serie --serie-id=<id> --target-regular=<precio> [--brand-id=<id>] [--dry-run] [--unprotect-orders]' );
+			\WP_CLI::error( 'Uso: wp akb-pricing level-serie --serie-id=<id> --target-regular=<precio> [--brand-id=<id>] [--dry-run]' );
 			return;
 		}
 

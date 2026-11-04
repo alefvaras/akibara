@@ -636,12 +636,24 @@ final class PricingSynchronizer {
 	 * - Excluye `_akb_eta_type = 'disabled'`
 	 * - Configura `_stock_status = 'onbackorder'`, `_manage_stock = 'no'`, `_stock = null`,
 	 *   `_backorders = 'no'` y `_sale_price` redondeado al 5% (`round_100`).
+	 * - Exige autorización expresa del distribuidor oficial (Reglas 15 y 18, Auditoría 2026-11-04) en ejecuciones en vivo.
 	 *
-	 * @param list<int> $product_ids IDs de productos candidatos.
-	 * @param bool      $dry_run     Si true, solo simula.
+	 * @param list<int> $product_ids     IDs de productos candidatos.
+	 * @param bool      $dry_run         Si true, solo simula.
+	 * @param array{supplier?: string, reference?: string, confirmed?: bool} $distributor_auth Datos de autorización de la distribuidora oficial.
 	 * @return array<string, mixed>
 	 */
-	public static function rescue_outofstock_products( array $product_ids, bool $dry_run = false ): array {
+	public static function rescue_outofstock_products( array $product_ids, bool $dry_run = false, array $distributor_auth = array() ): array {
+		if ( ! $dry_run ) {
+			$supplier  = isset( $distributor_auth['supplier'] ) ? trim( (string) $distributor_auth['supplier'] ) : '';
+			$reference = isset( $distributor_auth['reference'] ) ? trim( (string) $distributor_auth['reference'] ) : '';
+			$confirmed = ! empty( $distributor_auth['confirmed'] );
+
+			if ( '' === $supplier || '' === $reference || ! $confirmed ) {
+				throw new \InvalidArgumentException( 'Rescate en vivo rechazado: según las Reglas 15 y 18 es obligatorio registrar la distribuidora oficial confirmada, el documento de respaldo y la confirmación expresa de stock para autorizar la venta.' );
+			}
+		}
+
 		$product_ids = array_values( array_unique( array_filter( array_map( 'intval', $product_ids ), static fn( int $id ): bool => $id > 0 ) ) );
 		$locked_set  = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
 
@@ -653,7 +665,7 @@ final class PricingSynchronizer {
 			'items'                => array(),
 		);
 
-		$runner = static function () use ( $product_ids, $locked_set, $dry_run, &$summary ): void {
+		$runner = static function () use ( $product_ids, $locked_set, $dry_run, $distributor_auth, &$summary ): void {
 			foreach ( $product_ids as $pid ) {
 				// Regla Inquebrantable 2: prohibido tocar stock/estado en productos bloqueados.
 				if ( isset( $locked_set[ $pid ] ) ) {
@@ -707,6 +719,12 @@ final class PricingSynchronizer {
 
 				delete_post_meta( $pid, '_stock' );
 				wp_remove_object_terms( $pid, StockStatus::OUT_OF_STOCK, 'product_visibility' );
+
+				if ( ! empty( $distributor_auth['supplier'] ) ) {
+					update_post_meta( $pid, '_akb_rescue_distributor', sanitize_text_field( (string) $distributor_auth['supplier'] ) );
+					update_post_meta( $pid, '_akb_rescue_reference', sanitize_text_field( (string) $distributor_auth['reference'] ) );
+					update_post_meta( $pid, '_akb_rescue_authorized_at', gmdate( 'Y-m-d H:i:s' ) );
+				}
 
 				$existing_ts = (string) get_post_meta( $pid, '_akb_onbackorder_at', true );
 				if ( '' === $existing_ts ) {

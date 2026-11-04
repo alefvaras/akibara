@@ -26,6 +26,17 @@ final class PricingSelfTest {
 	 * @return array{ok: bool, passed_count: int, total_count: int, tests: list<array{id: string, name: string, passed: bool, duration_ms: float, details: string}>}
 	 */
 	public static function run_all(): array {
+		$env = function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : ( defined( 'WP_ENVIRONMENT_TYPE' ) ? WP_ENVIRONMENT_TYPE : '' );
+		if ( 'production' === $env ) {
+			return array(
+				'ok'           => false,
+				'passed_count' => 0,
+				'total_count'  => 0,
+				'tests'        => array(),
+				'error'        => 'Self-test mutante deshabilitado en entorno de producción viva por política de seguridad y prevención de carreras (Auditoría 2026-11-04). Ejecutar en Docker local o CI.',
+			);
+		}
+
 		$tests = array(
 			self::run_test_1_math_and_rounding(),
 			self::run_test_2_active_order_lock_guard(),

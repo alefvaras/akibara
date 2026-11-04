@@ -86,6 +86,9 @@ final class OrderLockGuard {
 			  AND pm.meta_value != ''
 			  AND CAST(pm.meta_value AS SIGNED) < 0"
 		);
+		if ( false === $neg_stock_ids || ( null === $neg_stock_ids && ! empty( $wpdb->last_error ) ) ) {
+			throw new \RuntimeException( 'Error al consultar productos con stock negativo en la base de datos: ' . $wpdb->last_error );
+		}
 		if ( is_array( $neg_stock_ids ) ) {
 			foreach ( $neg_stock_ids as $nid ) {
 				$id = (int) $nid;
@@ -125,9 +128,15 @@ final class OrderLockGuard {
 	public static function get_locked_orders_audit(): array {
 		global $wpdb;
 
-		$hpos = class_exists( OrderUtil::class ) && OrderUtil::custom_orders_table_usage_is_enabled();
-		$orders_table = $wpdb->prefix . 'wc_orders';
+		$hpos           = class_exists( OrderUtil::class ) && OrderUtil::custom_orders_table_usage_is_enabled();
+		$orders_table   = $wpdb->prefix . 'wc_orders';
 		$has_hpos_table = $hpos && ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $orders_table ) ) === $orders_table );
+
+		if ( $hpos && ! $has_hpos_table ) {
+			throw new \RuntimeException( 'HPOS está habilitado pero no se detectó la tabla ' . $orders_table . '. Abortando por seguridad de compromisos (Fail-Closed).' );
+		}
+
+		$cutoff_pending = gmdate( 'Y-m-d H:i:s', time() - ( 24 * HOUR_IN_SECONDS ) );
 
 		if ( $has_hpos_table ) {
 			$sql = $wpdb->prepare(
@@ -161,9 +170,16 @@ final class OrderLockGuard {
 				LEFT JOIN {$wpdb->postmeta} pm_stock
 					ON CAST(oim_pid.meta_value AS UNSIGNED) = pm_stock.post_id AND pm_stock.meta_key = '_stock'
 				WHERE o.type = 'shop_order'
-				  AND o.status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
+				  AND (
+				      o.status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
+				      OR (
+				          o.status IN ('wc-pending', 'pending')
+				          AND o.date_created_gmt >= %s
+				      )
+				  )
 				ORDER BY o.id DESC, oi.order_item_id ASC",
-				'_stock_status'
+				'_stock_status',
+				$cutoff_pending
 			);
 		} else {
 			$sql = $wpdb->prepare(
@@ -197,14 +213,24 @@ final class OrderLockGuard {
 				LEFT JOIN {$wpdb->postmeta} pm_stock
 					ON CAST(oim_pid.meta_value AS UNSIGNED) = pm_stock.post_id AND pm_stock.meta_key = '_stock'
 				WHERE o.post_type = 'shop_order'
-				  AND o.post_status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
+				  AND (
+				      o.post_status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
+				      OR (
+				          o.post_status IN ('wc-pending', 'pending')
+				          AND o.post_date_gmt >= %s
+				      )
+				  )
 				ORDER BY o.ID DESC, oi.order_item_id ASC",
-				'_stock_status'
+				'_stock_status',
+				$cutoff_pending
 			);
 		}
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql solo usa prefijos de $wpdb y constantes de estados terminales.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		if ( false === $rows || ( null === $rows && ! empty( $wpdb->last_error ) ) ) {
+			throw new \RuntimeException( 'Error al consultar órdenes bloqueadas en la base de datos: ' . $wpdb->last_error );
+		}
 		return is_array( $rows ) ? $rows : array();
 	}
 

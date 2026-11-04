@@ -102,7 +102,7 @@ final class PricingMatrixAdminPage {
 		$manual_raw     = isset( $_POST['manual_sale'] ) ? trim( sanitize_text_field( (string) wp_unslash( $_POST['manual_sale'] ) ) ) : '';
 		$manual_sale    = '' !== $manual_raw ? absint( $manual_raw ) : null;
 
-		$protect_orders = ! empty( $_POST['protect_active_orders'] );
+		$protect_orders = true; // Blindaje obligatorio e inviolable (Regla 18 y Auditoría 2026-11-04)
 		$dry_run        = ! empty( $_POST['dry_run'] );
 
 		$summary = PricingSynchronizer::sync_scale(
@@ -143,7 +143,7 @@ final class PricingMatrixAdminPage {
 		}
 		check_admin_referer( self::NONCE_ACTION );
 
-		$protect_orders = ! empty( $_POST['protect_active_orders'] );
+		$protect_orders = true; // Blindaje obligatorio e inviolable (Regla 18 y Auditoría 2026-11-04)
 		$dry_run        = ! empty( $_POST['dry_run'] );
 		$brand_id       = isset( $_POST['brand_id'] ) && absint( $_POST['brand_id'] ) > 0 ? absint( $_POST['brand_id'] ) : null;
 
@@ -177,7 +177,7 @@ final class PricingMatrixAdminPage {
 		$serie_id       = isset( $_POST['serie_id'] ) ? absint( $_POST['serie_id'] ) : 0;
 		$brand_id       = isset( $_POST['brand_id'] ) ? absint( $_POST['brand_id'] ) : 0;
 		$target_regular = isset( $_POST['target_regular'] ) ? absint( $_POST['target_regular'] ) : 0;
-		$protect_orders = ! empty( $_POST['protect_active_orders'] );
+		$protect_orders = true; // Blindaje obligatorio e inviolable (Regla 18 y Auditoría 2026-11-04)
 		$dry_run        = ! empty( $_POST['dry_run'] );
 
 		$summary = PricingSynchronizer::level_series_scale( $serie_id, $brand_id, $target_regular, $protect_orders, $dry_run );
@@ -212,15 +212,61 @@ final class PricingMatrixAdminPage {
 			: array();
 		$dry_run = ! empty( $_POST['dry_run'] );
 
-		$summary = PricingSynchronizer::rescue_outofstock_products( $raw_ids, $dry_run );
-		set_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id(), $summary, 300 );
+		$supplier  = isset( $_POST['distributor_supplier'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['distributor_supplier'] ) ) : '';
+		$reference = isset( $_POST['distributor_reference'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['distributor_reference'] ) ) : '';
+		$confirmed = ! empty( $_POST['confirm_distributor_stock'] );
+
+		if ( ! $dry_run && ( '' === $supplier || '' === $reference || ! $confirmed ) ) {
+			set_transient(
+				'akb_pricing_matrix_last_result_' . get_current_user_id(),
+				array(
+					'ok'      => false,
+					'message' => 'Rescate en vivo rechazado: según las Reglas 15 y 18 es obligatorio registrar la distribuidora oficial confirmada, el documento/planilla de respaldo y la confirmación expresa de stock disponible.',
+				),
+				300
+			);
+
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'page'   => self::MENU_SLUG,
+						'tab'    => 'rescue',
+						'notice' => 'rescue_auth_required',
+					),
+					admin_url( 'admin.php' )
+				)
+			);
+			exit;
+		}
+
+		$distributor_auth = array(
+			'supplier'  => $supplier,
+			'reference' => $reference,
+			'confirmed' => $confirmed,
+		);
+
+		try {
+			$summary = PricingSynchronizer::rescue_outofstock_products( $raw_ids, $dry_run, $distributor_auth );
+			set_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id(), $summary, 300 );
+			$notice = $dry_run ? 'dry_run_done' : 'oos_rescued';
+		} catch ( \Throwable $e ) {
+			set_transient(
+				'akb_pricing_matrix_last_result_' . get_current_user_id(),
+				array(
+					'ok'      => false,
+					'message' => 'Error al rescatar productos: ' . $e->getMessage(),
+				),
+				300
+			);
+			$notice = 'rescue_error';
+		}
 
 		wp_safe_redirect(
 			add_query_arg(
 				array(
 					'page'   => self::MENU_SLUG,
 					'tab'    => 'rescue',
-					'notice' => $dry_run ? 'dry_run_done' : 'oos_rescued',
+					'notice' => $notice,
 				),
 				admin_url( 'admin.php' )
 			)
@@ -308,7 +354,7 @@ final class PricingMatrixAdminPage {
 				<div class="akb-pm-header__left">
 					<h1 class="akb-pm-title">
 						Akibara Pricing &amp; Backorder Matrix
-						<span class="akb-pm-version-badge">v1.120.2</span>
+						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.120.8'; ?></span>
 					</h1>
 				</div>
 				<p class="akb-pm-subtitle">
@@ -589,7 +635,7 @@ final class PricingMatrixAdminPage {
 					<div class="akb-pm-scale-calc-grid">
 						<div class="akb-pm-calc-field">
 							<label>Nuevo Reg ($)</label>
-							<input type="number" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="100" min="100" required />
+							<input type="number" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="1" min="100" required />
 						</div>
 						<div class="akb-pm-calc-field">
 							<label>% Desc</label>
@@ -673,6 +719,7 @@ final class PricingMatrixAdminPage {
 						</thead>
 						<tbody>
 							<?php foreach ( $discrepancies as $d ) : ?>
+								<?php $row_key = (int) $d['serie_id'] . '-' . (int) $d['brand_id']; ?>
 								<tr class="akb-series-searchable-row" data-search="<?php echo esc_attr( strtolower( $d['editorial'] . ' ' . $d['serie_name'] . ' ' . $d['serie_slug'] ) ); ?>">
 									<td data-value="<?php echo esc_attr( $d['editorial'] ); ?>">
 										<div class="akb-pm-editorial-cell">
@@ -688,13 +735,13 @@ final class PricingMatrixAdminPage {
 									<td>
 										<div class="akb-pm-scales-wrap">
 											<?php if ( ! empty( $d['average_price'] ) ) : ?>
-												<button type="button" class="akb-pm-scale-chip akb-pm-scale-chip--average" data-input-id="target-reg-<?php echo (int) $d['serie_id']; ?>" data-price="<?php echo (int) $d['average_price']; ?>" title="Promedio ponderado ($<?php echo number_format( (int) $d['average_price'], 0, ',', '.' ); ?>). Clic para fijar como objetivo.">
+												<button type="button" class="akb-pm-scale-chip akb-pm-scale-chip--average" data-input-id="target-reg-<?php echo esc_attr( $row_key ); ?>" data-price="<?php echo (int) $d['average_price']; ?>" title="Promedio ponderado ($<?php echo number_format( (int) $d['average_price'], 0, ',', '.' ); ?>). Clic para fijar como objetivo.">
 													<span>⚖ Promedio: $<?php echo esc_html( number_format( (int) $d['average_price'], 0, ',', '.' ) ); ?></span>
 												</button>
 											<?php endif; ?>
 											<?php foreach ( $d['scales'] as $sc => $cnt ) : ?>
 												<?php $is_dom = ( (int) $sc === (int) $d['dominant_scale'] ); ?>
-												<button type="button" class="akb-pm-scale-chip <?php echo $is_dom ? 'akb-pm-scale-chip--dominant' : 'akb-pm-scale-chip--divergent'; ?>" data-input-id="target-reg-<?php echo (int) $d['serie_id']; ?>" data-price="<?php echo (int) $sc; ?>" title="<?php echo $is_dom ? 'Escala dominante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.' : 'Escala discrepante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.'; ?>">
+												<button type="button" class="akb-pm-scale-chip <?php echo $is_dom ? 'akb-pm-scale-chip--dominant' : 'akb-pm-scale-chip--divergent'; ?>" data-input-id="target-reg-<?php echo esc_attr( $row_key ); ?>" data-price="<?php echo (int) $sc; ?>" title="<?php echo $is_dom ? 'Escala dominante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.' : 'Escala discrepante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.'; ?>">
 													<span>$<?php echo esc_html( number_format( (int) $sc, 0, ',', '.' ) ); ?></span>
 													<span class="akb-pm-chip-count">(<?php echo (int) $cnt; ?><?php echo $is_dom ? ' ★' : ''; ?>)</span>
 												</button>
@@ -719,7 +766,7 @@ final class PricingMatrixAdminPage {
 											<input type="hidden" name="brand_id" value="<?php echo (int) $d['brand_id']; ?>" />
 											<div class="akb-pm-input-price-wrap">
 												<span class="akb-pm-price-currency">$</span>
-												<input type="number" id="target-reg-<?php echo (int) $d['serie_id']; ?>" name="target_regular" class="akb-pm-input-price" value="<?php echo (int) $d['dominant_scale']; ?>" step="100" min="100" required />
+												<input type="number" id="target-reg-<?php echo esc_attr( $row_key ); ?>" name="target_regular" class="akb-pm-input-price" value="<?php echo (int) $d['dominant_scale']; ?>" step="1" min="100" required />
 											</div>
 											<label class="akb-pm-lock-toggle-label" title="Proteger productos comprometidos en órdenes activas (🔒)">
 												<input type="checkbox" name="protect_active_orders" value="1" checked="checked" />
@@ -772,6 +819,31 @@ final class PricingMatrixAdminPage {
 							<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry">Simular Rescate (Dry-Run)</button>
 							<button type="submit" class="button button-primary akb-pm-btn-level">Rescatar Seleccionados a «A Pedido» (5% round_100)</button>
 						</div>
+					</div>
+
+					<div class="akb-pm-rescue-auth-panel" style="background:#f0f6fc;border:1px solid #cce5ff;border-radius:6px;padding:12px 16px;margin:12px 0 16px;">
+						<div style="font-weight:700;color:#0c4a6e;margin-bottom:8px;font-size:13px;">📋 Autorización Obligatoria de Distribuidor (Reglas 15 y 18 - Control de Agotados)</div>
+						<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+							<label style="font-size:12px;font-weight:600;color:#1e293b;">
+								Distribuidor Oficial:
+								<select name="distributor_supplier" style="margin-left:6px;font-size:12px;">
+									<option value="">-- Seleccionar distribuidor confirmado --</option>
+									<option value="Pujol & Amadó (Panini / Planeta)">Pujol &amp; Amadó (Panini / Planeta)</option>
+									<option value="Candela (Ivrea Arg / Ovni Press)">Candela (Ivrea Arg / Ovni Press)</option>
+									<option value="Milky Way Ediciones">Milky Way Ediciones</option>
+									<option value="Ivrea España">Ivrea España</option>
+									<option value="Otro distribuidor oficial">Otro distribuidor oficial</option>
+								</select>
+							</label>
+							<label style="font-size:12px;font-weight:600;color:#1e293b;">
+								Referencia / Planilla Oficial:
+								<input type="text" name="distributor_reference" placeholder="Ej: Planilla reposición 2026-11-04" style="margin-left:6px;min-width:240px;font-size:12px;" />
+							</label>
+						</div>
+						<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#334155;">
+							<input type="checkbox" name="confirm_distributor_stock" value="1" />
+							<span><strong>Confirmo disponibilidad oficial:</strong> Verifiqué que los tomos seleccionados figuran con stock disponible en la planilla del proveedor y NO están catalogados como «Agotado por reimpresión» ni descatalogados (Regla 15).</span>
+						</label>
 					</div>
 
 					<div class="akb-pm-filter-toolbar">
