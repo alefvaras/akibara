@@ -9,6 +9,10 @@ declare( strict_types = 1 );
 
 namespace Akibara\Search;
 
+use Akibara\Search\Rebuild\RebuildCoverage;
+use Akibara\Search\Rebuild\RebuildDecisions;
+use Akibara\Search\Rebuild\RebuildReceipts;
+use Akibara\Search\Rebuild\ServingAlarm;
 use Akibara\Search\Support\RecurringMemo;
 use Akibara\Search\Support\RestCache;
 use Throwable;
@@ -511,11 +515,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	public static function stalled_verdict( bool $terminal, int $segundos_sin_latido, bool $queda_trabajo, $leases_vigentes ): bool {
-		if ( $terminal || $segundos_sin_latido < self::STALLED_SECONDS || ! $queda_trabajo ) {
-			return false;
-		}
-
-		return ! ( is_int( $leases_vigentes ) && $leases_vigentes > 0 );
+		return RebuildDecisions::stalled_verdict( $terminal, $segundos_sin_latido, $queda_trabajo, $leases_vigentes, self::STALLED_SECONDS );
 	}
 
 	/**
@@ -527,7 +527,7 @@ final class RebuildJob {
 	 * @return array{0: string, 1: array<int, string>} Fragmento WHERE y sus parámetros.
 	 */
 	public static function eligible_products_where(): array {
-		return array( 'post_type = %s AND post_status = %s', array( 'product', 'publish' ) );
+		return RebuildCoverage::eligible_products_where();
 	}
 
 	/**
@@ -536,8 +536,7 @@ final class RebuildJob {
 	 * @return int
 	 */
 	public static function eligible_product_count(): int {
-		$ids = self::eligible_product_ids_snapshot();
-		return null === $ids ? 0 : count( $ids );
+		return RebuildCoverage::eligible_product_count();
 	}
 
 	/**
@@ -546,7 +545,7 @@ final class RebuildJob {
 	 * @return array<int, int>|null IDs exactos o null ante cualquier error SQL.
 	 */
 	public static function eligible_product_ids_snapshot(): ?array {
-		return self::query_eligible_product_ids();
+		return RebuildCoverage::eligible_product_ids_snapshot();
 	}
 
 	/**
@@ -617,8 +616,7 @@ final class RebuildJob {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function history(): array {
-		$raw = get_option( self::OPTION_HISTORY, array() );
-		return is_array( $raw ) ? $raw : array();
+		return RebuildReceipts::history();
 	}
 
 	/**
@@ -853,120 +851,51 @@ final class RebuildJob {
 	}
 
 	/** Cuánto aguanta el serving caído antes de que salga el aviso. */
-	private const ALARM_AFTER_SECONDS = 900;
+	private const ALARM_AFTER_SECONDS = ServingAlarm::ALARM_AFTER_SECONDS;
 
 	/** Estado del aviso: desde cuándo está caído y si ya se avisó. */
-	private const OPTION_ALARM = 'akb_search_serving_alarm';
+	private const OPTION_ALARM = ServingAlarm::OPTION_ALARM;
 
 	/**
 	 * Registra la persistencia de una caída en el servido y despacha alerta al administrador si supera el umbral.
-	 *
-	 * Emite un único correo de alerta por episodio tras exceder {@see self::ALARM_AFTER_SECONDS}.
-	 * El umbral supera el tiempo estándar de reconstrucción para evitar falsas alarmas durante tareas rutinarias.
 	 */
 	private static function note_serving_down(): void {
-		$estado = get_option( self::OPTION_ALARM, array() );
-		$estado = is_array( $estado ) ? $estado : array();
-		$desde  = (int) ( $estado['down_since'] ?? 0 );
-		$avisado = (int) ( $estado['notified_at'] ?? 0 );
-		$ahora  = time();
-
-		if ( $desde <= 0 ) {
-			update_option( self::OPTION_ALARM, array( 'down_since' => $ahora, 'notified_at' => 0 ), false );
-			return;
-		}
-		if ( $avisado > 0 || ( $ahora - $desde ) < self::ALARM_AFTER_SECONDS ) {
-			return;
-		}
-
-		update_option( self::OPTION_ALARM, array( 'down_since' => $desde, 'notified_at' => $ahora ), false );
-		self::send_alarm(
-			'Akibara: el buscador lleva rato caído',
-			"El buscador y los filtros del catálogo llevan " . (int) floor( ( $ahora - $desde ) / 60 ) . " minutos sin servir.
-
-"
-			. "El cliente ve el catálogo completo SIN filtros y la búsqueda no responde. El sistema ya intentó
-"
-			. "recuperarse solo varias veces y no lo ha conseguido.
-
-"
-			. "Qué mirar, por orden:
-"
-			. "  wp akb-search status
-"
-			. "  wp akb-search rebuild
-
-"
-			. "Si el rebuild dice que hay uno en curso, comprueba en el estado que «done» avanza y que
-"
-			. "«work_blocked» está en cero: si avanza, es un rebuild normal y sólo hay que esperar."
-		);
-		AuditLog::record( 'serving_alarma', 'Serving caído más de ' . self::ALARM_AFTER_SECONDS . ' s: aviso enviado' );
+		ServingAlarm::note_serving_down();
 	}
 
 	/**
-	 * Limpia el estado del aviso y avisa de la vuelta si se había avisado de la
-	 * caída. Sin esto, el dueño se quedaría con el correo de alarma y sin saber
-	 * que la tienda ya está bien.
+	 * Limpia el estado del aviso y avisa de la vuelta si se había avisado de la caída.
 	 */
 	private static function note_serving_up(): void {
-		if ( self::close_alarm_episode() ) {
-			self::send_alarm(
-				'Akibara: el buscador volvió',
-				"El buscador y los filtros del catálogo vuelven a servir con normalidad."
-			);
-			AuditLog::record( 'serving_alarma', 'Serving recuperado: aviso de vuelta enviado' );
-		}
+		ServingAlarm::note_serving_up();
 	}
 
 	/**
 	 * Cierra el episodio de alarma cuando el carril de autocompletado es desactivado intencionalmente.
 	 *
-	 * Elimina el estado de alerta sin emitir notificación de restablecimiento (evitando avisos espurios),
-	 * y garantiza que una reactivación futura inicie un ciclo de monitoreo limpio sin sellos residuales.
-	 *
 	 * @return void
 	 */
 	private static function note_lane_off(): void {
-		if ( self::close_alarm_episode() ) {
-			AuditLog::record( 'serving_alarma', 'Autocompletado apagado con un aviso de caída enviado: episodio cerrado sin aviso de vuelta' );
-		}
+		ServingAlarm::note_lane_off();
 	}
 
 	/**
-	 * Borra el estado del aviso. Es la ÚNICA salida de un episodio, la use quien
-	 * la use: que el serving volvió o que el carril se apagó.
+	 * Borra el estado del aviso.
 	 *
 	 * @return bool True si el episodio que se cierra ya había mandado el correo de caída.
 	 */
 	private static function close_alarm_episode(): bool {
-		$estado = get_option( self::OPTION_ALARM, array() );
-		if ( ! is_array( $estado ) || array() === $estado ) {
-			return false; // Lo normal: nada abierto, nada que escribir en cada vuelta.
-		}
-		delete_option( self::OPTION_ALARM );
-
-		return (int) ( $estado['notified_at'] ?? 0 ) > 0;
+		return ServingAlarm::close_alarm_episode();
 	}
 
 	/**
 	 * Manda el aviso al correo del sitio.
 	 *
-	 * Sólo en producción: en el espejo hay Mailpit y un aviso ahí es ruido que
-	 * enseña a ignorar los avisos de verdad.
-	 *
 	 * @param string $asunto  Asunto.
 	 * @param string $cuerpo  Cuerpo en texto plano.
 	 */
 	private static function send_alarm( string $asunto, string $cuerpo ): void {
-		if ( function_exists( 'wp_get_environment_type' ) && 'production' !== wp_get_environment_type() ) {
-			return;
-		}
-		$destino = (string) get_option( 'admin_email', '' );
-		if ( '' === $destino || ! function_exists( 'wp_mail' ) ) {
-			return;
-		}
-		wp_mail( $destino, $asunto, $cuerpo );
+		ServingAlarm::send_alarm( $asunto, $cuerpo );
 	}
 
 	/**
@@ -1548,7 +1477,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function should_chain( int $processed, float $deadline ): bool {
-		return $processed >= self::BATCH_SIZE && microtime( true ) < $deadline;
+		return RebuildDecisions::should_chain( $processed, $deadline, self::BATCH_SIZE );
 	}
 
 	/**
@@ -2263,31 +2192,7 @@ final class RebuildJob {
 	 * @return array{valid: bool, eligible: array<int, int>, docs: array<int, int>, missing: array<int, int>, extra: array<int, int>, orphans: array<int, int>}
 	 */
 	private static function coverage_snapshot(): array {
-		global $wpdb;
-
-		$eligible = self::query_eligible_product_ids();
-		$docs     = self::safe_get_col( 'SELECT post_id FROM ' . Install::docs_table() . Install::SHADOW_SUFFIX . ' ORDER BY post_id ASC' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- El SQL se compone exclusivamente de identificadores canónicos de tablas del plugin sin entrada externa.
-		$tokens   = self::safe_get_col(
-			'SELECT DISTINCT child.post_id FROM ' . Install::tokens_table() . Install::SHADOW_SUFFIX . ' child LEFT JOIN '
-			. Install::docs_table() . Install::SHADOW_SUFFIX . ' parent ON parent.post_id = child.post_id WHERE parent.post_id IS NULL'
-		); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- El SQL se compone exclusivamente de identificadores canónicos de tablas del plugin sin entrada externa.
-		$facets   = self::safe_get_col(
-			'SELECT DISTINCT child.post_id FROM ' . Install::facets_table() . Install::SHADOW_SUFFIX . ' child LEFT JOIN '
-			. Install::docs_table() . Install::SHADOW_SUFFIX . ' parent ON parent.post_id = child.post_id WHERE parent.post_id IS NULL'
-		); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- El SQL se compone exclusivamente de identificadores canónicos de tablas del plugin sin entrada externa.
-
-		if ( null === $eligible || ! is_array( $docs ) || ! is_array( $tokens ) || ! is_array( $facets ) ) {
-			return array(
-				'valid'    => false,
-				'eligible' => array(),
-				'docs'     => array(),
-				'missing'  => array(),
-				'extra'    => array(),
-				'orphans'  => array(),
-			);
-		}
-
-		return self::coverage_from_sets( $eligible, $docs, array_merge( $tokens, $facets ) );
+		return RebuildCoverage::coverage_snapshot();
 	}
 
 	/**
@@ -2299,18 +2204,7 @@ final class RebuildJob {
 	 * @return array{valid: bool, eligible: array<int, int>, docs: array<int, int>, missing: array<int, int>, extra: array<int, int>, orphans: array<int, int>}
 	 */
 	private static function coverage_from_sets( array $eligible, array $docs, array $orphans ): array {
-		$eligible = self::normalize_ids( $eligible );
-		$docs     = self::normalize_ids( $docs );
-		$orphans  = self::normalize_ids( $orphans );
-
-		return array(
-			'valid'    => true,
-			'eligible' => $eligible,
-			'docs'     => $docs,
-			'missing'  => array_values( array_diff( $eligible, $docs ) ),
-			'extra'    => array_values( array_diff( $docs, $eligible ) ),
-			'orphans'  => $orphans,
-		);
+		return RebuildCoverage::coverage_from_sets( $eligible, $docs, $orphans );
 	}
 
 	/**
@@ -2320,13 +2214,7 @@ final class RebuildJob {
 	 * @return array<int, int>
 	 */
 	private static function repair_ids_from_coverage( array $coverage ): array {
-		return self::normalize_ids(
-			array_merge(
-				(array) ( $coverage['missing'] ?? array() ),
-				(array) ( $coverage['extra'] ?? array() ),
-				(array) ( $coverage['orphans'] ?? array() )
-			)
-		);
+		return RebuildCoverage::repair_ids_from_coverage( $coverage );
 	}
 
 	/**
@@ -2336,34 +2224,16 @@ final class RebuildJob {
 	 * @return array<string, int>
 	 */
 	private static function coverage_receipt( array $coverage ): array {
-		return array(
-			'eligible' => count( (array) ( $coverage['eligible'] ?? array() ) ),
-			'docs'     => count( (array) ( $coverage['docs'] ?? array() ) ),
-			'missing'  => count( (array) ( $coverage['missing'] ?? array() ) ),
-			'extra'    => count( (array) ( $coverage['extra'] ?? array() ) ),
-			'orphans'  => count( (array) ( $coverage['orphans'] ?? array() ) ),
-		);
+		return RebuildCoverage::coverage_receipt( $coverage );
 	}
 
 	/**
 	 * Universo fuente estable y ordenado.
 	 *
-	 * @return array<int, int>
+	 * @return array<int, int>|null
 	 */
 	private static function query_eligible_product_ids(): ?array {
-		global $wpdb;
-
-		list( $where, $params ) = self::eligible_products_where();
-
-		$ids = self::safe_get_col(
-			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- predicado compartido: los placeholders viajan DENTRO de $where y el sniff no los ve.
-				"SELECT ID FROM {$wpdb->posts} WHERE {$where} ORDER BY ID ASC",
-				...$params
-			)
-		);
-
-		return is_array( $ids ) ? self::normalize_ids( $ids ) : null;
+		return RebuildCoverage::query_eligible_product_ids();
 	}
 
 	/**
@@ -2374,13 +2244,7 @@ final class RebuildJob {
 	 * @return array<int, mixed>|null
 	 */
 	private static function safe_get_col( string $sql ): ?array {
-		global $wpdb;
-
-		$wpdb->last_error = '';
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- el contrato de este helper es recibir la consulta YA preparada por quien llama; lo único que añade es distinguir «vacío» de «la lectura falló».
-		$rows             = $wpdb->get_col( $sql );
-
-		return is_array( $rows ) && '' === (string) $wpdb->last_error ? $rows : null;
+		return RebuildCoverage::safe_get_col( $sql );
 	}
 
 	/**
@@ -2390,9 +2254,7 @@ final class RebuildJob {
 	 * @return array<int, int>
 	 */
 	private static function normalize_ids( array $ids ): array {
-		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ), static fn( int $id ): bool => $id > 0 ) ) );
-		sort( $ids, SORT_NUMERIC );
-		return $ids;
+		return RebuildCoverage::normalize_ids( $ids );
 	}
 
 	/**
@@ -2403,41 +2265,7 @@ final class RebuildJob {
 	 * @return string resume|prepare|revalidate|mark_swapped|finish_done|block|idle.
 	 */
 	private static function recovery_decision( string $phase, string $topology ): string {
-		if ( self::PHASE_BLOCKED === $phase || self::PHASE_ABORTED === $phase ) {
-			return 'idle';
-		}
-
-		if ( Install::TOPOLOGY_AMBIGUOUS === $topology ) {
-			return 'block';
-		}
-
-		if ( Install::TOPOLOGY_CLEAN_PRE === $topology ) {
-			if ( self::PHASE_PREPARING === $phase ) {
-				return 'prepare';
-			}
-			if ( in_array( $phase, array( self::PHASE_CLEANUP, self::PHASE_DONE ), true ) ) {
-				return 'finish_done';
-			}
-			return 'block';
-		}
-
-		if ( Install::TOPOLOGY_READY_SWAP === $topology ) {
-			if ( in_array( $phase, array( self::PHASE_PREPARING, self::PHASE_BUILDING, self::PHASE_CATCHING_UP ), true ) ) {
-				return self::PHASE_PREPARING === $phase ? 'prepare' : 'resume';
-			}
-			return self::PHASE_SWAP_INTENT === $phase ? 'revalidate' : 'block';
-		}
-
-		if ( Install::TOPOLOGY_SWAPPED === $topology ) {
-			if ( self::PHASE_SWAP_INTENT === $phase ) {
-				return 'mark_swapped';
-			}
-			return in_array( $phase, array( self::PHASE_SWAPPED, self::PHASE_PUBLISHING, self::PHASE_CLEANUP ), true )
-				? 'resume'
-				: 'block';
-		}
-
-		return 'block';
+		return RebuildDecisions::recovery_decision( $phase, $topology );
 	}
 
 	/**
@@ -2448,14 +2276,7 @@ final class RebuildJob {
 	 * @return string|null Run pre-swap, vacío post-swap, null si no es demostrable.
 	 */
 	private static function swap_intent_writer_target( string $topology, string $run_id ): ?string {
-		if ( Install::TOPOLOGY_READY_SWAP === $topology ) {
-			return '' === $run_id ? null : $run_id;
-		}
-		if ( Install::TOPOLOGY_SWAPPED === $topology ) {
-			return '';
-		}
-
-		return null;
+		return RebuildDecisions::swap_intent_writer_target( $topology, $run_id );
 	}
 
 	/**
@@ -2466,11 +2287,7 @@ final class RebuildJob {
 	 * @return string Target determinístico o vacío ante identidad inválida.
 	 */
 	private static function generation_target_for_fingerprint( string $run_id, string $fingerprint ): string {
-		if ( '' === $run_id || 1 !== preg_match( '/^[a-f0-9]{64}$/', $fingerprint ) ) {
-			return '';
-		}
-
-		return substr( 'akb-search-' . $run_id . '-' . $fingerprint, 0, 191 );
+		return RebuildDecisions::generation_target_for_fingerprint( $run_id, $fingerprint );
 	}
 
 	/**
@@ -2481,38 +2298,19 @@ final class RebuildJob {
 	 * @return string clear|wait|error.
 	 */
 	private static function final_work_debt_decision( ?int $baseline, ?int $repair ): string {
-		if ( null === $baseline || null === $repair ) {
-			return 'error';
-		}
-
-		return 0 === $baseline && 0 === $repair ? 'clear' : 'wait';
+		return RebuildDecisions::final_work_debt_decision( $baseline, $repair );
 	}
 
 	/**
 	 * Decide qué hacer cuando el propio request observó un DDL parcial/fallido.
 	 *
-	 * @param string                              $phase    PREPARING|CLEANUP.
-	 * @param string                              $topology Clasificación actual.
+	 * @param string                             $phase    PREPARING|CLEANUP.
+	 * @param string                             $topology Clasificación actual.
 	 * @param array<string, array<string, bool>> $snapshot Foto de familias.
 	 * @return string recover_shadow|recover_old|retry|finish|block.
 	 */
 	private static function ddl_failure_decision( string $phase, string $topology, array $snapshot ): string {
-		if ( self::PHASE_PREPARING === $phase ) {
-			if ( Install::TOPOLOGY_AMBIGUOUS === $topology && Install::is_owned_partial_family( $snapshot, 'new' ) ) {
-				return 'recover_shadow';
-			}
-			return Install::TOPOLOGY_CLEAN_PRE === $topology ? 'retry' : 'block';
-		}
-		if ( self::PHASE_CLEANUP === $phase ) {
-			if ( Install::TOPOLOGY_CLEAN_PRE === $topology ) {
-				return 'finish';
-			}
-			if ( Install::TOPOLOGY_AMBIGUOUS === $topology && Install::is_owned_partial_family( $snapshot, 'old' ) ) {
-				return 'recover_old';
-			}
-			return Install::TOPOLOGY_SWAPPED === $topology ? 'retry' : 'block';
-		}
-		return 'block';
+		return RebuildDecisions::ddl_failure_decision( $phase, $topology, $snapshot );
 	}
 
 	/**
@@ -2524,26 +2322,19 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function action_matches_state( array $state, string $run_id, string $scope ): bool {
-		if ( '' === $run_id || $run_id !== (string) ( $state['run_id'] ?? '' ) ) {
-			return false;
-		}
-
-		$phase = (string) ( $state['phase'] ?? '' );
-		return 'baseline' === $scope
-			? in_array( $phase, array( self::PHASE_BUILDING, self::PHASE_CATCHING_UP ), true )
-			: 'repair' === $scope && self::PHASE_CATCHING_UP === $phase;
+		return RebuildDecisions::action_matches_state( $state, $run_id, $scope );
 	}
 
 	/**
 	 * Un pump sin claims no encadena acciones contra deuda con backoff futuro.
 	 *
-	 * @param bool   $async         Camino AS.
+	 * @param bool   $async        Camino AS.
 	 * @param bool   $allow_wakeup Hubo progreso o es un arranque explicito.
 	 * @param string $scope        Scope a despertar.
 	 * @return bool
 	 */
 	private static function should_enqueue_wakeup( bool $async, bool $allow_wakeup, string $scope ): bool {
-		return $async && $allow_wakeup && in_array( $scope, array( WorkRepository::SCOPE_BASELINE, WorkRepository::SCOPE_REPAIR ), true );
+		return RebuildDecisions::should_enqueue_wakeup( $async, $allow_wakeup, $scope );
 	}
 
 	/** @return void */
@@ -2611,7 +2402,7 @@ final class RebuildJob {
 	 * @return int|null
 	 */
 	private static function normalise_count_result( $count ): ?int {
-		return false === $count ? null : (int) $count;
+		return RebuildDecisions::normalise_count_result( $count );
 	}
 
 	/**
@@ -2621,13 +2412,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function counts_allow_cutover( array $counts ): bool {
-		foreach ( $counts as $count ) {
-			if ( null === $count || 0 !== $count ) {
-				return false;
-			}
-		}
-
-		return true;
+		return RebuildDecisions::counts_allow_cutover( $counts );
 	}
 
 	/**
@@ -2637,22 +2422,7 @@ final class RebuildJob {
 	 * @return array{pending: int, leased: int, blocked: int}
 	 */
 	private static function work_status_totals( array $summary ): array {
-		$totals = array(
-			'pending' => 0,
-			'leased'  => 0,
-			'blocked' => 0,
-		);
-
-		foreach ( $summary as $statuses ) {
-			if ( ! is_array( $statuses ) ) {
-				continue;
-			}
-			$totals['pending'] += (int) ( $statuses[ WorkRepository::STATUS_PENDING ] ?? 0 );
-			$totals['leased']  += (int) ( $statuses[ WorkRepository::STATUS_LEASED ] ?? 0 );
-			$totals['blocked'] += (int) ( $statuses[ WorkRepository::STATUS_BLOCKED ] ?? 0 );
-		}
-
-		return $totals;
+		return RebuildDecisions::work_status_totals( $summary );
 	}
 
 	/**
@@ -2893,7 +2663,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function is_terminal_phase( string $phase ): bool {
-		return in_array( $phase, array( self::PHASE_DONE, self::PHASE_BLOCKED, self::PHASE_ABORTED ), true );
+		return RebuildDecisions::is_terminal_phase( $phase );
 	}
 
 	/**
@@ -2911,32 +2681,17 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function semantic_fingerprint_receipt_matches( string $fingerprint, string $generation ): bool {
-		$receipt = get_option( SemanticPublication::OPTION_FINGERPRINT, null );
-		return is_array( $receipt )
-			&& 1 === (int) ( $receipt['protocol'] ?? 0 )
-			&& $fingerprint === (string) ( $receipt['fingerprint'] ?? '' )
-			&& $generation === (string) ( $receipt['generation'] ?? '' )
-			&& (int) ( $receipt['published_at'] ?? 0 ) > 0;
+		return RebuildReceipts::semantic_fingerprint_receipt_matches( $fingerprint, $generation );
 	}
 
 	/** @param array<string, mixed> $state */
 	private static function editorial_receipt_required( array $state ): bool {
-		return (int) ( $state['editorial_wanted_seq'] ?? 0 ) > 0
-			&& 1 === preg_match( '/^[a-f0-9]{64}$/D', (string) ( $state['editorial_fingerprint'] ?? '' ) );
+		return RebuildReceipts::editorial_receipt_required( $state );
 	}
 
 	/** @param array<string, mixed> $state */
 	private static function editorial_receipt_acked( array $state, bool $allow_superseded ): bool {
-		if ( ! self::editorial_receipt_required( $state ) ) {
-			return true;
-		}
-		return (bool) ( $state['ack_editorial_receipt'] ?? false )
-			&& EditorialDiscountPublication::swap_receipt_exists(
-				(string) ( $state['run_id'] ?? '' ),
-				(int) $state['editorial_wanted_seq'],
-				(string) $state['editorial_fingerprint'],
-				$allow_superseded
-			);
+		return RebuildReceipts::editorial_receipt_acked( $state, $allow_superseded );
 	}
 
 	/**
@@ -2949,29 +2704,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function publication_acked( array $state, bool $allow_superseded = false ): bool {
-		$generation_target = (string) ( $state['generation_target'] ?? '' );
-		$semantic_fingerprint = (string) ( $state['semantic_fingerprint'] ?? '' );
-		$flags              = '' !== $generation_target
-			&& 1 === preg_match( '/^[a-f0-9]{64}$/', $semantic_fingerprint )
-			&& (bool) ( $state['ack_generation'] ?? false )
-			&& (bool) ( $state['ack_rest_purge'] ?? false )
-			&& (bool) ( $state['ack_price_buckets'] ?? false )
-			&& (bool) ( $state['ack_semantic_fingerprint'] ?? false )
-			&& self::editorial_receipt_acked( $state, true )
-			&& (bool) ( $state['ack_history'] ?? false );
-		if ( ! $flags ) {
-			return false;
-		}
-
-		$physical = $generation_target === (string) get_option( Install::OPTION_INDEX_GEN, '' )
-			&& RestCache::has_purge_receipt( $generation_target )
-			&& self::semantic_fingerprint_receipt_matches( $semantic_fingerprint, $generation_target );
-		$receipt  = self::publication_receipt_for_state( $state );
-		if ( null === $receipt ) {
-			return false;
-		}
-
-		return $allow_superseded || $physical;
+		return RebuildReceipts::publication_acked( $state, $allow_superseded );
 	}
 
 	/**
@@ -2981,30 +2714,7 @@ final class RebuildJob {
 	 * @return array<string, mixed>|null
 	 */
 	private static function publication_receipt_for_state( array $state ): ?array {
-		$candidates = array_merge(
-			array( get_option( self::OPTION_LAST, array() ) ),
-			self::history()
-		);
-		foreach ( $candidates as $receipt ) {
-			if ( is_array( $receipt )
-				&& 1 === (int) ( $receipt['publication_protocol'] ?? 0 )
-				&& (bool) ( $receipt['publication_acked'] ?? false )
-				&& 'local_dispatch_only' === (string) ( $receipt['purge_ack_scope'] ?? '' )
-				&& (bool) ( $receipt['semantic_fingerprint_acked'] ?? false )
-				&& ( ! self::editorial_receipt_required( $state )
-					|| ( (int) ( $receipt['editorial_wanted_seq'] ?? 0 ) === (int) $state['editorial_wanted_seq']
-						&& (string) ( $receipt['editorial_fingerprint'] ?? '' ) === (string) $state['editorial_fingerprint']
-						&& (bool) ( $receipt['editorial_receipt_acked'] ?? false )
-						&& self::editorial_receipt_acked( $state, true ) ) )
-				&& (string) ( $receipt['run_id'] ?? '' ) === (string) ( $state['run_id'] ?? '' )
-				&& (string) ( $receipt['generation_target'] ?? '' ) === (string) ( $state['generation_target'] ?? '' )
-				&& (string) ( $receipt['semantic_fingerprint'] ?? '' ) === (string) ( $state['semantic_fingerprint'] ?? '' )
-				&& 'ok' === (string) ( $receipt['result'] ?? '' )
-				&& in_array( (string) ( $receipt['phase'] ?? '' ), array( self::PHASE_PUBLISHING, self::PHASE_DONE ), true ) ) {
-				return $receipt;
-			}
-		}
-		return null;
+		return RebuildReceipts::publication_receipt_for_state( $state );
 	}
 
 	/**
@@ -3014,57 +2724,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function persist_publish_receipt( array $state ): bool {
-		global $wpdb;
-		$generation_target = (string) ( $state['generation_target'] ?? '' );
-		$semantic_fingerprint = (string) ( $state['semantic_fingerprint'] ?? '' );
-		if ( '' === $generation_target
-			|| ! (bool) ( $state['ack_generation'] ?? false )
-			|| ! (bool) ( $state['ack_rest_purge'] ?? false )
-			|| ! (bool) ( $state['ack_price_buckets'] ?? false )
-			|| ! (bool) ( $state['ack_semantic_fingerprint'] ?? false )
-			|| ! self::editorial_receipt_acked( $state, true )
-			|| 1 !== preg_match( '/^[a-f0-9]{64}$/', $semantic_fingerprint )
-			|| $generation_target !== (string) get_option( Install::OPTION_INDEX_GEN, '' )
-			|| ! RestCache::has_purge_receipt( $generation_target )
-			|| $semantic_fingerprint !== SemanticPublication::current_fingerprint()
-			|| ! self::semantic_fingerprint_receipt_matches( $semantic_fingerprint, $generation_target ) ) {
-			return false;
-		}
-
-		$wpdb->last_error = '';
-		$docs = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Install::docs_table() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- el COUNT se arma concatenando el nombre de la tabla propia ($wpdb->prefix + literal fijo) y no lleva ningún valor que preparar; el sniff señala los dos trozos del identificador como si fueran datos.
-		if ( '' !== (string) ( $wpdb->last_error ?? '' )
-			|| ( ! is_int( $docs ) && ( ! is_string( $docs ) || 1 !== preg_match( '/^[0-9]+$/D', $docs ) ) ) ) {
-			return false;
-		}
-
-		$receipt = array(
-			'run_id'               => (string) $state['run_id'],
-			'started_at'           => (int) ( $state['started_at'] ?? 0 ),
-			'finished_at'          => time(),
-			'docs'                 => (int) $docs,
-			'expected'             => (int) ( $state['expected'] ?? 0 ),
-			'result'               => 'ok',
-			'phase'                => self::PHASE_PUBLISHING,
-			'publication_protocol' => 1,
-			'generation_target'    => $generation_target,
-			'publication_acked'    => true,
-			'purge_ack_scope'      => 'local_dispatch_only',
-			'semantic_fingerprint' => $semantic_fingerprint,
-			'semantic_fingerprint_acked' => true,
-			'editorial_wanted_seq' => (int) ( $state['editorial_wanted_seq'] ?? 0 ),
-			'editorial_fingerprint' => (string) ( $state['editorial_fingerprint'] ?? '' ),
-			'editorial_receipt_acked' => self::editorial_receipt_acked( $state, true ),
-		);
-
-		update_option( self::OPTION_LAST, $receipt, false );
-		$history_persisted = self::append_history( $receipt );
-
-		$stored = get_option( self::OPTION_LAST, array() );
-		return $history_persisted
-			&& is_array( $stored )
-			&& (string) ( $stored['run_id'] ?? '' ) === (string) $state['run_id']
-			&& null !== self::publication_receipt_for_state( $state );
+		return RebuildReceipts::persist_publish_receipt( $state );
 	}
 
 	/**
@@ -3074,21 +2734,7 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function persist_final_receipt( array $state ): bool {
-		$last = get_option( self::OPTION_LAST, array() );
-		if ( ! is_array( $last ) || (string) ( $last['run_id'] ?? '' ) !== (string) ( $state['run_id'] ?? '' ) ) {
-			return false;
-		}
-
-		$last['phase']       = self::PHASE_DONE;
-		$last['finished_at'] = time();
-		update_option( self::OPTION_LAST, $last, false );
-		$history_persisted = self::append_history( $last );
-		$stored            = get_option( self::OPTION_LAST, array() );
-
-		return $history_persisted
-			&& is_array( $stored )
-			&& self::PHASE_DONE === (string) ( $stored['phase'] ?? '' )
-			&& (string) ( $stored['run_id'] ?? '' ) === (string) ( $state['run_id'] ?? '' );
+		return RebuildReceipts::persist_final_receipt( $state );
 	}
 
 	/**
@@ -3098,20 +2744,6 @@ final class RebuildJob {
 	 * @return bool
 	 */
 	private static function append_history( array $entry ): bool {
-		$run_id  = (string) ( $entry['run_id'] ?? '' );
-		$history = array_values(
-			array_filter(
-				self::history(),
-				static fn( $row ): bool => ! is_array( $row ) || '' === $run_id || $run_id !== (string) ( $row['run_id'] ?? '' )
-			)
-		);
-		array_unshift( $history, $entry );
-		$history = array_slice( $history, 0, self::HISTORY_MAX );
-		update_option( self::OPTION_HISTORY, $history, false );
-
-		$stored = self::history();
-		return isset( $stored[0] )
-			&& is_array( $stored[0] )
-			&& (string) ( $stored[0]['run_id'] ?? '' ) === $run_id;
+		return RebuildReceipts::append_history( $entry );
 	}
 }

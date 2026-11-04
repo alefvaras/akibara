@@ -3,7 +3,7 @@
  * Plugin Name:       Akibara Search
  * Plugin URI:        https://akibara.cl
  * Description:       Buscador y facetas propios de Akibara — índice invertido, autocomplete y filtrado facetado nativos (JS sin jQuery). Reemplazo standalone de FacetWP + Relevanssi. Reusa las tablas akb_search_* del índice.
- * Version:           0.1.84
+ * Version:           0.1.85
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Requires Plugins:  woocommerce
@@ -22,7 +22,7 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AKIBARA_SEARCH_VERSION', '0.1.84' );
+define( 'AKIBARA_SEARCH_VERSION', '0.1.85' );
 define( 'AKIBARA_SEARCH_FILE', __FILE__ );
 define( 'AKIBARA_SEARCH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AKIBARA_SEARCH_URL', plugin_dir_url( __FILE__ ) );
