@@ -8,9 +8,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 ## Estado Global del Backlog
 
 - **Total Tickets:** 10
-- **En Progreso:** TICKET-007
-- **Completados:** 6 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005, TICKET-006)
-- **Pendientes:** 4
+- **En Progreso:** TICKET-008
+- **Completados:** 7 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005, TICKET-006, TICKET-007)
+- **Pendientes:** 3
 
 ---
 
@@ -56,10 +56,10 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 - **Herramienta:** Script de limpieza de `rank_math_description`.
 - **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (17 meta descripciones sanitizadas a 140-146 caracteres, 0 menciones de editorial remanentes, HTTP 200 en vivo, watchdog 100% verde).
 
-#### [TICKET-007] Corrección de 8 productos con atributos faltantes en `_product_attributes` (Regla 9)
-- **Impacto:** Gantz Deluxe 1-3, Vagabond 1-3, Slam Dunk Deluxe 1 y Demon Slayer 23 Especial carecen de `pa_pais` o `pa_serie` en el array serializado.
-- **Herramienta:** Script de actualización de atributos.
-- **Estado:** ⏳ **PENDIENTE**.
+#### [TICKET-007] Corrección de 8 productos con atributos faltantes en `_product_attributes` (Regla 9 y Regla 5)
+- **Impacto:** Gantz Deluxe 1-3, Vagabond 1-3, Slam Dunk Deluxe 1 y Demon Slayer 23 Especial carecían de `pa_pais` o `pa_serie` en el array serializado, omitiéndolos de las especificaciones técnicas.
+- **Herramienta:** `ops/sincronizar-atributos-faltantes.php`.
+- **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (8 productos sincronizados a 4 atributos canónicos ordenados, 0 faltantes en todo el catálogo, renderizado verificado en PDP, watchdog 100% verde).
 
 #### [TICKET-008] Fallback de Upsells en 70 tomos finales/únicos de series concluidas (Regla 7)
 - **Impacto:** 70 tomos no muestran «También te recomendamos…» al ser el último volumen.

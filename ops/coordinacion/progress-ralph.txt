@@ -42,3 +42,10 @@ Iteración 2 (Verificación & Prod): En ejecución...
 - Iteración 3: Registrado en backlog y sellado.
 
 [2026-11-04 17:57] TICKET-007 TOMADO: Corrección de 8 productos con atributos faltantes en _product_attributes (Regla 9).
+
+[2026-11-04 18:03] TICKET-007 COMPLETADO & CERTIFICADO:
+- Iteración 1: Creado ops/sincronizar-atributos-faltantes.php para garantizar pa_pais (pos 0), pa_autor (pos 1), pa_genero (pos 2), pa_serie (pos 3), asegurar is_visible/is_taxonomy e invalidar transientes. Validado en Docker local con 0 faltantes y self-test 6/6 PASS.
+- Iteración 2: Agente independiente 89f5bf67-aa2b-40d0-88a3-e9f7e5afd153 desplegó a producción, ejecutó sincronización (8 de 8 productos reparados), eliminó script temporal remoto, purgó LiteSpeed y Cloudflare, auditó 0 productos restantes con faltantes en bd (1.992 productos auditados), verificó watchdog (1.992 productos, 0 anomalías) y auditó URLs en vivo con curl (Vagabond 01 con País: Argentina, Demon Slayer 23 con Serie, Gantz 01 con ambos atributos en .akb-pdp-specs-grid). Dictamen: APROBADO.
+- Iteración 3: Registrado en backlog y sellado.
+
+[2026-11-04 18:04] TICKET-008 TOMADO: Fallback de Upsells en 70 tomos finales/únicos de series concluidas (Regla 7).
