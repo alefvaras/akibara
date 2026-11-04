@@ -17,3 +17,9 @@ Iteración 2 (Verificación & Prod): En ejecución...
 - Iteración 3: Registrado en backlog y sellado.
 
 [2026-11-04 17:18] TICKET-003 TOMADO: Optimización CRO Compra Mixta.
+[2026-11-04 17:32] TICKET-003 COMPLETADO & CERTIFICADO:
+- Iteración 1: Modificados NativeCart.php (is_mixed flag), native-cart.js (píldora amigable de envío consolidado) y MixedCartShipmentGuard.php (copy empático de ahorro y certeza). Bump de versión a 1.120.13. Test E2E local en 100% verde.
+- Iteración 2: Agente independiente akibara_release_promoter_qa validó bit a bit (SHA-256), desplegó a producción viva, purgó Cloudflare y LiteSpeed, y auditó watchdog de inventario (1.992 productos, 0 anomalías). Verificación HTTP 200 con JS servido en versión 1.120.13. Dictamen: APROBADO.
+- Iteración 3: Registrado en backlog y sellado.
+
+[2026-11-04 17:32] TICKET-004 TOMADO: Purga automática de hooks retirados (OwnCrons::RETIRED) en UpgradeManager.

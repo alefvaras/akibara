@@ -387,6 +387,7 @@ final class NativeCart {
 			// cuesta la venta. Texto plano; el drawer lo pinta con textContent.
 			'preventa_nota'   => $this->nota_de_llegada(),
 			'has_byp'         => $cart_flags['has_byp'],
+			'is_mixed'        => \Akibara\Business\Modules\Logistics\MixedCartShipmentGuard::cart_is_mixed(),
 			'cross_sells'     => $cross_sells,
 			'shipping_notice' => $shipping_notice,
 			'notice'          => $notice,

@@ -714,8 +714,23 @@
 				return;
 			}
 
-			// Los avisos extensos (cálculo de pack, despacho mixto y tanda)
-			// se reservan exclusivamente para el Checkout para evitar ruido visual en el mini-cart drawer.
+			// Píldora de Despacho Consolidado para compras mixtas (Stock + A Pedido)
+			if (data.is_mixed) {
+				var mixedPill = createText(
+					'akb-cart-status__item akb-cart-status__item--mixed',
+					'🚚 Despacho Consolidado: Tus tomos se enviarán juntos al llegar la reserva para ahorrarte costos de envío.'
+				);
+				mixedPill.style.background = '#eef7ff';
+				mixedPill.style.border = '1px solid #b9dcff';
+				mixedPill.style.color = '#0b4d8c';
+				mixedPill.style.padding = '8px 12px';
+				mixedPill.style.borderRadius = '6px';
+				mixedPill.style.fontSize = '12px';
+				mixedPill.style.lineHeight = '1.4';
+				mixedPill.style.fontWeight = '500';
+				statusContainer.appendChild(mixedPill);
+			}
+
 			statusContainer.hidden = !statusContainer.children.length;
 		}
 

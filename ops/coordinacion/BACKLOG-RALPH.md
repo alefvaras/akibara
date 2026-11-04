@@ -8,9 +8,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 ## Estado Global del Backlog
 
 - **Total Tickets:** 10
-- **En Progreso:** TICKET-003
-- **Completados:** 2 (TICKET-001, TICKET-002)
-- **Pendientes:** 8
+- **En Progreso:** TICKET-004
+- **Completados:** 3 (TICKET-001, TICKET-002, TICKET-003)
+- **Pendientes:** 7
 
 ---
 
@@ -34,7 +34,12 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 
 #### [TICKET-003] Optimización CRO en Compra Mixta: Píldora amigable en Carrito Lateral y copy empático en Checkout
 - **Impacto:** El cliente descubre la advertencia de despacho consolidado al final del checkout con un checkbox legalista que frena la conversión.
-- **Archivos:** `public_html/wp-content/plugins/akibara-theme/assets/js/native-cart.js`, `public_html/wp-content/plugins/akibara-business/src/Modules/Logistics/MixedCartShipmentGuard.php`.
+- **Archivos:** `public_html/wp-content/plugins/akibara-business/assets/js/native-cart.js`, `public_html/wp-content/plugins/akibara-business/src/Modules/NativeCart/NativeCart.php`, `public_html/wp-content/plugins/akibara-business/src/Modules/Logistics/MixedCartShipmentGuard.php`.
+- **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (akibara-business 1.120.13, píldora en mini-cart activa, copy de certeza en checkout, 0 regresiones en watchdog).
+
+#### [TICKET-004] Purga automática de hooks retirados (`OwnCrons::RETIRED`) en `UpgradeManager`
+- **Impacto:** Crons descontinuados como `akb_unpaid_orders_sweep` permanecían programados en Docker local al subir de versión.
+- **Archivos:** `public_html/wp-content/plugins/akibara-business/src/Modules/Upgrade/UpgradeManager.php`.
 - **Estado:** 🔄 **EN PROGRESO**.
 
 #### [TICKET-004] Purga automática de hooks retirados (`OwnCrons::RETIRED`) en `UpgradeManager`
