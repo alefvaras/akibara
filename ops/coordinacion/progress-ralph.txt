@@ -56,3 +56,10 @@ Iteración 2 (Verificación & Prod): En ejecución...
 - Iteración 3: Registrado en backlog y sellado.
 
 [2026-11-04 18:20] TICKET-009 TOMADO: Normalización masiva de Focus Keywords en Rank Math (Regla 13).
+
+[2026-11-04 18:27] TICKET-009 COMPLETADO & CERTIFICADO:
+- Iteración 1: Creado ops/normalizar-focus-keywords-catalogo.php con sanitización de comas de Rank Math, preservación de palabras clave secundarias deduplicadas y límite de 5 keywords. Validado en Docker local con 1.772 productos evaluados, 0 discrepancias y self-test 6/6 PASS.
+- Iteración 2: Agente independiente 0f088bf8-d5bf-4adf-9704-ccc1de06c564 desplegó a producción viva, ejecutó normalización (1.435 productos actualizados, 557 ya conformes), eliminó script temporal remoto, purgó LiteSpeed y Cloudflare, auditó 0 discrepancias en los 1.992 productos de la base de datos de producción (100% de conformidad), auditó watchdog (1.992 productos, 0 anomalías) y auditó URLs en vivo con curl (Claymore 03 y Takagi-san 20 con HTTP 200 y meta tags sincronizados). Dictamen: APROBADO.
+- Iteración 3: Registrado en backlog y sellado.
+
+[2026-11-04 18:27] TICKET-010 TOMADO: Ficha técnica estructurada en viñetas para 115 series de pa_serie (Regla 17).

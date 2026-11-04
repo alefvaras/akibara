@@ -8,9 +8,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 ## Estado Global del Backlog
 
 - **Total Tickets:** 10
-- **En Progreso:** TICKET-009
-- **Completados:** 8 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005, TICKET-006, TICKET-007, TICKET-008)
-- **Pendientes:** 2
+- **En Progreso:** TICKET-010
+- **Completados:** 9 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005, TICKET-006, TICKET-007, TICKET-008, TICKET-009)
+- **Pendientes:** 1
 
 ---
 
@@ -67,9 +67,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 - **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (Fallbacks 1, 2 y 3 implementados; 70 de 70 productos con upsells asignados en prod, 0 huérfanos remanentes, DOM verificado con HTTP 200 en Boticaria 16, Vinland Saga 29 y Look Back, watchdog 100% verde).
 
 #### [TICKET-009] Normalización masiva de Focus Keywords en 1.357 tomos legados (Regla 13)
-- **Impacto:** 1.357 tomos usan el nombre de la serie como focus keyword en vez del título exacto del producto, causando canibalización SEO y scores < 70 en Rank Math.
-- **Herramienta:** Script off-peak para regenerar focus keywords y actualizar cálculo de Rank Math.
-- **Estado:** ⏳ **PENDIENTE**.
+- **Impacto:** 1.381 tomos tenían focus keywords que no coincidían con el título del producto o carecían de normalización de coma, arriesgando canibalización SEO y scores de Rank Math deficientes.
+- **Herramienta:** `ops/normalizar-focus-keywords-catalogo.php`.
+- **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (1.435 productos actualizados en prod, 100% de paridad con título limpio en los 1.992 productos publicados, 0 discrepancias, HTTP 200 en vivo, watchdog 100% verde).
 
 #### [TICKET-010] Ficha técnica estructurada en viñetas para 115 series de `pa_serie` (Regla 17)
 - **Impacto:** 115 series tienen sinopsis plana sin la tabla canónica estructurada (*Autor*, *Dibujo*, *Demografía*, *Estado en Japón*).
