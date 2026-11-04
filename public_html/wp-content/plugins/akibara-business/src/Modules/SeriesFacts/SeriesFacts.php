@@ -597,7 +597,7 @@ final class SeriesFacts {
 	}
 
 	/**
-	 * Imprime la ficha completa de una serie con productos publicados, bajo la rejilla.
+	 * Imprime la ficha completa (<section class="akb-series-facts" id="ficha-de-la-serie">) de una serie con productos publicados, bajo la rejilla.
 	 *
 	 * @return void
 	 */
