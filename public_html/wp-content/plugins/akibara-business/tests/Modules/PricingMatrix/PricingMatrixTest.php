@@ -24,6 +24,11 @@ final class PricingMatrixTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\stubs(
+			array(
+				'is_user_logged_in' => false,
+			)
+		);
 	}
 
 	protected function tearDown(): void {
@@ -141,6 +146,85 @@ final class PricingMatrixTest extends TestCase {
 	}
 
 	/**
+	 * @testdox OrderLockGuard aplica Fail-Closed cuando wpdb devuelve array vacío pero last_error no está vacío
+	 */
+	public function test_order_lock_guard_fail_closed_on_empty_array_with_last_error(): void {
+		global $wpdb;
+		$orig_wpdb = $wpdb ?? null;
+
+		$mock_wpdb = new class() {
+			public string $prefix = 'wp_';
+			public string $postmeta = 'wp_postmeta';
+			public string $posts = 'wp_posts';
+			public string $last_error = 'WordPress DB error: MySQL server has gone away';
+
+			public function prepare( $query, ...$args ) {
+				return $query;
+			}
+
+			public function get_results( $query, $output = null ) {
+				return array(); // Simula fallo donde wpdb devuelve array vacío pero reporta last_error
+			}
+
+			public function get_var( $query ) {
+				return null;
+			}
+		};
+
+		$wpdb = $mock_wpdb;
+
+		try {
+			$this->expectException( \RuntimeException::class );
+			$this->expectExceptionMessageMatches( '/Error al consultar órdenes bloqueadas/' );
+			OrderLockGuard::get_locked_orders_audit();
+		} finally {
+			$wpdb = $orig_wpdb;
+		}
+	}
+
+	/**
+	 * @testdox OrderLockGuard aplica Fail-Closed en consulta de stock negativo cuando last_error no está vacío
+	 */
+	public function test_order_lock_guard_fail_closed_on_negative_stock_last_error(): void {
+		global $wpdb;
+		$orig_wpdb = $wpdb ?? null;
+
+		$mock_wpdb = new class() {
+			public string $prefix = 'wp_';
+			public string $postmeta = 'wp_postmeta';
+			public string $posts = 'wp_posts';
+			public string $last_error = '';
+
+			public function prepare( $query, ...$args ) {
+				return $query;
+			}
+
+			public function get_results( $query, $output = null ) {
+				return array(); // get_locked_orders_audit pasa sin error
+			}
+
+			public function get_col( $query, $x = 0 ) {
+				$this->last_error = 'Table postmeta was crashed';
+				return array();
+			}
+
+			public function get_var( $query ) {
+				return null;
+			}
+		};
+
+		$wpdb = $mock_wpdb;
+
+		try {
+			$this->expectException( \RuntimeException::class );
+			$this->expectExceptionMessageMatches( '/Error al consultar productos con stock negativo/' );
+			OrderLockGuard::get_locked_product_ids();
+		} finally {
+			$wpdb = $orig_wpdb;
+		}
+	}
+
+	/**
 	 * @testdox PricingSelfTest aborta inmediatamente en entorno de producción viva para prevenir mutaciones
 	 */
 	public function test_pricing_self_test_refuses_to_run_in_production(): void {
@@ -160,6 +244,23 @@ final class PricingMatrixTest extends TestCase {
 		$this->expectException( \InvalidArgumentException::class );
 		$this->expectExceptionMessageMatches( '/Reglas 15 y 18/' );
 		PricingSynchronizer::rescue_outofstock_products( array( 1001 ), false, array() );
+	}
+
+	/**
+	 * @testdox El rescate en vivo rechaza distribuidora no autorizada según Reglas 15 y 18
+	 */
+	public function test_rescue_outofstock_rejects_unapproved_supplier(): void {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessageMatches( '/distribuidora oficial autorizada/i' );
+		PricingSynchronizer::rescue_outofstock_products(
+			array( 1001 ),
+			false,
+			array(
+				'supplier'  => 'distribuidor-no-autorizado',
+				'reference' => 'Factura-999',
+				'confirmed' => true,
+			)
+		);
 	}
 
 	/**

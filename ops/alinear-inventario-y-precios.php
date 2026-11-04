@@ -212,6 +212,25 @@ foreach ( $outofstock_products as $p ) {
 	}
 }
 
+// -------------------------------------------------------------
+// FASE 5: Sincronización Canónica de wp_wc_product_meta_lookup
+// -------------------------------------------------------------
+echo "\n[5/5] Sincronizando proyección wp_wc_product_meta_lookup...\n";
+if ( ! $dry_run ) {
+	if ( function_exists( 'wc_update_product_lookup_tables_column' ) ) {
+		wc_update_product_lookup_tables_column( 'min_max_price' );
+	}
+	$affected_lookup = $wpdb->query(
+		"UPDATE {$wpdb->prefix}wc_product_meta_lookup lookup
+		 JOIN {$wpdb->postmeta} meta ON lookup.product_id = meta.post_id AND meta.meta_key = '_manage_stock' AND meta.meta_value = 'no'
+		 SET lookup.stock_quantity = NULL
+		 WHERE lookup.stock_quantity IS NOT NULL"
+	);
+	echo "  • Proyección de precios y stock unmanaged sincronizada con éxito (filas stock corregidas: $affected_lookup).\n";
+} else {
+	echo "  • [DRY-RUN] Proyección de lookup table no modificada.\n";
+}
+
 echo "\n============================================================\n";
 echo "  RESULTADO: " . ( $dry_run ? "Simulación completada sin modificaciones." : "Alineación aplicada con éxito." ) . "\n";
 echo "  Precios actualizados:   " . count( $price_fixes ) . "\n";

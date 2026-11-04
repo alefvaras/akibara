@@ -47,10 +47,10 @@ class InventoryGateTest(unittest.TestCase):
     def test_valid_reserve_and_half_up_rounding(self):
         self.assertTrue(self.approved())
         self.assertTrue(self.approved(regular_price='10600', sale_price='10100', price='10100'))
-        self.assertTrue(self.approved(regular_price='1010', sale_price='960', price='960'))
+        self.assertTrue(self.approved(regular_price='14990', sale_price='14200', price='14200'))
 
     def test_exact_reserve_price_required(self):
-        for changes in ({'sale_price':'9501'}, {'price':'10000'}, {'sale_price':''}):
+        for changes in ({'sale_price':'9501'}, {'price':'10000'}, {'sale_price':''}, {'regular_price':'10600', 'sale_price':'10070', 'price':'10070'}):
             with self.subTest(changes=changes): self.assertFalse(self.approved(**changes))
 
     def test_nonphysical_quantity_and_backorders_policy(self):

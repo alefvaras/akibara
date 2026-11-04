@@ -1,6 +1,6 @@
 # ADR-003: Nivelación de Precios por Serie y Autorización Obligatoria de Rescate
 
-- **Estado:** Aceptado e Implementado (`akibara-business 1.120.8`)
+- **Estado:** Aceptado e Implementado (`akibara-business 1.120.11`)
 - **Fecha:** 2026-11-04
 - **Contexto:**
   Al actualizar precios de tomos importados por fluctuaciones cambiarias o incrementos editoriales, existían casos donde tomos de una misma serie y formato quedaban desalineados (ej. Attack on Titan Deluxe tomo 01 a $25.500 vs tomos 02 al 06 a $29.500; o Dorohedoro a $33.000).

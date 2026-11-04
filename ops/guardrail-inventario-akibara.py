@@ -110,10 +110,9 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
                     'id' => $id, 'title' => $title, 'status' => $status, 'issue' => 'onbackorder pero tiene término outofstock'
                 ];
             }
-            // Control Regla 8: Onbackorder DEBE tener 5% de descuento (round_100 comercial o round exacto en pedidos protegidos)
+            // Control Regla 8: Onbackorder DEBE tener 5% de descuento con redondeo a la centena (round_100 obligatorio)
             $expected_sale_100 = round(($reg * 0.95) / 100.0, 0, PHP_ROUND_HALF_UP) * 100;
-            $expected_sale_exact = round($reg * 0.95);
-            if ($reg <= 0 || ($sale !== (float)$expected_sale_100 && $sale !== (float)$expected_sale_exact) || $price !== $sale) {
+            if ($reg <= 0 || $sale !== (float)$expected_sale_100 || $price !== $sale) {
                 $report['anomalies']['onbackorder_missing_5pct_discount'][] = [
                     'id' => $id, 'title' => $title, 'reg' => $reg, 'sale' => $sale, 'expected_sale' => $expected_sale_100
                 ];

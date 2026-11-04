@@ -354,7 +354,7 @@ final class PricingMatrixAdminPage {
 				<div class="akb-pm-header__left">
 					<h1 class="akb-pm-title">
 						Akibara Pricing &amp; Backorder Matrix
-						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.120.8'; ?></span>
+						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.120.11'; ?></span>
 					</h1>
 				</div>
 				<p class="akb-pm-subtitle">
@@ -380,7 +380,7 @@ final class PricingMatrixAdminPage {
 			} elseif ( 'rules' === $active_tab ) {
 				$this->render_tab_rules( PricingRulesRepository::export_json() );
 			} else {
-				$this->render_tab_scales( $scales );
+				$this->render_tab_scales( $scales, is_array( $last_result ) ? $last_result : null );
 			}
 			?>
 		</div>
@@ -430,49 +430,118 @@ final class PricingMatrixAdminPage {
 	}
 
 	/**
-	 * Renderiza el aviso del resultado de la última operación.
+	 * Renderiza el aviso o panel de revisión persistente del resultado de la última operación.
 	 *
 	 * @param array<string, mixed> $last_result Resultado almacenado en transient.
 	 * @return void
 	 */
 	private function render_last_result_notice( array $last_result ): void {
-		?>
-		<div class="notice notice-info is-dismissible" style="padding:12px 16px;margin:15px 0;border-left-color:#2271b1;">
-			<strong>Resultado de la última operación:</strong>
-			<?php if ( isset( $last_result['message'] ) ) : ?>
-				<span><?php echo esc_html( (string) $last_result['message'] ); ?></span>
-			<?php else : ?>
-				<span>
-					<?php echo ! empty( $last_result['dry_run'] ) ? '[SIMULACIÓN DRY-RUN] ' : '[APLICADO] '; ?>
-					Actualizados/Afectados: <strong><?php echo (int) ( $last_result['updated_count'] ?? $last_result['rescued_count'] ?? 0 ); ?></strong> |
-					Omitidos por blindaje de órdenes activas (🔒): <strong><?php echo (int) ( $last_result['skipped_locked_count'] ?? 0 ); ?></strong>
-				</span>
-			<?php endif; ?>
+		$is_dry_run = ! empty( $last_result['dry_run'] );
+		$is_scale   = isset( $last_result['scale_regular'], $last_result['new_regular'] );
 
-			<?php if ( ! empty( $last_result['skipped_locked_items'] ) && is_array( $last_result['skipped_locked_items'] ) ) : ?>
-				<details style="margin-top:8px;">
-					<summary style="cursor:pointer;font-weight:600;">Ver detalle de productos protegidos en órdenes abiertas (<?php echo count( $last_result['skipped_locked_items'] ); ?>)</summary>
-					<ul style="margin:6px 0 0 18px;list-style:disc;">
-						<?php foreach ( $last_result['skipped_locked_items'] as $locked_item ) : ?>
-							<?php
-							$pid        = (int) ( $locked_item['product_id'] ?? 0 );
-							$order_list = array();
-							if ( ! empty( $locked_item['orders'] ) && is_array( $locked_item['orders'] ) ) {
-								foreach ( $locked_item['orders'] as $o ) {
-									$order_list[] = '#' . (int) ( $o['order_id'] ?? 0 ) . ' (' . (string) ( $o['order_status'] ?? '' ) . ')';
-								}
-							}
-							?>
-							<li>
-								Producto <code>#<?php echo (int) $pid; ?></code> — Comprometido en:
-								<strong><?php echo esc_html( ! empty( $order_list ) ? implode( ', ', array_unique( $order_list ) ) : 'Stock < 0' ); ?></strong>
-							</li>
-						<?php endforeach; ?>
-					</ul>
-				</details>
-			<?php endif; ?>
-		</div>
-		<?php
+		if ( $is_dry_run && $is_scale ) :
+			$affected_count = (int) ( $last_result['updated_count'] ?? 0 );
+			$locked_count   = (int) ( $last_result['skipped_locked_count'] ?? 0 );
+			$unchanged      = (int) ( $last_result['unchanged_count'] ?? 0 );
+			?>
+			<div class="akb-pm-proposal-review" style="background:#f0f6fc;border:2px solid #2271b1;border-radius:8px;padding:16px 20px;margin:18px 0 24px;box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+				<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+					<div>
+						<div style="display:inline-block;background:#2271b1;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">
+							Propuesta Simulada (Listo para Aplicar)
+						</div>
+						<h3 style="margin:2px 0 6px 0;font-size:17px;color:#1d2327;">
+							Revisión de Escala para <strong><?php echo esc_html( strtoupper( (string) ( $last_result['editorial_slug'] ?? '' ) ) ); ?></strong>
+						</h3>
+						<p style="margin:0;font-size:13px;color:#2c3338;line-height:1.5;">
+							Precio Regular Base: <strong>$<?php echo number_format( (int) $last_result['scale_regular'], 0, ',', '.' ); ?></strong> ➔
+							Nuevo Regular: <strong style="color:#2271b1;font-size:15px;">$<?php echo number_format( (int) $last_result['new_regular'], 0, ',', '.' ); ?></strong> |
+							Nuevo A Pedido (5% round_100): <strong style="color:#008a20;font-size:15px;">$<?php echo number_format( (int) ( $last_result['target_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
+						</p>
+						<p style="margin:6px 0 0;font-size:12px;color:#50575e;">
+							Tomos que cambiarán: <strong style="color:#2271b1;"><?php echo (int) $affected_count; ?></strong> |
+							Sin cambios: <strong><?php echo (int) $unchanged; ?></strong> |
+							Protegidos en órdenes activas (🔒): <strong style="color:#d63638;"><?php echo (int) $locked_count; ?></strong>
+						</p>
+					</div>
+
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+						<?php wp_nonce_field( self::NONCE_ACTION ); ?>
+						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_APPLY_SCALE ); ?>" />
+						<input type="hidden" name="brand_id" value="<?php echo (int) ( $last_result['brand_id'] ?? 0 ); ?>" />
+						<input type="hidden" name="editorial_slug" value="<?php echo esc_attr( (string) ( $last_result['editorial_slug'] ?? '' ) ); ?>" />
+						<input type="hidden" name="scale_regular" value="<?php echo (int) $last_result['scale_regular']; ?>" />
+						<input type="hidden" name="new_regular" value="<?php echo (int) $last_result['new_regular']; ?>" />
+						<input type="hidden" name="discount_pct" value="<?php echo esc_attr( (string) ( $last_result['discount_pct'] ?? PricingMath::DEFAULT_DISCOUNT_PCT ) ); ?>" />
+						<input type="hidden" name="rounding_mode" value="<?php echo esc_attr( (string) ( $last_result['rounding_mode'] ?? PricingMath::DEFAULT_MODE ) ); ?>" />
+						<input type="hidden" name="manual_sale" value="<?php echo (int) ( $last_result['target_sale'] ?? 0 ); ?>" />
+						<input type="hidden" name="protect_active_orders" value="1" />
+						<button type="submit" class="button button-primary button-hero" style="font-size:14px;padding:8px 20px;height:auto;font-weight:700;">
+							Confirmar y Aplicar a los <?php echo (int) $affected_count; ?> tomos revisados
+						</button>
+					</form>
+				</div>
+
+				<?php if ( ! empty( $last_result['items'] ) && is_array( $last_result['items'] ) ) : ?>
+					<details style="margin-top:14px;background:#ffffff;border:1px solid #c3c4c7;border-radius:4px;padding:10px 14px;">
+						<summary style="cursor:pointer;font-weight:600;color:#2271b1;font-size:13px;">
+							Ver lista detallada de los <?php echo (int) $affected_count; ?> tomos (con precios antes y después)
+						</summary>
+						<div style="max-height:280px;overflow-y:auto;margin-top:10px;">
+							<table class="widefat striped" style="font-size:12px;border:none;">
+								<thead>
+									<tr>
+										<th style="width:70px;">ID</th>
+										<th>Título del Tomo</th>
+										<th style="width:110px;">Estado Stock</th>
+										<th style="width:180px;">Precio Regular</th>
+										<th style="width:180px;">Precio A Pedido</th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ( $last_result['items'] as $it ) : ?>
+										<?php if ( in_array( $it['status'] ?? '', array( 'would_update', 'updated' ), true ) ) : ?>
+											<tr>
+												<td><code>#<?php echo (int) ( $it['product_id'] ?? 0 ); ?></code></td>
+												<td><strong><?php echo esc_html( (string) ( $it['title'] ?? '' ) ); ?></strong></td>
+												<td><code><?php echo esc_html( (string) ( $it['stock_status'] ?? '' ) ); ?></code></td>
+												<td>
+													<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_regular'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
+													<strong style="color:#2271b1;">$<?php echo number_format( (int) ( $it['new_regular'] ?? 0 ), 0, ',', '.' ); ?></strong>
+												</td>
+												<td>
+													<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_sale'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
+													<strong style="color:#008a20;">$<?php echo number_format( (int) ( $it['new_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
+												</td>
+											</tr>
+										<?php endif; ?>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						</div>
+					</details>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $last_result['skipped_locked_items'] ) && is_array( $last_result['skipped_locked_items'] ) ) : ?>
+					<div style="margin-top:10px;padding:8px 12px;background:#fff8e5;border-left:3px solid #dba617;font-size:12px;">
+						<strong>🔒 <?php echo count( $last_result['skipped_locked_items'] ); ?> tomos protegidos</strong> en órdenes activas no sufrirán ninguna modificación.
+					</div>
+				<?php endif; ?>
+			</div>
+		<?php else : ?>
+			<div class="notice <?php echo $is_dry_run ? 'notice-info' : 'notice-success'; ?> is-dismissible" style="padding:12px 16px;margin:15px 0;">
+				<strong>Resultado de la última operación:</strong>
+				<?php if ( isset( $last_result['message'] ) ) : ?>
+					<span><?php echo esc_html( (string) $last_result['message'] ); ?></span>
+				<?php else : ?>
+					<span>
+						<?php echo $is_dry_run ? '[SIMULACIÓN DRY-RUN] ' : '[APLICADO CON ÉXITO] '; ?>
+						Actualizados/Afectados: <strong><?php echo (int) ( $last_result['updated_count'] ?? $last_result['rescued_count'] ?? 0 ); ?></strong> |
+						Omitidos por blindaje de órdenes activas (🔒): <strong><?php echo (int) ( $last_result['skipped_locked_count'] ?? 0 ); ?></strong>
+					</span>
+				<?php endif; ?>
+			</div>
+		<?php endif;
 	}
 
 	/**
@@ -514,21 +583,22 @@ final class PricingMatrixAdminPage {
 	/**
 	 * Renderiza la pestaña 1: Matriz de Escalas por Editorial.
 	 *
-	 * @param list<array<string, mixed>> $scales Escalas detectadas.
+	 * @param list<array<string, mixed>> $scales      Escalas detectadas.
+	 * @param array<string, mixed>|null  $last_result Resultado de última simulación/operación.
 	 * @return void
 	 */
-	private function render_tab_scales( array $scales ): void {
+	private function render_tab_scales( array $scales, ?array $last_result = null ): void {
 		?>
 		<div class="akb-pm-card">
 			<div class="akb-pm-global-action-bar">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-pm-global-action-bar__left">
 					<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SYNC_BO ); ?>" />
+					<input type="hidden" name="protect_active_orders" value="1" />
 					<strong>Sincronización Global de Precios A Pedido (5% + Redondeo CLP):</strong>
-					<label class="akb-pm-lock-toggle-label" style="padding:4px 8px;">
-						<input type="checkbox" name="protect_active_orders" value="1" checked="checked" />
-						<span>Proteger reservas en órdenes abiertas (wc-processing / wc-on-hold) 🔒</span>
-					</label>
+					<span class="akb-pm-lock-badge" style="padding:4px 8px;" title="Protección automática e inviolable de pedidos activos en wc-processing / wc-on-hold (Fail-Closed)">
+						🔒 Pedidos activos protegidos automáticamente
+					</span>
 					<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry">Simular Dry-Run Global</button>
 					<button type="submit" class="button button-primary akb-pm-btn-level">Sincronizar Todos los A Pedido</button>
 				</form>
@@ -559,7 +629,7 @@ final class PricingMatrixAdminPage {
 					</thead>
 					<tbody>
 						<?php foreach ( $scales as $row ) : ?>
-							<?php $this->render_scale_row( $row ); ?>
+							<?php $this->render_scale_row( $row, $last_result ); ?>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
@@ -571,16 +641,38 @@ final class PricingMatrixAdminPage {
 	/**
 	 * Renderiza una fila individual de la tabla de escalas.
 	 *
-	 * @param array<string, mixed> $row Fila de escala.
+	 * @param array<string, mixed>      $row         Fila de escala.
+	 * @param array<string, mixed>|null $last_result Resultado de última simulación (para conservar borrador).
 	 * @return void
 	 */
-	private function render_scale_row( array $row ): void {
+	private function render_scale_row( array $row, ?array $last_result = null ): void {
+		$is_draft_active = $last_result && ! empty( $last_result['dry_run'] )
+			&& ( $row['editorial_slug'] === ( $last_result['editorial_slug'] ?? '' ) )
+			&& ( (int) $row['escala_precio_regular'] === (int) ( $last_result['scale_regular'] ?? 0 ) );
+
+		if ( $is_draft_active ) {
+			$row['nuevo_precio_regular']  = (int) $last_result['new_regular'];
+			$row['nuevo_precio_a_pedido'] = (int) ( $last_result['target_sale'] ?? $row['nuevo_precio_a_pedido'] );
+			$row['discount_pct']          = (float) ( $last_result['discount_pct'] ?? $row['discount_pct'] );
+			$row['rounding_mode']         = (string) ( $last_result['rounding_mode'] ?? $row['rounding_mode'] );
+		}
+
+		$uid     = sanitize_html_class( $row['editorial_slug'] . '-' . $row['escala_precio_regular'] );
+		$id_reg  = 'reg-' . $uid;
+		$id_pct  = 'pct-' . $uid;
+		$id_mode = 'mode-' . $uid;
+		$id_sale = 'sale-' . $uid;
 		?>
-		<tr class="akb-scale-searchable-row" data-search="<?php echo esc_attr( strtolower( $row['editorial'] . ' ' . $row['editorial_slug'] . ' ' . $row['pais_codigo'] . ' ' . implode( ' ', $row['series_names'] ?? array() ) ) ); ?>">
+		<tr class="akb-scale-searchable-row <?php echo $is_draft_active ? 'akb-row-draft-active' : ''; ?>" data-search="<?php echo esc_attr( strtolower( $row['editorial'] . ' ' . $row['editorial_slug'] . ' ' . $row['pais_codigo'] . ' ' . implode( ' ', $row['series_names'] ?? array() ) ) ); ?>" <?php echo $is_draft_active ? 'style="background:#f0f6fc;"' : ''; ?>>
 			<td data-value="<?php echo esc_attr( $row['editorial'] ); ?>">
 				<div class="akb-pm-editorial-cell">
 					<span class="akb-pm-editorial-name"><?php echo esc_html( $row['editorial'] ); ?></span>
 					<span class="akb-pm-slug-badge"><?php echo esc_html( $row['editorial_slug'] ); ?></span>
+					<?php if ( $is_draft_active ) : ?>
+						<span style="display:inline-block;margin-top:4px;background:#2271b1;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">
+							Propuesta simulada: $<?php echo number_format( (int) $row['nuevo_precio_regular'], 0, ',', '.' ); ?>
+						</span>
+					<?php endif; ?>
 				</div>
 			</td>
 			<td data-value="<?php echo esc_attr( $row['pais_codigo'] ); ?>" style="text-align:center;">
@@ -631,19 +723,20 @@ final class PricingMatrixAdminPage {
 					<input type="hidden" name="brand_id" value="<?php echo (int) $row['brand_id']; ?>" />
 					<input type="hidden" name="editorial_slug" value="<?php echo esc_attr( $row['editorial_slug'] ); ?>" />
 					<input type="hidden" name="scale_regular" value="<?php echo (int) $row['escala_precio_regular']; ?>" />
+					<input type="hidden" name="protect_active_orders" value="1" />
 
 					<div class="akb-pm-scale-calc-grid">
 						<div class="akb-pm-calc-field">
-							<label>Nuevo Reg ($)</label>
-							<input type="number" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="1" min="100" required />
+							<label for="<?php echo esc_attr( $id_reg ); ?>">Nuevo Reg ($)</label>
+							<input type="number" id="<?php echo esc_attr( $id_reg ); ?>" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="1" min="100" aria-label="Nuevo precio regular para <?php echo esc_attr( $row['editorial'] ); ?> escala $<?php echo esc_attr( $row['escala_precio_regular'] ); ?>" required />
 						</div>
 						<div class="akb-pm-calc-field">
-							<label>% Desc</label>
-							<input type="number" name="discount_pct" class="akb-calc-pct" value="<?php echo esc_attr( (string) $row['discount_pct'] ); ?>" step="0.5" min="0" max="90" required />
+							<label for="<?php echo esc_attr( $id_pct ); ?>">% Desc</label>
+							<input type="number" id="<?php echo esc_attr( $id_pct ); ?>" name="discount_pct" class="akb-calc-pct" value="<?php echo esc_attr( (string) $row['discount_pct'] ); ?>" step="0.5" min="0" max="90" aria-label="Porcentaje de descuento para <?php echo esc_attr( $row['editorial'] ); ?>" required />
 						</div>
 						<div class="akb-pm-calc-field">
-							<label>Redondeo</label>
-							<select name="rounding_mode" class="akb-calc-mode">
+							<label for="<?php echo esc_attr( $id_mode ); ?>">Redondeo</label>
+							<select id="<?php echo esc_attr( $id_mode ); ?>" name="rounding_mode" class="akb-calc-mode" aria-label="Modo de redondeo para <?php echo esc_attr( $row['editorial'] ); ?>">
 								<option value="round_100" <?php selected( $row['rounding_mode'], 'round_100' ); ?>>round_100</option>
 								<option value="floor_100" <?php selected( $row['rounding_mode'], 'floor_100' ); ?>>floor_100</option>
 								<option value="round_50" <?php selected( $row['rounding_mode'], 'round_50' ); ?>>round_50</option>
@@ -651,18 +744,17 @@ final class PricingMatrixAdminPage {
 							</select>
 						</div>
 						<div class="akb-pm-calc-field">
-							<label>A Pedido ($)</label>
-							<input type="number" name="manual_sale" class="akb-calc-sale" value="<?php echo (int) $row['nuevo_precio_a_pedido']; ?>" step="50" style="font-weight:700;color:#0d6832;" required />
+							<label for="<?php echo esc_attr( $id_sale ); ?>">A Pedido ($)</label>
+							<input type="number" id="<?php echo esc_attr( $id_sale ); ?>" name="manual_sale" class="akb-calc-sale" value="<?php echo (int) $row['nuevo_precio_a_pedido']; ?>" step="50" aria-label="Precio de oferta A Pedido resultante para <?php echo esc_attr( $row['editorial'] ); ?>" style="font-weight:700;color:#0d6832;" required />
 						</div>
 					</div>
 
 					<div class="akb-pm-calc-footer">
-						<label class="akb-pm-lock-toggle-label" title="Protege tomos comprometidos en órdenes activas">
-							<input type="checkbox" name="protect_active_orders" value="1" checked="checked" />
-							<span>🔒 Proteger reservas</span>
-						</label>
+						<span class="akb-pm-lock-badge" title="Protección automática e inviolable de pedidos activos en wc-processing / wc-on-hold (Fail-Closed)">
+							🔒 Pedidos protegidos
+						</span>
 						<div class="akb-pm-btn-group">
-							<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry" title="Simular sin modificar base de datos">Dry-Run</button>
+							<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry" title="Simular y revisar qué tomos cambiarán antes de aplicar">Simular</button>
 							<button type="submit" class="button button-primary akb-pm-btn-level" title="Aplicar escala a todos los tomos">Aplicar</button>
 						</div>
 					</div>
@@ -766,12 +858,10 @@ final class PricingMatrixAdminPage {
 											<input type="hidden" name="brand_id" value="<?php echo (int) $d['brand_id']; ?>" />
 											<div class="akb-pm-input-price-wrap">
 												<span class="akb-pm-price-currency">$</span>
-												<input type="number" id="target-reg-<?php echo esc_attr( $row_key ); ?>" name="target_regular" class="akb-pm-input-price" value="<?php echo (int) $d['dominant_scale']; ?>" step="1" min="100" required />
+												<input type="number" id="target-reg-<?php echo esc_attr( $row_key ); ?>" name="target_regular" class="akb-pm-input-price" value="<?php echo (int) $d['dominant_scale']; ?>" step="1" min="100" aria-label="Precio regular objetivo para nivelar serie <?php echo esc_attr( $d['serie_name'] ); ?>" required />
 											</div>
-											<label class="akb-pm-lock-toggle-label" title="Proteger productos comprometidos en órdenes activas (🔒)">
-												<input type="checkbox" name="protect_active_orders" value="1" checked="checked" />
-												<span>🔒</span>
-											</label>
+											<input type="hidden" name="protect_active_orders" value="1" />
+											<span class="akb-pm-lock-badge" title="Protección automática e inviolable de pedidos activos en órdenes abiertas">🔒</span>
 											<div class="akb-pm-btn-group">
 												<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry" title="Simular sin modificar la base de datos">Dry-Run</button>
 												<button type="submit" class="button button-primary akb-pm-btn-level" title="Nivelar todos los tomos estándar al precio seleccionado">Nivelar Serie</button>
@@ -828,11 +918,9 @@ final class PricingMatrixAdminPage {
 								Distribuidor Oficial:
 								<select name="distributor_supplier" style="margin-left:6px;font-size:12px;">
 									<option value="">-- Seleccionar distribuidor confirmado --</option>
-									<option value="Pujol & Amadó (Panini / Planeta)">Pujol &amp; Amadó (Panini / Planeta)</option>
-									<option value="Candela (Ivrea Arg / Ovni Press)">Candela (Ivrea Arg / Ovni Press)</option>
-									<option value="Milky Way Ediciones">Milky Way Ediciones</option>
-									<option value="Ivrea España">Ivrea España</option>
-									<option value="Otro distribuidor oficial">Otro distribuidor oficial</option>
+									<?php foreach ( PricingSynchronizer::APPROVED_SUPPLIERS as $s_key => $s_label ) : ?>
+										<option value="<?php echo esc_attr( $s_key ); ?>"><?php echo esc_html( $s_label ); ?></option>
+									<?php endforeach; ?>
 								</select>
 							</label>
 							<label style="font-size:12px;font-weight:600;color:#1e293b;">
@@ -867,7 +955,7 @@ final class PricingMatrixAdminPage {
 							</thead>
 							<tbody>
 								<?php foreach ( array_slice( $rescuables, 0, 300 ) as $item ) : ?>
-									<tr class="akb-rescue-searchable-row" data-search="<?php echo esc_attr( strtolower( $item['title'] . ' ' . $item['editorial'] . ' ' . $item['product_id'] ) ); ?>">
+									<tr class="akb-rescue-searchable-row" data-search="<?php echo esc_attr( strtolower( $item['title'] . ' ' . $item['editorial'] . ' ' . $item['product_id'] . ' #' . $item['product_id'] ) ); ?>">
 										<td style="text-align:center;">
 											<input type="checkbox" class="akb-rescue-cb" name="product_ids[]" value="<?php echo (int) $item['product_id']; ?>" />
 										</td>

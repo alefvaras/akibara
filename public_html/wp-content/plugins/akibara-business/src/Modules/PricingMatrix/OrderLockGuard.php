@@ -86,7 +86,7 @@ final class OrderLockGuard {
 			  AND pm.meta_value != ''
 			  AND CAST(pm.meta_value AS SIGNED) < 0"
 		);
-		if ( false === $neg_stock_ids || ( null === $neg_stock_ids && ! empty( $wpdb->last_error ) ) ) {
+		if ( ! empty( $wpdb->last_error ) || false === $neg_stock_ids ) {
 			throw new \RuntimeException( 'Error al consultar productos con stock negativo en la base de datos: ' . $wpdb->last_error );
 		}
 		if ( is_array( $neg_stock_ids ) ) {
@@ -228,7 +228,7 @@ final class OrderLockGuard {
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql solo usa prefijos de $wpdb y constantes de estados terminales.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
-		if ( false === $rows || ( null === $rows && ! empty( $wpdb->last_error ) ) ) {
+		if ( ! empty( $wpdb->last_error ) || false === $rows ) {
 			throw new \RuntimeException( 'Error al consultar órdenes bloqueadas en la base de datos: ' . $wpdb->last_error );
 		}
 		return is_array( $rows ) ? $rows : array();

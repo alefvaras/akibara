@@ -38,6 +38,22 @@ final class PricingSynchronizer {
 	);
 
 	/**
+	 * Distribuidoras y sellos editoriales oficiales autorizados para reposición (Reglas 15 y 18, ADR-003).
+	 *
+	 * @var array<string, string>
+	 */
+	public const APPROVED_SUPPLIERS = array(
+		'candela'        => 'Candela (Ivrea Argentina / Ovni Press)',
+		'pujol-amado'    => 'Pujol & Amadó (Panini / Planeta Cómic)',
+		'milky-way'      => 'Milky Way Ediciones',
+		'panini-espana'  => 'Panini España',
+		'ivrea-espana'   => 'Ivrea España',
+		'arechi'         => 'Arechi Manga',
+		'distrito-manga' => 'Distrito Manga',
+		'devir'          => 'Devir Chile',
+	);
+
+	/**
 	 * Actualiza un metadato garantizando que jamás exista más de 1 fila en wp_postmeta.
 	 *
 	 * @param int    $post_id    ID del producto.
@@ -644,13 +660,34 @@ final class PricingSynchronizer {
 	 * @return array<string, mixed>
 	 */
 	public static function rescue_outofstock_products( array $product_ids, bool $dry_run = false, array $distributor_auth = array() ): array {
-		if ( ! $dry_run ) {
-			$supplier  = isset( $distributor_auth['supplier'] ) ? trim( (string) $distributor_auth['supplier'] ) : '';
-			$reference = isset( $distributor_auth['reference'] ) ? trim( (string) $distributor_auth['reference'] ) : '';
-			$confirmed = ! empty( $distributor_auth['confirmed'] );
+		$supplier_raw = isset( $distributor_auth['supplier'] ) ? trim( (string) $distributor_auth['supplier'] ) : '';
+		$supplier_key = strtolower( str_replace( array( ' ', '_' ), '-', $supplier_raw ) );
+		$reference    = isset( $distributor_auth['reference'] ) ? trim( (string) $distributor_auth['reference'] ) : '';
+		$confirmed    = ! empty( $distributor_auth['confirmed'] );
+		$allowed_skus = isset( $distributor_auth['skus'] ) && is_array( $distributor_auth['skus'] )
+			? array_flip( array_map( 'strval', $distributor_auth['skus'] ) )
+			: null;
 
-			if ( '' === $supplier || '' === $reference || ! $confirmed ) {
-				throw new \InvalidArgumentException( 'Rescate en vivo rechazado: según las Reglas 15 y 18 es obligatorio registrar la distribuidora oficial confirmada, el documento de respaldo y la confirmación expresa de stock para autorizar la venta.' );
+		$operator = 'admin';
+		if ( isset( $distributor_auth['operator'] ) && '' !== trim( (string) $distributor_auth['operator'] ) ) {
+			$operator = trim( (string) $distributor_auth['operator'] );
+		} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() && function_exists( 'wp_get_current_user' ) ) {
+			$u = wp_get_current_user();
+			if ( $u && ! empty( $u->user_login ) ) {
+				$operator = (string) $u->user_login;
+			}
+		}
+
+		if ( ! $dry_run ) {
+			$is_approved = isset( self::APPROVED_SUPPLIERS[ $supplier_key ] )
+				|| in_array( $supplier_raw, self::APPROVED_SUPPLIERS, true )
+				|| isset( self::APPROVED_SUPPLIERS[ $supplier_raw ] );
+
+			if ( '' === $supplier_raw || ! $is_approved || '' === $reference || ! $confirmed ) {
+				throw new \InvalidArgumentException( sprintf(
+					'Rescate en vivo rechazado: según las Reglas 15 y 18 es obligatorio registrar una distribuidora oficial autorizada (%s), el documento de respaldo y la confirmación expresa de stock.',
+					implode( ', ', array_keys( self::APPROVED_SUPPLIERS ) )
+				) );
 			}
 		}
 
@@ -659,16 +696,30 @@ final class PricingSynchronizer {
 
 		$summary = array(
 			'dry_run'              => $dry_run,
+			'supplier'             => $supplier_key,
+			'reference'            => $reference,
+			'operator'             => $operator,
 			'rescued_count'        => 0,
 			'skipped_locked_count' => 0,
 			'skipped_other_count'  => 0,
 			'items'                => array(),
 		);
 
-		$runner = static function () use ( $product_ids, $locked_set, $dry_run, $distributor_auth, &$summary ): void {
+		$runner = static function () use ( $product_ids, $locked_set, $dry_run, $supplier_key, $reference, $operator, $allowed_skus, &$summary ): void {
 			foreach ( $product_ids as $pid ) {
 				// Regla Inquebrantable 2: prohibido tocar stock/estado en productos bloqueados.
 				if ( isset( $locked_set[ $pid ] ) ) {
+					++$summary['skipped_locked_count'];
+					$summary['items'][] = array(
+						'product_id' => $pid,
+						'status'     => 'skipped_locked',
+					);
+					continue;
+				}
+
+				// Re-evaluación viva para evitar condiciones de carrera si entra un pedido mientras se procesa.
+				$fresh_locked = OrderLockGuard::get_locked_product_ids();
+				if ( in_array( $pid, $fresh_locked, true ) ) {
 					++$summary['skipped_locked_count'];
 					$summary['items'][] = array(
 						'product_id' => $pid,
@@ -689,6 +740,26 @@ final class PricingSynchronizer {
 					continue;
 				}
 
+				$sku = (string) $product->get_sku();
+				if ( '' === $sku ) {
+					++$summary['skipped_other_count'];
+					$summary['items'][] = array(
+						'product_id' => $pid,
+						'status'     => 'skipped_no_sku',
+					);
+					continue;
+				}
+
+				if ( null !== $allowed_skus && ! isset( $allowed_skus[ $sku ] ) ) {
+					++$summary['skipped_other_count'];
+					$summary['items'][] = array(
+						'product_id' => $pid,
+						'sku'        => $sku,
+						'status'     => 'skipped_sku_not_in_whitelist',
+					);
+					continue;
+				}
+
 				$reg = (int) round( (float) $product->get_regular_price( 'edit' ) );
 				if ( $reg <= 0 ) {
 					++$summary['skipped_other_count'];
@@ -701,6 +772,7 @@ final class PricingSynchronizer {
 					++$summary['rescued_count'];
 					$summary['items'][] = array(
 						'product_id'    => $pid,
+						'sku'           => $sku,
 						'title'         => $product->get_name(),
 						'status'        => 'would_rescue',
 						'regular_price' => $reg,
@@ -720,9 +792,16 @@ final class PricingSynchronizer {
 				delete_post_meta( $pid, '_stock' );
 				wp_remove_object_terms( $pid, StockStatus::OUT_OF_STOCK, 'product_visibility' );
 
-				if ( ! empty( $distributor_auth['supplier'] ) ) {
-					update_post_meta( $pid, '_akb_rescue_distributor', sanitize_text_field( (string) $distributor_auth['supplier'] ) );
-					update_post_meta( $pid, '_akb_rescue_reference', sanitize_text_field( (string) $distributor_auth['reference'] ) );
+				if ( '' !== $supplier_key ) {
+					// Persistencia canónica según ADR-003:
+					update_post_meta( $pid, '_akb_rescue_supplier', sanitize_text_field( $supplier_key ) );
+					update_post_meta( $pid, '_akb_rescue_ref', sanitize_text_field( $reference ) );
+					update_post_meta( $pid, '_akb_rescue_at', gmdate( 'Y-m-d H:i:s' ) );
+					update_post_meta( $pid, '_akb_rescue_by', sanitize_text_field( $operator ) );
+
+					// Compatibilidad retroactiva:
+					update_post_meta( $pid, '_akb_rescue_distributor', sanitize_text_field( $supplier_key ) );
+					update_post_meta( $pid, '_akb_rescue_reference', sanitize_text_field( $reference ) );
 					update_post_meta( $pid, '_akb_rescue_authorized_at', gmdate( 'Y-m-d H:i:s' ) );
 				}
 
@@ -742,6 +821,7 @@ final class PricingSynchronizer {
 				++$summary['rescued_count'];
 				$summary['items'][] = array(
 					'product_id'    => $pid,
+					'sku'           => $sku,
 					'title'         => $product->get_name(),
 					'status'        => 'rescued',
 					'regular_price' => $reg,

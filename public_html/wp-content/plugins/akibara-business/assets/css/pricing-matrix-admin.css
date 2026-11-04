@@ -611,8 +611,68 @@
 	}
 }
 
+@media (max-width: 768px) {
+	.akb-pm-table-responsive {
+		border: 1px solid var(--akb-pm-border);
+		border-radius: 4px;
+		-webkit-overflow-scrolling: touch;
+	}
+	.akb-pm-nav-tabs {
+		white-space: nowrap;
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
 @media (max-width: 600px) {
+	.akb-pm-wrap {
+		margin-right: 12px;
+	}
 	.akb-pm-cockpit {
 		grid-template-columns: 1fr;
+	}
+	.akb-pm-global-action-bar {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 12px;
+	}
+	.akb-pm-global-action-bar__left,
+	.akb-pm-global-action-bar__right {
+		flex-direction: column;
+		width: 100%;
+		align-items: stretch;
+	}
+	.akb-pm-global-action-bar button {
+		width: 100%;
+		min-height: 42px;
+		margin: 4px 0;
+	}
+	.akb-pm-scale-calc-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 8px;
+	}
+	.akb-pm-calc-footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+	}
+	.akb-pm-btn-group {
+		display: flex;
+		width: 100%;
+		gap: 6px;
+	}
+	.akb-pm-btn-group button {
+		flex: 1;
+		min-height: 40px;
+	}
+	.akb-pm-proposal-review {
+		padding: 12px 14px;
+	}
+	.akb-pm-proposal-review form {
+		width: 100%;
+	}
+	.akb-pm-proposal-review form button {
+		width: 100%;
+		min-height: 44px;
+		text-align: center;
 	}
 }
