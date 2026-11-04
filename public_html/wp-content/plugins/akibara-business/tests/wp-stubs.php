@@ -870,11 +870,11 @@ if ( ! class_exists( 'WC_Order' ) ) {
 		/** @var array<int, string> */
 		public array $akb_notes = array();
 
-		public function update_status( string $new_status, string $note = '', bool $manual = false ): bool {
+		public function update_status( $new_status, $note = '', $manual = false ) {
 			unset( $manual );
-			$this->akb_status = $new_status;
-			if ( '' !== $note ) {
-				$this->add_order_note( $note );
+			$this->akb_status = (string) $new_status;
+			if ( '' !== (string) $note ) {
+				$this->add_order_note( (string) $note );
 			}
 			return true;
 		}

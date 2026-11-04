@@ -34,8 +34,6 @@ final class UnpaidOrdersSweeper {
 	public const SWEEP_CAP = 50;
 
 	public function register(): void {
-		add_action( self::HOOK, array( $this, 'handle' ) );
-		add_action( 'init', array( $this, 'maybe_schedule' ) );
 		add_filter( 'woocommerce_cancel_unpaid_order', array( $this, 'filter_cancel_unpaid_order' ), 25, 2 );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -43,15 +41,12 @@ final class UnpaidOrdersSweeper {
 		}
 	}
 
-	public function maybe_schedule(): void {
-		if ( function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::HOOK ) ) {
-			wp_schedule_event( time(), self::SCHEDULE, self::HOOK );
-		}
-	}
-
 	/**
 	 * Permite la cancelación de órdenes pendientes que hayan superado las 24 horas,
 	 * evitando que pasarelas de pago bloqueen la cancelación de órdenes abandonadas.
+	 *
+	 * Solo aplica a órdenes de clientes creadas vía checkout o Store API; preserva
+	 * pedidos manuales de administración.
 	 *
 	 * @param bool     $should_cancel Decisión previa de cancelación.
 	 * @param WC_Order $order         Orden evaluada.
@@ -60,6 +55,11 @@ final class UnpaidOrdersSweeper {
 	public function filter_cancel_unpaid_order( bool $should_cancel, $order ): bool {
 		if ( ! $order instanceof WC_Order ) {
 			return $should_cancel;
+		}
+
+		// Solo cancelar órdenes originadas en checkout público (clásico o Store API), jamás pedidos manuales de administración.
+		if ( method_exists( $order, 'get_created_via' ) && ! in_array( $order->get_created_via(), array( 'checkout', 'store-api' ), true ) ) {
+			return false;
 		}
 
 		if ( $order->has_status( array( 'pending', 'wc-pending' ) ) ) {
@@ -113,14 +113,16 @@ final class UnpaidOrdersSweeper {
 				continue;
 			}
 
-			$order_id        = $order->get_id();
-			$cancelled_ids[] = $order_id;
+			$order_id = $order->get_id();
 
 			if ( ! $dry_run ) {
-				$note = function_exists( '__' )
-					? __( 'Cancelada automáticamente: pedido pendiente sin pago por más de 24 horas.', 'akibara-business' )
-					: 'Cancelada automáticamente: pedido pendiente sin pago por más de 24 horas.';
-				$order->update_status( 'cancelled', $note );
+				$note    = 'Cancelada automáticamente: pedido pendiente sin pago por más de 24 horas.';
+				$success = $order->update_status( 'cancelled', $note );
+				if ( $success ) {
+					$cancelled_ids[] = $order_id;
+				}
+			} else {
+				$cancelled_ids[] = $order_id;
 			}
 		}
 

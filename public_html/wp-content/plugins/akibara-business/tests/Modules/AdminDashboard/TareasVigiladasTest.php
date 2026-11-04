@@ -87,7 +87,7 @@ final class TareasVigiladasTest extends TestCase {
 		$vigiladas = AdminDashboard::watched_crons();
 
 		self::assertSame( OwnCrons::RECURRING, $vigiladas );
-		self::assertCount( 9, $vigiladas );
+		self::assertCount( 8, $vigiladas );
 		self::assertArrayHasKey(
 			LlmsManifest::HOOK,
 			$vigiladas,
@@ -100,13 +100,13 @@ final class TareasVigiladasTest extends TestCase {
 		$GLOBALS['akibara_test_options'] = array( OrderPreventaSettings::OPT_T7_ENABLED => 'no' );
 		$sin_recordatorio                = AdminDashboard::watched_crons();
 		self::assertArrayNotHasKey( RemindersCron::HOOK, $sin_recordatorio );
-		self::assertCount( 8, $sin_recordatorio );
+		self::assertCount( 7, $sin_recordatorio );
 
 		$GLOBALS['akibara_test_options'] = array( UpsellsAutofill::ENABLED_OPTION => 'no' );
 		$sin_recomendaciones             = AdminDashboard::watched_crons();
 		self::assertArrayNotHasKey( UpsellsAutofill::CRON_HOOK, $sin_recomendaciones );
 		self::assertArrayHasKey( RemindersCron::HOOK, $sin_recomendaciones );
-		self::assertCount( 8, $sin_recomendaciones );
+		self::assertCount( 7, $sin_recomendaciones );
 	}
 
 	/** @testdox Todo al día: ninguna alerta. */

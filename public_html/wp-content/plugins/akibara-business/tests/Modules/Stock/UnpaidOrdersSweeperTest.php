@@ -77,23 +77,20 @@ final class UnpaidOrdersSweeperTest extends TestCase {
 	}
 
 	/**
-	 * @testdox maybe_schedule agenda el evento diario si no está presente
+	 * @testdox Filtro woocommerce_cancel_unpaid_order preserva pedidos manuales no originados en checkout
 	 */
-	public function test_maybe_schedule_schedules_daily_event_if_missing(): void {
+	public function test_filter_cancel_unpaid_order_preserves_admin_orders(): void {
 		$sweeper = new UnpaidOrdersSweeper();
 
-		$scheduled = false;
-		Functions\when( 'wp_next_scheduled' )->justReturn( false );
-		Functions\when( 'wp_schedule_event' )->alias(
-			static function ( $timestamp, $recurrence, $hook ) use ( &$scheduled ) {
-				if ( UnpaidOrdersSweeper::HOOK === $hook && 'daily' === $recurrence ) {
-					$scheduled = true;
-				}
-				return true;
+		$admin_order                   = new class() extends WC_Order {
+			public function get_created_via(): string {
+				return 'admin';
 			}
-		);
+		};
+		$admin_order->akb_status       = 'pending';
+		$admin_order->akb_date_created = new \DateTimeImmutable( '-2 days' );
 
-		$sweeper->maybe_schedule();
-		self::assertTrue( $scheduled );
+		$should_cancel = $sweeper->filter_cancel_unpaid_order( false, $admin_order );
+		self::assertFalse( $should_cancel, 'No debe cancelar pedidos manuales de administración aunque tengan más de 24 horas' );
 	}
 }
