@@ -37,6 +37,7 @@ final class PricingMatrixCli {
 		\WP_CLI::add_command( 'akb-pricing rules', array( $this, 'cmd_rules' ) );
 		\WP_CLI::add_command( 'akb-pricing audit-orders', array( $this, 'cmd_audit_orders' ) );
 		\WP_CLI::add_command( 'akb-pricing audit-series', array( $this, 'cmd_audit_series' ) );
+		\WP_CLI::add_command( 'akb-pricing level-serie', array( $this, 'cmd_level_serie' ) );
 	}
 
 	/**
@@ -240,7 +241,8 @@ final class PricingMatrixCli {
 				'Serie'           => $r['serie_name'],
 				'Editorial'       => $r['editorial'],
 				'Escalas'         => implode( ' / ', $scales_str ),
-				'EscalaDominante' => $r['dominant_scale'],
+				'Dominante'       => '$' . number_format( (int) $r['dominant_scale'], 0, ',', '.' ),
+				'Promedio'        => '$' . number_format( (int) ( $r['average_price'] ?? $r['dominant_scale'] ), 0, ',', '.' ),
 				'TotalTomos'      => $r['total_tomos'],
 				'Protegidos'      => $r['locked_count'],
 			);
@@ -249,7 +251,64 @@ final class PricingMatrixCli {
 		\WP_CLI\Utils\format_items(
 			'table',
 			$table,
-			array( 'SerieID', 'Serie', 'Editorial', 'Escalas', 'EscalaDominante', 'TotalTomos', 'Protegidos' )
+			array( 'SerieID', 'Serie', 'Editorial', 'Escalas', 'Dominante', 'Promedio', 'TotalTomos', 'Protegidos' )
 		);
+	}
+
+	/**
+	 * Nivela el precio regular de los tomos estándar de una serie respetando el blindaje de órdenes.
+	 *
+	 * @param array<int, string>    $args       Argumentos posicionales.
+	 * @param array<string, string> $assoc_args Flags (`--serie-id=<id>`, `--target-regular=<precio>`, `--brand-id=<id>`, `--dry-run`, `--unprotect-orders`).
+	 * @return void
+	 */
+	public function cmd_level_serie( array $args = array(), array $assoc_args = array() ): void {
+		unset( $args );
+		$serie_id       = isset( $assoc_args['serie-id'] ) ? (int) $assoc_args['serie-id'] : 0;
+		$target_regular = isset( $assoc_args['target-regular'] ) ? (int) $assoc_args['target-regular'] : 0;
+		$brand_id       = isset( $assoc_args['brand-id'] ) ? (int) $assoc_args['brand-id'] : 0;
+		$dry_run        = isset( $assoc_args['dry-run'] );
+		$protect_orders = ! isset( $assoc_args['unprotect-orders'] );
+
+		if ( $serie_id <= 0 || $target_regular <= 0 ) {
+			\WP_CLI::error( 'Uso: wp akb-pricing level-serie --serie-id=<id> --target-regular=<precio> [--brand-id=<id>] [--dry-run] [--unprotect-orders]' );
+			return;
+		}
+
+		if ( $brand_id <= 0 ) {
+			global $wpdb;
+			$brand_id = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT tt_b.term_id
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->term_relationships} tr_s ON p.ID = tr_s.object_id
+					INNER JOIN {$wpdb->term_taxonomy} tt_s ON tr_s.term_taxonomy_id = tt_s.term_taxonomy_id AND tt_s.taxonomy = 'pa_serie' AND tt_s.term_id = %d
+					INNER JOIN {$wpdb->term_relationships} tr_b ON p.ID = tr_b.object_id
+					INNER JOIN {$wpdb->term_taxonomy} tt_b ON tr_b.term_taxonomy_id = tt_b.term_taxonomy_id AND tt_b.taxonomy = 'product_brand'
+					LIMIT 1",
+					$serie_id
+				)
+			);
+		}
+
+		$summary = PricingSynchronizer::level_series_scale( $serie_id, $brand_id, $target_regular, $protect_orders, $dry_run );
+
+		if ( ! $summary['ok'] ) {
+			\WP_CLI::error( $summary['message'] ?? 'Falló la nivelación de serie.' );
+			return;
+		}
+
+		\WP_CLI::log(
+			sprintf(
+				'Serie #%d nivelada a $%s (%s): %d tomos actualizados | %d tomos protegidos por órdenes activas (🔒)',
+				$serie_id,
+				number_format( $target_regular, 0, ',', '.' ),
+				$dry_run ? 'DRY-RUN' : 'APLICADO',
+				$summary['updated_count'],
+				$summary['skipped_locked_count']
+			)
+		);
+
+		\WP_CLI::success( $dry_run ? 'Simulación completada.' : 'Nivelación de serie completada.' );
 	}
 }

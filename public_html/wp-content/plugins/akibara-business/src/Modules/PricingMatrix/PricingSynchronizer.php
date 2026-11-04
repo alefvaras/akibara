@@ -596,7 +596,7 @@ final class PricingSynchronizer {
 					continue;
 				}
 				$title = (string) ( $row['post_title'] ?? '' );
-				if ( 1 === preg_match( '/\b(pack|box\s*set|cofre|starter\s*pack)\b/iu', $title ) ) {
+				if ( 1 === preg_match( '/\b(pack|box\s*set|cofre|starter\s*pack|artbook|el\s*arte\s*de\b|libro\s*de\s*arte|fanbook|character\s*book|gu[ií]a\s*oficial|edici[oó]n\s*especial|edici[oó]n\s*coleccionista|portada\s*alternativa|variant\s*cover)\b/iu', $title ) ) {
 					continue;
 				}
 

@@ -70,4 +70,19 @@ final class PricingMatrixTest extends TestCase {
 		self::assertContains( '_akb_tramo_prev_regular', $excluded );
 		self::assertContains( '_akb_tramo_prev_sale', $excluded );
 	}
+
+	/**
+	 * @testdox El cálculo del precio promedio ponderado redondea a la centena más cercana (round_100)
+	 */
+	public function test_average_price_rounding(): void {
+		// Dorohedoro hipotético: 10 tomos a 29500 y 2 tomos a 36500 = (295000 + 73000)/12 = 30666.6 -> 30700
+		$prices = array_merge( array_fill( 0, 10, 29500 ), array_fill( 0, 2, 36500 ) );
+		$avg    = (int) ( round( ( array_sum( $prices ) / count( $prices ) ) / 100 ) * 100 );
+		self::assertSame( 30700, $avg );
+
+		// 17 tomos a 26500 y 1 tomo a 27500 = (450500 + 27500)/18 = 26555.5 -> 26600
+		$prices2 = array_merge( array_fill( 0, 17, 26500 ), array( 27500 ) );
+		$avg2    = (int) ( round( ( array_sum( $prices2 ) / count( $prices2 ) ) / 100 ) * 100 );
+		self::assertSame( 26600, $avg2 );
+	}
 }

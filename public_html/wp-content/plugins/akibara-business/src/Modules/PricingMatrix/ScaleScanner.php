@@ -332,7 +332,7 @@ final class ScaleScanner {
 			return false;
 		}
 		$title = (string) ( $row['post_title'] ?? '' );
-		if ( 1 === preg_match( '/\b(pack|box\s*set|cofre|starter\s*pack)\b/iu', $title ) ) {
+		if ( 1 === preg_match( '/\b(pack|box\s*set|cofre|starter\s*pack|artbook|el\s*arte\s*de\b|libro\s*de\s*arte|fanbook|character\s*book|gu[ií]a\s*oficial|edici[oó]n\s*especial|edici[oó]n\s*coleccionista|portada\s*alternativa|variant\s*cover)\b/iu', $title ) ) {
 			return false;
 		}
 
@@ -366,6 +366,10 @@ final class ScaleScanner {
 			$dominant_scale = (int) array_key_first( $scales );
 			ksort( $entry['scales'], SORT_NUMERIC );
 
+			$sum           = array_sum( array_map( static fn( array $p ): int => (int) $p['regular_price'], $entry['products'] ) );
+			$count         = count( $entry['products'] );
+			$average_price = (int) ( round( ( $sum / max( $count, 1 ) ) / 100 ) * 100 );
+
 			$discrepancies[] = array(
 				'serie_id'       => $entry['serie_id'],
 				'serie_name'     => $entry['serie_name'],
@@ -375,6 +379,7 @@ final class ScaleScanner {
 				'editorial_slug' => $entry['editorial_slug'],
 				'scales'         => $entry['scales'],
 				'dominant_scale' => $dominant_scale,
+				'average_price'  => $average_price,
 				'total_tomos'    => count( $entry['products'] ),
 				'locked_count'   => count( $entry['locked_pids'] ),
 				'product_ids'    => array_keys( $entry['products'] ),

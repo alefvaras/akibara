@@ -390,6 +390,19 @@
 	font-weight: 600;
 }
 
+.akb-pm-scale-chip--average {
+	background: #edf2ff;
+	color: #364fc7;
+	border-color: #bac8ff;
+	font-weight: 700;
+}
+
+.akb-pm-scale-chip--average:hover {
+	background: #dbe4ff;
+	border-color: #748ffc;
+	color: #2b3a9a;
+}
+
 .akb-pm-chip-count {
 	font-size: 10px;
 	opacity: 0.85;

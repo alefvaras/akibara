@@ -643,8 +643,8 @@ final class PricingMatrixAdminPage {
 			</h2>
 			<p class="akb-pm-card__desc">
 				Detecta series cuyos tomos estándar tienen precios regulares distintos dentro de la misma editorial
-				(ignorando tomos marcados con <code>_akb_variante_tomo = 'edicion_especial'</code> y packs).
-				Haz clic sobre cualquier escala detectada para fijar ese valor como precio objetivo antes de nivelar.
+				(los artbooks, packs y tomos con <code>_akb_variante_tomo = 'edicion_especial'</code> se omiten automáticamente para proteger los márgenes).
+				<strong>Criterio sugerido:</strong> Nivelar al promedio ponderado o a la escala dominante para garantizar uniformidad comercial. Clic en cualquier chip para fijar el precio objetivo antes de nivelar.
 			</p>
 
 			<?php if ( empty( $discrepancies ) ) : ?>
@@ -687,6 +687,11 @@ final class PricingMatrixAdminPage {
 									</td>
 									<td>
 										<div class="akb-pm-scales-wrap">
+											<?php if ( ! empty( $d['average_price'] ) ) : ?>
+												<button type="button" class="akb-pm-scale-chip akb-pm-scale-chip--average" data-input-id="target-reg-<?php echo (int) $d['serie_id']; ?>" data-price="<?php echo (int) $d['average_price']; ?>" title="Promedio ponderado ($<?php echo number_format( (int) $d['average_price'], 0, ',', '.' ); ?>). Clic para fijar como objetivo.">
+													<span>⚖ Promedio: $<?php echo esc_html( number_format( (int) $d['average_price'], 0, ',', '.' ) ); ?></span>
+												</button>
+											<?php endif; ?>
 											<?php foreach ( $d['scales'] as $sc => $cnt ) : ?>
 												<?php $is_dom = ( (int) $sc === (int) $d['dominant_scale'] ); ?>
 												<button type="button" class="akb-pm-scale-chip <?php echo $is_dom ? 'akb-pm-scale-chip--dominant' : 'akb-pm-scale-chip--divergent'; ?>" data-input-id="target-reg-<?php echo (int) $d['serie_id']; ?>" data-price="<?php echo (int) $sc; ?>" title="<?php echo $is_dom ? 'Escala dominante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.' : 'Escala discrepante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.'; ?>">
