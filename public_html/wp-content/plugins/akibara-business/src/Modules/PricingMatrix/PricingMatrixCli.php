@@ -5,7 +5,7 @@
  * Subcomandos soportados:
  *   - wp akb-pricing self-test
  *   - wp akb-pricing scales
- *   - wp akb-pricing sync-backorders [--dry-run] [--unprotect-orders] [--brand-id=<id>]
+ *   - wp akb-pricing sync-backorders [--dry-run] [--brand-id=<id>]
  *   - wp akb-pricing rules <export|import> [--file=<path>]
  *   - wp akb-pricing audit-orders
  *   - wp akb-pricing audit-series
@@ -117,7 +117,7 @@ final class PricingMatrixCli {
 	 * Sincroniza el descuento redondeado A Pedido en todos los productos `onbackorder`.
 	 *
 	 * @param array<int, string>    $args       Argumentos posicionales.
-	 * @param array<string, string> $assoc_args Flags (`--dry-run`, `--unprotect-orders`, `--brand-id`).
+	 * @param array<string, string> $assoc_args Flags (`--dry-run`, `--brand-id`).
 	 * @return void
 	 */
 	public function cmd_sync_backorders( array $args = array(), array $assoc_args = array() ): void {
@@ -253,7 +253,7 @@ final class PricingMatrixCli {
 	 * Nivela el precio regular de los tomos estándar de una serie respetando el blindaje de órdenes.
 	 *
 	 * @param array<int, string>    $args       Argumentos posicionales.
-	 * @param array<string, string> $assoc_args Flags (`--serie-id=<id>`, `--target-regular=<precio>`, `--brand-id=<id>`, `--dry-run`, `--unprotect-orders`).
+	 * @param array<string, string> $assoc_args Flags (`--serie-id=<id>`, `--target-regular=<precio>`, `--brand-id=<id>`, `--dry-run`).
 	 * @return void
 	 */
 	public function cmd_level_serie( array $args = array(), array $assoc_args = array() ): void {

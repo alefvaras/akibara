@@ -85,6 +85,36 @@ final class BacsLifecycleManager {
 		}
 	}
 
+	/**
+	 * Retorna los datos bancarios para transferencia, extrayéndolos de la configuración oficial
+	 * de WooCommerce (woocommerce_bacs_accounts) con fallback canónico a Akibara SpA.
+	 *
+	 * @return array{bank_name: string, account_type: string, account_number: string, rut: string, holder: string, email: string}
+	 */
+	public static function get_bank_details(): array {
+		$accounts = get_option( 'woocommerce_bacs_accounts', array() );
+		if ( is_array( $accounts ) && ! empty( $accounts[0] ) && is_array( $accounts[0] ) ) {
+			$acc = $accounts[0];
+			return array(
+				'bank_name'      => ! empty( $acc['bank_name'] ) ? (string) $acc['bank_name'] : 'Banco de Chile',
+				'account_type'   => ! empty( $acc['sort_code'] ) ? (string) $acc['sort_code'] : 'Cuenta Vista',
+				'account_number' => ! empty( $acc['account_number'] ) ? (string) $acc['account_number'] : '39625300',
+				'rut'            => ! empty( $acc['iban'] ) ? (string) $acc['iban'] : '78.274.225-6',
+				'holder'         => ! empty( $acc['account_name'] ) ? (string) $acc['account_name'] : 'Akibara SpA',
+				'email'          => ! empty( $acc['bic'] ) ? (string) $acc['bic'] : (string) get_option( 'admin_email', 'contacto@akibara.cl' ),
+			);
+		}
+
+		return array(
+			'bank_name'      => 'Banco de Chile',
+			'account_type'   => 'Cuenta Vista',
+			'account_number' => '39625300',
+			'rut'            => '78.274.225-6',
+			'holder'         => 'Akibara SpA',
+			'email'          => 'contacto@akibara.cl',
+		);
+	}
+
 	public function send_reminder( int $order_id ): void {
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof \WC_Order || 'on-hold' !== $order->get_status() || 'bacs' !== $order->get_payment_method() ) {
@@ -101,9 +131,15 @@ final class BacsLifecycleManager {
 			return;
 		}
 
-		$subject   = sprintf( 'Recordatorio: Tu pedido #%s en Akibara espera tu comprobante de transferencia', $order->get_order_number() );
-		$heading   = 'Tu pedido espera transferencia';
-		$order_url = \Akibara\Business\Modules\EmailBrand\EmailBrand::order_url( $order );
+		$hours           = BusinessOptions::bacs_expiry_hours();
+		$reminder_hours  = BusinessOptions::bacs_reminder_hours();
+		$remaining_hours = max( 1, $hours - $reminder_hours );
+		$bank            = self::get_bank_details();
+
+		$default_subject = sprintf( 'Recordatorio: Tu pedido #%s en Akibara espera tu comprobante de transferencia', $order->get_order_number() );
+		$subject         = (string) apply_filters( 'akb_bacs_reminder_email_subject', $default_subject, $order );
+		$heading         = (string) apply_filters( 'akb_bacs_reminder_email_heading', 'Tu pedido espera transferencia', $order );
+		$order_url       = \Akibara\Business\Modules\EmailBrand\EmailBrand::order_url( $order );
 		if ( '' === $order_url ) {
 			$order_url = (string) $order->get_view_order_url();
 		}
@@ -113,17 +149,24 @@ final class BacsLifecycleManager {
 			<div class="akb-email-callout" style="margin:16px 0;padding:16px 20px;background:#fbf8f0;border:1px solid #141416;border-left:4px solid #E60012;border-radius:0;">
 				<p style="margin:0 0 8px;font-weight:bold;color:#0d0d0d;">Datos para transferir:</p>
 				<p style="margin:0;font-size:14px;line-height:1.6;color:#2b2b2b;">
-					<strong>Banco:</strong> Banco de Chile<br>
-					<strong>Tipo de cuenta:</strong> Cuenta Vista<br>
-					<strong>N.º de cuenta:</strong> 39625300<br>
-					<strong>RUT:</strong> 78.274.225-6<br>
-					<strong>Titular:</strong> Akibara SpA<br>
-					<strong>Correo:</strong> contacto@akibara.cl
+					<strong>Banco:</strong> %s<br>
+					<strong>Tipo de cuenta:</strong> %s<br>
+					<strong>N.º de cuenta:</strong> %s<br>
+					<strong>RUT:</strong> %s<br>
+					<strong>Titular:</strong> %s<br>
+					<strong>Correo:</strong> %s
 				</p>
 			</div>
-			<p style="margin:0 0 12px">Por favor informa tu comprobante o N.º de operación en el detalle de tu pedido o responde este correo dentro de las próximas 12 horas para asegurar tus tomos.</p>%s',
+			<p style="margin:0 0 12px">Por favor informa tu comprobante o N.º de operación en el detalle de tu pedido o responde este correo dentro de las próximas %d horas para asegurar tus tomos.</p>%s',
 			esc_html( $order->get_billing_first_name() ),
 			esc_html( (string) $order->get_order_number() ),
+			esc_html( $bank['bank_name'] ),
+			esc_html( $bank['account_type'] ),
+			esc_html( $bank['account_number'] ),
+			esc_html( $bank['rut'] ),
+			esc_html( $bank['holder'] ),
+			esc_html( $bank['email'] ),
+			$remaining_hours,
 			\Akibara\Business\Services\EmailButton::render( 'Informar Comprobante / Ver Pedido', $order_url )
 		);
 
@@ -224,21 +267,22 @@ final class BacsLifecycleManager {
 		$remaining_s  = max( 0, $deadline - time() );
 		$rem_hours    = (int) floor( $remaining_s / 3600 );
 		$rem_minutes  = (int) floor( ( $remaining_s % 3600 ) / 60 );
+		$bank         = self::get_bank_details();
 
 		$nonce = wp_create_nonce( 'akb_bacs_receipt_nonce' );
 		?>
 		<div class="akb-bacs-portal-box" style="margin:25px 0; padding:20px; border:2px solid #0073aa; border-radius:6px; background:#f4f8fb;">
-			<h3 style="margin-top:0; color:#0073aa;">Informar Pago por Transferencia Bancaria (Banco de Chile)</h3>
+			<h3 style="margin-top:0; color:#0073aa;">Informar Pago por Transferencia Bancaria (<?php echo esc_html( $bank['bank_name'] ); ?>)</h3>
 			<p>Para asegurar tus tomos y coordinar el despacho, por favor realiza tu transferencia y sube aquí tu número de operación.</p>
 
 			<div style="background:#fff; padding:12px 16px; border:1px solid #c3c4c7; border-radius:4px; margin-bottom:15px; font-size:14px;">
 				<strong>Datos de la Cuenta Oficial:</strong><br>
-				• <strong>Banco:</strong> Banco de Chile<br>
-				• <strong>Tipo de Cuenta:</strong> Cuenta Vista<br>
-				• <strong>N.º de Cuenta:</strong> 39625300<br>
-				• <strong>RUT:</strong> 78.274.225-6<br>
-				• <strong>Nombre:</strong> Akibara SpA<br>
-				• <strong>Correo de notificación:</strong> contacto@akibara.cl<br>
+				• <strong>Banco:</strong> <?php echo esc_html( $bank['bank_name'] ); ?><br>
+				• <strong>Tipo de Cuenta:</strong> <?php echo esc_html( $bank['account_type'] ); ?><br>
+				• <strong>N.º de Cuenta:</strong> <?php echo esc_html( $bank['account_number'] ); ?><br>
+				• <strong>RUT:</strong> <?php echo esc_html( $bank['rut'] ); ?><br>
+				• <strong>Nombre:</strong> <?php echo esc_html( $bank['holder'] ); ?><br>
+				• <strong>Correo de notificación:</strong> <?php echo esc_html( $bank['email'] ); ?><br>
 				• <strong>Monto Exacto a Transferir:</strong> $<?php echo number_format( (float) $order->get_total(), 0, ',', '.' ); ?> CLP
 			</div>
 
@@ -318,19 +362,21 @@ final class BacsLifecycleManager {
 			$order_url = (string) $order->get_view_order_url();
 		}
 		$hours     = BusinessOptions::bacs_expiry_hours();
+		$grace     = BusinessOptions::bacs_receipt_grace_hours();
+		$bank      = self::get_bank_details();
 
 		if ( $plain_text ) {
 			echo "\n" . sprintf( "⏱ Plazo de transferencia: %d horas\n", $hours );
 			echo "Para asegurar el stock de tu pedido, realiza la transferencia antes de que termine el plazo.\n";
-			echo "Una vez transferido, informa tu N.º de operación en tu pedido para extender la reserva por +48 hrs mientras validamos con Banco de Chile:\n";
+			echo sprintf( "Una vez transferido, informa tu N.º de operación en tu pedido para extender la reserva por +%d hrs mientras validamos con %s:\n", $grace, $bank['bank_name'] );
 			echo $order_url . "\n\n";
 			return;
 		}
 
 		echo '<div class="akb-email-callout" style="margin:20px 0; padding:16px 20px; background:#fbf8f0; border:1px solid #141416; border-left:4px solid #E60012; border-radius:0;">';
 		echo '<h4 style="margin:0 0 8px 0; color:#0d0d0d; font-size:15px; font-weight:bold;">⏱ Plazo de transferencia: ' . esc_html( (string) $hours ) . ' horas</h4>';
-		echo '<p style="margin:0 0 10px 0; font-size:14px; line-height:1.5; color:#2b2b2b;">Para asegurar el stock de tus tomos, realiza tu transferencia a Banco de Chile dentro de las próximas ' . esc_html( (string) $hours ) . ' horas.</p>';
-		echo '<p style="margin:0; font-size:14px; line-height:1.5; color:#2b2b2b;">Una vez transferido, <a href="' . esc_url( $order_url ) . '" style="color:#CC0010; font-weight:bold; text-decoration:underline;">ingresa a tu pedido</a> para registrar tu N.º de operación o responde a este correo con tu comprobante y extenderemos tu reserva por +48 horas de gracia mientras confirmamos el pago.</p>';
+		echo '<p style="margin:0 0 10px 0; font-size:14px; line-height:1.5; color:#2b2b2b;">Para asegurar el stock de tus tomos, realiza tu transferencia a ' . esc_html( $bank['bank_name'] ) . ' dentro de las próximas ' . esc_html( (string) $hours ) . ' horas.</p>';
+		echo '<p style="margin:0; font-size:14px; line-height:1.5; color:#2b2b2b;">Una vez transferido, <a href="' . esc_url( $order_url ) . '" style="color:#CC0010; font-weight:bold; text-decoration:underline;">ingresa a tu pedido</a> para registrar tu N.º de operación o responde a este correo con tu comprobante y extenderemos tu reserva por +' . esc_html( (string) $grace ) . ' horas de gracia mientras confirmamos el pago.</p>';
 		echo '</div>';
 	}
 }
