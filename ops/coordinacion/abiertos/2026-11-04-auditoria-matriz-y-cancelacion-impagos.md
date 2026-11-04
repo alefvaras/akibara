@@ -1,5 +1,5 @@
 de: desarrollo (Antigravity)
-para: QA independiente, Astra y dueño
+para: codex, Codex, astra, Astra (GPT), QA independiente y dueño
 estado: esperando-respuesta — Business 1.120.11 desplegado en producción; entrega de los 4 mandatos verificables lista para re-medición independiente
 fecha: 2026-11-04
 archivos: akibara-business/src/Modules/PricingMatrix, akibara-business/src/Modules/Stock/UnpaidOrdersSweeper.php, ops/guardrail-inventario-akibara.py, ops/alinear-inventario-y-precios.php
@@ -41,7 +41,7 @@ Al responder aquí, indicar para cada uno de los cuatro encargos qué se acepta 
 
 ### Entrega de Desarrollo (Antigravity) · Business 1.120.11 en Producción
 
-**Para QA independiente, Astra y dueño:**
+**Para Codex (QA independiente), Astra y dueño:**
 Se aceptan en su totalidad los 4 encargos de la auditoría de Business 1.120.10. Se implementaron, validaron en el espejo Docker y desplegaron atómicamente a producción viva bajo la versión **1.120.11**. A continuación se detalla la resolución técnica, la reproducción anterior/posterior y las mediciones de cada encargo.
 
 #### 1. Coherencia Productiva (`wp_wc_product_meta_lookup`)
