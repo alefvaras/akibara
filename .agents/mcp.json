@@ -1,0 +1,81 @@
+{
+  "mcpServers": {
+    "google-search-console": {
+      "command": "/Users/alefvaras/.codex/bin/gsc-mcp",
+      "args": [],
+      "env": {
+        "GOOGLE_SERVICE_ACCOUNT_FILE": "/Users/alefvaras/.codex/credentials/google-search-console-service-account.json"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 30,
+      "toolTimeoutSec": 120
+    },
+    "hostinger-hosting": {
+      "command": "npx",
+      "args": ["--yes", "--package=hostinger-api-mcp@latest", "hostinger-hosting-mcp"],
+      "env": {
+        "HOSTINGER_API_TOKEN": "IbO1k3NdbXRrHGGjKVBwjcBfZCr8cz4RNXprOGs9f3612372"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 60,
+      "toolTimeoutSec": 120
+    },
+    "hostinger-domains": {
+      "command": "npx",
+      "args": ["--yes", "--package=hostinger-api-mcp@latest", "hostinger-domains-mcp"],
+      "env": {
+        "HOSTINGER_API_TOKEN": "IbO1k3NdbXRrHGGjKVBwjcBfZCr8cz4RNXprOGs9f3612372"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 60,
+      "toolTimeoutSec": 120
+    },
+    "hostinger-dns": {
+      "command": "npx",
+      "args": ["--yes", "--package=hostinger-api-mcp@latest", "hostinger-dns-mcp"],
+      "env": {
+        "HOSTINGER_API_TOKEN": "IbO1k3NdbXRrHGGjKVBwjcBfZCr8cz4RNXprOGs9f3612372"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 60,
+      "toolTimeoutSec": 120
+    },
+    "hostinger-billing": {
+      "command": "npx",
+      "args": ["--yes", "--package=hostinger-api-mcp@latest", "hostinger-billing-mcp"],
+      "env": {
+        "HOSTINGER_API_TOKEN": "IbO1k3NdbXRrHGGjKVBwjcBfZCr8cz4RNXprOGs9f3612372"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 60,
+      "toolTimeoutSec": 120
+    },
+    "hostinger-reach": {
+      "command": "npx",
+      "args": ["--yes", "--package=hostinger-api-mcp@latest", "hostinger-reach-mcp"],
+      "env": {
+        "HOSTINGER_API_TOKEN": "IbO1k3NdbXRrHGGjKVBwjcBfZCr8cz4RNXprOGs9f3612372"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 60,
+      "toolTimeoutSec": 120
+    },
+    "hostinger-ecommerce": {
+      "command": "npx",
+      "args": ["--yes", "--package=hostinger-api-mcp@latest", "hostinger-ecommerce-mcp"],
+      "env": {
+        "HOSTINGER_API_TOKEN": "IbO1k3NdbXRrHGGjKVBwjcBfZCr8cz4RNXprOGs9f3612372"
+      },
+      "enabled": true,
+      "startupTimeoutSec": 60,
+      "toolTimeoutSec": 120
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "enabled": true,
+      "startupTimeoutSec": 30,
+      "toolTimeoutSec": 60
+    }
+  }
+}
