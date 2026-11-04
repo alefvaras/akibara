@@ -68,9 +68,20 @@ final class PricingMatrixCli {
 			return;
 		}
 
+		if ( empty( $report['ok'] ) ) {
+			\WP_CLI::error(
+				sprintf(
+					'Suite en FAIL: %d de %d tests aprobados. Hay regresiones o presupuestos excedidos.',
+					$report['passed_count'],
+					$report['total_count']
+				)
+			);
+			return;
+		}
+
 		\WP_CLI::success(
 			sprintf(
-				'6/6 tests en PASS (%d/%d). Integridad matemática, blindaje de órdenes, buscador y rendimiento certificados.',
+				'%d/%d tests en PASS. Integridad matemática, blindaje de órdenes, buscador y rendimiento certificados.',
 				$report['passed_count'],
 				$report['total_count']
 			)

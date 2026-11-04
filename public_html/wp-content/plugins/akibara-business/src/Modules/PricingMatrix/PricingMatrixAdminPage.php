@@ -23,8 +23,9 @@ defined( 'ABSPATH' ) || exit;
 final class PricingMatrixAdminPage {
 
 	public const MENU_SLUG          = 'akibara-pricing-matrix';
-	public const ACTION_APPLY_SCALE = 'akb_pricing_matrix_apply_scale';
-	public const ACTION_SYNC_BO     = 'akb_pricing_matrix_sync_backorders';
+	public const ACTION_APPLY_SCALE      = 'akb_pricing_matrix_apply_scale';
+	public const ACTION_DISCARD_PROPOSAL = 'akb_pricing_matrix_discard_proposal';
+	public const ACTION_SYNC_BO          = 'akb_pricing_matrix_sync_backorders';
 	public const ACTION_LEVEL_SERIE = 'akb_pricing_matrix_level_series';
 	public const ACTION_RESCUE_OOS  = 'akb_pricing_matrix_rescue_oos';
 	public const ACTION_IMPORT_JSON = 'akb_pricing_matrix_import_json';
@@ -40,6 +41,7 @@ final class PricingMatrixAdminPage {
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 62 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'admin_post_' . self::ACTION_APPLY_SCALE, array( $this, 'handle_apply_scale' ) );
+		add_action( 'admin_post_' . self::ACTION_DISCARD_PROPOSAL, array( $this, 'handle_discard_proposal' ) );
 		add_action( 'admin_post_' . self::ACTION_SYNC_BO, array( $this, 'handle_sync_backorders' ) );
 		add_action( 'admin_post_' . self::ACTION_LEVEL_SERIE, array( $this, 'handle_level_series' ) );
 		add_action( 'admin_post_' . self::ACTION_RESCUE_OOS, array( $this, 'handle_rescue_oos' ) );
@@ -80,6 +82,31 @@ final class PricingMatrixAdminPage {
 			array(),
 			PluginAssetVersion::for_path( 'assets/css/pricing-matrix-admin.css' )
 		);
+	}
+
+	/**
+	 * Descarta la propuesta simulada activa y limpia el transient de sesión del dueño.
+	 *
+	 * @return void
+	 */
+	public function handle_discard_proposal(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( 'No autorizado.' );
+		}
+		check_admin_referer( self::NONCE_ACTION );
+
+		delete_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id() );
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page' => self::MENU_SLUG,
+					'tab'  => 'scales',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
 	}
 
 	/**
@@ -456,7 +483,7 @@ final class PricingMatrixAdminPage {
 						<p style="margin:0;font-size:13px;color:#2c3338;line-height:1.5;">
 							Precio Regular Base: <strong>$<?php echo number_format( (int) $last_result['scale_regular'], 0, ',', '.' ); ?></strong> ➔
 							Nuevo Regular: <strong style="color:#2271b1;font-size:15px;">$<?php echo number_format( (int) $last_result['new_regular'], 0, ',', '.' ); ?></strong> |
-							Nuevo A Pedido (5% round_100): <strong style="color:#008a20;font-size:15px;">$<?php echo number_format( (int) ( $last_result['target_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
+							Nuevo A Pedido (5% desc. redondeado a $100): <strong style="color:#008a20;font-size:15px;">$<?php echo number_format( (int) ( $last_result['target_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
 						</p>
 						<p style="margin:6px 0 0;font-size:12px;color:#50575e;">
 							Tomos que cambiarán: <strong style="color:#2271b1;"><?php echo (int) $affected_count; ?></strong> |
@@ -465,59 +492,78 @@ final class PricingMatrixAdminPage {
 						</p>
 					</div>
 
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-						<?php wp_nonce_field( self::NONCE_ACTION ); ?>
-						<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_APPLY_SCALE ); ?>" />
-						<input type="hidden" name="brand_id" value="<?php echo (int) ( $last_result['brand_id'] ?? 0 ); ?>" />
-						<input type="hidden" name="editorial_slug" value="<?php echo esc_attr( (string) ( $last_result['editorial_slug'] ?? '' ) ); ?>" />
-						<input type="hidden" name="scale_regular" value="<?php echo (int) $last_result['scale_regular']; ?>" />
-						<input type="hidden" name="new_regular" value="<?php echo (int) $last_result['new_regular']; ?>" />
-						<input type="hidden" name="discount_pct" value="<?php echo esc_attr( (string) ( $last_result['discount_pct'] ?? PricingMath::DEFAULT_DISCOUNT_PCT ) ); ?>" />
-						<input type="hidden" name="rounding_mode" value="<?php echo esc_attr( (string) ( $last_result['rounding_mode'] ?? PricingMath::DEFAULT_MODE ) ); ?>" />
-						<input type="hidden" name="manual_sale" value="<?php echo (int) ( $last_result['target_sale'] ?? 0 ); ?>" />
-						<input type="hidden" name="protect_active_orders" value="1" />
-						<button type="submit" class="button button-primary button-hero" style="font-size:14px;padding:8px 20px;height:auto;font-weight:700;">
-							Confirmar y Aplicar a los <?php echo (int) $affected_count; ?> tomos revisados
-						</button>
-					</form>
+					<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
+							<?php wp_nonce_field( self::NONCE_ACTION ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_DISCARD_PROPOSAL ); ?>" />
+							<button type="submit" class="button button-secondary" style="font-size:13px;padding:7px 14px;height:auto;" title="Descarta esta propuesta simulada y limpia la vista">
+								✕ Descartar propuesta
+							</button>
+						</form>
+
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-pm-apply-form" style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+							<?php wp_nonce_field( self::NONCE_ACTION ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_APPLY_SCALE ); ?>" />
+							<input type="hidden" name="brand_id" value="<?php echo (int) ( $last_result['brand_id'] ?? 0 ); ?>" />
+							<input type="hidden" name="editorial_slug" value="<?php echo esc_attr( (string) ( $last_result['editorial_slug'] ?? '' ) ); ?>" />
+							<input type="hidden" name="scale_regular" value="<?php echo (int) $last_result['scale_regular']; ?>" />
+							<input type="hidden" name="new_regular" value="<?php echo (int) $last_result['new_regular']; ?>" />
+							<input type="hidden" name="discount_pct" value="<?php echo esc_attr( (string) ( $last_result['discount_pct'] ?? PricingMath::DEFAULT_DISCOUNT_PCT ) ); ?>" />
+							<input type="hidden" name="rounding_mode" value="<?php echo esc_attr( (string) ( $last_result['rounding_mode'] ?? PricingMath::DEFAULT_MODE ) ); ?>" />
+							<input type="hidden" name="manual_sale" value="<?php echo (int) ( $last_result['target_sale'] ?? 0 ); ?>" />
+							<input type="hidden" name="protect_active_orders" value="1" />
+							<button type="submit" class="button button-primary button-hero akb-btn-apply-submit" style="font-size:14px;padding:8px 20px;height:auto;font-weight:700;">
+								Confirmar y Aplicar a los <?php echo (int) $affected_count; ?> tomos revisados
+							</button>
+						</form>
+					</div>
 				</div>
 
 				<?php if ( ! empty( $last_result['items'] ) && is_array( $last_result['items'] ) ) : ?>
-					<details style="margin-top:14px;background:#ffffff;border:1px solid #c3c4c7;border-radius:4px;padding:10px 14px;">
-						<summary style="cursor:pointer;font-weight:600;color:#2271b1;font-size:13px;">
-							Ver lista detallada de los <?php echo (int) $affected_count; ?> tomos (con precios antes y después)
+					<details class="akb-proposal-details" style="margin-top:14px;background:#ffffff;border:1px solid #c3c4c7;border-radius:6px;padding:12px 16px;">
+						<summary style="cursor:pointer;font-weight:600;color:#2271b1;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+							<span>📋 Ver lista detallada de los <?php echo (int) $affected_count; ?> tomos (con precios antes y después)</span>
+							<span style="font-size:11px;color:#646970;font-weight:normal;">Clic para abrir/cerrar</span>
 						</summary>
-						<div style="max-height:280px;overflow-y:auto;margin-top:10px;">
-							<table class="widefat striped" style="font-size:12px;border:none;">
-								<thead>
-									<tr>
-										<th style="width:70px;">ID</th>
-										<th>Título del Tomo</th>
-										<th style="width:110px;">Estado Stock</th>
-										<th style="width:180px;">Precio Regular</th>
-										<th style="width:180px;">Precio A Pedido</th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php foreach ( $last_result['items'] as $it ) : ?>
-										<?php if ( in_array( $it['status'] ?? '', array( 'would_update', 'updated' ), true ) ) : ?>
-											<tr>
-												<td><code>#<?php echo (int) ( $it['product_id'] ?? 0 ); ?></code></td>
-												<td><strong><?php echo esc_html( (string) ( $it['title'] ?? '' ) ); ?></strong></td>
-												<td><code><?php echo esc_html( (string) ( $it['stock_status'] ?? '' ) ); ?></code></td>
-												<td>
-													<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_regular'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
-													<strong style="color:#2271b1;">$<?php echo number_format( (int) ( $it['new_regular'] ?? 0 ), 0, ',', '.' ); ?></strong>
-												</td>
-												<td>
-													<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_sale'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
-													<strong style="color:#008a20;">$<?php echo number_format( (int) ( $it['new_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
-												</td>
-											</tr>
-										<?php endif; ?>
-									<?php endforeach; ?>
-								</tbody>
-							</table>
+						<div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f1;">
+							<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+								<input type="search" id="akb-proposal-search" placeholder="🔍 Filtrar tomos por nombre o ID en esta propuesta..." style="min-width:320px;font-size:12px;padding:5px 8px;border-radius:4px;border:1px solid #8c8f94;" />
+								<span id="akb-proposal-counter" style="font-size:12px;font-weight:600;color:#50575e;">
+									Mostrando <strong><?php echo (int) $affected_count; ?></strong> de <?php echo (int) $affected_count; ?> tomos
+								</span>
+							</div>
+							<div style="max-height:360px;overflow-y:auto;border:1px solid #dcdcde;border-radius:4px;">
+								<table class="widefat striped" id="akb-proposal-table" style="font-size:12px;border:none;">
+									<thead style="position:sticky;top:0;background:#f6f7f7;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+										<tr>
+											<th style="width:70px;">ID</th>
+											<th>Título del Tomo</th>
+											<th style="width:110px;">Estado Stock</th>
+											<th style="width:180px;">Precio Regular</th>
+											<th style="width:180px;">Precio A Pedido</th>
+										</tr>
+									</thead>
+									<tbody>
+										<?php foreach ( $last_result['items'] as $it ) : ?>
+											<?php if ( in_array( $it['status'] ?? '', array( 'would_update', 'updated' ), true ) ) : ?>
+												<tr class="akb-proposal-row" data-search="<?php echo esc_attr( strtolower( (string) ( $it['title'] ?? '' ) . ' ' . (string) ( $it['product_id'] ?? '' ) ) ); ?>">
+													<td><code>#<?php echo (int) ( $it['product_id'] ?? 0 ); ?></code></td>
+													<td><strong><?php echo esc_html( (string) ( $it['title'] ?? '' ) ); ?></strong></td>
+													<td><code><?php echo esc_html( (string) ( $it['stock_status'] ?? '' ) ); ?></code></td>
+													<td>
+														<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_regular'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
+														<strong style="color:#2271b1;">$<?php echo number_format( (int) ( $it['new_regular'] ?? 0 ), 0, ',', '.' ); ?></strong>
+													</td>
+													<td>
+														<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_sale'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
+														<strong style="color:#008a20;">$<?php echo number_format( (int) ( $it['new_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
+													</td>
+												</tr>
+											<?php endif; ?>
+										<?php endforeach; ?>
+									</tbody>
+								</table>
+							</div>
 						</div>
 					</details>
 				<?php endif; ?>
@@ -1328,6 +1374,42 @@ final class PricingMatrixAdminPage {
 					});
 					asc = !asc;
 					rows.forEach(function(r) { tbody.appendChild(r); });
+				});
+			});
+
+			// 9. Filtro en vivo para la tabla de Propuesta (.akb-pm-proposal-review)
+			var propSearch = document.getElementById('akb-proposal-search');
+			var propTable  = document.getElementById('akb-proposal-table');
+			var propCount  = document.getElementById('akb-proposal-counter');
+			if (propSearch && propTable) {
+				var propRows = Array.from(propTable.querySelectorAll('tbody tr.akb-proposal-row'));
+				propSearch.addEventListener('input', function() {
+					var query = propSearch.value.toLowerCase().trim();
+					var visible = 0;
+					propRows.forEach(function(row) {
+						var text = row.getAttribute('data-search') || row.textContent.toLowerCase();
+						if (!query || text.indexOf(query) !== -1) {
+							row.style.display = '';
+							visible++;
+						} else {
+							row.style.display = 'none';
+						}
+					});
+					if (propCount) {
+						propCount.innerHTML = 'Mostrando <strong>' + visible + '</strong> de ' + propRows.length + ' tomos';
+					}
+				});
+			}
+
+			// 10. Prevención de doble clic y feedback de carga en operaciones masivas
+			document.querySelectorAll('form.akb-pm-apply-form, form.akb-pm-level-form').forEach(function(f) {
+				f.addEventListener('submit', function() {
+					var btn = f.querySelector('button[type="submit"]:not(.button-secondary)');
+					if (btn && !btn.disabled) {
+						btn.disabled = true;
+						btn.style.opacity = '0.75';
+						btn.innerHTML = '⏳ Aplicando cambios...';
+					}
 				});
 			});
 		})();

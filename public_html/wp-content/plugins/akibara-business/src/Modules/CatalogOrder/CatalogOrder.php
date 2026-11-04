@@ -692,9 +692,18 @@ final class CatalogOrder {
 			}
 		}
 
-		// Si se aplicaron cambios de orden en el catálogo, se ejecuta una purga integral
-		// de caché de página para sincronizar listados y archivos.
+		// Si se aplicaron cambios de orden en el catálogo, se sincroniza la tabla
+		// de búsqueda akibara-search y se ejecuta una purga integral de caché.
 		if ( $applied > 0 ) {
+			$search_table = $wpdb->prefix . 'akb_search_docs';
+			// Sincronizar d.menu_order directamente para garantizar paridad estricta con wp_posts.
+			$wpdb->query(
+				"UPDATE {$search_table} d
+				 JOIN {$wpdb->posts} p ON d.post_id = p.ID
+				 SET d.menu_order = p.menu_order
+				 WHERE d.menu_order != p.menu_order"
+			);
+
 			do_action( 'litespeed_purge_all' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Hook público oficial de LiteSpeed Cache.
 		}
 
