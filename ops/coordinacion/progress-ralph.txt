@@ -29,3 +29,9 @@ Iteración 2 (Verificación & Prod): En ejecución...
 - Iteración 3: Registrado en backlog y sellado.
 
 [2026-11-04 17:40] TICKET-005 TOMADO: Normalización de 6 autores con macrones en pa_autor (Regla 12).
+[2026-11-04 17:49] TICKET-005 COMPLETADO & CERTIFICADO:
+- Iteración 1: Creado ops/normalizar-autores-macrones.php para unificar los 6 autores con macrones a estándar latino. Validado en Docker local con reindexación y self-test 6/6 PASS.
+- Iteración 2: Agente independiente 2bf605a0-9d85-44e6-b3b0-b8a87a717706 desplegó a producción, ejecutó normalización (6 términos, 100 productos reindexados), eliminó script temporal, purgó LiteSpeed y Cloudflare, auditó 0 macrones restantes en wp_terms y watchdog en 100% verde (1.992 productos). URLs /autor/... HTTP 200 con h1 limpio. Dictamen: APROBADO.
+- Iteración 3: Registrado en backlog y sellado.
+
+[2026-11-04 17:49] TICKET-006 TOMADO: Sanitización de 17 meta descripciones de Rank Math con mención de editorial (Regla 13).

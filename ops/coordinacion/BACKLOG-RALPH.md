@@ -8,9 +8,9 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 ## Estado Global del Backlog
 
 - **Total Tickets:** 10
-- **En Progreso:** TICKET-005
-- **Completados:** 4 (TICKET-001, TICKET-002, TICKET-003, TICKET-004)
-- **Pendientes:** 6
+- **En Progreso:** TICKET-006
+- **Completados:** 5 (TICKET-001, TICKET-002, TICKET-003, TICKET-004, TICKET-005)
+- **Pendientes:** 5
 
 ---
 
@@ -49,6 +49,11 @@ Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteracio
 #### [TICKET-005] Normalización de 6 autores con macrones en `pa_autor` (Regla 12)
 - **Impacto:** 108 tomos de 6 autores (`Gorō Taniguchi`, `Ichirō Ōkouchi`, `Kentarō Yabuki`, `Ryōko Kui`, `Tatsuya Endō`, `Yūsei Matsui`) usan caracteres diacríticos, violando la regla canónica de Akibara.
 - **Herramienta:** Script de normalización de términos `pa_autor` y reindexación.
+- **Estado:** ✅ **COMPLETADO & CERTIFICADO EN PROD** (6 autores normalizados a nombres latinos estándar, 100 productos reindexados, 0 macrones en bd, watchdog 100% verde).
+
+#### [TICKET-006] Sanitización de 17 meta descripciones de Rank Math con mención de editorial (Regla 13)
+- **Impacto:** 17 tomos (*Boticaria*, *Attack on Titan*) incluyen el nombre de la editorial en la meta descripción, penalizando SEO.
+- **Herramienta:** Script de limpieza de `rank_math_description`.
 - **Estado:** 🔄 **EN PROGRESO**.
 
 #### [TICKET-004] Purga automática de hooks retirados (`OwnCrons::RETIRED`) en `UpgradeManager`
