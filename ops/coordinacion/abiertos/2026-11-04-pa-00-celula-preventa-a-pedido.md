@@ -13,9 +13,9 @@ Orden vigente del dueño: Codex analiza arquitectura, casuística y evidencia; A
 | Ticket | Prioridad | Encargo | Situación |
 |---|---|---|---|
 | [PA-01](2026-11-04-pa-01-aplicacion-rapida-matriz.md) | P1 | Aplicación rápida lanza Error y después TypeError | esperando-respuesta (corregido en 1.120.22; entregado para re-medición) |
-| [PA-02](2026-11-04-pa-02-recepcion-idempotente.md) | P1 | Repetir la recepción de una unidad aparta una segunda | Defecto reproducido; requiere diseño de operación y concurrencia |
-| [PA-03](2026-11-04-pa-03-listo-exige-asignacion.md) | P1 | Una unidad en catálogo vuelve listos dos pedidos | Defecto reproducido; resolver con PA-02 |
-| [PA-04](2026-11-04-pa-04-seleccion-y-operacion-dueno.md) | P1 | Selección vacía asigna a todos; operación del dueño | Defecto de formulario y propuestas UX separadas |
+| [PA-02](2026-11-04-pa-02-recepcion-idempotente.md) | P1 | Repetir la recepción de una unidad aparta una segunda | esperando-respuesta (corregido en 1.120.23; UUID durable y replay guard verificado) |
+| [PA-03](2026-11-04-pa-03-listo-exige-asignacion.md) | P1 | Una unidad en catálogo vuelve listos dos pedidos | esperando-respuesta (corregido en 1.120.23; readiness requiere asignación física) |
+| [PA-04](2026-11-04-pa-04-seleccion-y-operacion-dueno.md) | P1 | Selección vacía asigna a todos; operación del dueño | esperando-respuesta (corregido en 1.120.23; input oculto y detención segura) |
 | [PA-05](2026-11-04-pa-05-contratos-precio-y-consolidacion.md) | P2 | Descuento flexible y significado de aceptación | Propuesta de contrato; no inventar reglas de negocio |
 | [PA-06](2026-11-04-pa-06-calidad-y-rendimiento-flujo.md) | P2 | Límites entre módulos, concurrencia y pipeline | Encargo técnico con evidencia y criterios |
 

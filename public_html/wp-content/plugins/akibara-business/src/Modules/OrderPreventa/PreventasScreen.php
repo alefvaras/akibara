@@ -1249,11 +1249,53 @@ class PreventasScreen {
 			exit;
 		}
 
+		// PA-04: Si el formulario explícito de pedidos fue enviado pero no se seleccionó ninguno, detener con aviso.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$order_selection_submitted = ! empty( $_POST['akb_order_selection_submitted'] );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$order_ids = isset( $_POST['order_ids'] ) && is_array( $_POST['order_ids'] )
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			? array_map( 'absint', wp_unslash( $_POST['order_ids'] ) )
 			: null;
+
+		if ( $order_selection_submitted && ( null === $order_ids || empty( $order_ids ) ) ) {
+			wp_safe_redirect( add_query_arg( array( 'akb_preventa' => 'seleccion_vacia', 'accion' => 'recibir', 'product_id' => $product_id ), self::url_panel() ) );
+			exit;
+		}
+
+		// PA-02: Idempotencia durable ante recargas de página o envíos repetidos (Replay Guard).
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw_reception_id = isset( $_POST['reception_id'] ) ? trim( sanitize_text_field( wp_unslash( (string) $_POST['reception_id'] ) ) ) : '';
+		if ( '' !== $raw_reception_id ) {
+			$reception_id = $raw_reception_id;
+		} elseif ( isset( $_POST['_wpnonce'] ) && '' !== (string) $_POST['_wpnonce'] ) {
+			$reception_id = 'nonce_' . sanitize_key( (string) $_POST['_wpnonce'] );
+		} else {
+			$reception_id = 'post_' . md5( (string) $product_id . ':' . (string) $unidades_recibidas . ':' . serialize( $order_ids ) );
+		}
+
+		$existing_reception = (string) $product->get_meta( '_akb_reception_' . $reception_id );
+		if ( '' !== $existing_reception ) {
+			$prev      = json_decode( $existing_reception, true );
+			$apartadas = is_array( $prev ) ? (int) ( $prev['apartadas'] ?? 0 ) : 0;
+			$listos    = is_array( $prev ) ? (int) ( $prev['listos'] ?? 0 ) : 0;
+			$excedente = is_array( $prev ) ? (int) ( $prev['excedente'] ?? 0 ) : 0;
+
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'akb_preventa' => 'recibido',
+						'apartadas'    => $apartadas,
+						'listos'       => $listos,
+						'excedente'    => $excedente,
+						'product_id'   => $product_id,
+						'replay'       => '1',
+					),
+					self::url_panel()
+				)
+			);
+			exit;
+		}
 
 		$candidatos = $this->pedidos_esperando_tomo( $product_id );
 
@@ -1350,6 +1392,30 @@ class PreventasScreen {
 			do_action( 'litespeed_purge_post', $product_id );
 		}
 
+		// PA-02: Registrar la operación para idempotencia futura.
+		$current_user_id = 0;
+		if ( function_exists( 'get_current_user_id' ) ) {
+			try {
+				$current_user_id = (int) get_current_user_id();
+			} catch ( \Throwable $e ) {
+				$current_user_id = 0;
+			}
+		}
+
+		$reception_meta = wp_json_encode(
+			array(
+				'reception_id' => $reception_id,
+				'timestamp'    => time(),
+				'user_id'      => $current_user_id,
+				'received'     => $unidades_recibidas,
+				'apartadas'    => $apartadas_total,
+				'listos'       => $pedidos_listos,
+				'excedente'    => $excedente_publicado,
+			)
+		);
+		$product->update_meta_data( '_akb_reception_' . $reception_id, $reception_meta );
+		$product->save();
+
 		if ( function_exists( 'delete_transient' ) ) {
 			delete_transient( 'akb_preventa_cumplimiento_v1' );
 		}
@@ -1406,8 +1472,14 @@ class PreventasScreen {
 				// Comprado en stock: siempre disponible en bodega
 				$debe_sellar = true;
 			} elseif ( PreventaItems::has_arrived( $order, $item ) ) {
-				// Preventa / a pedido que ya llegó o está en stock en catálogo
+				// Preventa / a pedido que ya tiene cantidad asignada
 				$debe_sellar = true;
+			} else {
+				$product = $item->get_product();
+				if ( $product instanceof \WC_Product && 'trash' !== (string) $product->get_status() && StockStatus::is_instock( $product ) ) {
+					// Preventa / a pedido cuyo producto está hoy en stock en bodega (disponible para apartar)
+					$debe_sellar = true;
+				}
 			}
 
 			if ( $debe_sellar ) {
@@ -1904,7 +1976,13 @@ class PreventasScreen {
 			}
 
 			// Caso 2: Es preventa o a pedido
-			if ( PreventaItems::has_arrived( $order, $item ) ) {
+			$tomo_en_stock = false;
+			$product       = $item->get_product();
+			if ( $product instanceof \WC_Product && 'trash' !== (string) $product->get_status() && StockStatus::is_instock( $product ) ) {
+				$tomo_en_stock = true;
+			}
+
+			if ( PreventaItems::has_arrived( $order, $item ) || $tomo_en_stock ) {
 				$listos[] = $item;
 				if ( ! PreventaItems::is_item_sealed( $order, $item ) ) {
 					$hay_sin_sellar = true;
@@ -2027,12 +2105,16 @@ class PreventasScreen {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$excedente = isset( $_GET['excedente'] ) ? absint( $_GET['excedente'] ) : 0;
 
-		$msg_recibido = sprintf(
-			'Recepción completada: se apartaron %d unidad(es) en casillero (%d pedido(s) quedaron listos para despacho)%s.',
-			$apartadas,
-			$listos,
-			$excedente > 0 ? sprintf( ' y %d unidad(es) libre(s) pasaron a stock en la tienda', $excedente ) : ''
-		);
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$replay = ! empty( $_GET['replay'] );
+		$msg_recibido = $replay
+			? 'Esta recepción ya había sido procesada anteriormente (operación registrada). No se duplicaron asignaciones.'
+			: sprintf(
+				'Recepción completada: se apartaron %d unidad(es) en casillero (%d pedido(s) quedaron listos para despacho)%s.',
+				$apartadas,
+				$listos,
+				$excedente > 0 ? sprintf( ' y %d unidad(es) libre(s) pasaron a stock en la tienda', $excedente ) : ''
+			);
 
 		$mensajes = array(
 			'revisado'         => array( 'success', 'Revisión hecha. Los pedidos cuyos tomos ya llegaron quedaron marcados como listos, y sus avisos salen en los próximos minutos.' ),
@@ -2041,6 +2123,7 @@ class PreventasScreen {
 			'apartado'         => array( 'success', 'Tomos en stock apartados y sellados físicamente en el casillero de este pedido.' ),
 			'desapartado'      => array( 'success', 'Apartado en casillero deshecho correctamente. La línea vuelve a estado pendiente.' ),
 			'recibir_invalido' => array( 'error', 'La cantidad de unidades recibidas debe ser al menos 1.' ),
+			'seleccion_vacia'  => array( 'error', 'No seleccionaste ningún pedido para asignar mercadería. Selecciona al menos un pedido de la lista.' ),
 			'error'            => array( 'error', 'No se pudo completar la acción: revisa que el tomo siga existiendo.' ),
 			'papelera'         => array( 'error', 'Este tomo está en la papelera: restáuralo antes de realizar esta acción, o reembolsa esa línea.' ),
 			'fecha_retirada'   => array( 'success', 'Fecha retirada. El tomo queda como preventa sin fecha confirmada y la estimación de los pedidos se recalcula. No sale ningún correo: el cambio queda anotado en cada pedido; si quieres avisar al cliente, escríbele tú.' ),

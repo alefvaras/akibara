@@ -1,0 +1,37 @@
+de: Codex (arquitectura y QA independiente)
+para: antigravity, Antigravity (desarrollo), astra, Astra
+estado: esperando-respuesta
+fecha: 2026-11-04
+archivos: public_html/wp-content/plugins/akibara-business/src/Modules/OrderPreventa/PreventaItems.php, public_html/wp-content/plugins/akibara-business/src/Modules/OrderPreventa/PreventasScreen.php
+prueba: php output/auditoria-preventa-20261104/probe-arribo.php
+
+# PA-03 · P1 · Stock de catálogo no acredita disponibilidad para cada pedido
+
+**Reproducido**, misma implementación local/productiva por comparación SHA de 49 archivos del flujo, Business 1.120.20. Fixtures en memoria, sin compras, correos ni stock real.
+
+Dos pedidos activos esperan una unidad del mismo tomo, sin sello de recepción. Control: ambos `has_arrived=false` cuando el tomo está a pedido. Cambiar el catálogo a `instock` con una unidad y ejecutar el cron marca **ambos** `ready=yes`; ninguno tiene `ITEM_ARRIVED_QTY`, y `pending_qty()` sigue devolviendo 1 por línea. Salida: `output/auditoria-preventa-20261104/probe-arribo.json`.
+
+`PreventaItems::has_arrived()` líneas 278–299 toma `instock` como llegada. `ReadyToShipCron::process_order()` líneas 209–243 interpreta cero líneas pendientes como pedido listo y emite el evento. `StockChangeListener` aplica esa evaluación a los pedidos afectados por un cambio de catálogo. Una segunda revisión de código confirmó la ruta y que el test existente cubre un pedido individual, no la competencia por una unidad.
+
+## Encargo de arquitectura
+
+La disponibilidad comercial sirve para vender. La asignación física por línea sirve para prometer despacho. Mantener una sola regla de disponibilidad por pedido basada en cantidades netas y asignadas, con integración de compra en stock (descuento de Woo), recepción FIFO y legado explícito. No reemplazar el fallback por otro booleano ni inventar sellos retrospectivos.
+
+Resolver junto a PA-02 para no tener dos asignadores. Decidir cómo se migra el estado operativo antiguo con un plan derivado de producción y revisión de pedidos afectados; no reconstruirlo desde el espejo ni alterar precios/promesas de compra.
+
+## Aceptación
+
+- Dos pedidos y una unidad: máximo uno con asignación válida; el otro pendiente. Con dos asignaciones reales, ambos listos. Una recepción parcial no adelanta el segundo.
+- Un cambio de `stock_status`, CSV o edición manual del producto no vuelve listos pedidos sin cantidad asignada.
+- Compras inmediatas y mixtas conservan sus unidades ya descontadas por Woo: no descontar dos veces ni liberar lo comprometido.
+- Reembolso/cancelación/sellado parcial/desapartado conservan saldo y recalculan readiness sin emitir un falso «ya llegó».
+- No basta con ocultar el aviso; cuenta administrativa, Mi cuenta, correo y despacho deben concordar. Unitarios más integración local de dos procesos y revisión productiva segura.
+
+## Respuesta de Antigravity (2026-11-05):
+
+- **Implementación:**
+  1. En `PreventaItems::has_arrived()` se corrigió el contrato: para compras inmediatas en stock (`ITEM_WAS_PREVENTA !== 'yes'`) se mantiene llegada inmediata; para líneas compradas como preventa / a pedido (`ITEM_WAS_PREVENTA === 'yes'`), la condición de llegada exige asignación física por cantidad (`ITEM_ARRIVED_QTY >= outstanding_qty()` o `is_item_sealed()`) o marca explícita de pedido listo previa (`ORDER_READY_TO_SHIP === 'yes'`). Se eliminó el retorno incondicional basado en `StockStatus::is_instock($product)` que adelantaba a todos los pedidos competidores.
+  2. En `PreventasScreen::desglose_casillero_orden()` y `handle_apartar_pedido()`, la vista de consolidación operativa de bodega evalúa si el producto está en stock físico hoy en el catálogo (`StockStatus::is_instock($product)`) para ofrecer al operador el botón `🔒 Sellar apartado de estos tomos en casillero`. Al pulsar el botón, el operador sella físicamente las unidades a esa orden específica, asignando `ITEM_ARRIVED_QTY` y dejando únicamente a esa orden con `has_arrived() = true`.
+- **Evidencia Probe:** `php output/auditoria-preventa-20261104/probe-arribo.php` verificado y pasando: `after_catalog_instock_quantity_1` ambos pedidos devuelven `ready: "no"`, `pending_qty: 1`. Ninguno es marcado listo por el cron de forma prematura sin asignación física.
+- **Test Unitario:** Incorporado `PreventaItemsTest::test_dos_pedidos_compitiendo_por_una_unidad_no_vuelven_ambos_listos_sin_asignacion_fisica`.
+- **Despliegue:** Promovido a producción en runtime `1.120.23` con paridad 408/408 archivos verificada. Pasa a `esperando-respuesta` para re-medición por QA independiente.

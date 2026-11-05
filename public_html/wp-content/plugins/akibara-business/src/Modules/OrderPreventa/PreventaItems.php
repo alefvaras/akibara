@@ -284,18 +284,19 @@ final class PreventaItems {
 			return true;
 		}
 
-		$product = $item->get_product();
-		if ( ! $product instanceof WC_Product ) {
-			return false;
-		}
-		// `wc_get_product()` devuelve objeto válido para un producto en la
-		// papelera; su stock se conserva y diría «llegó» sobre algo que no se
-		// puede vender.
-		if ( 'trash' === (string) $product->get_status() ) {
-			return false;
+		// Si el ítem no fue preventa (compra inmediata en stock al momento del checkout):
+		if ( 'yes' !== (string) $item->get_meta( MetaKeys::ITEM_WAS_PREVENTA ) ) {
+			return true;
 		}
 
-		return StockStatus::is_instock( $product );
+		// Para ítems comprados como preventa / a pedido, la llegada exige asignación física por cantidad.
+		$needed  = self::outstanding_qty( $order, $item );
+		$already = max( 0, (int) $item->get_meta( MetaKeys::ITEM_ARRIVED_QTY ) );
+		if ( $needed > 0 && $already >= $needed ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

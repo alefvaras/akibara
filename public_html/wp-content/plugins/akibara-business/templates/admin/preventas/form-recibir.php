@@ -21,6 +21,7 @@ $volver         = (string) ( $view_data['volver'] ?? admin_url( 'admin.php?page=
 $filas_pedidos  = (array) ( $view_data['filas_pedidos'] ?? array() );
 $total_unidades = (int) ( $view_data['total_unidades'] ?? 0 );
 $action_recibir = (string) ( $view_data['action_recibir'] ?? 'akb_preventa_recibir' );
+$reception_id   = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'rcp_', true );
 ?>
 
 <div class="akb-preventas">
@@ -52,6 +53,8 @@ $action_recibir = (string) ( $view_data['action_recibir'] ?? 'akb_preventa_recib
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="<?php echo esc_attr( $action_recibir ); ?>">
 		<input type="hidden" name="product_id" value="<?php echo (int) $pid; ?>">
+		<input type="hidden" name="reception_id" value="<?php echo esc_attr( $reception_id ); ?>">
+		<input type="hidden" name="akb_order_selection_submitted" value="1">
 		<?php wp_nonce_field( $action_recibir . '-' . $pid ); ?>
 
 		<h4 style="margin:16px 0 8px;">1. Pedidos en espera (orden de prioridad por llegada):</h4>

@@ -347,6 +347,8 @@ final class ReleaseDateChangeWiringTest extends TestCase {
 		// El mismo pedido, pero el tomo ya está en stock: la línea no está
 		// pendiente. Mandarle «nueva fecha de llegada» sería mentirle.
 		$this->order->akb_items[0]->akb_product = new \WC_Product( 'instock', array( DateCalculator::META_TYPE => 'release_date' ) );
+		$this->order->akb_items[0]->akb_meta[ MetaKeys::ITEM_ARRIVED ]     = 'yes';
+		$this->order->akb_items[0]->akb_meta[ MetaKeys::ITEM_ARRIVED_QTY ] = '1';
 
 		$this->listener()->run_release_date_change( self::PRODUCT_ID, $this->vieja, $this->nueva );
 

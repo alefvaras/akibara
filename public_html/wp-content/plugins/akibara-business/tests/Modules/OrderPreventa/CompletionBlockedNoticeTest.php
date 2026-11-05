@@ -127,6 +127,8 @@ final class CompletionBlockedNoticeTest extends TestCase {
 		$notice = new CompletionBlockedNotice();
 		$order  = $this->order( 27722, array( 'Blue Lock 37', 'Chainsaw Man 23' ) );
 		$order->akb_items[0]->akb_product = new \WC_Product( 'instock' ); // Blue Lock ya está en bodega
+		$order->akb_items[0]->akb_meta[ MetaKeys::ITEM_ARRIVED ]     = 'yes';
+		$order->akb_items[0]->akb_meta[ MetaKeys::ITEM_ARRIVED_QTY ] = '1';
 
 		Functions\when( 'wc_get_order' )->justReturn( $order );
 

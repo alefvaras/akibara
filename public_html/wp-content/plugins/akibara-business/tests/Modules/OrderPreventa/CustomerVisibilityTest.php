@@ -70,12 +70,18 @@ final class CustomerVisibilityTest extends TestCase {
 		$item->akb_id       = 1;
 		$item->akb_name     = 'Frieren 06';
 		$item->akb_quantity = 1;
-		$item->akb_meta     = array(
-			MetaKeys::ITEM_WAS_PREVENTA              => 'yes',
-			MetaKeys::ITEM_MIN_AT_PURCHASE           => (string) $min,
-			MetaKeys::ITEM_MAX_AT_PURCHASE           => (string) $max,
-			MetaKeys::ITEM_COUNTRY_NAME_AT_PURCHASE  => 'Argentina',
-		) + $meta;
+		$arrived_meta       = ( 'instock' === $stock )
+			? array(
+				MetaKeys::ITEM_ARRIVED     => 'yes',
+				MetaKeys::ITEM_ARRIVED_QTY => '1',
+			)
+			: array();
+		$item->akb_meta     = $meta + $arrived_meta + array(
+			MetaKeys::ITEM_WAS_PREVENTA             => 'yes',
+			MetaKeys::ITEM_MIN_AT_PURCHASE          => (string) $min,
+			MetaKeys::ITEM_MAX_AT_PURCHASE          => (string) $max,
+			MetaKeys::ITEM_COUNTRY_NAME_AT_PURCHASE => 'Argentina',
+		);
 		$producto           = new WC_Product( $stock );
 		$producto->akb_id   = 1001;
 		$item->akb_product  = $producto;

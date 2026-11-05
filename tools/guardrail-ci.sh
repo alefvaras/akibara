@@ -25,6 +25,7 @@ node --test "${script_dir}/test-runtime-delivery.mjs" "${script_dir}/test-deploy
 node --test "${script_dir}/test-mail-health.mjs"
 node --test "${script_dir}/test-build-search-assets.mjs"
 node --test "${script_dir}/testing/dom-harness.test.js"
+node --test "${script_dir}/testing/jev-gate.test.js"
 node --test "${script_dir}/akibara-releases/rewards-qa/test-qa-paridad-espejo.mjs"
 python3 "${repo_root}/ops/test-guardrail-inventario-akibara.py"
 python3 "${script_dir}/test-private-data-guard.py"

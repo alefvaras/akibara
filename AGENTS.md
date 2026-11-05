@@ -3,8 +3,12 @@
 - **Regla de Oro (Proactividad total e inmediata ante cualquier error descubierto):**
   *«Si encuentras cualquier error que es de otro flujo diferente al tuyo que te solicite igual debes solucionarlo»* (orden del dueño, 2026-10-26).
   Si durante cualquier tarea o auditoría se detecta una falla, residuo, inconsistencia o defecto en cualquier parte del sistema (sea de backend, base de datos, frontend, SEO, caché, higiene de archivos o sincronización), NO ignorarlo ni limitarse a reportarlo: **solucionarlo de inmediato**, primero en el espejo local y luego en producción, verificando el resultado antes de cerrar el trabajo.
-- **Orquestación de modelos (ejecución acotada y supervisión Astra):**
-  Delegar tareas comunes, barridos mecánicos y cruces de datos al modelo rápido realmente disponible, usando Flash cuando la herramienta lo ofrezca. Para decisiones complejas de arquitectura, concurrencia, rendimiento y despliegue, usar Astra con razonamiento alto como supervisor, por instrucción vigente del dueño. Si Antigravity o el orquestador no ofrece ese modelo, comunicar la limitación y avanzar sólo con el trabajo independiente autorizado; no inventar alias ni afirmar una revisión de Astra que no ocurrió.
+- **Orquestación de modelos (Jerarquía de supervisión: Astra → Argon → Flash 3.8):**
+  Delegar tareas comunes, barridos mecánicos y cruces de datos al modelo rápido realmente disponible (Flash). Para decisiones complejas de arquitectura, concurrencia, rendimiento y despliegue, usar la jerarquía oficial ordenada por el dueño:
+  1. **Astra** con razonamiento alto como supervisor primario.
+  2. Si Astra no está disponible o se agotan sus tokens/cuota, usar **Argon** con razonamiento alto.
+  3. Si ninguno de los dos tiene tokens/cuota disponibles, descender inmediatamente a **Flash 3.8 (High)** para no bloquear el trabajo.
+  No inventar alias ni afirmar una revisión de un modelo superior que no ocurrió.
 - Nunca dejar respaldos, volcados, archivos `.bak`, copias temporales ni artefactos de despliegue en producción.
 - Si una operación productiva necesita respaldo o rollback, descargarlo y conservarlo únicamente en el entorno local de Akibara.
 - Verificar que cualquier archivo temporal remoto haya sido eliminado antes de cerrar el trabajo.
@@ -114,6 +118,36 @@ Lo que esa autorización **no** exime:
 - **Prohibido validar comportamiento de UI con expresiones regulares:** Ningún agente debe verificar interactividad, clics, eventos, sincronización o estados accesibles (ARIA) mediante `assert.match` sobre el texto de los archivos `.js`.
 - **Prohibido armar mocks ad-hoc de `window`/`document`:** No reinventar implementaciones caseras con `EventTarget` y `vm` en cada test.
 - **Uso obligatorio de `tools/testing/dom-harness.js`:** Toda prueba de componentes cliente (steppers, carritos, popups, autocompletado, filtros) debe utilizar el arnés headless oficial (`createDOM`) para ejecutar el código real sobre el árbol DOM virtual y medir comportamiento, eventos y atributos antes de llegar a Playwright.
+
+
+## Célula de IT Autónoma (Fábrica de Agentes con Skills Específicas)
+
+Toda sesión (nueva o existente) debe operar bajo la división de roles de la célula de ingeniería de Akibara:
+
+1. **`it-tech-lead` (Arquitectura & Supervisión Core):**
+   - **Modelo:** Jerarquía Astra → Argon → Flash 3.8 (High, si los anteriores agotan tokens).
+   - **Skills obligatorias:** `graphify` (lectura y actualización del grafo AST en `graphify-out/`), `ralph-loop` (orquestación en ciclo cerrado).
+   - **Misión:** Garantiza modularidad, contratos de arquitectura, concurrencia y previene acoplamiento espagueti.
+
+2. **`it-backend-dev` (Desarrollo Backend WooCommerce):**
+   - **Modelo:** Flash.
+   - **Skills obligatorias:** `woocommerce-backend-dev`, `graphify`.
+   - **Misión:** Código PHP modular en plugins/mu-plugins, sin consultas SQL directas de stock (`_manage_stock`, `_stock_status`), cumpliendo los contratos de `catalogo.md`.
+
+3. **`it-ux-frontend` (Diseño Visual, CRO & UX):**
+   - **Modelo:** Flash.
+   - **Skills obligatorias:** `ui-ux-pro-max`, `akibara-ux-publicidad-identidad`.
+   - **Harness obligatorio:** `tools/testing/dom-harness.js`.
+   - **Misión:** Filosofía de marca Akibara («Tu rincón de Akihabara en Chile»), diseño brutalista refinado, accesibilidad WCAG y validación en DOM headless de todo componente interactivo.
+
+4. **`it-qa-auditor` (Tester Adversarial de Calidad):**
+   - **Modelo:** Flash / Pro (según criticidad).
+   - **Skills obligatorias:** `akibara-qa-auditor`, `playwright-skill`.
+   - **Misión:** Prueba adversarial en dos etapas (Docker local y DESPUÉS producción). Quien programa NO aprueba ni cierra su propio ticket.
+
+5. **`it-gatekeeper-jev` (Árbitro de Decisiones Sistema 1):**
+   - **Motor:** `tools/testing/jev-gate.js` (<20 ms).
+   - **Misión:** Enrutamiento de tickets (`choice`), compuerta de seguridad pre-merge (`noul`) y puntuación de rúbrica QA (`score`).
 
 
 ## Reglas compartidas y Antigravity

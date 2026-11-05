@@ -959,4 +959,77 @@ final class PreventasScreenTest extends TestCase {
 		$html_listos = $this->pantalla_html();
 		self::assertStringContainsString( 'No se encontraron pedidos que coincidan con los filtros aplicados', $html_listos );
 	}
+
+	/**
+	 * @testdox PA-02: Una recepción repetida con el mismo reception_id (recarga POST / replay) no asigna unidades inexistentes.
+	 */
+	public function test_recepcion_repetida_con_mismo_reception_id_no_duplica_asignaciones(): void {
+		$tomo = $this->tomo( 'publish', '' );
+
+		$order1                   = $this->pedido_que_espera( 7001, self::TOMO );
+		$order1->akb_date_created = new \DateTimeImmutable( '@' . ( time() - 5 * 86400 ) );
+		$order2                   = $this->pedido_que_espera( 7002, self::TOMO );
+		$order2->akb_date_created = new \DateTimeImmutable( '@' . ( time() - 3 * 86400 ) );
+
+		$this->consulta_devuelve( array( $order1, $order2 ) );
+
+		$_SERVER['REQUEST_METHOD']   = 'POST';
+		$_REQUEST['product_id']      = (string) self::TOMO;
+		$_POST['unidades_recibidas'] = '1';
+		$_POST['reception_id']       = 'rcp_test_idempotent_123';
+
+		// Primer POST: debe asignar a 7001
+		try {
+			$this->pantalla()->handle_recibir();
+		} catch ( PantallaRedirigida $expected ) {
+			// esperado
+		}
+
+		$item1 = $order1->get_items()[0];
+		$item2 = $order2->get_items()[0];
+		self::assertTrue( PreventaItems::is_item_sealed( $order1, $item1 ) );
+		self::assertFalse( PreventaItems::is_item_sealed( $order2, $item2 ) );
+
+		// Segundo POST idéntico (replay): NO debe tocar 7002 ni duplicar
+		try {
+			$this->pantalla()->handle_recibir();
+		} catch ( PantallaRedirigida $expected ) {
+			// esperado
+		}
+
+		self::assertTrue( PreventaItems::is_item_sealed( $order1, $item1 ) );
+		self::assertFalse( PreventaItems::is_item_sealed( $order2, $item2 ), 'El pedido 2 NO debe quedar sellado por replay.' );
+
+		parse_str( (string) parse_url( $this->redirect, PHP_URL_QUERY ), $q );
+		self::assertSame( 'recibido', $q['akb_preventa'] ?? '' );
+		self::assertSame( '1', $q['replay'] ?? '' );
+	}
+
+	/**
+	 * @testdox PA-04: Si el formulario de selección de pedidos fue enviado pero sin ningún pedido marcado, detiene con seleccion_vacia.
+	 */
+	public function test_recepcion_con_formulario_enviado_sin_pedidos_seleccionados_aborta_con_aviso(): void {
+		$this->tomo( 'publish', '' );
+
+		$order1 = $this->pedido_que_espera( 7001, self::TOMO );
+		$this->consulta_devuelve( array( $order1 ) );
+
+		$_SERVER['REQUEST_METHOD']              = 'POST';
+		$_REQUEST['product_id']                 = (string) self::TOMO;
+		$_POST['unidades_recibidas']            = '1';
+		$_POST['akb_order_selection_submitted'] = '1';
+		unset( $_POST['order_ids'] ); // Ningún checkbox marcado
+
+		try {
+			$this->pantalla()->handle_recibir();
+		} catch ( PantallaRedirigida $expected ) {
+			// esperado
+		}
+
+		$item1 = $order1->get_items()[0];
+		self::assertFalse( PreventaItems::is_item_sealed( $order1, $item1 ), 'No debe asignar a ningún pedido cuando la selección explícita viene vacía.' );
+
+		parse_str( (string) parse_url( $this->redirect, PHP_URL_QUERY ), $q );
+		self::assertSame( 'seleccion_vacia', $q['akb_preventa'] ?? '' );
+	}
 }

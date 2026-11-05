@@ -206,7 +206,11 @@ final class ReminderEmailWordTest extends TestCase {
 		$llego                 = new WC_Order_Item_Product();
 		$llego->akb_id         = 8;
 		$llego->akb_product_id = 9998;
-		$llego->akb_meta       = array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' );
+		$llego->akb_meta       = array(
+			MetaKeys::ITEM_WAS_PREVENTA => 'yes',
+			MetaKeys::ITEM_ARRIVED      => 'yes',
+			MetaKeys::ITEM_ARRIVED_QTY  => 1,
+		);
 		$llego->akb_product    = new \WC_Product( 'instock' );
 		$order->akb_items[]    = $llego;
 
@@ -232,7 +236,11 @@ final class ReminderEmailWordTest extends TestCase {
 		$llego->akb_id         = 8;
 		$llego->akb_name       = 'Tomo que ya llegó';
 		$llego->akb_product_id = 9998;
-		$llego->akb_meta       = array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' );
+		$llego->akb_meta       = array(
+			MetaKeys::ITEM_WAS_PREVENTA => 'yes',
+			MetaKeys::ITEM_ARRIVED      => 'yes',
+			MetaKeys::ITEM_ARRIVED_QTY  => 1,
+		);
 		$llego->akb_product    = new \WC_Product( 'instock' );
 		$order->akb_items[]    = $llego;
 

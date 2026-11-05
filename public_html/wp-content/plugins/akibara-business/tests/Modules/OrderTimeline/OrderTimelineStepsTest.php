@@ -137,6 +137,8 @@ final class OrderTimelineStepsTest extends TestCase {
 	public function test_everything_arrived_before_the_cron_closes_the_step(): void {
 		$linea              = $this->linea( 1, Availability::TYPE_RELEASE_DATE );
 		$linea->akb_product = new \WC_Product( 'instock' );
+		$linea->akb_meta[ MetaKeys::ITEM_ARRIVED ]     = 'yes';
+		$linea->akb_meta[ MetaKeys::ITEM_ARRIVED_QTY ] = '1';
 		$steps              = $this->steps( 'processing', self::ESPERANDO, true, array( $linea ) );
 
 		$preventa = $this->step( $steps, 'Preventa' );

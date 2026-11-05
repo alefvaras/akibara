@@ -57,9 +57,18 @@ final class SummaryRecalculatorPendingTest extends TestCase {
 	private function linea( int $id, int $max_at_purchase, string $stock, string $tipo = Availability::TYPE_AUTO ): WC_Order_Item_Product {
 		$item               = new WC_Order_Item_Product();
 		$item->akb_id       = $id;
-		$item->akb_meta     = array(
-			MetaKeys::ITEM_WAS_PREVENTA     => 'yes',
-			MetaKeys::ITEM_MAX_AT_PURCHASE  => (string) $max_at_purchase,
+		$arrived_meta       = ( 'instock' === $stock )
+			? array(
+				MetaKeys::ITEM_ARRIVED     => 'yes',
+				MetaKeys::ITEM_ARRIVED_QTY => '1',
+			)
+			: array();
+		$item->akb_meta     = array_merge(
+			array(
+				MetaKeys::ITEM_WAS_PREVENTA    => 'yes',
+				MetaKeys::ITEM_MAX_AT_PURCHASE => (string) $max_at_purchase,
+			),
+			$arrived_meta
 		);
 		$producto           = new WC_Product( $stock, array( DateCalculator::META_TYPE => $tipo ) );
 		$producto->akb_id   = 1000 + $id;

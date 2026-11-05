@@ -43,7 +43,7 @@ final class PreventaItemsTest extends TestCase {
 		$item               = new WC_Order_Item_Product();
 		$item->akb_id       = $id;
 		$item->akb_quantity = $qty;
-		$item->akb_meta     = array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' ) + $meta;
+		$item->akb_meta     = array_merge( array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' ), $meta );
 		if ( null !== $stock ) {
 			$producto             = new WC_Product( $stock );
 			$producto->akb_id     = 1000 + $id;
@@ -87,7 +87,7 @@ final class PreventaItemsTest extends TestCase {
 	// ───────────────────────────────────────────── qué sigue sin llegar
 
 	public function test_un_tomo_en_stock_ya_llego_y_deja_de_estar_pendiente(): void {
-		$llego  = $this->linea( 1, array(), 'instock' );
+		$llego  = $this->linea( 1, array( MetaKeys::ITEM_WAS_PREVENTA => 'no' ), 'instock' );
 		$espera = $this->linea( 2, array(), 'onbackorder' );
 		$order  = $this->pedido( array( $llego, $espera ) );
 
@@ -248,7 +248,11 @@ final class PreventaItemsTest extends TestCase {
 	public function test_all_arrived_looks_at_the_stock_not_the_flag(): void {
 		$en_bodega              = new WC_Order_Item_Product();
 		$en_bodega->akb_id      = 1;
-		$en_bodega->akb_meta    = array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' );
+		$en_bodega->akb_meta    = array(
+			MetaKeys::ITEM_WAS_PREVENTA => 'yes',
+			MetaKeys::ITEM_ARRIVED      => 'yes',
+			MetaKeys::ITEM_ARRIVED_QTY  => 1,
+		);
 		$en_bodega->akb_product = new WC_Product( 'instock' );
 
 		$pendiente              = new WC_Order_Item_Product();
@@ -324,5 +328,50 @@ final class PreventaItemsTest extends TestCase {
 		// Intentar asignar más unidades cuando ya está completo devuelve 0.
 		$exceso = PreventaItems::seal_item_arrived( $order, $item, 1 );
 		self::assertSame( 0, $exceso );
+	}
+
+	/**
+	 * @testdox PA-03: Dos pedidos esperando una unidad del mismo tomo no se vuelven ambos listos cuando el catálogo pasa a instock sin asignación física.
+	 */
+	public function test_dos_pedidos_compitiendo_por_una_unidad_no_vuelven_ambos_listos_sin_asignacion_fisica(): void {
+		$producto_compartido             = new WC_Product( 'instock' );
+		$producto_compartido->akb_id     = 8099;
+		$producto_compartido->akb_status = 'publish';
+
+		$item1               = new WC_Order_Item_Product();
+		$item1->akb_id       = 1;
+		$item1->akb_quantity = 1;
+		$item1->akb_meta     = array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' );
+		$item1->akb_product  = $producto_compartido;
+
+		$order1            = new WC_Order( array( MetaKeys::ORDER_READY_TO_SHIP => 'no' ) );
+		$order1->akb_items = array( $item1 );
+
+		$item2               = new WC_Order_Item_Product();
+		$item2->akb_id       = 2;
+		$item2->akb_quantity = 1;
+		$item2->akb_meta     = array( MetaKeys::ITEM_WAS_PREVENTA => 'yes' );
+		$item2->akb_product  = $producto_compartido;
+
+		$order2            = new WC_Order( array( MetaKeys::ORDER_READY_TO_SHIP => 'no' ) );
+		$order2->akb_items = array( $item2 );
+
+		// Sin asignación física (ITEM_ARRIVED / ITEM_ARRIVED_QTY), NINGUNO ha llegado
+		self::assertFalse( PreventaItems::has_arrived( $order1, $item1 ) );
+		self::assertFalse( PreventaItems::has_arrived( $order2, $item2 ) );
+		self::assertTrue( PreventaItems::is_pending_item( $order1, $item1 ) );
+		self::assertTrue( PreventaItems::is_pending_item( $order2, $item2 ) );
+		self::assertSame( 1, PreventaItems::pending_qty( $order1, $item1 ) );
+		self::assertSame( 1, PreventaItems::pending_qty( $order2, $item2 ) );
+
+		// Tras sellar físicamente 1 unidad para la orden 1:
+		PreventaItems::seal_item_arrived( $order1, $item1, 1, time() );
+		self::assertTrue( PreventaItems::has_arrived( $order1, $item1 ) );
+		self::assertFalse( PreventaItems::is_pending_item( $order1, $item1 ) );
+
+		// La orden 2 DEBE seguir pendiente porque no tiene asignación física
+		self::assertFalse( PreventaItems::has_arrived( $order2, $item2 ) );
+		self::assertTrue( PreventaItems::is_pending_item( $order2, $item2 ) );
+		self::assertSame( 1, PreventaItems::pending_qty( $order2, $item2 ) );
 	}
 }
