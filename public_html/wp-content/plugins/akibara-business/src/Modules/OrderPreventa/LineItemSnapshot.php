@@ -22,6 +22,7 @@ use WC_Order;
 use WC_Order_Item_Product;
 use WC_Product;
 use Akibara\Business\Contracts\EtaProvider;
+use Akibara\Business\Utilities\StoreTime;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -102,9 +103,37 @@ final class LineItemSnapshot {
 	 * @return void
 	 */
 	public function stamp_preventa_details( WC_Order_Item_Product $item, WC_Product $product ): void {
+		$raw_type  = Availability::sanitize_type( (string) $product->get_meta( DateCalculator::META_TYPE ) );
+		$item_type = $raw_type;
+
+		// Si es una preventa con fecha de lanzamiento ya vencida (ayer o anterior en la zona horaria de la tienda),
+		// la clasificación comercial al momento de comprar es auto / a pedido, no preventa vencida.
+		if ( Availability::TYPE_RELEASE_DATE === $raw_type ) {
+			$raw_date = function_exists( 'get_post_meta' )
+				? (string) get_post_meta( $product->get_id(), Availability::META_RELEASE_DATE, true )
+				: (string) $product->get_meta( Availability::META_RELEASE_DATE );
+			if ( '' === $raw_date && method_exists( $product, 'get_meta' ) ) {
+				$raw_date = (string) $product->get_meta( Availability::META_RELEASE_DATE );
+			}
+
+			if ( '' !== $raw_date ) {
+				$now_ts     = method_exists( $this->calculator, 'now' ) ? (int) $this->calculator->now() : time();
+				$tz         = StoreTime::zone();
+				$release_ts = Availability::release_timestamp( $raw_date, $tz );
+				if ( null !== $release_ts ) {
+					$today = ( new \DateTimeImmutable( '@' . $now_ts ) )
+						->setTimezone( $tz )
+						->setTime( 0, 0, 0 );
+					if ( $release_ts < $today->getTimestamp() ) {
+						$item_type = Availability::TYPE_AUTO;
+					}
+				}
+			}
+		}
+
 		$item->update_meta_data(
 			MetaKeys::ITEM_TYPE_AT_PURCHASE,
-			Availability::sanitize_type( (string) $product->get_meta( DateCalculator::META_TYPE ) )
+			$item_type
 		);
 
 		$country_slug = $this->calculator->resolve_country( $product );

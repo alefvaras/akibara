@@ -52,8 +52,17 @@ $cid_second = (string) $second_db->get_var( 'SELECT CONNECTION_ID()' );
 $log( "Conexiones MariaDB: Worker 1 (principal)={$cid_main} · Worker 2 (secundario)={$cid_second}" );
 $check( 'Dos conexiones MariaDB independientes establecidas', $cid_main !== $cid_second && (int) $cid_second > 0 );
 
-// Snapshot inicial de control de residuo
-$initial_orders_count   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='shop_order'" );
+// Snapshot inicial de control de residuo (HPOS compatible)
+$hpos_active = class_exists( '\Automattic\WooCommerce\Utilities\OrderUtil' )
+	&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+
+$count_orders = static function () use ( $wpdb, $hpos_active ): int {
+	return $hpos_active
+		? (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}wc_orders" )
+		: (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='shop_order'" );
+};
+
+$initial_orders_count   = $count_orders();
 $initial_products_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product'" );
 
 $created_orders   = array();
@@ -228,16 +237,26 @@ try {
 } finally {
 	$log( "\n--- Limpieza y desinfección total de entidades de prueba ---" );
 	foreach ( $created_orders as $oid ) {
-		wp_delete_post( $oid, true );
+		$ord = wc_get_order( $oid );
+		if ( $ord instanceof WC_Order ) {
+			$ord->delete( true );
+		} else {
+			wp_delete_post( $oid, true );
+		}
 	}
 	foreach ( $created_products as $pid ) {
-		wp_delete_post( $pid, true );
+		$prod = wc_get_product( $pid );
+		if ( $prod instanceof WC_Product ) {
+			$prod->delete( true );
+		} else {
+			wp_delete_post( $pid, true );
+		}
 	}
 
-	$final_orders_count   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='shop_order'" );
+	$final_orders_count   = $count_orders();
 	$final_products_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product'" );
 
-	$check( 'Cero pedidos residuales en base de datos', $final_orders_count === $initial_orders_count );
+	$check( 'Cero pedidos residuales en base de datos (HPOS y Posts)', $final_orders_count === $initial_orders_count );
 	$check( 'Cero productos residuales en base de datos', $final_products_count === $initial_products_count );
 }
 

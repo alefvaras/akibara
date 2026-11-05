@@ -36,9 +36,10 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
    - Si no se ejecuta el relleno, «También te recomendamos…» no aparece en esos tomos.
    - Tras subir tomos nuevos, ejecutar SIEMPRE `wp akibara:upsells-fill` para encadenar la secuencia y purgar la caché de las fichas afectadas.
 
-8. **Descuento de Reserva / A Pedido (Configurable Grupal e Individual, 5% canónico por defecto con `round_100`):**
+8. **Descuento de Reserva / A Pedido (Configurable Grupal e Individual, Dinámico y NO Canónico):**
    - Todo producto en estado `onbackorder` ("A pedido") DEBE tener configurado un descuento comercial de reserva sobre el precio regular en `_sale_price` con redondeo CLP (`_price` = `_sale_price`).
-   - El valor canónico predeterminado es el **5% con redondeo a la centena (`round_100`)**, pero **DEBE ser siempre 100% configurable por el dueño tanto de forma grupal (por escala editorial o lote de rescate) como de forma individual (por serie o producto específico)** (ej. premiar con 8%, 10% o 15% según campañas de reposición o preventas especiales).
+   - El descuento **DEBE ser siempre 100% configurable por el dueño** a través de la Matriz de Precios, tanto de forma grupal (por escala editorial o lote de rescate) como de forma individual (por serie o producto específico).
+   - **PROHIBIDO asumir o hardcodear el 5% como regla canónica permanente:** El 5% es únicamente un valor inicial de referencia que puede ser cambiado en cualquier momento por el dueño (ej. 8%, 10%, 15% o según campañas comerciales). Queda terminantemente prohibido hardcodear porcentajes fijos en validadores, guardrails o código PHP/Python. Lo obligatorio es la existencia de un descuento válido (`0 < _sale_price < _regular_price`), el redondeo comercial a la centena en CLP (`round_100`) y que `_price === _sale_price`.
    - Esto activa el aviso oficial de reserva («Precio de reserva: $X. Al llegar el stock sube a $Y») y el tachado comercial.
 
 9. **Higiene de Atributos de Producto (`_product_attributes`):**
@@ -107,7 +108,7 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
          - `_manage_stock = 'no'`
          - `_stock = null` (o `0`)
          - `_backorders = 'no'` (valor nativo de WooCommerce cuando no se gestionan cantidades; el estado `onbackorder` mantiene el producto comprable).
-         - `_sale_price = round((_regular_price * 0.95) / 100) * 100` (5% de descuento obligatorio de reserva con redondeo a la centena `round_100`)
+         - `_sale_price = round((_regular_price * (1 - $descuento)) / 100) * 100` (descuento configurable de reserva resuelto por la Matriz de Precios con redondeo a la centena `round_100`, nunca hardcodeado a un 5% rígido).
          - `_price = _sale_price`
          - Término `outofstock` REMOVIDO de `product_visibility`.
          - No forzar `notify` mediante metadatos ni hooks: WooCommerce lo restablece a `no` al guardar un producto sin gestión de cantidades. Los avisos, la distinción A pedido/Preventa y las fechas de Akibara dependen del estado comercial y sus snapshots, no de ese permiso de cantidades gestionadas.

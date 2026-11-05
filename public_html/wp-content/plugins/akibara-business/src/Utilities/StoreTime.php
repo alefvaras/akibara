@@ -35,7 +35,14 @@ final class StoreTime {
 	 */
 	public static function zone(): DateTimeZone {
 		if ( function_exists( 'wp_timezone' ) ) {
-			return wp_timezone();
+			try {
+				$tz = wp_timezone();
+				if ( $tz instanceof DateTimeZone ) {
+					return $tz;
+				}
+			} catch ( \Throwable $e ) {
+				// Brain\Monkey missing expectation or runtime error.
+			}
 		}
 
 		return new DateTimeZone( 'UTC' );

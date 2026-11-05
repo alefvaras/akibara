@@ -82,6 +82,24 @@ final class LineItemSnapshotRuleTest extends TestCase {
 	}
 
 	/**
+	 * @testdox Si la fecha de lanzamiento ya pasó al momento de comprar, se clasifica como auto (A pedido).
+	 */
+	public function test_preventa_con_fecha_de_lanzamiento_vencida_se_clasifica_como_auto_al_comprar(): void {
+		$item    = $this->item();
+		$product = new \WC_Product(
+			'onbackorder',
+			array(
+				'_akb_eta_type'         => 'release_date',
+				'_akb_eta_release_date' => '2020-01-01',
+			)
+		);
+
+		( new LineItemSnapshot( $this->calculator() ) )->stamp_preventa_details( $item, $product );
+
+		self::assertSame( Availability::TYPE_AUTO, $item->meta[ MetaKeys::ITEM_TYPE_AT_PURCHASE ] );
+	}
+
+	/**
 	 * @testdox Sin ETA capturable marca is_tba=no y no inventa min/max.
 	 */
 	public function test_sin_eta_no_escribe_ventana(): void {

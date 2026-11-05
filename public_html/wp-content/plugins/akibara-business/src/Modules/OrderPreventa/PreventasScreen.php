@@ -1242,12 +1242,15 @@ class PreventasScreen {
 			return;
 		}
 
+		// Validar que la cantidad física sea estrictamente un número entero positivo >= 1 (PA-02).
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$unidades_recibidas = isset( $_POST['unidades_recibidas'] ) ? absint( $_POST['unidades_recibidas'] ) : 0;
-		if ( $unidades_recibidas <= 0 ) {
+		$raw_unidades = isset( $_POST['unidades_recibidas'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['unidades_recibidas'] ) ) : '';
+		$valid_int    = filter_var( $raw_unidades, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+		if ( false === $valid_int ) {
 			wp_safe_redirect( add_query_arg( array( 'akb_preventa' => 'recibir_invalido', 'accion' => 'recibir', 'product_id' => $product_id ), self::url_panel() ) );
 			exit;
 		}
+		$unidades_recibidas = (int) $valid_int;
 
 		// PA-04: Si el formulario explícito de pedidos fue enviado pero no se seleccionó ninguno, detener con aviso.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -1281,6 +1284,7 @@ class PreventasScreen {
 			exit;
 		}
 
+		$redirect_url = '';
 		try {
 			$product = wc_get_product( $product_id );
 			$existing_reception = (string) $product->get_meta( '_akb_reception_' . $reception_id );
@@ -1290,161 +1294,180 @@ class PreventasScreen {
 				$listos    = is_array( $prev ) ? (int) ( $prev['listos'] ?? 0 ) : 0;
 				$excedente = is_array( $prev ) ? (int) ( $prev['excedente'] ?? 0 ) : 0;
 
-				wp_safe_redirect(
-					add_query_arg(
-						array(
-							'akb_preventa' => 'recibido',
-							'apartadas'    => $apartadas,
-							'listos'       => $listos,
-							'excedente'    => $excedente,
-							'product_id'   => $product_id,
-							'replay'       => '1',
-						),
-						self::url_panel()
-					)
+				$redirect_url = add_query_arg(
+					array(
+						'akb_preventa' => 'recibido',
+						'apartadas'    => $apartadas,
+						'listos'       => $listos,
+						'excedente'    => $excedente,
+						'product_id'   => $product_id,
+						'replay'       => '1',
+					),
+					self::url_panel()
 				);
-				exit;
-			}
+			} else {
+				$candidatos = $this->pedidos_esperando_tomo( $product_id );
 
-		$candidatos = $this->pedidos_esperando_tomo( $product_id );
+				$restantes        = $unidades_recibidas;
+				$apartadas_total  = 0;
+				$pedidos_listos   = 0;
+				$orders_to_notify = array();
 
-		$restantes       = $unidades_recibidas;
-		$apartadas_total = 0;
-		$pedidos_listos  = 0;
+				// 1. Asignar y sellar físicamente las unidades por orden de llegada (FIFO).
+				foreach ( $candidatos as $order ) {
+					if ( $restantes <= 0 ) {
+						break;
+					}
+					if ( null !== $order_ids && ! in_array( $order->get_id(), $order_ids, true ) ) {
+						continue;
+					}
 
-		foreach ( $candidatos as $order ) {
-			if ( $restantes <= 0 ) {
-				break;
-			}
-			if ( null !== $order_ids && ! in_array( $order->get_id(), $order_ids, true ) ) {
-				continue;
-			}
+					$asignadas_en_orden = 0;
+					foreach ( $order->get_items() as $item ) {
+						if ( ! $item instanceof WC_Order_Item_Product ) {
+							continue;
+						}
+						$pid = PreventaItems::product_id_of( $item );
+						if ( $pid !== $product_id ) {
+							continue;
+						}
+						if ( $restantes <= 0 ) {
+							break;
+						}
 
-			$asignadas_en_orden = 0;
-			foreach ( $order->get_items() as $item ) {
-				if ( ! $item instanceof WC_Order_Item_Product ) {
-					continue;
-				}
-				$pid = PreventaItems::product_id_of( $item );
-				if ( $pid !== $product_id ) {
-					continue;
-				}
-				if ( $restantes <= 0 ) {
-					break;
-				}
+						$pendiente_linea = PreventaItems::pending_qty( $order, $item );
+						if ( $pendiente_linea > 0 ) {
+							$to_seal = min( $restantes, $pendiente_linea );
+							$sealed  = PreventaItems::seal_item_arrived( $order, $item, $to_seal, time() );
+							if ( $sealed > 0 ) {
+								$restantes           -= $sealed;
+								$asignadas_en_orden += $sealed;
+								$apartadas_total     += $sealed;
+							}
+						}
+					}
 
-				$pendiente_linea = PreventaItems::pending_qty( $order, $item );
-				if ( $pendiente_linea > 0 ) {
-					$to_seal = min( $restantes, $pendiente_linea );
-					$sealed  = PreventaItems::seal_item_arrived( $order, $item, $to_seal, time() );
-					if ( $sealed > 0 ) {
-						$restantes           -= $sealed;
-						$asignadas_en_orden += $sealed;
-						$apartadas_total     += $sealed;
+					if ( $asignadas_en_orden > 0 ) {
+						$order->add_order_note(
+							sprintf(
+								'📦 Recepción en bodega: %s (×%d) apartado físicamente en casillero para este pedido.',
+								$product->get_name(),
+								$asignadas_en_orden
+							)
+						);
+						$order->save();
+
+						// Determinar si este pedido ya tiene todas sus líneas abastecidas.
+						$has_pending_items = false;
+						foreach ( $order->get_items() as $item ) {
+							if ( $item instanceof WC_Order_Item_Product && PreventaItems::pending_qty( $order, $item ) > 0 ) {
+								$has_pending_items = true;
+								break;
+							}
+						}
+						if ( ! $has_pending_items ) {
+							++$pedidos_listos;
+						}
+
+						$orders_to_notify[] = $order;
 					}
 				}
-			}
 
-			if ( $asignadas_en_orden > 0 ) {
-				$order->add_order_note(
-					sprintf(
-						'📦 Recepción en bodega: %s (×%d) apartado físicamente en casillero para este pedido.',
-						$product->get_name(),
-						$asignadas_en_orden
+				// 2. Gestionar excedente libre para venta en web si el dueño lo solicitó.
+				$excedente_publicado = 0;
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$publicar            = isset( $_POST['publicar_excedente'] ) && 'yes' === sanitize_key( wp_unslash( (string) $_POST['publicar_excedente'] ) );
+				if ( $restantes > 0 && $publicar ) {
+					$excedente_publicado = $restantes;
+
+					if ( method_exists( $product, 'set_manage_stock' ) ) {
+						$product->set_manage_stock( true );
+						$actual = (int) $product->get_stock_quantity();
+						$product->set_stock_quantity( max( 0, $actual ) + $excedente_publicado );
+						$product->set_backorders( 'no' );
+						$product->set_stock_status( StockStatus::IN_STOCK );
+					} else {
+						$product->update_meta_data( '_manage_stock', 'yes' );
+						$actual = (int) $product->get_meta( '_stock' );
+						$product->update_meta_data( '_stock', max( 0, $actual ) + $excedente_publicado );
+						$product->update_meta_data( '_backorders', 'no' );
+						$product->update_meta_data( '_stock_status', StockStatus::IN_STOCK );
+					}
+
+					$reg_price = method_exists( $product, 'get_regular_price' )
+						? (float) $product->get_regular_price()
+						: (float) get_post_meta( $product_id, '_regular_price', true );
+
+					if ( $reg_price > 0 ) {
+						if ( method_exists( $product, 'set_sale_price' ) ) {
+							$product->set_sale_price( '' );
+							$product->set_price( $reg_price );
+						} else {
+							$product->delete_meta_data( '_sale_price' );
+							$product->update_meta_data( '_price', $reg_price );
+						}
+					}
+
+					$product->save();
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+					do_action( 'litespeed_purge_post', $product_id );
+				}
+
+				// 3. PERSISTENCIA DURABLE DEL RECIBO (PA-02): El recibo se compromete antes de notificaciones externas
+				// para que cualquier fallo o reintento preserve la idempotencia sin re-asignar unidades inexistentes.
+				$current_user_id = 0;
+				if ( function_exists( 'get_current_user_id' ) ) {
+					try {
+						$current_user_id = (int) get_current_user_id();
+					} catch ( \Throwable $e ) {
+						$current_user_id = 0;
+					}
+				}
+
+				$reception_meta = wp_json_encode(
+					array(
+						'reception_id' => $reception_id,
+						'timestamp'    => time(),
+						'user_id'      => $current_user_id,
+						'received'     => $unidades_recibidas,
+						'apartadas'    => $apartadas_total,
+						'listos'       => $pedidos_listos,
+						'excedente'    => $excedente_publicado,
 					)
 				);
-				$this->cron->process_order( $order );
-				$order->save();
+				$product->update_meta_data( '_akb_reception_' . $reception_id, $reception_meta );
+				$product->save();
 
-				if ( 'yes' === (string) $order->get_meta( MetaKeys::ORDER_READY_TO_SHIP ) ) {
-					++$pedidos_listos;
+				if ( function_exists( 'delete_transient' ) ) {
+					delete_transient( 'akb_preventa_cumplimiento_v1' );
 				}
-			}
-		}
 
-		$excedente_publicado = 0;
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$publicar            = isset( $_POST['publicar_excedente'] ) && 'yes' === sanitize_key( wp_unslash( (string) $_POST['publicar_excedente'] ) );
-		if ( $restantes > 0 && $publicar ) {
-			$excedente_publicado = $restantes;
-
-			if ( method_exists( $product, 'set_manage_stock' ) ) {
-				$product->set_manage_stock( true );
-				$actual = (int) $product->get_stock_quantity();
-				$product->set_stock_quantity( max( 0, $actual ) + $excedente_publicado );
-				$product->set_backorders( 'no' );
-				$product->set_stock_status( StockStatus::IN_STOCK );
-			} else {
-				$product->update_meta_data( '_manage_stock', 'yes' );
-				$actual = (int) $product->get_meta( '_stock' );
-				$product->update_meta_data( '_stock', max( 0, $actual ) + $excedente_publicado );
-				$product->update_meta_data( '_backorders', 'no' );
-				$product->update_meta_data( '_stock_status', StockStatus::IN_STOCK );
-			}
-
-			$reg_price = method_exists( $product, 'get_regular_price' )
-				? (float) $product->get_regular_price()
-				: (float) get_post_meta( $product_id, '_regular_price', true );
-
-			if ( $reg_price > 0 ) {
-				if ( method_exists( $product, 'set_sale_price' ) ) {
-					$product->set_sale_price( '' );
-					$product->set_price( $reg_price );
-				} else {
-					$product->delete_meta_data( '_sale_price' );
-					$product->update_meta_data( '_price', $reg_price );
+				// 4. PUBLICAR AVISOS Y EVENTOS TRAS EL COMPROMISO DURABLE (PA-02):
+				// Las notificaciones y hooks se despachan cuando la persistencia en base de datos ya está sellada.
+				foreach ( $orders_to_notify as $order ) {
+					$this->cron->process_order( $order );
 				}
+
+				$redirect_url = add_query_arg(
+					array(
+						'akb_preventa' => 'recibido',
+						'apartadas'    => $apartadas_total,
+						'listos'       => $pedidos_listos,
+						'excedente'    => $excedente_publicado,
+						'product_id'   => $product_id,
+					),
+					self::url_panel()
+				);
 			}
-
-			$product->save();
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-			do_action( 'litespeed_purge_post', $product_id );
+		} finally {
+			$this->release_reception_lock( $product_id );
 		}
 
-		// PA-02: Registrar la operación para idempotencia futura.
-		$current_user_id = 0;
-		if ( function_exists( 'get_current_user_id' ) ) {
-			try {
-				$current_user_id = (int) get_current_user_id();
-			} catch ( \Throwable $e ) {
-				$current_user_id = 0;
-			}
+		if ( '' !== $redirect_url ) {
+			wp_safe_redirect( $redirect_url );
+			exit;
 		}
-
-		$reception_meta = wp_json_encode(
-			array(
-				'reception_id' => $reception_id,
-				'timestamp'    => time(),
-				'user_id'      => $current_user_id,
-				'received'     => $unidades_recibidas,
-				'apartadas'    => $apartadas_total,
-				'listos'       => $pedidos_listos,
-				'excedente'    => $excedente_publicado,
-			)
-		);
-		$product->update_meta_data( '_akb_reception_' . $reception_id, $reception_meta );
-		$product->save();
-
-		if ( function_exists( 'delete_transient' ) ) {
-			delete_transient( 'akb_preventa_cumplimiento_v1' );
-		}
-
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'akb_preventa' => 'recibido',
-					'apartadas'    => $apartadas_total,
-					'listos'       => $pedidos_listos,
-					'excedente'    => $excedente_publicado,
-				),
-				self::url_panel()
-			)
-		);
-		exit;
-	} finally {
-		$this->release_reception_lock( $product_id );
 	}
-}
 
 	/**
 	 * Adquiere un candado exclusivo a nivel de base de datos para la recepción del producto.
@@ -1515,26 +1538,76 @@ class PreventasScreen {
 			}
 
 			$debe_sellar = false;
+			$a_sellar    = 0;
+			$product     = null;
+
 			if ( ! PreventaItems::is_outstanding_item( $order, $item ) ) {
-				// Comprado en stock: siempre disponible en bodega
-				$debe_sellar = true;
+				// Comprado en stock: siempre disponible en bodega (unidad ya descontada al comprar).
+				$already     = max( 0, (int) $item->get_meta( MetaKeys::ITEM_ARRIVED_QTY ) );
+				$a_sellar    = max( 0, $qty_neta - $already );
+				$debe_sellar = $a_sellar > 0;
 			} elseif ( PreventaItems::has_arrived( $order, $item ) ) {
-				// Preventa / a pedido que ya tiene cantidad asignada
-				$debe_sellar = true;
+				// Preventa / a pedido que ya tiene cantidad asignada.
+				$already     = max( 0, (int) $item->get_meta( MetaKeys::ITEM_ARRIVED_QTY ) );
+				$a_sellar    = max( 0, $qty_neta - $already );
+				$debe_sellar = $a_sellar > 0;
 			} else {
 				$product = $item->get_product();
 				if ( $product instanceof \WC_Product && 'trash' !== (string) $product->get_status() && StockStatus::is_instock( $product ) ) {
-					// Preventa / a pedido cuyo producto está hoy en stock en bodega (disponible para apartar)
-					$debe_sellar = true;
+					// Preventa / a pedido cuyo producto está hoy en stock en bodega (disponible para apartar).
+					// PA-03: Comprobar saldo físico disponible no asignado.
+					$managing = method_exists( $product, 'managing_stock' )
+						? $product->managing_stock()
+						: ( 'yes' === (string) $product->get_meta( '_manage_stock' ) );
+
+					$stock_qty = method_exists( $product, 'get_stock_quantity' ) && null !== $product->get_stock_quantity()
+						? (int) $product->get_stock_quantity()
+						: ( '' !== (string) $product->get_meta( '_stock' ) ? (int) $product->get_meta( '_stock' ) : null );
+
+					if ( null !== $stock_qty ) {
+						$stock_disponible = $stock_qty;
+					} elseif ( ! $managing && StockStatus::is_instock( $product ) ) {
+						// Si no gestiona inventario numérico pero el producto está en stock, hay disponibilidad en bodega.
+						$stock_disponible = $qty_neta;
+					} else {
+						$stock_disponible = 0;
+					}
+
+					if ( $stock_disponible > 0 ) {
+						$already  = max( 0, (int) $item->get_meta( MetaKeys::ITEM_ARRIVED_QTY ) );
+						$faltante = max( 0, $qty_neta - $already );
+						$a_sellar = min( $faltante, $stock_disponible );
+						if ( $a_sellar > 0 ) {
+							$debe_sellar = true;
+						}
+					}
 				}
 			}
 
-			if ( $debe_sellar ) {
-				$already  = max( 0, (int) $item->get_meta( MetaKeys::ITEM_ARRIVED_QTY ) );
-				$a_sellar = max( 0, $qty_neta - $already );
-				if ( $a_sellar > 0 ) {
-					PreventaItems::seal_item_arrived( $order, $item, $a_sellar, time() );
-					$sellados += $a_sellar;
+			if ( $debe_sellar && $a_sellar > 0 ) {
+				PreventaItems::seal_item_arrived( $order, $item, $a_sellar, time() );
+				$sellados += $a_sellar;
+
+				// PA-03: Si se tomó stock físico libre del catálogo para una preventa/a pedido, descontarlo del producto
+				// para que dos clics secuenciales o concurrentes no aparten la misma unidad libre.
+				if ( $product instanceof \WC_Product && PreventaItems::is_outstanding_item( $order, $item ) ) {
+					$stock_actual = (int) ( method_exists( $product, 'get_stock_quantity' ) && null !== $product->get_stock_quantity()
+						? $product->get_stock_quantity()
+						: $product->get_meta( '_stock' ) );
+					$nuevo_stock  = max( 0, $stock_actual - $a_sellar );
+
+					if ( method_exists( $product, 'set_stock_quantity' ) ) {
+						$product->set_stock_quantity( $nuevo_stock );
+						if ( $nuevo_stock <= 0 ) {
+							$product->set_stock_status( StockStatus::OUT_OF_STOCK );
+						}
+					} else {
+						$product->update_meta_data( '_stock', $nuevo_stock );
+						if ( $nuevo_stock <= 0 ) {
+							$product->update_meta_data( '_stock_status', StockStatus::OUT_OF_STOCK );
+						}
+					}
+					$product->save();
 				}
 			}
 		}
@@ -1576,11 +1649,31 @@ class PreventasScreen {
 			return;
 		}
 
+		$qty_arrived = max( 0, (int) $item->get_meta( MetaKeys::ITEM_ARRIVED_QTY ) );
+		$product     = $item->get_product();
+
 		$item->delete_meta_data( MetaKeys::ITEM_ARRIVED );
 		$item->delete_meta_data( MetaKeys::ITEM_ARRIVED_AT );
 		$item->delete_meta_data( MetaKeys::ITEM_ARRIVED_QTY );
 		if ( method_exists( $item, 'save' ) ) {
 			$item->save();
+		}
+
+		// PA-03: Si la línea desapartada era preventa/a pedido que tomó stock libre, reintegrar las unidades al catálogo
+		if ( $product instanceof \WC_Product && PreventaItems::is_outstanding_item( $order, $item ) && $qty_arrived > 0 ) {
+			$stock_actual = (int) ( method_exists( $product, 'get_stock_quantity' ) && null !== $product->get_stock_quantity()
+				? $product->get_stock_quantity()
+				: $product->get_meta( '_stock' ) );
+			$nuevo_stock = $stock_actual + $qty_arrived;
+
+			if ( method_exists( $product, 'set_stock_quantity' ) ) {
+				$product->set_stock_quantity( $nuevo_stock );
+				$product->set_stock_status( StockStatus::IN_STOCK );
+			} else {
+				$product->update_meta_data( '_stock', $nuevo_stock );
+				$product->update_meta_data( '_stock_status', StockStatus::IN_STOCK );
+			}
+			$product->save();
 		}
 
 		// Si el pedido estaba marcado como ready_to_ship, recalcular

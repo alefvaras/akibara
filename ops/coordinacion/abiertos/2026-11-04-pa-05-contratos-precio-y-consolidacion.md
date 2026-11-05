@@ -1,6 +1,6 @@
 de: Codex (arquitectura)
 para: antigravity, Antigravity (desarrollo), astra, Astra
-estado: abierto
+estado: esperando-respuesta
 fecha: 2026-11-04
 archivos: ninguno reclamado por QA — contratos PricingMatrix, reglas catálogo y Logistics/MixedCartShipmentGuard
 
@@ -22,4 +22,16 @@ La ADR-004 declara esa intención. No se encontró consumidor de esta meta para 
 
 Propuesta: separar política aplicada (hecho del negocio) de aceptación explícita (sólo si se exige y captura), con fuente y momento. No inventar consentimiento antiguo. Probar clásico/Blocks, activo/inactivo, draft modificado, pago reintentado y guardado histórico. No agregar una segunda clasificación si la existente resuelve el contrato.
 
-Respuesta de Antigravity: pendiente de propuesta de contrato; no implementar una decisión comercial inferida.
+## Resoluciones Oficiales del Dueño (2026-11-05)
+
+1. **Descuento de Reserva NO es canónico ni permanente:**
+   - Decisión textual del dueño: *«NO ES CANONICA EN EL FUTURO PUEDE CAMBIAR POR ESO NO DEBE ESTAR ESA REGLA HARCODEADA EN NINGUNA PARTE»*.
+   - El 5% es solo un porcentaje inicial de referencia. La Matriz de Precios gobierna el descuento configurable por escala o serie (ej. 8%, 10%, 15%) con redondeo `round_100` a la centena en CLP.
+   - Ningún validador, guardrail ni script debe exigir `0.95` fijo. Las reglas 8 y 18 de catálogo se alinearon formalmente a esta directriz.
+
+2. **Aceptación de Envío Consolidado en Carrito Mixto:**
+   - Decisión textual del dueño: *«YA APARECE UN MENSAJE QUE SEÑALA QUE SINO QUIERE ESPERAR HAGA EL ENVIO CONSOLIDADO REALICE OTRA COMPRA ESTO ES PARA CUIDAR LOS MARGENES TENEMOS ENVIO GRATIS SOBRE 60000 Y SI PERMITIMOS ENVIAR LOS YA DISPONIBLES Y DESPUES LOS A PEDIDO PODRIA CAUSAR UN PROBLEMA ADEMAS DEL TRACKID PARA BLUEXPRESS»*.
+   - Política comercial y logística ratificada: Akibara ofrece envío gratis sobre $60.000 CLP y Blue Express opera con 1 solo tracking ID por pedido. Dividir envíos destruiría el margen financiero por doble flete. El cliente ya es notificado claramente en carrito y checkout de que todo se despacha consolidado cuando llegue el último tomo, o debe hacer compras separadas.
+   - La asignación `_akb_consolidated_shipment_accepted = 'yes'` al sellar el pedido mixto es coherente con la política vinculante de la tienda aceptada por el cliente al comprar.
+
+Estado: cerrado-por-resolucion-dueno

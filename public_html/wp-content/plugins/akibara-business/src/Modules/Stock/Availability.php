@@ -288,7 +288,12 @@ final class Availability {
 		// get_post_meta (no WC_Product::get_meta) por la misma razón medida en
 		// DateCalculator::resolve_type(): lee del meta-cache que el loop primó;
 		// el canal WC_Data pagaba +1 query por card en los archives.
-		$type = (string) get_post_meta( $product->get_id(), self::META_TYPE, true );
+		$type = function_exists( 'get_post_meta' )
+			? (string) get_post_meta( $product->get_id(), self::META_TYPE, true )
+			: (string) $product->get_meta( self::META_TYPE );
+		if ( '' === $type && method_exists( $product, 'get_meta' ) ) {
+			$type = (string) $product->get_meta( self::META_TYPE );
+		}
 
 		if ( self::TYPE_TBA === $type ) {
 			return true;
@@ -297,8 +302,13 @@ final class Availability {
 			return false;
 		}
 
-		$tz         = StoreTime::zone();
-		$raw        = get_post_meta( $product->get_id(), self::META_RELEASE_DATE, true );
+		$tz  = StoreTime::zone();
+		$raw = function_exists( 'get_post_meta' )
+			? get_post_meta( $product->get_id(), self::META_RELEASE_DATE, true )
+			: $product->get_meta( self::META_RELEASE_DATE );
+		if ( ( null === $raw || '' === $raw ) && method_exists( $product, 'get_meta' ) ) {
+			$raw = $product->get_meta( self::META_RELEASE_DATE );
+		}
 		$release_ts = self::release_timestamp( is_string( $raw ) ? $raw : '', $tz );
 
 		// Fecha ausente o corrupta degrada en silencio ACÁ porque DateCalculator
