@@ -1274,28 +1274,37 @@ class PreventasScreen {
 			$reception_id = 'post_' . md5( (string) $product_id . ':' . (string) $unidades_recibidas . ':' . serialize( $order_ids ) );
 		}
 
-		$existing_reception = (string) $product->get_meta( '_akb_reception_' . $reception_id );
-		if ( '' !== $existing_reception ) {
-			$prev      = json_decode( $existing_reception, true );
-			$apartadas = is_array( $prev ) ? (int) ( $prev['apartadas'] ?? 0 ) : 0;
-			$listos    = is_array( $prev ) ? (int) ( $prev['listos'] ?? 0 ) : 0;
-			$excedente = is_array( $prev ) ? (int) ( $prev['excedente'] ?? 0 ) : 0;
-
-			wp_safe_redirect(
-				add_query_arg(
-					array(
-						'akb_preventa' => 'recibido',
-						'apartadas'    => $apartadas,
-						'listos'       => $listos,
-						'excedente'    => $excedente,
-						'product_id'   => $product_id,
-						'replay'       => '1',
-					),
-					self::url_panel()
-				)
-			);
+		// Candado de base de datos a nivel de producto para prevenir condiciones de carrera entre workers concurrentes.
+		$lock_acquired = $this->acquire_reception_lock( $product_id, 10 );
+		if ( ! $lock_acquired ) {
+			wp_safe_redirect( add_query_arg( array( 'akb_preventa' => 'candado_ocupado', 'accion' => 'recibir', 'product_id' => $product_id ), self::url_panel() ) );
 			exit;
 		}
+
+		try {
+			$product = wc_get_product( $product_id );
+			$existing_reception = (string) $product->get_meta( '_akb_reception_' . $reception_id );
+			if ( '' !== $existing_reception ) {
+				$prev      = json_decode( $existing_reception, true );
+				$apartadas = is_array( $prev ) ? (int) ( $prev['apartadas'] ?? 0 ) : 0;
+				$listos    = is_array( $prev ) ? (int) ( $prev['listos'] ?? 0 ) : 0;
+				$excedente = is_array( $prev ) ? (int) ( $prev['excedente'] ?? 0 ) : 0;
+
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'akb_preventa' => 'recibido',
+							'apartadas'    => $apartadas,
+							'listos'       => $listos,
+							'excedente'    => $excedente,
+							'product_id'   => $product_id,
+							'replay'       => '1',
+						),
+						self::url_panel()
+					)
+				);
+				exit;
+			}
 
 		$candidatos = $this->pedidos_esperando_tomo( $product_id );
 
@@ -1432,6 +1441,44 @@ class PreventasScreen {
 			)
 		);
 		exit;
+	} finally {
+		$this->release_reception_lock( $product_id );
+	}
+}
+
+	/**
+	 * Adquiere un candado exclusivo a nivel de base de datos para la recepción del producto.
+	 *
+	 * @param int $product_id      ID del producto.
+	 * @param int $timeout_seconds Tiempo máximo de espera en segundos.
+	 * @return bool True si se adquirió el candado o el entorno no es MariaDB.
+	 */
+	public function acquire_reception_lock( int $product_id, int $timeout_seconds = 10 ): bool {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) || ! method_exists( $wpdb, 'prepare' ) ) {
+			return true;
+		}
+
+		$lock_name = 'akb_recibir_' . $product_id;
+		return 1 === (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, $timeout_seconds )
+		);
+	}
+
+	/**
+	 * Libera el candado exclusivo de recepción en la base de datos.
+	 *
+	 * @param int $product_id ID del producto.
+	 * @return void
+	 */
+	public function release_reception_lock( int $product_id ): void {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) || ! method_exists( $wpdb, 'prepare' ) ) {
+			return;
+		}
+
+		$lock_name = 'akb_recibir_' . $product_id;
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 	}
 
 	/**
@@ -2123,6 +2170,7 @@ class PreventasScreen {
 			'apartado'         => array( 'success', 'Tomos en stock apartados y sellados físicamente en el casillero de este pedido.' ),
 			'desapartado'      => array( 'success', 'Apartado en casillero deshecho correctamente. La línea vuelve a estado pendiente.' ),
 			'recibir_invalido' => array( 'error', 'La cantidad de unidades recibidas debe ser al menos 1.' ),
+			'candado_ocupado'  => array( 'warning', 'Otro proceso o administrador está procesando la recepción de este mismo tomo en este instante. Espera un momento y reintenta.' ),
 			'seleccion_vacia'  => array( 'error', 'No seleccionaste ningún pedido para asignar mercadería. Selecciona al menos un pedido de la lista.' ),
 			'error'            => array( 'error', 'No se pudo completar la acción: revisa que el tomo siga existiendo.' ),
 			'papelera'         => array( 'error', 'Este tomo está en la papelera: restáuralo antes de realizar esta acción, o reembolsa esa línea.' ),

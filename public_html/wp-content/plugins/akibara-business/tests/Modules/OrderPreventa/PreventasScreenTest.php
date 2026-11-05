@@ -1032,4 +1032,44 @@ final class PreventasScreenTest extends TestCase {
 		parse_str( (string) parse_url( $this->redirect, PHP_URL_QUERY ), $q );
 		self::assertSame( 'seleccion_vacia', $q['akb_preventa'] ?? '' );
 	}
+
+	/**
+	 * @testdox PA-06: Métodos de candado de base de datos adquieren y liberan locks con nombre determinista.
+	 */
+	public function test_candado_adquisicion_y_liberacion(): void {
+		$pantalla = $this->pantalla();
+		self::assertTrue( method_exists( $pantalla, 'acquire_reception_lock' ) );
+		self::assertTrue( method_exists( $pantalla, 'release_reception_lock' ) );
+
+		// En entorno sin wpdb debe ser no bloqueante y devolver true
+		self::assertTrue( $pantalla->acquire_reception_lock( self::TOMO, 5 ) );
+
+		// Doble mock de wpdb con prepare y get_var
+		global $wpdb;
+		$queries = array();
+		$wpdb = new class( $queries ) {
+			public array $queries;
+			public function __construct( array &$queries ) {
+				$this->queries = &$queries;
+			}
+			public function prepare( string $query, ...$args ): string {
+				return vsprintf( str_replace( array( '%s', '%d' ), array( "'%s'", '%d' ), $query ), $args );
+			}
+			public function get_var( string $query ) {
+				$this->queries[] = $query;
+				if ( strpos( $query, 'GET_LOCK' ) !== false ) {
+					return 1;
+				}
+				return 1;
+			}
+		};
+
+		self::assertTrue( $pantalla->acquire_reception_lock( 456, 10 ) );
+		self::assertContains( "SELECT GET_LOCK('akb_recibir_456', 10)", $queries );
+
+		$pantalla->release_reception_lock( 456 );
+		self::assertContains( "SELECT RELEASE_LOCK('akb_recibir_456')", $queries );
+
+		$wpdb = null;
+	}
 }

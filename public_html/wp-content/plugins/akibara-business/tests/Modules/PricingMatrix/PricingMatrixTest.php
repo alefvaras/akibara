@@ -84,6 +84,9 @@ final class PricingMatrixTest extends TestCase {
 		self::assertContains( 'pending', OrderLockGuard::TERMINAL_STATUSES );
 		self::assertContains( 'cancelled', OrderLockGuard::TERMINAL_STATUSES );
 		self::assertContains( 'failed', OrderLockGuard::TERMINAL_STATUSES );
+		self::assertStringContainsString( "'wc-completed'", OrderLockGuard::get_terminal_statuses_sql() );
+		self::assertStringContainsString( "'completed'", OrderLockGuard::get_terminal_statuses_sql() );
+		self::assertStringContainsString( "'wc-cancelled'", OrderLockGuard::get_terminal_statuses_sql() );
 
 		$hooks    = new ReactiveStockPriceHooks();
 		$excluded = $hooks->exclude_duplicate_meta( array( '_custom_existing' ) );

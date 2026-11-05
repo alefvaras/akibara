@@ -1919,6 +1919,20 @@ namespace Akibara\Search\Tests {
 			self::assertTrue( ( new \ReflectionMethod( Indexer::class, 'process_shadow_claim' ) )->isPublic() );
 		}
 
+		/**
+		 * @testdox APIs publicas mark_batch_dirty y sync_products_batch_immediate permiten desacoplamiento entre plugins.
+		 */
+		public function test_mark_batch_dirty_and_sync_immediate_public_api(): void {
+			self::assertTrue( method_exists( Indexer::class, 'mark_batch_dirty' ) );
+			self::assertTrue( method_exists( Indexer::class, 'sync_products_batch_immediate' ) );
+
+			$resultado_empty = $this->sut->mark_batch_dirty( array() );
+			self::assertFalse( $resultado_empty );
+
+			$resultado_sync_empty = $this->sut->sync_products_batch_immediate( array() );
+			self::assertSame( 0, $resultado_sync_empty );
+		}
+
 		private function seed_live( int $product_id ): void {
 			$this->wpdb->work_row = $this->wpdb->row(
 				WorkRepository::SCOPE_LIVE,

@@ -363,6 +363,75 @@ final class Indexer {
 	}
 
 	/**
+	 * Marca un lote de productos en la cola de akibara-search de forma pública.
+	 *
+	 * API pública para encolar productos sucios desde módulos externos
+	 * (respetando encapsulamiento).
+	 *
+	 * @param list<int> $product_ids IDs de productos a encolar.
+	 * @return bool True si todos los lotes quedaron durables.
+	 */
+	public function mark_batch_dirty( array $product_ids ): bool {
+		return $this->enqueue_products( $product_ids );
+	}
+
+	/**
+	 * Indexa de forma síncrona e inmediata un lote explícito de productos en scope live.
+	 *
+	 * Permite a procesos en lote (como BatchGuard en PricingMatrix) indexar directamente
+	 * sin violar el encapsulamiento ni usar Closure::bind sobre métodos privados.
+	 *
+	 * @param list<int> $product_ids IDs de productos a sincronizar.
+	 * @return int Cantidad de productos efectivamente procesados y publicados en el lote.
+	 */
+	public function sync_products_batch_immediate( array $product_ids ): int {
+		if ( ! Install::runtime_schema_ready() ) {
+			Install::request_rebuild( 'runtime_schema_unready' );
+			return 0;
+		}
+
+		$ids = array_values(
+			array_unique(
+				array_filter( array_map( 'intval', $product_ids ), static fn( int $id ): bool => 0 < $id ),
+				SORT_NUMERIC
+			)
+		);
+		if ( array() === $ids ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$work_table = $wpdb->prefix . 'akb_search_work';
+		$in_ids     = implode( ',', $ids );
+
+		foreach ( array_chunk( $ids, self::TERM_BATCH_SIZE ) as $chunk ) {
+			$this->work->mark_live_dirty_many( $chunk );
+		}
+
+		// Garantizar que ninguna barrera diferida previa impida reclamar ahora mismo.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in_ids son enteros validados con intval().
+		$wpdb->query( "UPDATE {$work_table} SET available_at = UTC_TIMESTAMP() WHERE scope = 'live' AND product_id IN ({$in_ids}) AND available_at > UTC_TIMESTAMP()" );
+
+		$lote = array();
+		foreach ( $ids as $pid ) {
+			$claim = $this->work->claim_product( WorkRepository::SCOPE_LIVE, '', (int) $pid, self::LEASE_SECONDS );
+			if ( null === $claim ) {
+				continue;
+			}
+			$staged = $this->stage_live_claim( $claim, false, false );
+			if ( is_array( $staged ) ) {
+				$lote[] = $staged;
+			}
+		}
+
+		if ( array() !== $lote ) {
+			$this->close_live_batch( $lote );
+		}
+
+		return count( $lote );
+	}
+
+	/**
 	 * Intenta despertar el pump; Action Scheduler nunca representa la deuda.
 	 *
 	 * @return bool True si ya existe un pending o AS aceptó el wake-up.

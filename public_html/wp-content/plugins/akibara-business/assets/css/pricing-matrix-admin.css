@@ -615,21 +615,226 @@
 }
 
 @media (max-width: 768px) {
-	.akb-pm-table-responsive {
-		border: 1px solid var(--akb-pm-border);
-		border-radius: 4px;
-		-webkit-overflow-scrolling: touch;
+	.akb-pm-wrap {
+		margin: 10px 10px 30px 0;
+		max-width: 100%;
+		overflow-x: hidden;
+	}
+	.akb-pm-card {
+		padding: 12px;
+	}
+	.akb-pm-filter-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+	}
+	.akb-pm-search-input {
+		min-width: 0;
+		max-width: 100%;
+		width: 100%;
 	}
 	.akb-pm-nav-tabs {
 		white-space: nowrap;
 		-webkit-overflow-scrolling: touch;
 	}
+	.akb-pm-table-responsive {
+		border: none;
+		background: transparent;
+		overflow-x: visible;
+		margin-top: 10px;
+	}
+
+	/* Conversión responsiva de tabla de escalas a tarjetas (elimina desborde de 920px en móviles) */
+	#akb-pricing-scales-table,
+	#akb-pricing-scales-table thead,
+	#akb-pricing-scales-table tbody,
+	#akb-pricing-scales-table th,
+	#akb-pricing-scales-table td,
+	#akb-pricing-scales-table tr {
+		display: block;
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+		box-sizing: border-box;
+	}
+
+	#akb-pricing-scales-table thead {
+		display: none;
+	}
+
+	#akb-pricing-scales-table tbody tr.akb-scale-searchable-row {
+		display: flex;
+		flex-direction: column;
+		background: #ffffff;
+		border: 1px solid var(--akb-pm-border);
+		border-radius: 8px;
+		padding: 14px;
+		margin-bottom: 14px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	}
+
+	#akb-pricing-scales-table tbody tr.akb-scale-searchable-row td {
+		border: none !important;
+		padding: 4px 0 !important;
+		background: transparent !important;
+		text-align: left !important;
+	}
+
+	.akb-pm-col-editorial {
+		margin-bottom: 4px;
+	}
+	.akb-pm-col-editorial .akb-pm-editorial-name {
+		font-size: 16px;
+	}
+	.akb-pm-col-country {
+		display: inline-block !important;
+		width: auto !important;
+		margin-bottom: 6px;
+	}
+	.akb-pm-col-price {
+		background: var(--akb-pm-wash) !important;
+		border-radius: 6px;
+		padding: 8px 12px !important;
+		margin-bottom: 8px;
+		display: flex !important;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.akb-pm-col-price::before {
+		content: "Precio Catálogo:";
+		font-size: 11px;
+		font-weight: 700;
+		text-transform: uppercase;
+		color: var(--akb-pm-muted);
+	}
+
+	.akb-pm-col-total,
+	.akb-pm-col-stock,
+	.akb-pm-col-backorder,
+	.akb-pm-col-outofstock {
+		display: flex !important;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 12px;
+		padding: 4px 0 !important;
+		border-bottom: 1px dotted var(--akb-pm-border) !important;
+	}
+	.akb-pm-col-total::before { content: "Total tomos:"; color: var(--akb-pm-muted); font-weight: 600; }
+	.akb-pm-col-stock::before { content: "En stock físico:"; color: #0d6832; font-weight: 600; }
+	.akb-pm-col-backorder::before { content: "A pedido / reserva:"; color: #2271b1; font-weight: 600; }
+	.akb-pm-col-outofstock::before { content: "Agotados:"; color: #646970; font-weight: 600; }
+
+	.akb-pm-col-series {
+		margin: 8px 0;
+	}
+
+	.akb-pm-col-actions {
+		margin-top: 10px;
+		border-top: 2px solid var(--akb-pm-wash) !important;
+		padding-top: 12px !important;
+	}
+
+	.akb-pm-scale-calc-grid {
+		grid-template-columns: repeat(2, 1fr) !important;
+		gap: 8px !important;
+	}
+
+	.akb-pm-calc-field label {
+		font-size: 11px !important;
+	}
+
+	.akb-pm-calc-field input,
+	.akb-pm-calc-field select {
+		height: 38px !important;
+		font-size: 14px !important;
+	}
+
+	.akb-pm-calc-footer {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+	}
+
+	.akb-pm-btn-group {
+		display: flex;
+		width: 100%;
+		gap: 6px;
+	}
+
+	.akb-pm-btn-group button {
+		flex: 1;
+		min-height: 42px;
+	}
+
+	/* Conversión similar para la tabla de rescate */
+	#akb-rescue-table,
+	#akb-rescue-table thead,
+	#akb-rescue-table tbody,
+	#akb-rescue-table th,
+	#akb-rescue-table td,
+	#akb-rescue-table tr {
+		display: block;
+		width: 100% !important;
+		min-width: 0 !important;
+		box-sizing: border-box;
+	}
+
+	#akb-rescue-table thead {
+		display: none;
+	}
+
+	#akb-rescue-table tr.akb-rescue-searchable-row {
+		display: flex;
+		flex-direction: column;
+		background: #ffffff;
+		border: 1px solid var(--akb-pm-border);
+		border-radius: 8px;
+		padding: 12px;
+		margin-bottom: 12px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+	}
+
+	#akb-rescue-table td {
+		padding: 4px 0 !important;
+		border: none !important;
+		background: transparent !important;
+		text-align: left !important;
+	}
+
+	.akb-rescue-col-cb {
+		display: flex !important;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 4px;
+	}
+	.akb-rescue-col-cb::after {
+		content: "Seleccionar para rescate";
+		font-size: 12px;
+		font-weight: 600;
+		color: #1d2327;
+	}
+
+	.akb-rescue-col-reg,
+	.akb-rescue-col-editorial,
+	.akb-rescue-col-days {
+		display: flex !important;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 12px;
+		border-bottom: 1px dotted var(--akb-pm-border) !important;
+		padding: 3px 0 !important;
+	}
+	.akb-rescue-col-reg::before { content: "Precio Regular:"; font-weight: 600; color: #50575e; }
+	.akb-rescue-col-editorial::before { content: "Editorial:"; font-weight: 600; color: #50575e; }
+	.akb-rescue-col-days::before { content: "Disponibilidad:"; font-weight: 600; color: #50575e; }
+
+	.akb-rescue-col-sale {
+		margin-top: 6px;
+		padding-top: 6px !important;
+	}
 }
 
 @media (max-width: 600px) {
-	.akb-pm-wrap {
-		margin-right: 12px;
-	}
 	.akb-pm-cockpit {
 		grid-template-columns: 1fr;
 	}
@@ -648,24 +853,6 @@
 		width: 100%;
 		min-height: 42px;
 		margin: 4px 0;
-	}
-	.akb-pm-scale-calc-grid {
-		grid-template-columns: repeat(2, 1fr);
-		gap: 8px;
-	}
-	.akb-pm-calc-footer {
-		flex-direction: column;
-		align-items: stretch;
-		gap: 8px;
-	}
-	.akb-pm-btn-group {
-		display: flex;
-		width: 100%;
-		gap: 6px;
-	}
-	.akb-pm-btn-group button {
-		flex: 1;
-		min-height: 40px;
 	}
 	.akb-pm-proposal-review {
 		padding: 12px 14px;

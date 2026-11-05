@@ -57,6 +57,21 @@ final class OrderLockGuard {
 	);
 
 	/**
+	 * Devuelve la lista formateada para la cláusula SQL de estados no bloqueantes.
+	 *
+	 * @return string
+	 */
+	public static function get_terminal_statuses_sql(): string {
+		$quoted = array();
+		foreach ( self::TERMINAL_STATUSES as $status ) {
+			$clean    = preg_replace( '/[^a-z0-9_-]/', '', (string) $status );
+			$quoted[] = "'wc-{$clean}'";
+			$quoted[] = "'{$clean}'";
+		}
+		return implode( ', ', array_unique( $quoted ) );
+	}
+
+	/**
 	 * Devuelve los IDs únicos de productos/variaciones comprometidos en pedidos activos
 	 * o con _stock < 0.
 	 *
@@ -171,7 +186,7 @@ final class OrderLockGuard {
 					ON CAST(oim_pid.meta_value AS UNSIGNED) = pm_stock.post_id AND pm_stock.meta_key = '_stock'
 				WHERE o.type = 'shop_order'
 				  AND (
-				      o.status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
+				      o.status NOT IN (" . self::get_terminal_statuses_sql() . ")
 				      OR (
 				          o.status IN ('wc-pending', 'pending')
 				          AND o.date_created_gmt >= %s
@@ -214,7 +229,7 @@ final class OrderLockGuard {
 					ON CAST(oim_pid.meta_value AS UNSIGNED) = pm_stock.post_id AND pm_stock.meta_key = '_stock'
 				WHERE o.post_type = 'shop_order'
 				  AND (
-				      o.post_status NOT IN ('wc-completed', 'completed', 'wc-cancelled', 'cancelled', 'wc-refunded', 'refunded', 'wc-failed', 'failed', 'wc-trash', 'trash', 'wc-checkout-draft', 'checkout-draft', 'auto-draft', 'wc-pending', 'pending')
+				      o.post_status NOT IN (" . self::get_terminal_statuses_sql() . ")
 				      OR (
 				          o.post_status IN ('wc-pending', 'pending')
 				          AND o.post_date_gmt >= %s

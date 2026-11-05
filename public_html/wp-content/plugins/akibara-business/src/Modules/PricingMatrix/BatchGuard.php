@@ -329,52 +329,22 @@ final class BatchGuard {
 	/**
 	 * Ejecuta la indexación y cierre consolidado de un lote en akibara-search.
 	 *
+	 * Utiliza la API pública `sync_products_batch_immediate()` de Indexer para
+	 * desacoplar módulos y respetar el encapsulamiento. Mantiene fallback a
+	 * `enqueue_products()` + `handle_live_pump()` para resiliencia.
+	 *
 	 * @param object    $indexer     Instancia de Indexer.
 	 * @param list<int> $product_ids IDs de productos.
 	 * @return void
 	 */
 	private static function run_indexer_batch( object $indexer, array $product_ids ): void {
-		global $wpdb;
-
-		$work_table = $wpdb->prefix . 'akb_search_work';
-		$in_ids     = implode( ',', array_map( 'intval', $product_ids ) );
-
-		$batch_runner = \Closure::bind(
-			function ( array $ids ) use ( $wpdb, $work_table, $in_ids ): void {
-				foreach ( array_chunk( $ids, 200 ) as $chunk ) {
-					$this->work->mark_live_dirty_many( $chunk );
-				}
-
-				// Garantizar que ninguna barrera diferida previa impida reclamar ahora mismo.
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in_ids son enteros validados con intval().
-				$wpdb->query( "UPDATE {$work_table} SET available_at = UTC_TIMESTAMP() WHERE scope = 'live' AND product_id IN ({$in_ids}) AND available_at > UTC_TIMESTAMP()" );
-
-				$lote = array();
-				foreach ( $ids as $pid ) {
-					$claim = $this->work->claim_product( 'live', '', (int) $pid, self::LEASE_SECONDS );
-					if ( null === $claim ) {
-						continue;
-					}
-					$staged = $this->stage_live_claim( $claim, false, false );
-					if ( is_array( $staged ) ) {
-						$lote[] = $staged;
-					}
-				}
-
-				if ( array() !== $lote ) {
-					$this->close_live_batch( $lote );
-				}
-			},
-			$indexer,
-			$indexer
-		);
-
-		if ( is_callable( $batch_runner ) ) {
-			$batch_runner( $product_ids );
-		} else {
-			$indexer->enqueue_products( $product_ids );
-			$indexer->handle_live_pump();
+		if ( method_exists( $indexer, 'sync_products_batch_immediate' ) ) {
+			$indexer->sync_products_batch_immediate( $product_ids );
+			return;
 		}
+
+		$indexer->enqueue_products( $product_ids );
+		$indexer->handle_live_pump();
 	}
 
 	/**

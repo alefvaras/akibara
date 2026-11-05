@@ -827,7 +827,7 @@ final class PricingMatrixAdminPage {
 		$id_sale = 'sale-' . $uid;
 		?>
 		<tr class="akb-scale-searchable-row <?php echo $is_draft_active ? 'akb-row-draft-active' : ''; ?>" data-search="<?php echo esc_attr( strtolower( $row['editorial'] . ' ' . $row['editorial_slug'] . ' ' . $row['pais_codigo'] . ' ' . implode( ' ', $row['series_names'] ?? array() ) ) ); ?>" <?php echo $is_draft_active ? 'style="background:#f0f6fc;"' : ''; ?>>
-			<td data-value="<?php echo esc_attr( $row['editorial'] ); ?>">
+			<td data-value="<?php echo esc_attr( $row['editorial'] ); ?>" class="akb-pm-col-editorial" data-label="Editorial">
 				<div class="akb-pm-editorial-cell">
 					<span class="akb-pm-editorial-name"><?php echo esc_html( $row['editorial'] ); ?></span>
 					<span class="akb-pm-slug-badge"><?php echo esc_html( $row['editorial_slug'] ); ?></span>
@@ -838,28 +838,28 @@ final class PricingMatrixAdminPage {
 					<?php endif; ?>
 				</div>
 			</td>
-			<td data-value="<?php echo esc_attr( $row['pais_codigo'] ); ?>" style="text-align:center;">
+			<td data-value="<?php echo esc_attr( $row['pais_codigo'] ); ?>" class="akb-pm-col-country" data-label="País" style="text-align:center;">
 				<span class="akb-pm-country-pill"><?php echo esc_html( strtoupper( $row['pais_codigo'] ?: '—' ) ); ?></span>
 			</td>
-			<td data-value="<?php echo (int) $row['escala_precio_regular']; ?>">
+			<td data-value="<?php echo (int) $row['escala_precio_regular']; ?>" class="akb-pm-col-price" data-label="Precio Actual">
 				<strong style="font-size:14px;color:#1d2327;">$<?php echo esc_html( number_format( (int) $row['escala_precio_regular'], 0, ',', '.' ) ); ?></strong>
 				<?php if ( null !== $row['min_sale_actual'] ) : ?>
 					<br /><span style="font-size:11px;color:#0d6832;font-weight:600;">Oferta: $<?php echo esc_html( number_format( (int) $row['min_sale_actual'], 0, ',', '.' ) ); ?></span>
 				<?php endif; ?>
 			</td>
-			<td data-value="<?php echo (int) $row['total_tomos']; ?>" style="text-align:center;">
+			<td data-value="<?php echo (int) $row['total_tomos']; ?>" class="akb-pm-col-total" data-label="Total" style="text-align:center;">
 				<span class="akb-pm-number-badge"><?php echo (int) $row['total_tomos']; ?></span>
 			</td>
-			<td data-value="<?php echo (int) $row['en_stock']; ?>" style="text-align:center;">
+			<td data-value="<?php echo (int) $row['en_stock']; ?>" class="akb-pm-col-stock" data-label="Stock" style="text-align:center;">
 				<span style="font-weight:700;color:#0d6832;"><?php echo (int) $row['en_stock']; ?></span>
 			</td>
-			<td data-value="<?php echo (int) $row['a_pedido']; ?>" style="text-align:center;">
+			<td data-value="<?php echo (int) $row['a_pedido']; ?>" class="akb-pm-col-backorder" data-label="A Pedido" style="text-align:center;">
 				<span style="font-weight:700;color:#2271b1;"><?php echo (int) $row['a_pedido']; ?></span>
 			</td>
-			<td data-value="<?php echo (int) $row['agotados']; ?>" style="text-align:center;">
+			<td data-value="<?php echo (int) $row['agotados']; ?>" class="akb-pm-col-outofstock" data-label="Agotado" style="text-align:center;">
 				<span style="color:#646970;"><?php echo (int) $row['agotados']; ?></span>
 			</td>
-			<td data-value="<?php echo (int) $row['series_count']; ?>">
+			<td data-value="<?php echo (int) $row['series_count']; ?>" class="akb-pm-col-series" data-label="Series">
 				<div class="akb-pm-series-summary-cell">
 					<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
 						<strong><?php echo (int) $row['series_count']; ?> <?php echo 1 === (int) $row['series_count'] ? 'serie' : 'series'; ?></strong>
@@ -897,7 +897,7 @@ final class PricingMatrixAdminPage {
 					<?php endif; ?>
 				</div>
 			</td>
-			<td>
+			<td class="akb-pm-col-actions" data-label="Precios de Venta">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-scale-row-form" style="display:flex;flex-direction:column;gap:6px;">
 					<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_APPLY_SCALE ); ?>" />
@@ -1064,24 +1064,24 @@ final class PricingMatrixAdminPage {
 							<tbody>
 								<?php foreach ( array_slice( $rescuables, 0, 300 ) as $item ) : ?>
 									<tr class="akb-rescue-searchable-row" data-regular="<?php echo (int) $item['regular_price']; ?>" data-search="<?php echo esc_attr( strtolower( $item['title'] . ' ' . $item['editorial'] . ' ' . $item['product_id'] . ' #' . $item['product_id'] ) ); ?>">
-										<td style="text-align:center;">
+										<td class="akb-rescue-col-cb" data-label="Seleccionar" style="text-align:center;">
 											<input type="checkbox" class="akb-rescue-cb" name="product_ids[]" value="<?php echo (int) $item['product_id']; ?>" />
 										</td>
-										<td data-value="<?php echo (int) $item['product_id']; ?>">
+										<td class="akb-rescue-col-id" data-label="ID" data-value="<?php echo (int) $item['product_id']; ?>">
 											<a href="<?php echo esc_url( admin_url( 'post.php?post=' . (int) $item['product_id'] . '&action=edit' ) ); ?>" target="_blank" style="text-decoration:none;">
 												<code>#<?php echo (int) $item['product_id']; ?></code>
 											</a>
 										</td>
-										<td data-value="<?php echo esc_attr( $item['title'] ); ?>">
+										<td class="akb-rescue-col-title" data-label="Producto" data-value="<?php echo esc_attr( $item['title'] ); ?>">
 											<strong><?php echo esc_html( $item['title'] ); ?></strong>
 										</td>
-										<td data-value="<?php echo esc_attr( $item['editorial'] ); ?>">
+										<td class="akb-rescue-col-editorial" data-label="Editorial" data-value="<?php echo esc_attr( $item['editorial'] ); ?>">
 											<?php echo esc_html( $item['editorial'] ); ?>
 										</td>
-										<td data-value="<?php echo (int) $item['regular_price']; ?>">
+										<td class="akb-rescue-col-reg" data-label="Precio Regular" data-value="<?php echo (int) $item['regular_price']; ?>">
 											$<?php echo esc_html( number_format( (int) $item['regular_price'], 0, ',', '.' ) ); ?>
 										</td>
-										<td data-value="<?php echo (int) $item['proposed_sale_price']; ?>" class="akb-rescue-sale-cell">
+										<td class="akb-rescue-col-sale akb-rescue-sale-cell" data-label="Precio Reserva" data-value="<?php echo (int) $item['proposed_sale_price']; ?>">
 											<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
 												<strong class="akb-rescue-sale-price" style="color:#0d6832;font-size:14px;">$<?php echo esc_html( number_format( (int) $item['proposed_sale_price'], 0, ',', '.' ) ); ?></strong>
 												<div class="akb-rescue-manual-wrap" style="display:inline-flex;align-items:center;">
@@ -1090,7 +1090,7 @@ final class PricingMatrixAdminPage {
 												</div>
 											</div>
 										</td>
-										<td data-value="<?php echo null !== $item['dias_agotado'] ? (int) $item['dias_agotado'] : -1; ?>">
+										<td class="akb-rescue-col-days" data-label="Días Agotado" data-value="<?php echo null !== $item['dias_agotado'] ? (int) $item['dias_agotado'] : -1; ?>">
 											<?php if ( null !== $item['dias_agotado'] ) : ?>
 												<span class="akb-pm-badge-days" style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;<?php echo $item['dias_agotado'] > 30 ? 'background:#fff1f0;color:#cf1322;border:1px solid #ffa39e;' : 'background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f;'; ?>">
 													⏱️ <?php echo (int) $item['dias_agotado']; ?> <?php echo 1 === (int) $item['dias_agotado'] ? 'día' : 'días'; ?>
