@@ -222,11 +222,17 @@ final class PricingSynchronizer {
 		$new_sale_int = '' !== $new_sale_str ? (int) $new_sale_str : null;
 		$changed      = ( $new_regular !== $old_regular ) || ( $new_sale_int !== $old_sale );
 
+		$serie_terms = function_exists( 'wp_get_post_terms' ) ? wp_get_post_terms( $product_id, 'pa_serie', array( 'fields' => 'all' ) ) : array();
+		$serie_name  = ( ! empty( $serie_terms ) && ! is_wp_error( $serie_terms ) && isset( $serie_terms[0]->name ) ) ? (string) $serie_terms[0]->name : '';
+		$serie_id    = ( ! empty( $serie_terms ) && ! is_wp_error( $serie_terms ) && isset( $serie_terms[0]->term_id ) ) ? (int) $serie_terms[0]->term_id : 0;
+
 		if ( $dry_run || ! $changed ) {
 			return array(
 				'status'       => $changed ? 'would_update' : 'unchanged',
 				'product_id'   => $product_id,
 				'title'        => $product->get_name(),
+				'serie_id'     => $serie_id,
+				'serie_name'   => $serie_name,
 				'stock_status' => $stock_status,
 				'old_regular'  => $old_regular,
 				'new_regular'  => $new_regular,
@@ -259,6 +265,8 @@ final class PricingSynchronizer {
 			'status'       => 'updated',
 			'product_id'   => $product_id,
 			'title'        => $product->get_name(),
+			'serie_id'     => $serie_id,
+			'serie_name'   => $serie_name,
 			'stock_status' => $stock_status,
 			'old_regular'  => $old_regular,
 			'new_regular'  => $new_regular,
@@ -288,6 +296,10 @@ final class PricingSynchronizer {
 	): string {
 		$eta_type = (string) get_post_meta( $product_id, '_akb_eta_type', true );
 		if ( StockStatus::ON_BACKORDER === $stock_status && 'disabled' !== $eta_type ) {
+			$manual_lock = 'yes' === (string) get_post_meta( $product_id, '_akb_manual_sale_lock', true );
+			if ( $manual_lock && '' !== $old_sale_raw && (int) $old_sale_raw > 0 && (int) $old_sale_raw < $new_regular ) {
+				return $old_sale_raw;
+			}
 			return ( $target_backorder_sale > 0 && $target_backorder_sale < $new_regular )
 				? (string) $target_backorder_sale
 				: '';
@@ -312,8 +324,9 @@ final class PricingSynchronizer {
 	 * @param float    $discount_pct          % descuento A Pedido.
 	 * @param string   $rounding_mode         Modo de redondeo CLP.
 	 * @param int|null $manual_sale_price     Precio manual opcional.
-	 * @param bool     $protect_active_orders Si true (default), omite productos con órdenes activas.
+	 * @param bool     $protect_active_orders Si true, omite productos con órdenes activas.
 	 * @param bool     $dry_run               Si true, ejecuta simulación sin persistir.
+	 * @param int      $serie_id              ID opcional de término pa_serie para acotar a una sola serie.
 	 * @return array<string, mixed>
 	 */
 	public static function sync_scale(
@@ -325,7 +338,8 @@ final class PricingSynchronizer {
 		string $rounding_mode = PricingMath::DEFAULT_MODE,
 		?int $manual_sale_price = null,
 		bool $protect_active_orders = true,
-		bool $dry_run = false
+		bool $dry_run = false,
+		int $serie_id = 0
 	): array {
 		$effective_reg = $new_regular > 0 ? $new_regular : $scale_regular;
 		$target_sale   = PricingMath::calculate_sale_price( $effective_reg, $discount_pct, $rounding_mode, $manual_sale_price );
@@ -341,13 +355,14 @@ final class PricingSynchronizer {
 			);
 		}
 
-		$product_ids       = ScaleScanner::get_product_ids_for_scale( $brand_id, $scale_regular );
+		$product_ids       = ScaleScanner::get_product_ids_for_scale( $brand_id, $scale_regular, $serie_id );
 		$locked_set        = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
 		$locked_orders_map = OrderLockGuard::get_locked_map_by_product();
 
 		$summary = array(
 			'brand_id'              => $brand_id,
 			'editorial_slug'        => $editorial_slug,
+			'serie_id'              => $serie_id,
 			'scale_regular'         => $scale_regular,
 			'new_regular'           => $effective_reg,
 			'target_sale'           => $target_sale,
@@ -654,12 +669,22 @@ final class PricingSynchronizer {
 	 *   `_backorders = 'no'` y `_sale_price` redondeado al 5% (`round_100`).
 	 * - Exige autorización expresa del distribuidor oficial (Reglas 15 y 18, Auditoría 2026-11-04) en ejecuciones en vivo.
 	 *
-	 * @param list<int> $product_ids     IDs de productos candidatos.
-	 * @param bool      $dry_run         Si true, solo simula.
+	 * @param list<int>       $product_ids         IDs de productos candidatos a rescatar.
+	 * @param bool            $dry_run             Si es true, sólo simula sin modificar la BD.
 	 * @param array{supplier?: string, reference?: string, confirmed?: bool} $distributor_auth Datos de autorización de la distribuidora oficial.
+	 * @param float|null      $custom_discount_pct Porcentaje de descuento opcional a nivel grupal.
+	 * @param string|null     $rounding_mode       Modo de redondeo opcional (round_100|round_50|floor_100).
+	 * @param array<int, array{sale_price?: int}> $individual_overrides Precios manuales por ID de producto.
 	 * @return array<string, mixed>
 	 */
-	public static function rescue_outofstock_products( array $product_ids, bool $dry_run = false, array $distributor_auth = array() ): array {
+	public static function rescue_outofstock_products(
+		array $product_ids,
+		bool $dry_run = false,
+		array $distributor_auth = array(),
+		?float $custom_discount_pct = null,
+		?string $rounding_mode = null,
+		array $individual_overrides = array()
+	): array {
 		$supplier_raw = isset( $distributor_auth['supplier'] ) ? trim( (string) $distributor_auth['supplier'] ) : '';
 		$supplier_key = strtolower( str_replace( array( ' ', '_' ), '-', $supplier_raw ) );
 		$reference    = isset( $distributor_auth['reference'] ) ? trim( (string) $distributor_auth['reference'] ) : '';
@@ -699,27 +724,30 @@ final class PricingSynchronizer {
 			'supplier'             => $supplier_key,
 			'reference'            => $reference,
 			'operator'             => $operator,
+			'discount_pct'         => $custom_discount_pct,
+			'rounding_mode'        => $rounding_mode,
 			'rescued_count'        => 0,
 			'skipped_locked_count' => 0,
 			'skipped_other_count'  => 0,
 			'items'                => array(),
 		);
 
-		$runner = static function () use ( $product_ids, $locked_set, $dry_run, $supplier_key, $reference, $operator, $allowed_skus, &$summary ): void {
+		$runner = static function () use (
+			$product_ids,
+			$locked_set,
+			$dry_run,
+			$supplier_key,
+			$reference,
+			$operator,
+			$allowed_skus,
+			$custom_discount_pct,
+			$rounding_mode,
+			$individual_overrides,
+			&$summary
+		): void {
 			foreach ( $product_ids as $pid ) {
 				// Regla Inquebrantable 2: prohibido tocar stock/estado en productos bloqueados.
 				if ( isset( $locked_set[ $pid ] ) ) {
-					++$summary['skipped_locked_count'];
-					$summary['items'][] = array(
-						'product_id' => $pid,
-						'status'     => 'skipped_locked',
-					);
-					continue;
-				}
-
-				// Re-evaluación viva para evitar condiciones de carrera si entra un pedido mientras se procesa.
-				$fresh_locked = OrderLockGuard::get_locked_product_ids();
-				if ( in_array( $pid, $fresh_locked, true ) ) {
 					++$summary['skipped_locked_count'];
 					$summary['items'][] = array(
 						'product_id' => $pid,
@@ -766,17 +794,27 @@ final class PricingSynchronizer {
 					continue;
 				}
 
-				$sale = PricingRulesRepository::resolve_sale_price_for_product( $product, $reg );
+				$is_manual_locked = false;
+				if ( isset( $individual_overrides[ $pid ]['sale_price'] ) && (int) $individual_overrides[ $pid ]['sale_price'] > 0 ) {
+					$sale             = (int) $individual_overrides[ $pid ]['sale_price'];
+					$is_manual_locked = true;
+				} elseif ( null !== $custom_discount_pct && $custom_discount_pct >= 0.0 ) {
+					$mode = null !== $rounding_mode ? PricingMath::normalize_mode( $rounding_mode ) : PricingMath::DEFAULT_MODE;
+					$sale = PricingMath::calculate_sale_price( $reg, $custom_discount_pct, $mode );
+				} else {
+					$sale = PricingRulesRepository::resolve_sale_price_for_product( $product, $reg );
+				}
 
 				if ( $dry_run ) {
 					++$summary['rescued_count'];
 					$summary['items'][] = array(
-						'product_id'    => $pid,
-						'sku'           => $sku,
-						'title'         => $product->get_name(),
-						'status'        => 'would_rescue',
-						'regular_price' => $reg,
-						'sale_price'    => $sale,
+						'product_id'     => $pid,
+						'sku'            => $sku,
+						'title'          => $product->get_name(),
+						'status'         => 'would_rescue',
+						'regular_price'  => $reg,
+						'sale_price'     => $sale,
+						'manual_locked'  => $is_manual_locked,
 					);
 					continue;
 				}
@@ -790,7 +828,12 @@ final class PricingSynchronizer {
 				$product->save();
 
 				delete_post_meta( $pid, '_stock' );
+				delete_post_meta( $pid, '_akb_out_of_stock_at' );
 				wp_remove_object_terms( $pid, StockStatus::OUT_OF_STOCK, 'product_visibility' );
+
+				if ( $is_manual_locked ) {
+					update_post_meta( $pid, '_akb_manual_sale_lock', 'yes' );
+				}
 
 				if ( '' !== $supplier_key ) {
 					// Persistencia canónica según ADR-003:
@@ -820,12 +863,13 @@ final class PricingSynchronizer {
 
 				++$summary['rescued_count'];
 				$summary['items'][] = array(
-					'product_id'    => $pid,
-					'sku'           => $sku,
-					'title'         => $product->get_name(),
-					'status'        => 'rescued',
-					'regular_price' => $reg,
-					'sale_price'    => $sale,
+					'product_id'     => $pid,
+					'sku'            => $sku,
+					'title'          => $product->get_name(),
+					'status'         => 'rescued',
+					'regular_price'  => $reg,
+					'sale_price'     => $sale,
+					'manual_locked'  => $is_manual_locked,
 				);
 			}
 		};

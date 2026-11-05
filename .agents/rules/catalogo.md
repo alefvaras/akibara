@@ -36,8 +36,9 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
    - Si no se ejecuta el relleno, «También te recomendamos…» no aparece en esos tomos.
    - Tras subir tomos nuevos, ejecutar SIEMPRE `wp akibara:upsells-fill` para encadenar la secuencia y purgar la caché de las fichas afectadas.
 
-8. **Descuento de Reserva / A Pedido (5% obligatorio con `round_100`):**
-   - Todo producto en estado `onbackorder` ("A pedido") DEBE tener configurado un 5% de descuento sobre el precio regular en `_sale_price` redondeado a la centena más cercana (`_price` = `_sale_price` = `round((_regular_price * 0.95) / 100) * 100`, ej. `$10.600` -> `$10.100`).
+8. **Descuento de Reserva / A Pedido (Configurable Grupal e Individual, 5% canónico por defecto con `round_100`):**
+   - Todo producto en estado `onbackorder` ("A pedido") DEBE tener configurado un descuento comercial de reserva sobre el precio regular en `_sale_price` con redondeo CLP (`_price` = `_sale_price`).
+   - El valor canónico predeterminado es el **5% con redondeo a la centena (`round_100`)**, pero **DEBE ser siempre 100% configurable por el dueño tanto de forma grupal (por escala editorial o lote de rescate) como de forma individual (por serie o producto específico)** (ej. premiar con 8%, 10% o 15% según campañas de reposición o preventas especiales).
    - Esto activa el aviso oficial de reserva («Precio de reserva: $X. Al llegar el stock sube a $Y») y el tachado comercial.
 
 9. **Higiene de Atributos de Producto (`_product_attributes`):**
@@ -93,17 +94,10 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
            * `_akb_serie_tomos_obra`: Total de tomos en Japón (ej. `21`).
            * `_akb_serie_estado_edicion`: Clave cerrada canónica (`completa`, `en_publicacion`, `al_dia`, `en_pausa`, `cancelada`).
            * `_akb_serie_tomos_edicion`: Total de tomos de la edición (ej. `1`).
-      8. **Ficha Técnica Estructurada en la Descripción de Serie (`description` de `pa_serie`):**
-         - La descripción de la serie debe abrir con una sinopsis cautivadora y cerrar obligatoriamente con la ficha técnica en viñetas limpias:
-           ```html
-           <p><strong>Autor original:</strong> [Nombre]<br />
-           <strong>Dibujo:</strong> [Nombre]<br />
-           <strong>Demografía:</strong> [Demografía]<br />
-           <strong>Estado en Japón:</strong> En curso (X tomos publicados) / Finalizada (X tomos)<br />
-           <strong>Formato de edición:</strong> [Detalles de formato y equivalencia]<br />
-           <strong>Estado en España:</strong> En curso (X tomos publicados) / Completa<br />
-           <strong>Próximo tomo:</strong> [Tomo #X anunciado para Mes]</p>
-           ```
+      8. **Ficha Técnica Estructurada 100% Dinámica en SeriesFacts (Cero Duplicación Estática):**
+         - La descripción de la serie (`description` de `pa_serie`) debe contener **exclusivamente** la sinopsis cautivadora argumental y presentación comercial con el tono de Akibara (gancho narrativo, demografía contextualizada y mención de despacho a todo Chile).
+         - **PROHIBIDO** incrustar viñetas o bloques HTML estáticos con conteos de tomos o fichas técnicas en `description` (ej. `<strong>Estado en España:</strong> En curso (X tomos publicados)`), ya que quedan obsoletos y contradicen al catálogo cada vez que se publica o repone un nuevo volumen.
+         - Toda la ficha técnica estructurada (autores, editorial, estado de la obra en Japón, estado de la edición, tomos en catálogo, disponibilidad de stock y último tomo publicado) se delega íntegra y automáticamente al módulo **`SeriesFacts`**, que la renderiza en tiempo real con datos vivos y verdad absoluta para el cliente.
 
 18. **Blindaje Estricto de Inventario y Prohibición Total de Volcado Local $\rightarrow$ Producción:**
     - **Prohibición Absoluta:** NUNCA volcar estados de inventario (`_stock`, `_stock_status`, `_manage_stock`) desde la base de datos de Docker local hacia producción. La base local es exclusivamente para pruebas, desarrollo y staging; sus cantidades no reflejan la bodega física real.

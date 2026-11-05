@@ -12,6 +12,7 @@ namespace Akibara\Business\Tests\Modules\PricingMatrix;
 use Akibara\Business\Modules\PricingMatrix\BatchGuard;
 use Akibara\Business\Modules\PricingMatrix\OrderLockGuard;
 use Akibara\Business\Modules\PricingMatrix\PricingMath;
+use Akibara\Business\Modules\PricingMatrix\PricingMatrixAdminPage;
 use Akibara\Business\Modules\PricingMatrix\PricingSelfTest;
 use Akibara\Business\Modules\PricingMatrix\PricingSynchronizer;
 use Akibara\Business\Modules\PricingMatrix\ReactiveStockPriceHooks;
@@ -27,6 +28,7 @@ final class PricingMatrixTest extends TestCase {
 		Functions\stubs(
 			array(
 				'is_user_logged_in' => false,
+				'wp_get_post_terms' => array(),
 			)
 		);
 	}
@@ -299,6 +301,251 @@ final class PricingMatrixTest extends TestCase {
 			$res = PricingSynchronizer::rescue_outofstock_products( array(), true );
 			self::assertTrue( $res['dry_run'] );
 			self::assertSame( 0, $res['rescued_count'] );
+		} finally {
+			$wpdb = $orig_wpdb;
+		}
+	}
+
+	/**
+	 * @testdox ScaleScanner::get_product_ids_for_scale acota la consulta a pa_serie cuando se especifica serie_id
+	 */
+	public function test_get_product_ids_for_scale_with_serie_id(): void {
+		global $wpdb;
+		$orig_wpdb = $wpdb ?? null;
+
+		$mock_wpdb = new class() {
+			public string $prefix = 'wp_';
+			public string $postmeta = 'wp_postmeta';
+			public string $posts = 'wp_posts';
+			public string $term_relationships = 'wp_term_relationships';
+			public string $term_taxonomy = 'wp_term_taxonomy';
+			public string $last_error = '';
+			public string $captured_query = '';
+
+			public function prepare( $query, ...$args ) {
+				$this->captured_query = $query;
+				return vsprintf( str_replace( '%d', '%s', $query ), $args );
+			}
+
+			public function get_col( $query, $x = 0 ) {
+				return array( '101', '102' );
+			}
+		};
+
+		$wpdb = $mock_wpdb;
+
+		try {
+			$ids = \Akibara\Business\Modules\PricingMatrix\ScaleScanner::get_product_ids_for_scale( 230, 21500, 555 );
+			self::assertSame( array( 101, 102 ), $ids );
+			self::assertStringContainsString( "tt_serie.taxonomy = 'pa_serie'", $mock_wpdb->captured_query );
+			self::assertStringContainsString( 'tt_serie.term_id = %d', $mock_wpdb->captured_query );
+
+			// Consulta sin serie_id
+			$ids_all = \Akibara\Business\Modules\PricingMatrix\ScaleScanner::get_product_ids_for_scale( 230, 21500, 0 );
+			self::assertSame( array( 101, 102 ), $ids_all );
+			self::assertStringNotContainsString( 'tt_serie', $mock_wpdb->captured_query );
+		} finally {
+			$wpdb = $orig_wpdb;
+		}
+	}
+
+	/**
+	 * @testdox PricingSynchronizer::sync_scale preserva serie_id en el reporte de auditoría
+	 */
+	public function test_sync_scale_preserves_serie_id_in_summary(): void {
+		global $wpdb;
+		$orig_wpdb = $wpdb ?? null;
+
+		$mock_wpdb = new class() {
+			public string $prefix = 'wp_';
+			public string $postmeta = 'wp_postmeta';
+			public string $posts = 'wp_posts';
+			public string $term_relationships = 'wp_term_relationships';
+			public string $term_taxonomy = 'wp_term_taxonomy';
+			public string $last_error = '';
+
+			public function prepare( $query, ...$args ) {
+				return $query;
+			}
+
+			public function get_results( $query, $output = null ) {
+				return array();
+			}
+
+			public function get_col( $query, $x = 0 ) {
+				return array();
+			}
+
+			public function get_var( $query ) {
+				return null;
+			}
+		};
+
+		$wpdb = $mock_wpdb;
+
+		try {
+			$summary = PricingSynchronizer::sync_scale(
+				230,
+				'ivrea-argentina',
+				21500,
+				22500,
+				5.0,
+				PricingMath::MODE_ROUND_100,
+				null,
+				false, // protect_active_orders = false
+				true,  // dry_run = true
+				777    // serie_id
+			);
+
+			self::assertSame( 777, $summary['serie_id'] );
+			self::assertSame( 230, $summary['brand_id'] );
+			self::assertSame( 22500, $summary['new_regular'] );
+			self::assertSame( 21400, $summary['target_sale'] );
+			self::assertTrue( $summary['dry_run'] );
+		} finally {
+			$wpdb = $orig_wpdb;
+		}
+	}
+
+	/**
+	 * @testdox ReactiveStockPriceHooks incluye _akb_out_of_stock_at en las claves singleton excluidas
+	 */
+	public function test_excluded_duplicate_meta_keys_includes_out_of_stock_at(): void {
+		self::assertContains( '_akb_out_of_stock_at', ReactiveStockPriceHooks::EXCLUDED_DUPLICATE_META_KEYS );
+		self::assertContains( '_akb_onbackorder_at', ReactiveStockPriceHooks::EXCLUDED_DUPLICATE_META_KEYS );
+	}
+
+	/**
+	 * @testdox PricingMatrixAdminPage define la constante de acción AJAX para guardado rápido
+	 */
+	public function test_pricing_matrix_admin_page_defines_ajax_action(): void {
+		self::assertSame( 'akb_pricing_matrix_apply_scale_ajax', PricingMatrixAdminPage::ACTION_APPLY_SCALE_AJAX );
+	}
+
+	/**
+	 * @testdox sync_scale respeta el candado manual _akb_manual_sale_lock en productos onbackorder
+	 */
+	public function test_sync_scale_respects_manual_sale_lock_on_backorder(): void {
+		Functions\when( 'get_post_meta' )->alias( function( $id, $key, $single = false ) {
+			if ( '_akb_eta_type' === $key ) {
+				return 'auto';
+			}
+			if ( '_akb_manual_sale_lock' === $key ) {
+				return 'yes';
+			}
+			return '';
+		} );
+
+		$product = new class() extends \WC_Product {
+			public function __construct() {
+				parent::__construct( 'onbackorder' );
+				$this->akb_id = 999;
+				$this->akb_regular_price = '10600';
+				$this->akb_sale_price = '8900'; // Manual sale price previa
+			}
+			public function get_name(): string { return 'Manga Manual Lock'; }
+		};
+
+		Functions\when( 'wc_get_product' )->alias( function( $id ) use ( $product ) {
+			return $product;
+		} );
+
+		$res = PricingSynchronizer::apply_product_price(
+			999,
+			10600,
+			10100, // target_backorder_sale calculada por la escala (5% estándar)
+			false, // protect_active_orders
+			array(),
+			array(),
+			true  // dry_run
+		);
+
+		// Debe mantener 8900 (precio manual del dueño) y NO sobreescribirlo a 10100
+		self::assertSame( 8900, $res['new_sale'] );
+	}
+
+	/**
+	 * @testdox rescue_outofstock_products soporta porcentaje de reserva personalizado (grupal) e individual con manual lock
+	 */
+	public function test_rescue_outofstock_products_supports_custom_discount_and_individual_overrides(): void {
+		global $wpdb;
+		$orig_wpdb = $wpdb ?? null;
+
+		$mock_wpdb = new class() {
+			public string $prefix             = 'wp_';
+			public string $postmeta           = 'wp_postmeta';
+			public string $posts              = 'wp_posts';
+			public string $term_relationships = 'wp_term_relationships';
+			public string $term_taxonomy      = 'wp_term_taxonomy';
+			public string $last_error         = '';
+
+			public function prepare( $query, ...$args ) {
+				return $query;
+			}
+			public function get_results( $query, $output = null ) {
+				return array();
+			}
+			public function get_col( $query, $x = 0 ) {
+				return array();
+			}
+			public function get_var( $query ) {
+				return '0';
+			}
+		};
+
+		$wpdb = $mock_wpdb;
+
+		try {
+			Functions\when( 'wc_get_product' )->alias( function( $id ) {
+				$product = new class( $id ) extends \WC_Product {
+					public function __construct( int $id ) {
+						parent::__construct( 'outofstock' );
+						$this->akb_id = $id;
+						$this->akb_sku = 'SKU-' . $id;
+						$this->akb_regular_price = '10600';
+					}
+					public function get_name(): string {
+						return 'Manga #' . $this->akb_id;
+					}
+				};
+				return $product;
+			} );
+
+			Functions\when( 'get_post_meta' )->alias( function( $id, $key, $single = false ) {
+				if ( '_akb_eta_type' === $key ) {
+					return 'auto';
+				}
+				return '';
+			} );
+
+			$summary = PricingSynchronizer::rescue_outofstock_products(
+				array( 101, 102 ),
+				true, // dry_run
+				array(
+					'supplier'  => 'ivrea-argentina',
+					'reference' => 'Planilla test',
+					'confirmed' => true,
+				),
+				10.0, // 10% grupal
+				PricingMath::MODE_ROUND_100,
+				array(
+					101 => array( 'sale_price' => 8900 ), // Individual manual
+				)
+			);
+
+			self::assertTrue( $summary['dry_run'] );
+			self::assertSame( 2, $summary['rescued_count'] );
+			self::assertSame( 10.0, $summary['discount_pct'] );
+
+			// Tomo 101: override individual a $8.900
+			self::assertSame( 101, $summary['items'][0]['product_id'] );
+			self::assertSame( 8900, $summary['items'][0]['sale_price'] );
+			self::assertTrue( $summary['items'][0]['manual_locked'] );
+
+			// Tomo 102: 10% grupal con round_100 ($10.600 -> $9.500)
+			self::assertSame( 102, $summary['items'][1]['product_id'] );
+			self::assertSame( 9500, $summary['items'][1]['sale_price'] );
+			self::assertFalse( $summary['items'][1]['manual_locked'] );
 		} finally {
 			$wpdb = $orig_wpdb;
 		}

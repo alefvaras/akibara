@@ -1,5 +1,7 @@
 # Backlog de Célula Autónoma — Metodología Ralph Loop (Akibara)
 
+> Alcance, QA 2026-11-04: los diez tickets de este histórico no certifican el módulo completo de Preventa/A pedido ni sustituyen la pizarra. La supervisión solicitada por el dueño continúa en [PA-00](abiertos/2026-11-04-pa-00-celula-preventa-a-pedido.md) y sus tickets. Allí se registran defectos reproducidos en 1.120.20 y la respuesta de Antigravity antes de que QA los cierre. Un número fijo de iteraciones no equivale a cumplir criterios de aceptación.
+
 Este documento contiene la pila de trabajo priorizada derivada de la auditoría 360° realizada el 2026-11-04 (Backend, UX/Operaciones y Catálogo/SEO).
 Cada ticket se ejecuta de manera continua bajo el ciclo estricto de **3 iteraciones** (Implementación $\rightarrow$ Verificación Adversarial $\rightarrow$ Sellado, Commit & Grafo) sin detenerse a consultar aspectos técnicos, elevando únicamente dudas de negocio al dueño.
 

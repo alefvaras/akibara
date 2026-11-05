@@ -84,6 +84,14 @@ final class ScaleScanner {
 			$series_list = array_keys( $meta['series'] );
 			sort( $series_list, SORT_NATURAL | SORT_FLAG_CASE );
 
+			$series_items = array_values( $meta['series_items'] ?? array() );
+			usort(
+				$series_items,
+				static function( array $a, array $b ): int {
+					return strcasecmp( (string) ( $a['name'] ?? '' ), (string) ( $b['name'] ?? '' ) );
+				}
+			);
+
 			$rule = PricingRulesRepository::resolve_rule_for_scale( $editorial_slug, $scale_reg );
 
 			$result[] = array(
@@ -103,6 +111,7 @@ final class ScaleScanner {
 				'comprometidos_orders'  => array_keys( $meta['locked_orders'] ),
 				'series_count'          => count( $series_list ),
 				'series_names'          => $series_list,
+				'series_items'          => $series_items,
 				'nuevo_precio_regular'  => (int) $rule['new_regular_price'],
 				'nuevo_precio_a_pedido' => (int) $rule['sale_price'],
 				'discount_pct'          => (float) $rule['discount_pct'],
@@ -127,6 +136,7 @@ final class ScaleScanner {
 			p.ID AS product_id,
 			tt_brand.term_id AS brand_id,
 			CAST(pm_reg.meta_value AS UNSIGNED) AS escala_precio_regular,
+			tt_serie.term_id AS serie_id,
 			t_serie.name AS serie_name
 		FROM {$wpdb->posts} p
 		INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
@@ -156,6 +166,7 @@ final class ScaleScanner {
 			$pid   = (int) ( $pr['product_id'] ?? 0 );
 			$bid   = (int) ( $pr['brand_id'] ?? 0 );
 			$scale = (int) ( $pr['escala_precio_regular'] ?? 0 );
+			$sid   = (int) ( $pr['serie_id'] ?? 0 );
 			$sname = trim( (string) ( $pr['serie_name'] ?? '' ) );
 			$key   = $bid . ':' . $scale;
 
@@ -164,11 +175,22 @@ final class ScaleScanner {
 					'locked_pids'   => array(),
 					'locked_orders' => array(),
 					'series'        => array(),
+					'series_items'  => array(),
 				);
 			}
 
 			if ( '' !== $sname ) {
 				$scale_meta[ $key ]['series'][ $sname ] = true;
+				if ( $sid > 0 ) {
+					if ( ! isset( $scale_meta[ $key ]['series_items'][ $sid ] ) ) {
+						$scale_meta[ $key ]['series_items'][ $sid ] = array(
+							'id'    => $sid,
+							'name'  => $sname,
+							'count' => 0,
+						);
+					}
+					$scale_meta[ $key ]['series_items'][ $sid ]['count']++;
+				}
 			}
 
 			if ( isset( $locked_ids[ $pid ] ) ) {
@@ -197,39 +219,70 @@ final class ScaleScanner {
 	}
 
 	/**
-	 * Obtiene los IDs de productos publicados de una editorial y escala de precio regular.
+	 * Obtiene los IDs de productos publicados de una editorial y escala de precio regular,
+	 * opcionalmente filtrados por una serie específica.
 	 *
 	 * @param int $brand_id      ID del término product_brand.
 	 * @param int $scale_regular Escala de precio regular.
+	 * @param int $serie_id      ID opcional de término pa_serie para acotar a una sola serie.
 	 * @return list<int>
 	 */
-	public static function get_product_ids_for_scale( int $brand_id, int $scale_regular ): array {
+	public static function get_product_ids_for_scale( int $brand_id, int $scale_regular, int $serie_id = 0 ): array {
 		global $wpdb;
 
 		if ( $brand_id <= 0 || $scale_regular <= 0 ) {
 			return array();
 		}
 
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT DISTINCT p.ID
-				FROM {$wpdb->posts} p
-				INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
-				INNER JOIN {$wpdb->term_taxonomy} tt_brand
-					ON tr_brand.term_taxonomy_id = tt_brand.term_taxonomy_id
-					AND tt_brand.taxonomy = 'product_brand'
-					AND tt_brand.term_id = %d
-				INNER JOIN {$wpdb->postmeta} pm_reg
-					ON p.ID = pm_reg.post_id
-					AND pm_reg.meta_key = '_regular_price'
-					AND CAST(pm_reg.meta_value AS UNSIGNED) = %d
-				WHERE p.post_type = 'product'
-				  AND p.post_status = 'publish'
-				ORDER BY p.ID ASC",
-				$brand_id,
-				$scale_regular
-			)
-		);
+		if ( $serie_id > 0 ) {
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT p.ID
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
+					INNER JOIN {$wpdb->term_taxonomy} tt_brand
+						ON tr_brand.term_taxonomy_id = tt_brand.term_taxonomy_id
+						AND tt_brand.taxonomy = 'product_brand'
+						AND tt_brand.term_id = %d
+					INNER JOIN {$wpdb->term_relationships} tr_serie ON p.ID = tr_serie.object_id
+					INNER JOIN {$wpdb->term_taxonomy} tt_serie
+						ON tr_serie.term_taxonomy_id = tt_serie.term_taxonomy_id
+						AND tt_serie.taxonomy = 'pa_serie'
+						AND tt_serie.term_id = %d
+					INNER JOIN {$wpdb->postmeta} pm_reg
+						ON p.ID = pm_reg.post_id
+						AND pm_reg.meta_key = '_regular_price'
+						AND CAST(pm_reg.meta_value AS UNSIGNED) = %d
+					WHERE p.post_type = 'product'
+					  AND p.post_status = 'publish'
+					ORDER BY p.ID ASC",
+					$brand_id,
+					$serie_id,
+					$scale_regular
+				)
+			);
+		} else {
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT p.ID
+					FROM {$wpdb->posts} p
+					INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
+					INNER JOIN {$wpdb->term_taxonomy} tt_brand
+						ON tr_brand.term_taxonomy_id = tt_brand.term_taxonomy_id
+						AND tt_brand.taxonomy = 'product_brand'
+						AND tt_brand.term_id = %d
+					INNER JOIN {$wpdb->postmeta} pm_reg
+						ON p.ID = pm_reg.post_id
+						AND pm_reg.meta_key = '_regular_price'
+						AND CAST(pm_reg.meta_value AS UNSIGNED) = %d
+					WHERE p.post_type = 'product'
+					  AND p.post_status = 'publish'
+					ORDER BY p.ID ASC",
+					$brand_id,
+					$scale_regular
+				)
+			);
+		}
 
 		return is_array( $ids ) ? array_values( array_map( 'intval', $ids ) ) : array();
 	}
@@ -419,7 +472,8 @@ final class ScaleScanner {
 				t_brand.name AS editorial,
 				t_brand.slug AS editorial_slug,
 				CAST(pm_reg.meta_value AS UNSIGNED) AS regular_price,
-				COALESCE(pm_eta.meta_value, 'auto') AS eta_type
+				COALESCE(pm_eta.meta_value, 'auto') AS eta_type,
+				pm_oos.meta_value AS out_of_stock_at
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
 			INNER JOIN {$wpdb->term_taxonomy} tt_brand
@@ -431,6 +485,8 @@ final class ScaleScanner {
 				ON p.ID = pm_reg.post_id AND pm_reg.meta_key = '_regular_price' AND pm_reg.meta_value != ''
 			LEFT JOIN {$wpdb->postmeta} pm_eta
 				ON p.ID = pm_eta.post_id AND pm_eta.meta_key = '_akb_eta_type'
+			LEFT JOIN {$wpdb->postmeta} pm_oos
+				ON p.ID = pm_oos.post_id AND pm_oos.meta_key = '_akb_out_of_stock_at'
 			WHERE p.post_type = 'product'
 			  AND p.post_status = 'publish'
 			ORDER BY t_brand.name ASC, p.post_title ASC",
@@ -462,6 +518,8 @@ final class ScaleScanner {
 			}
 
 			$rule = PricingRulesRepository::resolve_rule_for_scale( $slug, $reg );
+			$oos_ts = ! empty( $row['out_of_stock_at'] ) && is_numeric( $row['out_of_stock_at'] ) ? (int) $row['out_of_stock_at'] : null;
+			$dias_agotado = null !== $oos_ts ? (int) max( 0, floor( ( time() - $oos_ts ) / DAY_IN_SECONDS ) ) : null;
 			$candidates[] = array(
 				'product_id'           => $pid,
 				'title'                => (string) ( $row['post_title'] ?? '' ),
@@ -471,6 +529,8 @@ final class ScaleScanner {
 				'regular_price'        => $reg,
 				'proposed_sale_price'  => (int) $rule['sale_price'],
 				'eta_type'             => '' === $eta_type ? 'auto' : $eta_type,
+				'out_of_stock_at'      => $oos_ts,
+				'dias_agotado'         => $dias_agotado,
 			);
 		}
 

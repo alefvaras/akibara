@@ -4,10 +4,8 @@
  *
  * Incluye:
  * 1. Pestaña Matriz de Escalas por Editorial (con ordenamiento dinámico, calculadora CLP en vivo,
- *    checkbox de blindaje de órdenes activas por defecto en true, Dry-Run y Aplicación).
- * 2. Pestaña Auditoría de Series (`pa_serie`) para nivelar discrepancias en 1 clic.
- * 3. Pestaña Rescate Seguro de Agotados (`outofstock` -> `onbackorder` excluyendo bloqueados).
- * 4. Pestaña Exportar / Importar Reglas JSON (Local <-> Producción) & Auditoría de Órdenes (🔒).
+ *    selector de alcance por serie individual, detección de discrepancias y aplicación ágil).
+ * 2. Pestaña Rescate Seguro de Agotados (`outofstock` -> `onbackorder` bajo validación de distribuidor).
  *
  * @package Akibara\Business\Modules\PricingMatrix
  */
@@ -22,15 +20,14 @@ defined( 'ABSPATH' ) || exit;
 
 final class PricingMatrixAdminPage {
 
-	public const MENU_SLUG          = 'akibara-pricing-matrix';
+	public const MENU_SLUG               = 'akibara-pricing-matrix';
 	public const ACTION_APPLY_SCALE      = 'akb_pricing_matrix_apply_scale';
+	public const ACTION_APPLY_SCALE_AJAX = 'akb_pricing_matrix_apply_scale_ajax';
 	public const ACTION_DISCARD_PROPOSAL = 'akb_pricing_matrix_discard_proposal';
 	public const ACTION_SYNC_BO          = 'akb_pricing_matrix_sync_backorders';
-	public const ACTION_LEVEL_SERIE = 'akb_pricing_matrix_level_series';
-	public const ACTION_RESCUE_OOS  = 'akb_pricing_matrix_rescue_oos';
-	public const ACTION_IMPORT_JSON = 'akb_pricing_matrix_import_json';
-	public const ACTION_EXPORT_JSON = 'akb_pricing_matrix_export_json';
-	public const NONCE_ACTION       = 'akb_pricing_matrix_nonce';
+	public const ACTION_LEVEL_SERIE      = 'akb_pricing_matrix_level_series';
+	public const ACTION_RESCUE_OOS       = 'akb_pricing_matrix_rescue_oos';
+	public const NONCE_ACTION            = 'akb_pricing_matrix_nonce';
 
 	/**
 	 * Registra el submenú en el panel de Akibara, assets y los handlers admin-post.
@@ -41,12 +38,11 @@ final class PricingMatrixAdminPage {
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 62 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'admin_post_' . self::ACTION_APPLY_SCALE, array( $this, 'handle_apply_scale' ) );
+		add_action( 'wp_ajax_' . self::ACTION_APPLY_SCALE_AJAX, array( $this, 'handle_apply_scale_ajax' ) );
 		add_action( 'admin_post_' . self::ACTION_DISCARD_PROPOSAL, array( $this, 'handle_discard_proposal' ) );
 		add_action( 'admin_post_' . self::ACTION_SYNC_BO, array( $this, 'handle_sync_backorders' ) );
 		add_action( 'admin_post_' . self::ACTION_LEVEL_SERIE, array( $this, 'handle_level_series' ) );
 		add_action( 'admin_post_' . self::ACTION_RESCUE_OOS, array( $this, 'handle_rescue_oos' ) );
-		add_action( 'admin_post_' . self::ACTION_IMPORT_JSON, array( $this, 'handle_import_json' ) );
-		add_action( 'admin_post_' . self::ACTION_EXPORT_JSON, array( $this, 'handle_export_json' ) );
 	}
 
 	/**
@@ -128,8 +124,9 @@ final class PricingMatrixAdminPage {
 		$rounding_mode  = isset( $_POST['rounding_mode'] ) ? sanitize_key( (string) wp_unslash( $_POST['rounding_mode'] ) ) : PricingMath::DEFAULT_MODE;
 		$manual_raw     = isset( $_POST['manual_sale'] ) ? trim( sanitize_text_field( (string) wp_unslash( $_POST['manual_sale'] ) ) ) : '';
 		$manual_sale    = '' !== $manual_raw ? absint( $manual_raw ) : null;
+		$serie_id       = isset( $_POST['serie_id'] ) ? absint( $_POST['serie_id'] ) : 0;
 
-		$protect_orders = true; // Blindaje obligatorio e inviolable (Regla 18 y Auditoría 2026-11-04)
+		$protect_orders = ! empty( $_POST['protect_active_orders'] ) && '1' === (string) $_POST['protect_active_orders'];
 		$dry_run        = ! empty( $_POST['dry_run'] );
 
 		$summary = PricingSynchronizer::sync_scale(
@@ -141,7 +138,8 @@ final class PricingMatrixAdminPage {
 			$rounding_mode,
 			$manual_sale,
 			$protect_orders,
-			$dry_run
+			$dry_run,
+			$serie_id
 		);
 
 		set_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id(), $summary, 300 );
@@ -160,6 +158,63 @@ final class PricingMatrixAdminPage {
 	}
 
 	/**
+	 * Procesa la aplicación rápida de una escala o serie vía AJAX (patrón ATUM Stock Central).
+	 *
+	 * @return void
+	 */
+	public function handle_apply_scale_ajax(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => 'No autorizado.' ) );
+		}
+		check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+		$brand_id       = isset( $_POST['brand_id'] ) ? absint( $_POST['brand_id'] ) : 0;
+		$editorial_slug = isset( $_POST['editorial_slug'] ) ? sanitize_title( (string) wp_unslash( $_POST['editorial_slug'] ) ) : '';
+		$scale_regular  = isset( $_POST['scale_regular'] ) ? absint( $_POST['scale_regular'] ) : 0;
+		$new_regular    = isset( $_POST['new_regular'] ) ? absint( $_POST['new_regular'] ) : $scale_regular;
+		$discount_pct   = isset( $_POST['discount_pct'] ) ? (float) $_POST['discount_pct'] : PricingMath::DEFAULT_DISCOUNT_PCT;
+		$rounding_mode  = isset( $_POST['rounding_mode'] ) ? sanitize_key( (string) wp_unslash( $_POST['rounding_mode'] ) ) : PricingMath::DEFAULT_MODE;
+		$serie_id       = isset( $_POST['serie_id'] ) ? absint( $_POST['serie_id'] ) : 0;
+
+		if ( $new_regular <= 0 || $scale_regular <= 0 || ( 0 === $brand_id && '' === $editorial_slug ) ) {
+			wp_send_json_error( array( 'message' => 'Parámetros de escala inválidos.' ) );
+		}
+
+		$protect_orders = ! empty( $_POST['protect_active_orders'] ) && '1' === (string) $_POST['protect_active_orders'];
+		$manual_raw     = isset( $_POST['manual_sale'] ) ? trim( sanitize_text_field( (string) wp_unslash( $_POST['manual_sale'] ) ) ) : '';
+		$manual_sale    = '' !== $manual_raw ? absint( $manual_raw ) : null;
+
+		$res = PricingSynchronizer::sync_scale(
+			$brand_id,
+			$editorial_slug,
+			$scale_regular,
+			$new_regular,
+			$discount_pct,
+			$rounding_mode,
+			$manual_sale,
+			$protect_orders,
+			false, // dry_run = false
+			$serie_id
+		);
+
+		$target_sale = (int) ( $res['target_sale'] ?? PricingMath::calculate_sale_price( $new_regular, $discount_pct, $rounding_mode, $manual_sale ) );
+
+		delete_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id() );
+
+		wp_send_json_success( array(
+			'message'         => sprintf( 'Escala aplicada con éxito: %d tomos actualizados.', $res['updated_count'] ),
+			'updated_count'   => $res['updated_count'],
+			'unchanged_count' => $res['unchanged_count'],
+			'new_regular'     => $new_regular,
+			'new_sale'        => $target_sale,
+			'new_regular_fmt' => '$' . number_format( $new_regular, 0, ',', '.' ),
+			'new_sale_fmt'    => '$' . number_format( $target_sale, 0, ',', '.' ),
+			'scale_regular'   => $scale_regular,
+			'serie_id'        => $serie_id,
+		) );
+	}
+
+	/**
 	 * Procesa la sincronización global de descuentos A Pedido (`round_100`).
 	 *
 	 * @return void
@@ -170,7 +225,7 @@ final class PricingMatrixAdminPage {
 		}
 		check_admin_referer( self::NONCE_ACTION );
 
-		$protect_orders = true; // Blindaje obligatorio e inviolable (Regla 18 y Auditoría 2026-11-04)
+		$protect_orders = ! empty( $_POST['protect_active_orders'] ) && '1' === (string) $_POST['protect_active_orders'];
 		$dry_run        = ! empty( $_POST['dry_run'] );
 		$brand_id       = isset( $_POST['brand_id'] ) && absint( $_POST['brand_id'] ) > 0 ? absint( $_POST['brand_id'] ) : null;
 
@@ -204,7 +259,7 @@ final class PricingMatrixAdminPage {
 		$serie_id       = isset( $_POST['serie_id'] ) ? absint( $_POST['serie_id'] ) : 0;
 		$brand_id       = isset( $_POST['brand_id'] ) ? absint( $_POST['brand_id'] ) : 0;
 		$target_regular = isset( $_POST['target_regular'] ) ? absint( $_POST['target_regular'] ) : 0;
-		$protect_orders = true; // Blindaje obligatorio e inviolable (Regla 18 y Auditoría 2026-11-04)
+		$protect_orders = ! empty( $_POST['protect_active_orders'] ) && '1' === (string) $_POST['protect_active_orders'];
 		$dry_run        = ! empty( $_POST['dry_run'] );
 
 		$summary = PricingSynchronizer::level_series_scale( $serie_id, $brand_id, $target_regular, $protect_orders, $dry_run );
@@ -214,7 +269,7 @@ final class PricingMatrixAdminPage {
 			add_query_arg(
 				array(
 					'page'   => self::MENU_SLUG,
-					'tab'    => 'series',
+					'tab'    => 'scales',
 					'notice' => $dry_run ? 'dry_run_done' : 'series_leveled',
 				),
 				admin_url( 'admin.php' )
@@ -272,8 +327,36 @@ final class PricingMatrixAdminPage {
 			'confirmed' => $confirmed,
 		);
 
+		$rescue_discount_pct = isset( $_POST['rescue_discount_pct'] ) && is_numeric( $_POST['rescue_discount_pct'] )
+			? (float) $_POST['rescue_discount_pct']
+			: PricingMath::DEFAULT_DISCOUNT_PCT;
+
+		$rescue_rounding_mode = isset( $_POST['rescue_rounding_mode'] )
+			? PricingMath::normalize_mode( sanitize_key( (string) wp_unslash( $_POST['rescue_rounding_mode'] ) ) )
+			: PricingMath::DEFAULT_MODE;
+
+		$individual_overrides = array();
+		if ( isset( $_POST['individual_sale'] ) && is_array( $_POST['individual_sale'] ) ) {
+			foreach ( $_POST['individual_sale'] as $pid => $man_val ) {
+				$pid_clean = absint( $pid );
+				$val_str   = trim( (string) wp_unslash( $man_val ) );
+				if ( $pid_clean > 0 && '' !== $val_str && is_numeric( $val_str ) ) {
+					$individual_overrides[ $pid_clean ] = array(
+						'sale_price' => absint( $val_str ),
+					);
+				}
+			}
+		}
+
 		try {
-			$summary = PricingSynchronizer::rescue_outofstock_products( $raw_ids, $dry_run, $distributor_auth );
+			$summary = PricingSynchronizer::rescue_outofstock_products(
+				$raw_ids,
+				$dry_run,
+				$distributor_auth,
+				$rescue_discount_pct,
+				$rescue_rounding_mode,
+				$individual_overrides
+			);
 			set_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id(), $summary, 300 );
 			$notice = $dry_run ? 'dry_run_done' : 'oos_rescued';
 		} catch ( \Throwable $e ) {
@@ -302,57 +385,6 @@ final class PricingMatrixAdminPage {
 	}
 
 	/**
-	 * Importa reglas JSON desde el formulario de administración.
-	 *
-	 * @return void
-	 */
-	public function handle_import_json(): void {
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( 'No autorizado.' );
-		}
-		check_admin_referer( self::NONCE_ACTION );
-
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON validado y saneado por PricingRulesRepository::import_json().
-		$json = isset( $_POST['rules_json'] ) ? (string) wp_unslash( $_POST['rules_json'] ) : '';
-		$res  = PricingRulesRepository::import_json( $json );
-
-		set_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id(), $res, 300 );
-
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'   => self::MENU_SLUG,
-					'tab'    => 'rules',
-					'notice' => $res['ok'] ? 'rules_imported' : 'rules_import_error',
-				),
-				admin_url( 'admin.php' )
-			)
-		);
-		exit;
-	}
-
-	/**
-	 * Descarga las reglas actuales como archivo `.json`.
-	 *
-	 * @return void
-	 */
-	public function handle_export_json(): void {
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( 'No autorizado.' );
-		}
-		check_admin_referer( self::NONCE_ACTION );
-
-		$json     = PricingRulesRepository::export_json();
-		$filename = 'akb-pricing-matrix-rules-' . gmdate( 'Ymd-His' ) . '.json';
-
-		nocache_headers();
-		header( 'Content-Type: application/json; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-		echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON de descarga administrativa.
-		exit;
-	}
-
-	/**
 	 * Renderiza la interfaz administrativa de la Matriz de Precios y Backorders.
 	 *
 	 * @return void
@@ -364,6 +396,9 @@ final class PricingMatrixAdminPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- lectura de pestaña activa.
 		$active_tab  = isset( $_GET['tab'] ) ? sanitize_key( (string) wp_unslash( $_GET['tab'] ) ) : 'scales';
+		if ( 'rescue' !== $active_tab ) {
+			$active_tab = 'scales';
+		}
 		$last_result = get_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id() );
 		if ( false !== $last_result ) {
 			delete_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id() );
@@ -372,8 +407,6 @@ final class PricingMatrixAdminPage {
 		$scales        = ScaleScanner::scan_editorial_scales();
 		$discrepancies = ScaleScanner::scan_series_discrepancies();
 		$rescuables    = ScaleScanner::scan_rescuable_outofstock();
-		$locked_pids   = OrderLockGuard::get_locked_product_ids();
-		$locked_count  = count( $locked_pids );
 
 		?>
 		<div class="wrap akb-pm-wrap">
@@ -381,12 +414,12 @@ final class PricingMatrixAdminPage {
 				<div class="akb-pm-header__left">
 					<h1 class="akb-pm-title">
 						Akibara Pricing &amp; Backorder Matrix
-						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.120.11'; ?></span>
+						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.120.20'; ?></span>
 					</h1>
 				</div>
 				<p class="akb-pm-subtitle">
 					Gestión de escalas de precio por editorial, cálculo automático de reservas con 5% de descuento
-					(<code>round_100</code>), nivelación de series discrepantes y blindaje estricto de productos comprometidos en pedidos activos.
+					(<code>round_100</code>) y nivelación ágil de series.
 				</p>
 			</div>
 
@@ -395,19 +428,13 @@ final class PricingMatrixAdminPage {
 				$this->render_last_result_notice( $last_result );
 			}
 
-			$this->render_cockpit( count( $scales ), count( $discrepancies ), count( $rescuables ), $locked_count );
-			$this->render_nav_tabs( $active_tab, count( $scales ), count( $discrepancies ), count( $rescuables ), $locked_count );
+			$this->render_cockpit( count( $scales ), count( $discrepancies ), count( $rescuables ) );
+			$this->render_nav_tabs( $active_tab, count( $scales ), count( $rescuables ) );
 
-			if ( 'series' === $active_tab ) {
-				$this->render_tab_series( $discrepancies );
-			} elseif ( 'rescue' === $active_tab ) {
+			if ( 'rescue' === $active_tab ) {
 				$this->render_tab_rescue( $rescuables );
-			} elseif ( 'orders' === $active_tab ) {
-				$this->render_tab_orders( OrderLockGuard::get_locked_orders_audit() );
-			} elseif ( 'rules' === $active_tab ) {
-				$this->render_tab_rules( PricingRulesRepository::export_json() );
 			} else {
-				$this->render_tab_scales( $scales, is_array( $last_result ) ? $last_result : null );
+				$this->render_tab_scales( $scales, is_array( $last_result ) ? $last_result : null, $discrepancies );
 			}
 			?>
 		</div>
@@ -421,10 +448,9 @@ final class PricingMatrixAdminPage {
 	 * @param int $scales_count        Total escalas detectadas.
 	 * @param int $discrepancies_count Series con discrepancia.
 	 * @param int $rescuables_count    Agotados rescatables.
-	 * @param int $locked_count        Productos protegidos en órdenes activas.
 	 * @return void
 	 */
-	private function render_cockpit( int $scales_count, int $discrepancies_count, int $rescuables_count, int $locked_count ): void {
+	private function render_cockpit( int $scales_count, int $discrepancies_count, int $rescuables_count ): void {
 		?>
 		<div class="akb-pm-cockpit">
 			<div class="akb-pm-metric-card">
@@ -432,25 +458,22 @@ final class PricingMatrixAdminPage {
 				<div class="akb-pm-metric-card__val"><?php echo (int) $scales_count; ?></div>
 				<div class="akb-pm-metric-card__hint">Tramos de precio por distribuidor</div>
 			</div>
-			<div class="akb-pm-metric-card <?php echo $discrepancies_count > 0 ? 'akb-pm-metric-card--alert' : 'akb-pm-metric-card--success'; ?>">
+			<div class="akb-pm-metric-card <?php echo $discrepancies_count > 0 ? 'akb-pm-metric-card--alert' : 'akb-pm-metric-card--success'; ?>" <?php echo $discrepancies_count > 0 ? 'onclick="var el=document.getElementById(\'akb-discrepancies-section\');if(el){el.scrollIntoView({behavior:\'smooth\'});}" style="cursor:pointer;"' : ''; ?>>
 				<div class="akb-pm-metric-card__label">Series con Discrepancia</div>
 				<div class="akb-pm-metric-card__val">
 					<?php echo (int) $discrepancies_count; ?>
 					<?php if ( $discrepancies_count > 0 ) : ?>
-						<span style="font-size:12px;font-weight:600;color:#d63638;">(requieren nivelar)</span>
+						<span style="font-size:12px;font-weight:600;color:#d63638;">(clic para resolver)</span>
+					<?php else : ?>
+						<span style="font-size:12px;font-weight:600;color:#0d6832;">✓ Todas consistentes</span>
 					<?php endif; ?>
 				</div>
 				<div class="akb-pm-metric-card__hint">Tomos con precios distintos en misma serie</div>
 			</div>
-			<div class="akb-pm-metric-card">
+			<div class="akb-pm-metric-card" onclick="window.location.href='<?php echo esc_url( add_query_arg( array( 'page' => self::MENU_SLUG, 'tab' => 'rescue' ), admin_url( 'admin.php' ) ) ); ?>';" style="cursor:pointer;">
 				<div class="akb-pm-metric-card__label">Agotados Rescatables</div>
 				<div class="akb-pm-metric-card__val"><?php echo (int) $rescuables_count; ?></div>
-				<div class="akb-pm-metric-card__hint">Sin stock local, elegibles para reserva</div>
-			</div>
-			<div class="akb-pm-metric-card akb-pm-metric-card--lock">
-				<div class="akb-pm-metric-card__label">Productos Blindados (🔒)</div>
-				<div class="akb-pm-metric-card__val"><?php echo (int) $locked_count; ?></div>
-				<div class="akb-pm-metric-card__hint">Comprometidos en pedidos abiertos</div>
+				<div class="akb-pm-metric-card__hint">Sin stock local, elegibles para reserva ➔</div>
 			</div>
 		</div>
 		<?php
@@ -468,8 +491,37 @@ final class PricingMatrixAdminPage {
 
 		if ( $is_dry_run && $is_scale ) :
 			$affected_count = (int) ( $last_result['updated_count'] ?? 0 );
-			$locked_count   = (int) ( $last_result['skipped_locked_count'] ?? 0 );
 			$unchanged      = (int) ( $last_result['unchanged_count'] ?? 0 );
+			$serie_id       = (int) ( $last_result['serie_id'] ?? 0 );
+			$items          = (array) ( $last_result['items'] ?? array() );
+
+			// Detectar series únicas en los items simulados
+			$series_in_items = array();
+			foreach ( $items as $it ) {
+				$s_id   = (int) ( $it['serie_id'] ?? 0 );
+				$s_name = (string) ( $it['serie_name'] ?? '' );
+				if ( $s_id > 0 && '' !== $s_name ) {
+					if ( ! isset( $series_in_items[ $s_id ] ) ) {
+						$series_in_items[ $s_id ] = array(
+							'id'    => $s_id,
+							'name'  => $s_name,
+							'count' => 0,
+						);
+					}
+					$series_in_items[ $s_id ]['count']++;
+				}
+			}
+			uasort(
+				$series_in_items,
+				static function( array $a, array $b ): int {
+					return strcasecmp( (string) $a['name'], (string) $b['name'] );
+				}
+			);
+
+			$scoped_serie_name = '';
+			if ( $serie_id > 0 && isset( $series_in_items[ $serie_id ] ) ) {
+				$scoped_serie_name = $series_in_items[ $serie_id ]['name'];
+			}
 			?>
 			<div class="akb-pm-proposal-review" style="background:#f0f6fc;border:2px solid #2271b1;border-radius:8px;padding:16px 20px;margin:18px 0 24px;box-shadow:0 2px 6px rgba(0,0,0,0.06);">
 				<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
@@ -479,6 +531,9 @@ final class PricingMatrixAdminPage {
 						</div>
 						<h3 style="margin:2px 0 6px 0;font-size:17px;color:#1d2327;">
 							Revisión de Escala para <strong><?php echo esc_html( strtoupper( (string) ( $last_result['editorial_slug'] ?? '' ) ) ); ?></strong>
+							<?php if ( '' !== $scoped_serie_name ) : ?>
+								— Serie: <span style="color:#2271b1;">«<?php echo esc_html( $scoped_serie_name ); ?>»</span>
+							<?php endif; ?>
 						</h3>
 						<p style="margin:0;font-size:13px;color:#2c3338;line-height:1.5;">
 							Precio Regular Base: <strong>$<?php echo number_format( (int) $last_result['scale_regular'], 0, ',', '.' ); ?></strong> ➔
@@ -486,9 +541,8 @@ final class PricingMatrixAdminPage {
 							Nuevo A Pedido (5% desc. redondeado a $100): <strong style="color:#008a20;font-size:15px;">$<?php echo number_format( (int) ( $last_result['target_sale'] ?? 0 ), 0, ',', '.' ); ?></strong>
 						</p>
 						<p style="margin:6px 0 0;font-size:12px;color:#50575e;">
-							Tomos que cambiarán: <strong style="color:#2271b1;"><?php echo (int) $affected_count; ?></strong> |
-							Sin cambios: <strong><?php echo (int) $unchanged; ?></strong> |
-							Protegidos en órdenes activas (🔒): <strong style="color:#d63638;"><?php echo (int) $locked_count; ?></strong>
+							Tomos que cambiarán en catálogo: <strong style="color:#2271b1;font-size:13px;" id="akb-proposal-apply-count"><?php echo (int) $affected_count; ?></strong> |
+							Sin cambios: <strong><?php echo (int) $unchanged; ?></strong>
 						</p>
 					</div>
 
@@ -511,23 +565,34 @@ final class PricingMatrixAdminPage {
 							<input type="hidden" name="discount_pct" value="<?php echo esc_attr( (string) ( $last_result['discount_pct'] ?? PricingMath::DEFAULT_DISCOUNT_PCT ) ); ?>" />
 							<input type="hidden" name="rounding_mode" value="<?php echo esc_attr( (string) ( $last_result['rounding_mode'] ?? PricingMath::DEFAULT_MODE ) ); ?>" />
 							<input type="hidden" name="manual_sale" value="<?php echo (int) ( $last_result['target_sale'] ?? 0 ); ?>" />
-							<input type="hidden" name="protect_active_orders" value="1" />
+							<input type="hidden" name="serie_id" id="akb-proposal-form-serie-id" value="<?php echo (int) $serie_id; ?>" />
+							<input type="hidden" name="protect_active_orders" value="0" />
 							<button type="submit" class="button button-primary button-hero akb-btn-apply-submit" style="font-size:14px;padding:8px 20px;height:auto;font-weight:700;">
-								Confirmar y Aplicar a los <?php echo (int) $affected_count; ?> tomos revisados
+								Confirmar y Aplicar a los <span id="akb-proposal-btn-count"><?php echo (int) $affected_count; ?></span> tomos revisados
 							</button>
 						</form>
 					</div>
 				</div>
 
-				<?php if ( ! empty( $last_result['items'] ) && is_array( $last_result['items'] ) ) : ?>
-					<details class="akb-proposal-details" style="margin-top:14px;background:#ffffff;border:1px solid #c3c4c7;border-radius:6px;padding:12px 16px;">
+				<?php if ( ! empty( $items ) ) : ?>
+					<details class="akb-proposal-details" style="margin-top:14px;background:#ffffff;border:1px solid #c3c4c7;border-radius:6px;padding:12px 16px;" open>
 						<summary style="cursor:pointer;font-weight:600;color:#2271b1;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
-							<span>📋 Ver lista detallada de los <?php echo (int) $affected_count; ?> tomos (con precios antes y después)</span>
-							<span style="font-size:11px;color:#646970;font-weight:normal;">Clic para abrir/cerrar</span>
+							<span>📋 Lista de tomos afectados (con precios antes y después)</span>
+							<span style="font-size:11px;color:#646970;font-weight:normal;">Clic para contraer/expandir</span>
 						</summary>
 						<div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f1;">
 							<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-								<input type="search" id="akb-proposal-search" placeholder="🔍 Filtrar tomos por nombre o ID en esta propuesta..." style="min-width:320px;font-size:12px;padding:5px 8px;border-radius:4px;border:1px solid #8c8f94;" />
+								<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+									<input type="search" id="akb-proposal-search" placeholder="🔍 Filtrar tomos por nombre o ID..." style="min-width:280px;font-size:12px;padding:5px 8px;border-radius:4px;border:1px solid #8c8f94;" />
+									<?php if ( count( $series_in_items ) > 1 && 0 === $serie_id ) : ?>
+										<select id="akb-proposal-serie-filter" style="font-size:12px;padding:5px 8px;border-radius:4px;border:1px solid #2271b1;color:#1d2327;font-weight:600;">
+											<option value="0">Todas las series (<?php echo (int) $affected_count; ?> tomos)</option>
+											<?php foreach ( $series_in_items as $s_info ) : ?>
+												<option value="<?php echo (int) $s_info['id']; ?>">Solo <?php echo esc_html( $s_info['name'] ); ?> (<?php echo (int) $s_info['count']; ?> tomos)</option>
+											<?php endforeach; ?>
+										</select>
+									<?php endif; ?>
+								</div>
 								<span id="akb-proposal-counter" style="font-size:12px;font-weight:600;color:#50575e;">
 									Mostrando <strong><?php echo (int) $affected_count; ?></strong> de <?php echo (int) $affected_count; ?> tomos
 								</span>
@@ -538,17 +603,19 @@ final class PricingMatrixAdminPage {
 										<tr>
 											<th style="width:70px;">ID</th>
 											<th>Título del Tomo</th>
+											<th style="width:160px;">Serie</th>
 											<th style="width:110px;">Estado Stock</th>
 											<th style="width:180px;">Precio Regular</th>
 											<th style="width:180px;">Precio A Pedido</th>
 										</tr>
 									</thead>
 									<tbody>
-										<?php foreach ( $last_result['items'] as $it ) : ?>
+										<?php foreach ( $items as $it ) : ?>
 											<?php if ( in_array( $it['status'] ?? '', array( 'would_update', 'updated' ), true ) ) : ?>
-												<tr class="akb-proposal-row" data-search="<?php echo esc_attr( strtolower( (string) ( $it['title'] ?? '' ) . ' ' . (string) ( $it['product_id'] ?? '' ) ) ); ?>">
+												<tr class="akb-proposal-row" data-serie-id="<?php echo (int) ( $it['serie_id'] ?? 0 ); ?>" data-search="<?php echo esc_attr( strtolower( (string) ( $it['title'] ?? '' ) . ' ' . (string) ( $it['serie_name'] ?? '' ) . ' ' . (string) ( $it['product_id'] ?? '' ) ) ); ?>">
 													<td><code>#<?php echo (int) ( $it['product_id'] ?? 0 ); ?></code></td>
 													<td><strong><?php echo esc_html( (string) ( $it['title'] ?? '' ) ); ?></strong></td>
+													<td><?php echo esc_html( (string) ( $it['serie_name'] ?? '—' ) ); ?></td>
 													<td><code><?php echo esc_html( (string) ( $it['stock_status'] ?? '' ) ); ?></code></td>
 													<td>
 														<del style="color:#8c8f94;">$<?php echo number_format( (int) ( $it['old_regular'] ?? 0 ), 0, ',', '.' ); ?></del> ➔
@@ -567,12 +634,6 @@ final class PricingMatrixAdminPage {
 						</div>
 					</details>
 				<?php endif; ?>
-
-				<?php if ( ! empty( $last_result['skipped_locked_items'] ) && is_array( $last_result['skipped_locked_items'] ) ) : ?>
-					<div style="margin-top:10px;padding:8px 12px;background:#fff8e5;border-left:3px solid #dba617;font-size:12px;">
-						<strong>🔒 <?php echo count( $last_result['skipped_locked_items'] ); ?> tomos protegidos</strong> en órdenes activas no sufrirán ninguna modificación.
-					</div>
-				<?php endif; ?>
 			</div>
 		<?php else : ?>
 			<div class="notice <?php echo $is_dry_run ? 'notice-info' : 'notice-success'; ?> is-dismissible" style="padding:12px 16px;margin:15px 0;">
@@ -582,8 +643,7 @@ final class PricingMatrixAdminPage {
 				<?php else : ?>
 					<span>
 						<?php echo $is_dry_run ? '[SIMULACIÓN DRY-RUN] ' : '[APLICADO CON ÉXITO] '; ?>
-						Actualizados/Afectados: <strong><?php echo (int) ( $last_result['updated_count'] ?? $last_result['rescued_count'] ?? 0 ); ?></strong> |
-						Omitidos por blindaje de órdenes activas (🔒): <strong><?php echo (int) ( $last_result['skipped_locked_count'] ?? 0 ); ?></strong>
+						Actualizados en catálogo: <strong><?php echo (int) ( $last_result['updated_count'] ?? $last_result['rescued_count'] ?? 0 ); ?> tomos</strong>.
 					</span>
 				<?php endif; ?>
 			</div>
@@ -591,36 +651,23 @@ final class PricingMatrixAdminPage {
 	}
 
 	/**
-	 * Renderiza la barra de pestañas con contadores en tiempo real.
+	 * Renderiza la barra de pestañas con contadores en tiempo real (solo 2 pestañas operativas).
 	 *
-	 * @param string $active_tab         Pestaña activa.
-	 * @param int    $scales_count        Total escalas detectadas.
-	 * @param int    $discrepancies_count Series con discrepancia.
-	 * @param int    $rescuables_count    Agotados rescatables.
-	 * @param int    $locked_count        Productos protegidos en órdenes activas.
+	 * @param string $active_tab      Pestaña activa.
+	 * @param int    $scales_count    Total escalas detectadas.
+	 * @param int    $rescuables_count Agotados rescatables.
 	 * @return void
 	 */
-	private function render_nav_tabs( string $active_tab, int $scales_count, int $discrepancies_count, int $rescuables_count, int $locked_count ): void {
+	private function render_nav_tabs( string $active_tab, int $scales_count, int $rescuables_count ): void {
 		?>
 		<nav class="akb-pm-nav-tabs">
 			<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::MENU_SLUG, 'tab' => 'scales' ), admin_url( 'admin.php' ) ) ); ?>" class="akb-pm-tab-link <?php echo 'scales' === $active_tab ? 'is-active' : ''; ?>">
 				1. Matriz de Escalas por Editorial
 				<span class="akb-pm-badge-count"><?php echo (int) $scales_count; ?></span>
 			</a>
-			<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::MENU_SLUG, 'tab' => 'series' ), admin_url( 'admin.php' ) ) ); ?>" class="akb-pm-tab-link <?php echo 'series' === $active_tab ? 'is-active' : ''; ?>">
-				2. Auditoría de Series (pa_serie)
-				<span class="akb-pm-badge-count <?php echo $discrepancies_count > 0 ? 'akb-pm-badge-count--alert' : ''; ?>"><?php echo (int) $discrepancies_count; ?></span>
-			</a>
 			<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::MENU_SLUG, 'tab' => 'rescue' ), admin_url( 'admin.php' ) ) ); ?>" class="akb-pm-tab-link <?php echo 'rescue' === $active_tab ? 'is-active' : ''; ?>">
-				3. Rescate Seguro de Agotados
+				2. Rescate Seguro de Agotados
 				<span class="akb-pm-badge-count"><?php echo (int) $rescuables_count; ?></span>
-			</a>
-			<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::MENU_SLUG, 'tab' => 'orders' ), admin_url( 'admin.php' ) ) ); ?>" class="akb-pm-tab-link <?php echo 'orders' === $active_tab ? 'is-active' : ''; ?>">
-				4. Productos Comprometidos (🔒)
-				<span class="akb-pm-badge-count akb-pm-badge-count--lock"><?php echo (int) $locked_count; ?></span>
-			</a>
-			<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::MENU_SLUG, 'tab' => 'rules' ), admin_url( 'admin.php' ) ) ); ?>" class="akb-pm-tab-link <?php echo 'rules' === $active_tab ? 'is-active' : ''; ?>">
-				5. Exportar / Importar Reglas JSON
 			</a>
 		</nav>
 		<?php
@@ -629,22 +676,93 @@ final class PricingMatrixAdminPage {
 	/**
 	 * Renderiza la pestaña 1: Matriz de Escalas por Editorial.
 	 *
-	 * @param list<array<string, mixed>> $scales      Escalas detectadas.
-	 * @param array<string, mixed>|null  $last_result Resultado de última simulación/operación.
+	 * @param list<array<string, mixed>> $scales        Escalas detectadas.
+	 * @param array<string, mixed>|null  $last_result   Resultado de última simulación/operación.
+	 * @param list<array<string, mixed>> $discrepancies Series con discrepancia detectadas.
 	 * @return void
 	 */
-	private function render_tab_scales( array $scales, ?array $last_result = null ): void {
+	private function render_tab_scales( array $scales, ?array $last_result = null, array $discrepancies = array() ): void {
 		?>
 		<div class="akb-pm-card">
+			<?php if ( ! empty( $discrepancies ) ) : ?>
+				<div id="akb-discrepancies-section" class="akb-pm-discrepancies-banner" style="background:#fff8e5;border:2px solid #dba617;border-radius:8px;padding:16px 20px;margin-bottom:20px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+					<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+						<div>
+							<h3 style="margin:0 0 4px 0;font-size:16px;color:#856404;display:flex;align-items:center;gap:8px;">
+								<span>⚠️ Auditoría de Series: <?php echo count( $discrepancies ); ?> series con precios discrepantes</span>
+							</h3>
+							<p style="margin:0;font-size:12px;color:#664d03;">
+								Los tomos estándar de estas series tienen precios regulares distintos. Haz clic en la escala dominante (★) o promedio y presiona <strong>Nivelar Serie</strong> para unificarla.
+							</p>
+						</div>
+					</div>
+
+					<div class="akb-pm-table-responsive" style="max-height:280px;overflow-y:auto;background:#fff;border-radius:4px;border:1px solid #e0c878;">
+						<table class="akb-pm-table" style="font-size:12px;margin:0;">
+							<thead>
+								<tr>
+									<th style="width:130px;">Editorial</th>
+									<th style="width:200px;">Serie</th>
+									<th>Escalas Detectadas (Clic para elegir)</th>
+									<th style="width:70px;text-align:center;">Tomos</th>
+									<th style="width:310px;">Nivelar en 1 Clic</th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $discrepancies as $d ) : ?>
+									<?php $row_key = (int) $d['serie_id'] . '-' . (int) $d['brand_id']; ?>
+									<tr>
+										<td><strong><?php echo esc_html( $d['editorial'] ); ?></strong></td>
+										<td>
+											<span class="akb-pm-serie-title" style="font-weight:700;"><?php echo esc_html( $d['serie_name'] ); ?></span>
+											<br /><span class="akb-pm-slug-badge" style="font-size:10px;"><?php echo esc_html( $d['serie_slug'] ); ?></span>
+										</td>
+										<td>
+											<div class="akb-pm-scales-wrap">
+												<?php if ( ! empty( $d['average_price'] ) ) : ?>
+													<button type="button" class="akb-pm-scale-chip akb-pm-scale-chip--average" data-input-id="banner-target-reg-<?php echo esc_attr( $row_key ); ?>" data-price="<?php echo (int) $d['average_price']; ?>" title="Promedio ponderado: $<?php echo number_format( (int) $d['average_price'], 0, ',', '.' ); ?>">
+														<span>⚖ Promedio: $<?php echo esc_html( number_format( (int) $d['average_price'], 0, ',', '.' ) ); ?></span>
+													</button>
+												<?php endif; ?>
+												<?php foreach ( $d['scales'] as $sc => $cnt ) : ?>
+													<?php $is_dom = ( (int) $sc === (int) $d['dominant_scale'] ); ?>
+													<button type="button" class="akb-pm-scale-chip <?php echo $is_dom ? 'akb-pm-scale-chip--dominant' : 'akb-pm-scale-chip--divergent'; ?>" data-input-id="banner-target-reg-<?php echo esc_attr( $row_key ); ?>" data-price="<?php echo (int) $sc; ?>" title="<?php echo $is_dom ? 'Escala dominante (' . (int) $cnt . ' tomos)' : 'Escala discrepante (' . (int) $cnt . ' tomos)'; ?>">
+														<span>$<?php echo esc_html( number_format( (int) $sc, 0, ',', '.' ) ); ?></span>
+														<span class="akb-pm-chip-count">(<?php echo (int) $cnt; ?><?php echo $is_dom ? ' ★' : ''; ?>)</span>
+													</button>
+												<?php endforeach; ?>
+											</div>
+										</td>
+										<td style="text-align:center;"><span class="akb-pm-number-badge"><?php echo (int) $d['total_tomos']; ?></span></td>
+										<td>
+											<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-pm-level-form" style="display:flex;align-items:center;gap:6px;">
+												<?php wp_nonce_field( self::NONCE_ACTION ); ?>
+												<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_LEVEL_SERIE ); ?>" />
+												<input type="hidden" name="serie_id" value="<?php echo (int) $d['serie_id']; ?>" />
+												<input type="hidden" name="brand_id" value="<?php echo (int) $d['brand_id']; ?>" />
+												<input type="hidden" name="protect_active_orders" value="0" />
+												<div class="akb-pm-input-price-wrap" style="width:110px;">
+													<span class="akb-pm-price-currency">$</span>
+													<input type="number" id="banner-target-reg-<?php echo esc_attr( $row_key ); ?>" name="target_regular" class="akb-pm-input-price" value="<?php echo (int) $d['dominant_scale']; ?>" step="1" min="100" style="width:100%;font-size:12px;padding:3px 6px;" required />
+												</div>
+												<button type="submit" class="button button-primary akb-pm-btn-level" style="font-size:11px;padding:3px 10px;height:auto;" title="Nivelar todos los tomos estándar al precio seleccionado">Nivelar Serie</button>
+											</form>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			<?php endif; ?>
+
 			<div class="akb-pm-global-action-bar">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-pm-global-action-bar__left">
 					<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SYNC_BO ); ?>" />
-					<input type="hidden" name="protect_active_orders" value="1" />
-					<strong>Sincronización Global de Precios A Pedido (5% + Redondeo CLP):</strong>
-					<span class="akb-pm-lock-badge" style="padding:4px 8px;" title="Protección automática e inviolable de pedidos activos en wc-processing / wc-on-hold (Fail-Closed)">
-						🔒 Pedidos activos protegidos automáticamente
-					</span>
+					<input type="hidden" name="protect_active_orders" value="0" />
+					<strong>Sincronización Global de Precios A Pedido:</strong>
+					<span style="font-size:12px;color:#50575e;">(5% desc. con redondeo a $100 CLP para todos los tomos A Pedido)</span>
 					<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry">Simular Dry-Run Global</button>
 					<button type="submit" class="button button-primary akb-pm-btn-level">Sincronizar Todos los A Pedido</button>
 				</form>
@@ -668,9 +786,8 @@ final class PricingMatrixAdminPage {
 							<th class="akb-sortable" data-sort="number" style="width:65px;text-align:center;cursor:pointer;">Stock ↕</th>
 							<th class="akb-sortable" data-sort="number" style="width:75px;text-align:center;cursor:pointer;">A Pedido ↕</th>
 							<th class="akb-sortable" data-sort="number" style="width:70px;text-align:center;cursor:pointer;">Agotado ↕</th>
-							<th class="akb-sortable" data-sort="number" style="width:90px;text-align:center;cursor:pointer;">Blindados ↕</th>
-							<th style="min-width:140px;">Series en esta escala</th>
-							<th style="width:380px;min-width:370px;">Nuevo Regular / Calculadora CLP A Pedido</th>
+							<th style="min-width:160px;">Series en esta escala</th>
+							<th style="width:390px;min-width:380px;">Precios de Venta (Regular Vitrina / Oferta A Pedido)</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -742,25 +859,43 @@ final class PricingMatrixAdminPage {
 			<td data-value="<?php echo (int) $row['agotados']; ?>" style="text-align:center;">
 				<span style="color:#646970;"><?php echo (int) $row['agotados']; ?></span>
 			</td>
-			<td data-value="<?php echo (int) $row['comprometidos_count']; ?>" style="text-align:center;">
-				<?php if ( $row['comprometidos_count'] > 0 ) : ?>
-					<span class="akb-pm-lock-badge" title="<?php echo esc_attr( 'Órdenes: #' . implode( ', #', $row['comprometidos_orders'] ) ); ?>">
-						🔒 <?php echo (int) $row['comprometidos_count']; ?>
-					</span>
-				<?php else : ?>
-					<span class="akb-pm-lock-badge akb-pm-lock-badge--zero">0</span>
-				<?php endif; ?>
-			</td>
 			<td data-value="<?php echo (int) $row['series_count']; ?>">
-				<strong><?php echo (int) $row['series_count']; ?> series</strong>
-				<?php if ( ! empty( $row['series_names'] ) ) : ?>
-					<div style="font-size:11px;color:#50575e;max-height:42px;overflow-y:auto;margin-top:2px;">
-						<?php echo esc_html( implode( ', ', array_slice( $row['series_names'], 0, 8 ) ) ); ?>
-						<?php if ( count( $row['series_names'] ) > 8 ) : ?>
-							… (+<?php echo count( $row['series_names'] ) - 8; ?>)
+				<div class="akb-pm-series-summary-cell">
+					<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+						<strong><?php echo (int) $row['series_count']; ?> <?php echo 1 === (int) $row['series_count'] ? 'serie' : 'series'; ?></strong>
+						<?php if ( ! empty( $row['series_items'] ) && count( $row['series_items'] ) > 1 ) : ?>
+							<button type="button" class="button button-small akb-pm-toggle-series-btn" data-target="series-box-<?php echo esc_attr( $uid ); ?>" style="font-size:10px;padding:0 6px;height:22px;line-height:20px;" title="Ver y seleccionar series individuales">
+								Ver series ▾
+							</button>
 						<?php endif; ?>
 					</div>
-				<?php endif; ?>
+					<?php if ( ! empty( $row['series_names'] ) ) : ?>
+						<div class="akb-pm-series-names-preview" style="font-size:11px;color:#50575e;max-height:46px;overflow-y:auto;margin-top:2px;line-height:1.4;">
+							<?php echo esc_html( implode( ', ', array_slice( $row['series_names'], 0, 8 ) ) ); ?>
+							<?php if ( count( $row['series_names'] ) > 8 ) : ?>
+								… (+<?php echo count( $row['series_names'] ) - 8; ?>)
+							<?php endif; ?>
+						</div>
+					<?php endif; ?>
+
+					<?php if ( ! empty( $row['series_items'] ) && count( $row['series_items'] ) > 1 ) : ?>
+						<div id="series-box-<?php echo esc_attr( $uid ); ?>" class="akb-pm-series-drawer" style="display:none;margin-top:8px;padding:8px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;">
+							<div style="font-size:10px;font-weight:700;color:#50575e;text-transform:uppercase;margin-bottom:6px;">
+								Fijar alcance exclusivo:
+							</div>
+							<div style="display:flex;flex-wrap:wrap;gap:4px;">
+								<button type="button" class="akb-pm-series-pill akb-pm-series-pill--all is-active" data-scope-id="scope-<?php echo esc_attr( $uid ); ?>" data-serie-id="0" style="cursor:pointer;font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid #2271b1;background:#2271b1;color:#fff;font-weight:600;">
+									Toda la escala (<?php echo (int) $row['total_tomos']; ?>)
+								</button>
+								<?php foreach ( $row['series_items'] as $sitem ) : ?>
+									<button type="button" class="akb-pm-series-pill" data-scope-id="scope-<?php echo esc_attr( $uid ); ?>" data-serie-id="<?php echo (int) $sitem['id']; ?>" style="cursor:pointer;font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid #c3c4c7;background:#fff;color:#2c3338;">
+										<?php echo esc_html( $sitem['name'] ); ?> (<?php echo (int) $sitem['count']; ?>)
+									</button>
+								<?php endforeach; ?>
+							</div>
+						</div>
+					<?php endif; ?>
+				</div>
 			</td>
 			<td>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-scale-row-form" style="display:flex;flex-direction:column;gap:6px;">
@@ -769,39 +904,52 @@ final class PricingMatrixAdminPage {
 					<input type="hidden" name="brand_id" value="<?php echo (int) $row['brand_id']; ?>" />
 					<input type="hidden" name="editorial_slug" value="<?php echo esc_attr( $row['editorial_slug'] ); ?>" />
 					<input type="hidden" name="scale_regular" value="<?php echo (int) $row['escala_precio_regular']; ?>" />
-					<input type="hidden" name="protect_active_orders" value="1" />
+					<input type="hidden" name="protect_active_orders" value="0" />
+
+					<?php if ( ! empty( $row['series_items'] ) && count( $row['series_items'] ) > 1 ) : ?>
+						<div class="akb-pm-serie-scope-field">
+							<label for="scope-<?php echo esc_attr( $uid ); ?>">
+								🎯 Alcance:
+							</label>
+							<select id="scope-<?php echo esc_attr( $uid ); ?>" name="serie_id" class="akb-calc-serie-select" aria-label="Alcance: toda la escala o serie individual">
+								<option value="0">Toda la escala (<?php echo (int) $row['series_count']; ?> series — <?php echo (int) $row['total_tomos']; ?> tomos)</option>
+								<?php foreach ( $row['series_items'] as $sitem ) : ?>
+									<option value="<?php echo (int) $sitem['id']; ?>">Solo <?php echo esc_html( $sitem['name'] ); ?> (<?php echo (int) $sitem['count']; ?> tomos)</option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					<?php else : ?>
+						<input type="hidden" name="serie_id" value="0" />
+					<?php endif; ?>
 
 					<div class="akb-pm-scale-calc-grid">
 						<div class="akb-pm-calc-field">
-							<label for="<?php echo esc_attr( $id_reg ); ?>">Nuevo Reg ($)</label>
-							<input type="number" id="<?php echo esc_attr( $id_reg ); ?>" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="1" min="100" aria-label="Nuevo precio regular para <?php echo esc_attr( $row['editorial'] ); ?> escala $<?php echo esc_attr( $row['escala_precio_regular'] ); ?>" required />
+							<label for="<?php echo esc_attr( $id_reg ); ?>" title="Precio regular base de catálogo (vitrina y stock físico)">Regular Vitrina ($)</label>
+							<input type="number" id="<?php echo esc_attr( $id_reg ); ?>" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="1" min="100" aria-label="Precio regular de vitrina para <?php echo esc_attr( $row['editorial'] ); ?>" required />
 						</div>
 						<div class="akb-pm-calc-field">
-							<label for="<?php echo esc_attr( $id_pct ); ?>">% Desc</label>
-							<input type="number" id="<?php echo esc_attr( $id_pct ); ?>" name="discount_pct" class="akb-calc-pct" value="<?php echo esc_attr( (string) $row['discount_pct'] ); ?>" step="0.5" min="0" max="90" aria-label="Porcentaje de descuento para <?php echo esc_attr( $row['editorial'] ); ?>" required />
+							<label for="<?php echo esc_attr( $id_pct ); ?>" title="Descuento aplicado exclusivamente a tomos en estado A Pedido / Reserva (por defecto 5%)">% Desc. A Pedido</label>
+							<input type="number" id="<?php echo esc_attr( $id_pct ); ?>" name="discount_pct" class="akb-calc-pct" value="<?php echo esc_attr( (string) $row['discount_pct'] ); ?>" step="0.5" min="0" max="90" aria-label="Porcentaje de descuento para tomos a pedido" required />
 						</div>
 						<div class="akb-pm-calc-field">
-							<label for="<?php echo esc_attr( $id_mode ); ?>">Redondeo</label>
-							<select id="<?php echo esc_attr( $id_mode ); ?>" name="rounding_mode" class="akb-calc-mode" aria-label="Modo de redondeo para <?php echo esc_attr( $row['editorial'] ); ?>">
-								<option value="round_100" <?php selected( $row['rounding_mode'], 'round_100' ); ?>>round_100</option>
-								<option value="floor_100" <?php selected( $row['rounding_mode'], 'floor_100' ); ?>>floor_100</option>
-								<option value="round_50" <?php selected( $row['rounding_mode'], 'round_50' ); ?>>round_50</option>
-								<option value="manual" <?php selected( $row['rounding_mode'], 'manual' ); ?>>manual</option>
+							<label for="<?php echo esc_attr( $id_mode ); ?>" title="Modo oficial de redondeo a la centena en pesos chilenos">Redondeo CLP</label>
+							<select id="<?php echo esc_attr( $id_mode ); ?>" name="rounding_mode" class="akb-calc-mode" aria-label="Modo de redondeo CLP">
+								<option value="round_100" <?php selected( $row['rounding_mode'], 'round_100' ); ?>>$100 CLP</option>
+								<option value="floor_100" <?php selected( $row['rounding_mode'], 'floor_100' ); ?>>$100 abajo</option>
+								<option value="round_50" <?php selected( $row['rounding_mode'], 'round_50' ); ?>>$50 CLP</option>
+								<option value="manual" <?php selected( $row['rounding_mode'], 'manual' ); ?>>Manual</option>
 							</select>
 						</div>
 						<div class="akb-pm-calc-field">
-							<label for="<?php echo esc_attr( $id_sale ); ?>">A Pedido ($)</label>
-							<input type="number" id="<?php echo esc_attr( $id_sale ); ?>" name="manual_sale" class="akb-calc-sale" value="<?php echo (int) $row['nuevo_precio_a_pedido']; ?>" step="50" aria-label="Precio de oferta A Pedido resultante para <?php echo esc_attr( $row['editorial'] ); ?>" style="font-weight:700;color:#0d6832;" required />
+							<label for="<?php echo esc_attr( $id_sale ); ?>" title="Precio final de venta resultante para tomos en estado A Pedido / Reserva">Oferta A Pedido ($)</label>
+							<input type="number" id="<?php echo esc_attr( $id_sale ); ?>" name="manual_sale" class="akb-calc-sale" value="<?php echo (int) $row['nuevo_precio_a_pedido']; ?>" step="50" aria-label="Precio de oferta para tomos a pedido" style="font-weight:700;color:#0d6832;" required />
 						</div>
 					</div>
 
-					<div class="akb-pm-calc-footer">
-						<span class="akb-pm-lock-badge" title="Protección automática e inviolable de pedidos activos en wc-processing / wc-on-hold (Fail-Closed)">
-							🔒 Pedidos protegidos
-						</span>
+					<div class="akb-pm-calc-footer" style="justify-content:flex-end;">
 						<div class="akb-pm-btn-group">
 							<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry" title="Simular y revisar qué tomos cambiarán antes de aplicar">Simular</button>
-							<button type="submit" class="button button-primary akb-pm-btn-level" title="Aplicar escala a todos los tomos">Aplicar</button>
+							<button type="submit" class="button button-primary akb-pm-btn-level" title="Aplicar cambios de precio">Aplicar</button>
 						</div>
 					</div>
 				</form>
@@ -811,121 +959,7 @@ final class PricingMatrixAdminPage {
 	}
 
 	/**
-	 * Renderiza la pestaña 2: Auditoría de Series (pa_serie).
-	 *
-	 * @param list<array<string, mixed>> $discrepancies Series con discrepancia.
-	 * @return void
-	 */
-	private function render_tab_series( array $discrepancies ): void {
-		?>
-		<div class="akb-pm-card">
-			<h2 class="akb-pm-card__title">
-				Auditoría de Series (<code>pa_serie</code>) con Escalas Discrepantes
-				<span class="akb-pm-badge-count <?php echo ! empty( $discrepancies ) ? 'akb-pm-badge-count--alert' : ''; ?>">
-					<?php echo count( $discrepancies ); ?>
-				</span>
-			</h2>
-			<p class="akb-pm-card__desc">
-				Detecta series cuyos tomos estándar tienen precios regulares distintos dentro de la misma editorial
-				(los artbooks, packs y tomos con <code>_akb_variante_tomo = 'edicion_especial'</code> se omiten automáticamente para proteger los márgenes).
-				<strong>Criterio sugerido:</strong> Nivelar al promedio ponderado o a la escala dominante para garantizar uniformidad comercial. Clic en cualquier chip para fijar el precio objetivo antes de nivelar.
-			</p>
-
-			<?php if ( empty( $discrepancies ) ) : ?>
-				<div class="notice notice-success inline" style="margin:16px 0;padding:12px 16px;">
-					<strong>✓ ¡Excelente! Todas las series estándar tienen precios regulares 100% consistentes.</strong>
-				</div>
-			<?php else : ?>
-				<div class="akb-pm-filter-toolbar">
-					<input type="search" id="akb-series-search" class="akb-pm-search-input" placeholder="🔍 Filtrar por serie, editorial o slug..." autocomplete="off" />
-					<span id="akb-series-counter" style="font-size:12px;font-weight:600;color:#50575e;">
-						Mostrando <strong><?php echo count( $discrepancies ); ?></strong> series con discrepancia
-					</span>
-				</div>
-
-				<div class="akb-pm-table-responsive">
-					<table class="akb-pm-table" id="akb-series-table">
-						<thead>
-							<tr>
-								<th class="akb-sortable" data-sort="string" style="width:140px;cursor:pointer;">Editorial ↕</th>
-								<th class="akb-sortable" data-sort="string" style="width:230px;cursor:pointer;">Serie ↕</th>
-								<th style="min-width:280px;">Escalas Detectadas (Clic para elegir)</th>
-								<th class="akb-sortable" data-sort="number" style="width:75px;text-align:center;cursor:pointer;">Tomos ↕</th>
-								<th class="akb-sortable" data-sort="number" style="width:85px;text-align:center;cursor:pointer;">Protegidos ↕</th>
-								<th style="width:360px;min-width:350px;">Nivelar en 1 Clic</th>
-							</tr>
-						</thead>
-						<tbody>
-							<?php foreach ( $discrepancies as $d ) : ?>
-								<?php $row_key = (int) $d['serie_id'] . '-' . (int) $d['brand_id']; ?>
-								<tr class="akb-series-searchable-row" data-search="<?php echo esc_attr( strtolower( $d['editorial'] . ' ' . $d['serie_name'] . ' ' . $d['serie_slug'] ) ); ?>">
-									<td data-value="<?php echo esc_attr( $d['editorial'] ); ?>">
-										<div class="akb-pm-editorial-cell">
-											<span class="akb-pm-editorial-name"><?php echo esc_html( $d['editorial'] ); ?></span>
-										</div>
-									</td>
-									<td data-value="<?php echo esc_attr( $d['serie_name'] ); ?>">
-										<div class="akb-pm-serie-cell">
-											<span class="akb-pm-serie-title"><?php echo esc_html( $d['serie_name'] ); ?></span>
-											<span class="akb-pm-slug-badge" title="pa_serie: <?php echo esc_attr( $d['serie_slug'] ); ?>"><?php echo esc_html( $d['serie_slug'] ); ?></span>
-										</div>
-									</td>
-									<td>
-										<div class="akb-pm-scales-wrap">
-											<?php if ( ! empty( $d['average_price'] ) ) : ?>
-												<button type="button" class="akb-pm-scale-chip akb-pm-scale-chip--average" data-input-id="target-reg-<?php echo esc_attr( $row_key ); ?>" data-price="<?php echo (int) $d['average_price']; ?>" title="Promedio ponderado ($<?php echo number_format( (int) $d['average_price'], 0, ',', '.' ); ?>). Clic para fijar como objetivo.">
-													<span>⚖ Promedio: $<?php echo esc_html( number_format( (int) $d['average_price'], 0, ',', '.' ) ); ?></span>
-												</button>
-											<?php endif; ?>
-											<?php foreach ( $d['scales'] as $sc => $cnt ) : ?>
-												<?php $is_dom = ( (int) $sc === (int) $d['dominant_scale'] ); ?>
-												<button type="button" class="akb-pm-scale-chip <?php echo $is_dom ? 'akb-pm-scale-chip--dominant' : 'akb-pm-scale-chip--divergent'; ?>" data-input-id="target-reg-<?php echo esc_attr( $row_key ); ?>" data-price="<?php echo (int) $sc; ?>" title="<?php echo $is_dom ? 'Escala dominante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.' : 'Escala discrepante (' . (int) $cnt . ' tomos). Clic para fijar como objetivo.'; ?>">
-													<span>$<?php echo esc_html( number_format( (int) $sc, 0, ',', '.' ) ); ?></span>
-													<span class="akb-pm-chip-count">(<?php echo (int) $cnt; ?><?php echo $is_dom ? ' ★' : ''; ?>)</span>
-												</button>
-											<?php endforeach; ?>
-										</div>
-									</td>
-									<td data-value="<?php echo (int) $d['total_tomos']; ?>" style="text-align:center;">
-										<span class="akb-pm-number-badge"><?php echo (int) $d['total_tomos']; ?></span>
-									</td>
-									<td data-value="<?php echo (int) $d['locked_count']; ?>" style="text-align:center;">
-										<?php if ( $d['locked_count'] > 0 ) : ?>
-											<span class="akb-pm-lock-badge" title="<?php echo esc_attr( $d['locked_count'] . ' tomo(s) protegidos en órdenes activas' ); ?>">🔒 <?php echo (int) $d['locked_count']; ?></span>
-										<?php else : ?>
-											<span class="akb-pm-lock-badge akb-pm-lock-badge--zero">0</span>
-										<?php endif; ?>
-									</td>
-									<td>
-										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="akb-pm-level-form">
-											<?php wp_nonce_field( self::NONCE_ACTION ); ?>
-											<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_LEVEL_SERIE ); ?>" />
-											<input type="hidden" name="serie_id" value="<?php echo (int) $d['serie_id']; ?>" />
-											<input type="hidden" name="brand_id" value="<?php echo (int) $d['brand_id']; ?>" />
-											<div class="akb-pm-input-price-wrap">
-												<span class="akb-pm-price-currency">$</span>
-												<input type="number" id="target-reg-<?php echo esc_attr( $row_key ); ?>" name="target_regular" class="akb-pm-input-price" value="<?php echo (int) $d['dominant_scale']; ?>" step="1" min="100" aria-label="Precio regular objetivo para nivelar serie <?php echo esc_attr( $d['serie_name'] ); ?>" required />
-											</div>
-											<input type="hidden" name="protect_active_orders" value="1" />
-											<span class="akb-pm-lock-badge" title="Protección automática e inviolable de pedidos activos en órdenes abiertas">🔒</span>
-											<div class="akb-pm-btn-group">
-												<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry" title="Simular sin modificar la base de datos">Dry-Run</button>
-												<button type="submit" class="button button-primary akb-pm-btn-level" title="Nivelar todos los tomos estándar al precio seleccionado">Nivelar Serie</button>
-											</div>
-										</form>
-									</td>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-				</div>
-			<?php endif; ?>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Renderiza la pestaña 3: Rescate Manual y Selectivo de Agotados.
+	 * Renderiza la pestaña 2: Rescate Manual y Selectivo de Agotados.
 	 *
 	 * @param list<array<string, mixed>> $rescuables Productos agotados elegibles.
 	 * @return void
@@ -953,7 +987,34 @@ final class PricingMatrixAdminPage {
 						</div>
 						<div class="akb-pm-global-action-bar__right">
 							<button type="submit" name="dry_run" value="1" class="button akb-pm-btn-dry">Simular Rescate (Dry-Run)</button>
-							<button type="submit" class="button button-primary akb-pm-btn-level">Rescatar Seleccionados a «A Pedido» (5% round_100)</button>
+							<button type="submit" id="akb-rescue-btn-apply" class="button button-primary akb-pm-btn-level">Rescatar Seleccionados a «A Pedido» (5% round_100)</button>
+						</div>
+					</div>
+
+					<div class="akb-pm-rescue-discount-toolbar" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+						<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+							<span style="font-size:13px;font-weight:700;color:#1e293b;">🎁 % Descuento Reserva:</span>
+							<div class="akb-pm-rescue-pills" style="display:inline-flex;gap:6px;flex-wrap:wrap;">
+								<button type="button" class="button button-secondary akb-rescue-pill is-active" data-pct="5">5% (Estándar)</button>
+								<button type="button" class="button button-secondary akb-rescue-pill" data-pct="8">8%</button>
+								<button type="button" class="button button-secondary akb-rescue-pill" data-pct="10">10% (Promo)</button>
+								<button type="button" class="button button-secondary akb-rescue-pill" data-pct="12">12%</button>
+								<button type="button" class="button button-secondary akb-rescue-pill" data-pct="15">15%</button>
+							</div>
+							<div style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;">
+								<input type="number" id="akb-rescue-custom-pct" name="rescue_discount_pct" value="5" step="0.5" min="0" max="90" style="width:65px;height:30px;font-size:12px;text-align:center;font-weight:700;" />
+								<span style="font-weight:700;font-size:13px;color:#475569;">%</span>
+							</div>
+						</div>
+						<div style="display:flex;align-items:center;gap:10px;">
+							<label style="font-size:12px;font-weight:600;color:#334155;">
+								Modo Redondeo:
+								<select id="akb-rescue-rounding" name="rescue_rounding_mode" style="margin-left:6px;height:30px;font-size:12px;">
+									<option value="round_100" selected>Centena (round_100)</option>
+									<option value="round_50">Cincuenta (round_50)</option>
+									<option value="floor_100">Piso Centena (floor_100)</option>
+								</select>
+							</label>
 						</div>
 					</div>
 
@@ -996,12 +1057,13 @@ final class PricingMatrixAdminPage {
 									<th class="akb-sortable" data-sort="string" style="cursor:pointer;">Producto ↕</th>
 									<th class="akb-sortable" data-sort="string" style="width:160px;cursor:pointer;">Editorial ↕</th>
 									<th class="akb-sortable" data-sort="number" style="width:120px;cursor:pointer;">Precio Regular ↕</th>
-									<th class="akb-sortable" data-sort="number" style="width:170px;cursor:pointer;">Precio Reserva (round_100) ↕</th>
+									<th class="akb-sortable" data-sort="number" style="width:190px;cursor:pointer;">Precio Reserva (<span id="akb-rescue-header-pct">5%</span>) ↕</th>
+									<th class="akb-sortable" data-sort="number" style="width:130px;cursor:pointer;">Días Agotado ↕</th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php foreach ( array_slice( $rescuables, 0, 300 ) as $item ) : ?>
-									<tr class="akb-rescue-searchable-row" data-search="<?php echo esc_attr( strtolower( $item['title'] . ' ' . $item['editorial'] . ' ' . $item['product_id'] . ' #' . $item['product_id'] ) ); ?>">
+									<tr class="akb-rescue-searchable-row" data-regular="<?php echo (int) $item['regular_price']; ?>" data-search="<?php echo esc_attr( strtolower( $item['title'] . ' ' . $item['editorial'] . ' ' . $item['product_id'] . ' #' . $item['product_id'] ) ); ?>">
 										<td style="text-align:center;">
 											<input type="checkbox" class="akb-rescue-cb" name="product_ids[]" value="<?php echo (int) $item['product_id']; ?>" />
 										</td>
@@ -1019,8 +1081,23 @@ final class PricingMatrixAdminPage {
 										<td data-value="<?php echo (int) $item['regular_price']; ?>">
 											$<?php echo esc_html( number_format( (int) $item['regular_price'], 0, ',', '.' ) ); ?>
 										</td>
-										<td data-value="<?php echo (int) $item['proposed_sale_price']; ?>">
-											<strong style="color:#0d6832;font-size:14px;">$<?php echo esc_html( number_format( (int) $item['proposed_sale_price'], 0, ',', '.' ) ); ?></strong>
+										<td data-value="<?php echo (int) $item['proposed_sale_price']; ?>" class="akb-rescue-sale-cell">
+											<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+												<strong class="akb-rescue-sale-price" style="color:#0d6832;font-size:14px;">$<?php echo esc_html( number_format( (int) $item['proposed_sale_price'], 0, ',', '.' ) ); ?></strong>
+												<div class="akb-rescue-manual-wrap" style="display:inline-flex;align-items:center;">
+													<input type="number" step="100" min="100" name="individual_sale[<?php echo (int) $item['product_id']; ?>]" class="akb-rescue-individual-input" placeholder="Manual $" style="display:none;width:86px;font-size:11px;padding:2px 4px;height:24px;border:1px solid #c3c4c7;border-radius:3px;" />
+													<button type="button" class="button button-small akb-rescue-toggle-manual-btn" title="Definir precio individual específico para este tomo" style="padding:0 5px;height:22px;line-height:20px;font-size:11px;margin-left:3px;">✏️</button>
+												</div>
+											</div>
+										</td>
+										<td data-value="<?php echo null !== $item['dias_agotado'] ? (int) $item['dias_agotado'] : -1; ?>">
+											<?php if ( null !== $item['dias_agotado'] ) : ?>
+												<span class="akb-pm-badge-days" style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;<?php echo $item['dias_agotado'] > 30 ? 'background:#fff1f0;color:#cf1322;border:1px solid #ffa39e;' : 'background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f;'; ?>">
+													⏱️ <?php echo (int) $item['dias_agotado']; ?> <?php echo 1 === (int) $item['dias_agotado'] ? 'día' : 'días'; ?>
+												</span>
+											<?php else : ?>
+												<span style="color:#8c8f94;font-size:11px;">Reciente / No reg.</span>
+											<?php endif; ?>
 										</td>
 									</tr>
 								<?php endforeach; ?>
@@ -1034,130 +1111,7 @@ final class PricingMatrixAdminPage {
 	}
 
 	/**
-	 * Renderiza la pestaña 4: Auditoría de Productos Comprometidos en Órdenes Activas.
-	 *
-	 * @param list<array<string, mixed>> $locked_orders Filas de auditoría.
-	 * @return void
-	 */
-	private function render_tab_orders( array $locked_orders ): void {
-		?>
-		<div class="akb-pm-card">
-			<h2 class="akb-pm-card__title">
-				Auditoría en Tiempo Real de Productos Comprometidos en Órdenes Activas (🔒)
-				<span class="akb-pm-badge-count akb-pm-badge-count--lock"><?php echo count( $locked_orders ); ?></span>
-			</h2>
-			<p class="akb-pm-card__desc">
-				Estos productos tienen unidades compradas en órdenes abiertas (<code>wc-processing</code>, <code>wc-on-hold</code>) y sus
-				metadatos de stock, precios congelados y fechas están 100% blindados contra mutaciones automáticas de catálogo.
-			</p>
-
-			<div class="akb-pm-filter-toolbar">
-				<input type="search" id="akb-orders-search" class="akb-pm-search-input" placeholder="🔍 Filtrar por orden, ID o título..." autocomplete="off" />
-				<span id="akb-orders-counter" style="font-size:12px;font-weight:600;color:#50575e;">
-					Mostrando <?php echo count( $locked_orders ); ?> productos comprometidos
-				</span>
-			</div>
-
-			<div class="akb-pm-table-responsive">
-				<table class="akb-pm-table" id="akb-orders-table">
-					<thead>
-						<tr>
-							<th class="akb-sortable" data-sort="number" style="width:85px;cursor:pointer;">Orden ↕</th>
-							<th class="akb-sortable" data-sort="string" style="width:125px;cursor:pointer;">Estado Orden ↕</th>
-							<th class="akb-sortable" data-sort="number" style="width:80px;cursor:pointer;">Prod ID ↕</th>
-							<th class="akb-sortable" data-sort="string" style="cursor:pointer;">Título Tomo ↕</th>
-							<th class="akb-sortable" data-sort="number" style="width:65px;text-align:center;cursor:pointer;">Cant. ↕</th>
-							<th class="akb-sortable" data-sort="number" style="width:110px;cursor:pointer;">Precio Pagado ↕</th>
-							<th class="akb-sortable" data-sort="string" style="width:95px;cursor:pointer;">Era Preventa ↕</th>
-							<th class="akb-sortable" data-sort="string" style="width:120px;cursor:pointer;">Estado Catálogo ↕</th>
-							<th class="akb-sortable" data-sort="string" style="width:90px;text-align:center;cursor:pointer;">Stock Actual ↕</th>
-						</tr>
-					</thead>
-					<tbody>
-						<?php foreach ( $locked_orders as $lo ) : ?>
-							<tr class="akb-orders-searchable-row" data-search="<?php echo esc_attr( strtolower( (string) $lo['order_id'] . ' ' . (string) $lo['product_id'] . ' ' . (string) $lo['order_item_name'] . ' ' . (string) $lo['order_status'] ) ); ?>">
-								<td data-value="<?php echo (int) $lo['order_id']; ?>">
-									<a href="<?php echo esc_url( admin_url( 'post.php?post=' . (int) $lo['order_id'] . '&action=edit' ) ); ?>" target="_blank" style="text-decoration:none;">
-										<strong>#<?php echo (int) $lo['order_id']; ?></strong>
-									</a>
-								</td>
-								<td data-value="<?php echo esc_attr( (string) $lo['order_status'] ); ?>">
-									<span class="akb-pm-country-pill" style="<?php echo 'wc-processing' === (string) $lo['order_status'] ? 'background:#e7f5ea;color:#0d6832;' : 'background:#fff3cd;color:#856404;'; ?>">
-										<?php echo esc_html( (string) $lo['order_status'] ); ?>
-									</span>
-								</td>
-								<td data-value="<?php echo (int) $lo['product_id']; ?>">
-									<a href="<?php echo esc_url( admin_url( 'post.php?post=' . (int) $lo['product_id'] . '&action=edit' ) ); ?>" target="_blank" style="text-decoration:none;">
-										<code>#<?php echo (int) $lo['product_id']; ?></code>
-									</a>
-								</td>
-								<td data-value="<?php echo esc_attr( (string) $lo['order_item_name'] ); ?>">
-									<?php echo esc_html( (string) $lo['order_item_name'] ); ?>
-								</td>
-								<td data-value="<?php echo (int) $lo['qty_comprada']; ?>" style="text-align:center;">
-									<span class="akb-pm-number-badge"><?php echo (int) $lo['qty_comprada']; ?></span>
-								</td>
-								<td data-value="<?php echo (float) $lo['precio_unitario_pagado_iva']; ?>">
-									$<?php echo esc_html( number_format( (float) $lo['precio_unitario_pagado_iva'], 0, ',', '.' ) ); ?>
-								</td>
-								<td data-value="<?php echo esc_attr( (string) $lo['era_preventa_al_comprar'] ); ?>">
-									<?php echo esc_html( (string) $lo['era_preventa_al_comprar'] ); ?>
-								</td>
-								<td data-value="<?php echo esc_attr( (string) $lo['estado_actual_catalogo'] ); ?>">
-									<code><?php echo esc_html( (string) $lo['estado_actual_catalogo'] ); ?></code>
-								</td>
-								<td data-value="<?php echo esc_attr( (string) $lo['stock_actual_catalogo'] ); ?>" style="text-align:center;">
-									<?php echo esc_html( '' !== (string) $lo['stock_actual_catalogo'] ? (string) $lo['stock_actual_catalogo'] : 'NULL' ); ?>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-					</tbody>
-				</table>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Renderiza la pestaña 5: Exportar / Importar Reglas JSON.
-	 *
-	 * @param string $exported_json JSON actual de reglas.
-	 * @return void
-	 */
-	private function render_tab_rules( string $exported_json ): void {
-		?>
-		<div class="akb-pm-card" style="max-width:960px;">
-			<h2 class="akb-pm-card__title">Exportación / Importación JSON de Reglas (<code>akb_pricing_matrix_rules</code>)</h2>
-			<p class="akb-pm-card__desc">
-				Permite sincronizar las reglas maestras de precios configuradas entre entornos (Local <-> Staging <-> Producción)
-				en 1 clic desde el navegador o vía WP-CLI (<code>wp akb-pricing rules export / import</code>).
-			</p>
-
-			<div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;">
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
-					<?php wp_nonce_field( self::NONCE_ACTION ); ?>
-					<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_EXPORT_JSON ); ?>" />
-					<button type="submit" class="button button-secondary">📥 Descargar Archivo .json de Reglas</button>
-				</form>
-				<button type="button" id="akb-copy-rules-btn" class="button">📋 Copiar al Portapapeles</button>
-				<span id="akb-copy-feedback" style="display:none;color:#0d6832;font-weight:700;font-size:12px;">¡Copiado con éxito!</span>
-			</div>
-
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<?php wp_nonce_field( self::NONCE_ACTION ); ?>
-				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_IMPORT_JSON ); ?>" />
-				<label for="akb-rules-json"><strong>JSON de Reglas (Editable para Importar):</strong></label><br />
-				<textarea id="akb-rules-json" name="rules_json" rows="14" style="width:100%;font-family:Consolas, Monaco, monospace;font-size:12px;margin:8px 0;padding:12px;background:#f8f9fa;border:1px solid #ccd0d4;border-radius:4px;"><?php echo esc_textarea( $exported_json ); ?></textarea>
-				<p style="margin-top:12px;">
-					<button type="submit" class="button button-primary">💾 Importar y Guardar Reglas JSON</button>
-				</p>
-			</form>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Renderiza los scripts interactivos del panel (filtros en vivo, chips click-to-fill, calculadora y ordenamiento).
+	 * Renderiza los scripts interactivos del panel (filtros en vivo, selector de series, calculadora y ordenamiento).
 	 *
 	 * @return void
 	 */
@@ -1183,29 +1137,145 @@ final class PricingMatrixAdminPage {
 				});
 			});
 
-			// 2. Filtro en vivo para la tabla de Series Discrepantes
-			var seriesInput = document.getElementById('akb-series-search');
-			var seriesTable = document.getElementById('akb-series-table');
-			if (seriesInput && seriesTable) {
-				var seriesRows    = Array.from(seriesTable.querySelectorAll('tbody tr.akb-series-searchable-row'));
-				var seriesCounter = document.getElementById('akb-series-counter');
-				seriesInput.addEventListener('input', function() {
-					var query = seriesInput.value.toLowerCase().trim();
-					var visible = 0;
-					seriesRows.forEach(function(row) {
-						var text = row.getAttribute('data-search') || row.textContent.toLowerCase();
-						if (!query || text.indexOf(query) !== -1) {
-							row.style.display = '';
-							visible++;
-						} else {
-							row.style.display = 'none';
-						}
-					});
-					if (seriesCounter) {
-						seriesCounter.innerHTML = 'Mostrando <strong>' + visible + '</strong> de ' + seriesRows.length + ' series';
+			// 2. Control de alcance por serie individual y actualización dinámica de botones
+			function updateScopeButtons(selectEl) {
+				var form = selectEl.closest('form');
+				if (!form) return;
+				var btnApply = form.querySelector('.akb-pm-btn-level');
+				var btnDry   = form.querySelector('.akb-pm-btn-dry');
+				var container = selectEl.closest('.akb-pm-serie-scope-field');
+				var val = String(selectEl.value || '0');
+
+				if (val === '0') {
+					if (container) container.classList.remove('is-scoped');
+					if (btnApply) btnApply.textContent = 'Aplicar';
+					if (btnDry)   btnDry.textContent = 'Simular';
+				} else {
+					if (container) container.classList.add('is-scoped');
+					var opt = selectEl.options[selectEl.selectedIndex];
+					var optText = opt ? opt.textContent.trim().replace(/^Solo\s+/, '') : '';
+					if (btnApply) btnApply.textContent = 'Aplicar a ' + optText;
+					if (btnDry)   btnDry.textContent = 'Simular ' + optText;
+				}
+			}
+
+			document.querySelectorAll('.akb-calc-serie-select').forEach(function(sel) {
+				sel.addEventListener('change', function() {
+					updateScopeButtons(sel);
+				});
+			});
+
+			// 2b. Desglose interactivo de series (Acordeón y Pills inspirados en ATUM Stock Central)
+			document.querySelectorAll('.akb-pm-toggle-series-btn').forEach(function(btn) {
+				btn.addEventListener('click', function(e) {
+					e.preventDefault();
+					var targetId = btn.getAttribute('data-target');
+					var drawer   = document.getElementById(targetId);
+					if (drawer) {
+						var isHidden = drawer.style.display === 'none';
+						drawer.style.display = isHidden ? 'block' : 'none';
+						btn.textContent = isHidden ? 'Ocultar ▴' : 'Ver series ▾';
 					}
 				});
-			}
+			});
+
+			document.querySelectorAll('.akb-pm-series-pill').forEach(function(pill) {
+				pill.addEventListener('click', function(e) {
+					e.preventDefault();
+					var scopeId  = pill.getAttribute('data-scope-id');
+					var serieId  = String(pill.getAttribute('data-serie-id') || '0');
+					var selectEl = document.getElementById(scopeId);
+					if (!selectEl) return;
+
+					selectEl.value = serieId;
+					updateScopeButtons(selectEl);
+
+					var drawer = pill.closest('.akb-pm-series-drawer');
+					if (drawer) {
+						drawer.querySelectorAll('.akb-pm-series-pill').forEach(function(p) {
+							p.classList.remove('is-active');
+							p.style.background = '#fff';
+							p.style.color = '#2c3338';
+							p.style.borderColor = '#c3c4c7';
+							p.style.fontWeight = 'normal';
+						});
+						pill.classList.add('is-active');
+						pill.style.background = '#2271b1';
+						pill.style.color = '#fff';
+						pill.style.borderColor = '#2271b1';
+						pill.style.fontWeight = '600';
+					}
+				});
+			});
+
+			// 2c. Guardado rápido AJAX por fila (Patrón ATUM sin recarga de página)
+			document.querySelectorAll('.akb-scale-row-form').forEach(function(form) {
+				form.addEventListener('submit', function(e) {
+					var submitter = e.submitter;
+					// Interceptar exclusivamente el botón de Aplicar (el de Simular sigue el flujo POST de revisión completa)
+					if (!submitter || !submitter.classList.contains('akb-pm-btn-level')) {
+						return;
+					}
+
+					e.preventDefault();
+					var origText = submitter.textContent;
+					submitter.disabled = true;
+					submitter.textContent = '⏳ Guardando...';
+
+					var formData = new FormData(form);
+					formData.append('action', '<?php echo esc_js( self::ACTION_APPLY_SCALE_AJAX ); ?>');
+					formData.append('nonce', '<?php echo esc_js( wp_create_nonce( self::NONCE_ACTION ) ); ?>');
+
+					fetch(ajaxurl, {
+						method: 'POST',
+						body: formData,
+						credentials: 'same-origin'
+					})
+					.then(function(res) { return res.json(); })
+					.then(function(json) {
+						submitter.disabled = false;
+						submitter.textContent = origText;
+
+						if (json && json.success) {
+							var row = form.closest('tr');
+							if (row) {
+								var serieIdVal = form.querySelector('[name="serie_id"]') ? form.querySelector('[name="serie_id"]').value : '0';
+								if (serieIdVal === '0') {
+									var priceCell = row.querySelector('td:nth-child(3) strong');
+									if (priceCell && json.data && json.data.new_regular_fmt) {
+										priceCell.textContent = json.data.new_regular_fmt;
+									}
+									var saleCell = row.querySelector('td:nth-child(3) span');
+									if (saleCell && json.data && json.data.new_sale_fmt) {
+										saleCell.textContent = 'Oferta: ' + json.data.new_sale_fmt;
+									}
+								}
+								row.style.transition = 'background 0.3s ease';
+								row.style.background = '#e6ffed';
+								setTimeout(function() { row.style.background = ''; }, 2000);
+							}
+
+							var toast = document.createElement('div');
+							toast.className = 'akb-pm-ajax-toast';
+							toast.textContent = '✓ ' + (json.data ? json.data.message : 'Guardado con éxito');
+							document.body.appendChild(toast);
+							setTimeout(function() { toast.classList.add('is-visible'); }, 10);
+							setTimeout(function() {
+								toast.classList.remove('is-visible');
+								setTimeout(function() { toast.remove(); }, 300);
+							}, 3500);
+						} else {
+							alert('Aviso: ' + (json && json.data && json.data.message ? json.data.message : 'No se pudo guardar'));
+						}
+					})
+					.catch(function(err) {
+						submitter.disabled = false;
+						submitter.textContent = origText;
+						console.error('AJAX Fallback:', err);
+						form.submit();
+					});
+				});
+			});
 
 			// 3. Filtro en vivo para la tabla de Escalas Editoriales
 			var scalesInput = document.getElementById('akb-scales-search');
@@ -1221,6 +1291,27 @@ final class PricingMatrixAdminPage {
 						if (!query || text.indexOf(query) !== -1) {
 							row.style.display = '';
 							visible++;
+
+							var serieSelect = row.querySelector('.akb-calc-serie-select');
+							if (serieSelect && query.length >= 3) {
+								var matched = false;
+								for (var i = 1; i < serieSelect.options.length; i++) {
+									var optText = serieSelect.options[i].textContent.toLowerCase();
+									if (optText.indexOf(query) !== -1) {
+										serieSelect.selectedIndex = i;
+										updateScopeButtons(serieSelect);
+										matched = true;
+										break;
+									}
+								}
+								if (!matched && serieSelect.selectedIndex !== 0) {
+									serieSelect.selectedIndex = 0;
+									updateScopeButtons(serieSelect);
+								}
+							} else if (serieSelect && !query) {
+								serieSelect.selectedIndex = 0;
+								updateScopeButtons(serieSelect);
+							}
 						} else {
 							row.style.display = 'none';
 						}
@@ -1279,46 +1370,7 @@ final class PricingMatrixAdminPage {
 				cb.addEventListener('change', updateRescueSelected);
 			});
 
-			// 5. Filtro en vivo para la tabla de Órdenes Comprometidas
-			var ordersInput = document.getElementById('akb-orders-search');
-			var ordersTable = document.getElementById('akb-orders-table');
-			if (ordersInput && ordersTable) {
-				var ordersRows    = Array.from(ordersTable.querySelectorAll('tbody tr.akb-orders-searchable-row'));
-				var ordersCounter = document.getElementById('akb-orders-counter');
-				ordersInput.addEventListener('input', function() {
-					var query = ordersInput.value.toLowerCase().trim();
-					var visible = 0;
-					ordersRows.forEach(function(row) {
-						var text = row.getAttribute('data-search') || row.textContent.toLowerCase();
-						if (!query || text.indexOf(query) !== -1) {
-							row.style.display = '';
-							visible++;
-						} else {
-							row.style.display = 'none';
-						}
-					});
-					if (ordersCounter) {
-						ordersCounter.innerHTML = 'Mostrando <strong>' + visible + '</strong> de ' + ordersRows.length + ' productos';
-					}
-				});
-			}
-
-			// 6. Copiar Reglas JSON al Portapapeles
-			var copyBtn      = document.getElementById('akb-copy-rules-btn');
-			var copyFeedback = document.getElementById('akb-copy-feedback');
-			var rulesText    = document.getElementById('akb-rules-json');
-			if (copyBtn && rulesText) {
-				copyBtn.addEventListener('click', function() {
-					navigator.clipboard.writeText(rulesText.value).then(function() {
-						if (copyFeedback) {
-							copyFeedback.style.display = 'inline';
-							setTimeout(function() { copyFeedback.style.display = 'none'; }, 2000);
-						}
-					});
-				});
-			}
-
-			// 7. Calculadora CLP en vivo por fila de escala
+			// 4. Calculadora CLP compartida
 			function calcSale(reg, pct, mode, currentManual) {
 				if (reg <= 0) return 0;
 				if (mode === 'manual') return currentManual > 0 ? currentManual : reg;
@@ -1328,6 +1380,108 @@ final class PricingMatrixAdminPage {
 				if (mode === 'round_50') return Math.round(raw / 50) * 50;
 				return Math.round(raw / 100) * 100;
 			}
+
+			// 4.1 Descuento interactivo en vivo para la pestaña de Rescate (Grupal e Individual)
+			var rescuePills      = document.querySelectorAll('.akb-rescue-pill');
+			var rescueCustomPct  = document.getElementById('akb-rescue-custom-pct');
+			var rescueRounding   = document.getElementById('akb-rescue-rounding');
+			var rescueHeaderPct  = document.getElementById('akb-rescue-header-pct');
+			var rescueBtnApply   = document.getElementById('akb-rescue-btn-apply');
+
+			function recalcRescuePrices() {
+				var pct = rescueCustomPct ? (parseFloat(rescueCustomPct.value) || 0) : 5;
+				var mode = rescueRounding ? rescueRounding.value : 'round_100';
+
+				if (rescueHeaderPct) {
+					rescueHeaderPct.textContent = pct + '%';
+				}
+				if (rescueBtnApply) {
+					rescueBtnApply.textContent = 'Rescatar Seleccionados a «A Pedido» (' + pct + '% ' + mode + ')';
+				}
+
+				if (!rescueTable) return;
+
+				var rows = rescueTable.querySelectorAll('tbody tr.akb-rescue-searchable-row');
+				rows.forEach(function(row) {
+					var reg = parseInt(row.getAttribute('data-regular') || '0', 10);
+					var manualInput = row.querySelector('.akb-rescue-individual-input');
+					var priceStrong = row.querySelector('.akb-rescue-sale-price');
+					var cell        = row.querySelector('.akb-rescue-sale-cell');
+
+					if (!priceStrong || reg <= 0) return;
+
+					var manualVal = manualInput && manualInput.value.trim() !== '' ? parseInt(manualInput.value, 10) : 0;
+					var salePrice = 0;
+					if (manualVal > 0) {
+						salePrice = manualVal;
+						priceStrong.style.color = '#b45309';
+					} else {
+						salePrice = calcSale(reg, pct, mode, 0);
+						priceStrong.style.color = '#0d6832';
+					}
+
+					priceStrong.textContent = '$' + salePrice.toLocaleString('es-CL');
+					if (cell) {
+						cell.setAttribute('data-value', String(salePrice));
+					}
+				});
+			}
+
+			rescuePills.forEach(function(pill) {
+				pill.addEventListener('click', function(e) {
+					e.preventDefault();
+					rescuePills.forEach(function(p) { p.classList.remove('is-active'); });
+					pill.classList.add('is-active');
+					var pVal = pill.getAttribute('data-pct');
+					if (rescueCustomPct) {
+						rescueCustomPct.value = pVal;
+					}
+					recalcRescuePrices();
+				});
+			});
+
+			if (rescueCustomPct) {
+				rescueCustomPct.addEventListener('input', function() {
+					var val = parseFloat(rescueCustomPct.value);
+					rescuePills.forEach(function(p) {
+						if (parseFloat(p.getAttribute('data-pct')) === val) {
+							p.classList.add('is-active');
+						} else {
+							p.classList.remove('is-active');
+						}
+					});
+					recalcRescuePrices();
+				});
+			}
+
+			if (rescueRounding) {
+				rescueRounding.addEventListener('change', recalcRescuePrices);
+			}
+
+			document.querySelectorAll('.akb-rescue-toggle-manual-btn').forEach(function(btn) {
+				btn.addEventListener('click', function(e) {
+					e.preventDefault();
+					var row = btn.closest('tr');
+					if (!row) return;
+					var input = row.querySelector('.akb-rescue-individual-input');
+					if (input) {
+						if (input.style.display === 'none') {
+							input.style.display = 'inline-block';
+							input.focus();
+						} else {
+							input.style.display = 'none';
+							input.value = '';
+							recalcRescuePrices();
+						}
+					}
+				});
+			});
+
+			document.querySelectorAll('.akb-rescue-individual-input').forEach(function(input) {
+				input.addEventListener('input', recalcRescuePrices);
+			});
+
+			// 4.2 Calculadora CLP en vivo por fila de escala
 
 			document.querySelectorAll('.akb-scale-row-form').forEach(function(form) {
 				var regInput  = form.querySelector('.akb-calc-reg');
@@ -1349,7 +1503,7 @@ final class PricingMatrixAdminPage {
 				modeInput.addEventListener('change', recalc);
 			});
 
-			// 8. Ordenamiento dinámico de columnas en tablas
+			// 5. Ordenamiento dinámico de columnas en tablas
 			document.querySelectorAll('.akb-sortable').forEach(function(th) {
 				var table = th.closest('table');
 				if (!table) return;
@@ -1377,31 +1531,62 @@ final class PricingMatrixAdminPage {
 				});
 			});
 
-			// 9. Filtro en vivo para la tabla de Propuesta (.akb-pm-proposal-review)
-			var propSearch = document.getElementById('akb-proposal-search');
-			var propTable  = document.getElementById('akb-proposal-table');
-			var propCount  = document.getElementById('akb-proposal-counter');
-			if (propSearch && propTable) {
+			// 6. Filtro en vivo y selector de series para la tabla de Propuesta (.akb-pm-proposal-review)
+			var propSearch     = document.getElementById('akb-proposal-search');
+			var propTable      = document.getElementById('akb-proposal-table');
+			var propCount      = document.getElementById('akb-proposal-counter');
+			var propSerieFilter = document.getElementById('akb-proposal-serie-filter');
+			var propFormSerieId = document.getElementById('akb-proposal-form-serie-id');
+			var propBtnCount   = document.getElementById('akb-proposal-btn-count');
+			var propApplyCount = document.getElementById('akb-proposal-apply-count');
+
+			if (propTable) {
 				var propRows = Array.from(propTable.querySelectorAll('tbody tr.akb-proposal-row'));
-				propSearch.addEventListener('input', function() {
-					var query = propSearch.value.toLowerCase().trim();
+
+				function filterProposalRows() {
+					var query = propSearch ? propSearch.value.toLowerCase().trim() : '';
+					var selectedSerie = propSerieFilter ? String(propSerieFilter.value) : '0';
 					var visible = 0;
+
 					propRows.forEach(function(row) {
-						var text = row.getAttribute('data-search') || row.textContent.toLowerCase();
-						if (!query || text.indexOf(query) !== -1) {
+						var rowSerie = String(row.getAttribute('data-serie-id') || '0');
+						var text     = row.getAttribute('data-search') || row.textContent.toLowerCase();
+						var matchSerie = (selectedSerie === '0' || rowSerie === selectedSerie);
+						var matchText  = (!query || text.indexOf(query) !== -1);
+
+						if (matchSerie && matchText) {
 							row.style.display = '';
 							visible++;
 						} else {
 							row.style.display = 'none';
 						}
 					});
+
 					if (propCount) {
 						propCount.innerHTML = 'Mostrando <strong>' + visible + '</strong> de ' + propRows.length + ' tomos';
 					}
-				});
+					if (propBtnCount) {
+						propBtnCount.textContent = String(visible);
+					}
+					if (propApplyCount) {
+						propApplyCount.textContent = String(visible);
+					}
+				}
+
+				if (propSearch) {
+					propSearch.addEventListener('input', filterProposalRows);
+				}
+				if (propSerieFilter) {
+					propSerieFilter.addEventListener('change', function() {
+						if (propFormSerieId) {
+							propFormSerieId.value = propSerieFilter.value;
+						}
+						filterProposalRows();
+					});
+				}
 			}
 
-			// 10. Prevención de doble clic y feedback de carga en operaciones masivas
+			// 7. Prevención de doble clic y feedback de carga en operaciones masivas
 			document.querySelectorAll('form.akb-pm-apply-form, form.akb-pm-level-form').forEach(function(f) {
 				f.addEventListener('submit', function() {
 					var btn = f.querySelector('button[type="submit"]:not(.button-secondary)');

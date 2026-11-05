@@ -1,5 +1,7 @@
 # ADR-007: Diagnóstico de Integridad de Inventario y Protección de Pedidos Legados
 
+> Vigencia, QA 2026-11-04: diagnóstico histórico. La política sobre **precio futuro de catálogo** fue aclarada en [ADR-008](ADR-008-alineacion-canonica-precios-y-contrato-inventario-regla-18.md). Actualizar precio de producto no cambia automáticamente precio pactado de línea. Protección de compromisos/asignación física sigue vigente. Alinear reglas e implementación según [PA-05](../../../ops/coordinacion/abiertos/2026-11-04-pa-05-contratos-precio-y-consolidacion.md); no deducir autorización para normalizar stock histórico.
+
 ## Estado
 Aprobado y Documentado (2026-11-04)
 

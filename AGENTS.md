@@ -109,6 +109,12 @@ Lo que esa autorización **no** exime:
   negocio no está escrita y la estoy deduciendo yo, no es un defecto: es una
   propuesta, y se presenta como pregunta al dueño.
 
+### Pruebas de Frontend y DOM Test Harness (Orden de uso obligatorio)
+
+- **Prohibido validar comportamiento de UI con expresiones regulares:** Ningún agente debe verificar interactividad, clics, eventos, sincronización o estados accesibles (ARIA) mediante `assert.match` sobre el texto de los archivos `.js`.
+- **Prohibido armar mocks ad-hoc de `window`/`document`:** No reinventar implementaciones caseras con `EventTarget` y `vm` en cada test.
+- **Uso obligatorio de `tools/testing/dom-harness.js`:** Toda prueba de componentes cliente (steppers, carritos, popups, autocompletado, filtros) debe utilizar el arnés headless oficial (`createDOM`) para ejecutar el código real sobre el árbol DOM virtual y medir comportamiento, eventos y atributos antes de llegar a Playwright.
+
 
 ## Reglas compartidas y Antigravity
 

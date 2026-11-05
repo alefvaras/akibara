@@ -1,5 +1,7 @@
 # ADR-009: Coherencia de Proyecciones WooCommerce Lookup, Fail-Closed de Base de Datos y UX de Revisión Persistente
 
+> Revisión independiente 2026-11-04: las mediciones de 1.120.11 de este ADR son históricas. [Auditoría actual 1.120.20](../../qa/2026-11-04-preventa-a-pedido-supervision.md) confirma corrección del filtro de precios y mantiene abiertos contratos/concurrencia, handler AJAX y flujo físico. Releer pedidos no constituye exclusión mutua; una propuesta con campos persistidos no prueba que se aplique al mismo conjunto revisado. No interpretar este ADR como cierre global de QA.
+
 - **Estado:** Aceptado, Implementado y Desplegado en Producción (`akibara-business 1.120.11`)
 - **Fecha:** 2026-11-04
 - **Autor / Supervisor:** Antigravity / Astra / Dueño

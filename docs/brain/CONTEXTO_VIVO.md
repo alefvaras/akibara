@@ -1,67 +1,53 @@
-# Akibara Second Brain · Contexto Vivo y Mapa de Arquitectura
+# Akibara · Contexto vivo y mapa de arquitectura
 
-> **Propósito:** Ancla de contexto permanente para agentes de IA y desarrolladores de Akibara.
-> Este documento se lee al inicio de cada sesión y se sincroniza continuamente con el grafo de conocimiento (`graphify-out/`).
+Revisión de fuentes: 2026-11-04. Este mapa orienta; no certifica pruebas ni sustituye las reglas canónicas. La evidencia de cada entrega identifica versión y hashes por separado de Git.
 
----
+## Identidad y entornos
 
-## 1. Identidad y Misión de Akibara
-- **Nombre:** Akibara Manga & Cómics (`akibara.cl`).
-- **Lema e Identidad:** *«Tu rincón de Akihabara en Chile»*. Tienda especializada en manga, cómics, merchandising y novelas ligeras oficiales importadas directamente desde España y Argentina, despachando a todo Chile desde Santiago.
-- **Entornos:**
-  - **Local (Docker):** `http://localhost:8080` (espejo de staging/pruebas).
-  - **Producción (Hostinger Cloud + Cloudflare):** `https://akibara.cl`.
+Akibara Manga & Cómics, «Tu rincón de Akihabara en Chile». Tienda WooCommerce con catálogo importado y despacho desde Santiago. Local Docker: http://localhost:8080. Producción: https://akibara.cl.
 
----
+## Reglas y coordinación: fuentes únicas
 
-## 2. Reglas Inviolables de Operación (Golden Rules)
-1. **Regla de Oro (Proactividad Inmediata):** Si durante cualquier auditoría o tarea se detecta un error o inconsistencia en cualquier flujo, solucionarlo de inmediato (primero en local, luego en producción).
-2. **Ciclo de Pruebas Obligatorio:** Local (Docker) $\rightarrow$ Verificación verde $\rightarrow$ Despliegue atómico $\rightarrow$ Medición en Producción. Nada está cerrado hasta medirse en producción.
-3. **Cero Basura ni Respaldos en Producción:** Nunca dejar archivos `.bak`, `.zip`, volcados SQL ni options de backup en el servidor remoto. Todo respaldo vive exclusivamente en local.
-4. **Intocabilidad de Pedidos Activos (FIFO Comercial):** Las líneas de pedidos de clientes (`order_items`, `order_itemmeta`) y sus precios acordados son 100% inmutables.
-5. **Contrato Nativo de Inventario (Regla 18):**
-   - `instock`: Gestión activa (`_manage_stock = yes`), `_stock > 0`, unidades físicas en bodega de Santiago.
-   - `onbackorder` (A pedido / Reserva): Sin gestión de stock (`_manage_stock = no`), 5% de descuento obligatorio (`_sale_price = round_100(_regular_price * 0.95)`), distribuidor oficial activo (Candela / Pujol).
-   - `outofstock`: Agotado en bodega y distribuidora (`_manage_stock = no`, `_sale_price = null`, término `outofstock` en `product_visibility`).
+Leer [AGENTS.md](../../AGENTS.md), [catálogo](../../.agents/rules/catalogo.md) y [entrega](../../.agents/rules/entrega.md). Se evita duplicarlas aquí: la versión anterior fijaba 5% sin recoger la discusión de configuración e identificaba como inmutables todos los metadatos operativos de las líneas.
 
----
+Precio y promesa al comprar se conservan; cantidades recibidas, asignadas y reembolsadas evolucionan por operaciones trazables. Cambiar catálogo no equivale a cambiar un pedido. No reconstruir inventario productivo desde el espejo.
 
-## 3. Topología de Plugins y Módulos de Akibara
+Pizarra operativa: [README](../../ops/coordinacion/README.md). Célula actual: [Preventa y A pedido](../../ops/coordinacion/abiertos/2026-11-04-pa-00-celula-preventa-a-pedido.md). Codex supervisa arquitectura y QA; Antigravity implementa. Desarrollo entrega a QA, que vuelve a medir.
+
+## Topología comprobada en fuentes
 
 ```mermaid
-graph TD
-    classDef core fill:#005CA9,stroke:#003D73,color:#fff;
-    classDef search fill:#E60012,stroke:#A8000D,color:#fff;
-    classDef blocks fill:#27AE60,stroke:#1E8449,color:#fff;
-    classDef theme fill:#8E44AD,stroke:#6C3483,color:#fff;
-
-    AB["akibara-business (1.120.9)"]:::core
-    AS["akibara-search (0.1.14)"]:::search
-    AC["akibara-cart-checkout-blocks"]:::blocks
-    AT["akibara-theme-gp (2.1.70)"]:::theme
-
-    AB -->|Hooks / Filtros| WooCommerce
-    AS -->|Trie / Inverted Index| SQLite[Search Index]
-    AC -->|Store API / SlotFills| Checkout[Gutenberg Checkout]
-    AT -->|UI / CSS / Componentes| Frontend[Tienda Pública]
+flowchart TD
+    Business[akibara-business] --> Woo[WordPress y WooCommerce]
+    Business --> Availability[Stock/Availability y EstimatedDelivery]
+    Business --> Orders[OrderPreventa]
+    Business --> Matrix[PricingMatrix]
+    Search[akibara-search] --> DB[Tablas MySQL/MariaDB vía wpdb]
+    Business -->|integración de catálogo| Search
+    Blocks[akibara-cart-checkout-blocks] --> API[Woo Store API y Checkout Blocks]
+    Theme[akibara-gp] --> Store[Tienda pública]
+    Rewards[akibara-rewards] --> Woo
 ```
 
-### Mapa por Dominio de `akibara-business`:
-1. **Núcleo & Guardas:** `OrderLockGuard` (fail-closed, 24h wc-pending lock), `InventoryGuard`, `UnpaidOrdersSweeper`.
-2. **Precios & Distribución:** `PricingSynchronizer` (nivelación de tomos por serie, rescate con autorización Candela/Pujol), `PriceScale`.
-3. **Carrito & Checkout:** `MixedCartShipmentGuard` (Store API bridge, 4 canales de persistencia: Blocks, Store API, clásico, generic save), `PreventaCheckoutNotice`, `PudoShipping`.
-4. **Catálogo & Taxonomías:** `SeriesTaxonomy`, `SeriesFactsCache`, `UpsellsAutofill`, `ProductBrand`.
-5. **Fidelización (Rewards):** `AkibaraRewards` (ledger transaccional de puntos, 1 punto = $1 CLP), `CustomerReviews`.
-6. **Buscador & Facetas:** `SearchClient`, `FilterNormalizer`.
-7. **SEO & Descubribilidad:** `RankMathBridge`, `ProductSchema`, `BlogEditorialManager`.
+La versión anterior situaba Search en SQLite y nombraba el tema `akibara-theme-gp`. Corrección: `akibara-search/src/Install.php`, `WorkRepository.php` e `Indexer.php` usan tablas WordPress mediante wpdb; el tema está en `public_html/wp-content/themes/akibara-gp/`. Rewards es otro plugin, no una clase del módulo de precios.
 
----
+## Mapa del flujo Preventa y A pedido
 
-## 4. Estado de Memoria y Grafo de Conocimiento (Second Brain)
-- **Grafo Estructural:** `graphify-out/graph.json` (26.375 nodos, 51.024 aristas, 902 comunidades).
-- **Herramienta de Consulta Rápida:** `graphify query "<término>"` o `graphify explain "<nodo>"`.
-- **Wiki Interconectada:** `graphify-out/wiki/index.md` (912 artículos enlazados tipo Obsidian).
-- **Mapa Visual Interactivo:**
-  - `graphify-out/graph.html` (Visualizador 3D/2D por comunidades y física de nodos).
-  - `graphify-out/akibara-callflow.html` (Diagramas interactivos de llamadas y arquitectura Mermaid).
-- **Sincronización:** Hook post-commit activo (`.githooks/post-commit`) actualiza el grafo con cada commit.
+- `Stock/Availability`: clasificación comercial; `StockStatus`: estado nativo Woo.
+- `EstimatedDelivery/DateCalculator`: cálculo de ventanas. Lanzamiento editorial y llegada a Akibara son conceptos distintos.
+- `OrderPreventa/LineItemSnapshot` y `OrderTagging`: datos al comprar e integración clásico/Store API/guardado genérico.
+- `PreventaItems`, `SummaryRecalculator`, `PromiseWindow`: cantidades netas, pendientes y promesas.
+- `PreventasScreen`: pantalla y handlers actuales de recepción, FIFO, apartado y des-apartado; no existe un servicio separado `StockReception` en el árbol auditado.
+- `ReadyToShipCron`, `StockChangeListener`, `RefundListener`: reevaluación operativa.
+- `ReadyEmailDispatcher`, `ReadyToShipEmail`, `RemindersCron`: comunicaciones y reintentos.
+- `FulfillmentCapabilities`, `CompletionPolicy` e integraciones: retiro, carrier y cierre.
+
+[Mapa detallado, riesgos y arquitectura propuesta](PREVENTA_A_PEDIDO.md). Las propuestas se distinguen del código existente: el fallback de stock global aún puede marcar listos pedidos sin asignación (PA-03).
+
+## Estado y límites del grafo
+
+`graphify-out/graph.json` es un índice generado de fuentes. `graphify query` y `graphify explain` sirven para localizar clases y relaciones; verificar siempre el código citado. Las métricas de nodos y versiones no se mantienen a mano aquí.
+
+El hook `.githooks/post-commit` intenta actualización estructural, puede omitirse en rebase/merge y no demuestra despliegue ni QA. Tampoco sustituye la revisión semántica de documentos. Una extracción por encabezados no valida lo que afirma un ADR.
+
+Esta auditoría corrige documentos y actualiza sólo sus entradas del grafo. La visualización HTML, la wiki y las comunidades de un build anterior no deben presentarse como certificación nueva. La auditoría registra alcance y hashes en `graphify-out/QA_PREVENTA_2026-11-04.md`.

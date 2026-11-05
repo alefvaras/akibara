@@ -25,6 +25,7 @@ final class ReactiveStockPriceHooks {
 	 */
 	public const EXCLUDED_DUPLICATE_META_KEYS = array(
 		'_akb_onbackorder_at',
+		'_akb_out_of_stock_at',
 		'_akb_first_instock_at',
 		'_akb_pdp_specs_generation',
 		'_akb_sf_restocked_at',
@@ -139,13 +140,15 @@ final class ReactiveStockPriceHooks {
 			$regular = (int) round( (float) $product->get_regular_price( 'edit' ) );
 
 			if ( StockStatus::ON_BACKORDER === $new_status ) {
+				delete_post_meta( $product_id, '_akb_out_of_stock_at' );
 				$existing_ts = (string) get_post_meta( $product_id, '_akb_onbackorder_at', true );
 				if ( '' === $existing_ts ) {
 					PricingSynchronizer::update_unique_post_meta( $product_id, '_akb_onbackorder_at', (string) time() );
 				}
 
-				$eta_type = (string) get_post_meta( $product_id, '_akb_eta_type', true );
-				if ( 'disabled' !== $eta_type && $regular > 0 ) {
+				$manual_lock = 'yes' === (string) get_post_meta( $product_id, '_akb_manual_sale_lock', true );
+				$eta_type    = (string) get_post_meta( $product_id, '_akb_eta_type', true );
+				if ( ! $manual_lock && 'disabled' !== $eta_type && $regular > 0 ) {
 					$target_sale = PricingRulesRepository::resolve_sale_price_for_product( $product, $regular );
 					$current_sale = (int) round( (float) $product->get_sale_price( 'edit' ) );
 					if ( $target_sale > 0 && $target_sale < $regular && $current_sale !== $target_sale ) {
@@ -154,6 +157,7 @@ final class ReactiveStockPriceHooks {
 					}
 				}
 			} elseif ( StockStatus::IN_STOCK === $new_status ) {
+				delete_post_meta( $product_id, '_akb_out_of_stock_at' );
 				$stock_qty   = $product->get_stock_quantity( 'edit' );
 				$has_stock   = null === $stock_qty || (int) $stock_qty > 0;
 				$manual_lock = 'yes' === (string) get_post_meta( $product_id, '_akb_manual_sale_lock', true );
@@ -167,6 +171,10 @@ final class ReactiveStockPriceHooks {
 					}
 				}
 			} elseif ( StockStatus::OUT_OF_STOCK === $new_status ) {
+				$existing_oos = (string) get_post_meta( $product_id, '_akb_out_of_stock_at', true );
+				if ( '' === $existing_oos ) {
+					PricingSynchronizer::update_unique_post_meta( $product_id, '_akb_out_of_stock_at', (string) time() );
+				}
 				$manual_lock = 'yes' === (string) get_post_meta( $product_id, '_akb_manual_sale_lock', true );
 				if ( ! $manual_lock ) {
 					$current_sale = (string) $product->get_sale_price( 'edit' );

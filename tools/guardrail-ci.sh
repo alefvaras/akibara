@@ -24,6 +24,7 @@ printf '\n[1/5] Pruebas negativas de los instrumentos de calidad y despliegue\n'
 node --test "${script_dir}/test-runtime-delivery.mjs" "${script_dir}/test-deploy-runtime.mjs" "${script_dir}/test-post-hygiene-verdict.mjs" "${script_dir}/test-muplugins-deploy.mjs"
 node --test "${script_dir}/test-mail-health.mjs"
 node --test "${script_dir}/test-build-search-assets.mjs"
+node --test "${script_dir}/testing/dom-harness.test.js"
 node --test "${script_dir}/akibara-releases/rewards-qa/test-qa-paridad-espejo.mjs"
 python3 "${repo_root}/ops/test-guardrail-inventario-akibara.py"
 python3 "${script_dir}/test-private-data-guard.py"

@@ -110,11 +110,12 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
                     'id' => $id, 'title' => $title, 'status' => $status, 'issue' => 'onbackorder pero tiene término outofstock'
                 ];
             }
-            // Control Regla 8: Onbackorder DEBE tener 5% de descuento con redondeo a la centena (round_100 obligatorio)
-            $expected_sale_100 = round(($reg * 0.95) / 100.0, 0, PHP_ROUND_HALF_UP) * 100;
-            if ($reg <= 0 || $sale !== (float)$expected_sale_100 || $price !== $sale) {
-                $report['anomalies']['onbackorder_missing_5pct_discount'][] = [
-                    'id' => $id, 'title' => $title, 'reg' => $reg, 'sale' => $sale, 'expected_sale' => $expected_sale_100
+            // Control Reglas 8 y 18: Onbackorder DEBE tener descuento de reserva (5% estándar round_100 o configurable grupal/individual)
+            $has_valid_discount  = ($reg > 0 && $sale !== null && (float)$sale > 0 && (float)$sale < (float)$reg && $price === $sale);
+            $is_properly_rounded = ($sale !== null && ( ( (int)$sale % 50 ) === 0 || ( (int)$sale % 100 ) === 0 ));
+            if ( ! $has_valid_discount || ! $is_properly_rounded ) {
+                $report['anomalies']['onbackorder_missing_reservation_discount'][] = [
+                    'id' => $id, 'title' => $title, 'reg' => $reg, 'sale' => $sale, 'price' => $price, 'issue' => 'reserva sin descuento válido o sin redondeo CLP'
                 ];
             }
             // La reserva no lleva inventario físico, incluso cuando su cantidad es cero.
