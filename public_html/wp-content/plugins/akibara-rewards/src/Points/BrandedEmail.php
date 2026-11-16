@@ -26,8 +26,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 0.4.15
  * @api
- * @psalm-suppress MissingOverrideAttribute
- * @psalm-suppress MissingOverrideAttribute
  */
 final class BrandedEmail extends \WC_Email {
 
@@ -72,7 +70,6 @@ final class BrandedEmail extends \WC_Email {
 	 * Sin ajustes propios: nada que guardar en WooCommerce → Correos.
 	 *
 	 * @return void
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function init_form_fields() {
@@ -86,7 +83,6 @@ final class BrandedEmail extends \WC_Email {
 	 * Se expone igual por el contrato de `WC_Email`.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_content_plain() {
@@ -97,7 +93,6 @@ final class BrandedEmail extends \WC_Email {
 	 * El cuerpo se pasa ya envuelto a `send()`; esta clase no renderiza plantillas.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_content_html() {

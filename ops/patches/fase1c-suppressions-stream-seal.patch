@@ -1,0 +1,88 @@
+diff --git a/tools/guardrail-suppressions.php b/tools/guardrail-suppressions.php
+index 68257f2..5a5d30e 100644
+--- a/tools/guardrail-suppressions.php
++++ b/tools/guardrail-suppressions.php
+@@ -766,14 +766,21 @@ final class GuardrailSuppressions {
+ 	 * @return array<string, array{content: ?string, added_lines: array<int, true>}>
+ 	 */
+ 	private static function collect_changed_files_and_added_lines( string $root, bool $staged, string $base_target ): array {
+-		$diff_args = $staged
+-			? array( 'diff', '--cached', '--unified=0', '--no-color', $base_target )
+-			: array( 'diff', '--unified=0', '--no-color', $base_target );
+-		$diff_res  = self::run_git( $root, $diff_args );
+-		$added_map = self::parse_added_lines_from_diff( $diff_res['stdout'] );
++		$pathspecs = array_merge(
++			array( '--' ),
++			array_values( self::COMPONENTS ),
++			array( ':(exclude)*.min.js', ':(exclude)*.min.css', ':(exclude)*/tests/*', ':(exclude)*/vendor/*', ':(exclude)*/node_modules/*', ':(exclude)*/build/*', ':(exclude)*/dist/*' )
++		);
++		$diff_args = array_merge(
++			$staged
++				? array( 'diff', '--cached', '--unified=0', '--no-color', $base_target )
++				: array( 'diff', '--unified=0', '--no-color', $base_target ),
++			$pathspecs
++		);
++		$added_map = self::stream_added_lines_from_git_diff( $root, $diff_args );
+ 
+ 		if ( ! $staged ) {
+-			$untracked = self::run_git( $root, array( 'ls-files', '--others', '--exclude-standard', '-z' ) );
++			$untracked = self::run_git( $root, array_merge( array( 'ls-files', '--others', '--exclude-standard', '-z' ), $pathspecs ) );
+ 			foreach ( explode( "\0", $untracked['stdout'] ) as $rel ) {
+ 				if ( '' === $rel || ! self::is_runtime_analyzable_file( $rel ) ) {
+ 					continue;
+@@ -808,14 +815,29 @@ final class GuardrailSuppressions {
+ 	}
+ 
+ 	/**
++	 * @param list<string> $args
+ 	 * @return array<string, array<int, true>>
+ 	 */
+-	private static function parse_added_lines_from_diff( string $diff ): array {
++	private static function stream_added_lines_from_git_diff( string $root, array $args ): array {
++		$escaped = array_map( 'escapeshellarg', $args );
++		$cmd     = 'git -C ' . escapeshellarg( $root ) . ' ' . implode( ' ', $escaped );
++		$spec    = array(
++			0 => array( 'pipe', 'r' ),
++			1 => array( 'pipe', 'w' ),
++			2 => array( 'pipe', 'w' ),
++		);
++		$proc = proc_open( $cmd, $spec, $pipes );
++		if ( ! is_resource( $proc ) ) {
++			return array();
++		}
++		fclose( $pipes[0] );
++
+ 		$map          = array();
+ 		$current_file = null;
+ 		$current_line = 0;
+ 
+-		foreach ( explode( "\n", $diff ) as $line ) {
++		while ( false !== ( $raw_line = fgets( $pipes[1] ) ) ) {
++			$line = rtrim( $raw_line, "\r\n" );
+ 			if ( str_starts_with( $line, '+++ b/' ) ) {
+ 				$current_file = substr( $line, 6 );
+ 				if ( ! isset( $map[ $current_file ] ) ) {
+@@ -830,6 +852,10 @@ final class GuardrailSuppressions {
+ 				++$current_line;
+ 			}
+ 		}
++		fclose( $pipes[1] );
++		stream_get_contents( $pipes[2] );
++		fclose( $pipes[2] );
++		proc_close( $proc );
+ 		return $map;
+ 	}
+ 
+diff --git a/tools/verify-devsecops-seal.py b/tools/verify-devsecops-seal.py
+index 10898ca..fe42c4b 100644
+--- a/tools/verify-devsecops-seal.py
++++ b/tools/verify-devsecops-seal.py
+@@ -39,7 +39,7 @@ SEALED_HASHES = {
+     "tools/qa-playwright-full-suite.mjs": "36b6c7d9300377558c67e5002254c5a47dd2a9520bb8de6438485ba8b393cb57",
+     ".githooks/pre-commit": "b1b06dd959b1c37f19db8fc1204b17868ffc218a3604e82e0a896a26a0033bef",
+     ".githooks/pre-push": "a1426af3d1760a3c9ee0d43ee2e75cd3260c35a7deac73dbbb91951010f8af8d",
+-    "tools/guardrail-suppressions.php": "7b30ec5d3813135b2bbc28d29b1e026c10ba8686fe9b3c7241034c0ded6dab8d",
++    "tools/guardrail-suppressions.php": "db72c54244336a73602af237c7bdeba7ed1d3de30dd7aa08262a122d5ece4e66",
+     "tools/test-guardrail-suppressions.php": "6de646721aadaaa9a0fb91109f383135f9ff7aa8f55a184d4d91bf9edeb41f35",
+     "tools/guard-private-data.py": "d72f6fb970aaac1fe5aeb22955447849c6363681b5cf8af2f6a6e279d4c1c5be",
+     "tools/test-private-data-guard.py": "da59d77a7d3355f507b0051e24ad7d0636547fc265840caee9eaf0b0217f6084",

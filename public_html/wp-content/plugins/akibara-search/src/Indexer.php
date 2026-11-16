@@ -41,11 +41,7 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress InvalidOperand
  * @psalm-suppress RedundantCondition
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedReturnValue
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedReturnValue
  */
 // @phpstan-ignore complexity.classLike
 final class Indexer {

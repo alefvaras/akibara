@@ -30,13 +30,10 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidOperand
  * @psalm-suppress RedundantCast
  * @psalm-suppress RedundantCondition
  * @psalm-suppress TooManyArguments
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 // @phpstan-ignore complexity.classLike
 final class CacheWarmer {

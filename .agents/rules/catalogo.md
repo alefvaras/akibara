@@ -17,8 +17,10 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
    - Todo enlace a serie o editorial DEBE ser canónico e interno: `/serie/<slug>/` y `/marca/<slug>/`.
    - El bloque de enlazado interno en ficha se estandariza con la clase semántica `<p class="akb-pdp-seo-links">`.
 
-3. **Identificadores comerciales (GTIN / EAN / ISBN) siempre repiten el SKU:**
-   - Al crear o importar nuevos tomos en WooCommerce, los campos de código de barras (`_global_unique_id`, `_gtin`, `_barcode`, etc.) DEBEN repetir el valor del SKU (`_sku`) si no se cuenta con un código EAN oficial distinto. Nunca dejarlos vacíos ni omitirlos para evitar advertencias en Google Merchant y schemas de producto.
+3. **Desacople limpio de `_sku` y `_global_unique_id` (GTIN / EAN-13 / ISBN-13):**
+   - `_global_unique_id` es la ÚNICA fuente canónica de WooCommerce y Rank Math para identificadores comerciales (`gtin` / `gtin13` / `isbn`; jamás usar campos legacy `_gtin`, `_barcode` ni `_wc_gtin`).
+   - En ediciones editoriales individuales con código GS1 válido (13 dígitos con dígito verificador Módulo 10), `_global_unique_id` almacena los 13 dígitos exactos y `_sku` puede coincidir con él para consistencia operativa y búsqueda por código de barras.
+   - **PROHIBIDO** copiar sufijos internos (`-1`, `PACK-...`) hacia `_global_unique_id` o asignar el mismo `_global_unique_id` a dos productos publicados distintos (provoca rechazos *Invalid/Duplicate GTIN* en Google Merchant Center). Packs o variantes propias sin código editorial único usan un `_sku` interno único y dejan `_global_unique_id` vacío (`''`).
 
 4. **Portadas de producto: alta resolución desde original y responsivas:**
    - Las portadas deben generarse SIEMPRE a partir de la imagen fuente original en alta resolución (nunca recomprimir sobre un AVIF o WebP ya degradado o reducido).

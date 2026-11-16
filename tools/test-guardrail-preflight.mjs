@@ -52,7 +52,7 @@ test('guardrail runs every analyzer and the full suites before synchronization',
 	const result = invoke();
 	assert.equal(result.status, 0, result.stdout + result.stderr);
 	const calls = log();
-	for (const command of ['composer audit', 'npm audit --audit-level=moderate', 'opengrep scan', 'sqlfluff lint', 'phpunit -c', 'node --test', 'sync-notebooklm.mjs']) assert.ok(calls.includes(command), command);
+	for (const command of ['test-guardrail-suppressions.php', 'test-fresh-auditor-gate.py', 'guardrail-suppressions.php', 'composer audit', 'npm audit --audit-level=moderate', 'opengrep scan', 'sqlfluff lint', 'phpunit -c', 'node --test', 'sync-notebooklm.mjs']) assert.ok(calls.includes(command), command);
 	assert.ok(calls.includes('opengrep scan --error --taint-intrafile '));
 	assert.ok(calls.split('\n').some(line => line.startsWith('node --test ') && line.endsWith('/test-woocommerce-hook-metadata.mjs')), 'WooCommerce metadata probes run unconditionally');
 	assert.ok(calls.indexOf('sqlfluff lint') < calls.indexOf('sync-notebooklm.mjs'));

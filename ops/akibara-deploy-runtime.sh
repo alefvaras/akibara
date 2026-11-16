@@ -138,7 +138,7 @@ done
 for required_command in python3 node docker ssh scp tar shasum tee; do
 	command -v "$required_command" >/dev/null 2>&1 || die "falta herramienta obligatoria: ${required_command}"
 done
-for required_file in tools/verify-devsecops-seal.py tools/guardrail-ci.sh tools/qa-playwright-full-suite.mjs tools/akibara-releases/package-runtime.sh tools/akibara-releases/rewards-qa/qa-paridad-espejo.mjs ops/akibara-prod-mail-health.sh tools/sync-notebooklm.mjs; do
+for required_file in tools/verify-devsecops-seal.py tools/guardrail-ci.sh tools/qa-fresh-auditor-gate.py tools/qa-playwright-full-suite.mjs tools/akibara-releases/package-runtime.sh tools/akibara-releases/rewards-qa/qa-paridad-espejo.mjs ops/akibara-prod-mail-health.sh tools/sync-notebooklm.mjs; do
 	[[ -f "${REPO_ROOT}/${required_file}" && ! -L "${REPO_ROOT}/${required_file}" ]] || die "falta control obligatorio: ${required_file}"
 done
 
@@ -171,6 +171,20 @@ hdr "Auditoría completa previa al acceso remoto"
 bash "${REPO_ROOT}/tools/guardrail-ci.sh" --full 2>&1 | tee "${evidence_dir}/guardrail-full.log" \
 	|| die "la suite completa de guardrails falló; evidencia ${evidence_dir}"
 [[ "$(source_digest)" == "$validated_sources" ]] || die "las fuentes cambiaron durante los guardrails"
+python3 "${REPO_ROOT}/tools/qa-fresh-auditor-gate.py" \
+	--component "$component" \
+	--engine "${AKB_AUDITOR_ENGINE:-auto}" \
+	--allow-fallback-engine \
+	--timeout "${AKB_AUDITOR_TIMEOUT:-1200}" \
+	--source-digest "$validated_sources" \
+	--guardrail-log "${evidence_dir}/guardrail-full.log" \
+	--evidence-out "${evidence_dir}/fresh-auditor.json" 2>&1 | tee "${evidence_dir}/fresh-auditor.log" \
+	|| die "AUDITORÍA FRESCA PRE-DESPLIEGUE RECHAZADA; evidencia ${evidence_dir}/fresh-auditor.json"
+python3 "${REPO_ROOT}/tools/qa-fresh-auditor-gate.py" \
+	--verify-receipt "${evidence_dir}/fresh-auditor.json" \
+	--source-digest "$validated_sources" \
+	|| die "recibo de auditoría fresca inválido o desalineado"
+[[ "$(source_digest)" == "$validated_sources" ]] || die "las fuentes cambiaron durante la auditoría fresca"
 node "${REPO_ROOT}/tools/akibara-releases/rewards-qa/qa-paridad-espejo.mjs" 2>&1 | tee "${evidence_dir}/mirror-parity.log" \
 	|| die "el espejo no permite certificar este candidato"
 docker exec -i akibara-cron-1 sh -c "cd /var/www/html/$(dirname "$dest") && sha256sum -c -" < "$inv" \
@@ -275,6 +289,7 @@ fi
 
 [[ "$(source_digest)" == "$validated_sources" ]] || die "las fuentes cambiaron antes del cambio en vivo"
 shasum -a 256 -c "${evidence_dir}/validation.sha256" || die "la evidencia de validación fue alterada"
+python3 "${REPO_ROOT}/tools/qa-fresh-auditor-gate.py" --verify-receipt "${evidence_dir}/fresh-auditor.json" --source-digest "$validated_sources" || die "recibo de auditoría fresca inválido antes del cambio en vivo"
 
 hdr "Cambio bajo mantenimiento"
 swap_started=1

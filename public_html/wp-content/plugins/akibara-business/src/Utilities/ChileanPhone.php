@@ -16,8 +16,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 1.95.0
  * @api
- * @psalm-suppress UnusedConstructor
- * @psalm-suppress UnusedConstructor
  */
 final class ChileanPhone {
 

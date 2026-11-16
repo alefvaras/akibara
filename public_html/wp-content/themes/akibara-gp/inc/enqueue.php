@@ -35,10 +35,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $rel_path Ruta del asset relativa a la raíz del tema.
  * @return string Token para el `?ver=`.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_asset_ver( string $rel_path ): string {
 	$theme_version = function_exists( 'wp_get_theme' )
@@ -60,10 +56,7 @@ function akibara_gp_asset_ver( string $rel_path ): string {
  * encendido el navegador recibe exactamente los ficheros que se editan.
  *
  * @return bool
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_servir_fuentes(): bool {
 	return defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG;
@@ -80,10 +73,6 @@ function akibara_gp_servir_fuentes(): bool {
  * @param string $min_path Copia servida si no es la `.min` hermana (woocommerce.css
  *                         se sirve partida por contexto).
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_asset_servido( string $rel_path, string $min_path = '' ): string {
 	if ( akibara_gp_servir_fuentes() ) {
@@ -108,10 +97,6 @@ function akibara_gp_asset_servido( string $rel_path, string $min_path = '' ): st
  * @param string $rel_path Fuente.
  * @param string $min_path Ver akibara_gp_asset_servido().
  * @return array{0: string, 1: string}
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_asset( string $rel_path, string $min_path = '' ): array {
 	$servido = akibara_gp_asset_servido( $rel_path, $min_path );
@@ -127,10 +112,6 @@ function akibara_gp_asset( string $rel_path, string $min_path = '' ): array {
  * preservando el orden de cascada original.
  *
  * @return string listado|ficha|carrito|cuenta
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_woocommerce_css_contexto(): string {
 	if ( function_exists( 'is_product' ) && is_product() ) {
@@ -161,10 +142,6 @@ function akibara_gp_woocommerce_css_contexto(): string {
  * empty-states.css (revisión T4-R3).
  *
  * @return bool
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_consulta_principal_vacia(): bool {
 	$consulta = $GLOBALS['wp_query'] ?? null;
@@ -188,10 +165,6 @@ function akibara_gp_consulta_principal_vacia(): bool {
  *
  * @param string $css Hoja cruda.
  * @return string Hoja compactada.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_compact_css( string $css ): string {
 	$sin_comentarios = preg_replace( '#/\*.*?\*/#s', '', $css );
@@ -217,10 +190,6 @@ function akibara_gp_compact_css( string $css ): string {
  * existen en el primer HTML incluso mientras LiteSpeed/Cloudflare reconstruyen
  * recursos minificados. Esto resuelve el flash blanco en la causa, sin excluir
  * el header de la optimización.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_enqueue_critical_css(): void {
 	static $memo = array();
@@ -258,10 +227,6 @@ function akibara_gp_enqueue_critical_css(): void {
  * Encola CSS modular en orden de dependencia + JS deferred.
  *
  * Dependencia: critical inline → tokens/fonts → base → header/footer.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_enqueue(): void { // @phpstan-ignore complexity.functionLike
 	$theme_uri = get_stylesheet_directory_uri();
@@ -622,10 +587,6 @@ add_action( 'wp_enqueue_scripts', 'akibara_gp_enqueue' );
  *
  * @param bool $has_loop Resultado de akibara_gp_surface_has_product_loop().
  * @return bool
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_surface_has_animations( bool $has_loop ): bool {
 	return $has_loop
@@ -643,10 +604,7 @@ function akibara_gp_surface_has_animations( bool $has_loop ): bool {
  * no haya una segunda copia que derive.
  *
  * @return array<int, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_deferred_animation_sources(): array {
 	if ( ! wp_script_is( 'akibara-animations', 'registered' ) || wp_script_is( 'akibara-animations', 'enqueued' ) ) {
@@ -680,10 +638,6 @@ function akibara_gp_deferred_animation_sources(): array {
  *
  * Los pesos precargados corresponden estrictamente a los requeridos en el
  * primer viewport móvil: Inter 400, 500 y 700, y Bebas Neue 400.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_preload_fonts(): void {
 	$base  = get_stylesheet_directory_uri() . '/assets/fonts/';
@@ -717,10 +671,6 @@ add_action( 'wp_head', 'akibara_gp_preload_fonts', 1 );
  * imprime la copia SERVIDA (akibara_gp_asset_servido(): la `.min`, o la fuente
  * si falta); sin ninguna de las dos no se imprime nada y la página queda como
  * antes.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_print_toque_temprano(): void {
 	static $memo = null;
@@ -758,10 +708,6 @@ add_action( 'wp_head', 'akibara_gp_print_toque_temprano', 2 );
  *
  * @param string $nombre Nombre del guion sin extensión (p. ej. `main`).
  * @return array<int, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_litespeed_rutas_js( string $nombre ): array {
 	$rutas = array();
@@ -782,10 +728,6 @@ function akibara_gp_litespeed_rutas_js( string $nombre ): array {
  *
  * @param mixed $exclusions Existing LiteSpeed exclusions.
  * @return array<int, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_litespeed_main_js_exclusions( $exclusions ): array {
 	$list = is_array( $exclusions )
@@ -859,10 +801,6 @@ add_filter( 'litespeed_optm_gm_js_exc', 'akibara_gp_litespeed_main_js_exclusions
  * @param string $tag    Script tag HTML.
  * @param string $handle Registered script handle.
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_main_script_loader_tag( string $tag, string $handle ): string {
 	// main.js + GSAP/animaciones: opt-out del optimize/delay de LiteSpeed (conservan el

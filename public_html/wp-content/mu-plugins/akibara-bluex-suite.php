@@ -22,11 +22,6 @@ defined( 'ABSPATH' ) || exit;
  * Los ids salen de `includes/shipping/class-wc-bluex-express.php` del plugin.
  *
  * @return array<int, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_metodos_que_cotizan(): array {
 	return array( 'bluex-ex', 'bluex-py', 'bluex-md' );
@@ -38,11 +33,6 @@ function akibara_bluex_metodos_que_cotizan(): array {
  * @param mixed $disponible Lo que WooCommerce ya decidió.
  * @param mixed $package    Paquete del carrito, con `destination`.
  * @return bool
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_disponible_solo_con_comuna( $disponible, $package = array() ): bool {
 	if ( ! $disponible ) {
@@ -63,11 +53,7 @@ function akibara_bluex_disponible_solo_con_comuna( $disponible, $package = array
  *
  * `plugins_loaded` a prioridad 20: Blue Express incluye sus clases en
  * `WC_Correios::init()`, colgado de `plugins_loaded` a prioridad 10.
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_registrar_cotiza_solo_con_comuna(): void {
 	if ( ! class_exists( 'WC_Correios_Webservice' ) ) {
@@ -91,11 +77,6 @@ const AKIBARA_BLUEX_TEXT_DOMAIN = 'woocommerce-correios';
  * Lo que ve el CLIENTE, en español.
  *
  * @return array<string, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_traducciones(): array {
 	return array(
@@ -123,11 +104,6 @@ function akibara_bluex_traducciones(): array {
  * Plurales del bloque de Mi cuenta.
  *
  * @return array<string, array{0:string,1:string}>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_plurales(): array {
 	return array(
@@ -143,11 +119,7 @@ const AKIBARA_BLUEX_SEGUIMIENTO_URL = 'https://www.blue.cl/enviar/seguimiento';
  * @param string $html          Enlace que arma el plugin.
  * @param string $tracking_code Número de seguimiento.
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_enlace_del_correo( $html, $tracking_code ) {
 	$codigo = trim( (string) $tracking_code );
@@ -171,11 +143,6 @@ add_filter( 'woocommerce_correios_email_tracking_core_url', 'akibara_bluex_enlac
  * @param string $texto      Original en inglés.
  * @param string $dominio    Text domain.
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_gettext( $traduccion, $texto, $dominio ) {
 	if ( AKIBARA_BLUEX_TEXT_DOMAIN !== $dominio ) {
@@ -197,11 +164,7 @@ add_filter( 'gettext', 'akibara_bluex_gettext', 10, 3 );
  * @param int    $numero     Cantidad.
  * @param string $dominio    Text domain.
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_ngettext( $traduccion, $singular, $plural, $numero, $dominio ) {
 	unset( $plural );
@@ -227,11 +190,7 @@ add_filter( 'ngettext', 'akibara_bluex_ngettext', 10, 5 );
  * Escanea los PHP de bluex buscando include/require de ficheros ausentes.
  *
  * @return array<int,string>|null Líneas «fichero:carga» rotas (vacío = sano, null = no instalado).
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_broken_includes(): ?array {
 	$base = WP_PLUGIN_DIR . '/bluex-for-woocommerce';
@@ -279,11 +238,6 @@ function akibara_bluex_broken_includes(): ?array {
  *
  * @param string $origen Qué disparó el chequeo.
  * @return void
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_integrity_check( string $origen ): void {
 	$rotos = akibara_bluex_broken_includes();
@@ -337,11 +291,6 @@ add_action(
 
 /**
  * Agenda el barrido semanal de integridad de Blue.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_watch_agendar(): void {
 	$puede_reparar = wp_doing_cron()
@@ -405,11 +354,6 @@ const AKIBARA_BLUEX_LOG_RETENTION_BATCH_SIZE = 1000;
  * Elimina logs de Blue Express fuera de la ventana de retención.
  *
  * @return int Cantidad de filas eliminadas.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_log_retention_cleanup(): int {
 	global $wpdb;
@@ -444,11 +388,6 @@ function akibara_bluex_log_retention_cleanup(): int {
 
 /**
  * Programa la tarea recurrente de Action Scheduler.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_schedule_log_retention(): void {
 	$puede_reparar = wp_doing_cron()
@@ -494,11 +433,6 @@ add_action( 'action_scheduler_init', 'akibara_bluex_schedule_log_retention', 20 
  * @param mixed $order         Instancia de WC_Order.
  * @param mixed $tracking_code Códigos separados por coma.
  * @return bool
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_store_tracking_codes( $order, $tracking_code ): bool {
 	if ( ! $order instanceof WC_Order || ! is_string( $tracking_code ) || '' === trim( $tracking_code ) ) {
@@ -527,11 +461,6 @@ function akibara_bluex_store_tracking_codes( $order, $tracking_code ): bool {
  * @param WC_Order $order         Pedido afectado.
  * @param string   $tracking_code Código recibido.
  * @return void
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_log_discarded_tracking( WC_Order $order, string $tracking_code ): void {
 	if ( ! function_exists( 'wc_get_logger' ) ) {
@@ -554,11 +483,6 @@ function akibara_bluex_log_discarded_tracking( WC_Order $order, string $tracking
  * @param string   $tracking_code Código de seguimiento.
  * @param WC_Order $order         Instancia de WC_Order.
  * @return bool
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_update_rest_tracking_field( $tracking_code, $order ): bool {
 	return akibara_bluex_store_tracking_codes( $order, $tracking_code );
@@ -566,11 +490,6 @@ function akibara_bluex_update_rest_tracking_field( $tracking_code, $order ): boo
 
 /**
  * Reemplaza el callback de terceros en rest_api_init.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_register_rest_tracking_compatibility(): void {
 	global $wp_rest_additional_fields;
@@ -589,11 +508,6 @@ add_action( 'rest_api_init', 'akibara_bluex_register_rest_tracking_compatibility
  * @param WP_REST_Request $request  Petición REST.
  * @param bool            $creating Si el pedido se estaba creando.
  * @return void
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UndefinedFunction
  */
 function akibara_bluex_sync_rest_tracking_code( $order, $request, bool $creating ): void {
 	unset( $creating );

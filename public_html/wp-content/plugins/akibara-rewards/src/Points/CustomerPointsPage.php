@@ -15,7 +15,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * A customer detail, not another customer directory. @api 
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedVariable
  */
 final class CustomerPointsPage {
 

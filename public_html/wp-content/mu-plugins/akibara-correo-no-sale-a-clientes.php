@@ -20,7 +20,6 @@ defined( 'ABSPATH' ) || exit;
  * ningún buzón ahí al que molestar.
  *
  * @return string
- * @psalm-suppress RedundantCast
  */
 function akibara_correo_captura(): string {
 	if ( defined( 'AKIBARA_CORREO_CAPTURA' ) && is_string( AKIBARA_CORREO_CAPTURA ) && '' !== AKIBARA_CORREO_CAPTURA ) {
@@ -41,7 +40,6 @@ function akibara_correo_captura(): string {
  *
  * @param string $direccion Correo del destinatario.
  * @return bool
- * @psalm-suppress RedundantCast
  */
 function akibara_correo_es_de_pruebas( string $direccion ): bool {
 	$dominio = strtolower( substr( strrchr( $direccion, '@' ) ?: '', 1 ) );
@@ -64,7 +62,6 @@ function akibara_correo_es_de_pruebas( string $direccion ): bool {
  *
  * @param string $destinatario Entrada cruda.
  * @return string
- * @psalm-suppress RedundantCast
  */
 function akibara_correo_direccion( string $destinatario ): string {
 	if ( 1 === preg_match( '/<([^>]+)>/', $destinatario, $coincidencia ) ) {
@@ -84,7 +81,6 @@ function akibara_correo_direccion( string $destinatario ): string {
  *
  * @param mixed $cabeceras Cabeceras tal como las entrega `wp_mail`.
  * @return array<int, string>
- * @psalm-suppress RedundantCast
  */
 function akibara_correo_cabeceras_en_lineas( $cabeceras ): array {
 	if ( ! is_array( $cabeceras ) ) {

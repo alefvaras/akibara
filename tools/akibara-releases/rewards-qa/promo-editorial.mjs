@@ -173,7 +173,7 @@ async function limpiar(page) {
     activo: await page.locator('#akibara_taxonomy_discount_enabled').isChecked(),
     pct: await page.locator(`#akibara_taxonomy_discount_pct_${TERM}`).inputValue(),
     desde: await page.locator('#akibara_taxonomy_discount_from').inputValue(),
-    badge: await page.locator('#akb_sale_badge_min_pct').inputValue(),
+    badge: (await page.locator('#akb_sale_badge_min_pct').count()) ? await page.locator('#akb_sale_badge_min_pct').inputValue() : null,
   }));
   await page.goto(process.env.AKB_PROD || `${BASE}/kingdom-35-ivrea-argentina/`, { waitUntil: 'domcontentloaded' });
   log('· precio en la ficha:', (await page.locator('.summary .price').first().innerText()).replace(/\s+/g, ' ').trim());

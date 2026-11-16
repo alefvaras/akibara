@@ -1,0 +1,21 @@
+# Controles de calidad, seguridad, hooks y despliegue: aprobación obligatoria del dueño
+/.github/ @alefvaras
+/.githooks/ @alefvaras
+/tools/ @alefvaras
+/ops/ @alefvaras
+/phpstan* @alefvaras
+/psalm.xml @alefvaras
+/phpcs* @alefvaras
+/.eslintrc.js @alefvaras
+/.eslintignore @alefvaras
+/.stylelintrc.json @alefvaras
+/.sqlfluff @alefvaras
+/.sqlfluffignore @alefvaras
+/.semgrep/ @alefvaras
+/.semgrepignore @alefvaras
+/rector.php @alefvaras
+/knip.json @alefvaras
+/purgecss.config.js @alefvaras
+/package.json @alefvaras
+/.agents/skills/akibara-deploy-auditor/ @alefvaras
+/.agents/agents/it-deploy-auditor.md @alefvaras

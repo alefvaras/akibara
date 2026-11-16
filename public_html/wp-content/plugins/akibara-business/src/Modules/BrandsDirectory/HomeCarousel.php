@@ -39,9 +39,7 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress InvalidCast
  * @psalm-suppress RedundantCast
- * @psalm-suppress UnusedParam
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedParam
  */
 final class HomeCarousel {
 

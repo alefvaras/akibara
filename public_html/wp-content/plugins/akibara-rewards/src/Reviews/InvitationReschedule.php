@@ -19,10 +19,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidArgument
  * @psalm-suppress RedundantCast
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress InvalidArgument
- * @psalm-suppress RedundantCast
  */
 final class InvitationReschedule {
 	public const SLUG = 'akb-review-reschedule';

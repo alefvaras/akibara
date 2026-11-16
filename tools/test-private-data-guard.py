@@ -107,5 +107,24 @@ class PrivateHistoryTest(unittest.TestCase):
         self.assertEqual(1, result.returncode)
         self.assertNotIn(secret, result.stdout + result.stderr)
 
+    def test_staged_mode_blocks_new_private_and_secrets_even_if_head_dirty(self):
+        self.write('ops/backups/legacy.json', 'historical backup in head')
+        self.commit()
+        self.write('src/clean.php', '<?php return 1;')
+        self.git('add', 'src/clean.php')
+        self.assertEqual(0, self.guard('--staged').returncode)
+
+        self.write('.env.production', 'SYNTHETIC=1')
+        self.git('add', '-f', '.env.production')
+        self.assertEqual(1, self.guard('--staged').returncode)
+
+        self.git('reset', '-q', '--', '.env.production')
+        secret = '-----BEGIN ' + 'PRIVATE KEY-----'
+        self.write('src/leak.txt', secret)
+        self.git('add', 'src/leak.txt')
+        res = self.guard('--staged')
+        self.assertEqual(1, res.returncode)
+        self.assertNotIn(secret, res.stdout + res.stderr)
+
 
 if __name__ == '__main__': unittest.main()

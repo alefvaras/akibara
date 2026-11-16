@@ -32,8 +32,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.116.31
  * @api
- * @psalm-suppress UnusedMethod
- * @psalm-suppress UnusedMethod
  */
 final class QueueHealth {
 

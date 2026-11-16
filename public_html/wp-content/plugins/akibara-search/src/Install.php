@@ -110,6 +110,20 @@ final class Install {
 	public const SCHEMA_CHECK_RETRY   = 'retry';
 	public const SCHEMA_CHECK_INVALID = 'invalid';
 
+	/** Modos de validación de índices: estricto para sombras `_new`, tolerante para live/`_old`/`work`. */
+	private const INDEX_MODE_STRICT   = 'strict';
+	private const INDEX_MODE_TOLERANT = 'tolerant';
+
+	/** Prefijo autorizado del optimizador externo de Hostinger (WDBI). */
+	private const EXTERNAL_INDEX_REGEX = '/^wdbi_[a-zA-Z0-9_]+$/D';
+
+	/**
+	 * Telemetría en memoria de índices externos `wdbi_*` tolerados por tabla.
+	 *
+	 * @var array<string, array<string, array{columns: array<int, string>}>>
+	 */
+	private static array $detected_external_indexes = array();
+
 	/** Distingue un set realmente ausente de una lectura metadata fallida. */
 	private static bool $topology_read_failed = false;
 
@@ -575,8 +589,28 @@ final class Install {
 	 *
 	 * @return bool
 	 */
+	/**
+	 * Devuelve los índices externos `wdbi_*` tolerados detectados en la última inspección física.
+	 *
+	 * @return array<string, array<string, array{columns: array<int, string>}>>
+	 */
+	public static function detected_external_indexes(): array {
+		return self::$detected_external_indexes;
+	}
+
+	/**
+	 * Verifica el contrato físico de la tabla work, no sólo su nombre.
+	 *
+	 * dbDelta puede devolver sin lanzar aunque una sentencia haya fallado. Este
+	 * gate consulta la DB real y exige InnoDB, todas las columnas del protocolo,
+	 * AUTO_INCREMENT y las columnas/orden/unicidad exactas de cada índice.
+	 * El set de índices también debe ser exacto, salvo índices secundarios no
+	 * únicos BTREE `wdbi_*` válidos agregados por el optimizador de Hostinger.
+	 *
+	 * @return bool
+	 */
 	public static function work_schema_ready(): bool {
-		return self::table_matches_contract( self::work_table(), self::work_table_contract() );
+		return self::table_matches_contract( self::work_table(), self::work_table_contract(), self::INDEX_MODE_TOLERANT );
 	}
 
 	/**
@@ -587,12 +621,12 @@ final class Install {
 	public static function live_schema_ready(): bool {
 		foreach ( self::swappable_table_contracts() as $logical => $contract ) {
 			$table = self::swappable_table_map()[ $logical ];
-			if ( ! self::table_matches_contract( $table, $contract ) ) {
+			if ( ! self::table_matches_contract( $table, $contract, self::INDEX_MODE_TOLERANT ) ) {
 				return false;
 			}
 		}
 
-		return self::table_matches_contract( self::qlog_table(), self::qlog_table_contract() );
+		return self::table_matches_contract( self::qlog_table(), self::qlog_table_contract(), self::INDEX_MODE_TOLERANT );
 	}
 
 	/**
@@ -1946,6 +1980,9 @@ final class Install {
 		if ( ! self::drop_swappable_set( self::OLD_SUFFIX, $assert_owned ) ) {
 			return false;
 		}
+		foreach ( self::swappable_tables() as $table ) {
+			unset( self::$detected_external_indexes[ $table . self::OLD_SUFFIX ] );
+		}
 
 		return self::TOPOLOGY_CLEAN_PRE === self::classify_topology();
 	}
@@ -2195,15 +2232,16 @@ final class Install {
 	}
 
 	/**
-	 * Verifica un set swappable completo con el mismo contrato físico.
+	 * Verifica un set swappable completo: estricto en `_new`, tolerante a `wdbi_*` en live/`_old`.
 	 *
 	 * @param string $suffix '', SHADOW_SUFFIX u OLD_SUFFIX.
 	 * @return bool
 	 */
 	private static function swappable_schema_ready( string $suffix ): bool {
 		$tables = self::swappable_table_map();
+		$mode   = self::SHADOW_SUFFIX === $suffix ? self::INDEX_MODE_STRICT : self::INDEX_MODE_TOLERANT;
 		foreach ( self::swappable_table_contracts() as $logical => $contract ) {
-			if ( ! self::table_matches_contract( $tables[ $logical ] . $suffix, $contract ) ) {
+			if ( ! self::table_matches_contract( $tables[ $logical ] . $suffix, $contract, $mode ) ) {
 				return false;
 			}
 		}
@@ -2251,9 +2289,10 @@ final class Install {
 	 *
 	 * @param string               $table    Tabla concreta.
 	 * @param array<string, mixed> $contract Contrato esperado.
+	 * @param string               $mode     INDEX_MODE_STRICT o INDEX_MODE_TOLERANT.
 	 * @return bool
 	 */
-	private static function table_matches_contract( string $table, array $contract ): bool {
+	private static function table_matches_contract( string $table, array $contract, string $mode = self::INDEX_MODE_STRICT ): bool {
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) || ! method_exists( $wpdb, 'get_results' ) ) {
@@ -2303,7 +2342,12 @@ final class Install {
 			}
 		}
 
-		return self::table_indexes_match_contract( $table, (array) ( $contract['indexes'] ?? array() ) );
+		return self::table_indexes_match_contract(
+			$table,
+			(array) ( $contract['indexes'] ?? array() ),
+			$expected_columns,
+			$mode
+		);
 	}
 
 	/**
@@ -2330,12 +2374,25 @@ final class Install {
 	/**
 	 * Verifica que todos los índices de la tabla coincidan con el contrato esperado.
 	 *
+	 * En modo tolerante admite exclusivamente índices secundarios no únicos BTREE
+	 * con prefijo `wdbi_` sobre columnas canónicas del contrato, preservando intactos
+	 * todos los índices requeridos y su clave primaria.
+	 *
 	 * @param string               $table            Tabla concreta.
 	 * @param array<string, mixed> $expected_indexes Índices esperados.
+	 * @param array<string, mixed> $expected_columns Columnas canónicas indexadas por nombre.
+	 * @param string               $mode             INDEX_MODE_STRICT o INDEX_MODE_TOLERANT.
 	 * @return bool
 	 */
-	private static function table_indexes_match_contract( string $table, array $expected_indexes ): bool {
+	private static function table_indexes_match_contract(
+		string $table,
+		array $expected_indexes,
+		array $expected_columns = array(),
+		string $mode = self::INDEX_MODE_STRICT
+	): bool {
 		global $wpdb;
+
+		unset( self::$detected_external_indexes[ $table ] );
 
 		$wpdb->last_error = '';
 		$index_rows       = $wpdb->get_results(
@@ -2354,11 +2411,47 @@ final class Install {
 			return false;
 		}
 
+		$actual_indexes = self::collect_actual_indexes( $index_rows );
+		if ( null === $actual_indexes ) {
+			return false;
+		}
+
+		$canonical_actual = array_intersect_key( $actual_indexes, $expected_indexes );
+		ksort( $canonical_actual );
+		ksort( $expected_indexes );
+		if ( $expected_indexes !== $canonical_actual ) {
+			return false;
+		}
+
+		$extra_indexes = array_diff_key( $actual_indexes, $expected_indexes );
+		if ( array() === $extra_indexes ) {
+			return true;
+		}
+		if ( self::INDEX_MODE_STRICT === $mode ) {
+			return false;
+		}
+
+		$tolerated = self::collect_tolerated_external_indexes( $extra_indexes, $expected_columns );
+		if ( null === $tolerated ) {
+			return false;
+		}
+
+		self::$detected_external_indexes[ $table ] = $tolerated;
+		return true;
+	}
+
+	/**
+	 * Normaliza filas de `information_schema.STATISTICS`; falla cerrado ante tipos no BTREE.
+	 *
+	 * @param array<int, object|array<string, mixed>> $index_rows Filas leídas.
+	 * @return array<string, array{unique: bool, columns: list<array{0: string, 1: int|null}>}>|null
+	 */
+	private static function collect_actual_indexes( array $index_rows ): ?array {
 		$actual_indexes = array();
 		foreach ( $index_rows as $row ) {
 			$name = (string) self::metadata_value( $row, 'index_name' );
 			if ( '' === $name || 'BTREE' !== strtoupper( (string) self::metadata_value( $row, 'index_type' ) ) ) {
-				return false;
+				return null;
 			}
 			if ( ! isset( $actual_indexes[ $name ] ) ) {
 				$actual_indexes[ $name ] = array(
@@ -2377,10 +2470,38 @@ final class Install {
 		}
 		unset( $index );
 
-		ksort( $actual_indexes );
-		ksort( $expected_indexes );
+		return $actual_indexes;
+	}
 
-		return $expected_indexes === $actual_indexes;
+	/**
+	 * Valida índices extra exclusivamente como secundarios BTREE `wdbi_*` sobre columnas canónicas.
+	 *
+	 * @param array<string, array{unique: bool, columns: list<array{0: string, 1: int|null}>}> $extra_indexes    Índices extra.
+	 * @param array<string, mixed>                                                            $expected_columns Columnas canónicas.
+	 * @return array<string, array{columns: list<string>}>|null
+	 */
+	private static function collect_tolerated_external_indexes( array $extra_indexes, array $expected_columns ): ?array {
+		$tolerated = array();
+		foreach ( $extra_indexes as $extra_name => $extra_spec ) {
+			$index_name = (string) $extra_name;
+			if ( 1 !== preg_match( self::EXTERNAL_INDEX_REGEX, $index_name ) || (bool) $extra_spec['unique'] ) {
+				return null;
+			}
+			$column_names = array();
+			foreach ( $extra_spec['columns'] as $column_pair ) {
+				$column_name = (string) ( $column_pair[0] ?? '' );
+				if ( '' === $column_name || ( array() !== $expected_columns && ! array_key_exists( $column_name, $expected_columns ) ) ) {
+					return null;
+				}
+				$column_names[] = $column_name;
+			}
+			if ( array() === $column_names ) {
+				return null;
+			}
+			$tolerated[ $index_name ] = array( 'columns' => $column_names );
+		}
+
+		return $tolerated;
 	}
 
 	/**
@@ -2681,6 +2802,9 @@ final class Install {
 				$raw_tables
 			)
 		);
+		foreach ( $raw_tables as $raw_table ) {
+			unset( self::$detected_external_indexes[ $raw_table ] );
+		}
 
 		return self::ddl_fence_owned( $assert_owned ) && false !== $result;
 	}
@@ -2756,6 +2880,9 @@ final class Install {
 				$raw_tables
 			)
 		);
+		foreach ( $raw_tables as $raw_table ) {
+			unset( self::$detected_external_indexes[ $raw_table ] );
+		}
 
 		return self::ddl_fence_owned( $assert_owned ) && false !== $result;
 	}

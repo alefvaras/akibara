@@ -20,7 +20,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.60.0
  * @api
- * @psalm-suppress HookNotFound
  */
 final class Arrival {
 

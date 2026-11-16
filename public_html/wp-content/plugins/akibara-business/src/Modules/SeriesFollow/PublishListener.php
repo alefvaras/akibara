@@ -43,7 +43,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 1.110.2
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  */
 final class PublishListener {
 

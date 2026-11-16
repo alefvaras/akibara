@@ -46,8 +46,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress InvalidReturnType
  * @psalm-suppress RedundantCast
  * @psalm-suppress RedundantCondition
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 // @phpstan-ignore complexity.classLike
 final class Redemption {

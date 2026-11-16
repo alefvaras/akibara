@@ -27,7 +27,6 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress InvalidArgument
- * @psalm-suppress UndefinedFunction
  * @psalm-suppress UnusedVariable
  */
 final class Expiry {

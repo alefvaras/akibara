@@ -40,8 +40,6 @@ use Akibara\Business\Modules\SeriesFacts\PublicationStatus;
  * @psalm-suppress InvalidReturnType
  * @psalm-suppress RedundantCast
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 // @phpstan-ignore complexity.classLike
 final class PdpSeriesEnhancer {

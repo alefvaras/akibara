@@ -22,12 +22,12 @@ Specialized quality assurance and adversarial verification protocol for the Akib
 ### 2. Catalog Invariants Audit Checklist
 - [ ] **No Norma Editorial:** Exclusively Ivrea, Panini, Milky Way, Planeta Cómic, Arechi, Distrito Manga.
 - [ ] **Zero External Editorial Links:** All series/brand links must be canonical internal `/serie/<slug>/` and `/marca/<slug>/`.
-- [ ] **Commercial Identifiers:** GTIN/barcode matches SKU if no specific EAN provided.
+- [ ] **Commercial Identifiers:** `_global_unique_id` stores a unique, Mod-10 valid 13-digit GTIN (`ISBN-13` or `EAN-13`) on individual published editions, never duplicated across products and never containing `-1` suffixes (`_sku` holds internal/ERP or custom bundle codes with empty `_global_unique_id` when no manufacturer barcode exists).
 - [ ] **Cover Images:** High-resolution original source, AVIF/WebP, responsive `sizes="auto, (max-width: 350px) 100vw, 350px"`, descriptive alt text.
 - [ ] **Structured Specs Grid:** Formatted within `.akb-pdp-specs-grid`.
 - [ ] **Price Strikethrough:** Strikethrough using pseudo-element `del::after { top: 50%; height: 1.5px; }`.
 - [ ] **Upsells & Recommendations:** Upsells chained (`wp akibara:upsells-fill`), "También te recomendamos" and "Productos relacionados" active.
-- [ ] **Pre-order Discount (5%):** `onbackorder` products have `_sale_price = round(_regular_price * 0.95)` with preorder notice.
+- [ ] **Native WooCommerce Stock & Pricing (Rule 8):** Stock status and `_sale_price` are governed natively by WooCommerce without forced automated 5% discounts or code overrides.
 - [ ] **Product Attributes Hygiene:** `product_brand` is NOT in `_product_attributes`. Only `pa_pais`, `pa_autor`, `pa_genero`, `pa_serie`.
 - [ ] **Mandatory Genres:** `pa_genero` taxonomy assigned and in attributes.
 - [ ] **Categories & Demography:** `product_cat` has both main category (Manga/Comics) and demography (Shonen/Seinen/Shojo/etc.).
@@ -42,7 +42,7 @@ Specialized quality assurance and adversarial verification protocol for the Akib
   - Format equivalence (e.g., "Tomo doble 2 en 1", B6, color pages).
   - Next announced volume and launch window.
   - Separate Author (story/novel) and Artist (drawing).
-  - Structured bullet-point specs in `pa_serie` description.
+  - Canonical `wp_termmeta` keys (`_akb_serie_estado`, `_akb_serie_tomos_obra`, `_akb_serie_estado_edicion`, `_akb_serie_tomos_edicion`) rendered dynamically by `SeriesFacts`, with ZERO static bullet-point counts inside `pa_serie` description (Rule 17.8).
 - [ ] **Zero Residual Files:** No `.bak`, temporary scripts, or deployment artifacts left in production.
 
 ## Audit Output Format

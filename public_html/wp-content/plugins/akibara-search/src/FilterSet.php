@@ -19,7 +19,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.55.0
  * @api
- * @psalm-suppress RedundantCast
  */
 final class FilterSet {
 

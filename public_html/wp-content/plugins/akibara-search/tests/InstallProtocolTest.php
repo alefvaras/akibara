@@ -1071,6 +1071,190 @@ final class InstallProtocolTest extends TestCase {
 		self::assertFalse( (bool) $this->invoke_install_static( 'migrate_tokens_post_index', $tokens ) );
 	}
 
+	/**
+	 * @testdox Tablas live y work toleran índices secundarios Hostinger wdbi_* BTREE no únicos y exponen telemetría.
+	 */
+	public function test_live_schema_tolerates_safe_hostinger_wdbi_indexes(): void {
+		$this->mark_runtime_ready();
+
+		$wdbi_facet = array(
+			$this->extra_index_row( 'wdbi_facet_value_label_aa1bdb538f1e', 1, 1, 'facet' ),
+			$this->extra_index_row( 'wdbi_facet_value_label_aa1bdb538f1e', 1, 2, 'value' ),
+			$this->extra_index_row( 'wdbi_facet_value_label_aa1bdb538f1e', 1, 3, 'label' ),
+		);
+		$wdbi_work  = array(
+			$this->extra_index_row( 'wdbi_work_run_status_0123456789ab', 1, 1, 'run_id' ),
+			$this->extra_index_row( 'wdbi_work_run_status_0123456789ab', 1, 2, 'status' ),
+		);
+
+		$meta            = $this->live_writer_metadata( $wdbi_facet, $wdbi_work );
+		$GLOBALS['wpdb'] = new InstallProtocolWpdb( array(), 0, $meta['vars'], $meta['rows'] );
+
+		self::assertTrue( Install::live_writer_schema_ready() );
+
+		$detected = Install::detected_external_indexes();
+		self::assertArrayHasKey( Install::facets_table(), $detected );
+		self::assertSame(
+			array( 'columns' => array( 'facet', 'value', 'label' ) ),
+			$detected[ Install::facets_table() ]['wdbi_facet_value_label_aa1bdb538f1e']
+		);
+		self::assertSame(
+			array( 'columns' => array( 'run_id', 'status' ) ),
+			$detected[ Install::work_table() ]['wdbi_work_run_status_0123456789ab']
+		);
+
+		$meta_inspect    = $this->live_writer_metadata( $wdbi_facet );
+		$GLOBALS['wpdb'] = new InstallProtocolWpdb( array(), 0, $meta_inspect['vars'], $meta_inspect['rows'] );
+		self::assertSame( Install::SCHEMA_CHECK_READY, Install::inspect_live_writer_schema() );
+	}
+
+	/**
+	 * @testdox Tablas sombra _new mantienen contrato estricto y rechazan incluso índices wdbi_* seguros.
+	 */
+	public function test_shadow_schema_rejects_external_indexes_on_new_family(): void {
+		$this->mark_runtime_ready();
+
+		$live_and_work = $this->live_writer_metadata();
+		$shadow        = $this->schema_metadata( array( Install::SHADOW_SUFFIX ) );
+		// Índice 5 dentro de $shadow['rows'] corresponde a estadísticas de wp_akb_search_facet_index_new.
+		$shadow['rows'][5][] = $this->extra_index_row( 'wdbi_facet_value_label_aa1bdb538f1e', 1, 1, 'facet' );
+
+		$GLOBALS['wpdb'] = new InstallProtocolWpdb(
+			array(),
+			0,
+			array_merge( $live_and_work['vars'], $shadow['vars'] ),
+			array_merge( $live_and_work['rows'], $shadow['rows'] )
+		);
+
+		self::assertSame( Install::SCHEMA_CHECK_INVALID, Install::inspect_ready_swap_schema() );
+	}
+
+	/**
+	 * @testdox Controles negativos: wdbi UNIQUE, columna inexistente, prefijo desconocido, FULLTEXT o falta canónica invalidan.
+	 */
+	public function test_live_schema_rejects_unsafe_or_malformed_external_indexes(): void {
+		$cases = array(
+			'unique_wdbi'     => array( $this->extra_index_row( 'wdbi_unique_leak', 0, 1, 'facet' ) ),
+			'unknown_column'  => array( $this->extra_index_row( 'wdbi_ghost_col', 1, 1, 'columna_inventada' ) ),
+			'rogue_prefix'    => array( $this->extra_index_row( 'custom_idx_rogue', 1, 1, 'facet' ) ),
+			'fulltext_wdbi'   => array( $this->extra_index_row( 'wdbi_ft_label', 1, 1, 'label', 'FULLTEXT' ) ),
+		);
+
+		foreach ( $cases as $label => $extra_rows ) {
+			$this->mark_runtime_ready();
+			$meta            = $this->live_writer_metadata( $extra_rows );
+			$GLOBALS['wpdb'] = new InstallProtocolWpdb( array(), 0, $meta['vars'], $meta['rows'] );
+			self::assertFalse( Install::live_writer_schema_ready(), "Caso negativo debe fallar: {$label}" );
+		}
+
+		// Control negativo adicional: si falta un índice canónico aunque haya wdbi_* válido, falla.
+		$this->mark_runtime_ready();
+		$meta                = $this->live_writer_metadata();
+		$meta['rows'][5]     = array_values(
+			array_filter(
+				$meta['rows'][5],
+				static fn( object $row ): bool => 'idx_facet_value' !== $row->index_name
+			)
+		);
+		$meta['rows'][5][]   = $this->extra_index_row( 'wdbi_facet_value_label_aa1bdb538f1e', 1, 1, 'facet' );
+		$GLOBALS['wpdb']     = new InstallProtocolWpdb( array(), 0, $meta['vars'], $meta['rows'] );
+		self::assertFalse( Install::live_writer_schema_ready() );
+	}
+
+	/**
+	 * @testdox El swap atómico y cleanup_old funcionan cuando live (luego _old) hereda wdbi_* y _new está limpia.
+	 */
+	public function test_atomic_swap_and_cleanup_succeed_when_old_has_wdbi_index(): void {
+		$this->mark_runtime_ready();
+		$live = $this->tables();
+		$new  = $this->tables( Install::SHADOW_SUFFIX );
+		$old  = $this->tables( Install::OLD_SUFFIX );
+
+		$wdbi_row = $this->extra_index_row( 'wdbi_facet_value_label_aa1bdb538f1e', 1, 1, 'facet' );
+
+		// 1) Pre-rename: live (con wdbi_*) y _new (limpia).
+		$pre_live = $this->schema_metadata( array( '' ) );
+		$pre_live['rows'][5][] = $wdbi_row;
+		$pre_new  = $this->schema_metadata( array( Install::SHADOW_SUFFIX ) );
+
+		// 2) Post-rename: live (ex _new, limpia) y _old (ex live, con wdbi_*).
+		$post_live = $this->schema_metadata( array( '' ) );
+		$post_old  = $this->schema_metadata( array( Install::OLD_SUFFIX ) );
+		$post_old['rows'][5][] = $wdbi_row;
+
+		// 3) Cleanup_old: verifica live limpia y _old con wdbi_*.
+		$clean_live = $this->schema_metadata( array( '' ) );
+		$clean_old  = $this->schema_metadata( array( Install::OLD_SUFFIX ) );
+		$clean_old['rows'][5][] = $wdbi_row;
+
+		$wpdb = new InstallProtocolWpdb(
+			array(
+				array_merge( $live, $new ),
+				array_merge( $live, $old ),
+				array_merge( $live, $old ),
+				$live,
+			),
+			0,
+			array_merge( $pre_live['vars'], $pre_new['vars'], $post_live['vars'], $post_old['vars'], $clean_live['vars'], $clean_old['vars'] ),
+			array_merge( $pre_live['rows'], $pre_new['rows'], $post_live['rows'], $post_old['rows'], $clean_live['rows'], $clean_old['rows'] )
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+
+		self::assertSame(
+			Install::RENAME_RESULT_SWAPPED,
+			Install::rename_keep_old_result( null, static function (): void {} )
+		);
+		self::assertTrue( Install::cleanup_old( static function (): void {} ) );
+		self::assertSame( array(), Install::detected_external_indexes() );
+	}
+
+	/**
+	 * @param string $name       Nombre del índice.
+	 * @param int    $non_unique 1 = no único, 0 = UNIQUE.
+	 * @param int    $seq        Posición 1-based en el índice.
+	 * @param string $column     Columna indexada.
+	 * @param string $type       Tipo BTREE/FULLTEXT/HASH.
+	 * @return object
+	 */
+	private function extra_index_row(
+		string $name,
+		int $non_unique,
+		int $seq,
+		string $column,
+		string $type = 'BTREE'
+	): object {
+		return (object) array(
+			'index_name'   => $name,
+			'non_unique'   => $non_unique,
+			'seq_in_index' => $seq,
+			'column_name'  => $column,
+			'sub_part'     => null,
+			'index_type'   => $type,
+		);
+	}
+
+	/**
+	 * @param array<int, object> $extra_facet_rows Filas extra para wp_akb_search_facet_index.
+	 * @param array<int, object> $extra_work_rows  Filas extra para wp_akb_search_work.
+	 * @return array{vars: array<int, string>, rows: array<int, array<int, object>>}
+	 */
+	private function live_writer_metadata( array $extra_facet_rows = array(), array $extra_work_rows = array() ): array {
+		$live = $this->schema_metadata( array( '' ) );
+		foreach ( $extra_facet_rows as $row ) {
+			$live['rows'][5][] = $row;
+		}
+		$work_indexes = $this->index_rows();
+		foreach ( $extra_work_rows as $row ) {
+			$work_indexes[] = $row;
+		}
+
+		$live['vars'][] = 'InnoDB';
+		$live['rows'][] = $this->column_rows( 'work' );
+		$live['rows'][] = $work_indexes;
+
+		return $live;
+	}
+
 	/** @return mixed */
 	private function invoke_install_static( string $method, ...$args ) {
 		$reflection = new \ReflectionMethod( Install::class, $method );

@@ -41,8 +41,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @api
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class MailFrom {
 

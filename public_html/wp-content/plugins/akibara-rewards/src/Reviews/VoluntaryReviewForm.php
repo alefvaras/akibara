@@ -18,15 +18,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
  * @psalm-suppress MissingFile
- * @psalm-suppress PossiblyUnusedMethod
- * @psalm-suppress PossiblyUnusedReturnValue
- * @psalm-suppress RedundantCast
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress MissingFile
- * @psalm-suppress PossiblyUnusedMethod
- * @psalm-suppress PossiblyUnusedReturnValue
  * @psalm-suppress RedundantCast
  * @psalm-suppress TypeDoesNotContainType
  */

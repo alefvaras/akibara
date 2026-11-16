@@ -44,8 +44,6 @@ defined( 'ABSPATH' ) || exit;
  * que llega a `get_option()` está dentro de un `if` sobre el ámbito, así que a
  * un secreto de servidor no hay camino desde la base de datos.
  * @api
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress RedundantCast
  * @psalm-suppress RedundantFunctionCall
  */
 final class Registry {
@@ -375,9 +373,7 @@ final class Registry {
  * a mano: ese patrón es el que dejó a la tienda sin inventario y sin nadie que
  * supiera qué claves existían.
  * @api
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantFunctionCall
  */
 final class Access {
 
@@ -695,7 +691,6 @@ final class Access {
  * @api
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantFunctionCall
  */
 final class Screen {
 
@@ -863,9 +858,7 @@ final class Screen {
 /**
  * Comandos WP-CLI: el inventario y el gate del despliegue.
  * @api
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress RedundantCast
- * @psalm-suppress RedundantFunctionCall
  */
 final class Cli {
 

@@ -33,7 +33,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.55.0
  * @api
- * @psalm-suppress UndefinedFunction
  * @psalm-suppress UnusedVariable
  */
 // @phpstan-ignore complexity.classLike
@@ -227,9 +226,8 @@ final class Reconciler {
 			$summary['repair_queued'] = count( $repair_ids );
 		}
 
-		// 4. Backfill de llegadas: marca preventas que existían antes del
-		// módulo Arrival (caso masivo: el cutover). Capado; converge en pocas
-		// corridas y después es un SELECT vacío.
+		// 4. Llegadas en modelo binario: valida que `Arrival::seed_pending()` sea
+		// no-op (0) sin backfillear fechas históricas sintéticas.
 		try {
 			$this->clear_db_error();
 			$summary['arrival_seeded'] = Arrival::seed_pending();

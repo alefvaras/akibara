@@ -11,34 +11,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SEAL_SCRIPT = ROOT / "tools" / "verify-devsecops-seal.py"
-SEALED_FILES = (
-    "phpstan.neon.dist",
-    "phpstan-bootstrap.php",
-    "phpstan-dba-bootstrap.php",
-    "psalm.xml",
-    "phpcs.xml.dist",
-    "tools/akibara-business/phpcs.xml.dist",
-    ".eslintrc.js",
-    ".eslintignore",
-    ".stylelintrc.json",
-    ".sqlfluff",
-    ".sqlfluffignore",
-    ".semgrep/wordpress-security.yml",
-    ".semgrepignore",
-    "rector.php",
-    "knip.json",
-    "purgecss.config.js",
-    "package.json",
-    "tools/guardrail-ci.sh",
-    "tools/guardrail-ast-hygiene.php",
-    "ops/akibara-deploy-runtime.sh",
-    "ops/db-cleanup-brevo-welcome-coupon.sql",
-    "tools/akibara-releases/package-runtime.sh",
-    "tools/akibara-releases/verify-runtime-package.py",
-    "tools/qa-playwright-full-suite.mjs",
-    ".githooks/pre-commit",
-    ".githooks/pre-push",
-)
+import ast
+_seal_tree = ast.parse((ROOT / "tools" / "verify-devsecops-seal.py").read_text(encoding="utf-8"))
+SEALED_FILES = tuple(
+    ast.literal_eval(node.value)
+    for node in _seal_tree.body
+    if isinstance(node, ast.Assign)
+    and any(isinstance(t, ast.Name) and t.id == "SEALED_HASHES" for t in node.targets)
+)[0].keys()
 
 
 class DevSecOpsSealTests(unittest.TestCase):

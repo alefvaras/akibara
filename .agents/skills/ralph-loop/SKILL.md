@@ -23,10 +23,11 @@ Para cada ticket del backlog, la célula ejecuta estrictamente:
 - Modificación limpia de código en el entorno Docker local.
 - Respeto de convenciones de arquitectura y cero código muerto o temporal.
 
-### 🧪 Iteración 2: Verificación Rigurosa y Adversarial
-- Ejecución de suites de prueba (`wp akb-pricing self-test`, guardrails, curl o Playwright).
-- Medición de paridad y control negativo.
-- Despliegue a Producción si corresponde (`rsync`/`ssh`), purga de cachés (Cloudflare + LiteSpeed) y re-medición en caliente en producción hasta obtener verde.
+### 🧪 Iteración 2: Verificación Rigurosa, Auditoría Fresca y Promoción
+- Ejecución de suites de prueba (`npm run test`, `wp akb-pricing self-test`, guardrails y Playwright local).
+- Medición de paridad y control negativo en el espejo Docker local.
+- Auditoría obligatoria en memoria fresca (`python3 tools/akibara-predeploy-audit-loop.py --component <comp> --verify-cmd "bash tools/guardrail-ci.sh"`): si el auditor independiente rechaza, se devuelve a Iteración 1 para corregir e iterar hasta lograr `APROBADO`.
+- Promoción controlada a Producción por el riel sellado (`ops/akibara-deploy-runtime.sh`), purga de cachés (Cloudflare + LiteSpeed) y re-medición en caliente con Playwright en `https://akibara.cl` hasta obtener verde.
 
 ### 📦 Iteración 3: Sellado, Commit y Grafo
 - Git commit atómico con mensaje semántico y referencia al ticket.

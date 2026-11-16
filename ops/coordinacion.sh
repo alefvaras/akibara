@@ -72,8 +72,11 @@ chequear() { # chequear <ruta...>
 		[[ -n "${archivos}" ]] || continue
 		de="$(campo "$f" de)"
 		para="$(campo "$f" para)"
+		local -a items=()
+		IFS=$' \t' read -r -a items <<< "${archivos}"
 		for ruta in "$@"; do
-			for archivo in ${archivos}; do
+			for archivo in "${items[@]}"; do
+				[[ -n "${archivo}" ]] || continue
 				if [[ "${ruta}" == *"${archivo}"* || "${archivo}" == *"${ruta}"* ]]; then
 					printf 'RECLAMADO  %s\n  asunto: %s\n  de: %s   para: %s\n  lee:  bash ops/coordinacion.sh ver %s\n\n' \
 						"${ruta}" "$(basename "$f" .md)" "${de}" "${para}" "$(basename "$f" .md)"

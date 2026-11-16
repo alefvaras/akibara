@@ -33,7 +33,6 @@ const AKIBARA_FATAL_LOG_KEEP = 2;
  * Ruta del log de depuración según la configuración vigente.
  *
  * @return string Ruta absoluta, o '' si el log no es un archivo.
- * @psalm-suppress HookInvalidArgs
  */
 function akibara_debug_log_path(): string {
 	if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && '' !== WP_DEBUG_LOG ) { // @phpstan-ignore notIdentical.alwaysTrue
@@ -52,7 +51,6 @@ function akibara_debug_log_path(): string {
  * @param int    $tope         Bytes a partir de los cuales se rota.
  * @param int    $generaciones Cuántas copias `.1`, `.2`… se conservan.
  * @return void
- * @psalm-suppress HookInvalidArgs
  */
 function akibara_log_maybe_rotate( string $log, int $tope, int $generaciones ): void {
 	if ( '' === $log || ! is_file( $log ) ) {
@@ -87,7 +85,6 @@ function akibara_log_maybe_rotate( string $log, int $tope, int $generaciones ): 
  * produjo el archivo gigante.
  *
  * @return void
- * @psalm-suppress HookInvalidArgs
  */
 function akibara_debug_log_maybe_rotate(): void {
 	if ( 'local' !== wp_get_environment_type() ) {
@@ -122,7 +119,6 @@ add_action( 'shutdown', 'akibara_debug_log_maybe_rotate', 9999 );
  * garantizado para mirar su tamaño es justo antes de escribir.
  *
  * @return void
- * @psalm-suppress HookInvalidArgs
  */
 function akibara_capture_fatal_to_own_channel(): void {
 	if ( 'local' !== wp_get_environment_type() ) {

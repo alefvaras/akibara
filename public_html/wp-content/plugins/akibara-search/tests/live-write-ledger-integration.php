@@ -1551,43 +1551,37 @@ try {
 			);
 		}
 
-		// Arrival puede traer backfill pendiente desde la copia fuente. Se hace
-		// converger primero por su API real y el hash se toma después; la corrida
-		// bajo prueba debe ser una auditoría limpia, no una migración encubierta.
-		$arrival_preflight_last = -1;
-		for ( $arrival_pass = 0; $arrival_pass < 4; ++$arrival_pass ) {
-			$arrival_preflight_last = Arrival::seed_pending();
-			if ( 0 === $arrival_preflight_last ) {
-				break;
-			}
-		}
-		$must( 0 === $arrival_preflight_last, 'Arrival no convergió antes del Reconciler.' );
-		$wpdb->last_error = '';
-		$arrival_pending = $wpdb->get_var(
+		// En el modelo binario estricto (`instock`/`outofstock`) no existen preventas
+		// pendientes y tampoco se inventan fechas históricas de llegada: `seed_pending()`
+		// debe mantenerse en 0 sin escribir meta nueva antes de medir al Reconciler.
+		$wpdb->last_error   = '';
+		$arrival_count_prev = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->posts} p
-				 WHERE p.post_type = %s AND p.post_status = %s
-				   AND EXISTS (
-					SELECT 1 FROM {$wpdb->postmeta} stock
-					 WHERE stock.post_id = p.ID AND stock.meta_key = %s AND stock.meta_value = %s
-				   )
-				   AND NOT EXISTS (
-					SELECT 1 FROM {$wpdb->postmeta} arrival
-					 WHERE arrival.post_id = p.ID AND arrival.meta_key = %s
-				   )",
-				'product',
-				'publish',
-				'_stock_status',
-				'instock',
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s",
 				Arrival::META_FIRST_INSTOCK_AT
 			)
 		);
 		$must(
-			null !== $arrival_pending
-			&& is_numeric( $arrival_pending )
-			&& 0 === (int) $arrival_pending
+			null !== $arrival_count_prev
+			&& is_numeric( $arrival_count_prev )
 			&& '' === trim( (string) $wpdb->last_error ),
-			'La fuente cruda todavía muestra backfill Arrival pendiente.'
+			'No se pudo leer el conteo inicial de Arrival.'
+		);
+		$arrival_preflight_last = Arrival::seed_pending();
+		$must( 0 === $arrival_preflight_last, 'Arrival::seed_pending() debe devolver 0 en modelo binario.' );
+		$wpdb->last_error   = '';
+		$arrival_count_post = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s",
+				Arrival::META_FIRST_INSTOCK_AT
+			)
+		);
+		$must(
+			null !== $arrival_count_post
+			&& is_numeric( $arrival_count_post )
+			&& (int) $arrival_count_post === (int) $arrival_count_prev
+			&& '' === trim( (string) $wpdb->last_error ),
+			'Arrival::seed_pending() mutó metadatos históricos en modelo binario.'
 		);
 		// La publicación editorial deja su propia solicitud de rebuild cuando el
 		// reproof físico no casa, y NADIE la retira si la situación se arregla

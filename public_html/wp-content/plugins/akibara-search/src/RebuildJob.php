@@ -33,9 +33,7 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress InvalidOperand
  * @psalm-suppress RedundantCondition
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UnusedReturnValue
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedReturnValue
  */
 // @phpstan-ignore complexity.classLike
 final class RebuildJob {

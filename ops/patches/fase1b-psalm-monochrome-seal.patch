@@ -1,0 +1,79 @@
+diff --git a/tools/guardrail-suppressions.php b/tools/guardrail-suppressions.php
+index 7f06169..68257f2 100644
+--- a/tools/guardrail-suppressions.php
++++ b/tools/guardrail-suppressions.php
+@@ -609,7 +609,7 @@ final class GuardrailSuppressions {
+ 		}
+ 
+ 		$cmd = sprintf(
+-			'cd %s && %s --threads=1 --find-unused-psalm-suppress --no-progress --output-format=compact 2>&1',
++			'cd %s && NO_COLOR=1 %s -m --threads=1 --find-unused-psalm-suppress --no-progress --output-format=compact 2>&1',
+ 			escapeshellarg( $root ),
+ 			escapeshellarg( $psalm_bin )
+ 		);
+@@ -619,7 +619,8 @@ final class GuardrailSuppressions {
+ 
+ 		$unused = array();
+ 		foreach ( $output_lines as $line ) {
+-			if ( preg_match( '/^ERROR\s+(.+?):(\d+):(\d+)\s+UnusedPsalmSuppress:/', $line, $m ) ) {
++			$clean_line = preg_replace( '/\x1b\[[0-9;]*[A-Za-z]/', '', $line ) ?? $line;
++			if ( preg_match( '/^ERROR\s+(.+?):(\d+):(\d+)\s+UnusedPsalmSuppress:/', $clean_line, $m ) ) {
+ 				$file = str_replace( '\\', '/', trim( $m[1] ) );
+ 				$file = preg_replace( '#^' . preg_quote( str_replace( '\\', '/', $root ) . '/', '#' ) . '#', '', $file ) ?? $file;
+ 				$unused[] = array(
+diff --git a/tools/test-guardrail-suppressions.php b/tools/test-guardrail-suppressions.php
+index b464a90..595260b 100644
+--- a/tools/test-guardrail-suppressions.php
++++ b/tools/test-guardrail-suppressions.php
+@@ -178,7 +178,11 @@ final class GuardrailSuppressionsTestRunner {
+ 		$mock_psalm = $repo . '/mock-psalm.php';
+ 		$this->write_file(
+ 			$mock_psalm,
+-			"#!/usr/bin/env php\n<?php\necho \"ERROR public_html/wp-content/mu-plugins/sample.php:10:4 UnusedPsalmSuppress: This suppression is never used\\n\";\nexit(2);\n"
++			"#!/usr/bin/env php\n<?php\n"
++			. '$mono = in_array( "-m", $argv, true ) || false !== getenv( "NO_COLOR" );' . "\n"
++			. '$sev = $mono ? "ERROR" : "\\e[0;31mERROR\\e[0m";' . "\n"
++			. 'echo "{$sev} public_html/wp-content/mu-plugins/sample.php:10:4 UnusedPsalmSuppress: This suppression is never used\n";' . "\n"
++			. "exit(2);\n"
+ 		);
+ 		chmod( $mock_psalm, 0755 );
+ 
+diff --git a/tools/test-woocommerce-hook-metadata.mjs b/tools/test-woocommerce-hook-metadata.mjs
+index 569d5c0..8aa01cc 100644
+--- a/tools/test-woocommerce-hook-metadata.mjs
++++ b/tools/test-woocommerce-hook-metadata.mjs
+@@ -127,8 +127,8 @@ add_action('woocommerce_product_set_stok', static function (WC_Product $product)
+ 				.replace(/((?:name|autoloader)=")([^"]+)(")/g, (all, before, value, after) => before + (path.isAbsolute(value) ? value : path.join(root, value)) + after)
+ 				.replace('vendor/vimeo/psalm/config.xsd', path.join(root, 'vendor/vimeo/psalm/config.xsd'));
+ 			writeFileSync(config, probeConfig);
+-			const result = spawnSync(path.join(root, 'vendor/bin/psalm'), ['--config=' + config, '--threads=1', '--no-progress', '--taint-analysis'], {
+-				cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024
++			const result = spawnSync(path.join(root, 'vendor/bin/psalm'), ['--config=' + config, '-m', '--threads=1', '--no-progress', '--taint-analysis'], {
++				cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' }
+ 			});
+ 			assert.equal(result.error, undefined, result.error?.message);
+ 			const output = result.stdout + result.stderr;
+diff --git a/tools/verify-devsecops-seal.py b/tools/verify-devsecops-seal.py
+index 10dac6c..10898ca 100644
+--- a/tools/verify-devsecops-seal.py
++++ b/tools/verify-devsecops-seal.py
+@@ -39,8 +39,8 @@ SEALED_HASHES = {
+     "tools/qa-playwright-full-suite.mjs": "36b6c7d9300377558c67e5002254c5a47dd2a9520bb8de6438485ba8b393cb57",
+     ".githooks/pre-commit": "b1b06dd959b1c37f19db8fc1204b17868ffc218a3604e82e0a896a26a0033bef",
+     ".githooks/pre-push": "a1426af3d1760a3c9ee0d43ee2e75cd3260c35a7deac73dbbb91951010f8af8d",
+-    "tools/guardrail-suppressions.php": "b4caa0dbf98bb8c756f60fb5bc51a3314b8816d3364a54f812b9168d80b9601e",
+-    "tools/test-guardrail-suppressions.php": "6e0db92b2fad6faec4f3b1324c7390540d738cb2c39f0a577951237d194e573b",
++    "tools/guardrail-suppressions.php": "7b30ec5d3813135b2bbc28d29b1e026c10ba8686fe9b3c7241034c0ded6dab8d",
++    "tools/test-guardrail-suppressions.php": "6de646721aadaaa9a0fb91109f383135f9ff7aa8f55a184d4d91bf9edeb41f35",
+     "tools/guard-private-data.py": "d72f6fb970aaac1fe5aeb22955447849c6363681b5cf8af2f6a6e279d4c1c5be",
+     "tools/test-private-data-guard.py": "da59d77a7d3355f507b0051e24ad7d0636547fc265840caee9eaf0b0217f6084",
+     "tools/check-antigravity-policy.py": "86a2660088c02eb4e17646401ba82b7e6289547971935166e806e2d18fc98051",
+@@ -60,7 +60,7 @@ SEALED_HASHES = {
+     "tools/test-post-hygiene-verdict.mjs": "b37cd1e495287a13013764a0b0ce029acda79cb15a72d4a2598fc4e64137f976",
+     "tools/test-muplugins-deploy.mjs": "c8bc21f92a32e7bab6f399dd90b50475e1c835a46576ad6f07eeab23986d5cbd",
+     "tools/test-mail-health.mjs": "2da89da17e7835fd2e712ab0a945a19819eeb7ebefea1e312a3608150dab5051",
+-    "tools/test-woocommerce-hook-metadata.mjs": "d210afee41b9fb77626c6faaf13066074be993faf82f80615ca29feac783049d",
++    "tools/test-woocommerce-hook-metadata.mjs": "ee1092be47dfe4a281ad686e95b94bd58497d64596636b3ba55f241dd3ca2415",
+     "tools/test-build-search-assets.mjs": "cabb329a70c57e30d69805e8147d03382b32d837b378323b8c80ca5bb12428fc",
+ }
+ 

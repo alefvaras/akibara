@@ -34,7 +34,6 @@ const AKIBARA_GP_GUIDE_SERIES_MARKER = '{serie}';
  *
  * @param int $post_id ID de la entrada.
  * @return array{name:string,url:string,cover?:string,estados?:array<int,array{label:string,texto:string}>}|null
- * @psalm-suppress RedundantCast
  */
 function akibara_gp_guide_series_data( int $post_id ): ?array {
 	if ( $post_id < 1 ) {
@@ -66,7 +65,6 @@ function akibara_gp_guide_series_data( int $post_id ): ?array {
  * @param string $copia Texto del dueño.
  * @param string $serie Nombre de la serie.
  * @return string HTML escapado.
- * @psalm-suppress RedundantCast
  */
 function akibara_gp_guide_series_copy( string $copia, string $serie ): string {
 	return str_replace( AKIBARA_GP_GUIDE_SERIES_MARKER, esc_html( $serie ), esc_html( $copia ) );

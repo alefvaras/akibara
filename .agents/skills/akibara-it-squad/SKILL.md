@@ -21,6 +21,7 @@ Cada agente cuenta con un rol específico y herramientas delimitadas para evitar
 | **Backend Developer** | `it-backend-dev` | **Flash** | `woocommerce-backend-dev`, `graphify` | Módulos PHP en `akibara-business`, `akibara-search`, `akibara-rewards`, Brain Monkey tests. Cero escrituras directas de stock por SQL. |
 | **Frontend & UX Specialist** | `it-ux-frontend` | **Flash** | `ui-ux-pro-max`, `akibara-ux-publicidad-identidad`, `dom-harness` | Identidad de marca, usabilidad CRO, accesibilidad WCAG y pruebas de comportamiento en `tools/testing/dom-harness.js`. |
 | **QA Auditor Adversarial** | `it-qa-auditor` | **Flash** o **Pro** | `akibara-qa-auditor`, `playwright-skill` | Doble chequeo independiente (Local Docker Y DESPUÉS producción). El programador nunca aprueba su propio trabajo. |
+| **Auditor Pre-Deploy (Memoria Fresca)** | `it-deploy-auditor` | **Astra / Opus (`gpt-5.6-sol` high / `opus`)** | `akibara-deploy-auditor` | Compuerta aislada (`tools/qa-fresh-auditor-gate.py`) sin historial compartido; bloquea errores omitidos, supresiones o skips y devuelve a iteración hasta `APROBADO`. |
 | **Árbitro de Decisiones (System 1)** | `it-gatekeeper-jev` | Ejecutable local / API TypeSafe | `tools/testing/jev-gate.js` | Enrutamiento instantáneo (<20ms), compuerta de seguridad `noul` y puntuación `score`. |
 
 ---
@@ -61,6 +62,13 @@ if (!gate.result) {
 console.log('Jev Safety Gate: APROBADO');
 "
 ```
+
+### Fase 3.5: Auditoría en Contexto Fresco y Bucle de Retorno (`it-deploy-auditor`)
+Antes de empaquetar o promover a producción, ejecutar la compuerta en memoria completamente limpia (sin historial del implementador):
+```bash
+python3 tools/akibara-predeploy-audit-loop.py --component <business|search|checkout|rewards|theme|all> --verify-cmd "bash tools/guardrail-ci.sh"
+```
+* Si responde `RECHAZADO`: el implementador **debe** iterar corrigiendo los hallazgos en `.local-quality/audit-loop/latest-rejection.md` y re-ejecutar el auditor en una nueva sesión efímera hasta obtener `APROBADO`.
 
 ### Fase 4: QA Adversarial y Cierre de Ticket
 1. Ejecutar la suite completa de calidad:

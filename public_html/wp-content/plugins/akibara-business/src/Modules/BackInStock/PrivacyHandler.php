@@ -22,8 +22,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.54.0
  * @api
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class PrivacyHandler {
 

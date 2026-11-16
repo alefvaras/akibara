@@ -22,15 +22,12 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress InvalidReturnType
- * @psalm-suppress MissingOverrideAttribute
  * @psalm-suppress ParamNameMismatch
- * @psalm-suppress MissingOverrideAttribute
  */
 class Akibara_GP_Footer_Walker extends Walker_Nav_Menu {
 
 	/**
 	 * @return mixed
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function start_lvl( &$output, $depth = 0, $args = null ) {
@@ -39,14 +36,12 @@ class Akibara_GP_Footer_Walker extends Walker_Nav_Menu {
 
 	/**
 	 * @return mixed
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function end_lvl( &$output, $depth = 0, $args = null ) {}
 
 	/**
 	 * @return mixed
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
@@ -76,7 +71,6 @@ class Akibara_GP_Footer_Walker extends Walker_Nav_Menu {
 
 	/**
 	 * @return mixed
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function end_el( &$output, $item, $depth = 0, $args = null ) {}

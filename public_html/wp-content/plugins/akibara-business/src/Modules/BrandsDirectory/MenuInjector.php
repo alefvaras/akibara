@@ -30,8 +30,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress RedundantFunctionCall
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class MenuInjector {
 

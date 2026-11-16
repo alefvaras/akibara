@@ -19,6 +19,20 @@ function environment(run) {
     for (const filename of ['ops/akibara-deploy-runtime.sh', 'tools/akibara-releases/package-runtime.sh', 'tools/akibara-releases/verify-runtime-package.py', 'tools/quality_source_policy.py']) copyFileSync(path.join(root, filename), path.join(repo, filename));
     writeFileSync(repo + '/ops/akibara-prod-mail-health.sh', '#!/usr/bin/env bash\nexit "${AKB_TEST_MAIL_EXIT:-0}"\n', { mode: 0o755 });
     writeFileSync(repo + '/tools/verify-devsecops-seal.py', 'import os,sys\nsys.exit(int(os.getenv("AKB_TEST_SEAL_EXIT", "0")))\n');
+    writeFileSync(repo + '/tools/qa-fresh-auditor-gate.py', `import json,os,pathlib,sys
+args=sys.argv[1:]
+if '--verify-receipt' in args:
+  p=pathlib.Path(args[args.index('--verify-receipt')+1])
+  d=json.loads(p.read_text()) if p.is_file() else {}
+  exp=args[args.index('--source-digest')+1] if '--source-digest' in args else ''
+  sys.exit(0 if d.get('verdict')=='APROBADO' and d.get('source_digest')==exp else 1)
+with open(os.environ['AKB_TEST_COMMAND_LOG'],'a') as lf: lf.write('fresh-auditor\\n')
+rc=int(os.getenv('AKB_TEST_AUDITOR_EXIT','0'))
+d=args[args.index('--source-digest')+1] if '--source-digest' in args else ''
+if '--evidence-out' in args:
+  pathlib.Path(args[args.index('--evidence-out')+1]).write_text(json.dumps({'verdict':'APROBADO' if rc==0 else 'RECHAZADO','session_mode':'ephemeral_fresh','source_digest':d,'stage1':{'passed':rc==0},'stage2':{'executed':rc==0,'blocking_findings':[]}}))
+sys.exit(rc)
+`);
     writeFileSync(repo + '/tools/guardrail-ci.sh', '#!/usr/bin/env bash\n[[ "$*" == --full ]] || exit 33\necho guardrail-full >> "$AKB_TEST_COMMAND_LOG"\nif [[ "${AKB_TEST_SOURCE_DRIFT:-0}" == 1 ]]; then echo changed >> "$(dirname "$0")/drift.php"; fi\nexit "${AKB_TEST_GUARDRAIL_EXIT:-0}"\n');
     writeFileSync(repo + '/tools/qa-playwright-full-suite.mjs', `import fs from 'node:fs';
 fs.appendFileSync(process.env.AKB_TEST_COMMAND_LOG, 'qa ' + process.env.AKB_BASE_URL + '\\n');
@@ -114,6 +128,7 @@ test('successful promotion retains the recovery archive only on the local machin
   assert.match(listing.stdout, /akibara-search.php/);
   const commands = calls();
   assert.ok(commands.indexOf('guardrail-full') < commands.indexOf('ssh'));
+  assert.ok(commands.indexOf('fresh-auditor') > commands.indexOf('guardrail-full') && commands.indexOf('fresh-auditor') < commands.indexOf('ssh'));
   assert.ok(commands.indexOf('qa http://localhost:8080') < commands.indexOf('ssh'));
   assert.ok(commands.indexOf('qa https://akibara.cl') > commands.indexOf('wp litespeed-purge all'));
   assert.ok(commands.indexOf('qa https://akibara.cl') < commands.indexOf('sync'));
@@ -185,6 +200,7 @@ test('foreign maintenance appearing after swap survives a rollback with verified
 
 for (const [name, env] of [
   ['seal failure', { AKB_TEST_SEAL_EXIT: '1' }],
+  ['fresh auditor failure', { AKB_TEST_AUDITOR_EXIT: '1' }],
   ['guardrail failure', { AKB_TEST_GUARDRAIL_EXIT: '1' }],
   ['source mutation during guardrail', { AKB_TEST_SOURCE_DRIFT: '1' }],
   ['local QA failure', { AKB_TEST_LOCAL_QA_EXIT: '1' }],
@@ -197,7 +213,7 @@ for (const [name, env] of [
   cleanRemote(remote);
 }));
 
-for (const filename of ['tools/guardrail-ci.sh', 'tools/verify-devsecops-seal.py', 'tools/qa-playwright-full-suite.mjs', 'tools/akibara-releases/package-runtime.sh']) {
+for (const filename of ['tools/guardrail-ci.sh', 'tools/verify-devsecops-seal.py', 'tools/qa-fresh-auditor-gate.py', 'tools/qa-playwright-full-suite.mjs', 'tools/akibara-releases/package-runtime.sh']) {
   test(`missing ${filename} fails before a remote connection`, () => environment(({ repo, remote, invoke, calls }) => {
     rmSync(path.join(repo, filename));
     const result = invoke();

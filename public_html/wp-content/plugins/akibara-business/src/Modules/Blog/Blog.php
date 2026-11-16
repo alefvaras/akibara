@@ -21,7 +21,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @api
- * @psalm-suppress HookNotFound
  * @psalm-suppress UnusedForeachValue
  */
 final class Blog {

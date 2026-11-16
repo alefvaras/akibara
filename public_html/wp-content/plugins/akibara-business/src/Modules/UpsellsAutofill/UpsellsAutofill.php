@@ -31,8 +31,6 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress FalsableReturnStatement
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 // @phpstan-ignore complexity.classLike
 final class UpsellsAutofill {

@@ -29,7 +29,6 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
- * @psalm-suppress UndefinedFunction
  */
 final class Birthday {
 

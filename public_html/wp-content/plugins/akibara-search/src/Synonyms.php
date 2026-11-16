@@ -24,8 +24,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress InvalidArgument
  * @psalm-suppress InvalidReturnStatement
  * @psalm-suppress InvalidReturnType
- * @psalm-suppress MismatchingDocblockParamType
- * @psalm-suppress MismatchingDocblockParamType
  */
 // @phpstan-ignore complexity.classLike
 final class Synonyms {

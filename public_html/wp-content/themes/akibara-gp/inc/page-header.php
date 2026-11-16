@@ -33,7 +33,6 @@ defined( 'ABSPATH' ) || exit;
  * que tienen su propio H1 vía `.akb-page__hero` o vía hero de home.
  *
  * @param bool $show Si GP debe renderear el entry-header.
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_hide_entry_title( bool $show ): bool {
 	if ( is_front_page() ) {

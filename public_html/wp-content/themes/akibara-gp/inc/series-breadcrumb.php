@@ -56,7 +56,6 @@ defined( 'ABSPATH' ) || exit;
  * caduca en una hora.
  *
  * @return string URL absoluta, o '' si no hay hub publicado.
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_hub_url(): string {
 	$cached = get_transient( 'akb_gp_series_hub_url' );
@@ -105,7 +104,6 @@ function akibara_gp_series_hub_url(): string {
  * pasa por acá, y el costo de recalcular es una consulta cada 12 h.
  *
  * @param int $post_id ID del post guardado.
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_forget_series_hub_url( $post_id ): void {
 	if ( 'page' === get_post_type( (int) $post_id ) ) {
@@ -134,7 +132,6 @@ const AKIBARA_GP_ATTRIBUTE_CRUMB_LABELS = array(
  *
  * @param mixed $crumbs Array de peldaños `[ [nombre, url], … ]`.
  * @return mixed
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_breadcrumb( $crumbs ) {
 	if ( ! is_array( $crumbs ) || count( $crumbs ) < 2 ) {
@@ -201,7 +198,6 @@ add_filter( 'woocommerce_get_breadcrumb', 'akibara_gp_series_breadcrumb', 20 );
  *
  * @param mixed $defaults Defaults del breadcrumb.
  * @return mixed
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_breadcrumb_defaults( $defaults ) {
 	if ( ! is_array( $defaults ) || empty( $defaults['wrap_before'] ) || ! is_string( $defaults['wrap_before'] ) ) {

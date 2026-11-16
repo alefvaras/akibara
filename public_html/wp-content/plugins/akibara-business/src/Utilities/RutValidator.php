@@ -24,8 +24,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 1.0.0
  * @api
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UnusedConstructor
- * @psalm-suppress UnusedConstructor
  */
 final class RutValidator {
 

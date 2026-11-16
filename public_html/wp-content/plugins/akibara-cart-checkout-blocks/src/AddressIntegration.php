@@ -18,7 +18,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.0.0
  * @api
- * @psalm-suppress HookNotFound
  */
 final class AddressIntegration {
 

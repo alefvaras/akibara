@@ -28,8 +28,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
  * @psalm-suppress UnusedForeachValue
- * @psalm-suppress UnusedReturnValue
- * @psalm-suppress UnusedReturnValue
  */
 // @phpstan-ignore complexity.classLike
 final class SeriesSitemapLastmod {

@@ -281,6 +281,888 @@
           }
         ]
       }
+    },
+    {
+      "name": "woocommerce_order_status_changed",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-order.php",
+      "type": "action",
+      "args": 4,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "int"
+            ],
+            "variable": "$order_id",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$from",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$to",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_thankyou",
+      "file": "public_html/wp-content/plugins/woocommerce/templates/checkout/thankyou.php",
+      "type": "action",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "int"
+            ],
+            "variable": "$order_id",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      },
+      "aliases": [
+        "woocommerce_thankyou_bacs"
+      ]
+    },
+    {
+      "name": "woocommerce_view_order",
+      "file": "public_html/wp-content/plugins/woocommerce/templates/myaccount/view-order.php",
+      "type": "action",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "int"
+            ],
+            "variable": "$order_id",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_email_before_order_table",
+      "file": "public_html/wp-content/plugins/woocommerce/templates/emails/email-order-details.php",
+      "type": "action",
+      "args": 4,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "bool"
+            ],
+            "variable": "$sent_to_admin",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "bool"
+            ],
+            "variable": "$plain_text",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Email"
+            ],
+            "variable": "$email",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_email_after_order_table",
+      "file": "public_html/wp-content/plugins/woocommerce/templates/emails/email-order-details.php",
+      "type": "action",
+      "args": 4,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "bool"
+            ],
+            "variable": "$sent_to_admin",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "bool"
+            ],
+            "variable": "$plain_text",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Email"
+            ],
+            "variable": "$email",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_order_details_after_order_table",
+      "file": "public_html/wp-content/plugins/woocommerce/templates/order/order-details.php",
+      "type": "action",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_package_rates",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-shipping.php",
+      "type": "filter",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$rates",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$package",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_order_item_get_formatted_meta_data",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-order-item.php",
+      "type": "filter",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$formatted_meta",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Order_Item"
+            ],
+            "variable": "$item",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_cart_shipping_method_full_label",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/wc-cart-functions.php",
+      "type": "filter",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$label",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Shipping_Rate"
+            ],
+            "variable": "$method",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_order_status_{$status_transition['to']}",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-order.php",
+      "type": "action",
+      "args": 3,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "int"
+            ],
+            "variable": "$order_id",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$status_transition",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      },
+      "aliases": [
+        "woocommerce_order_status_on-hold"
+      ]
+    },
+    {
+      "name": "woocommerce_address_providers",
+      "file": "public_html/wp-content/plugins/woocommerce/src/Internal/AddressProvider/AddressProviderController.php",
+      "type": "filter",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$providers",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_blocks_enqueue_cart_block_scripts_after",
+      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Cart.php",
+      "type": "action",
+      "args": 0,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": []
+      }
+    },
+    {
+      "name": "woocommerce_blocks_enqueue_checkout_block_scripts_after",
+      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Checkout.php",
+      "type": "action",
+      "args": 0,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": []
+      }
+    },
+    {
+      "name": "woocommerce_get_country_locale",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-countries.php",
+      "type": "filter",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$locale",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_get_default_value_for_{$key}",
+      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php",
+      "type": "filter",
+      "args": 3,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "mixed"
+            ],
+            "variable": "$value",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$group",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Data"
+            ],
+            "variable": "$wc_object",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_checkout_validate_order_before_payment",
+      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/OrderController.php",
+      "type": "action",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WP_Error"
+            ],
+            "variable": "$validation_errors",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_set_additional_field_value",
+      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php",
+      "type": "action",
+      "args": 4,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$key",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "mixed"
+            ],
+            "variable": "$value",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$group",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Customer",
+              "WC_Order"
+            ],
+            "variable": "$wc_object",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_cart_loaded_from_session",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-cart-session.php",
+      "type": "action",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Cart"
+            ],
+            "variable": "$cart",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_before_{$this->object_type}_object_save",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/abstracts/abstract-wc-data.php",
+      "type": "action",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Data"
+            ],
+            "variable": "$object",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Data_Store_WP"
+            ],
+            "variable": "$data_store",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      },
+      "aliases": [
+        "woocommerce_before_customer_object_save"
+      ]
+    },
+    {
+      "name": "woocommerce_store_api_cart_update_customer_from_request",
+      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartUpdateCustomer.php",
+      "type": "action",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Customer"
+            ],
+            "variable": "$customer",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WP_REST_Request"
+            ],
+            "variable": "$request",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_store_api_checkout_update_order_from_request",
+      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/CheckoutTrait.php",
+      "type": "action",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WP_REST_Request"
+            ],
+            "variable": "$request",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_init",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-woocommerce.php",
+      "type": "action",
+      "args": 0,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": []
+      }
+    },
+    {
+      "name": "woocommerce_store_api_cart_select_shipping_rate",
+      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartSelectShippingRate.php",
+      "type": "action",
+      "args": 3,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "string",
+              "null"
+            ],
+            "variable": "$package_id",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$rate_id",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WP_REST_Request"
+            ],
+            "variable": "$request",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_cart_shipping_packages",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-cart.php",
+      "type": "filter",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$packages",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_blocks_loaded",
+      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Bootstrap.php",
+      "type": "action",
+      "args": 0,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": []
+      }
+    },
+    {
+      "name": "woocommerce_privacy_export_order_personal_data_meta",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-exporters.php",
+      "type": "filter",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$meta_to_export",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_privacy_remove_order_personal_data_meta",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-erasers.php",
+      "type": "filter",
+      "args": 1,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$meta_to_remove",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_privacy_remove_order_personal_data_meta_value",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-erasers.php",
+      "type": "filter",
+      "args": 5,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$anon_value",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$meta_key",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$value",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "string"
+            ],
+            "variable": "$data_type",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Order"
+            ],
+            "variable": "$order",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_privacy_export_customer_personal_data",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-exporters.php",
+      "type": "filter",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$personal_data",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Customer"
+            ],
+            "variable": "$customer",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_privacy_erase_personal_data_customer",
+      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-erasers.php",
+      "type": "filter",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$response",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "WC_Customer"
+            ],
+            "variable": "$customer",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
+    },
+    {
+      "name": "woocommerce_get_item_data",
+      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Schemas/V1/CartItemSchema.php",
+      "type": "filter",
+      "args": 2,
+      "doc": {
+        "description": "Contract verified against the installed WooCommerce producer.",
+        "long_description": "",
+        "long_description_html": "",
+        "tags": [
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$item_data",
+            "content": "Argument emitted by the WooCommerce producer."
+          },
+          {
+            "name": "param",
+            "types": [
+              "array"
+            ],
+            "variable": "$cart_item",
+            "content": "Argument emitted by the WooCommerce producer."
+          }
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,462 @@
+diff --git a/ops/akibara-deploy-runtime.sh b/ops/akibara-deploy-runtime.sh
+index 89eadfaf1..dfcb300fa 100755
+--- a/ops/akibara-deploy-runtime.sh
++++ b/ops/akibara-deploy-runtime.sh
+@@ -173,6 +173,9 @@ bash "${REPO_ROOT}/tools/guardrail-ci.sh" --full 2>&1 | tee "${evidence_dir}/gua
+ [[ "$(source_digest)" == "$validated_sources" ]] || die "las fuentes cambiaron durante los guardrails"
+ python3 "${REPO_ROOT}/tools/qa-fresh-auditor-gate.py" \
+ 	--component "$component" \
++	--engine "${AKB_AUDITOR_ENGINE:-auto}" \
++	--allow-fallback-engine \
++	--timeout "${AKB_AUDITOR_TIMEOUT:-1200}" \
+ 	--source-digest "$validated_sources" \
+ 	--guardrail-log "${evidence_dir}/guardrail-full.log" \
+ 	--evidence-out "${evidence_dir}/fresh-auditor.json" 2>&1 | tee "${evidence_dir}/fresh-auditor.log" \
+diff --git a/tools/akibara-predeploy-audit-loop.py b/tools/akibara-predeploy-audit-loop.py
+index 1d7fffb87..58ce7d0fa 100644
+--- a/tools/akibara-predeploy-audit-loop.py
++++ b/tools/akibara-predeploy-audit-loop.py
+@@ -314,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
+     parser.add_argument("--root", type=Path, default=SCRIPT_DIR.parent)
+     parser.add_argument("--component", default="all", choices=("all", "business", "search", "checkout", "rewards", "theme", "mu-plugins"))
+     parser.add_argument("--base", default="auto")
+-    parser.add_argument("--engine", default="auto", choices=("auto", "codex", "claude"))
++    parser.add_argument("--engine", default="auto", choices=("auto", "codex", "claude", "argon", "hydrogen"))
+     parser.add_argument("--allow-fallback-engine", action="store_true")
+     parser.add_argument("--model", default="")
+     parser.add_argument("--reasoning", default="high", choices=("low", "medium", "high"))
+diff --git a/tools/qa-fresh-auditor-gate.py b/tools/qa-fresh-auditor-gate.py
+index b962a90ca..313eed20b 100644
+--- a/tools/qa-fresh-auditor-gate.py
++++ b/tools/qa-fresh-auditor-gate.py
+@@ -9,7 +9,7 @@ Arquitectura de dos etapas (fail-closed):
+    - Errores silenciados (catch vacío, set +e / || true sobre validaciones)
+    - Datos privados, builds minificados omitidos o contratos de inventario prohibidos
+ 2. Etapa 2 con memoria fresca (--ephemeral / --no-session-persistence):
+-   Invoca un proceso aislado de solo lectura (`codex exec` o `claude -p`) sin
++   Invoca un proceso aislado de solo lectura (`codex exec`, `claude -p` o `agy --mode plan`) sin
+    historial compartido con el implementador para auditar todos los archivos
+    cambiados y emitir un veredicto JSON ligado al `source_digest` SHA-256.
+ """
+@@ -1014,6 +1014,158 @@ def invoke_codex_fresh(
+     return parsed
+ 
+ 
++AGY_READONLY_SETTINGS = json.dumps(
++    {
++        "permissions": {
++            "allow": ["read_file(*)"],
++            "deny": ["write_file(*)", "command(*)", "read_url(*)", "execute_url(*)", "mcp(*)"],
++        }
++    },
++    separators=(",", ":"),
++)
++ARGON_DEFAULT_MODEL = "gemini-4-argon-high"
++HYDROGEN_DEFAULT_MODEL = "gemini-4-hydrogen-xhigh"
++FALLBACK_ENGINE_ORDER = ("codex", "claude", "argon", "hydrogen")
++DEFAULT_AGY_APP_BIN = Path("/Applications/Gemini.app/Contents/Helpers/agy")
++
++
++def _resolve_agy_binary() -> str:
++    if "AKB_AUDITOR_AGY_BIN" in os.environ:
++        explicit = os.environ["AKB_AUDITOR_AGY_BIN"].strip()
++        if not explicit:
++            raise FileNotFoundError("Binario `agy` deshabilitado explícitamente en AKB_AUDITOR_AGY_BIN.")
++        resolved = shutil.which(explicit) or (explicit if Path(explicit).is_file() else "")
++        if not resolved:
++            raise FileNotFoundError(f"No se encontró el binario `agy` configurado: {explicit}")
++        return resolved
++    found = shutil.which("agy")
++    if found:
++        return found
++    if DEFAULT_AGY_APP_BIN.is_file():
++        return str(DEFAULT_AGY_APP_BIN)
++    raise FileNotFoundError("No se encontró el binario `agy` en PATH ni en Gemini.app.")
++
++
++def _parse_agy_json_envelope(raw_stdout: str) -> dict[str, Any]:
++    last_error = ""
++    candidates: list[dict[str, Any]] = []
++    stripped = raw_stdout.strip()
++    if stripped:
++        try:
++            whole = json.loads(stripped)
++            if isinstance(whole, dict):
++                candidates.append(whole)
++        except json.JSONDecodeError:
++            pass
++    if not candidates:
++        for line in reversed(raw_stdout.splitlines()):
++            line_s = line.strip()
++            if line_s.startswith("AGY_ERROR:"):
++                last_error = line_s
++                continue
++            if line_s.startswith("{") and line_s.endswith("}"):
++                try:
++                    parsed = json.loads(line_s)
++                except json.JSONDecodeError:
++                    continue
++                if isinstance(parsed, dict):
++                    candidates.append(parsed)
++                    break
++    if not candidates:
++        detail = last_error or raw_stdout.strip()[-800:]
++        raise RuntimeError(f"La salida de agy no contiene JSON válido: {detail}")
++
++    envelope = candidates[0]
++    status = str(envelope.get("status") or "")
++    err = str(envelope.get("error") or "")
++    if status != "SUCCESS" or err:
++        raise RuntimeError(f"agy reportó error ({status or 'ERROR'}): {err or last_error or stripped[-600:]}")
++    structured = envelope.get("structured_output")
++    if isinstance(structured, dict) and "verdict" in structured:
++        return structured
++    response_text = str(envelope.get("response") or "").strip()
++    if response_text:
++        try:
++            parsed_resp = json.loads(response_text)
++            if isinstance(parsed_resp, dict) and "verdict" in parsed_resp:
++                return parsed_resp
++        except json.JSONDecodeError:
++            pass
++    denied = envelope.get("denied_actions")
++    if denied:
++        raise RuntimeError(f"agy tuvo acciones denegadas sin veredicto estructurado: {denied!r}")
++    raise RuntimeError("La salida de agy no contiene structured_output con veredicto válido.")
++
++
++def invoke_agy_fresh(
++    root: Path,
++    prompt: str,
++    schema_path: Path,
++    model: str | None,
++    default_model: str,
++    timeout_s: int,
++) -> tuple[dict[str, Any], str]:
++    """Ejecuta `agy --mode plan --sandbox` en sesión nueva y solo lectura estricta."""
++    binary = _resolve_agy_binary()
++    selected_model = model or default_model
++    agy_prompt = (
++        prompt
++        + "\n\nNOTA DE ENTORNO SOLO LECTURA: Terminal/Bash, escritura y red están DESHABILITADOS. "
++        + "Usa únicamente `read_file` para inspeccionar archivos en disco y devuelve exclusivamente JSON válido."
++    )
++    encoded = agy_prompt.encode("utf-8")
++    if len(encoded) > 110_000:
++        marker = "\n<UNTRUSTED_DIFF_DATA>"
++        if marker in agy_prompt:
++            head, _ = agy_prompt.split(marker, 1)
++            agy_prompt = (
++                head
++                + marker
++                + "\n[DIFF OMITIDO POR TAMAÑO DE CLI — LEE OBLIGATORIAMENTE CADA ARCHIVO LISTADO CON `read_file` EN DISCO]\n"
++                + "</UNTRUSTED_DIFF_DATA>\n"
++                + "NOTA DE ENTORNO SOLO LECTURA: Terminal/Bash, escritura y red están DESHABILITADOS. "
++                + "Usa únicamente `read_file` y devuelve exclusivamente JSON válido."
++            )
++    schema_json = schema_path.read_text(encoding="utf-8")
++    cmd = [
++        binary,
++        "--mode",
++        "plan",
++        "--sandbox",
++        "--settings",
++        AGY_READONLY_SETTINGS,
++        "--model",
++        selected_model,
++        "--output-format",
++        "json",
++        "--json-schema",
++        schema_json,
++        f"--print={agy_prompt}",
++    ]
++    res = subprocess.run(
++        cmd,
++        cwd=root,
++        text=True,
++        capture_output=True,
++        encoding="utf-8",
++        errors="replace",
++        timeout=timeout_s,
++        check=False,
++    )
++    combined = "\n".join(part for part in (res.stdout, res.stderr) if part).strip()
++    if res.returncode != 0 and not res.stdout.strip():
++        raise RuntimeError(f"agy falló (exit={res.returncode}): {combined[-800:]}")
++    if not combined:
++        raise RuntimeError("agy no produjo salida.")
++    try:
++        parsed = _parse_agy_json_envelope(res.stdout or combined)
++    except RuntimeError as exc:
++        if combined and str(exc) not in combined:
++            raise RuntimeError(f"{exc} | {combined[-400:]}") from exc
++        raise
++    return parsed, selected_model
++
++
+ def invoke_claude_fresh(
+     root: Path,
+     prompt: str,
+@@ -1264,6 +1416,7 @@ def run_gate(args: argparse.Namespace) -> int:
+         engines_to_try = _resolve_engine_order(args.engine, args.allow_fallback_engine)
+         stage2_result: dict[str, Any] | None = None
+         used_engine = ""
++        used_model = ""
+         engine_errors: list[str] = []
+ 
+         for engine_name in engines_to_try:
+@@ -1272,14 +1425,34 @@ def run_gate(args: argparse.Namespace) -> int:
+                     stage2_result = invoke_codex_fresh(
+                         root, prompt, schema_path, out_path, args.model, args.reasoning, args.timeout
+                     )
++                    used_model = args.model or os.getenv("AKB_AUDITOR_CODEX_MODEL", "gpt-5.6-sol")
+                 elif engine_name == "claude":
+                     stage2_result = invoke_claude_fresh(root, prompt, args.model, args.timeout)
++                    used_model = args.model or "claude-cli-default"
++                elif engine_name == "argon":
++                    stage2_result, used_model = invoke_agy_fresh(
++                        root,
++                        prompt,
++                        schema_path,
++                        args.model,
++                        os.getenv("AKB_AUDITOR_ARGON_MODEL", ARGON_DEFAULT_MODEL),
++                        args.timeout,
++                    )
++                elif engine_name == "hydrogen":
++                    stage2_result, used_model = invoke_agy_fresh(
++                        root,
++                        prompt,
++                        schema_path,
++                        args.model,
++                        os.getenv("AKB_AUDITOR_HYDROGEN_MODEL", HYDROGEN_DEFAULT_MODEL),
++                        args.timeout,
++                    )
+                 else:
+                     raise RuntimeError(f"Motor auditor desconocido: {engine_name}")
+                 used_engine = engine_name
+                 break
+             except Exception as exc:
+-                # IMPORTANTE: solo intentamos fallback por fallo técnico/auth/binario; nunca si el agente ya dio veredicto.
++                # IMPORTANTE: solo intentamos fallback por fallo técnico/auth/cuota/binario; nunca si el agente ya dio veredicto.
+                 engine_errors.append(f"{engine_name}: {exc}")
+ 
+         if stage2_result is None:
+@@ -1320,6 +1493,8 @@ def run_gate(args: argparse.Namespace) -> int:
+         "timestamp_utc": int(time.time()),
+         "session_mode": "ephemeral_fresh",
+         "engine": used_engine,
++        "model": used_model,
++        "engine_attempts": engine_errors,
+         "component": args.component,
+         "base": scope.base_description,
+         "source_digest": computed_digest,
+@@ -1357,11 +1532,13 @@ def run_gate(args: argparse.Namespace) -> int:
+ 
+ 
+ def _resolve_engine_order(engine: str, allow_fallback: bool) -> list[str]:
+-    if engine == "codex":
+-        return ["codex", "claude"] if allow_fallback else ["codex"]
+-    if engine == "claude":
+-        return ["claude", "codex"] if allow_fallback else ["claude"]
+-    return ["codex", "claude"] if allow_fallback else ["codex"]
++    if engine == "auto":
++        return list(FALLBACK_ENGINE_ORDER) if allow_fallback else ["codex"]
++    if engine in FALLBACK_ENGINE_ORDER:
++        if not allow_fallback:
++            return [engine]
++        return [engine, *[candidate for candidate in FALLBACK_ENGINE_ORDER if candidate != engine]]
++    return list(FALLBACK_ENGINE_ORDER) if allow_fallback else ["codex"]
+ 
+ 
+ def _write_receipt(path: Path | None, payload: dict[str, Any]) -> None:
+@@ -1384,7 +1561,7 @@ def main(argv: list[str] | None = None) -> int:
+     parser.add_argument(
+         "--engine",
+         default="auto",
+-        choices=("auto", "codex", "claude", "deterministic-only"),
++        choices=("auto", "codex", "claude", "argon", "hydrogen", "deterministic-only"),
+     )
+     parser.add_argument("--allow-fallback-engine", action="store_true")
+     parser.add_argument("--model", default="")
+diff --git a/tools/test-fresh-auditor-gate.py b/tools/test-fresh-auditor-gate.py
+index 021cecda4..ed77cd612 100644
+--- a/tools/test-fresh-auditor-gate.py
++++ b/tools/test-fresh-auditor-gate.py
+@@ -62,9 +62,16 @@ class FreshAuditorGateTests(unittest.TestCase):
+         stub.write_text("#!/usr/bin/env python3\n" + script_body, encoding="utf-8")
+         stub.chmod(0o755)
+ 
++    def _install_agy_stub(self, script_body: str) -> None:
++        stub = self.bin / "agy"
++        stub.write_text("#!/usr/bin/env python3\n" + script_body, encoding="utf-8")
++        stub.chmod(0o755)
++
+     def _run_gate(self, *extra: str, env_extra: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+         env = dict(os.environ)
+         env["PATH"] = f"{self.bin}:{env['PATH']}"
++        agy_stub = self.bin / "agy"
++        env.setdefault("AKB_AUDITOR_AGY_BIN", str(agy_stub) if agy_stub.exists() else "")
+         if env_extra:
+             env.update(env_extra)
+         return subprocess.run(
+@@ -78,6 +85,8 @@ class FreshAuditorGateTests(unittest.TestCase):
+     def _run_loop(self, *extra: str, env_extra: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+         env = dict(os.environ)
+         env["PATH"] = f"{self.bin}:{env['PATH']}"
++        agy_stub = self.bin / "agy"
++        env.setdefault("AKB_AUDITOR_AGY_BIN", str(agy_stub) if agy_stub.exists() else "")
+         if env_extra:
+             env.update(env_extra)
+         return subprocess.run(
+@@ -459,5 +468,125 @@ print(json.dumps({{
+         self.assertIn("AUDITOR_POLICY_DRIFT", verify.stderr)
+ 
+ 
++    def test_four_tier_fallback_escalates_codex_to_claude_to_argon_to_hydrogen(self) -> None:
++        self.target_php.write_text("<?php\nfunction demo_sum(int $a, int $b): int { return $a + $b + 11; }\n", encoding="utf-8")
++        trace_log = self.tmp / "cascade.jsonl"
++        self._install_codex_stub(f"""
++import json, pathlib, sys
++with open({str(trace_log)!r}, "a", encoding="utf-8") as fh:
++    fh.write(json.dumps({{"engine": "codex", "args": sys.argv[1:]}}) + chr(10))
++sys.stderr.write("You've hit your usage limit for Codex." + chr(10))
++sys.exit(1)
++""")
++        claude_stub = self.bin / "claude"
++        claude_stub.write_text(f"""#!/usr/bin/env python3
++import json, pathlib, sys
++with open({str(trace_log)!r}, "a", encoding="utf-8") as fh:
++    fh.write(json.dumps({{"engine": "claude", "args": sys.argv[1:]}}) + chr(10))
++print(json.dumps({{"is_error": True, "result": "Credit balance is too low"}}))
++""", encoding="utf-8")
++        claude_stub.chmod(0o755)
++        self._install_agy_stub(f"""
++import json, pathlib, sys
++args = sys.argv[1:]
++model = args[args.index("--model") + 1]
++settings = json.loads(args[args.index("--settings") + 1])
++assert "--mode" in args and args[args.index("--mode") + 1] == "plan"
++assert "--sandbox" in args
++assert "write_file(*)" in settings["permissions"]["deny"]
++assert "command(*)" in settings["permissions"]["deny"]
++assert "read_file(*)" in settings["permissions"]["allow"]
++with open({str(trace_log)!r}, "a", encoding="utf-8") as fh:
++    fh.write(json.dumps({{"engine": "agy", "model": model}}) + chr(10))
++if model == "gemini-4-argon-high":
++    print("error: Individual quota reached.")
++    print(json.dumps({{"status": "ERROR", "error": "RESOURCE_EXHAUSTED"}}))
++    sys.exit(0)
++assert model == "gemini-4-hydrogen-xhigh"
++print(json.dumps({{
++    "status": "SUCCESS",
++    "structured_output": {{
++        "verdict": "APROBADO",
++        "audited_scope": "business",
++        "reviewed_files": ["public_html/wp-content/plugins/akibara-business/src/Demo.php"],
++        "checks_summary": {{
++            "error_omission_check": "PASS",
++            "suppressions_and_skips": "PASS",
++            "tests_and_edge_cases": "PASS",
++            "akibara_contracts": "PASS",
++        }},
++        "blocking_findings": [],
++        "non_blocking_notes": [],
++        "summary": "Aprobado por Hydrogen XHigh en solo lectura."
++    }}
++}}))
++""")
++        receipt = self.tmp / "cascade-receipt.json"
++        res = self._run_gate("--component", "business", "--engine", "auto", "--allow-fallback-engine", "--evidence-out", str(receipt))
++        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
++        calls = [json.loads(line) for line in trace_log.read_text(encoding="utf-8").splitlines() if line.strip()]
++        self.assertEqual(
++            [c.get("model") or c["engine"] for c in calls],
++            ["codex", "claude", "gemini-4-argon-high", "gemini-4-hydrogen-xhigh"],
++        )
++        payload = json.loads(receipt.read_text(encoding="utf-8"))
++        self.assertEqual(payload["engine"], "hydrogen")
++        self.assertEqual(payload["model"], "gemini-4-hydrogen-xhigh")
++        self.assertEqual(len(payload["engine_attempts"]), 3)
++        verify_ok = self._run_gate("--verify-receipt", str(receipt))
++        self.assertEqual(verify_ok.returncode, 0, verify_ok.stdout + verify_ok.stderr)
++
++    def test_argon_real_rejection_never_falls_back_to_hydrogen(self) -> None:
++        self.target_php.write_text("<?php\nfunction demo_sum(int $a, int $b): int { return $a + $b + 12; }\n", encoding="utf-8")
++        models_called = self.tmp / "agy_models.txt"
++        self._install_agy_stub(f"""
++import json, pathlib, sys
++model = sys.argv[sys.argv.index("--model") + 1]
++with open({str(models_called)!r}, "a", encoding="utf-8") as fh:
++    fh.write(model + chr(10))
++print(json.dumps({{
++    "status": "SUCCESS",
++    "structured_output": {{
++        "verdict": "RECHAZADO",
++        "audited_scope": "business",
++        "reviewed_files": ["public_html/wp-content/plugins/akibara-business/src/Demo.php"],
++        "checks_summary": {{
++            "error_omission_check": "FAIL",
++            "suppressions_and_skips": "PASS",
++            "tests_and_edge_cases": "PASS",
++            "akibara_contracts": "PASS",
++        }},
++        "blocking_findings": [{{
++            "severity": "high",
++            "file": "public_html/wp-content/plugins/akibara-business/src/Demo.php",
++            "line": 2,
++            "category": "CONTRACT_VIOLATION",
++            "description": "Rechazo real de Argon.",
++            "required_fix": "Corregir."
++        }}],
++        "non_blocking_notes": [],
++        "summary": "Rechazado por Argon."
++    }}
++}}))
++""")
++        res = self._run_gate("--component", "business", "--engine", "argon", "--allow-fallback-engine")
++        self.assertEqual(res.returncode, 1)
++        self.assertEqual(models_called.read_text(encoding="utf-8").splitlines(), ["gemini-4-argon-high"])
++
++    def test_agy_denied_actions_without_structured_output_fails_closed(self) -> None:
++        self.target_php.write_text("<?php\nfunction demo_sum(int $a, int $b): int { return $a + $b + 13; }\n", encoding="utf-8")
++        self._install_agy_stub("""
++import json
++print(json.dumps({
++    "status": "SUCCESS",
++    "response": "",
++    "denied_actions": [{"action": "command", "display_name": "Bash"}]
++}))
++""")
++        res = self._run_gate("--component", "business", "--engine", "hydrogen")
++        self.assertEqual(res.returncode, 1)
++        self.assertIn("hydrogen", res.stderr)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tools/verify-devsecops-seal.py b/tools/verify-devsecops-seal.py
+index ce8da2d03..671e6a812 100644
+--- a/tools/verify-devsecops-seal.py
++++ b/tools/verify-devsecops-seal.py
+@@ -32,7 +32,7 @@ SEALED_HASHES = {
+     "package.json": "f6d632631551dfffdb849abd5429e3100f49ad0fba72c98f41d24988e33ec4fa",
+     "tools/guardrail-ci.sh": "5e277be9f98d7feb17c208c34edc8cec6faf1367dfea1b3ef080f79a17e77f5a",
+     "tools/guardrail-ast-hygiene.php": "ddcef3d4d6759a3a9c499fd10e8f789c71edd0396a4763f296ac28732275cda5",
+-    "ops/akibara-deploy-runtime.sh": "a6b0793c01f2a19bd743151a64f03a204a9c6cfa3070d7069ad87fd46bd54a66",
++    "ops/akibara-deploy-runtime.sh": "124d10f548fde9ecd98f4aac3ea78253b66a0e70ae880797b1c7032b414bdef1",
+     "ops/db-cleanup-brevo-welcome-coupon.sql": "c00f0a4269bbfe776ad6efc4504c3e2b96c09467499fbe278399e76738388370",
+     "tools/akibara-releases/package-runtime.sh": "47890e6c50481bfb632aa664073a6d0d5204c7e993d7b7123b86b80e66263249",
+     "tools/akibara-releases/verify-runtime-package.py": "aa7cdd6053519b93b796915b6f2e3b82cf4480b2b6df3a67f22623ff940481ec",
+@@ -45,9 +45,9 @@ SEALED_HASHES = {
+     "tools/test-private-data-guard.py": "da59d77a7d3355f507b0051e24ad7d0636547fc265840caee9eaf0b0217f6084",
+     "tools/check-antigravity-policy.py": "86a2660088c02eb4e17646401ba82b7e6289547971935166e806e2d18fc98051",
+     "tools/test-antigravity-policy.py": "ac539d16783b0f953b8018d7b019261fa0e465dea096c0e77fa4bd01746a7fd3",
+-    "tools/qa-fresh-auditor-gate.py": "91302d15b627225eb3c000d497dcb55dce689a875ad5c462955da280f2e8e585",
+-    "tools/test-fresh-auditor-gate.py": "4a3ed5cdf877432303f48710e26dcffcc935e4bda2d594178179fe8a7797452c",
+-    "tools/akibara-predeploy-audit-loop.py": "f5a5515e3bf2432a4df62dd000e428584d9a5f40a68baa1c0aacef885f94c260",
++    "tools/qa-fresh-auditor-gate.py": "b944120da8377d073b8a36baf4e2a53b4d3b6fa8664d4eda1c47ed38d37a5a32",
++    "tools/test-fresh-auditor-gate.py": "a58dc3b9205e7f87773c09c003ae5351b20f27d51e683b5cd2274395826ca59b",
++    "tools/akibara-predeploy-audit-loop.py": "0cb8479853c9a1d59fc46b04d2ec4b2e723e9a6fd06b06eb72dde7a8b1095da5",
+     ".agents/skills/akibara-deploy-auditor/SKILL.md": "1697e928495fe1552761dd00770cfb2a97d056279de48e4cbd8a5378af73404a",
+     ".agents/agents/it-deploy-auditor.md": "f3ab4699a300e1e98cf71d841b47c551dc573364e0975c601952a64717918650",
+     "tools/sync-notebooklm.mjs": "ca74e3a83bf5d5c85864e45f9cf96ed444d8ea6961211a2f3e53c5f0db894e46",

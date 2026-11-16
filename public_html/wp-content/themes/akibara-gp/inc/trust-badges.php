@@ -20,8 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Explica las garantías de despacho (cartón corrugado, burbuja, funda protectora)
  * y resuelve dudas de coleccionistas directamente junto al botón de compra.
  * @return mixed
- * @psalm-suppress HookNotFound
- * @psalm-suppress UndefinedFunction
  */
 function akibara_get_trust_badges_html() {
 	ob_start();
@@ -57,8 +55,6 @@ function akibara_get_trust_badges_html() {
  * En productos agotados (donde WooCommerce suprime el formulario) se renderizan
  * al cierre del resumen para preservar las garantías y el enlace a embalaje seguro.
  * Una variable estática previene renderizados duplicados.
- * @psalm-suppress HookNotFound
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_render_trust_badges(): void {
 	static $impresos = false;

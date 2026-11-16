@@ -28,8 +28,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidOperand
  * @psalm-suppress RedundantCondition
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class PdpEnhancer {
 

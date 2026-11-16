@@ -84,7 +84,6 @@ add_filter(
  *
  * @param mixed $valor_guardado Lo que LiteSpeed tenga guardado en `cache-exc`.
  * @return array<int, string>
- * @psalm-suppress HookNotFound
  */
 function akibara_litespeed_rutas_sin_cache( $valor_guardado ): array {
 	$obligatorias = array( '/wp-json/wc/store/', '/wp-json/wc/v3/' );
@@ -106,7 +105,6 @@ function akibara_litespeed_rutas_sin_cache( $valor_guardado ): array {
  *
  * @param mixed $valor Lo guardado: array, texto con saltos de línea, o cualquier otra cosa.
  * @return array<int, string>
- * @psalm-suppress HookNotFound
  */
 function akibara_litespeed_lista_de_rutas( $valor ): array {
 	if ( is_string( $valor ) ) {
@@ -167,7 +165,6 @@ add_filter(
  *
  * @param mixed $valor_guardado Lo que dice la opción (0, 1 o 2).
  * @return int 0 o 1.
- * @psalm-suppress HookNotFound
  */
 function akibara_litespeed_js_sin_retraso( $valor_guardado ): int {
 	return min( 1, max( 0, (int) $valor_guardado ) );

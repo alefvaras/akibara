@@ -3,13 +3,11 @@
  * tools/sync-notebooklm-sources.mjs
  *
  * Sincronizador automático inteligente entre la Bóveda de Obsidian / Documentación de Akibara
- * y los cuadernos oficiales en Google NotebookLM para todas las cuentas autorizadas:
+ * y el cuaderno oficial en Google NotebookLM:
  * 1. ale.fvaras@gmail.com (perfil: ale-fvaras -> cuaderno "akibara")
- * 2. alejandro.fvaras@gmail.com (perfil: alejandro-fvaras -> cuaderno "analisis")
- * 3. donatello20260@gmail.com (perfil: donatello20260 -> cuaderno "akibara")
  *
  * Características:
- * - Detecta automáticamente archivos modificados mediante SHA-256 por cuaderno en .notebooklm-sync-state.json.
+ * - Detecta automáticamente archivos modificados mediante SHA-256 por cuaderno en .local-quality/notebooklm-sync-state.json.
  * - Purgado defensivo de fuentes obsoletas (monolitos antiguos no particionados) y fuentes en estado de error.
  * - Erradicación automática de duplicados: deja exactamente 1 copia activa por documento.
  * - Creación automática de cuaderno si no existe en la cuenta.
@@ -17,33 +15,24 @@
  * - Protección de cuota estricta (< 50 fuentes por cuaderno).
  */
 
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
 
 const ROOT_DIR = process.cwd();
-const STATE_FILE = path.join(ROOT_DIR, 'tools', '.notebooklm-sync-state.json');
+const STATE_DIR = path.join(ROOT_DIR, '.local-quality');
+const STATE_FILE = path.join(STATE_DIR, 'notebooklm-sync-state.json');
+const LEGACY_STATE_FILE = path.join(ROOT_DIR, 'tools', '.notebooklm-sync-state.json');
 
 const KNOWN_TARGETS = [
-	{
-		profile: 'alejandro-fvaras',
-		notebookId: '1e6160e5-07f2-47eb-a21a-930dd90c9cd1',
-		name: 'analisis',
-		email: 'alejandro.fvaras@gmail.com',
-	},
 	{
 		profile: 'ale-fvaras',
 		notebookId: '06cc0698-c80f-4ac9-bc38-d8d15a96a17f',
 		name: 'akibara',
 		email: 'ale.fvaras@gmail.com',
-	},
-	{
-		profile: 'donatello20260',
-		notebookId: '8cfdcfe7-c596-4145-8f49-9b5f5ede69e5',
-		name: 'akibara',
-		email: 'donatello20260@gmail.com',
+		role: 'primary',
 	},
 ];
 
@@ -53,6 +42,43 @@ const STALE_TITLES = [
 	'AKIBARA_CODIGO_02_REWARDS_Y_SEARCH.md',
 	'AKIBARA_CODIGO_03_TEMA_BLOQUES_Y_MU.md',
 ];
+
+const AUTH_ERROR_CODES = new Set([
+	'AUTH_ERROR',
+	'UNAUTHENTICATED',
+	'EXPIRED_TOKEN',
+	'LOGIN_REQUIRED',
+]);
+
+class NotebookLMAuthError extends Error {
+	constructor(message, code = 'AUTH_ERROR', profile = null) {
+		super(message);
+		this.name = 'NotebookLMAuthError';
+		this.code = code;
+		this.profile = profile;
+		this.isAuthError = true;
+	}
+}
+
+function readOwn(obj, key) {
+	if (!obj || typeof obj !== 'object' || !Object.hasOwn(obj, key)) return undefined;
+	return Object.getOwnPropertyDescriptor(obj, key)?.value;
+}
+
+function writeOwn(obj, key, value) {
+	Object.defineProperty(obj, key, {
+		value,
+		writable: true,
+		enumerable: true,
+		configurable: true,
+	});
+}
+
+function deleteOwn(obj, key) {
+	if (obj && typeof obj === 'object' && Object.hasOwn(obj, key)) {
+		Reflect.deleteProperty(obj, key);
+	}
+}
 
 function log(msg) {
 	console.log(`[NotebookLM Sync] ${msg}`);
@@ -76,14 +102,15 @@ function resolveNotebookLMBin() {
 		'/opt/homebrew/bin/notebooklm',
 		'/usr/local/bin/notebooklm',
 	];
-	try {
-		const fromPath = execSync('which notebooklm', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+	const whichResult = spawnSync('which', ['notebooklm'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+	if (whichResult.status === 0) {
+		const fromPath = (whichResult.stdout || '').trim();
 		if (fromPath) {
 			cachedNotebookLMBin = fromPath;
 			return cachedNotebookLMBin;
 		}
-	} catch {
-		// Continuar con rutas conocidas si PATH mínimo no incluye ~/.local/bin.
+	} else if (whichResult.error && whichResult.error.code !== 'ENOENT') {
+		console.warn(`⚠ No se pudo inspeccionar PATH para notebooklm: ${whichResult.error.message}`);
 	}
 	for (const candidate of candidates) {
 		if (fs.existsSync(candidate)) {
@@ -105,9 +132,56 @@ function runNotebookLM(args, profile = null, options = {}) {
 	});
 }
 
+function parseJsonSafe(raw) {
+	if (!raw || typeof raw !== 'string') return null;
+	const trimmed = raw.trim();
+	if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
+	try {
+		return JSON.parse(trimmed);
+	} catch (error) {
+		console.warn(`[NotebookLM] Salida JSON inválida ignorada: ${error.message}`);
+		return null;
+	}
+}
+
+function extractProcessStreamText(stream) {
+	if (typeof stream === 'string') return stream;
+	if (Buffer.isBuffer(stream)) return stream.toString('utf8');
+	return '';
+}
+
+function detectAuthError(parsed, stderrText = '', stdoutText = '', profile = null) {
+	const code = typeof parsed?.code === 'string' ? parsed.code.trim() : '';
+	const combinedText = `${parsed?.message || ''}\n${stdoutText}\n${stderrText}`;
+	if (
+		AUTH_ERROR_CODES.has(code) ||
+		/AUTH_ERROR|Authentication expired|notebooklm login|re-authenticate|UNAUTHENTICATED/i.test(combinedText)
+	) {
+		return new NotebookLMAuthError(
+			parsed?.message || `Sesión expirada o inválida en NotebookLM (perfil: ${profile || 'default'})`,
+			code || 'AUTH_ERROR',
+			profile
+		);
+	}
+	return null;
+}
+
 function readNotebookLMJson(args, profile, listKey) {
-	const parsed = JSON.parse(runNotebookLM(args, profile));
+	let rawOutput;
+	try {
+		rawOutput = runNotebookLM(args, profile);
+	} catch (err) {
+		const stdoutText = extractProcessStreamText(err?.stdout);
+		const stderrText = extractProcessStreamText(err?.stderr);
+		const parsedErr = parseJsonSafe(stdoutText) || parseJsonSafe(stderrText);
+		const authErr = detectAuthError(parsedErr, stderrText, stdoutText, profile);
+		if (authErr) throw authErr;
+		throw err;
+	}
+	const parsed = parseJsonSafe(rawOutput);
 	if (!parsed || parsed.error || (listKey && !Array.isArray(parsed[listKey]))) {
+		const authErr = detectAuthError(parsed, '', rawOutput, profile);
+		if (authErr) throw authErr;
 		throw new Error(`Respuesta inválida de NotebookLM: ${parsed?.code || listKey || 'JSON'}`);
 	}
 	return parsed;
@@ -123,6 +197,12 @@ async function safeAddSource(notebookId, filePath, title, profile, previousSourc
 		runNotebookLM(['source', 'add', '-n', notebookId, filePath, '--title', title], profile);
 		return true;
 	} catch (e) {
+		const stdoutText = extractProcessStreamText(e?.stdout);
+		const stderrText = extractProcessStreamText(e?.stderr);
+		const parsedErr = parseJsonSafe(stdoutText) || parseJsonSafe(stderrText);
+		const addAuthErr = detectAuthError(parsedErr, stderrText, stdoutText, profile);
+		if (addAuthErr) throw addAuthErr;
+
 		// Reconciliar: si Google devolvió 500 en finalize, la fuente frecuentemente ya fue creada y está en 'preparing'
 		try {
 			await sleep(2000);
@@ -132,8 +212,11 @@ async function safeAddSource(notebookId, filePath, title, profile, previousSourc
 				log(`    ✔ Fuente "${title}" confirmada en lista de fuentes.`);
 				return true;
 			}
-		} catch {
-			// fallback
+		} catch (reconcileErr) {
+			if (reconcileErr?.isAuthError) {
+				throw reconcileErr;
+			}
+			console.warn(`    ⚠ Reconciliación tras error de subida falló para "${title}": ${reconcileErr?.message || reconcileErr}`);
 		}
 		console.warn(`    ⚠ Falló subida de "${title}": ${e.message.slice(0, 120)}`);
 		return false;
@@ -142,14 +225,18 @@ async function safeAddSource(notebookId, filePath, title, profile, previousSourc
 
 function getAvailableProfiles() {
 	const profilesDir = path.join(os.homedir(), '.notebooklm', 'profiles');
-	if (fs.existsSync(profilesDir)) {
-		try {
-			return fs.readdirSync(profilesDir).filter(f => !f.startsWith('.'));
-		} catch {
+	if (!fs.existsSync(profilesDir)) {
+		return [];
+	}
+	try {
+		return fs.readdirSync(profilesDir).filter(f => !f.startsWith('.'));
+	} catch (error) {
+		if (error && (error.code === 'ENOENT' || error.code === 'ENOTDIR')) {
 			return [];
 		}
+		console.warn(`⚠ No se pudo leer el directorio de perfiles NotebookLM (${profilesDir}): ${error?.message || error}`);
+		throw error;
 	}
-	return [];
 }
 
 function ensureTargetNotebook(target) {
@@ -194,9 +281,9 @@ async function syncTarget(target, localFiles, allState) {
 
 	log(`Fuentes actuales detectadas: ${existingSources.length}/50`);
 
-	// Estado para este cuaderno
-	allState[notebookId] = allState[notebookId] || {};
-	const nbState = allState[notebookId];
+	// Estado aislado de trabajo para este cuaderno (commit atómico sólo tras verificación)
+	const existingNbState = readOwn(allState, notebookId);
+	const nbState = existingNbState && typeof existingNbState === 'object' ? { ...existingNbState } : {};
 
 	// 2. Agrupar por título: Map<string, Array<Source>>
 	const sourcesByTitle = new Map();
@@ -220,7 +307,7 @@ async function syncTarget(target, localFiles, allState) {
 				}
 			}
 			sourcesByTitle.delete(stale);
-			delete nbState[stale];
+			deleteOwn(nbState, stale);
 		}
 	}
 
@@ -261,7 +348,7 @@ async function syncTarget(target, localFiles, allState) {
 	// 5. Procesar archivos locales
 	for (const [title, filePath] of localFiles.entries()) {
 		const currentHash = sha256File(filePath);
-		const previousHash = nbState[title];
+		const previousHash = readOwn(nbState, title);
 		const sources = sourcesByTitle.get(title) || [];
 
 		// CASO A: Múltiples copias detectadas (Duplicados)
@@ -283,7 +370,7 @@ async function syncTarget(target, localFiles, allState) {
 			log(`Subiendo versión limpia y unificada de "${title}"...`);
 			const ok = await safeAddSource(notebookId, filePath, title, profile, sources);
 			if (ok) {
-				nbState[title] = currentHash;
+				writeOwn(nbState, title, currentHash);
 				sourcesByTitle.set(title, [{ title, id: 'new', status: 'ready' }]);
 				currentTotalSources++;
 				updatedCount++;
@@ -301,7 +388,7 @@ async function syncTarget(target, localFiles, allState) {
 					log(`Refrescando fuente de Google Drive: "${title}"...`);
 					try {
 						runNotebookLM(['source', 'refresh', '-n', notebookId, s.id], profile);
-						nbState[title] = currentHash;
+						writeOwn(nbState, title, currentHash);
 						refreshedCount++;
 					} catch (e) {
 						console.warn(`  ⚠ Falló refresco de Drive para "${title}": ${e.message}`);
@@ -323,7 +410,7 @@ async function syncTarget(target, localFiles, allState) {
 					} catch (e) {
 						console.warn(`  ⚠ Error eliminando versión anterior de "${title}": ${e.message}`);
 					}
-					nbState[title] = currentHash;
+					writeOwn(nbState, title, currentHash);
 					sourcesByTitle.set(title, [{ title, id: 'new', status: 'ready' }]);
 					updatedCount++;
 				}
@@ -344,7 +431,7 @@ async function syncTarget(target, localFiles, allState) {
 			await sleep(1500);
 			const ok = await safeAddSource(notebookId, filePath, title, profile, sources);
 			if (ok) {
-				nbState[title] = currentHash;
+				writeOwn(nbState, title, currentHash);
 				sourcesByTitle.set(title, [{ title, id: 'new', status: 'ready' }]);
 				currentTotalSources++;
 				addedCount++;
@@ -413,11 +500,81 @@ async function syncTarget(target, localFiles, allState) {
 	if (pendingTitles.length > 0) {
 		throw new Error(`Fuente pendiente de confirmar en ${name}: ${pendingTitles[0]}`);
 	}
+	writeOwn(allState, notebookId, nbState);
 	log(`✔ Sincronización de "${name}" finalizada.`);
+	return { notebookId, upToDateCount, duplicatesPurged, updatedCount, refreshedCount, addedCount, currentTotalSources };
+}
+
+function recordProfileHealth(allState, target, statusInfo) {
+	const existingProfiles = readOwn(allState, '_profiles');
+	const profiles = existingProfiles && typeof existingProfiles === 'object' ? { ...existingProfiles } : {};
+	const key = target.profile || 'default';
+	const existing = readOwn(profiles, key);
+	const nextEntry = {
+		role: target.role || 'mirror',
+		notebookId: statusInfo.notebookId || target.notebookId || null,
+		notebookName: target.name || null,
+		email: target.email || null,
+		status: statusInfo.status,
+		...(statusInfo.code ? { error: statusInfo.code } : {}),
+	};
+	const unchanged = Boolean(
+		existing
+		&& typeof existing === 'object'
+		&& existing.role === nextEntry.role
+		&& existing.notebookId === nextEntry.notebookId
+		&& existing.notebookName === nextEntry.notebookName
+		&& existing.email === nextEntry.email
+		&& existing.status === nextEntry.status
+		&& (Object.hasOwn(existing, 'error') ? existing.error : undefined) === (Object.hasOwn(nextEntry, 'error') ? nextEntry.error : undefined)
+	);
+	writeOwn(profiles, key, {
+		...nextEntry,
+		updatedAt: unchanged && typeof existing.updatedAt === 'string' && existing.updatedAt
+			? existing.updatedAt
+			: new Date().toISOString(),
+	});
+	writeOwn(allState, '_profiles', profiles);
+}
+
+function loadSyncState() {
+	const statePath = fs.existsSync(STATE_FILE) ? STATE_FILE : (fs.existsSync(LEGACY_STATE_FILE) ? LEGACY_STATE_FILE : null);
+	if (!statePath) {
+		return { allState: {}, persistedJson: null };
+	}
+	try {
+		const rawText = fs.readFileSync(statePath, 'utf8');
+		const parsedState = JSON.parse(rawText);
+		if (parsedState && typeof parsedState === 'object') {
+			const isFlat = Object.values(parsedState).some(v => typeof v === 'string');
+			const allState = isFlat ? { 'legacy': parsedState } : parsedState;
+			return {
+				allState,
+				persistedJson: statePath === STATE_FILE ? rawText : null,
+			};
+		}
+	} catch (error) {
+		if (error && error.code === 'ENOENT') {
+			return { allState: {}, persistedJson: null };
+		}
+		console.warn(`⚠ Estado previo de NotebookLM corrupto o ilegible (${statePath}), se reinicia estado local: ${error?.message || error}`);
+		return { allState: {}, persistedJson: null };
+	}
+	return { allState: {}, persistedJson: null };
+}
+
+function persistSyncState(allState, persistedJson) {
+	const nextJson = JSON.stringify(allState, null, 2);
+	if (nextJson === persistedJson) {
+		return persistedJson;
+	}
+	fs.mkdirSync(STATE_DIR, { recursive: true });
+	fs.writeFileSync(STATE_FILE, nextJson, 'utf8');
+	return nextJson;
 }
 
 async function main() {
-	log('=== PIPELINE MULTI-CUADERNO NOTEBOOKLM (Ale / Alejandro / Donatello) ===');
+	log('=== PIPELINE NOTEBOOKLM (ale.fvaras@gmail.com -> "akibara") ===');
 
 	// 1. Verificar CLI notebooklm
 	if (!resolveNotebookLMBin()) {
@@ -429,12 +586,15 @@ async function main() {
 	const args = process.argv.slice(2);
 	let cliProfile = null;
 	let cliNotebook = null;
+	let strictMode = ['1', 'true', 'yes'].includes(String(process.env.NOTEBOOKLM_STRICT || '').toLowerCase());
 
 	for (let i = 0; i < args.length; i++) {
 		if (args[i] === '--profile' || args[i] === '-p') {
 			cliProfile = args[++i];
 		} else if (args[i] === '--notebook' || args[i] === '-n') {
 			cliNotebook = args[++i];
+		} else if (args[i] === '--strict') {
+			strictMode = true;
 		}
 	}
 
@@ -446,7 +606,7 @@ async function main() {
 	}
 
 	// 3. Determinar targets a sincronizar
-	let targets = [];
+	const targets = [];
 	const availableProfiles = getAvailableProfiles();
 
 	if (cliNotebook) {
@@ -455,30 +615,32 @@ async function main() {
 			notebookId: cliNotebook,
 			name: cliNotebook,
 			email: cliProfile,
+			role: 'primary',
 		});
 	} else if (cliProfile) {
 		const matched = KNOWN_TARGETS.filter(t => t.profile === cliProfile);
 		if (matched.length > 0) {
-			targets.push(...matched);
+			targets.push(...matched.map(t => ({ ...t, role: 'primary' })));
 		} else {
-			targets.push({ profile: cliProfile, notebookId: cliProfile, name: cliProfile, email: cliProfile });
+			targets.push({ profile: cliProfile, notebookId: cliProfile, name: cliProfile, email: cliProfile, role: 'primary' });
 		}
 	} else {
-		// Por defecto: sincronizar los 3 perfiles oficiales de Akibara
 		for (const target of KNOWN_TARGETS) {
 			if (!target.profile || availableProfiles.includes(target.profile)) {
-				targets.push(target);
-			} else {
-				log(`Aviso: Perfil "${target.profile}" no encontrado en ~/.notebooklm/profiles. Omitiendo "${target.name}".`);
+				targets.push({ ...target });
 			}
 		}
 
 		if (targets.length === 0) {
+			if (availableProfiles.length > 0 || strictMode) {
+				throw new Error('Perfil primario de NotebookLM ausente en ~/.notebooklm/profiles (esperado: ale-fvaras).');
+			}
 			targets.push({
 				profile: null,
 				notebookId: 'akibara',
 				name: 'akibara',
 				email: 'default',
+				role: 'primary',
 			});
 		}
 	}
@@ -517,31 +679,18 @@ async function main() {
 	log(`Total de documentos locales candidatos para sincronizar: ${localFiles.size}`);
 
 	// 5. Cargar estado de sincronización persistente
-	let allState = {};
-	if (fs.existsSync(STATE_FILE)) {
-		try {
-			const parsedState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-			if (parsedState && typeof parsedState === 'object') {
-				const isFlat = Object.values(parsedState).some(v => typeof v === 'string');
-				if (isFlat) {
-					allState = { 'legacy': parsedState };
-				} else {
-					allState = parsedState;
-				}
-			}
-		} catch {
-			allState = {};
-		}
-	}
+	const loadedState = loadSyncState();
+	const allState = loadedState.allState;
+	let persistedJson = loadedState.persistedJson;
 
-	// 6. Ejecutar sincronización para cada target
+	// 6. Ejecutar sincronización fail-closed únicamente sobre la cuenta autorizada
 	for (const target of targets) {
-		await syncTarget(target, localFiles, allState);
-		// Guardar progreso intermedio de hashes tras cada cuaderno
-		fs.writeFileSync(STATE_FILE, JSON.stringify(allState, null, 2), 'utf8');
+		const result = await syncTarget(target, localFiles, allState);
+		recordProfileHealth(allState, target, { status: 'SYNCED', notebookId: result.notebookId });
+		persistedJson = persistSyncState(allState, persistedJson);
 	}
 
-	log('\n=== PIPELINE DE FUENTES MULTI-CUADERNO COMPLETADO EXITOSAMENTE ===\n');
+	log(`\n=== PIPELINE DE FUENTES NOTEBOOKLM COMPLETADO EXITOSAMENTE (${targets.length} cuaderno(s)) ===\n`);
 }
 
 main().catch(err => {

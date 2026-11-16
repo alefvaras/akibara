@@ -35,7 +35,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 0.2.0
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidOperand
  * @psalm-suppress RedundantCast
  * @psalm-suppress RedundantCondition

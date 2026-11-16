@@ -25,6 +25,7 @@ jobs:
       - name: Checkout the exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up supported and production PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -55,6 +56,8 @@ jobs:
           npm run build
           git diff --exit-code -- public_html/wp-content/themes/akibara-gp/assets public_html/wp-content/plugins/akibara-search/assets
       - name: Run syntax, guardrail, PHP and JavaScript suites
+        env:
+          AKB_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
         run: bash tools/guardrail-ci.sh --full
       - name: Package verified runtime components
         if: matrix.php == '8.5.12'

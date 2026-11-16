@@ -58,12 +58,37 @@ def inspect(revisions):
     return 0
 
 
+def inspect_staged():
+    problems = set()
+    staged_names = git('diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z').split(b'\0')
+    paths = [raw.decode('utf-8', errors='strict') for raw in staged_names if raw]
+    for path in paths:
+        if private_path(path):
+            problems.add(path)
+            continue
+        blob = git('show', f':{path}', allow_absent=True)
+        if re.search(SECRET_PATTERN, blob.decode('utf-8', errors='replace')):
+            problems.add(path)
+    if problems:
+        print('BLOQUEADO: los cambios en stage incluyen rutas privadas o firmas de secretos.', file=sys.stderr)
+        for path in sorted(problems)[:12]:
+            print('  ' + path, file=sys.stderr)
+        return 1
+    print(f'PASS: {len(paths)} archivo(s) en stage sin rutas privadas ni secretos.')
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--revision')
     parser.add_argument('--pre-push', metavar='REMOTE')
+    parser.add_argument('--staged', action='store_true')
     args = parser.parse_args()
-    if bool(args.revision) == bool(args.pre_push): parser.error('Elige --revision o --pre-push')
+    modes = int(bool(args.revision)) + int(bool(args.pre_push)) + int(bool(args.staged))
+    if modes != 1:
+        parser.error('Elige exactamente uno de --revision, --pre-push o --staged')
+    if args.staged:
+        return inspect_staged()
     revisions = []
     if args.revision:
         revisions = [args.revision]

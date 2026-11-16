@@ -14,12 +14,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Admin-only balances and server-side report filtering. @api 
  * @psalm-suppress HookNotFound
- * @psalm-suppress PossiblyUnusedMethod
- * @psalm-suppress PossiblyUnusedReturnValue
- * @psalm-suppress UnusedProperty
- * @psalm-suppress HookNotFound
- * @psalm-suppress PossiblyUnusedMethod
- * @psalm-suppress PossiblyUnusedReturnValue
  * @psalm-suppress UnusedProperty
  */
 final class CustomersAdmin {

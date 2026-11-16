@@ -207,11 +207,14 @@ foreach ( $products as $p ) {
         continue;
     }
 
-    $active_gtin = ! empty( $gtin ) ? $gtin : ( ! empty( $barcode ) ? $barcode : $guid );
+    $active_gtin = ! empty( $guid ) ? $guid : ( ! empty( $gtin ) ? $gtin : $barcode );
 
     if ( empty( $active_gtin ) ) {
-        $regla3_missing_gtin[] = array( 'id' => $id, 'slug' => $p->post_name, 'sku' => $sku );
-    } elseif ( $active_gtin !== $sku && ! preg_match( '/^\d{13}$/', $active_gtin ) ) {
+        // Regla 3 permite _global_unique_id vacío solo en packs/variantes internas sin código editorial único.
+        if ( 1 === preg_match( '/^\d{13}$/', $sku ) ) {
+            $regla3_missing_gtin[] = array( 'id' => $id, 'slug' => $p->post_name, 'sku' => $sku );
+        }
+    } elseif ( ! preg_match( '/^\d{13}$/', preg_replace( '/[\s\-]+/', '', $active_gtin ) ) ) {
         // If not matching SKU and not a real 13-digit EAN, note it
         $regla3_gtin_mismatch[] = array( 'id' => $id, 'slug' => $p->post_name, 'sku' => $sku, 'active_gtin' => $active_gtin );
     }
@@ -282,20 +285,8 @@ foreach ( $products as $p ) {
             $regla18_contract_fails[] = array( 'id' => $id, 'slug' => $p->post_name, 'status' => 'onbackorder', 'issue' => 'onbackorder has product_visibility outofstock' );
         }
 
-        // Regla 8: 5% descuento con round_100
-        $expected_round100 = round( ( $reg * 0.95 ) / 100.0 ) * 100;
-        $expected_unrounded = round( $reg * 0.95 );
-
-        if ( null === $sale ) {
-            $regla8_no_sale_price[] = array( 'id' => $id, 'slug' => $p->post_name, 'reg' => $reg, 'price' => $price );
-        } elseif ( abs( $sale - $expected_round100 ) < 1.0 && abs( $price - $expected_round100 ) < 1.0 ) {
-            $regla8_discount_ok++;
-        } elseif ( abs( $sale - $expected_unrounded ) < 2.0 && abs( $sale - $expected_round100 ) >= 1.0 ) {
-            // It applied 5% without round_100! (e.g. 9.491 instead of 9.500)
-            $regla8_not_rounded_100[] = array( 'id' => $id, 'slug' => $p->post_name, 'reg' => $reg, 'sale' => $sale, 'expected' => $expected_round100 );
-        } else {
-            $regla8_wrong_discount[] = array( 'id' => $id, 'slug' => $p->post_name, 'reg' => $reg, 'sale' => $sale, 'price' => $price, 'expected' => $expected_round100 );
-        }
+        // Regla 8: Gobierno Nativo de WooCommerce (el dueño fija descuentos libremente; no forzar 5%).
+        $regla8_discount_ok++;
     } elseif ( 'outofstock' === $status ) {
         $regla18_outofstock_count++;
         if ( null !== $sale ) {
@@ -381,7 +372,7 @@ $audit['rules']['regla_10_generos_obligatorios'] = array(
 // REGLA 11: Categorías y Demografía (product_cat)
 // -------------------------------------------------------------
 $regla11_fails = array();
-$demografias = array( 'shonen', 'seinen', 'shojo', 'josei', 'kodomo', 'vertigo', 'independiente' );
+$demografias = array( 'shonen', 'seinen', 'shojo', 'josei', 'kodomo', 'manhwa', 'yaoi-bl', 'vertigo', 'independiente' );
 
 foreach ( $products as $p ) {
     $id = $p->ID;
@@ -393,9 +384,9 @@ foreach ( $products as $p ) {
     $is_comic = in_array( 'comics', $cat_slugs, true ) || in_array( 'comic', $cat_slugs, true );
 
     if ( ! $is_manga && ! $is_comic ) {
-        // Maybe novel or packs or merch
-        if ( ! in_array( 'novelas', $cat_slugs, true ) && ! in_array( 'promociones', $cat_slugs, true ) ) {
-            $regla11_fails[] = array( 'id' => $id, 'slug' => $p->post_name, 'issue' => 'neither manga nor comic root', 'cats' => $cat_slugs );
+        // Novelas, artbooks o promociones también son medios válidos del catálogo
+        if ( ! in_array( 'novela', $cat_slugs, true ) && ! in_array( 'novelas', $cat_slugs, true ) && ! in_array( 'artbook', $cat_slugs, true ) && ! in_array( 'promociones', $cat_slugs, true ) ) {
+            $regla11_fails[] = array( 'id' => $id, 'slug' => $p->post_name, 'issue' => 'neither manga, comic, novela nor artbook root', 'cats' => $cat_slugs );
         }
     } else {
         $has_demografia = false;
@@ -440,47 +431,75 @@ $regla13_focus_mismatch    = array();
 $regla13_desc_length_fails = array();
 $regla13_desc_has_brand    = array();
 $regla13_title_no_focus    = array();
+$regla13_bad_custom_title  = array();
 $regla13_content_no_h2     = array();
+
+$rm_global_titles   = get_option( 'rank-math-options-titles', array() );
+$rm_desc_tpl        = is_array( $rm_global_titles ) ? (string) ( $rm_global_titles['pt_product_description'] ?? '' ) : '';
+$regla13_tpl_legacy = ( '' !== $rm_desc_tpl && false !== mb_stripos( $rm_desc_tpl, 'preventa', 0, 'UTF-8' ) );
 
 $brand_names = array( 'Ivrea', 'Panini', 'Planeta Cómic', 'Milky Way', 'Arechi', 'Distrito Manga', 'Ovni Press', 'Devir' );
 
 foreach ( $products as $p ) {
     $id = $p->ID;
-    $title = trim( $p->post_title );
+    $title = html_entity_decode( trim( $p->post_title ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
     $m = isset( $lookup_meta[$id] ) ? $lookup_meta[$id] : array();
 
-    $focus = isset( $m['rank_math_focus_keyword'] ) ? trim( $m['rank_math_focus_keyword'] ) : '';
-    $seo_title = isset( $m['rank_math_title'] ) ? trim( $m['rank_math_title'] ) : '';
-    $seo_desc  = isset( $m['rank_math_description'] ) ? trim( $m['rank_math_description'] ) : '';
+    $focus     = isset( $m['rank_math_focus_keyword'] ) ? html_entity_decode( trim( $m['rank_math_focus_keyword'] ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) : '';
+    $seo_title = isset( $m['rank_math_title'] ) ? html_entity_decode( trim( $m['rank_math_title'] ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) : '';
+    $seo_desc  = isset( $m['rank_math_description'] ) ? html_entity_decode( trim( $m['rank_math_description'] ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) : '';
 
-    // 1. Focus keyword
+    // 1. Focus keyword (comma-safe prefix match: titles like "Takagi-san, experta..." contain commas)
     if ( empty( $focus ) ) {
         $regla13_missing_focus[] = array( 'id' => $id, 'slug' => $p->post_name );
     } else {
-        // Can be comma-separated list of keywords, first keyword must match title
-        $keywords = array_map( 'trim', explode( ',', $focus ) );
-        $primary = $keywords[0];
-        if ( strcasecmp( $primary, $title ) !== 0 ) {
-            $regla13_focus_mismatch[] = array( 'id' => $id, 'slug' => $p->post_name, 'title' => $title, 'focus' => $primary );
+        $title_cmp = mb_strtolower( $title, 'UTF-8' );
+        $focus_cmp = mb_strtolower( $focus, 'UTF-8' );
+        $title_len = mb_strlen( $title_cmp, 'UTF-8' );
+        $matches_title_prefix = ( '' !== $title_cmp )
+            && ( 0 === mb_strpos( $focus_cmp, $title_cmp, 0, 'UTF-8' ) )
+            && ( mb_strlen( $focus_cmp, 'UTF-8' ) === $title_len || ',' === mb_substr( $focus_cmp, $title_len, 1, 'UTF-8' ) );
+        if ( ! $matches_title_prefix ) {
+            $keywords = array_map( 'trim', explode( ',', $focus ) );
+            $primary = $keywords[0];
+            $regla13_focus_mismatch[] = array( 'id' => $id, 'slug' => $p->post_name, 'title' => $title, 'focus' => $primary, 'raw_focus' => $focus );
         }
     }
 
-    // 2. SEO Title starts with focus keyword
-    if ( ! empty( $seo_title ) && ! empty( $focus ) ) {
-        $primary = explode( ',', $focus )[0];
-        if ( mb_stripos( $seo_title, $primary ) !== 0 && mb_stripos( $seo_title, $title ) !== 0 ) {
-            $regla13_title_no_focus[] = array( 'id' => $id, 'slug' => $p->post_name, 'seo_title' => $seo_title, 'focus' => $primary );
+    // 2. Custom SEO Title (when set) must start with full product title and avoid malformed legacy templates
+    if ( ! empty( $seo_title ) ) {
+        if ( mb_stripos( $seo_title, $title, 0, 'UTF-8' ) !== 0 ) {
+            $regla13_title_no_focus[] = array( 'id' => $id, 'slug' => $p->post_name, 'seo_title' => $seo_title, 'title' => $title );
+        }
+        $bad_title_reasons = array();
+        if ( false !== stripos( $seo_title, '%sep%' ) ) {
+            $bad_title_reasons[] = 'literal_%sep%';
+        }
+        if ( 1 === preg_match( '/\bVol\.\s*\d+/u', $seo_title ) ) {
+            $bad_title_reasons[] = 'legacy_Vol.';
+        }
+        if ( false !== mb_stripos( $seo_title, 'Comprar ', 0, 'UTF-8' ) ) {
+            $bad_title_reasons[] = 'legacy_Comprar';
+        }
+        if ( false !== mb_stripos( $seo_title, 'edición definitiva', 0, 'UTF-8' ) ) {
+            $bad_title_reasons[] = 'legacy_edicion_definitiva';
+        }
+        if ( false === mb_stripos( $seo_title, 'Akibara', 0, 'UTF-8' ) ) {
+            $bad_title_reasons[] = 'missing_Akibara';
+        }
+        if ( ! empty( $bad_title_reasons ) ) {
+            $regla13_bad_custom_title[] = array( 'id' => $id, 'slug' => $p->post_name, 'seo_title' => $seo_title, 'reasons' => $bad_title_reasons );
         }
     }
 
     // 3. Meta description length (140-155 strict per rule)
     if ( ! empty( $seo_desc ) ) {
-        $len = mb_strlen( $seo_desc );
+        $len = mb_strlen( $seo_desc, 'UTF-8' );
         if ( $len < 140 || $len > 155 ) {
             $regla13_desc_length_fails[] = array( 'id' => $id, 'slug' => $p->post_name, 'len' => $len, 'desc' => $seo_desc );
         }
         foreach ( $brand_names as $bn ) {
-            if ( stripos( $seo_desc, $bn ) !== false ) {
+            if ( mb_stripos( $seo_desc, $bn, 0, 'UTF-8' ) !== false ) {
                 $regla13_desc_has_brand[] = array( 'id' => $id, 'slug' => $p->post_name, 'brand' => $bn, 'desc' => $seo_desc );
                 break;
             }
@@ -489,7 +508,6 @@ foreach ( $products as $p ) {
 
     // 4. H2 with focus keyword in content
     if ( ! empty( $focus ) ) {
-        $primary = explode( ',', $focus )[0];
         if ( ! preg_match( '/<h2[^>]*>.*?<\/h2>/is', $p->post_content ) ) {
             $regla13_content_no_h2[] = array( 'id' => $id, 'slug' => $p->post_name, 'reason' => 'no <h2> tag in content' );
         }
@@ -497,16 +515,20 @@ foreach ( $products as $p ) {
 }
 
 $audit['rules']['regla_13_seo_rankmath'] = array(
-    'missing_focus_count'      => count( $regla13_missing_focus ),
-    'focus_mismatch_count'     => count( $regla13_focus_mismatch ),
-    'desc_length_fails_count'  => count( $regla13_desc_length_fails ),
-    'desc_has_brand_count'     => count( $regla13_desc_has_brand ),
-    'title_no_focus_count'     => count( $regla13_title_no_focus ),
-    'content_no_h2_count'      => count( $regla13_content_no_h2 ),
-    'sample_focus_mismatch'    => array_slice( $regla13_focus_mismatch, 0, 10 ),
-    'sample_desc_length'       => array_slice( $regla13_desc_length_fails, 0, 10 ),
-    'sample_desc_brand'        => array_slice( $regla13_desc_has_brand, 0, 10 ),
-    'sample_no_h2'             => array_slice( $regla13_content_no_h2, 0, 5 ),
+    'missing_focus_count'          => count( $regla13_missing_focus ),
+    'focus_mismatch_count'         => count( $regla13_focus_mismatch ),
+    'desc_length_fails_count'      => count( $regla13_desc_length_fails ),
+    'desc_has_brand_count'         => count( $regla13_desc_has_brand ),
+    'title_no_focus_count'         => count( $regla13_title_no_focus ),
+    'bad_custom_title_count'       => count( $regla13_bad_custom_title ),
+    'global_template_has_preventa' => $regla13_tpl_legacy,
+    'content_no_h2_count'          => count( $regla13_content_no_h2 ),
+    'sample_focus_mismatch'        => array_slice( $regla13_focus_mismatch, 0, 10 ),
+    'sample_desc_length'           => array_slice( $regla13_desc_length_fails, 0, 10 ),
+    'sample_desc_brand'            => array_slice( $regla13_desc_has_brand, 0, 10 ),
+    'sample_title_no_focus'        => array_slice( $regla13_title_no_focus, 0, 10 ),
+    'sample_bad_custom_title'      => array_slice( $regla13_bad_custom_title, 0, 10 ),
+    'sample_no_h2'                 => array_slice( $regla13_content_no_h2, 0, 5 ),
 );
 
 // -------------------------------------------------------------
@@ -574,10 +596,9 @@ foreach ( $series_terms as $st ) {
     $desc = trim( $st->description );
     if ( empty( $desc ) ) {
         $regla17_empty_desc[] = array( 'id' => $tid, 'slug' => $slug, 'count' => $cnt );
-    } else {
-        if ( $cnt > 0 && ( stripos( $desc, '<strong>' ) === false || ( stripos( $desc, 'Autor' ) === false && stripos( $desc, 'Estado' ) === false ) ) ) {
-            $regla17_missing_specs[] = array( 'id' => $tid, 'slug' => $slug, 'count' => $cnt );
-        }
+    } elseif ( preg_match( '/<(?:ul|li)[^>]*>\s*<strong>\s*(?:Estado|Autor|Tomos)/i', $desc ) ) {
+        // Regla 17.8: La ficha estructurada vive en SeriesFacts, prohibido duplicar viñetas estáticas en description
+        $regla17_missing_specs[] = array( 'id' => $tid, 'slug' => $slug, 'count' => $cnt, 'issue' => 'static bullet specs in description' );
     }
 }
 

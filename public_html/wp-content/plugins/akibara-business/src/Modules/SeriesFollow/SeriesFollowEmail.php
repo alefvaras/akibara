@@ -23,10 +23,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.110.2
  * @api
- * @psalm-suppress PossiblyUnusedParam
- * @psalm-suppress UnusedMethod
- * @psalm-suppress PossiblyUnusedParam
- * @psalm-suppress UnusedMethod
  */
 class SeriesFollowEmail extends AkibaraEmail {
 

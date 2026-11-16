@@ -21,8 +21,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class AnalyticsAfterLoad {
 

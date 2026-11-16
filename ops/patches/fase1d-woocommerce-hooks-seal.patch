@@ -1,0 +1,713 @@
+diff --git a/tools/psalm/woocommerce/hooks.json b/tools/psalm/woocommerce/hooks.json
+index b310325..bda56f2 100644
+--- a/tools/psalm/woocommerce/hooks.json
++++ b/tools/psalm/woocommerce/hooks.json
+@@ -569,6 +569,600 @@
+           }
+         ]
+       }
++    },
++    {
++      "name": "woocommerce_order_status_{$status_transition['to']}",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-order.php",
++      "type": "action",
++      "args": 3,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "int"
++            ],
++            "variable": "$order_id",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Order"
++            ],
++            "variable": "$order",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$status_transition",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      },
++      "aliases": [
++        "woocommerce_order_status_on-hold"
++      ]
++    },
++    {
++      "name": "woocommerce_address_providers",
++      "file": "public_html/wp-content/plugins/woocommerce/src/Internal/AddressProvider/AddressProviderController.php",
++      "type": "filter",
++      "args": 1,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$providers",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_blocks_enqueue_cart_block_scripts_after",
++      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Cart.php",
++      "type": "action",
++      "args": 0,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": []
++      }
++    },
++    {
++      "name": "woocommerce_blocks_enqueue_checkout_block_scripts_after",
++      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Checkout.php",
++      "type": "action",
++      "args": 0,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": []
++      }
++    },
++    {
++      "name": "woocommerce_get_country_locale",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-countries.php",
++      "type": "filter",
++      "args": 1,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$locale",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_get_default_value_for_{$key}",
++      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php",
++      "type": "filter",
++      "args": 3,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "mixed"
++            ],
++            "variable": "$value",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$group",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Data"
++            ],
++            "variable": "$wc_object",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_checkout_validate_order_before_payment",
++      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/OrderController.php",
++      "type": "action",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "WC_Order"
++            ],
++            "variable": "$order",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WP_Error"
++            ],
++            "variable": "$validation_errors",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_set_additional_field_value",
++      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php",
++      "type": "action",
++      "args": 4,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$key",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "mixed"
++            ],
++            "variable": "$value",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$group",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Customer",
++              "WC_Order"
++            ],
++            "variable": "$wc_object",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_cart_loaded_from_session",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-cart-session.php",
++      "type": "action",
++      "args": 1,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "WC_Cart"
++            ],
++            "variable": "$cart",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_before_{$this->object_type}_object_save",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/abstracts/abstract-wc-data.php",
++      "type": "action",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "WC_Data"
++            ],
++            "variable": "$object",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Data_Store_WP"
++            ],
++            "variable": "$data_store",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      },
++      "aliases": [
++        "woocommerce_before_customer_object_save"
++      ]
++    },
++    {
++      "name": "woocommerce_store_api_cart_update_customer_from_request",
++      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartUpdateCustomer.php",
++      "type": "action",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "WC_Customer"
++            ],
++            "variable": "$customer",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WP_REST_Request"
++            ],
++            "variable": "$request",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_store_api_checkout_update_order_from_request",
++      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/CheckoutTrait.php",
++      "type": "action",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "WC_Order"
++            ],
++            "variable": "$order",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WP_REST_Request"
++            ],
++            "variable": "$request",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_init",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-woocommerce.php",
++      "type": "action",
++      "args": 0,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": []
++      }
++    },
++    {
++      "name": "woocommerce_store_api_cart_select_shipping_rate",
++      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartSelectShippingRate.php",
++      "type": "action",
++      "args": 3,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "string",
++              "null"
++            ],
++            "variable": "$package_id",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$rate_id",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WP_REST_Request"
++            ],
++            "variable": "$request",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_cart_shipping_packages",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-cart.php",
++      "type": "filter",
++      "args": 1,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$packages",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_blocks_loaded",
++      "file": "public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Bootstrap.php",
++      "type": "action",
++      "args": 0,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": []
++      }
++    },
++    {
++      "name": "woocommerce_privacy_export_order_personal_data_meta",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-exporters.php",
++      "type": "filter",
++      "args": 1,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$meta_to_export",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_privacy_remove_order_personal_data_meta",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-erasers.php",
++      "type": "filter",
++      "args": 1,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$meta_to_remove",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_privacy_remove_order_personal_data_meta_value",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-erasers.php",
++      "type": "filter",
++      "args": 5,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$anon_value",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$meta_key",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$value",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "string"
++            ],
++            "variable": "$data_type",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Order"
++            ],
++            "variable": "$order",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_privacy_export_customer_personal_data",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-exporters.php",
++      "type": "filter",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$personal_data",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Customer"
++            ],
++            "variable": "$customer",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_privacy_erase_personal_data_customer",
++      "file": "public_html/wp-content/plugins/woocommerce/includes/class-wc-privacy-erasers.php",
++      "type": "filter",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$response",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "WC_Customer"
++            ],
++            "variable": "$customer",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
++    },
++    {
++      "name": "woocommerce_get_item_data",
++      "file": "public_html/wp-content/plugins/woocommerce/src/StoreApi/Schemas/V1/CartItemSchema.php",
++      "type": "filter",
++      "args": 2,
++      "doc": {
++        "description": "Contract verified against the installed WooCommerce producer.",
++        "long_description": "",
++        "long_description_html": "",
++        "tags": [
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$item_data",
++            "content": "Argument emitted by the WooCommerce producer."
++          },
++          {
++            "name": "param",
++            "types": [
++              "array"
++            ],
++            "variable": "$cart_item",
++            "content": "Argument emitted by the WooCommerce producer."
++          }
++        ]
++      }
+     }
+   ]
+ }
+diff --git a/tools/test-woocommerce-hook-metadata.mjs b/tools/test-woocommerce-hook-metadata.mjs
+index 8aa01cc..3f53a88 100644
+--- a/tools/test-woocommerce-hook-metadata.mjs
++++ b/tools/test-woocommerce-hook-metadata.mjs
+@@ -34,7 +34,29 @@ const contracts = [
+ 	['woocommerce_order_details_after_order_table', wct + 'order/order-details.php', 'action', ['WC_Order']],
+ 	['woocommerce_package_rates', wc + 'class-wc-shipping.php', 'filter', ['array', 'array']],
+ 	['woocommerce_order_item_get_formatted_meta_data', wc + 'class-wc-order-item.php', 'filter', ['array', 'WC_Order_Item']],
+-	['woocommerce_cart_shipping_method_full_label', wc + 'wc-cart-functions.php', 'filter', ['string', 'WC_Shipping_Rate']]
++	['woocommerce_cart_shipping_method_full_label', wc + 'wc-cart-functions.php', 'filter', ['string', 'WC_Shipping_Rate']],
++	['woocommerce_order_status_{$status_transition[\'to\']}', wc + 'class-wc-order.php', 'action', ['int', 'WC_Order', 'array']],
++	['woocommerce_address_providers', 'public_html/wp-content/plugins/woocommerce/src/Internal/AddressProvider/AddressProviderController.php', 'filter', ['array']],
++	['woocommerce_blocks_enqueue_cart_block_scripts_after', 'public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Cart.php', 'action', []],
++	['woocommerce_blocks_enqueue_checkout_block_scripts_after', 'public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Checkout.php', 'action', []],
++	['woocommerce_get_country_locale', wc + 'class-wc-countries.php', 'filter', ['array']],
++	['woocommerce_get_default_value_for_{$key}', 'public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php', 'filter', ['mixed', 'string', 'WC_Data']],
++	['woocommerce_checkout_validate_order_before_payment', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/OrderController.php', 'action', ['WC_Order', 'WP_Error']],
++	['woocommerce_set_additional_field_value', 'public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php', 'action', ['string', 'mixed', 'string', 'WC_Customer|WC_Order']],
++	['woocommerce_cart_loaded_from_session', wc + 'class-wc-cart-session.php', 'action', ['WC_Cart']],
++	['woocommerce_before_{$this->object_type}_object_save', wc + 'abstracts/abstract-wc-data.php', 'action', ['WC_Data', 'WC_Data_Store_WP']],
++	['woocommerce_store_api_cart_update_customer_from_request', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartUpdateCustomer.php', 'action', ['WC_Customer', 'WP_REST_Request']],
++	['woocommerce_store_api_checkout_update_order_from_request', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/CheckoutTrait.php', 'action', ['WC_Order', 'WP_REST_Request']],
++	['woocommerce_init', wc + 'class-woocommerce.php', 'action', []],
++	['woocommerce_store_api_cart_select_shipping_rate', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartSelectShippingRate.php', 'action', ['string|null', 'string', 'WP_REST_Request']],
++	['woocommerce_cart_shipping_packages', wc + 'class-wc-cart.php', 'filter', ['array']],
++	['woocommerce_blocks_loaded', 'public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Bootstrap.php', 'action', []],
++	['woocommerce_privacy_export_order_personal_data_meta', wc + 'class-wc-privacy-exporters.php', 'filter', ['array']],
++	['woocommerce_privacy_remove_order_personal_data_meta', wc + 'class-wc-privacy-erasers.php', 'filter', ['array']],
++	['woocommerce_privacy_remove_order_personal_data_meta_value', wc + 'class-wc-privacy-erasers.php', 'filter', ['string', 'string', 'string', 'string', 'WC_Order']],
++	['woocommerce_privacy_export_customer_personal_data', wc + 'class-wc-privacy-exporters.php', 'filter', ['array', 'WC_Customer']],
++	['woocommerce_privacy_erase_personal_data_customer', wc + 'class-wc-privacy-erasers.php', 'filter', ['array', 'WC_Customer']],
++	['woocommerce_get_item_data', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Schemas/V1/CartItemSchema.php', 'filter', ['array', 'array']]
+ ];
+ 
+ test('WooCommerce hook metadata matches the ten independently reviewed producer contracts and real AST calls', () => {
+@@ -51,12 +73,39 @@ test('WooCommerce hook metadata matches the ten independently reviewed producer
+ require $argv[1] . '/vendor/autoload.php';
+ $parser = (new PhpParser\ParserFactory())->createForNewestSupportedVersion();
+ function hook_name(PhpParser\Node $node): ?string {
+-    if ($node instanceof PhpParser\Node\Scalar\String_) { return $node->value; }
+-    if ($node instanceof PhpParser\Node\Expr\Variable && is_string($node->name)) { return '{$' . $node->name . '}'; }
++    if ($node instanceof PhpParser\Node\Scalar\String_ || $node instanceof PhpParser\Node\InterpolatedStringPart || $node instanceof PhpParser\Node\Scalar\EncapsedStringPart) {
++        return $node->value;
++    }
++    if ($node instanceof PhpParser\Node\Expr\Variable && is_string($node->name)) {
++        return '{$' . $node->name . '}';
++    }
+     if ($node instanceof PhpParser\Node\Expr\BinaryOp\Concat) {
+         $a = hook_name($node->left); $b = hook_name($node->right);
+         return null !== $a && null !== $b ? $a . $b : null;
+     }
++    if ($node instanceof PhpParser\Node\Scalar\InterpolatedString || $node instanceof PhpParser\Node\Scalar\Encapsed) {
++        $out = '';
++        foreach ($node->parts as $part) {
++            $piece = hook_name($part);
++            if (null === $piece) { return null; }
++            $out .= $piece;
++        }
++        return $out;
++    }
++    if ($node instanceof PhpParser\Node\Expr\PropertyFetch && $node->name instanceof PhpParser\Node\Identifier) {
++        $base = hook_name($node->var);
++        return null !== $base && str_starts_with($base, '{$') && str_ends_with($base, '}')
++            ? substr($base, 0, -1) . '->' . $node->name->toString() . '}'
++            : null;
++    }
++    if ($node instanceof PhpParser\Node\Expr\ArrayDimFetch && null !== $node->dim) {
++        $base = hook_name($node->var);
++        $dim  = hook_name($node->dim);
++        if (null !== $base && null !== $dim && str_starts_with($base, '{$') && str_ends_with($base, '}')) {
++            $key = ($node->dim instanceof PhpParser\Node\Scalar\String_) ? "'" . $dim . "'" : $dim;
++            return substr($base, 0, -1) . '[' . $key . ']}';
++        }
++    }
+     return null;
+ }
+ $result = [];
+@@ -83,7 +132,7 @@ echo json_encode($result, JSON_THROW_ON_ERROR);
+ 		assert.equal(hook.file, file, name);
+ 		assert.equal(hook.type, type, name);
+ 		assert.equal(hook.args, types.length, name);
+-		assert.deepEqual(hook.doc.tags.filter(tag => tag.name === 'param').map(tag => tag.types), types.map(value => [value]), name);
++		assert.deepEqual(hook.doc.tags.filter(tag => tag.name === 'param').map(tag => tag.types), types.map(value => value.split('|')), name);
+ 		assert.ok(producers.some(producer => producer.file === file && producer.name === name && producer.type === type && producer.args === types.length), 'Producer AST mismatch: ' + name);
+ 	}
+ });
+diff --git a/tools/verify-devsecops-seal.py b/tools/verify-devsecops-seal.py
+index 10898ca..ca0f613 100644
+--- a/tools/verify-devsecops-seal.py
++++ b/tools/verify-devsecops-seal.py
+@@ -16,7 +16,7 @@ SEALED_HASHES = {
+     "phpstan-bootstrap.php": "e18938fef6a9197914faf94c591b2af2043435fc1d1b5148d184af2b75203ff1",
+     "phpstan-dba-bootstrap.php": "effb37cfc4509c5eb8e9921d27b3e85ff20c0e64df715fe5169e42265420a8df",
+     "psalm.xml": "89ca2cc918ae3887a9645abcffd0756d2c0ae47877f568762df4db6854de8c89",
+-    "tools/psalm/woocommerce/hooks.json": "bb36fed5d71fb1bd571cb00cca6d33a03f0f1c1638b8b8ffc2497d2de3b0c658",
++    "tools/psalm/woocommerce/hooks.json": "d2440563ccf69301e6b85608a51e5330666ad1f6e6f0cf18d563266f2fe379a4",
+     "phpcs.xml.dist": "9cebbd389045d97a847c1a3e0a3e9bed62dea36d3e9d00e7fd6cb83f2ed9f2b4",
+     "tools/akibara-business/phpcs.xml.dist": "af149cc75c666f691d36ff54130bb0432d35179c2c51354a3da5c1380a3bf3c1",
+     ".eslintrc.js": "f1bcc96dd1c31803b6070448e0f1e0525e7aae2d626ddcd4240a9e6cfa05c2f2",
+@@ -60,7 +60,7 @@ SEALED_HASHES = {
+     "tools/test-post-hygiene-verdict.mjs": "b37cd1e495287a13013764a0b0ce029acda79cb15a72d4a2598fc4e64137f976",
+     "tools/test-muplugins-deploy.mjs": "c8bc21f92a32e7bab6f399dd90b50475e1c835a46576ad6f07eeab23986d5cbd",
+     "tools/test-mail-health.mjs": "2da89da17e7835fd2e712ab0a945a19819eeb7ebefea1e312a3608150dab5051",
+-    "tools/test-woocommerce-hook-metadata.mjs": "ee1092be47dfe4a281ad686e95b94bd58497d64596636b3ba55f241dd3ca2415",
++    "tools/test-woocommerce-hook-metadata.mjs": "e0dc0549578a8dbf97c463acabc55cdd6d81a230b1d4a133e622092ccdd0e889",
+     "tools/test-build-search-assets.mjs": "cabb329a70c57e30d69805e8147d03382b32d837b378323b8c80ca5bb12428fc",
+ }
+ 

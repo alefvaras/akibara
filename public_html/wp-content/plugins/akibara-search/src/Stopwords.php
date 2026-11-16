@@ -21,8 +21,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 0.1.0
  * @api
- * @psalm-suppress MismatchingDocblockParamType
- * @psalm-suppress MismatchingDocblockParamType
  */
 final class Stopwords {
 

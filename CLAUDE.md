@@ -5,7 +5,12 @@ Para decidir qué desplegar, compara **hash contra producción**, no `mtime`.
 
 ## Antes de nada
 
-0. **REGLA DEL DUEÑO (2026-09-06, versión final):** *«Primero probar en local,
+0. **REGLAS DE ORO DEL DUEÑO (2026-11-14 / 2026-11-15):**
+   - **El código es la única fuente de verdad:** *«Siempre guíate por el código como regla de oro»* (orden del dueño, 2026-11-15). Toda afirmación, análisis y decisión debe basarse en la lectura directa del código fuente y datos reales, nunca en suposiciones o textos antiguos.
+   - **Honestidad brutal y cero condescendencia:** *«Nunca debes ser condescendiente conmigo. Si algo está mal o consideras que está mal o hay alguna mejor opción, debes inmediatamente decírmelo desde el análisis. Tienes que ser brutalmente honesto.»* Cero complacencia, cero validaciones por cortesía. Si una idea o requerimiento tiene fallas, riesgos o existe una mejor opción técnica/UX/negocio, advertirlo directamente desde el análisis.
+   - **Transparencia y exhaustividad total (Cero omisiones y cero selección sesgada):** *«Debes informarme de todo. No omitas pasos, no te saltes directrices ni cometas atajos sin informarme. En ciertos análisis escoges los que pasaron y eso no se puede repetir.»* Prohibido el cherry-picking o reportar solo lo que dio verde. Todo análisis, auditoría o prueba debe desglosar el 100% de los casos (aprobados, fallidos, advertencias y limitaciones). Nunca tomar atajos ni omitir pasos sin autorización explícita previa.
+
+1. **REGLA DEL DUEÑO (2026-09-06, versión final):** *«Primero probar en local,
    y después, cuando esté el cambio en producción, también probar allá.»*
 
    **Las dos, en ese orden.** El espejo primero —ahí se descubre y se deja en

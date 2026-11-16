@@ -18,7 +18,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @api
- * @psalm-suppress HookNotFound
  */
 final class RutPrivacy {
 

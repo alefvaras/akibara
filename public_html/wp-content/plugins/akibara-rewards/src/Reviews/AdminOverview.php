@@ -17,8 +17,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Review operations at the top of the program settings. @api 
- * @psalm-suppress PossiblyUnusedMethod
- * @psalm-suppress PossiblyUnusedMethod
  */
 // @phpstan-ignore complexity.classLike
 final class AdminOverview {

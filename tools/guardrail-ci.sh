@@ -51,6 +51,8 @@ python3 "${script_dir}/check-antigravity-policy.py"
 python3 "${script_dir}/test-antigravity-policy.py"
 python3 "${script_dir}/verify-devsecops-seal.py"
 python3 "${script_dir}/test-devsecops-seal.py"
+python3 "${script_dir}/test-fresh-auditor-gate.py"
+php "${script_dir}/test-guardrail-suppressions.php"
 python3 "${script_dir}/test-runtime-artifact-boundary.py"
 python3 "${script_dir}/ci-dependencies/test_materialize.py"
 
@@ -72,6 +74,14 @@ done
 
 printf '\n[3/7] Análisis AST; bloqueo estricto de errores y asignaciones muertas\n'
 php "${script_dir}/guardrail-ast-hygiene.php" --fail-on-error --fail-on-warning
+if [[ -n "${AKB_BASE_REF:-}" ]] && git -C "${repo_root}" rev-parse --verify "${AKB_BASE_REF}" >/dev/null 2>&1; then
+	suppr_base="${AKB_BASE_REF}"
+elif git -C "${repo_root}" rev-parse --verify origin/main >/dev/null 2>&1; then
+	suppr_base="origin/main"
+else
+	suppr_base="HEAD"
+fi
+php "${script_dir}/guardrail-suppressions.php" --base="$suppr_base" --r5=changed
 
 printf '\n[4/7] Presupuesto de consultas del carrito y candado de dominios erradicados\n'
 "$phpunit" -c "${script_dir}/akibara-business/phpunit.xml.dist" \

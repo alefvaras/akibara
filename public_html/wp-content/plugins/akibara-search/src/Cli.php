@@ -19,9 +19,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.55.0
  * @api
- * @psalm-suppress UnusedParam
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedParam
  */
 final class Cli {
 
@@ -182,6 +180,19 @@ final class Cli {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} recorre las cuatro tablas propias del plugin (docs, tokens, facetas y qlog, todas $wpdb->prefix + literal fijo) y el COUNT no lleva ningún valor que preparar.
 			$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 			\WP_CLI::log( sprintf( '%-7s %s filas  (%s)', $label, null === $count ? 'SIN TABLA' : $count, $table ) );
+		}
+
+		$live_ok          = Install::live_schema_ready();
+		$work_ok          = Install::work_schema_ready();
+		$external_indexes = Install::detected_external_indexes();
+		\WP_CLI::log( sprintf( 'schema  live=%s work=%s', $live_ok ? 'OK' : 'INVALID', $work_ok ? 'OK' : 'INVALID' ) );
+		if ( ! empty( $external_indexes ) ) {
+			\WP_CLI::log( 'índices externos tolerados (Hostinger wdbi_*):' );
+			foreach ( $external_indexes as $ext_table => $indexes ) {
+				foreach ( $indexes as $idx_name => $meta ) {
+					\WP_CLI::log( sprintf( '  %s.%s (%s)', $ext_table, $idx_name, implode( ', ', $meta['columns'] ) ) );
+				}
+			}
 		}
 
 		$last = get_option( RebuildJob::OPTION_LAST );

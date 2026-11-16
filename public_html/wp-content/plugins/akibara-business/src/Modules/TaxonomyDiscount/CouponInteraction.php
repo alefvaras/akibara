@@ -18,8 +18,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 1.16.1
  * @api
  * @psalm-suppress HookNotFound
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class CouponInteraction {
 

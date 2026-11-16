@@ -18,7 +18,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  */
 final class Endpoint {
 

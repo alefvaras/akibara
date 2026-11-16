@@ -20,8 +20,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 1.96.0
  * @api
- * @psalm-suppress MissingOverrideAttribute
- * @psalm-suppress MissingOverrideAttribute
  */
 final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 
@@ -33,7 +31,6 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 * @param string              $key    HMAC-derived option key.
 	 * @param array<string,mixed> $record Authoritative record.
 	 * @return bool Whether the row was inserted.
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function create_if_absent( string $key, array $record ): bool {
@@ -66,7 +63,6 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 * @param array<string,mixed> $expected    Exact expected record.
 	 * @param array<string,mixed> $replacement Replacement record.
 	 * @return bool Whether the compare-and-swap succeeded.
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function compare_and_swap( string $key, array $expected, array $replacement ): bool {
@@ -100,7 +96,6 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 *
 	 * @param string $key HMAC-derived option key.
 	 * @return array<string,mixed>|null
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get( string $key ): ?array {
@@ -135,7 +130,6 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 * @param int $now   Current Unix timestamp.
 	 * @param int $limit Maximum rows to delete.
 	 * @return int Deleted row count.
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function cleanup_expired( int $now, int $limit ): int {

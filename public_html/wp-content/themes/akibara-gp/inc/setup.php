@@ -34,7 +34,6 @@ defined( 'ABSPATH' ) || exit;
  * Owner edita todos en wp-admin → Apariencia → Menús, asignando cada menú
  * creado a la location correspondiente. Si una location no tiene menú asignado
  * el theme oculta esa columna sin romper el layout.
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
  */
 function akibara_gp_setup(): void {

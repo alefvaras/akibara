@@ -31,8 +31,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.116.0
  * @api
- * @psalm-suppress MissingOverrideAttribute
- * @psalm-suppress MissingOverrideAttribute
  */
 final class GatewayEmail extends WC_Email {
 
@@ -106,7 +104,6 @@ final class GatewayEmail extends WC_Email {
 	 * Sin pantalla de ajustes: estos correos no se configuran desde WooCommerce.
 	 *
 	 * @return void
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function init_form_fields(): void {
@@ -117,7 +114,6 @@ final class GatewayEmail extends WC_Email {
 	 * El cuerpo llega ya ensamblado a `send()`; esta clase no renderiza plantillas.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_content_html(): string {
@@ -128,7 +124,6 @@ final class GatewayEmail extends WC_Email {
 	 * Parte en texto plano consumida por `WC_Email::handle_multipart()`.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_content_plain(): string {

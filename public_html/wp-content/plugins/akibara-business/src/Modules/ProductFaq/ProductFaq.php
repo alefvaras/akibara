@@ -24,9 +24,7 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidArgument
- * @psalm-suppress UnusedParam
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedParam
  */
 final class ProductFaq {
 

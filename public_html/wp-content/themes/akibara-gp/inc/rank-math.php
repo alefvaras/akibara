@@ -13,8 +13,6 @@ defined( 'ABSPATH' ) || exit;
  * Exposes the featured image already rendered by single.php to Rank Math's
  * editor-only content analysis. This does not alter post_content or frontend
  * markup; it corrects the analyzer's otherwise incomplete view of the page.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_enqueue_rank_math_content_analysis(): void {
 	if ( ! defined( 'RANK_MATH_VERSION' ) ) {

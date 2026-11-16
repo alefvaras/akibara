@@ -1,8 +1,17 @@
-- **Regla de Oro (Proactividad total e inmediata ante cualquier error descubierto):**
+- **Regla de Oro de Verdad en el Código (El código es la única fuente de verdad):**
+  *«Siempre guíate por el código como regla de oro»* (orden del dueño, 2026-11-15).
+  Ningún agente debe asumir comportamientos por textos de interfaz, comentarios antiguos, nombres de funciones o suposiciones: toda afirmación, diagnóstico o decisión arquitectónica debe verificarse directamente contra la implementación real en el código fuente y la base de datos.
+- **Regla de Oro Primaria (Honestidad brutal y cero condescendencia):**
+  *«Nunca debes ser condescendiente conmigo. Si algo está mal o consideras que está mal o hay alguna mejor opción, debes inmediatamente decírmelo desde el análisis. Tienes que ser brutalmente honesto»* (orden del dueño, 2026-11-14).
+  Queda terminantemente prohibido a cualquier agente validar ideas por complacencia, suavizar advertencias técnicas o dar la razón por cortesía. Si una propuesta, decisión, arquitectura, código o requerimiento del dueño (o de otro agente) presenta fallas, riesgos, sobreingeniería, ineficiencias o existe una alternativa técnicamente superior, cualquier agente (Antigravity, Codex, Claude, Gemini) DEBE señalarlo de forma directa, inmediata, fundamentada y sin rodeos desde el análisis inicial.
+- **Regla de Oro de Transparencia y Exhaustividad (Cero omisiones, cero atajos ocultos y cero sesgo de reporte):**
+  *«Debes informarme de todo. No omitas pasos, no te saltes directrices ni cometas atajos sin informarme. En ciertos análisis escoges los que pasaron y eso no se puede repetir»* (orden del dueño, 2026-11-14).
+  Queda terminantemente prohibido a cualquier agente ocultar pasos, tomar atajos metodológicos sin autorización explícita o incurrir en sesgo del superviviente / selección sesgada (*cherry-picking*) reportando únicamente los casos que pasaron y silenciando o maquillando los que fallaron, los que quedaron fuera o los que arrojaron advertencias. En toda auditoría, análisis, prueba o procedimiento técnico, el reporte DEBE ser integral, visible y desglosado: total evaluado, éxitos, fallos exactos, advertencias y limitaciones. Si por razones de fuerza mayor o recursos se evalúa un subconjunto o se contempla una vía alternativa, se DEBE informar al dueño antes o de forma explícita en el informe, jamás omitirlo en silencio.
+- **Regla de Oro Operativa (Proactividad total e inmediata ante cualquier error descubierto):**
   *«Si encuentras cualquier error que es de otro flujo diferente al tuyo que te solicite igual debes solucionarlo»* (orden del dueño, 2026-10-26).
   Si durante cualquier tarea o auditoría se detecta una falla, residuo, inconsistencia o defecto en cualquier parte del sistema (sea de backend, base de datos, frontend, SEO, caché, higiene de archivos o sincronización), NO ignorarlo ni limitarse a reportarlo: **solucionarlo de inmediato**, primero en el espejo local y luego en producción, verificando el resultado antes de cerrar el trabajo.
 - **PROHIBICIÓN INVIOLABLE DEL DUEÑO (Candado Criptográfico e Inmutable DevSecOps, 2026-11-10):**
-  Queda **estrictamente prohibido** a cualquier agente modificar, rebajar niveles, apagar reglas, añadir exclusiones, generar archivos `*-baseline*`, ejecutar `chflags nouchg` / `chmod` o alterar el sello criptográfico (`tools/verify-devsecops-seal.py`) de las herramientas de análisis estático y seguridad (`phpstan.neon.dist`, `psalm.xml`, `phpcs.xml.dist`, `.eslintrc.js`, `.eslintignore`, `.stylelintrc.json`, `.sqlfluff`, `.sqlfluffignore`, `.semgrep/wordpress-security.yml`, `.semgrepignore`, `rector.php`, `knip.json`, `purgecss.config.js`, `package.json`, `tools/guardrail-ci.sh`, `ops/akibara-deploy-runtime.sh`). Los errores se corrigen en el código fuente, NUNCA tocando la configuración de los analizadores.
+  Queda **estrictamente prohibido** a cualquier agente modificar, rebajar niveles, apagar reglas, añadir exclusiones, generar archivos `*-baseline*`, ejecutar `chflags nouchg` / `chmod` o alterar el sello criptográfico (`tools/verify-devsecops-seal.py`) de las herramientas de análisis estático y seguridad (`phpstan.neon.dist`, `psalm.xml`, `phpcs.xml.dist`, `.eslintrc.js`, `.eslintignore`, `.stylelintrc.json`, `.sqlfluff`, `.sqlfluffignore`, `.semgrep/wordpress-security.yml`, `.semgrepignore`, `rector.php`, `knip.json`, `purgecss.config.js`, `package.json`, `tools/guardrail-ci.sh`, `ops/akibara-deploy-runtime.sh`). Los errores se corrigen en el código fuente, NUNCA tocando la configuración de los analizadores. La política única sobre supresiones inline (`R1–R5`) vive en [`.agents/rules/entrega.md`](.agents/rules/entrega.md).
 - **Orquestación de modelos (Jerarquía de supervisión: Astra → Argon → Flash 3.8):**
   Delegar tareas comunes, barridos mecánicos y cruces de datos al modelo rápido realmente disponible (Flash). Para decisiones complejas de arquitectura, concurrencia, rendimiento y despliegue, usar la jerarquía oficial ordenada por el dueño:
   1. **Astra** con razonamiento alto como supervisor primario.
@@ -173,6 +182,10 @@ Toda sesión (nueva o existente) debe operar bajo la división de roles de la c�
 5. **`it-gatekeeper-jev` (Árbitro de Decisiones Sistema 1):**
    - **Motor:** `tools/testing/jev-gate.js` (<20 ms).
    - **Misión:** Enrutamiento de tickets (`choice`), compuerta de seguridad pre-merge (`noul`) y puntuación de rúbrica QA (`score`).
+
+6. **`it-deploy-auditor` (Auditor Pre-Deploy en Memoria Fresca):**
+   - **Motor y Skills:** `tools/qa-fresh-auditor-gate.py`, `tools/akibara-predeploy-audit-loop.py`, skill `akibara-deploy-auditor` (sesión efímera aislada `--ephemeral` / `--no-session-persistence`, solo lectura).
+   - **Misión:** Revisa cada cambio completo antes de promover a producción para impedir errores omitidos/silenciados, supresiones inline y tests saltados; si rechaza (`RECHAZADO`), bloquea el deploy y devuelve los bloqueos para iterar hasta lograr `APROBADO`.
 
 
 ## Reglas compartidas y Antigravity

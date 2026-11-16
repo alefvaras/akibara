@@ -21,7 +21,6 @@ defined( 'ABSPATH' ) || exit;
  * invariable, y deja la etiqueta como nombre propio del campo.
  *
  * @return array<string, string>
- * @psalm-suppress InvalidArgument
  */
 function akibara_woo_blocks_message_overrides(): array {
 	return array(
@@ -43,7 +42,6 @@ function akibara_woo_blocks_message_overrides(): array {
  * @param string            $handle       Handle del script.
  * @param string            $domain       Text domain.
  * @return string|false|null
- * @psalm-suppress InvalidArgument
  */
 function akibara_woo_blocks_script_translations( $translations, $file, $handle, $domain ) {
 	if ( 'woocommerce' !== $domain || ! is_string( $translations ) || '' === $translations ) {

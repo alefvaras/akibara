@@ -62,8 +62,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 1.100.0
  * @api
  * @psalm-suppress InvalidArgument
- * @psalm-suppress UnusedReturnValue
- * @psalm-suppress UnusedReturnValue
  */
 final class SeriesIndex {
 

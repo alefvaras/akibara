@@ -39,13 +39,9 @@ use Akibara\Search\Admin\SettingsAdminView;
  * @api
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress InvalidArgument
- * @psalm-suppress InvalidNullableReturnType
  * @psalm-suppress InvalidReturnStatement
  * @psalm-suppress InvalidReturnType
- * @psalm-suppress NullableReturnStatement
- * @psalm-suppress UnusedParam
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedParam
  */
 // @phpstan-ignore complexity.classLike
 final class SearchAdminSection {

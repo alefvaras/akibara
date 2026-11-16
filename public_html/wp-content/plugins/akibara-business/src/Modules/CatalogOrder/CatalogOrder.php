@@ -41,9 +41,7 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress InvalidArgument
- * @psalm-suppress UnusedReturnValue
  * @psalm-suppress UnusedVariable
- * @psalm-suppress UnusedReturnValue
  */
 final class CatalogOrder {
 

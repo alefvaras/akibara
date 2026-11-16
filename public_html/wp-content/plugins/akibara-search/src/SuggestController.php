@@ -40,8 +40,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress RedundantCast
  * @psalm-suppress RedundantCondition
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class SuggestController {
 

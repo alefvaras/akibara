@@ -44,7 +44,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidArgument
  * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
  */
 // @phpstan-ignore complexity.classLike
 final class Accrual {

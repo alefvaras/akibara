@@ -21,7 +21,6 @@ const AKIBARA_RM_REDIRECTIONS_MAX_IDS = 500;
  * Permiso: el mismo que exige la pantalla oficial de Redirections.
  *
  * @return bool
- * @psalm-suppress MissingFile
  */
 function akibara_rm_redirections_can_manage(): bool {
 	return current_user_can( 'rank_math_redirections' ) || current_user_can( 'manage_options' ); // phpcs:ignore WordPress.WP.Capabilities.Unknown
@@ -32,7 +31,6 @@ function akibara_rm_redirections_can_manage(): bool {
  *
  * @param array<string,mixed> $row Fila cruda de la API oficial.
  * @return array<string,mixed>
- * @psalm-suppress MissingFile
  */
 function akibara_rm_redirections_row( array $row ): array {
 	$sources = maybe_unserialize( $row['sources'] ?? '' );
@@ -73,7 +71,6 @@ $GLOBALS['akibara_rm_redirections_truncado'] = array(); // @phpstan-ignore varTa
  *
  * @param array<int,string> $statuses Estados a incluir.
  * @return array<int,array<string,mixed>>
- * @psalm-suppress MissingFile
  */
 function akibara_rm_redirections_rows( array $statuses ): array {
 	$rows = array();
@@ -118,7 +115,6 @@ function akibara_rm_redirections_rows( array $statuses ): array {
  * Conteos por estado y código, vía lector oficial.
  *
  * @return array<string,mixed>
- * @psalm-suppress MissingFile
  */
 function akibara_rm_redirections_counts(): array {
 	$counts = array();
@@ -144,7 +140,6 @@ function akibara_rm_redirections_counts(): array {
  * @param array<int,string>   $from_states  Estados de origen permitidos.
  * @param string              $to_state     Estado destino.
  * @return array<string,mixed>|\WP_Error
- * @psalm-suppress MissingFile
  */
 function akibara_rm_redirections_change_status( array $input, array $from_states, string $to_state ) {
 	if ( ! class_exists( '\RankMath\Redirections\DB' ) ) {
@@ -240,7 +235,6 @@ function akibara_rm_redirections_change_status( array $input, array $from_states
  * Registra la ability de palabras clave de enfoque. No depende del módulo
  * Redirections: escribe la meta oficial `rank_math_focus_keyword`, exactamente
  * la que guarda la metabox de Rank Math.
- * @psalm-suppress MissingFile
  */
 function akibara_register_focus_keyword_ability(): void {
 	\wp_register_ability(

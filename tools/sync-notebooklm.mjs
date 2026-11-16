@@ -205,7 +205,7 @@ if (!fs.existsSync(syncSourcesScript)) {
 	throw new Error('Falta el sincronizador de fuentes NotebookLM.');
 }
 console.log('\n[NOTEBOOKLM] Sincronizando las fuentes y comprobando su estado remoto...');
-execFileSync('node', [syncSourcesScript], { stdio: 'inherit' });
+execFileSync('node', [syncSourcesScript, ...process.argv.slice(2)], { stdio: 'inherit' });
 console.log('  ✔ Fuentes de NotebookLM verificadas.');
 
 console.log(`\n=== SINCRONIZACIÓN EXITOSA ===`);

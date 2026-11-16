@@ -133,9 +133,8 @@ foreach ( $series_terms as $term ) {
                 'link' => $m[0],
             );
         }
-        // Check structured specs
-        $has_specs = ( stripos( $desc, 'Autor' ) !== false || stripos( $desc, 'Dibujo' ) !== false || stripos( $desc, 'Estado en' ) !== false );
-        if ( ! $has_specs && $count > 0 ) {
+        // Regla 17.8: La ficha técnica estructurada vive en SeriesFacts (`wp_termmeta`); `description` solo lleva sinopsis.
+        if ( empty( $estado ) && empty( $estado_edicion ) && $count > 0 ) {
             $report['series']['missing_structured_specs'][] = array(
                 'id'   => $term_id,
                 'slug' => $slug,
@@ -238,27 +237,9 @@ foreach ( $products as $prod ) {
         }
     }
 
-    // 3. Regla 8: onbackorder 5% discount
+    // 3. Regla 8: Gobierno Nativo de WooCommerce (sin imposición de 5% automático en onbackorder)
     $stock_status = isset( $meta['_stock_status'] ) ? $meta['_stock_status'] : '';
-    $reg_price = isset( $meta['_regular_price'] ) ? (float) $meta['_regular_price'] : 0.0;
     $sale_price = isset( $meta['_sale_price'] ) && '' !== $meta['_sale_price'] ? (float) $meta['_sale_price'] : null;
-    $price = isset( $meta['_price'] ) ? (float) $meta['_price'] : 0.0;
-
-    if ( 'onbackorder' === $stock_status ) {
-        if ( $reg_price > 0 ) {
-            $expected_sale = round( $reg_price * 0.95 );
-            if ( null === $sale_price || abs( $sale_price - $expected_sale ) > 2.0 || abs( $price - $expected_sale ) > 2.0 ) {
-                $report['products']['rule8_onbackorder_discount_fails'][] = array(
-                    'id'            => $id,
-                    'slug'          => $slug,
-                    'regular_price' => $reg_price,
-                    'sale_price'    => $sale_price,
-                    'price'         => $price,
-                    'expected_sale' => $expected_sale,
-                );
-            }
-        }
-    }
 
     // 4. Regla 15: outofstock
     if ( 'outofstock' === $stock_status ) {
@@ -271,26 +252,41 @@ foreach ( $products as $prod ) {
         }
     }
 
-    // 5. Regla 3: SKU & GTIN
-    $sku = isset( $meta['_sku'] ) ? trim( $meta['_sku'] ) : '';
+    // 5. Regla 3: SKU & GTIN (_global_unique_id Mod-10 y sin copias inválidas)
+    $sku  = isset( $meta['_sku'] ) ? trim( $meta['_sku'] ) : '';
+    $guid = isset( $meta['_global_unique_id'] ) ? trim( $meta['_global_unique_id'] ) : '';
     if ( empty( $sku ) ) {
         $report['products']['rule3_sku_missing'][] = array(
             'id'   => $id,
             'slug' => $slug,
         );
-    } else {
-        $gtin = isset( $meta['_gtin'] ) ? trim( $meta['_gtin'] ) : '';
-        $barcode = isset( $meta['_barcode'] ) ? trim( $meta['_barcode'] ) : '';
-        $guid = isset( $meta['_global_unique_id'] ) ? trim( $meta['_global_unique_id'] ) : '';
-        // If neither GTIN nor barcode is set, flag it
-        if ( empty( $gtin ) && empty( $barcode ) && empty( $guid ) ) {
+    }
+    if ( ! empty( $guid ) ) {
+        $clean_guid = preg_replace( '/[\s\-]+/', '', $guid );
+        $valid_gtin = ( 1 === preg_match( '/^\d{13}$/', $clean_guid ) );
+        if ( $valid_gtin ) {
+            $sum = 0;
+            for ( $gi = 0; $gi < 12; $gi++ ) {
+                $sum += (int) $clean_guid[ $gi ] * ( 0 === $gi % 2 ? 1 : 3 );
+            }
+            $valid_gtin = ( ( ( 10 - ( $sum % 10 ) ) % 10 ) === (int) $clean_guid[12] );
+        }
+        if ( ! $valid_gtin ) {
             $report['products']['rule3_gtin_mismatch'][] = array(
-                'id'   => $id,
-                'slug' => $slug,
-                'sku'  => $sku,
-                'reason' => 'gtin/barcode empty',
+                'id'     => $id,
+                'slug'   => $slug,
+                'sku'    => $sku,
+                'guid'   => $guid,
+                'reason' => 'invalid _global_unique_id GTIN-13 Mod-10',
             );
         }
+    } elseif ( preg_match( '/^\d{13}$/', $sku ) ) {
+        $report['products']['rule3_gtin_mismatch'][] = array(
+            'id'     => $id,
+            'slug'   => $slug,
+            'sku'    => $sku,
+            'reason' => '_global_unique_id empty while SKU has 13-digit barcode',
+        );
     }
 
     // 6. Regla 1 & 2: Norma editorial and external links in content/excerpt

@@ -39,8 +39,6 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress HookNotFound
  * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UnusedReturnValue
- * @psalm-suppress UnusedReturnValue
  */
 // @phpstan-ignore complexity.classLike
 final class CustomerCollection {

@@ -23,7 +23,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress InvalidArgument
  * @psalm-suppress RedundantCast
- * @psalm-suppress UnusedVariable
  */
 final class EdgePurge {
 

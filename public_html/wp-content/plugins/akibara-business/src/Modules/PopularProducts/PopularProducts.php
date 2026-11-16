@@ -25,8 +25,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress HookNotFound
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class PopularProducts {
 

@@ -94,8 +94,9 @@ final class HealthReport {
 			'last_rebuild'    => is_array( $last ) ? $last : array(),
 			'reconcile_last'  => is_array( $reconcile ) ? $reconcile : array(),
 			'reconcile_error' => is_array( $reconcile_error ) ? $reconcile_error : array(),
-			'missing_indexes' => Install::missing_indexes(),
-			'token_collation' => Install::token_collation(),
+			'missing_indexes'  => Install::missing_indexes(),
+			'external_indexes' => Install::detected_external_indexes(),
+			'token_collation'  => Install::token_collation(),
 			// Desglose de tres estados por funcionalidad:
 			//   configured: valor en options de WordPress;
 			//   published:  valor expuesto en la publicación semántica;

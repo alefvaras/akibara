@@ -28,8 +28,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 1.108.8
  * @api
- * @psalm-suppress UnusedConstructor
- * @psalm-suppress UnusedConstructor
  */
 final class SeriesSchemaType {
 

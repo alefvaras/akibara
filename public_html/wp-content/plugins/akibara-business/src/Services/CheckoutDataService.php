@@ -27,8 +27,6 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress ImplementedReturnTypeMismatch
  * @psalm-suppress LessSpecificImplementedReturnType
- * @psalm-suppress MissingOverrideAttribute
- * @psalm-suppress MissingOverrideAttribute
  */
 final class CheckoutDataService implements CheckoutDataProvider {
 
@@ -58,7 +56,6 @@ final class CheckoutDataService implements CheckoutDataProvider {
 	 * @return array<string,mixed>
 	 *
 	 * @since 1.96.0
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function structured_cart_data(): array {
@@ -76,7 +73,6 @@ final class CheckoutDataService implements CheckoutDataProvider {
 	 * @return array<string,bool|int|string|null>
 	 *
 	 * @since 1.95.0
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function product_availability( WC_Product $product ): array {
@@ -95,7 +91,6 @@ final class CheckoutDataService implements CheckoutDataProvider {
 	 * @return bool
 	 *
 	 * @since 1.95.0
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function is_valid_rut( string $rut ): bool {
@@ -109,7 +104,6 @@ final class CheckoutDataService implements CheckoutDataProvider {
 	 * @return string
 	 *
 	 * @since 1.95.0
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function format_rut( string $rut ): string {
@@ -123,7 +117,6 @@ final class CheckoutDataService implements CheckoutDataProvider {
 	 * @return array{code:string,message:string}|null
 	 *
 	 * @since 1.95.0
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function phone_validation_error( string $phone ): ?array {
@@ -136,7 +129,6 @@ final class CheckoutDataService implements CheckoutDataProvider {
 	 * @return array{enabled:bool,api_key:string,region_map:array<string,string>}
 	 *
 	 * @since 1.95.0
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function address_autocomplete_config(): array {

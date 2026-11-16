@@ -22,7 +22,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 1.53.0
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  */
 final class StockWatcher {
 

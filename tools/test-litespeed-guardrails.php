@@ -80,6 +80,7 @@ $barandas = array(
 	'O_MEDIA_LAZY'    => array( 'media-lazy', 'apagada' ),
 	'O_CACHE_EXC'     => array( 'cache-exc', 'rutas' ),
 	'O_CACHE_MOBILE'  => array( 'cache-mobile', 'apagada' ),
+	'O_OPTM_JS_DEFER' => array( 'optm-js_defer', 'defer' ),
 );
 
 $esperados = array();
@@ -89,7 +90,7 @@ foreach ( $barandas as $baranda ) {
 
 akibara_assert(
 	$esperados === array_keys( $akibara_test_filters ),
-	'las seis barandas deben registrarse, en este orden, y sólo ellas',
+	'las siete barandas deben registrarse, en este orden, y sólo ellas',
 	array_keys( $akibara_test_filters )
 );
 
@@ -110,6 +111,30 @@ foreach ( $barandas as $baranda ) {
 				false === call_user_func( $registro[0], $guardado ),
 				sprintf( '«%s» debe devolver false aunque la casilla esté activada (%s)', $hook, var_export( $guardado, true ) ),
 				call_user_func( $registro[0], $guardado )
+			);
+		}
+		continue;
+	}
+
+	if ( 'defer' === $contrato ) {
+		foreach (
+			array(
+				array( 0, 0 ),
+				array( '0', 0 ),
+				array( 1, 1 ),
+				array( 2, 1 ),
+				array( '2', 1 ),
+				array( 99, 1 ),
+				array( -5, 0 ),
+				array( null, 0 ),
+			) as $caso
+		) {
+			list( $entrada, $esperado ) = $caso;
+			$obtenido                   = call_user_func( $registro[0], $entrada );
+			akibara_assert(
+				$esperado === $obtenido,
+				sprintf( '«%s» con %s debe acotar el defer a %d', $hook, var_export( $entrada, true ), $esperado ),
+				$obtenido
 			);
 		}
 		continue;
@@ -199,7 +224,7 @@ if ( is_readable( $litespeed . '/base.cls.php' ) ) {
 	);
 
 	// Todas las barandas cuelgan del mismo mecanismo: `Root::conf()` dispara
-	// `litespeed_conf_load_option_{id}`. Si LiteSpeed lo renombra, las seis se quedan
+	// `litespeed_conf_load_option_{id}`. Si LiteSpeed lo renombra, las siete se quedan
 	// mudas y lo de arriba seguiría en verde.
 	akibara_assert(
 		1 === preg_match( "/'litespeed_conf_load_option_'\\s*\\.\\s*\\\$id/", (string) file_get_contents( $litespeed . '/root.cls.php' ) ),

@@ -56,10 +56,10 @@ final class CheckoutIntegration {
 		if ( did_action( 'woocommerce_blocks_loaded' ) ) {
 			$this->register_store_api();
 		} else {
-			add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api' ) );
+			add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api' ), 10, 0 );
 		}
-		add_action( 'woocommerce_blocks_enqueue_checkout_block_scripts_after', array( $this, 'enqueue_assets' ) );
-		add_action( 'woocommerce_blocks_enqueue_cart_block_scripts_after', array( $this, 'enqueue_assets' ) );
+		add_action( 'woocommerce_blocks_enqueue_checkout_block_scripts_after', array( $this, 'enqueue_assets' ), 10, 0 );
+		add_action( 'woocommerce_blocks_enqueue_cart_block_scripts_after', array( $this, 'enqueue_assets' ), 10, 0 );
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'render_classic_referral_notice' ), 5 );
 	}
 

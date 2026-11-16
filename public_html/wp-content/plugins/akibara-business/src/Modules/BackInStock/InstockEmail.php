@@ -24,9 +24,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.53.0
  * @api
- * @psalm-suppress PossiblyUnusedParam
  * @psalm-suppress UnusedProperty
- * @psalm-suppress PossiblyUnusedParam
  */
 class InstockEmail extends AkibaraEmail {
 

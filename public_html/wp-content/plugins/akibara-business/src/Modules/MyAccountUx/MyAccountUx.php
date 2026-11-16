@@ -27,8 +27,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
  * @psalm-suppress InvalidArgument
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class MyAccountUx {
 

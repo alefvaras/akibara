@@ -14,6 +14,7 @@ const originalConfig = readFileSync(configFile, 'utf8');
 const originalMetadata = readFileSync(metadataFile, 'utf8');
 const wc = 'public_html/wp-content/plugins/woocommerce/includes/';
 const productStore = wc + 'data-stores/class-wc-product-data-store-cpt.php';
+const wct = 'public_html/wp-content/plugins/woocommerce/templates/';
 const contracts = [
 	['woocommerce_get_query_vars', wc + 'class-wc-query.php', 'filter', ['array']],
 	['woocommerce_account_menu_items', wc + 'wc-account-functions.php', 'filter', ['array', 'array']],
@@ -24,7 +25,38 @@ const contracts = [
 	['woocommerce_product_set_stock', wc + 'wc-stock-functions.php', 'action', ['WC_Product']],
 	['woocommerce_variation_set_stock', wc + 'wc-stock-functions.php', 'action', ['WC_Product']],
 	['woocommerce_product_set_stock_status', productStore, 'action', ['int', 'string', 'WC_Product']],
-	['woocommerce_variation_set_stock_status', productStore, 'action', ['int', 'string', 'WC_Product']]
+	['woocommerce_variation_set_stock_status', productStore, 'action', ['int', 'string', 'WC_Product']],
+	['woocommerce_order_status_changed', wc + 'class-wc-order.php', 'action', ['int', 'string', 'string', 'WC_Order']],
+	['woocommerce_thankyou', wct + 'checkout/thankyou.php', 'action', ['int']],
+	['woocommerce_view_order', wct + 'myaccount/view-order.php', 'action', ['int']],
+	['woocommerce_email_before_order_table', wct + 'emails/email-order-details.php', 'action', ['WC_Order', 'bool', 'bool', 'WC_Email']],
+	['woocommerce_email_after_order_table', wct + 'emails/email-order-details.php', 'action', ['WC_Order', 'bool', 'bool', 'WC_Email']],
+	['woocommerce_order_details_after_order_table', wct + 'order/order-details.php', 'action', ['WC_Order']],
+	['woocommerce_package_rates', wc + 'class-wc-shipping.php', 'filter', ['array', 'array']],
+	['woocommerce_order_item_get_formatted_meta_data', wc + 'class-wc-order-item.php', 'filter', ['array', 'WC_Order_Item']],
+	['woocommerce_cart_shipping_method_full_label', wc + 'wc-cart-functions.php', 'filter', ['string', 'WC_Shipping_Rate']],
+	['woocommerce_order_status_{$status_transition[\'to\']}', wc + 'class-wc-order.php', 'action', ['int', 'WC_Order', 'array']],
+	['woocommerce_address_providers', 'public_html/wp-content/plugins/woocommerce/src/Internal/AddressProvider/AddressProviderController.php', 'filter', ['array']],
+	['woocommerce_blocks_enqueue_cart_block_scripts_after', 'public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Cart.php', 'action', []],
+	['woocommerce_blocks_enqueue_checkout_block_scripts_after', 'public_html/wp-content/plugins/woocommerce/src/Blocks/BlockTypes/Checkout.php', 'action', []],
+	['woocommerce_get_country_locale', wc + 'class-wc-countries.php', 'filter', ['array']],
+	['woocommerce_get_default_value_for_{$key}', 'public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php', 'filter', ['mixed', 'string', 'WC_Data']],
+	['woocommerce_checkout_validate_order_before_payment', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/OrderController.php', 'action', ['WC_Order', 'WP_Error']],
+	['woocommerce_set_additional_field_value', 'public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Services/CheckoutFieldsStorage.php', 'action', ['string', 'mixed', 'string', 'WC_Customer|WC_Order']],
+	['woocommerce_cart_loaded_from_session', wc + 'class-wc-cart-session.php', 'action', ['WC_Cart']],
+	['woocommerce_before_{$this->object_type}_object_save', wc + 'abstracts/abstract-wc-data.php', 'action', ['WC_Data', 'WC_Data_Store_WP']],
+	['woocommerce_store_api_cart_update_customer_from_request', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartUpdateCustomer.php', 'action', ['WC_Customer', 'WP_REST_Request']],
+	['woocommerce_store_api_checkout_update_order_from_request', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Utilities/CheckoutTrait.php', 'action', ['WC_Order', 'WP_REST_Request']],
+	['woocommerce_init', wc + 'class-woocommerce.php', 'action', []],
+	['woocommerce_store_api_cart_select_shipping_rate', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Routes/V1/CartSelectShippingRate.php', 'action', ['string|null', 'string', 'WP_REST_Request']],
+	['woocommerce_cart_shipping_packages', wc + 'class-wc-cart.php', 'filter', ['array']],
+	['woocommerce_blocks_loaded', 'public_html/wp-content/plugins/woocommerce/src/Blocks/Domain/Bootstrap.php', 'action', []],
+	['woocommerce_privacy_export_order_personal_data_meta', wc + 'class-wc-privacy-exporters.php', 'filter', ['array']],
+	['woocommerce_privacy_remove_order_personal_data_meta', wc + 'class-wc-privacy-erasers.php', 'filter', ['array']],
+	['woocommerce_privacy_remove_order_personal_data_meta_value', wc + 'class-wc-privacy-erasers.php', 'filter', ['string', 'string', 'string', 'string', 'WC_Order']],
+	['woocommerce_privacy_export_customer_personal_data', wc + 'class-wc-privacy-exporters.php', 'filter', ['array', 'WC_Customer']],
+	['woocommerce_privacy_erase_personal_data_customer', wc + 'class-wc-privacy-erasers.php', 'filter', ['array', 'WC_Customer']],
+	['woocommerce_get_item_data', 'public_html/wp-content/plugins/woocommerce/src/StoreApi/Schemas/V1/CartItemSchema.php', 'filter', ['array', 'array']]
 ];
 
 test('WooCommerce hook metadata matches the ten independently reviewed producer contracts and real AST calls', () => {
@@ -41,11 +73,38 @@ test('WooCommerce hook metadata matches the ten independently reviewed producer 
 require $argv[1] . '/vendor/autoload.php';
 $parser = (new PhpParser\ParserFactory())->createForNewestSupportedVersion();
 function hook_name(PhpParser\Node $node): ?string {
-    if ($node instanceof PhpParser\Node\Scalar\String_) { return $node->value; }
-    if ($node instanceof PhpParser\Node\Expr\Variable && is_string($node->name)) { return '{$' . $node->name . '}'; }
+    if ($node instanceof PhpParser\Node\Scalar\String_ || $node instanceof PhpParser\Node\InterpolatedStringPart || $node instanceof PhpParser\Node\Scalar\EncapsedStringPart) {
+        return $node->value;
+    }
+    if ($node instanceof PhpParser\Node\Expr\Variable && is_string($node->name)) {
+        return '{$' . $node->name . '}';
+    }
     if ($node instanceof PhpParser\Node\Expr\BinaryOp\Concat) {
         $a = hook_name($node->left); $b = hook_name($node->right);
         return null !== $a && null !== $b ? $a . $b : null;
+    }
+    if ($node instanceof PhpParser\Node\Scalar\InterpolatedString || $node instanceof PhpParser\Node\Scalar\Encapsed) {
+        $out = '';
+        foreach ($node->parts as $part) {
+            $piece = hook_name($part);
+            if (null === $piece) { return null; }
+            $out .= $piece;
+        }
+        return $out;
+    }
+    if ($node instanceof PhpParser\Node\Expr\PropertyFetch && $node->name instanceof PhpParser\Node\Identifier) {
+        $base = hook_name($node->var);
+        return null !== $base && str_starts_with($base, '{$') && str_ends_with($base, '}')
+            ? substr($base, 0, -1) . '->' . $node->name->toString() . '}'
+            : null;
+    }
+    if ($node instanceof PhpParser\Node\Expr\ArrayDimFetch && null !== $node->dim) {
+        $base = hook_name($node->var);
+        $dim  = hook_name($node->dim);
+        if (null !== $base && null !== $dim && str_starts_with($base, '{$') && str_ends_with($base, '}')) {
+            $key = ($node->dim instanceof PhpParser\Node\Scalar\String_) ? "'" . $dim . "'" : $dim;
+            return substr($base, 0, -1) . '[' . $key . ']}';
+        }
     }
     return null;
 }
@@ -73,7 +132,7 @@ echo json_encode($result, JSON_THROW_ON_ERROR);
 		assert.equal(hook.file, file, name);
 		assert.equal(hook.type, type, name);
 		assert.equal(hook.args, types.length, name);
-		assert.deepEqual(hook.doc.tags.filter(tag => tag.name === 'param').map(tag => tag.types), types.map(value => [value]), name);
+		assert.deepEqual(hook.doc.tags.filter(tag => tag.name === 'param').map(tag => tag.types), types.map(value => value.split('|')), name);
 		assert.ok(producers.some(producer => producer.file === file && producer.name === name && producer.type === type && producer.args === types.length), 'Producer AST mismatch: ' + name);
 	}
 });
@@ -117,8 +176,8 @@ add_action('woocommerce_product_set_stok', static function (WC_Product $product)
 				.replace(/((?:name|autoloader)=")([^"]+)(")/g, (all, before, value, after) => before + (path.isAbsolute(value) ? value : path.join(root, value)) + after)
 				.replace('vendor/vimeo/psalm/config.xsd', path.join(root, 'vendor/vimeo/psalm/config.xsd'));
 			writeFileSync(config, probeConfig);
-			const result = spawnSync(path.join(root, 'vendor/bin/psalm'), ['--config=' + config, '--threads=1', '--no-progress', '--taint-analysis'], {
-				cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024
+			const result = spawnSync(path.join(root, 'vendor/bin/psalm'), ['--config=' + config, '-m', '--threads=1', '--no-progress', '--taint-analysis'], {
+				cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' }
 			});
 			assert.equal(result.error, undefined, result.error?.message);
 			const output = result.stdout + result.stderr;

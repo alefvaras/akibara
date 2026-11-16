@@ -35,8 +35,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 0.4.1
  * @api
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class Disclosure {
 

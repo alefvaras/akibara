@@ -1,0 +1,84 @@
+diff --git a/public_html/wp-content/plugins/akibara-business/src/Modules/BacsLifecycle/BacsLifecycleManager.php b/public_html/wp-content/plugins/akibara-business/src/Modules/BacsLifecycle/BacsLifecycleManager.php
+index 571f82d..2d56ed7 100644
+--- a/public_html/wp-content/plugins/akibara-business/src/Modules/BacsLifecycle/BacsLifecycleManager.php
++++ b/public_html/wp-content/plugins/akibara-business/src/Modules/BacsLifecycle/BacsLifecycleManager.php
+@@ -18,7 +18,6 @@ defined( 'ABSPATH' ) || exit;
+ 
+ /**
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class BacsLifecycleManager {
+ 
+diff --git a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/AddressIntegration.php b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/AddressIntegration.php
+index 939c73a..9dfbe0c 100644
+--- a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/AddressIntegration.php
++++ b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/AddressIntegration.php
+@@ -18,7 +18,6 @@ defined( 'ABSPATH' ) || exit;
+  *
+  * @since 2.0.0
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class AddressIntegration {
+ 
+diff --git a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/Assets.php b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/Assets.php
+index 2aaba26..070cf73 100644
+--- a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/Assets.php
++++ b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/Assets.php
+@@ -16,7 +16,6 @@ defined( 'ABSPATH' ) || exit;
+  *
+  * @since 2.0.0
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class Assets {
+ 
+diff --git a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/CheckoutFields.php b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/CheckoutFields.php
+index db32ee0..f2cfd1f 100644
+--- a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/CheckoutFields.php
++++ b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/CheckoutFields.php
+@@ -21,7 +21,6 @@ defined( 'ABSPATH' ) || exit;
+  *
+  * @since 2.0.0
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class CheckoutFields {
+ 
+diff --git a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/PudoIntegration.php b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/PudoIntegration.php
+index 2f8ddf7..a73d2da 100644
+--- a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/PudoIntegration.php
++++ b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/PudoIntegration.php
+@@ -16,7 +16,6 @@ defined( 'ABSPATH' ) || exit;
+  *
+  * @since 2.1.0
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class PudoIntegration {
+ 
+diff --git a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/RutPrivacy.php b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/RutPrivacy.php
+index d421517..45842e5 100644
+--- a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/RutPrivacy.php
++++ b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/RutPrivacy.php
+@@ -18,7 +18,6 @@ defined( 'ABSPATH' ) || exit;
+ 
+ /**
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class RutPrivacy {
+ 
+diff --git a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/StoreApiIntegration.php b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/StoreApiIntegration.php
+index cc908d0..f7b6464 100644
+--- a/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/StoreApiIntegration.php
++++ b/public_html/wp-content/plugins/akibara-cart-checkout-blocks/src/StoreApiIntegration.php
+@@ -21,7 +21,6 @@ defined( 'ABSPATH' ) || exit;
+  *
+  * @since 2.0.0
+  * @api
+- * @psalm-suppress HookNotFound
+  */
+ final class StoreApiIntegration {
+ 

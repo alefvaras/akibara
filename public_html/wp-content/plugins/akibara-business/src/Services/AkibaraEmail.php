@@ -25,8 +25,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.110.1
  * @api
- * @psalm-suppress MissingOverrideAttribute
- * @psalm-suppress MissingOverrideAttribute
  */
 abstract class AkibaraEmail extends WC_Email {
 
@@ -52,7 +50,6 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Cuerpo HTML: mismo esqueleto para todos los correos de la casa.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_content_html(): string {
@@ -68,7 +65,6 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Cuerpo plain.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_content_plain(): string {
@@ -93,7 +89,6 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Cabeceras + List-Unsubscribe un-clic cuando el correo declara baja.
 	 *
 	 * @return string
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function get_headers(): string {
@@ -127,7 +122,6 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Pantalla de ajustes en `WooCommerce → Ajustes → Emails`.
 	 *
 	 * @return void
-	 * @psalm-suppress MissingOverrideAttribute
 	 */
 	#[\Override]
 	public function init_form_fields(): void {

@@ -23,8 +23,6 @@ defined( 'ABSPATH' ) || exit;
  * @param array  $args Argumentos HTTP.
  * @param string $url Destino HTTP.
  * @return array
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  */
 function akibara_brevo_imagenes_del_evento( array $args, string $url ): array {
 	if ( 'https://in-automate.brevo.com/api/v2/trackEvent' !== $url
@@ -63,7 +61,6 @@ function akibara_brevo_imagenes_del_evento( array $args, string $url ): array {
 
 /**
  * Registra el adaptador después del autoloader de Akibara Business (20). 
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
  */
 function akibara_brevo_registrar_imagenes(): void {
@@ -71,11 +68,9 @@ function akibara_brevo_registrar_imagenes(): void {
 		|| ! class_exists( '\Akibara\Business\Modules\SeoSocial\EmailImageDerivatives' ) ) {
 		return;
 	}
-	/** @psalm-suppress HookNotFound */
 	add_filter( 'http_request_args', 'akibara_brevo_imagenes_del_evento', 20, 2 );
 	add_filter( 'wp_generate_attachment_metadata', array( '\Akibara\Business\Modules\SeoSocial\EmailImageDerivatives', 'on_upload' ), 30, 2 );
 	add_action( 'akibara_brevo_email_image', array( '\Akibara\Business\Modules\SeoSocial\EmailImageDerivatives', 'url' ) );
-/** @psalm-suppress HookInvalidArgs */
 }
 
 /** @psalm-suppress HookInvalidArgs */

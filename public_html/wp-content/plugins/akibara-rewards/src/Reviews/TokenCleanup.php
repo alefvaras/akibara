@@ -21,7 +21,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 0.4.9
  * @api
  * @psalm-suppress HookInvalidArgs
- * @psalm-suppress UndefinedFunction
  */
 final class TokenCleanup {
 

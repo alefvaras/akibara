@@ -32,12 +32,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 0.1.41
  * @api
- * @psalm-suppress RedundantCast
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedThisPropertyFetch
- * @psalm-suppress RedundantCast
- * @psalm-suppress TypeDoesNotContainType
- * @psalm-suppress UndefinedThisPropertyFetch
  */
 trait FailsClosed {
 

@@ -66,7 +66,6 @@ defined( 'ABSPATH' ) || exit;
  * la condicional de WordPress y no por la URL porque el archive también se
  * sirve paginado (`/serie/one-piece/page/5/`) y bajo el PJAX del buscador
  * propio, y ambos casos deben ordenarse igual que la página 1.
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_is_series_archive(): bool {
 	return function_exists( 'is_tax' ) && is_tax( 'pa_serie' );
@@ -80,7 +79,6 @@ function akibara_gp_is_series_archive(): bool {
  * primera opción, `menu_order`), y akibara-business llama «Relevancia» a esa
  * opción. Nada de lo que este módulo cambia para la serie sin búsqueda (el
  * orden por tomo por defecto y el «Novedades primero») describe ese resultado.
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_search_active(): bool {
 	$raw = isset( $_GET['_buscar'] ) ? wp_unslash( $_GET['_buscar'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- lectura de un GET público de navegación del catálogo (igual que WooCommerce con `orderby`); se sanea más abajo, tras descartar la forma de array.
@@ -106,7 +104,6 @@ function akibara_gp_series_search_active(): bool {
  * garantía del catálogo (el padding numérico), no una preferencia editorial.
  *
  * @return array<string, string> Mapa clave de orden → etiqueta visible.
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_orderby_labels(): array {
 	return array(
@@ -134,7 +131,6 @@ function akibara_gp_series_orderby_labels(): array {
  *
  * @param mixed $orderby Valor por defecto vigente (normalmente `menu_order`).
  * @return mixed
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_default_orderby( $orderby ) {
 	return akibara_gp_is_series_archive() && ! akibara_gp_series_search_active() ? 'title' : $orderby;
@@ -156,7 +152,6 @@ add_filter( 'woocommerce_default_catalog_orderby', 'akibara_gp_series_default_or
  *
  * @param mixed $options Mapa clave → etiqueta del selector.
  * @return mixed
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_orderby_options( $options ) {
 	if ( ! is_array( $options ) || ! akibara_gp_is_series_archive() ) {
@@ -206,7 +201,6 @@ add_filter( 'woocommerce_catalog_orderby', 'akibara_gp_series_orderby_options', 
  *
  * @param array<string, string> $options Opciones que recibió la plantilla.
  * @return array<string, string>
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_orderby_restore_menu_order( array $options ): array {
 	if ( isset( $options['menu_order'] ) || ! akibara_gp_is_series_archive() ) {
@@ -252,7 +246,6 @@ function akibara_gp_series_orderby_restore_menu_order( array $options ): array {
  * @param mixed                 $orderby Opción marcada que calculó WooCommerce.
  * @param array<string, string> $options Opciones ya repuestas.
  * @return mixed
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_series_orderby_selected( $orderby, array $options ) {
 	if ( ! akibara_gp_is_series_archive() ) {
@@ -276,7 +269,6 @@ function akibara_gp_series_orderby_selected( $orderby, array $options ) {
 /**
  * Renderiza la barra SSR de salto por rango de tomos antes de la rejilla de productos.
  * Enganchada en `woocommerce_before_shop_loop` prioridad 36 (inmediatamente después del toolbar de filtros/ordenación).
- * @psalm-suppress HookNotFound
  */
 function akibara_gp_render_series_range_jump_bar(): void {
 	if ( ! akibara_gp_is_series_archive() ) {
