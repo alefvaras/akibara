@@ -11,6 +11,10 @@ namespace Akibara\Business\Modules\NativeCart;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class Settings {
 
 	/**
@@ -36,14 +40,10 @@ final class Settings {
 	public const OPTION_SHOW_RECOMMENDATIONS       = 'akibara_native_cart_show_recommendations';
 	public const OPTION_RECOMMENDATION_LIMIT       = 'akibara_native_cart_recommendation_limit';
 	public const OPTION_RECOMMENDATION_SOURCE      = 'akibara_native_cart_recommendation_source';
-	public const OPTION_SHOW_BYP_POLICY            = 'akibara_native_cart_show_byp_policy';
-	public const OPTION_SHOW_PREVENTA_POLICY       = 'akibara_native_cart_show_preventa_policy';
 	public const OPTION_EMPTY_COPY                 = 'akibara_native_cart_empty_copy';
 	public const OPTION_CHECKOUT_COPY              = 'akibara_native_cart_checkout_copy';
 	public const OPTION_CONTINUE_COPY              = 'akibara_native_cart_continue_copy';
 	public const OPTION_CONTINUE_URL               = 'akibara_native_cart_continue_url';
-	public const OPTION_BYP_POLICY_COPY            = 'akibara_native_cart_byp_policy_copy';
-	public const OPTION_PREVENTA_POLICY_COPY       = 'akibara_native_cart_preventa_policy_copy';
 	public const OPTION_REDUCED_MOTION             = 'akibara_native_cart_reduced_motion';
 	public const OPTION_RECOMMENDATIONS_COPY       = 'akibara_native_cart_recommendations_copy';
 	/**
@@ -84,8 +84,6 @@ final class Settings {
 	private const DEFAULT_EMPTY_COPY           = 'Aún no agregas títulos. Explora nuestro catálogo de manga y cómics y encuentra tu próxima lectura.';
 	private const DEFAULT_CHECKOUT_COPY        = 'Pagar pedido';
 	private const DEFAULT_CONTINUE_COPY        = 'Seguir comprando';
-	private const DEFAULT_BYP_POLICY_COPY      = 'Los descuentos de Arma tu Pack se calculan al actualizar el carrito.';
-	private const DEFAULT_PREVENTA_POLICY_COPY = 'Si mezclas {tipo} con stock listo, se enviará en un despacho único al reunirse todos los tomos de tu pedido.';
 	private const DEFAULT_RECOMMENDATIONS_COPY = 'También te puede gustar';
 	private const DEFAULT_RECOMMENDATION_ADD_COPY = 'Agregar';
 
@@ -311,34 +309,7 @@ final class Settings {
 			// dueño leía una promesa en el admin y el cliente veía otra frase en el
 			// carrito. Una descripción que dice qué hace el interruptor, y no qué
 			// dice el texto, no puede volver a desincronizarse cuando el copy cambie.
-			array(
-				'title'   => 'Aviso Arma tu Pack',
-				'id'      => self::OPTION_SHOW_BYP_POLICY,
-				'type'    => 'checkbox',
-				'default' => 'yes',
-				'desc'    => 'Muestra en el carrito el «Copy Arma tu Pack» de aquí abajo cuando el carrito arma un pack de una serie.',
-			),
-			array(
-				'title'   => 'Copy Arma tu Pack',
-				'id'      => self::OPTION_BYP_POLICY_COPY,
-				'type'    => 'textarea',
-				'default' => self::DEFAULT_BYP_POLICY_COPY,
-				'desc'    => 'Sólo se ve si «Aviso Arma tu Pack» está activo.',
-			),
-			array(
-				'title'   => 'Aviso preventa',
-				'id'      => self::OPTION_SHOW_PREVENTA_POLICY,
-				'type'    => 'checkbox',
-				'default' => 'yes',
-				'desc'    => 'Muestra en el carrito el «Aviso de pedidos/preventa en el carrito» de aquí abajo cuando el carrito lleva algún producto reservable.',
-			),
-			array(
-				'title'   => 'Aviso de pedidos/preventa en el carrito',
-				'id'      => self::OPTION_PREVENTA_POLICY_COPY,
-				'type'    => 'textarea',
-				'default' => self::DEFAULT_PREVENTA_POLICY_COPY,
-				'desc'    => 'Escribe {tipo} donde va la palabra: el carrito la elige solo («pedidos», «preventas» o «preventas y pedidos» según lo que el cliente lleve). Si escribes un texto sin {tipo}, se muestra tal cual. Solo se ve si «Aviso preventa» está activo.',
-			),
+
 			array(
 				'title'   => 'Aviso «¿No estás en Santiago?» (carrito de bloques)',
 				'id'      => self::OPTION_BLOCKS_SHIPPING_HINT,
@@ -412,7 +383,7 @@ final class Settings {
 	 * @param mixed                $raw_value Raw value.
 	 * @return mixed
 	 */
-	public function sanitize_admin_option( $value, array $option, $raw_value = null ) {
+	public function sanitize_admin_option( $value, array $option, $raw_value = null ) { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$id    = (string) ( $option['id'] ?? '' );
 		$input = null !== $raw_value ? $raw_value : $value;
 
@@ -432,8 +403,6 @@ final class Settings {
 			case self::OPTION_EMPTY_COPY:
 			case self::OPTION_CHECKOUT_COPY:
 			case self::OPTION_CONTINUE_COPY:
-			case self::OPTION_BYP_POLICY_COPY:
-			case self::OPTION_PREVENTA_POLICY_COPY:
 			case self::OPTION_RECOMMENDATIONS_COPY:
 			// El vacío se GUARDA, no se repone: en el aviso de Santiago y en el
 			// de colección vaciar el campo es apagarlo, y reponer el default
@@ -447,10 +416,16 @@ final class Settings {
 		}
 	}
 
+	/**
+	 * @param mixed $value
+	 */
 	public static function sanitize_drawer_width( $value ): int {
 		return max( 320, min( 640, absint( $value ) ) );
 	}
 
+	/**
+	 * @param mixed $value
+	 */
 	public static function sanitize_recommendation_limit( $value ): int {
 		return max( 0, min( 6, intval( $value ) ) );
 	}
@@ -488,14 +463,26 @@ final class Settings {
 	}
 
 	public function is_enabled(): bool {
+		if ( defined( 'AKB_NATIVE_CART_ENABLED' ) ) {
+			return (bool) AKB_NATIVE_CART_ENABLED;
+		}
+
 		return $this->is_yes( self::OPTION_ENABLED, 'yes' );
 	}
 
 	public function should_auto_open(): bool {
+		if ( defined( 'AKB_NATIVE_CART_AUTO_OPEN' ) ) {
+			return (bool) AKB_NATIVE_CART_AUTO_OPEN;
+		}
+
 		return $this->is_yes( self::OPTION_AUTO_OPEN, 'yes' );
 	}
 
 	public function get_trigger_selector(): string {
+		if ( defined( 'AKB_NATIVE_CART_TRIGGER_SELECTOR' ) ) {
+			return self::sanitize_trigger_selector( (string) AKB_NATIVE_CART_TRIGGER_SELECTOR );
+		}
+
 		return self::sanitize_trigger_selector( (string) get_option( self::OPTION_TRIGGER_SELECTOR, '.akb-cart-trigger' ) );
 	}
 
@@ -535,14 +522,6 @@ final class Settings {
 		return self::sanitize_recommendation_source( (string) get_option( self::OPTION_RECOMMENDATION_SOURCE, self::RECOMMENDATION_SOURCE_CROSS_SELLS ) );
 	}
 
-	public function show_byp_policy(): bool {
-		return $this->is_yes( self::OPTION_SHOW_BYP_POLICY, 'yes' );
-	}
-
-	public function show_preventa_policy(): bool {
-		return $this->is_yes( self::OPTION_SHOW_PREVENTA_POLICY, 'yes' );
-	}
-
 	public function prefers_reduced_motion(): bool {
 		return $this->is_yes( self::OPTION_REDUCED_MOTION, 'no' );
 	}
@@ -562,26 +541,6 @@ final class Settings {
 	public function get_continue_url(): string {
 		$url = esc_url_raw( (string) get_option( self::OPTION_CONTINUE_URL, '' ) );
 		return '' !== $url ? $url : wc_get_page_permalink( 'shop' );
-	}
-
-	public function get_byp_policy_copy(): string {
-		return $this->copy_option( self::OPTION_BYP_POLICY_COPY, self::DEFAULT_BYP_POLICY_COPY );
-	}
-
-	public function get_preventa_policy_copy(): string {
-		return $this->copy_option( self::OPTION_PREVENTA_POLICY_COPY, self::DEFAULT_PREVENTA_POLICY_COPY );
-	}
-
-	/**
-	 * La frase del aviso con el {tipo} resuelto para ESTE carrito
-	 * («pedidos» / «preventas» / «preventas y pedidos»). Si el dueño editó
-	 * la copy y no dejó {tipo}, SU texto manda tal cual.
-	 *
-	 * @param string $tipo Palabra detectada por el carrito.
-	 * @return string
-	 */
-	public function build_preventa_policy_copy( string $tipo ): string {
-		return str_replace( '{tipo}', $tipo, $this->get_preventa_policy_copy() );
 	}
 
 	public function get_recommendations_copy(): string {
@@ -609,20 +568,12 @@ final class Settings {
 			'showRecommendations'      => $this->show_recommendations(),
 			'recommendationLimit'      => $this->get_recommendation_limit(),
 			'recommendationSource'     => $this->get_recommendation_source(),
-			'showBypPolicy'            => $this->show_byp_policy(),
-			// La clave la lee `renderStatus()` en assets/js/native-cart.js. Viajó
-			// como `showPedidoPolicy` desde que el aviso se renombró a «pedido»,
-			// así que el interruptor llegaba al cliente bajo un nombre que el JS
-			// no consulta y el aviso de preventa NUNCA se pintó.
-			'showPreventaPolicy'       => $this->show_preventa_policy(),
 			'reducedMotion'            => $this->prefers_reduced_motion(),
 			'continueUrl'              => $this->get_continue_url(),
 			'copy'                     => array(
 				'empty'             => $this->get_empty_copy(),
 				'checkout'          => $this->get_checkout_copy(),
 				'continue'          => $this->get_continue_copy(),
-				'bypPolicy'         => $this->get_byp_policy_copy(),
-				'preventaPolicy'    => $this->get_preventa_policy_copy(),
 				'recommendations'   => $this->get_recommendations_copy(),
 				'recommendationAdd' => $this->get_recommendation_add_copy(),
 				'loading'           => 'Cargando...',

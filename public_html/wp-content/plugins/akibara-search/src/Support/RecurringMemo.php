@@ -22,6 +22,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Política única de caducidad de los memos de acciones recurrentes.
+ * @api
  */
 final class RecurringMemo {
 

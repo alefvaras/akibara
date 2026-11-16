@@ -59,20 +59,13 @@ $orders_meta = 0 === $order_count
 			<span class="akb-dashboard__card-desc">Seguimiento y estado de tus compras.</span>
 			<span class="akb-dashboard__card-meta"><?php echo esc_html( $orders_meta ); ?></span>
 		</a>
-		<a class="akb-dashboard__card" href="<?php echo esc_url( wc_get_endpoint_url( 'coleccion' ) ); ?>">
-			<span class="akb-dashboard__card-title">Colección</span>
-			<span class="akb-dashboard__card-desc">Tus tomos, el avance de cada edición y lo que te falta.</span>
-			<span class="akb-dashboard__card-meta">Estantería y alertas de salida</span>
-		</a>
 		<?php
 		/**
-		 * La tarjeta de puntos sólo existe si el programa está activo: el
-		 * endpoint `rewards` lo registra Simple Points and Rewards, así que sin
-		 * el plugin este enlace sería un 404. Se comprueba por la función que
-		 * lee el saldo, que es la misma pieza que provee el dato del meta.
+		 * La tarjeta de puntos sólo existe si el programa está activo:
+		 * se comprueba la existencia de la clase Ledger de Akibara Rewards.
 		 */
-		if ( function_exists( 'spar_get_user_points' ) ) :
-			$akb_points = (int) spar_get_user_points( get_current_user_id() );
+		if ( class_exists( '\\Akibara\\Rewards\\Points\\Ledger' ) ) :
+			$akb_points = \Akibara\Rewards\Points\Ledger::balance( (int) get_current_user_id() );
 
 			/**
 			 * Cuánto valen esos puntos, DICHO POR QUIEN LOS PAGA.
@@ -111,6 +104,16 @@ $orders_meta = 0 === $order_count
 						number_format_i18n( $akb_points ),
 						$akb_points_label
 					);
+				}
+
+				if ( class_exists( '\\Akibara\\Rewards\\Points\\Tiers' )
+					&& class_exists( '\\Akibara\\Rewards\\Support\\Options' )
+					&& \Akibara\Rewards\Support\Options::tiers_enabled() ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local del render en template WooCommerce.
+					$akb_tier_info = \Akibara\Rewards\Points\Tiers::for_user( (int) get_current_user_id() );
+					if ( is_array( $akb_tier_info ) && ! empty( $akb_tier_info['name'] ) ) {
+						$akb_meta .= ' · Nivel ' . (string) $akb_tier_info['name'];
+					}
 				}
 
 				echo esc_html( $akb_meta );

@@ -109,9 +109,18 @@ test('article labels and product descriptions retain readable geometry', () => {
 	// `wc-blocks.css` y las etiquetas terminaban ENCIMA de los campos: ahora
 	// llevan clase propia (ver tests/comment-form.test.js).
 	assert.match(read('assets/css/blog.css'), /\.comment-form\s+label\.akb-comment-label/);
+	const woo = read('assets/css/woocommerce.css');
 	assert.match(
-		read('assets/css/woocommerce.css'),
-		/\.single-product\s+\.woocommerce-Tabs-panel--description\s*>\s*\*/
+		woo,
+		/\.woocommerce\s+div\.product\s+\.woocommerce-tabs\s+\.panel\s+h2,\s*\.woocommerce\s+div\.product\s+\.woocommerce-tabs\s+\.panel\s+h3\s*\{[^}]*margin-block:\s*0\s+var\(--space-4\);[^}]*transform:\s*none;/s
+	);
+	assert.match(
+		woo,
+		/\.single-product\s+\.woocommerce-Tabs-panel--description\s*>\s*\*,\s*\.single-product\s+\.woocommerce-Tabs-panel--additional_information\s*>\s*\*\s*\{[^}]*box-sizing:\s*border-box;[^}]*max-width:\s*48rem;[^}]*margin-inline:\s*auto;/s
+	);
+	assert.match(
+		woo,
+		/\.woocommerce\s+div\.product\s+p\.stock\.akb-stock-low\s*\{[^}]*margin:\s*0\s+0\s+var\(--space-3\);/s
 	);
 });
 

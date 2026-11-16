@@ -33,8 +33,6 @@ final class CheckoutDataPrivacyTest extends TestCase {
 		$plugin_root = dirname( __DIR__, 2 );
 		$removed     = array(
 			'/src/Modules/CheckoutPudo/CheckoutPudo.php',
-			'/src/Modules/SeriesBundles/CartIntegration.php',
-			'/src/Modules/SeriesBundles/BypCartNoticeInjector.php',
 			'/assets/js/checkout-pudo.js',
 			'/assets/css/checkout-pudo.css',
 			'/assets/js/phone.js',
@@ -47,10 +45,7 @@ final class CheckoutDataPrivacyTest extends TestCase {
 		}
 
 		$presentation_sources = array(
-			'/src/Modules/EstimatedDelivery/BannerRenderer.php',
 			'/src/Modules/FreeShippingProgress/FreeShippingProgress.php',
-			'/src/Modules/OrderPreventa/PreventaUX.php',
-			'/src/Modules/SeriesBundles/BypCartNoticeProvider.php',
 		);
 		$classic_hooks        = array(
 			'woocommerce_before_cart',

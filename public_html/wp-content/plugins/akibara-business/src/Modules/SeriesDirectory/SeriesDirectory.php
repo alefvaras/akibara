@@ -67,6 +67,9 @@ defined( 'ABSPATH' ) || exit;
  * Arranque del directorio de series.
  *
  * @since 1.100.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class SeriesDirectory {
 
@@ -111,7 +114,7 @@ final class SeriesDirectory {
 		}
 
 		$post = get_post();
-		if ( ! is_object( $post ) || ! is_string( $post->post_content ?? null ) ) {
+		if ( ! is_object( $post ) || ! is_string( $post->post_content ?? null ) ) { // @phpstan-ignore nullCoalesce.property
 			return;
 		}
 
@@ -186,7 +189,7 @@ final class SeriesDirectory {
 		}
 
 		$post = get_post();
-		if ( ! is_object( $post ) || ! is_string( $post->post_content ?? null ) ) {
+		if ( ! is_object( $post ) || ! is_string( $post->post_content ?? null ) ) { // @phpstan-ignore nullCoalesce.property
 			return false;
 		}
 

@@ -78,23 +78,6 @@ final class RelatedProductsTest extends TestCase {
 		self::assertSame( 1, $this->catalogo->consultas_de_tomos, 'Una sola consulta para los tomos de todas las series.' );
 	}
 
-	/**
-	 * @testdox «Empezar otra serie» no ofrece otra edición de la misma obra: va detrás de todas las series que abren (B2-2-R2).
-	 */
-	public function test_otra_edicion_de_la_misma_obra_no_cuenta_como_otra_serie(): void {
-		Functions\when( 'absint' )->alias( static fn( $v ): int => abs( (int) $v ) );
-		$this->catalogo->agregar( 501, 'Jujutsu Kaisen Edición Coleccionista 01', self::JJK_COLECCIONISTA );
-		$this->catalogo->ediciones[ self::JJK ] = array( self::JJK_COLECCIONISTA );
-
-		$ids = ( new RelatedProducts() )->choose( array( 501, 205, 303, 431 ), self::FICHA, array( 'limit' => 3, 'excluded_ids' => array( 0, self::FICHA ) ) );
-
-		$primeros = array_slice( $ids, 0, 3 );
-		sort( $primeros );
-		self::assertSame( array( 201, 302, 401 ), $primeros, 'Los tres huecos son series de verdad distintas.' );
-		self::assertNotContains( 501, array_slice( $ids, 0, 3 ), 'La otra edición de JJK no ocupa un hueco de «otra serie».' );
-		self::assertContains( 501, $ids, 'Sigue en la lista, en el grupo de la misma serie: rellena si faltaran series.' );
-		self::assertSame( 1, $this->catalogo->consultas_de_ediciones, 'Una consulta para pasar las ediciones a term_taxonomy_id.' );
-	}
 
 	/**
 	 * @testdox Sin ediciones relacionadas no se consulta nada más.

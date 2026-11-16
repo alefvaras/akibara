@@ -125,7 +125,7 @@ function createDOM(options = {}) {
 	 * @param {Object} [detail={}]
 	 * @param {Object} [options={}]
 	 */
-	function dispatch(target, eventName, detail = {}, options = {}) {
+	function dispatch(target, eventName, detail = {}, evtOptions = {}) {
 		let el = target;
 		if (typeof target === 'string') {
 			el = document.querySelector(target);
@@ -137,8 +137,8 @@ function createDOM(options = {}) {
 		}
 
 		const evt = new window.CustomEvent(eventName, {
-			bubbles: options.bubbles !== false,
-			cancelable: options.cancelable !== false,
+			bubbles: evtOptions.bubbles !== false,
+			cancelable: evtOptions.cancelable !== false,
 			detail
 		});
 		return el.dispatchEvent(evt);
@@ -167,7 +167,7 @@ function createDOM(options = {}) {
 		try {
 			window.happyDOM.abort();
 			window.close();
-		} catch (_) {
+		} catch {
 			// Silencioso ante cleanup de entorno
 		}
 	}

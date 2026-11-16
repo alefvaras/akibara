@@ -82,6 +82,7 @@ final class SettingsPageTest extends RewardsTestCase {
 				'akb_rewards_pdp_notice_enabled' => 'yes',
 				'akb_rewards_welcome_enabled'    => 'yes',
 				'akb_rewards_earn_enabled'       => 'yes',
+				'akb_rewards_tiers_enabled'      => 'yes',
 			),
 			$input
 		);
@@ -122,56 +123,6 @@ final class SettingsPageTest extends RewardsTestCase {
 	}
 
 	/**
-	 * Reapertura S-80f7d8ac (2026-09-19): el aviso de divulgación cambia el
-	 * HTML de CADA ficha (el listado de reseñas, vía `comment_text`) igual
-	 * que el interruptor de Google cambia el JSON-LD — pero sólo éste
-	 * purgaba. Encender o apagar la divulgación dejaba la ficha cacheada
-	 * mostrando el aviso viejo (o el nuevo) hasta que la caché caducara sola.
-	 *
-	 * @testdox Cambiar «Avisar en la reseña que ganó puntos» también purga la caché de las fichas; guardar sin cambiarlo, no.
-	 */
-	public function test_el_interruptor_de_divulgacion_purga_la_cache_de_las_fichas(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => 'akb_rewards_disclosure_enabled' === $option ? 'no' : $default_value
-		);
-		Functions\when( 'delete_transient' )->justReturn( true );
-
-		\Brain\Monkey\Actions\expectDone( 'litespeed_purge_all' )->once();
-		$encendido = $this->page->save_fields( self::sin_tocar_la_ficha( array( 'akb_rewards_disclosure_enabled' => 'yes' ) ) );
-		$igual     = $this->page->save_fields( self::sin_tocar_la_ficha() ); // Queda en «no», como estaba: no vuelve a purgar.
-
-		$this->assertSame( 'yes', $encendido['akb_rewards_disclosure_enabled'] );
-		$this->assertSame( 'no', $igual['akb_rewards_disclosure_enabled'] );
-	}
-
-	/**
-	 * Los dos interruptores de ficha (Google y divulgación) reescriben el
-	 * MISMO HTML cacheado: si el dueño cambia ambos en el mismo guardado, la
-	 * purga se dispara una sola vez, no dos. Y la de la divulgación, que es la
-	 * total, ya incluye la del origen que pide el de Google.
-	 *
-	 * @testdox Cambiar los dos interruptores de ficha en el mismo guardado purga la caché UNA sola vez, la total.
-	 */
-	public function test_los_dos_interruptores_de_ficha_purgan_una_sola_vez(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => in_array( $option, array( 'akb_rewards_schema_exclude_rewarded', 'akb_rewards_disclosure_enabled' ), true ) ? 'no' : $default_value
-		);
-		Functions\when( 'delete_transient' )->justReturn( true );
-
-		\Brain\Monkey\Actions\expectDone( 'litespeed_purge_all' )->once();
-		\Brain\Monkey\Actions\expectDone( 'litespeed_purge' )->never();
-		$guardado = $this->page->save_fields(
-			array(
-				'akb_rewards_schema_exclude_rewarded' => 'yes',
-				'akb_rewards_disclosure_enabled'      => 'yes',
-			)
-		);
-
-		$this->assertSame( 'yes', $guardado['akb_rewards_schema_exclude_rewarded'] );
-		$this->assertSame( 'yes', $guardado['akb_rewards_disclosure_enabled'] );
-	}
-
-	/**
 	 * Reapertura S-3d03db68 (2026-09-19): la ayuda de «Sacar de Google el
 	 * texto de las reseñas premiadas» abría con «las reseñas que ganaron
 	 * puntos siempre se leen con el aviso de que los ganaron», que es falso
@@ -189,55 +140,6 @@ final class SettingsPageTest extends RewardsTestCase {
 			'siempre se leen con el aviso',
 			$ayuda,
 			'El aviso depende de otro interruptor: esta ayuda no puede prometerlo incondicional.'
-		);
-	}
-
-	/**
-	 * La misma reapertura, por conducta: con la divulgación apagada (estado
-	 * real de la tienda), el panel tiene que DECIR junto al interruptor de
-	 * Google que hoy no hay aviso en la ficha; con la divulgación encendida,
-	 * ese aviso vivo no debe aparecer.
-	 *
-	 * @testdox El panel avisa en vivo cuando la divulgación está apagada, y calla cuando está encendida.
-	 */
-	public function test_el_panel_avisa_en_vivo_segun_el_estado_de_la_divulgacion(): void {
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( false );
-		Functions\when( 'admin_url' )->alias( static fn( string $path = '' ): string => 'https://akibara.test/wp-admin/' . $path );
-		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'checked' )->alias( static fn( $a, $b, $echo = true ) => (string) $a === (string) $b ? ' checked="checked"' : '' );
-		Functions\when( 'selected' )->alias( static fn( $a, $b, $echo = true ) => (string) $a === (string) $b ? ' selected="selected"' : '' );
-		Functions\when( 'submit_button' )->justReturn( null );
-		// email_choices() consulta function_exists('WC'): en la suite COMPLETA
-		// otra prueba ya la declaró (contagio de function_exists, lección de
-		// la casa), así que sin este stub WC() queda «no definida ni mockeada»
-		// aquí. Sin WooCommerce instalado, is_object(WC()) debe dar false.
-		Functions\when( 'WC' )->justReturn( false );
-
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => 'akb_rewards_disclosure_enabled' === $option ? 'no' : $default_value
-		);
-		ob_start();
-		$this->page->render();
-		$apagado = ob_get_clean();
-
-		$this->assertStringContainsString(
-			'SIN aviso de que ganaron puntos',
-			$apagado,
-			'Con la divulgación apagada, el panel tiene que decirlo junto al interruptor de Google.'
-		);
-
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => 'akb_rewards_disclosure_enabled' === $option ? 'yes' : $default_value
-		);
-		ob_start();
-		$this->page->render();
-		$encendido = ob_get_clean();
-
-		$this->assertStringNotContainsString(
-			'SIN aviso de que ganaron puntos',
-			$encendido,
-			'Con la divulgación encendida, el aviso vivo no aplica: la ficha sí muestra el aviso.'
 		);
 	}
 
@@ -1361,7 +1263,7 @@ final class SettingsPageTest extends RewardsTestCase {
 		( new \Akibara\Rewards\Points\PdpNotice() )->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'de bienvenida', $html, 'Se pintó la rama del invitado, la que más ajustes lee.' );
+		$this->assertStringContainsString( 'Puntos Akibara', $html, 'Se pintó el aviso uniforme de la ficha.' );
 
 		$del_panel = array_values( array_intersect( array_keys( $leidos ), array_keys( $fields ) ) );
 		$this->assertContains( 'akb_rewards_earn_enabled', $del_panel, 'El interruptor del carril se lee en la ficha.' );
@@ -1412,7 +1314,6 @@ final class SettingsPageTest extends RewardsTestCase {
 		$this->assertSame( array(), array_values( array_intersect( $promesa, $forma ) ) );
 		$this->assertContains( 'akb_rewards_carousel_title', $forma, 'El tema lo lee en cada ficha, y es un encabezado.' );
 		$this->assertContains( 'akb_rewards_pdp_notice_enabled', $promesa );
-		$this->assertContains( 'akb_rewards_disclosure_enabled', $promesa, 'Le dice al comprador que la reseña ganó puntos.' );
 	}
 
 	/**
@@ -1500,35 +1401,140 @@ final class SettingsPageTest extends RewardsTestCase {
 		$this->assertSame( 'photos', $result['akb_rewards_carousel_media'], 'Un formulario anterior sin el campo conserva lo guardado.' );
 	}
 
-	/** @testdox La casilla del aviso de puntos del home es independiente y aparece desmarcada por defecto. */
-	public function test_home_disclosure_checkbox_is_clear_and_defaults_to_off(): void {
-		$html = $this->pintar_panel( array( 'akb_rewards_disclosure_enabled' => 'yes' ) );
-		self::assertStringContainsString( 'Mostrar también en el carrusel el aviso de puntos', $html );
-		self::assertMatchesRegularExpression( '/<input[^>]+name="akb_rewards_carousel_disclosure_enabled"[^>]*>/', $html );
-		self::assertDoesNotMatchRegularExpression( '/<input[^>]+name="akb_rewards_carousel_disclosure_enabled"[^>]+checked="checked"/', $html );
-		self::assertStringContainsString( 'conserva el aviso en las fichas y las etiquetas de reseñas transcritas', $html );
-		self::assertContains( 'akb_rewards_carousel_disclosure_enabled', SettingsPage::option_names(), 'El campo entra en registro, guardado y autoload habituales.' );
+	/** @testdox Las opciones eliminadas por orden del dueño no aparecen en las opciones ni en el formulario. */
+	public function test_eliminated_options_are_absent_from_panel(): void {
+		$options = SettingsPage::option_names();
+		self::assertNotContains( 'akb_rewards_disclosure_enabled', $options );
+		self::assertNotContains( 'akb_rewards_carousel_disclosure_enabled', $options );
+		self::assertNotContains( 'akb_rewards_carousel_min_chars', $options );
+		self::assertNotContains( 'akb_rewards_carousel_exclude_rewarded', $options );
+
+		$html = $this->pintar_panel( array() );
+		self::assertStringNotContainsString( 'Avisar en la reseña que ganó puntos', $html );
+		self::assertStringNotContainsString( 'Mostrar también en el carrusel el aviso de puntos', $html );
+		self::assertStringNotContainsString( 'Largo mínimo del texto', $html );
+		self::assertStringNotContainsString( 'Excluir reseñas premiadas con puntos', $html );
 	}
 
-	/** @testdox Guardar ON/OFF del aviso del home conserva el aviso de la ficha y purga sólo el carrusel al cambiar. */
-	public function test_home_disclosure_saves_both_states_without_changing_pdp_setting(): void {
-		$store = array( 'akb_rewards_disclosure_enabled' => 'yes', 'akb_rewards_carousel_disclosure_enabled' => 'yes' );
-		Functions\when( 'get_option' )->alias( static function( string $key, $default = false ) use ( &$store ) { return $store[ $key ] ?? $default; } );
-		Functions\when( 'update_option' )->alias( static function( string $key, $value, $autoload = null ) use ( &$store ) { $store[ $key ] = $value; return true; } );
-		$deleted = array();
-		Functions\when( 'delete_transient' )->alias( static function( string $key ) use ( &$deleted ) { $deleted[] = $key; return true; } );
-		\Brain\Monkey\Actions\expectDone( 'litespeed_purge_all' )->never();
-		\Brain\Monkey\Actions\expectDone( 'litespeed_purge' )->never();
-		$base = self::sin_tocar_la_ficha( array( 'akb_rewards_disclosure_enabled' => 'yes', 'akb_rewards_carousel_enabled' => 'yes' ) );
-		$on = $this->page->save_fields( $base + array( 'akb_rewards_carousel_disclosure_enabled' => 'yes' ) );
-		self::assertSame( 'yes', $on['akb_rewards_carousel_disclosure_enabled'] );
-		$off = $this->page->save_fields( $base );
-		self::assertSame( 'no', $off['akb_rewards_carousel_disclosure_enabled'], 'Una casilla desmarcada llega ausente y se guarda como no.' );
-		self::assertSame( 'yes', $off['akb_rewards_disclosure_enabled'], 'El aviso de la ficha sigue encendido.' );
-		$on_again = $this->page->save_fields( $base + array( 'akb_rewards_carousel_disclosure_enabled' => 'yes' ) );
-		self::assertSame( 'yes', $on_again['akb_rewards_carousel_disclosure_enabled'] );
-		self::assertSame( 'yes', $on_again['akb_rewards_disclosure_enabled'] );
-		self::assertSame( array( \Akibara\Rewards\Reviews\Carousel::TRANSIENT, \Akibara\Rewards\Reviews\Carousel::TRANSIENT ), $deleted, 'Sólo OFF y el posterior ON invalidan las tarjetas.' );
+	/** @testdox Residente de Akiba no puede tener umbral menor o igual a Coleccionista ni multiplicador inferior. */
+	public function test_guard_tiers_rejects_inverted_thresholds_and_multipliers(): void {
+		$guardado = $this->page->save_fields(
+			self::sin_tocar_la_ficha(
+				array(
+					'akb_rewards_tiers_enabled'           => 'yes',
+					'akb_rewards_tier_coleccionista_min'  => '5000',
+					'akb_rewards_tier_residente_min'      => '3000',
+					'akb_rewards_tier_coleccionista_mult' => '1.2',
+					'akb_rewards_tier_residente_mult'     => '1.5',
+				)
+			)
+		);
+
+		$this->assertSame( 2000, $guardado['akb_rewards_tier_coleccionista_min'] );
+		$this->assertSame( 8000, $guardado['akb_rewards_tier_residente_min'] );
+		$this->assertNotEmpty( $this->transients );
+
+		$avisos = reset( $this->transients )['value'] ?? array();
+		$this->assertSame( 'error', $avisos[0]['tipo'] ?? '' );
+		$this->assertStringContainsString( 'Residente de Akiba debe requerir más puntos', $avisos[0]['texto'] ?? '' );
 	}
 
+	/** @testdox Vigencia de niveles se guarda correctamente y respeta rango entre 0 y 730 días. */
+	public function test_save_tier_validity_days(): void {
+		$guardado = $this->page->save_fields(
+			self::sin_tocar_la_ficha(
+				array(
+					'akb_rewards_tiers_enabled'      => 'yes',
+					'akb_rewards_tier_validity_days' => '180',
+				)
+			)
+		);
+
+		$this->assertSame( 180, $guardado['akb_rewards_tier_validity_days'] );
+	}
+
+	/** @testdox La baranda de niveles rechaza multiplicadores invertidos en float (1.4 > 1.1) sin truncar a entero ni revertir vigencia válida. */
+	public function test_guard_tiers_rejects_inverted_float_multipliers_without_truncation_and_preserves_validity(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( string $opt, $default = false ) => match ( $opt ) {
+				'akb_rewards_tier_coleccionista_mult' => 1.25,
+				'akb_rewards_tier_residente_mult'     => 1.65,
+				default                               => $default,
+			}
+		);
+
+		$avisos   = array();
+		$guardado = $this->page->save_fields(
+			self::sin_tocar_la_ficha(
+				array(
+					'akb_rewards_tiers_enabled'           => 'yes',
+					'akb_rewards_tier_coleccionista_min'  => '2000',
+					'akb_rewards_tier_residente_min'      => '8000',
+					'akb_rewards_tier_coleccionista_mult' => '1.4',
+					'akb_rewards_tier_residente_mult'     => '1.1',
+					'akb_rewards_tier_validity_days'      => '180',
+				)
+			)
+		);
+
+		$this->assertSame( 1.25, $guardado['akb_rewards_tier_coleccionista_mult'] );
+		$this->assertSame( 1.65, $guardado['akb_rewards_tier_residente_mult'] );
+		$this->assertSame( 180, $guardado['akb_rewards_tier_validity_days'], 'La vigencia válida NO debe revertirse junto a multiplicadores invertidos.' );
+
+		$avisos = reset( $this->transients )['value'] ?? array();
+		$this->assertStringContainsString( '1,25', $avisos[0]['texto'] ?? '' );
+		$this->assertStringContainsString( '1,65', $avisos[0]['texto'] ?? '' );
+	}
+
+	/** @testdox El panel conserva campos ocultos cuando _akb_rw_preserve_hidden=1, acota carencia/vigencia, purga solo si cambian niveles y no duplica %. */
+	public function test_tiers_purge_origin_only_on_change_and_preserve_hidden_and_escrow_bounds(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( string $opt, $default = false ) => match ( $opt ) {
+				'akb_rewards_nudge_email_ids'    => 'customer_completed_order',
+				'akb_rewards_tier_validity_days' => 365,
+				default                          => $default,
+			}
+		);
+
+		\Brain\Monkey\Actions\expectDone( 'litespeed_purge' )->once()->with( '*' );
+		\Brain\Monkey\Actions\expectDone( 'litespeed_purge_all' )->once();
+
+		// 1. Cambiar solo un parámetro de niveles purga origen '*' (litespeed_purge) una sola vez.
+		$solo_tiers = $this->page->save_fields(
+			self::sin_tocar_la_ficha(
+				array(
+					'_akb_rw_preserve_hidden'             => '1',
+					'akb_rewards_tier_coleccionista_mult' => '1.3',
+				)
+			)
+		);
+		$this->assertSame( 1.3, $solo_tiers['akb_rewards_tier_coleccionista_mult'] );
+		$this->assertSame( 'customer_completed_order', $solo_tiers['akb_rewards_nudge_email_ids'] );
+
+		// 2. Guardar sin cambios ni en promesa ni en forma no purga nada.
+		$sin_cambios = $this->page->save_fields( self::sin_tocar_la_ficha() );
+		$this->assertSame( 'yes', $sin_cambios['akb_rewards_tiers_enabled'] );
+
+		// 3. Cambiar earn_points + techo dispara litespeed_purge_all (sin doble %%), conserva hidden y acota carencia/vigencia.
+		$guardado = $this->page->save_fields(
+			self::sin_tocar_la_ficha(
+				array(
+					'_akb_rw_preserve_hidden'         => '1',
+					'akb_rewards_accrual_escrow_days' => '99',
+					'akb_rewards_tier_validity_days'  => '900',
+					'akb_rewards_tier_residente_mult' => '5.0',
+					'akb_rewards_earn_points'         => '4',
+				)
+			)
+		);
+
+		$this->assertSame( 'customer_completed_order', $guardado['akb_rewards_nudge_email_ids'] );
+		$this->assertSame( 60, $guardado['akb_rewards_accrual_escrow_days'] );
+		$this->assertSame( 730, $guardado['akb_rewards_tier_validity_days'] );
+
+		$avisos = reset( $this->transients )['value'] ?? array();
+		$joined = wp_json_encode( $avisos );
+		$this->assertStringContainsString( 'Advertencia comercial', (string) $joined );
+		$this->assertStringNotContainsString( '%%', (string) $joined );
+	}
 }

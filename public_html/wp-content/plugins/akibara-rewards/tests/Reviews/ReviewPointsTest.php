@@ -144,13 +144,11 @@ final class ReviewPointsTest extends RewardsTestCase {
 	 * @testdox Una reseña que NUNCA pagó (sellada en 0, pendiente, o virgen) no tiene nada que revertir.
 	 */
 	public function test_unpaid_reviews_have_nothing_to_reverse(): void {
-		// Sellada con 0 (cupón del tercero): trashearla no debe tocar el ledger.
-		$conCupon = $this->review_with_photo( 10, 7, 777 );
-		$this->wpdb->comment_meta[10]['cr_coupon_code'] = array( 'FOTO10-ABC' );
-		$this->points->on_status_transition( 'approved', 'unapproved', $conCupon );
-		$this->assertSame( array( 0 ), $this->wpdb->comment_meta[10][ ReviewPoints::META_POINTS_PAID ] );
+		// Sellada con 0: trashearla no debe tocar el ledger.
+		$selladaEnCero = $this->review_with_photo( 10, 7, 777 );
+		$this->wpdb->comment_meta[10][ ReviewPoints::META_POINTS_PAID ] = array( 0 );
 
-		$this->points->on_status_transition( 'trash', 'approved', $conCupon );
+		$this->points->on_status_transition( 'trash', 'approved', $selladaEnCero );
 
 		$this->assertCount( 0, $this->wpdb->inserts, 'Nada que pagó nunca es nada que revertir.' );
 
@@ -642,15 +640,6 @@ final class ReviewPointsTest extends RewardsTestCase {
 		$this->assertSame( array( 1 ), $this->wpdb->comment_meta[10]['verified'], 'El cálculo perezoso PERSISTE la meta, como CusRev.' );
 	}
 
-	public function test_a_coupon_rewarded_review_never_earns_points_too(): void {
-		$review = $this->review_with_photo();
-		$this->wpdb->comment_meta[10]['cr_coupon_code'] = array( 'FOTO10-ABC' );
-
-		$this->points->on_status_transition( 'approved', 'unapproved', $review );
-
-		$this->assertSame( 0, Ledger::balance( 7 ), 'Una recompensa por acción: cupón O puntos, jamás ambos.' );
-	}
-
 	public function test_reviews_on_unpublished_products_earn_nothing(): void {
 		Functions\when( 'get_post_status' )->justReturn( 'draft' );
 		$review = $this->review_with_photo();
@@ -803,6 +792,40 @@ final class ReviewPointsTest extends RewardsTestCase {
 
 		$this->assertSame( 500, Ledger::balance( 7 ), 'El tope histórico por cliente manda.' );
 		$this->assertSame( array( 0 ), $this->wpdb->comment_meta[11][ ReviewPoints::META_POINTS_PAID ] );
+	}
+
+	public function test_the_per_customer_cap_is_monthly_and_ignores_credits_older_than_30_days(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( string $option, $default_value = false ) => 'akb_rewards_review_max_per_user' === $option ? 1 : $default_value
+		);
+
+		// Crédito anterior de hace 46 días (fuera de la ventana móvil de 30 días)
+		$this->wpdb->inserts[] = array(
+			'wp_akb_rewards_ledger',
+			array(
+				'user_id'    => 7,
+				'delta'      => 500,
+				'action'     => 'review',
+				'ref_type'   => 'review',
+				'ref_id'     => 700,
+				'created_at' => '2026-07-15 10:00:00',
+			),
+		);
+
+		// Nueva reseña para el producto 777 hoy (current_time = '2026-08-30 12:00:00'):
+		// como el premio anterior tiene más de 30 días, se acreditan los 500 puntos.
+		$nueva_mes = $this->review_with_photo( 20, 7, 777 );
+		$this->points->on_status_transition( 'approved', 'unapproved', $nueva_mes );
+
+		$this->assertSame( 500, Ledger::balance( 7 ), 'La reseña del nuevo mes califica y paga 500 puntos.' );
+
+		// Segunda reseña el mismo día para otro producto (778):
+		// alcanza el tope vigente dentro de los 30 días y se sella sin pago.
+		$segunda_mismo_mes = $this->review_with_photo( 21, 7, 778 );
+		$this->points->on_status_transition( 'approved', 'unapproved', $segunda_mismo_mes );
+
+		$this->assertSame( 500, Ledger::balance( 7 ), 'El balance no aumenta porque ya alcanzó el tope en los últimos 30 días.' );
+		$this->assertSame( array( 0 ), $this->wpdb->comment_meta[21][ ReviewPoints::META_POINTS_PAID ], 'La segunda reseña dentro de la ventana se sella con 0 puntos.' );
 	}
 
 	public function test_a_zero_configuration_turns_the_program_off(): void {

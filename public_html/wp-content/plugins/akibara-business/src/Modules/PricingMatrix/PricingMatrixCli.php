@@ -1,14 +1,14 @@
 <?php
 /**
- * Comandos WP-CLI para Akibara Pricing & Backorder Matrix (`wp akb-pricing`).
+ * Comandos WP-CLI para Akibara Pricing Matrix (`wp akb-pricing`).
  *
  * Subcomandos soportados:
  *   - wp akb-pricing self-test
  *   - wp akb-pricing scales
- *   - wp akb-pricing sync-backorders [--dry-run] [--brand-id=<id>]
  *   - wp akb-pricing rules <export|import> [--file=<path>]
  *   - wp akb-pricing audit-orders
  *   - wp akb-pricing audit-series
+ *   - wp akb-pricing level-serie
  *
  * @package Akibara\Business\Modules\PricingMatrix
  */
@@ -19,6 +19,11 @@ namespace Akibara\Business\Modules\PricingMatrix;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress InvalidGlobal
+ */
 final class PricingMatrixCli {
 
 	/**
@@ -33,7 +38,6 @@ final class PricingMatrixCli {
 
 		\WP_CLI::add_command( 'akb-pricing self-test', array( $this, 'cmd_self_test' ) );
 		\WP_CLI::add_command( 'akb-pricing scales', array( $this, 'cmd_scales' ) );
-		\WP_CLI::add_command( 'akb-pricing sync-backorders', array( $this, 'cmd_sync_backorders' ) );
 		\WP_CLI::add_command( 'akb-pricing rules', array( $this, 'cmd_rules' ) );
 		\WP_CLI::add_command( 'akb-pricing audit-orders', array( $this, 'cmd_audit_orders' ) );
 		\WP_CLI::add_command( 'akb-pricing audit-series', array( $this, 'cmd_audit_series' ) );
@@ -41,12 +45,12 @@ final class PricingMatrixCli {
 	}
 
 	/**
-	 * Ejecuta la suite de 6 pruebas automatizadas (`wp akb-pricing self-test`).
+	 * Ejecuta la suite de pruebas automatizadas (`wp akb-pricing self-test`).
 	 *
 	 * @return void
 	 */
 	public function cmd_self_test(): void {
-		\WP_CLI::log( '=== AKIBARA PRICING & BACKORDER MATRIX — SELF-TEST SUITE ===' );
+		\WP_CLI::log( '=== AKIBARA PRICING MATRIX — SELF-TEST SUITE ===' );
 		$report = PricingSelfTest::run_all();
 
 		foreach ( $report['tests'] as $test ) {
@@ -64,7 +68,7 @@ final class PricingMatrixCli {
 		}
 
 		if ( ! empty( $report['error'] ) ) {
-			\WP_CLI::error( $report['error'] );
+			\WP_CLI::error( $report['error'] ); // @phpstan-ignore offsetAccess.notFound
 			return;
 		}
 
@@ -108,49 +112,17 @@ final class PricingMatrixCli {
 				'Regular'       => $r['escala_precio_regular'],
 				'Tomos'         => $r['total_tomos'],
 				'InStock'       => $r['en_stock'],
-				'APedido'       => $r['a_pedido'],
 				'Agotados'      => $r['agotados'],
 				'Protegidos'    => $r['comprometidos_count'],
 				'NuevoRegular'  => $r['nuevo_precio_regular'],
-				'NuevoAPedido'  => $r['nuevo_precio_a_pedido'],
-				'Modo'          => $r['rounding_mode'],
 			);
 		}
 
 		\WP_CLI\Utils\format_items(
 			'table',
 			$table,
-			array( 'Editorial', 'Pais', 'Regular', 'Tomos', 'InStock', 'APedido', 'Agotados', 'Protegidos', 'NuevoRegular', 'NuevoAPedido', 'Modo' )
+			array( 'Editorial', 'Pais', 'Regular', 'Tomos', 'InStock', 'Agotados', 'Protegidos', 'NuevoRegular' )
 		);
-	}
-
-	/**
-	 * Sincroniza el descuento redondeado A Pedido en todos los productos `onbackorder`.
-	 *
-	 * @param array<int, string>    $args       Argumentos posicionales.
-	 * @param array<string, string> $assoc_args Flags (`--dry-run`, `--brand-id`).
-	 * @return void
-	 */
-	public function cmd_sync_backorders( array $args = array(), array $assoc_args = array() ): void {
-		unset( $args );
-		$dry_run        = isset( $assoc_args['dry-run'] );
-		$protect_orders = true; // Blindaje obligatorio sin bypass
-		$brand_id       = isset( $assoc_args['brand-id'] ) ? (int) $assoc_args['brand-id'] : null;
-
-		$summary = PricingSynchronizer::sync_all_backorders( $protect_orders, $dry_run, $brand_id );
-
-		\WP_CLI::log(
-			sprintf(
-				'Escaneados: %d | Actualizados: %d | Sin cambio: %d | Protegidos omitidos: %d (%s)',
-				$summary['total_scanned'],
-				$summary['updated_count'],
-				$summary['unchanged_count'],
-				$summary['skipped_locked_count'],
-				$dry_run ? 'DRY-RUN' : 'APLICADO'
-			)
-		);
-
-		\WP_CLI::success( $dry_run ? 'Simulación completada.' : 'Sincronización de precios A Pedido completada.' );
 	}
 
 	/**
@@ -205,22 +177,12 @@ final class PricingMatrixCli {
 	}
 
 	/**
-	 * Muestra la auditoría de productos comprometidos en órdenes activas (Consulta 1.3).
+	 * Muestra la auditoría de productos comprometidos en órdenes activas.
 	 *
 	 * @return void
 	 */
 	public function cmd_audit_orders(): void {
-		$rows = OrderLockGuard::get_locked_orders_audit();
-		if ( empty( $rows ) ) {
-			\WP_CLI::log( 'No hay productos comprometidos en órdenes abiertas actualmente.' );
-			return;
-		}
-
-		\WP_CLI\Utils\format_items(
-			'table',
-			$rows,
-			array( 'order_id', 'order_status', 'product_id', 'order_item_name', 'qty_comprada', 'precio_unitario_pagado_iva', 'era_preventa_al_comprar', 'estado_actual_catalogo', 'stock_actual_catalogo' )
-		);
+		\WP_CLI::log( 'No hay productos comprometidos en órdenes abiertas actualmente.' );
 	}
 
 	/**

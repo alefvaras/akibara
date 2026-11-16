@@ -1,11 +1,9 @@
 <?php
 /**
- * AkibaraEmail — base común de los tres `WC_Email` propios del plugin.
+ * AkibaraEmail — base común de los `WC_Email` propios del plugin.
  *
- * Existe por `init_form_fields()`: los tres correos (BackInStock\InstockEmail,
- * OrderPreventa\ReadyToShipEmail y OrderPreventa\ReminderEmail) declaraban la
- * MISMA pantalla de ajustes —activar, asunto, encabezado, contenido adicional y
- * tipo de email— tres veces, y las tres copias sólo se diferencian en el texto.
+ * Existe por `init_form_fields()`: unificando la pantalla de ajustes
+ * —activar, asunto, encabezado, contenido adicional y tipo de email—.
  *
  * La copia salía cara donde más duele: el campo `email_type` es obligatorio y su
  * ausencia manda el correo con `Content-Type: text/plain` con el HTML dentro
@@ -26,6 +24,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.1
+ * @api
+ * @psalm-suppress MissingOverrideAttribute
+ * @psalm-suppress MissingOverrideAttribute
  */
 abstract class AkibaraEmail extends WC_Email {
 
@@ -51,7 +52,9 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Cuerpo HTML: mismo esqueleto para todos los correos de la casa.
 	 *
 	 * @return string
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function get_content_html(): string {
 		return wc_get_template_html(
 			$this->template_html,
@@ -65,7 +68,9 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Cuerpo plain.
 	 *
 	 * @return string
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function get_content_plain(): string {
 		return wc_get_template_html(
 			$this->template_plain,
@@ -88,7 +93,9 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Cabeceras + List-Unsubscribe un-clic cuando el correo declara baja.
 	 *
 	 * @return string
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function get_headers(): string {
 		$headers = parent::get_headers();
 
@@ -120,7 +127,9 @@ abstract class AkibaraEmail extends WC_Email {
 	 * Pantalla de ajustes en `WooCommerce → Ajustes → Emails`.
 	 *
 	 * @return void
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function init_form_fields(): void {
 		$copy   = $this->form_field_copy();
 		$extras = $this->extra_form_fields();

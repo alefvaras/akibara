@@ -27,6 +27,12 @@ namespace {
 
 			public int $var_result = 0;
 
+			/** @var list<int> */
+			public array $var_results = array();
+
+			/** @var list<array<string, mixed>> */
+			public array $results = array();
+
 			public int $delete_result = 0;
 
 			/** @var array{table:string,data:array<string,mixed>,format:list<string>}|null */
@@ -66,7 +72,17 @@ namespace {
 			}
 
 			public function get_var( string $query ): int {
+				if ( ! empty( $this->var_results ) ) {
+					return array_shift( $this->var_results );
+				}
 				return $this->var_result;
+			}
+
+			/**
+			 * @return list<array<string, mixed>>
+			 */
+			public function get_results( string $query, string $output = 'OBJECT' ) {
+				return $this->results;
 			}
 
 			/**
@@ -84,6 +100,7 @@ namespace {
 namespace Akibara\Business\Tests\Modules\BackInStock {
 
 	use Akibara\Business\Modules\BackInStock\CaptureRestController;
+	use Akibara\Business\Modules\BackInStock\InstockEmail;
 	use Akibara\Business\Modules\BackInStock\NotificationDispatcher;
 	use Akibara\Business\Modules\BackInStock\Retention;
 	use Akibara\Business\Modules\BackInStock\StockWatcher;
@@ -376,6 +393,149 @@ namespace Akibara\Business\Tests\Modules\BackInStock {
 			self::assertSame( 'daily', $scheduled['recurrence'] );
 			self::assertSame( Retention::HOOK, $scheduled['hook'] );
 			self::assertGreaterThanOrEqual( $before + HOUR_IN_SECONDS, $scheduled['timestamp'] );
+		}
+
+		public function test_dispatcher_skips_email_when_subscriber_already_owns_product(): void {
+			$db              = new \wpdb();
+			$db->var_results = array( 1, 0 );
+			$db->results     = array(
+				array(
+					'id'              => 99,
+					'product_id'      => 44,
+					'email'           => 'coleccionista@example.test',
+					'user_id'         => 12,
+					'token'           => str_repeat( 'b', 64 ),
+					'status'          => Subscriber::STATUS_SUBSCRIBED,
+					'notify_attempts' => 0,
+					'created_at'      => '2026-07-24 00:00:00',
+					'notified_at'     => null,
+				),
+			);
+			$db->query_result = 1;
+
+			Functions\when( 'apply_filters' )->alias(
+				static function ( string $hook, $value, ...$args ) {
+					return $value;
+				}
+			);
+			Functions\when( 'wc_get_product' )->justReturn( new \WC_Product( 'instock' ) );
+			Functions\when( 'do_action' )->justReturn( null );
+			Functions\when( 'current_time' )->justReturn( '2026-07-24 12:00:00' );
+			Functions\when( 'wc_get_logger' )->justReturn(
+				new class() {
+					public function warning( string $message, array $context = array() ): void {}
+					public function info( string $message, array $context = array() ): void {}
+				}
+			);
+
+			$email_mock = $this->createMock( InstockEmail::class );
+			$email_mock->method( 'is_enabled' )->willReturn( true );
+			$email_mock->expects( $this->never() )->method( 'trigger' );
+
+			$dispatcher = new NotificationDispatcher(
+				new SubscriberRepository( $db, 'wp_akb_back_in_stock' ),
+				static fn() => $email_mock,
+				static fn(): bool => true,
+				static fn( $sub, $pid ): bool => 12 === (int) $sub->user_id && 44 === $pid
+			);
+
+			$dispatcher->dispatch( 44 );
+
+			self::assertStringContainsString( 'SET status = %s', $db->last_query, 'Debe haber ejecutado mark_notified para reclamar y cerrar la fila.' );
+		}
+
+		public function test_rate_limit_exceeded_returns_429(): void {
+			Functions\when( 'current_user_can' )->justReturn( false );
+			Functions\when( 'get_current_user_id' )->justReturn( 0 );
+			Functions\when( 'wp_using_ext_object_cache' )->justReturn( true );
+
+			$cache = array();
+			Functions\when( 'wp_cache_get' )->alias(
+				static function ( string $key, string $group ) use ( &$cache ) {
+					return $cache[ $group . '|' . $key ] ?? false;
+				}
+			);
+			Functions\when( 'wp_cache_incr' )->alias(
+				static function ( string $key, int $offset, string $group ) use ( &$cache ): int {
+					$cache_key           = $group . '|' . $key;
+					$cache[ $cache_key ] = (int) ( $cache[ $cache_key ] ?? 0 ) + $offset;
+					return (int) $cache[ $cache_key ];
+				}
+			);
+			Functions\when( 'wp_cache_add' )->alias(
+				static function ( string $key, $value, string $group, int $ttl ) use ( &$cache ): bool {
+					unset( $ttl );
+					$cache_key = $group . '|' . $key;
+					if ( array_key_exists( $cache_key, $cache ) ) {
+						return false;
+					}
+					$cache[ $cache_key ] = $value;
+					return true;
+				}
+			);
+
+			$db                = new \wpdb();
+			$db->rows          = array( null );
+			$db->insert_result = 1;
+			$db->insert_id     = 91;
+
+			$controller = $this->controller( $db );
+
+			for ( $i = 1; $i <= 12; $i++ ) {
+				$res = $controller->subscribe( 44, 'cliente@example.test', null );
+				self::assertSame( 201, $res['status'] );
+			}
+
+			$res = $controller->subscribe( 44, 'cliente@example.test', null );
+			self::assertSame( 429, $res['status'] );
+			self::assertSame( 'rate_limited', $res['code'] );
+		}
+
+		public function test_authenticated_collector_allows_up_to_60_requests_without_429(): void {
+			Functions\when( 'current_user_can' )->justReturn( false );
+			Functions\when( 'get_current_user_id' )->justReturn( 42 );
+			Functions\when( 'wp_using_ext_object_cache' )->justReturn( true );
+
+			$cache = array();
+			Functions\when( 'wp_cache_get' )->alias(
+				static function ( string $key, string $group ) use ( &$cache ) {
+					return $cache[ $group . '|' . $key ] ?? false;
+				}
+			);
+			Functions\when( 'wp_cache_incr' )->alias(
+				static function ( string $key, int $offset, string $group ) use ( &$cache ): int {
+					$cache_key           = $group . '|' . $key;
+					$cache[ $cache_key ] = (int) ( $cache[ $cache_key ] ?? 0 ) + $offset;
+					return (int) $cache[ $cache_key ];
+				}
+			);
+			Functions\when( 'wp_cache_add' )->alias(
+				static function ( string $key, $value, string $group, int $ttl ) use ( &$cache ): bool {
+					unset( $ttl );
+					$cache_key = $group . '|' . $key;
+					if ( array_key_exists( $cache_key, $cache ) ) {
+						return false;
+					}
+					$cache[ $cache_key ] = $value;
+					return true;
+				}
+			);
+
+			$db                = new \wpdb();
+			$db->rows          = array( null );
+			$db->insert_result = 1;
+			$db->insert_id     = 91;
+
+			$controller = $this->controller( $db );
+
+			for ( $i = 1; $i <= 60; $i++ ) {
+				$res = $controller->subscribe( 44, 'cliente@example.test', null );
+				self::assertSame( 201, $res['status'], "Petición {$i} debe permitirse para autenticado." );
+			}
+
+			$res = $controller->subscribe( 44, 'cliente@example.test', null );
+			self::assertSame( 429, $res['status'] );
+			self::assertSame( 'rate_limited', $res['code'] );
 		}
 
 		private function controller( \wpdb $db ): CaptureRestController {

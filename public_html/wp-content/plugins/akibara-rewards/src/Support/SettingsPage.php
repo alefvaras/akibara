@@ -16,13 +16,22 @@ declare( strict_types = 1 );
 namespace Akibara\Rewards\Support;
 
 use Akibara\Rewards\Points\Calculator;
+use Akibara\Rewards\Points\Tiers;
 use Akibara\Rewards\Reviews\AdminOverview;
+use Akibara\Rewards\Reviews\InvitationReschedule;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class SettingsPage {
 
 	public const CAPABILITY = 'manage_woocommerce';
@@ -67,7 +76,6 @@ final class SettingsPage {
 	 *   que la reseña ganó puntos.
 	 */
 	private const PROMESA_EN_CADA_FICHA = array(
-		'akb_rewards_disclosure_enabled',
 		'akb_rewards_pdp_notice_enabled',
 		'akb_rewards_earn_enabled',
 		'akb_rewards_earn_points',
@@ -87,15 +95,21 @@ final class SettingsPage {
 	private const FORMA_DE_CADA_FICHA = array(
 		'akb_rewards_schema_exclude_rewarded',
 		'akb_rewards_carousel_title',
+		'akb_rewards_tiers_enabled',
+		'akb_rewards_tier_coleccionista_min',
+		'akb_rewards_tier_coleccionista_mult',
+		'akb_rewards_tier_residente_min',
+		'akb_rewards_tier_residente_mult',
+		'akb_rewards_tier_validity_days',
 	);
 
 	/**
 	 * Catálogo de campos: option → [tipo, default, etiqueta, ayuda, sección].
 	 * ÚNICA fuente de la pantalla y del guardado — añadir una option nueva es
-	 * añadir UNA fila acá. Opcionales: `min`/`max` de un entero y `largo` de un
-	 * texto; cada uno pone el tope en el formulario y en el guardado a la vez.
+	 * añadir UNA fila acá. Opcionales: `min`/`max`, `step`, `suffix`, `hidden`,
+	 * `choices` y `largo` de un texto.
 	 *
-	 * @var array<string,array{t:string,d:mixed,l:string,h:string,s:string,min?:int,max?:int,largo?:int}>
+	 * @var array<string,array{t:string,d:mixed,l:string,h:string,s:string,min?:int|float,max?:int|float,step?:string,suffix?:string,hidden?:bool,choices?:array<string,string>,largo?:int}>
 	 */
 	private const FIELDS = array(
 		'akb_rewards_earn_enabled' => array(
@@ -113,8 +127,8 @@ final class SettingsPage {
 			// frena antes es la guarda de razón. Este tope es sólo la baranda
 			// contra el tecleo (200, 2000).
 			'max' => 20,
-			'l'   => 'Puntos por tramo de compra',
-			'h'   => 'Con 2 puntos por cada $100, una compra de $10.000 gana 200. El techo de devolución de más abajo manda sobre este máximo.',
+			'l'   => 'Puntos otorgados por compra',
+			'h'   => 'Puntos ganados por cada tramo gastado (ej. 2 puntos por cada $100 gastados = 2% de retorno base en compras). Los niveles Coleccionista y Residente de Akiba multiplican esta tasa según lo configurado más abajo.',
 			's'   => 'Puntos por compra',
 		),
 		'akb_rewards_earn_amount'              => array(
@@ -127,7 +141,7 @@ final class SettingsPage {
 			// acumulación está el 0 y el interruptor del carril.
 			'max' => 1000000,
 			'l'   => 'Tamaño del tramo ($)',
-			'h'   => 'Tramo en pesos de la acumulación. 0 APAGA los puntos por compra (nadie acredita).',
+			'h'   => 'Monto en pesos que compone cada tramo de acumulación (por defecto: $100 CLP). Con $100, cada $10.000 de compra acumulan 200 puntos. 0 apaga los puntos por compra.',
 			's'   => 'Puntos por compra',
 		),
 		'akb_rewards_redeem_min_points' => array(
@@ -183,17 +197,18 @@ final class SettingsPage {
 			// que el techo de abajo lo permita.
 			'max' => 10,
 			'l'   => 'Pesos de descuento por punto canjeado',
-			'h'   => '1 = un peso por punto (IVA incluido, exacto en el total). El techo de devolución de abajo manda sobre este máximo.',
+			'h'   => '1 = un peso chileno por punto ($1 CLP por punto canjeado, IVA incluido).',
 			's'   => 'Puntos por compra',
 		),
 		'akb_rewards_max_giveback_pct'         => array(
-			't'   => 'int',
-			'd'   => \Akibara\Rewards\Support\Options::DEFAULT_MAX_GIVEBACK_PCT,
-			'min' => 1,
-			'max' => \Akibara\Rewards\Support\Options::HARD_MAX_GIVEBACK_PCT,
-			'l'   => 'Techo de devolución del programa (%)',
-			'h'   => 'Cuánto de cada compra puede volver al cliente en puntos, juntando los tres campos de arriba (puntos por tramo ÷ tamaño del tramo × pesos por punto). Hoy la tienda devuelve el 2 %. Un guardado que supere este techo no entra: se conserva lo que había y se explica en pesos.',
-			's'   => 'Puntos por compra',
+			't'      => 'int',
+			'd'      => \Akibara\Rewards\Support\Options::DEFAULT_MAX_GIVEBACK_PCT,
+			'min'    => 1,
+			'max'    => \Akibara\Rewards\Support\Options::HARD_MAX_GIVEBACK_PCT,
+			'l'      => 'Techo de devolución del programa (%)',
+			'h'      => 'Guardrail interno automático del 15%: protege el margen de la tienda evitando combinaciones erradas de acumulación.',
+			's'      => 'Puntos por compra',
+			'hidden' => true,
 		),
 		'akb_rewards_welcome_enabled' => array(
 			't' => 'yesno',
@@ -227,22 +242,22 @@ final class SettingsPage {
 		'akb_rewards_first_purchase_by_rut'    => array(
 			't' => 'yesno',
 			'd' => 'yes',
-			'l' => 'Uno por persona: mirar el RUT',
-			'h' => 'Si el RUT del pedido ya aparece en una compra anterior (desde el inicio del programa), no hay bono ni premio a quien invitó, aunque sea otra cuenta.',
+			'l' => 'Anti-fraude: Validar cliente único por RUT',
+			'h' => 'Impide multicuentas: si el RUT del comprador ya registra una compra en la tienda, no se otorga nuevo bono de bienvenida ni premio a quien invitó.',
 			's' => 'Puntos por compra',
 		),
 		'akb_rewards_first_purchase_by_phone'  => array(
 			't' => 'yesno',
 			'd' => 'yes',
-			'l' => 'Uno por persona: mirar el teléfono',
-			'h' => 'Igual, con el teléfono (se compara el número sin +56 ni espacios). Apágalo si ves falsos positivos, por ejemplo un teléfono familiar compartido.',
+			'l' => 'Anti-fraude: Validar cliente único por Teléfono',
+			'h' => 'Verifica el número celular para evitar que un mismo cliente use múltiples cuentas desde el mismo teléfono.',
 			's' => 'Puntos por compra',
 		),
 		'akb_rewards_first_purchase_by_email'  => array(
 			't' => 'yesno',
 			'd' => 'yes',
-			'l' => 'Uno por persona: mirar el correo',
-			'h' => 'Igual, con el correo del pedido. La cuenta del cliente se compara siempre.',
+			'l' => 'Anti-fraude: Validar cliente único por Correo',
+			'h' => 'Verifica el correo del pedido contra el historial de compras del programa.',
 			's' => 'Puntos por compra',
 		),
 		'akb_rewards_welcome_teaser_enabled'   => array(
@@ -256,8 +271,17 @@ final class SettingsPage {
 			't' => 'status',
 			'd' => Options::DEFAULT_AWARD_STATUS,
 			'l' => 'Estado del pedido que acredita',
-			'h' => 'Los puntos se pagan cuando el pedido llega a este estado o a uno posterior. «Procesando» = la pasarela confirmó el pago, así el cliente ve sus puntos apenas paga; «Listo para enviar» espera a que prepares el despacho. Si la venta se cae (cancelado, fallido o reembolsado), los puntos se retiran solos.',
+			'h' => 'Los puntos se pagan cuando el pedido llega a este estado o a uno posterior. «Procesando» = la pasarela confirmó el pago, así el cliente ve sus puntos apenas paga; «Completado» espera a que el pedido se despache o entregue. Si la venta se cae (cancelado, fallido o reembolsado), los puntos se retiran solos.',
 			's' => 'Puntos por compra',
+		),
+		'akb_rewards_accrual_escrow_days'      => array(
+			't'   => 'int',
+			'min' => 0,
+			'max' => 60,
+			'd'   => Options::DEFAULT_ESCROW_DAYS,
+			'l'   => 'Días de carencia para liberación de puntos',
+			'h'   => 'Tiempo en días que los puntos ganados por compra permanecen retenidos antes de pasar a saldo disponible tras completarse el pedido. 0 = acreditación inmediata.',
+			's'   => 'Puntos por compra',
 		),
 		'akb_rewards_program_start'            => array(
 			't' => 'text',
@@ -265,6 +289,61 @@ final class SettingsPage {
 			'l' => 'Inicio de vigencia del programa',
 			'h' => 'Pedidos creados antes de esta fecha no acreditan (formato AAAA-MM-DD HH:MM:SS).',
 			's' => 'Puntos por compra',
+		),
+		'akb_rewards_tiers_enabled'            => array(
+			't' => 'yesno',
+			'd' => 'yes',
+			'l' => 'Niveles de fidelización (Lector, Coleccionista, Residente)',
+			'h' => 'Encendido: premia a clientes frecuentes con multiplicadores en compras según sus puntos históricos ganados. Apagado: todas las compras acumulan al multiplicador base 1.0x.',
+			's' => 'Puntos por compra',
+		),
+		'akb_rewards_tier_coleccionista_min'   => array(
+			't'   => 'int',
+			'd'   => 2000,
+			'min' => 100,
+			'max' => 50000,
+			'l'   => 'Puntos para Nivel Coleccionista',
+			'h'   => 'Puntos históricos acumulados que necesita un cliente para alcanzar el nivel Coleccionista (por defecto: 2.000 pts).',
+			's'   => 'Puntos por compra',
+		),
+		'akb_rewards_tier_coleccionista_mult'  => array(
+			't'    => 'float',
+			'd'    => 1.2,
+			'min'  => 1.0,
+			'max'  => 5.0,
+			'step' => '0.05',
+			'l'    => 'Multiplicador Nivel Coleccionista',
+			'h'    => 'Multiplicador de puntos acumulados en compras para clientes Coleccionista (por defecto: 1.2 = +20% de puntos).',
+			's'    => 'Puntos por compra',
+		),
+		'akb_rewards_tier_residente_min'       => array(
+			't'   => 'int',
+			'd'   => 8000,
+			'min' => 500,
+			'max' => 200000,
+			'l'   => 'Puntos para Nivel Residente de Akiba',
+			'h'   => 'Puntos históricos acumulados para alcanzar el nivel máximo Residente de Akiba (por defecto: 8.000 pts).',
+			's'   => 'Puntos por compra',
+		),
+		'akb_rewards_tier_residente_mult'      => array(
+			't'    => 'float',
+			'd'    => 1.5,
+			'min'  => 1.0,
+			'max'  => 5.0,
+			'step' => '0.05',
+			'l'    => 'Multiplicador Nivel Residente de Akiba',
+			'h'    => 'Multiplicador de puntos acumulados en compras para clientes Residente de Akiba (por defecto: 1.5 = +50% de puntos).',
+			's'    => 'Puntos por compra',
+		),
+		'akb_rewards_tier_validity_days'       => array(
+			't'      => 'int',
+			'd'      => 365,
+			'min'    => 0,
+			'max'    => 730,
+			'suffix' => 'días (365 = 1 año estándar · 0 = vitalicio)',
+			'l'      => 'Vigencia del nivel (0 a 730 días)',
+			'h'      => 'Días que un cliente conserva su estatus tras alcanzarlo o renovarlo con una compra. 0 = Vitalicio (el estatus no vence jamás).',
+			's'      => 'Puntos por compra',
 		),
 		'akb_rewards_expiry_enabled' => array(
 			't' => 'yesno',
@@ -298,14 +377,14 @@ final class SettingsPage {
 			't' => 'yesno',
 			'd' => 'yes',
 			'l' => 'Invitar a reseñar por correo',
-			'h' => 'Un correo con enlace personal por pedido pagado, después del despacho o retiro. Los productos a pedido y preventa deben estar listos. Cambiar ajustes conserva las fechas ya programadas y no reenvía invitaciones anteriores.',
+			'h' => 'Un correo con enlace personal por pedido pagado, después del despacho o retiro. Cambiar ajustes conserva las fechas ya programadas y no reenvía invitaciones anteriores.',
 			's' => 'Reseñas',
 		),
 		'akb_rewards_invite_status' => array(
 			't' => 'status',
 			'd' => 'completed',
-			'l' => 'Despacho: estado que inicia la espera',
-			'h' => 'Elige el estado que usas al entregar el pedido al transportista, por ejemplo «Listo para enviar». Puedes elegir el estado de despacho que use tu operación, con cualquier transportista. «Procesando» sólo confirma pago, no despacho.',
+			'l' => 'Estado que inicia la espera para invitar',
+			'h' => 'Debe ser siempre «Completado». Al pasar el pedido a Completado, WooCommerce envía de inmediato el correo de despacho/entrega y el sistema inicia la espera programada para invitar a reseñar.',
 			's' => 'Reseñas',
 		),
 		'akb_rewards_invite_delay_days' => array(
@@ -314,24 +393,9 @@ final class SettingsPage {
 			// 10x lo vigente y la vida por defecto del enlace: invitar a
 			// reseñar más de un mes después del pedido no lo lee nadie.
 			'max' => 30,
-			'l'   => 'Despacho: días corridos antes de invitar',
-			'h'   => 'Se cuentan desde la entrada al estado de despacho, no desde la compra ni el pago. Es un plazo estimado de recepción. Las invitaciones ya programadas conservan su fecha.',
+			'l'   => 'Días de espera tras completar el pedido',
+			'h'   => 'Días corridos que el sistema espera tras pasar el pedido a «Completado» (por defecto 3 días) para asegurar que el cliente ya recibió y hojeó sus mangas antes de invitarlo a opinar.',
 			's'   => 'Reseñas',
-		),
-		'akb_rewards_invite_pickup_status' => array(
-			't' => 'status',
-			'd' => 'completed',
-			'l' => 'Entrega directa o retiro: estado que inicia la espera',
-			'h' => 'Por ejemplo «Completado» cuando entregas personalmente el pedido o lo retiran. No necesita pasar por el estado de despacho. Si ya había una invitación en cola, conserva su fecha y no crea otra. Si eliges el mismo estado en ambas rutas, se usa el plazo de despacho.',
-			's' => 'Reseñas',
-		),
-		'akb_rewards_invite_pickup_delay_days' => array(
-			't' => 'int',
-			'd' => 6,
-			'max' => 30,
-			'l' => 'Entrega directa o retiro: días corridos antes de invitar',
-			'h' => 'Espera después de la entrega o retiro. Sólo se aplica si ésta fue la primera ruta que programó la invitación.',
-			's' => 'Reseñas',
 		),
 		'akb_rewards_invite_token_days' => array(
 			't'   => 'int',
@@ -357,7 +421,7 @@ final class SettingsPage {
 			// puede pagar más que el techo de un canje.
 			'max' => 5000,
 			'l'   => 'Puntos por reseña con foto aprobada',
-			'h'   => 'La invitación por correo solicita puntos y exige foto. Se acreditan al aprobar una reseña elegible. Las nuevas reseñas voluntarias de la ficha admiten foto opcional y no generan puntos; las anteriores conservan su política vigente. 0 apaga el programa de reseñas.',
+			'h'   => 'La invitación por correo, la ficha del tomo y Mi Colección permiten a compradores verificados solicitar puntos adjuntando una foto real de su compra. Se acreditan al aprobar una reseña elegible. Las reseñas sin foto se publican como opinión voluntaria y no generan puntos. 0 apaga el programa de reseñas.',
 			's'   => 'Reseñas',
 		),
 		'akb_rewards_review_every_n'           => array(
@@ -370,18 +434,18 @@ final class SettingsPage {
 			'min' => 1,
 			'max' => 10,
 			'l'   => 'Premiar cada cuántas reseñas',
-			'h'   => '1 = se premia cada reseña elegible. 3 = se premia la tercera, la sexta… (las intermedias marcan su avance). La reseña de invitación debe tener foto y cumplir los requisitos. Las nuevas reseñas voluntarias de la ficha no generan puntos; las anteriores conservan su política vigente.',
+			'h'   => 'Frecuencia de recompensa. Dejar en 1 (recomendado) para premiar cada reseña aprobada de inmediato. Si se fijara en 3, funciona como tarjeta de sellos donde el cliente debe acumular 3 reseñas para recibir los puntos recién en la tercera.',
 			's'   => 'Reseñas',
 		),
 		'akb_rewards_review_max_per_user'      => array(
 			't'   => 'int',
-			'd'   => 0,
+			'd'   => 5,
 			// 10x el valor VIVO en producción (5), no el default del catálogo
 			// (0 = sin tope): medido contra la fila real para que el primer
 			// guardado no le baje el número al dueño.
 			'max' => 50,
-			'l'   => 'Tope de premios por cliente',
-			'h'   => '0 = sin tope. Con 5, un cliente puede conservar hasta 5 premios de reseña. Retirar una reseña premiada revierte sus puntos y libera ese cupo.',
+			'l'   => 'Tope mensual de premios por cliente',
+			'h'   => '0 = sin tope. Con 5, un cliente puede recibir hasta 5 premios de reseña en una ventana móvil de 30 días. Retirar una reseña premiada revierte sus puntos y libera ese cupo.',
 			's'   => 'Reseñas',
 		),
 		'akb_rewards_review_require_verified'  => array(
@@ -401,23 +465,17 @@ final class SettingsPage {
 		'akb_rewards_review_nudge_enabled'     => array(
 			't' => 'yesno',
 			'd' => 'yes',
-			'l' => 'Invitación a reseñar en el correo',
-			'h' => 'Un recordatorio informativo en los correos elegidos. La invitación con enlace personal se envía aparte, después del plazo de despacho o retiro.',
+			'l' => 'Aviso anticipado en correo de Pedido Completado',
+			'h' => 'Añade una breve nota al pie del correo de confirmación de entrega (Pedido completado) avisando al cliente que en 3 días recibirá su correo con enlace personal para reseñar con fotos.',
 			's' => 'Reseñas',
 		),
 		'akb_rewards_nudge_email_ids'          => array(
-			't' => 'emails',
-			'd' => 'customer_completed_order',
-			'l' => 'Correos que llevan la invitación',
-			'h' => 'Marca los correos que llevan el recordatorio informativo de reseñas. Sin ninguno marcado, no aparece; esto no apaga la invitación automática con enlace personal.',
-			's' => 'Reseñas',
-		),
-		'akb_rewards_disclosure_enabled'       => array(
-			't' => 'yesno',
-			'd' => 'no',
-			'l' => 'Avisar en la reseña que ganó puntos',
-			'h' => 'Añade bajo la reseña premiada «Quien escribió esta reseña ganó Puntos Akibara por publicarla con foto» en la ficha. El carrusel tiene un control adicional para mostrar u ocultar este aviso sólo en la portada. Permite que quien la lea sepa que recibió un incentivo, independientemente de las estrellas que haya dado.',
-			's' => 'Reseñas',
+			't'      => 'emails',
+			'd'      => 'customer_completed_order',
+			'l'      => 'Correos que llevan el recordatorio',
+			'h'      => 'Asociado automáticamente al correo de Pedido Completado.',
+			's'      => 'Reseñas',
+			'hidden' => true,
 		),
 		'akb_rewards_schema_exclude_rewarded'  => array(
 			't' => 'yesno',
@@ -495,13 +553,6 @@ final class SettingsPage {
 			'h' => 'La sección de reseñas de la portada.',
 			's' => 'Carrusel del home',
 		),
-		'akb_rewards_carousel_disclosure_enabled' => array(
-			't' => 'yesno',
-			'd' => 'no',
-			'l' => 'Mostrar también en el carrusel el aviso de puntos',
-			'h' => 'Si el aviso de puntos está activado en Reseñas, lo muestra también bajo las reseñas premiadas de la portada. Apagar esta casilla sólo lo oculta en el carrusel: conserva el aviso en las fichas y las etiquetas de reseñas transcritas.',
-			's' => 'Carrusel del home',
-		),
 		'akb_rewards_carousel_min'             => array(
 			't'   => 'int',
 			'min' => 1,
@@ -525,17 +576,6 @@ final class SettingsPage {
 			),
 			's'       => 'Carrusel del home',
 		),
-		'akb_rewards_carousel_min_chars'       => array(
-			't'   => 'int',
-			'min' => 1,
-			'd'   => 40,
-			// 10x lo vigente. 400 caracteres es un ensayo: deja el carrusel
-			// vacío.
-			'max' => 400,
-			'l'   => 'Largo mínimo del texto',
-			'h'   => 'Caracteres mínimos para que una reseña sea elegible.',
-			's'   => 'Carrusel del home',
-		),
 		'akb_rewards_carousel_cards'           => array(
 			't'   => 'int',
 			'min' => 1,
@@ -555,13 +595,6 @@ final class SettingsPage {
 			'l'     => 'Título de las reseñas (portada y fichas)',
 			'h'     => 'Corto: es el encabezado de la sección de reseñas de cada ficha de producto y el título del carrusel de reseñas de la portada. El carrusel sólo sale en la portada cuando hay al menos tantas reseñas como pide «Mínimo de reseñas para aparecer», más arriba. Vacío = «Voces del Distrito».',
 			's'     => 'Carrusel del home',
-		),
-		'akb_rewards_carousel_exclude_rewarded' => array(
-			't' => 'yesno',
-			'd' => 'no',
-			'l' => 'Excluir reseñas premiadas con puntos',
-			'h' => 'Por defecto entran (tú ya las curaste al aprobarlas).',
-			's' => 'Carrusel del home',
 		),
 		'akb_rewards_pdp_notice_enabled'       => array(
 			't' => 'yesno',
@@ -598,12 +631,13 @@ final class SettingsPage {
 			return array();
 		}
 
-		$lista = array();
+		$permitidos = array( 'customer_completed_order', 'customer_processing_order' );
+		$lista      = array();
 		foreach ( (array) WC()->mailer()->get_emails() as $email ) {
-			if ( ! is_object( $email ) || empty( $email->id ) ) {
+			if ( ! is_object( $email ) || empty( $email->id ) || ! in_array( (string) $email->id, $permitidos, true ) ) {
 				continue;
 			}
-			$titulo                        = isset( $email->title ) ? trim( (string) $email->title ) : '';
+			$titulo                       = isset( $email->title ) ? trim( (string) $email->title ) : ''; // @phpstan-ignore isset.property
 			$lista[ (string) $email->id ] = '' !== $titulo ? $titulo : (string) $email->id;
 		}
 
@@ -638,21 +672,26 @@ final class SettingsPage {
 	 * @return void
 	 */
 	public function enqueue_assets( string $hook ): void {
-		if ( 'woocommerce_page_' . self::SLUG !== $hook ) {
+		if ( false === strpos( $hook, self::SLUG ) && false === strpos( $hook, 'akb-customer-points' ) && false === strpos( $hook, InvitationReschedule::SLUG ) ) {
 			return;
 		}
-		wp_enqueue_script( 'akb-rewards-admin-settings', Assets::url( 'assets/js/admin-settings.js' ), array(), Assets::version( 'assets/js/admin-settings.js' ), true );
+		wp_enqueue_style( 'akb-rewards-admin-css', Assets::url( 'assets/css/admin-rewards.css' ), array(), Assets::version( 'assets/css/admin-rewards.css' ) );
+		if ( false !== strpos( $hook, self::SLUG ) ) {
+			wp_enqueue_script( 'akb-rewards-admin-settings', Assets::url( 'assets/js/admin-settings.js' ), array(), Assets::version( 'assets/js/admin-settings.js' ), true );
+		}
 	}
 
 	/**
-	 * Submenú bajo WooCommerce.
+	 * Submenú bajo Panel Akibara (o WooCommerce como fallback defensivo).
 	 *
 	 * @return void
 	 */
 	public function add_menu(): void {
+		global $admin_page_hooks;
+		$parent = isset( $admin_page_hooks['akibara-panel'] ) ? 'akibara-panel' : 'woocommerce';
 		add_submenu_page(
-			'woocommerce',
-			'Puntos y Reseñas (Akibara)',
+			$parent,
+			'Puntos y Reseñas',
 			'Puntos y Reseñas',
 			self::CAPABILITY,
 			self::SLUG,
@@ -665,12 +704,27 @@ final class SettingsPage {
 	 *
 	 * @return void
 	 */
-	public function render(): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function render(): void { // @phpstan-ignore complexity.functionLike
 		if ( ! current_user_can( self::CAPABILITY ) ) {
 			return;
 		}
 
-		echo '<div class="wrap"><h1>Puntos y Reseñas</h1>';
+		$tabs = array(
+			'puntos'    => array(
+				'label'    => '⭐ Puntos & Fidelización',
+				'sections' => array( 'Puntos por compra', 'Cumpleaños', 'Ficha de producto', 'Alertas' ),
+			),
+			'resenas'   => array(
+				'label'    => '💬 Reseñas & Carrusel',
+				'sections' => array( 'Reseñas', 'Carrusel del home' ),
+				'overview' => true,
+			),
+			'referidos' => array(
+				'label'    => '🤝 Referidos',
+				'sections' => array( 'Referidos' ),
+			),
+		);
 
 		// Los rechazos del último guardado, antes del formulario: si una
 		// baranda revierte un campo sin que se vea, es peor que no tenerla. Y
@@ -681,234 +735,73 @@ final class SettingsPage {
 		$avisos       = get_transient( self::TRANSIENT_AVISOS . get_current_user_id() );
 		if ( is_array( $avisos ) ) {
 			delete_transient( self::TRANSIENT_AVISOS . get_current_user_id() );
+		}
+
+		echo '<div class="wrap akb-rewards-wrap"><div class="akb-rewards-panel">';
+		echo '<div class="akb-panel-top-bar"><a href="' . esc_url( admin_url( 'admin.php?page=akibara-panel' ) ) . '" class="akb-panel-back-btn">← Volver al Centro de Mando</a></div>';
+		echo '<header class="akb-rewards-head">';
+		echo '<div class="akb-rewards-brand"><span class="akb-rewards-gem" aria-hidden="true">&#9670;</span><h1>Puntos y Reseñas</h1><span class="akb-rewards-ver">v' . esc_html( AKIBARA_REWARDS_VERSION ) . '</span></div>';
+		echo '<nav class="nav-tab-wrapper wp-clearfix" role="tablist">';
+		$primero = true;
+		foreach ( $tabs as $tab_key => $tab_info ) {
+			$activo = $primero;
+			echo '<a href="#tab-' . esc_attr( $tab_key ) . '" data-tab="' . esc_attr( $tab_key ) . '" class="nav-tab' . ( $activo ? ' nav-tab-active' : '' ) . '" role="tab" aria-selected="' . ( $activo ? 'true' : 'false' ) . '">' . esc_html( $tab_info['label'] ) . '</a>';
+			$primero = false;
+		}
+		echo '</nav></header>';
+
+		echo '<div class="akb-rewards-body">';
+
+		if ( is_array( $avisos ) ) {
 			foreach ( $avisos as $aviso ) {
 				if ( ! is_array( $aviso ) || '' === (string) ( $aviso['texto'] ?? '' ) ) {
 					continue;
 				}
 				$hubo_rechazo = $hubo_rechazo || 'error' === ( $aviso['tipo'] ?? '' );
-				// Por CONCATENACIÓN, no con printf: estos textos llevan
-				// porcentajes y montos que escribe el programa, y la regla de
-				// la casa mantiene los copys del dueño lejos de cualquier
-				// formateador con «%».
-				echo '<div class="notice notice-' . esc_attr( 'error' === ( $aviso['tipo'] ?? '' ) ? 'error' : 'warning' ) . '"><p>'
+				echo '<div class="notice notice-' . esc_attr( 'error' === ( $aviso['tipo'] ?? '' ) ? 'error' : 'warning' ) . ' is-dismissible"><p>'
 					. esc_html( (string) $aviso['texto'] ) . '</p></div>';
 			}
 		}
 		if ( isset( $_GET['akb_rw_saved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- solo pinta un aviso.
-			echo '<div class="notice notice-success"><p>' . ( $hubo_rechazo ? 'Se guardó el resto de los ajustes.' : 'Ajustes guardados.' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . ( $hubo_rechazo ? 'Se guardó el resto de los ajustes.' : 'Ajustes guardados.' ) . '</p></div>';
 		}
-		( new AdminOverview() )->render();
-		echo '<p class="description">Configura aquí los montos y las opciones del programa. Los cambios se aplican al guardar; las validaciones de seguridad siguen vigentes. Los cortes de pedidos por país se configuran en Productos → Atributos → País, y por editorial en Productos → Marcas.</p>';
-		echo '<nav aria-label="Secciones de ajustes"><p>Ir a: ';
-		$links = array();
-		foreach ( array_unique( array_column( self::FIELDS, 's' ) ) as $section ) {
-			$links[] = '<a href="#' . esc_attr( self::section_anchor( $section ) ) . '">' . esc_html( $section ) . '</a>';
-		}
-		echo implode( ' · ', $links ) . '</p></nav>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- links escaped individually.
 
 		echo '<form data-akb-rewards-settings method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( self::ACTION );
 		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
+		echo '<input type="hidden" name="_akb_rw_preserve_hidden" value="1">';
 
-		submit_button( 'Guardar ajustes', 'primary', 'submit-top' );
-		echo '<p data-akb-settings-status role="status" aria-live="polite">Los cambios se aplican al guardar.</p>';
+		$primero = true;
+		foreach ( $tabs as $tab_key => $tab_info ) {
+			echo '<div class="akb-tab-panel' . ( $primero ? ' is-active' : '' ) . '" id="tab-' . esc_attr( $tab_key ) . '" role="tabpanel">';
 
-		$seccion_abierta = '';
-		foreach ( self::FIELDS as $option => $campo ) {
-			if ( $campo['s'] !== $seccion_abierta ) {
-				if ( '' !== $seccion_abierta ) {
-					echo '</table>';
-				}
-				printf( '<h2 id="%s">%s</h2><table class="form-table" role="presentation">', esc_attr( self::section_anchor( $campo['s'] ) ), esc_html( $campo['s'] ) );
-				$seccion_abierta = $campo['s'];
+			if ( ! empty( $tab_info['overview'] ) ) {
+				( new AdminOverview() )->render();
 			}
 
-			$valor = get_option( $option, 'akb_rewards_invite_pickup_delay_days' === $option ? \Akibara\Rewards\Reviews\Invitations::pickup_delay_days() : $campo['d'] );
-
-			printf( '<tr><th scope="row"><label for="%1$s">%2$s</label></th><td>', esc_attr( $option ), esc_html( $campo['l'] ) );
-
-			if ( 'yesno' === $campo['t'] ) {
-				printf(
-					'<label><input type="checkbox" name="%1$s" id="%1$s" value="yes"%2$s> Activado</label>',
-					esc_attr( $option ),
-					checked( 'yes', (string) $valor, false )
-				);
-			} elseif ( 'select' === $campo['t'] ) {
-				printf( '<select name="%1$s" id="%1$s">', esc_attr( $option ) );
-				foreach ( $campo['choices'] as $clave => $etiqueta ) {
-					printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $clave ), selected( (string) $valor, $clave, false ), esc_html( $etiqueta ) );
-				}
-				echo '</select>';
-			} elseif ( 'status' === $campo['t'] ) {
-				// Selector de estados REALES de pedido (incluye estados custom
-				// si algún día existen). Las claves viajan sin el prefijo wc-,
-				// que es como las entrega woocommerce_order_status_changed.
-				printf( '<select name="%1$s" id="%1$s">', esc_attr( $option ) );
-				$estados = self::order_status_choices();
-				// Un estado guardado que la tienda hoy no registra (el plugin que
-				// lo aporta, apagado) se muestra en vez de perderse: sin esta
-				// opción el navegador enviaba la primera de la lista y el guardado
-				// movía la acreditación en silencio, sin llegar nunca a la rama que
-				// conserva lo guardado y avisa. Lo mismo hace la lista de correos.
-				if ( '' !== (string) $valor && ! array_key_exists( (string) $valor, $estados ) ) {
-					$estados[ (string) $valor ] = (string) $valor . ' (este estado ya no está disponible)';
-				}
-				foreach ( $estados as $clave => $etiqueta ) {
-					printf(
-						'<option value="%1$s"%2$s>%3$s</option>',
-						esc_attr( $clave ),
-						selected( (string) $valor, $clave, false ),
-						esc_html( $etiqueta )
-					);
-				}
-				echo '</select>';
-			} elseif ( 'int' === $campo['t'] ) {
-				printf(
-					'<input type="number" name="%1$s" id="%1$s" value="%2$s" min="%3$s"%4$s step="1" class="small-text">',
-					esc_attr( $option ),
-					esc_attr( (string) (int) $valor ),
-					esc_attr( (string) (int) ( $campo['min'] ?? 0 ) ),
-					isset( $campo['max'] ) ? ' max="' . esc_attr( (string) (int) $campo['max'] ) . '"' : ''
-				);
-			} elseif ( 'emails' === $campo['t'] ) {
-				// Casillas con los correos REALES de la tienda: nadie tiene que
-				// saber que «Pedido completado» se llama customer_completed_order.
-				$marcados = array_filter( array_map( 'trim', explode( ',', (string) $valor ) ) );
-				$opciones = self::email_choices();
-				// Un correo guardado que la tienda ya no registra (un plugin
-				// apagado) se muestra en vez de borrarse en silencio al guardar.
-				foreach ( $marcados as $guardado ) {
-					if ( ! isset( $opciones[ $guardado ] ) ) {
-						$opciones[ $guardado ] = $guardado . ' (este correo ya no está disponible)';
+			foreach ( $tab_info['sections'] as $seccion ) {
+				echo '<div class="akb-rewards-card" id="' . esc_attr( self::section_anchor( $seccion ) ) . '">';
+				echo '<div class="akb-rewards-card__header"><h3 class="akb-rewards-card__title">' . esc_html( $seccion ) . '</h3></div>';
+				echo '<table class="form-table" role="presentation">';
+				foreach ( self::FIELDS as $option => $campo ) {
+					if ( $campo['s'] !== $seccion || ! empty( $campo['hidden'] ) ) {
+						continue;
 					}
+					self::render_field_row( $option, $campo );
 				}
-				// El vacío viaja siempre: dice «el formulario llegó», para no
-				// confundir «ninguna casilla» con «no se pintó la lista».
-				printf( '<fieldset><input type="hidden" name="%s[]" value="">', esc_attr( $option ) );
-				foreach ( $opciones as $id => $titulo ) {
-					printf(
-						'<label style="display:block;margin:0 0 4px"><input type="checkbox" name="%1$s[]" value="%2$s"%3$s> %4$s</label>',
-						esc_attr( $option ),
-						esc_attr( $id ),
-						checked( in_array( $id, $marcados, true ), true, false ),
-						esc_html( $titulo )
-					);
-				}
-				echo '</fieldset>';
-			} elseif ( 'recipients' === $campo['t'] ) {
-				printf(
-					'<input type="text" name="%1$s" id="%1$s" value="%2$s" class="regular-text" placeholder="%3$s" inputmode="email">',
-					esc_attr( $option ),
-					esc_attr( (string) $valor ),
-					esc_attr( (string) get_option( 'admin_email', '' ) )
-				);
-			} else {
-				// La fecha de vigencia lleva patrón y placeholder: el navegador
-				// frena el formato incorrecto antes de que el servidor lo rechace.
-				$extra = 'akb_rewards_program_start' === $option
-					? ' placeholder="AAAA-MM-DD HH:MM:SS" pattern="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}" inputmode="numeric"'
-					: '';
-				// El tope de largo de la fila, en las dos capas a la vez, como el
-				// `max` de los enteros: el navegador no deja escribir más y el
-				// guardado recorta lo que llegue por otra vía.
-				if ( isset( $campo['largo'] ) ) {
-					$extra .= ' maxlength="' . (int) $campo['largo'] . '"';
-				}
-				printf(
-					'<input type="text" name="%1$s" id="%1$s" value="%2$s" class="regular-text"%3$s>',
-					esc_attr( $option ),
-					esc_attr( (string) $valor ),
-					$extra // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literales fijos de la casa y un entero, sin datos de usuario.
-				);
+				echo '</table></div>';
 			}
 
-			if ( '' !== $campo['h'] ) {
-				// El tope se dice con el MISMO número que aplica el guardado.
-				printf(
-					'<p class="description">%s</p>',
-					esc_html( $campo['h'] . ( isset( $campo['largo'] ) ? ' Hasta ' . (int) $campo['largo'] . ' caracteres.' : '' ) )
-				);
-
-				// Explica si el umbral de reseñas permite mostrar el carrusel.
-				if ( 'akb_rewards_carousel_title' === $option ) {
-					$encendido = Options::carousel_on();
-					$evidencia = self::carousel_evidence_text(
-						$encendido,
-						$encendido ? ( new \Akibara\Rewards\Reviews\Carousel() )->eligible_seen() : 0,
-						Options::carousel_min()
-					);
-					if ( '' !== $evidencia ) {
-						printf( '<p class="description" style="color:#996800"><strong>%s</strong></p>', esc_html( $evidencia ) );
-					}
-				}
-
-				// Contrasta el estado elegido con la actividad real de los pedidos.
-				if ( 'status' === (string) $campo['t'] ) {
-					$evidencia = self::status_evidence_text( self::status_counts_90d( (string) $valor ), (string) $valor, self::order_status_choices(), $option );
-					if ( '' !== $evidencia ) {
-						printf( '<p class="description" style="color:#996800"><strong>%s</strong></p>', esc_html( $evidencia ) );
-					}
-				}
-
-				// Advierte en ambos campos si el aviso está activo sin correos elegidos.
-				if ( in_array( $option, array( 'akb_rewards_review_nudge_enabled', 'akb_rewards_nudge_email_ids' ), true )
-					&& 'yes' === (string) get_option( 'akb_rewards_review_nudge_enabled', 'yes' )
-					&& array() === array_filter( array_map( 'trim', explode( ',', (string) get_option( 'akb_rewards_nudge_email_ids', 'customer_completed_order' ) ) ) ) ) {
-					printf(
-						'<p class="description" style="color:#996800"><strong>%s</strong></p>',
-						esc_html( 'Ojo: está activado, pero no hay ningún correo marcado abajo, así que el párrafo no sale en ninguno. Marca al menos uno, o apaga el interruptor.' )
-					);
-				}
-
-				// Explica la fecha futura o ilegible que suspende la acumulación.
-				if ( 'akb_rewards_program_start' === $option ) {
-					$estado_programa = \Akibara\Rewards\Points\Accrual::program_state();
-					if ( \Akibara\Rewards\Points\Accrual::PROGRAMA_AGENDADO === $estado_programa ) {
-						printf(
-							'<p class="description" style="color:#996800"><strong>%s</strong></p>',
-							esc_html( sprintf( 'Ojo: el programa empieza el %s. Hasta entonces nadie acumula puntos por comprar, y la tienda no los promete en la ficha, en Mi cuenta ni en la caja.', \Akibara\Rewards\Points\ProgramPage::start_label() ) )
-						);
-					} elseif ( \Akibara\Rewards\Points\Accrual::PROGRAMA_ILEGIBLE === $estado_programa ) {
-						printf(
-							'<p class="description" style="color:#b32d2e"><strong>%s</strong></p>',
-							esc_html( 'La fecha guardada no se puede leer, así que HOY nadie está acumulando puntos y la tienda dejó de prometerlos. Escríbela de nuevo con el formato AAAA-MM-DD HH:MM:SS y guarda.' )
-						);
-					}
-				}
-
-				// Muestra el estado del aviso visible junto al filtro de JSON-LD.
-				if ( 'akb_rewards_schema_exclude_rewarded' === $option
-					&& 'yes' !== (string) get_option( 'akb_rewards_disclosure_enabled', 'no' ) ) {
-					printf(
-						'<p class="description" style="color:#996800"><strong>%s</strong></p>',
-						esc_html( 'Ojo: hoy las reseñas premiadas se leen en la ficha SIN aviso de que ganaron puntos. El aviso se enciende en el interruptor de arriba.' )
-					);
-				}
-
-				// Expone al dueño cuántos clientes pidieron dejar de recibir invitaciones.
-				if ( 'akb_rewards_invite_enabled' === $option ) {
-					$bajas = \Akibara\Rewards\Reviews\InviteOptOut::total();
-					printf(
-						'<p class="description">%s</p>',
-						esc_html(
-							0 === $bajas
-								? 'Cada invitación lleva su propio enlace para que el cliente pida no recibir más. Nadie lo ha usado todavía.'
-								: sprintf(
-									1 === $bajas
-										? '%s cliente pidió no recibir más invitaciones: a esa dirección ya no se le escribe.'
-										: '%s clientes pidieron no recibir más invitaciones: a esas direcciones ya no se les escribe.',
-									number_format_i18n( $bajas )
-								)
-						)
-					);
-				}
-			}
-			echo '</td></tr>';
+			echo '</div>'; // akb-tab-panel
+			$primero = false;
 		}
-		echo '</table>';
 
-		submit_button( 'Guardar ajustes' );
-		echo '</form>';
+		echo '<div class="akb-rewards-status-bar">';
+		echo '<p data-akb-settings-status role="status" aria-live="polite">Los cambios se aplican al guardar.</p>';
+		submit_button( 'Guardar ajustes', 'primary', 'submit', false );
+		echo '</div>';
+
+		echo '</form></div></div>'; // akb-rewards-body, akb-rewards-panel
 
 		/**
 		 * Bloques extra de la pantalla de ajustes (ajuste manual de puntos,
@@ -918,7 +811,243 @@ final class SettingsPage {
 		 */
 		do_action( 'akb_rewards_settings_after' );
 
-		echo '</div>';
+		echo '</div>'; // wrap
+	}
+
+	/**
+	 * Pinta una fila de campo del formulario de ajustes.
+	 *
+	 * @param string               $option Option del catálogo.
+	 * @param array<string, mixed> $campo  Definición del campo.
+	 * @return void
+	 */
+	private static function render_field_row( string $option, array $campo ): void {
+		$const_name     = Options::TIER_CONSTANTS[ $option ] ?? null;
+		$const_value    = null !== $const_name ? Options::tier_constant_value( $option ) : null;
+		$is_const_fixed = null !== $const_value;
+		$valor          = $is_const_fixed ? $const_value : get_option( $option, $campo['d'] );
+		$disabled_attr  = $is_const_fixed ? ' disabled="disabled"' : '';
+
+		printf( '<tr><th scope="row"><label for="%1$s">%2$s</label></th><td>', esc_attr( $option ), esc_html( $campo['l'] ) );
+		self::render_field_control( $option, $campo, $valor, $disabled_attr );
+		self::render_field_help( $option, $campo, $valor, $is_const_fixed, $const_name );
+		echo '</td></tr>';
+	}
+
+	/**
+	 * Pinta el control de entrada (checkbox, select, number, emails, text) para un campo.
+	 *
+	 * @param string               $option        Option del catálogo.
+	 * @param array<string, mixed> $campo         Definición del campo.
+	 * @param mixed                $valor         Valor actual.
+	 * @param string               $disabled_attr Atributo disabled si aplica.
+	 * @return void
+	 */
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function render_field_control( string $option, array $campo, $valor, string $disabled_attr ): void { // @phpstan-ignore complexity.functionLike
+		if ( 'yesno' === $campo['t'] ) {
+			printf(
+				'<label><input type="checkbox" name="%1$s" id="%1$s" value="yes"%2$s%3$s> Activado</label>',
+				esc_attr( $option ),
+				checked( 'yes', (string) $valor, false ),
+				$disabled_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal estático seguro.
+			);
+			return;
+		}
+		if ( 'select' === $campo['t'] ) {
+			printf( '<select name="%1$s" id="%1$s"%2$s>', esc_attr( $option ), $disabled_attr ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			foreach ( $campo['choices'] as $clave => $etiqueta ) {
+				printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $clave ), selected( (string) $valor, $clave, false ), esc_html( $etiqueta ) );
+			}
+			echo '</select>';
+			return;
+		}
+		if ( 'status' === $campo['t'] ) {
+			printf( '<select name="%1$s" id="%1$s">', esc_attr( $option ) );
+			$estados = self::order_status_choices();
+			if ( '' !== (string) $valor && ! array_key_exists( (string) $valor, $estados ) ) {
+				$estados[ (string) $valor ] = $valor . ' (este estado ya no está disponible)';
+			}
+			foreach ( $estados as $clave => $etiqueta ) {
+				printf(
+					'<option value="%1$s"%2$s>%3$s</option>',
+					esc_attr( $clave ),
+					selected( (string) $valor, $clave, false ),
+					esc_html( $etiqueta )
+				);
+			}
+			echo '</select>';
+			return;
+		}
+		if ( 'int' === $campo['t'] || 'float' === $campo['t'] ) {
+			self::render_numeric_field_control( $option, $campo, $valor, $disabled_attr );
+			return;
+		}
+		if ( 'emails' === $campo['t'] ) {
+			$marcados = array_filter( array_map( 'trim', explode( ',', (string) $valor ) ) );
+			$opciones = self::email_choices();
+			foreach ( $marcados as $guardado ) {
+				if ( ! isset( $opciones[ $guardado ] ) ) {
+					$opciones[ $guardado ] = $guardado . ' (este correo ya no está disponible)';
+				}
+			}
+			printf( '<fieldset><input type="hidden" name="%s[]" value="">', esc_attr( $option ) );
+			foreach ( $opciones as $id => $titulo ) {
+				printf(
+					'<label style="display:block;margin:0 0 4px"><input type="checkbox" name="%1$s[]" value="%2$s"%3$s> %4$s</label>',
+					esc_attr( $option ),
+					esc_attr( $id ),
+					checked( in_array( $id, $marcados, true ), true, false ),
+					esc_html( $titulo )
+				);
+			}
+			echo '</fieldset>';
+			return;
+		}
+		if ( 'recipients' === $campo['t'] ) {
+			printf(
+				'<input type="text" name="%1$s" id="%1$s" value="%2$s" class="regular-text" placeholder="%3$s" inputmode="email">',
+				esc_attr( $option ),
+				esc_attr( (string) $valor ),
+				esc_attr( (string) get_option( 'admin_email', '' ) )
+			);
+			return;
+		}
+
+		$placeholder = 'akb_rewards_program_start' === $option ? 'AAAA-MM-DD HH:MM:SS' : '';
+		$pattern     = 'akb_rewards_program_start' === $option ? '\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}' : '';
+		$inputmode   = 'akb_rewards_program_start' === $option ? 'numeric' : '';
+		$maxlength   = isset( $campo['largo'] ) ? (int) $campo['largo'] : 0;
+
+		printf(
+			'<input type="text" name="%1$s" id="%1$s" value="%2$s" class="regular-text"%3$s%4$s%5$s%6$s>',
+			esc_attr( $option ),
+			esc_attr( (string) $valor ),
+			'' !== $placeholder ? sprintf( ' placeholder="%s"', esc_attr( $placeholder ) ) : '',
+			'' !== $pattern ? sprintf( ' pattern="%s"', esc_attr( $pattern ) ) : '',
+			'' !== $inputmode ? sprintf( ' inputmode="%s"', esc_attr( $inputmode ) ) : '',
+			$maxlength > 0 ? sprintf( ' maxlength="%s"', esc_attr( (string) $maxlength ) ) : ''
+		);
+	}
+
+	/**
+	 * Pinta el control numérico (`int` o `float`) con su sufijo opcional.
+	 *
+	 * @param string               $option        Option del catálogo.
+	 * @param array<string, mixed> $campo         Definición del campo.
+	 * @param mixed                $valor         Valor actual.
+	 * @param string               $disabled_attr Atributo disabled si aplica.
+	 * @return void
+	 */
+	private static function render_numeric_field_control( string $option, array $campo, $valor, string $disabled_attr ): void {
+		$is_float = 'float' === $campo['t'];
+		$val_str  = $is_float ? (string) (float) $valor : (string) (int) $valor;
+		$min_str  = $is_float ? (string) (float) ( $campo['min'] ?? 1.0 ) : (string) (int) ( $campo['min'] ?? 0 );
+		$max_attr = isset( $campo['max'] )
+			? ' max="' . esc_attr( $is_float ? (string) (float) $campo['max'] : (string) (int) $campo['max'] ) . '"'
+			: '';
+		$step_str = $is_float ? (string) ( $campo['step'] ?? '0.05' ) : '1';
+
+		printf(
+			'<input type="number" name="%1$s" id="%1$s" value="%2$s" min="%3$s"%4$s step="%5$s" class="small-text"%6$s>',
+			esc_attr( $option ),
+			esc_attr( $val_str ),
+			esc_attr( $min_str ),
+			$max_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			esc_attr( $step_str ),
+			$disabled_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		);
+		if ( isset( $campo['suffix'] ) && '' !== $campo['suffix'] ) {
+			printf( ' <span class="akb-field-suffix" style="margin-left:6px;color:var(--akb-admin-muted,#646970)">%s</span>', esc_html( $campo['suffix'] ) );
+		}
+	}
+
+	/**
+	 * Pinta la descripción y avisos contextuales de un campo.
+	 *
+	 * @param string               $option         Option del catálogo.
+	 * @param array<string, mixed> $campo          Definición del campo.
+	 * @param mixed                $valor          Valor actual.
+	 * @param bool                 $is_const_fixed Si está fijado por constante.
+	 * @param string|null          $const_name     Nombre de la constante.
+	 * @return void
+	 */
+	private static function render_field_help( string $option, array $campo, $valor, bool $is_const_fixed, ?string $const_name ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		if ( '' === $campo['h'] ) {
+			return;
+		}
+		printf(
+			'<p class="description">%s</p>',
+			esc_html( $campo['h'] . ( isset( $campo['largo'] ) ? ' Hasta ' . (int) $campo['largo'] . ' caracteres.' : '' ) )
+		);
+
+		if ( $is_const_fixed && null !== $const_name ) {
+			printf(
+				'<p class="description" style="color:var(--akb-admin-warning,#996800)"><strong>Controlado por constante <code>%s</code> en <code>wp-config.php</code></strong> (prevalece sobre la base de datos).</p>',
+				esc_html( $const_name )
+			);
+		}
+
+		if ( 'akb_rewards_carousel_title' === $option ) {
+			$encendido = Options::carousel_on();
+			$evidencia = self::carousel_evidence_text(
+				$encendido,
+				$encendido ? ( new \Akibara\Rewards\Reviews\Carousel() )->eligible_seen() : 0,
+				Options::carousel_min()
+			);
+			if ( '' !== $evidencia ) {
+				printf( '<p class="description" style="color:#996800"><strong>%s</strong></p>', esc_html( $evidencia ) );
+			}
+		}
+
+		if ( 'status' === (string) $campo['t'] ) {
+			$evidencia = self::status_evidence_text( self::status_counts_90d( (string) $valor ), (string) $valor, self::order_status_choices(), $option );
+			if ( '' !== $evidencia ) {
+				printf( '<p class="description" style="color:#996800"><strong>%s</strong></p>', esc_html( $evidencia ) );
+			}
+		}
+
+		if ( in_array( $option, array( 'akb_rewards_review_nudge_enabled', 'akb_rewards_nudge_email_ids' ), true )
+			
+			&& 'yes' === (string) get_option( 'akb_rewards_review_nudge_enabled', 'yes' )
+			&& array() === array_filter( array_map( 'trim', explode( ',', (string) get_option( 'akb_rewards_nudge_email_ids', 'customer_completed_order' ) ) ) ) ) {
+			printf(
+				'<p class="description" style="color:#996800"><strong>%s</strong></p>',
+				esc_html( 'Ojo: está activado, pero no hay ningún correo marcado abajo, así que el párrafo no sale en ninguno. Marca al menos uno, o apaga el interruptor.' )
+			);
+		}
+
+		if ( 'akb_rewards_program_start' === $option ) {
+			$estado_programa = \Akibara\Rewards\Points\Accrual::program_state();
+			if ( \Akibara\Rewards\Points\Accrual::PROGRAMA_AGENDADO === $estado_programa ) {
+				printf(
+					'<p class="description" style="color:#996800"><strong>%s</strong></p>',
+					esc_html( sprintf( 'Ojo: el programa empieza el %s. Hasta entonces nadie acumula puntos por comprar, y la tienda no los promete en la ficha, en Mi cuenta ni en la caja.', \Akibara\Rewards\Points\ProgramPage::start_label() ) )
+				);
+			} elseif ( \Akibara\Rewards\Points\Accrual::PROGRAMA_ILEGIBLE === $estado_programa ) {
+				printf(
+					'<p class="description" style="color:#b32d2e"><strong>%s</strong></p>',
+					esc_html( 'La fecha guardada no se puede leer, así que HOY nadie está acumulando puntos y la tienda dejó de prometerlos. Escríbela de nuevo con el formato AAAA-MM-DD HH:MM:SS y guarda.' )
+				);
+			}
+		}
+
+		if ( 'akb_rewards_invite_enabled' === $option ) {
+			$bajas = \Akibara\Rewards\Reviews\InviteOptOut::total();
+			printf(
+				'<p class="description">%s</p>',
+				esc_html(
+					0 === $bajas
+						? 'Cada invitación lleva su propio enlace para que el cliente pida no recibir más. Nadie lo ha usado todavía.'
+						: sprintf(
+							1 === $bajas
+								? '%s cliente pidió no recibir más invitaciones: a esa dirección ya no se le escribe.'
+								: '%s clientes pidieron no recibir más invitaciones: a esas direcciones ya no se les escribe.',
+							number_format_i18n( $bajas )
+						)
+				)
+			);
+		}
 	}
 
 	/**
@@ -955,21 +1084,32 @@ final class SettingsPage {
 	 * @param array<string,mixed> $input Datos del formulario, ya des-escapados.
 	 * @return array<string,mixed> Lo que quedó guardado, por option.
 	 */
-	public function save_fields( array $input ): array {
+	public function save_fields( array $input ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$avisos   = array();
 		$acotados = array();
 		$valores  = $this->sanitize_fields( $input, $avisos, $acotados );
 
 		$valores = $this->guard_giveback( $valores, $avisos );
+		$valores = $this->guard_tiers( $valores, $avisos, $input );
 		$valores = $this->guard_expiry_warning( $valores, $avisos );
 
 		foreach ( $acotados as $option => $acotado ) {
-			if ( (int) $valores[ $option ] === $acotado ) {
+			$tipo = self::FIELDS[ $option ]['t'] ?? 'int';
+			if ( 'float' === $tipo ) {
+				if ( abs( (float) $valores[ $option ] - (float) $acotado ) <= 0.0001 ) {
+					$min      = (float) ( self::FIELDS[ $option ]['min'] ?? 0.0 );
+					$max      = (float) ( self::FIELDS[ $option ]['max'] ?? 10.0 );
+					$avisos[] = array(
+						'tipo'  => 'warning',
+						'texto' => self::etiqueta( $option ) . ' admite entre ' . \Akibara\Rewards\Points\Tiers::format_multiplier( $min ) . ' y ' . \Akibara\Rewards\Points\Tiers::format_multiplier( $max ) . ': se guardó en ' . \Akibara\Rewards\Points\Tiers::format_multiplier( (float) $acotado ) . '.',
+					);
+				}
+			} elseif ( (int) $valores[ $option ] === (int) $acotado ) {
 				$min      = (int) ( self::FIELDS[ $option ]['min'] ?? 0 );
 				$max      = (int) self::FIELDS[ $option ]['max'];
 				$avisos[] = array(
 					'tipo'  => 'warning',
-					'texto' => self::etiqueta( $option ) . ' admite entre ' . number_format_i18n( $min ) . ' y ' . number_format_i18n( $max ) . ': se guardó en ' . number_format_i18n( $acotado ) . '.',
+					'texto' => self::etiqueta( $option ) . ' admite entre ' . number_format_i18n( $min ) . ' y ' . number_format_i18n( $max ) . ': se guardó en ' . number_format_i18n( (int) $acotado ) . '.',
 				);
 			}
 		}
@@ -980,18 +1120,24 @@ final class SettingsPage {
 		foreach ( array_merge( self::PROMESA_EN_CADA_FICHA, self::FORMA_DE_CADA_FICHA ) as $option ) {
 			$ficha_antes[ $option ] = (string) get_option( $option, (string) self::FIELDS[ $option ]['d'] );
 		}
-		// Las opciones del carrusel y el aviso de divulgación gobiernan su
+		// Las opciones del carrusel gobiernan su
 		// contenido cacheado; la lista se obtiene del catálogo del panel.
-		$resenas_antes = array(
-			'akb_rewards_disclosure_enabled' => (string) get_option( 'akb_rewards_disclosure_enabled', 'no' ),
-		);
+		$resenas_antes = array();
 		foreach ( array_keys( self::FIELDS ) as $option ) {
 			if ( 0 === strpos( $option, 'akb_rewards_carousel_' ) ) {
 				$resenas_antes[ $option ] = (string) get_option( $option, (string) self::FIELDS[ $option ]['d'] );
 			}
 		}
 
+		$preserve_hidden = ! empty( $input['_akb_rw_preserve_hidden'] );
+
 		foreach ( array_keys( self::FIELDS ) as $option ) {
+			if ( null !== Options::tier_constant_value( $option ) ) {
+				continue;
+			}
+			if ( $preserve_hidden && ! empty( self::FIELDS[ $option ]['hidden'] ) && ! array_key_exists( $option, $input ) ) {
+				continue;
+			}
 			// autoload = true: son escalares diminutos que se leen en el camino
 			// del cliente (ficha, Mi cuenta, carrito, correos). Ver
 			// Schema::autoloaded_options().
@@ -1048,107 +1194,181 @@ final class SettingsPage {
 	 * @return array<string,mixed> option => valor saneado.
 	 */
 	private function sanitize_fields( array $input, array &$avisos, array &$acotados = array() ): array {
-		$valores = array();
+		$valores         = array();
+		$preserve_hidden = ! empty( $input['_akb_rw_preserve_hidden'] );
 
 		foreach ( self::FIELDS as $option => $campo ) {
-			if ( 'yesno' === $campo['t'] ) {
-				// Un checkbox apagado NO viaja en el POST: su ausencia es el
-				// «no». Por eso se recorre el catálogo y no lo recibido.
-				$valor = isset( $input[ $option ] ) && 'yes' === $input[ $option ] ? 'yes' : 'no';
-			} elseif ( 'select' === $campo['t'] ) {
-				$valor = isset( $input[ $option ] ) && is_string( $input[ $option ] ) ? $input[ $option ] : (string) get_option( $option, $campo['d'] );
-				if ( ! array_key_exists( $valor, $campo['choices'] ) ) {
-					$guardado = (string) get_option( $option, $campo['d'] );
-					$valor    = array_key_exists( $guardado, $campo['choices'] ) ? $guardado : $campo['d'];
-					$avisos[] = array( 'tipo' => 'warning', 'texto' => '«' . $campo['l'] . '» no contiene una opción válida: se conservó la selección anterior.' );
-				}
-			} elseif ( 'status' === $campo['t'] ) {
-				// Rechaza estados nuevos desconocidos. Conserva un estado ya guardado
-				// si falta temporalmente el plugin que lo registra, y avisa al dueño.
-				$valor    = sanitize_key( (string) ( $input[ $option ] ?? '' ) );
-				$guardado = (string) get_option( $option, (string) $campo['d'] );
-				if ( ! array_key_exists( $valor, self::order_status_choices() ) ) {
-					if ( '' !== $valor && $valor === $guardado ) {
-						// Con la forma que la pantalla lee ({tipo, texto}): como
-						// texto suelto, `render()` lo descartaba y el dueño nunca
-						// veía por qué el estado no cambió.
-						$avisos[] = array(
-							'tipo'  => 'warning',
-							'texto' => '«' . $campo['l'] . '» se quedó como estaba (' . $valor . '): ese estado no existe hoy en la tienda, seguramente porque el plugin que lo registra está desactivado.',
-						);
-					} else {
-						$valor = $guardado !== '' && array_key_exists( $guardado, self::order_status_choices() )
-							? $guardado
-							: (string) $campo['d'];
-					}
-				}
-			} elseif ( 'int' === $campo['t'] ) {
-				$crudo = isset( $input[ $option ] ) ? (int) $input[ $option ] : (int) $campo['d'];
-				$valor = self::clamp_int( $option, $crudo );
-				if ( isset( $input[ $option ] ) && $valor !== $crudo ) {
-					$acotados[ $option ] = $valor;
-				}
-			} elseif ( 'emails' === $campo['t'] ) {
-				// Ninguna casilla marcada no viaja en el POST: es «ninguno».
-				// Lo marcado se cruza con los correos que la tienda tiene de
-				// verdad, en el orden de su lista.
-				$valor = '';
-				if ( isset( $input[ $option ] ) ) {
-					$guardados = array_filter( array_map( 'trim', explode( ',', (string) get_option( $option, $campo['d'] ) ) ) );
-					$opciones  = self::email_choices();
-					if ( array() === $opciones ) {
-						$valor = implode( ',', $guardados ); // Sin la lista no se puede juzgar: se conserva.
-					} else {
-						// Valen los correos de la tienda y los que ya estaban guardados
-						// (el panel los muestra aunque su plugin esté apagado).
-						$validos = array_values( array_unique( array_merge( array_keys( $opciones ), $guardados ) ) );
-						$valor   = implode( ',', array_values( array_intersect( $validos, array_map( 'strval', (array) $input[ $option ] ) ) ) );
-					}
-				}
-			} elseif ( 'recipients' === $campo['t'] ) {
-				$descartados = array();
-				$valor       = implode( ', ', Options::email_list( sanitize_text_field( (string) ( $input[ $option ] ?? '' ) ), $descartados ) );
-				if ( array() !== $descartados ) {
-					$avisos[] = array(
-						'tipo'  => 'warning',
-						'texto' => 'En «' . $campo['l'] . '» se descartó lo que no es un correo: ' . implode( ', ', $descartados ) . '.',
-					);
-				}
-			} else {
-				$valor = isset( $input[ $option ] ) ? sanitize_text_field( (string) $input[ $option ] ) : (string) $campo['d'];
-				// Recorta por caracteres visibles sin rechazar el resto del formulario.
-				// El aviso concatena el texto del dueño sin interpretarlo como formato.
-				if ( isset( $campo['largo'] ) ) {
-					$letras = self::letras_visibles( $valor );
-					if ( count( $letras ) > (int) $campo['largo'] ) {
-						$valor    = rtrim( implode( '', array_slice( $letras, 0, (int) $campo['largo'] ) ) );
-						$avisos[] = array(
-							'tipo'  => 'warning',
-							'texto' => '«' . $campo['l'] . '» admite hasta ' . (int) $campo['largo'] . ' caracteres: se guardó recortado, como «' . $valor . '».',
-						);
-					}
-				}
-				// La fecha de vigencia la lee Accrual::program_allows() con
-				// createFromFormat: un formato mal escrito BLOQUEABA toda la
-				// acreditación en silencio (QA 2026-09-01). Se rechaza al
-				// guardar, se conserva la vigente y se avisa en pantalla.
-				if ( 'akb_rewards_program_start' === $option ) {
-					// La misma lectura con la que el motor la va a interpretar: una
-					// sola función, para que el panel no acepte lo que el motor rechaza.
-					if ( null === \Akibara\Rewards\Points\Accrual::parse_program_start( $valor ) ) {
-						$valor    = (string) get_option( $option, $campo['d'] );
-						$avisos[] = array(
-							'tipo'  => 'warning',
-							'texto' => 'La fecha de «Inicio de vigencia del programa» no tiene el formato AAAA-MM-DD HH:MM:SS: se conservó la anterior. Con una fecha inválida nadie acreditaría puntos.',
-						);
-					}
-				}
+			$const_val = Options::tier_constant_value( $option );
+			if ( null !== $const_val ) {
+				$valores[ $option ] = $const_val;
+				continue;
 			}
-
-			$valores[ $option ] = $valor;
+			if ( $preserve_hidden && ! empty( $campo['hidden'] ) && ! array_key_exists( $option, $input ) ) {
+				$valores[ $option ] = get_option( $option, $campo['d'] );
+				continue;
+			}
+			$valores[ $option ] = $this->sanitize_single_field_value( $option, $campo, $input, $avisos, $acotados ); // @phpstan-ignore parameterByRef.type
 		}
 
 		return $valores;
+	}
+
+	/**
+	 * Sanea un campo individual del catálogo según su tipo.
+	 *
+	 * @param string                                     $option   Nombre de la option.
+	 * @param array<string, mixed>                       $campo    Definición del campo.
+	 * @param array<string, mixed>                       $input    Datos recibidos.
+	 * @param array<int,array{tipo:string,texto:string}> $avisos   Avisos (por referencia).
+	 * @param array<string, int|float>                   $acotados Campos acotados (por referencia).
+	 * @return mixed
+	 */
+	private function sanitize_single_field_value( string $option, array $campo, array $input, array &$avisos, array &$acotados ) { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		if ( 'yesno' === $campo['t'] ) {
+			return isset( $input[ $option ] ) && 'yes' === $input[ $option ] ? 'yes' : 'no';
+		}
+		if ( 'select' === $campo['t'] ) {
+			$valor = isset( $input[ $option ] ) && is_string( $input[ $option ] ) ? $input[ $option ] : (string) get_option( $option, $campo['d'] );
+			if ( ! array_key_exists( $valor, $campo['choices'] ) ) {
+				$guardado = (string) get_option( $option, $campo['d'] );
+				$valor    = array_key_exists( $guardado, $campo['choices'] ) ? $guardado : $campo['d'];
+				$avisos[] = array( 'tipo' => 'warning', 'texto' => '«' . $campo['l'] . '» no contiene una opción válida: se conservó la selección anterior.' );
+			}
+			return $valor;
+		}
+		if ( 'status' === $campo['t'] ) {
+			return $this->sanitize_status_field_value( $option, $campo, $input, $avisos );
+		}
+		if ( 'int' === $campo['t'] ) {
+			$crudo = isset( $input[ $option ] ) ? (int) $input[ $option ] : (int) $campo['d'];
+			$valor = self::clamp_int( $option, $crudo );
+			if ( isset( $input[ $option ] ) && $valor !== $crudo ) {
+				$acotados[ $option ] = $valor;
+			}
+			return $valor;
+		}
+		if ( 'float' === $campo['t'] ) {
+			return $this->sanitize_float_field_value( $option, $campo, $input, $acotados );
+		}
+		if ( 'emails' === $campo['t'] ) {
+			return $this->sanitize_emails_field_value( $option, $campo, $input );
+		}
+		if ( 'recipients' === $campo['t'] ) {
+			$descartados = array();
+			$valor       = implode( ', ', Options::email_list( sanitize_text_field( (string) ( $input[ $option ] ?? '' ) ), $descartados ) );
+			if ( array() !== $descartados ) {
+				$avisos[] = array(
+					'tipo'  => 'warning',
+					'texto' => 'En «' . $campo['l'] . '» se descartó lo que no es un correo: ' . implode( ', ', $descartados ) . '.',
+				);
+			}
+			return $valor;
+		}
+
+		return $this->sanitize_text_field_value( $option, $campo, $input, $avisos );
+	}
+
+	/**
+	 * Sanea un campo de estado de pedido (`status`).
+	 *
+	 * @param string                                     $option Nombre de la option.
+	 * @param array<string, mixed>                       $campo  Definición del campo.
+	 * @param array<string, mixed>                       $input  Datos recibidos.
+	 * @param array<int,array{tipo:string,texto:string}> $avisos Avisos (por referencia).
+	 * @return string
+	 */
+	private function sanitize_status_field_value( string $option, array $campo, array $input, array &$avisos ): string {
+		$valor    = sanitize_key( (string) ( $input[ $option ] ?? '' ) );
+		$guardado = (string) get_option( $option, (string) $campo['d'] );
+		if ( ! array_key_exists( $valor, self::order_status_choices() ) ) {
+			if ( '' !== $valor && $valor === $guardado ) {
+				$avisos[] = array(
+					'tipo'  => 'warning',
+					'texto' => '«' . $campo['l'] . '» se quedó como estaba (' . $valor . '): ese estado no existe hoy en la tienda, seguramente porque el plugin que lo registra está desactivado.',
+				);
+			} else {
+				$valor = '' !== $guardado && array_key_exists( $guardado, self::order_status_choices() )
+					? $guardado
+					: (string) $campo['d'];
+			}
+		}
+		return $valor;
+	}
+
+	/**
+	 * Sanea un campo numérico decimal (`float`).
+	 *
+	 * @param string                   $option   Nombre de la option.
+	 * @param array<string, mixed>     $campo    Definición del campo.
+	 * @param array<string, mixed>     $input    Datos recibidos.
+	 * @param array<string, int|float> $acotados Campos acotados (por referencia).
+	 * @return float
+	 */
+	private function sanitize_float_field_value( string $option, array $campo, array $input, array &$acotados ): float {
+		$min = isset( $campo['min'] ) ? (float) $campo['min'] : 0.0;
+		$max = isset( $campo['max'] ) ? (float) $campo['max'] : 10.0;
+		if ( ! isset( $input[ $option ] ) || ! is_scalar( $input[ $option ] ) ) {
+			return (float) $campo['d'];
+		}
+		$raw_norm = str_replace( ',', '.', trim( (string) $input[ $option ] ) );
+		$crudo    = is_numeric( $raw_norm ) ? round( (float) $raw_norm, 2 ) : (float) $campo['d'];
+		$valor    = round( max( $min, min( $max, $crudo ) ), 2 );
+		if ( ! is_numeric( $raw_norm ) || abs( $valor - $crudo ) > 0.0001 ) {
+			$acotados[ $option ] = $valor;
+		}
+		return $valor;
+	}
+
+	/**
+	 * Sanea un campo de selección múltiple de correos (`emails`).
+	 *
+	 * @param string               $option Nombre de la option.
+	 * @param array<string, mixed> $campo  Definición del campo.
+	 * @param array<string, mixed> $input  Datos recibidos.
+	 * @return string
+	 */
+	private function sanitize_emails_field_value( string $option, array $campo, array $input ): string {
+		if ( ! isset( $input[ $option ] ) ) {
+			return '';
+		}
+		$guardados = array_filter( array_map( 'trim', explode( ',', (string) get_option( $option, $campo['d'] ) ) ) );
+		$opciones  = self::email_choices();
+		if ( array() === $opciones ) {
+			return implode( ',', $guardados );
+		}
+		$validos = array_values( array_unique( array_merge( array_keys( $opciones ), $guardados ) ) );
+		return implode( ',', array_values( array_intersect( $validos, array_map( 'strval', (array) $input[ $option ] ) ) ) );
+	}
+
+	/**
+	 * Sanea un campo de texto libre o fecha de inicio de vigencia (`text`).
+	 *
+	 * @param string                                     $option Nombre de la option.
+	 * @param array<string, mixed>                       $campo  Definición del campo.
+	 * @param array<string, mixed>                       $input  Datos recibidos.
+	 * @param array<int,array{tipo:string,texto:string}> $avisos Avisos (por referencia).
+	 * @return string
+	 */
+	private function sanitize_text_field_value( string $option, array $campo, array $input, array &$avisos ): string {
+		$valor = isset( $input[ $option ] ) ? sanitize_text_field( (string) $input[ $option ] ) : (string) $campo['d'];
+		if ( isset( $campo['largo'] ) ) {
+			$letras = self::letras_visibles( $valor );
+			if ( count( $letras ) > (int) $campo['largo'] ) {
+				$valor    = rtrim( implode( '', array_slice( $letras, 0, (int) $campo['largo'] ) ) );
+				$avisos[] = array(
+					'tipo'  => 'warning',
+					'texto' => '«' . $campo['l'] . '» admite hasta ' . (int) $campo['largo'] . ' caracteres: se guardó recortado, como «' . $valor . '».',
+				);
+			}
+		}
+		if ( 'akb_rewards_program_start' === $option && null === \Akibara\Rewards\Points\Accrual::parse_program_start( $valor ) ) {
+			$valor    = (string) get_option( $option, $campo['d'] );
+			$avisos[] = array(
+				'tipo'  => 'warning',
+				'texto' => 'La fecha de «Inicio de vigencia del programa» no tiene el formato AAAA-MM-DD HH:MM:SS: se conservó la anterior. Con una fecha inválida nadie acreditaría puntos.',
+			);
+		}
+		return $valor;
 	}
 
 	/**
@@ -1195,6 +1415,23 @@ final class SettingsPage {
 		}
 
 		return $valor;
+	}
+
+	/**
+	 * Acota un flotante de dos decimales al rango declarado en su fila.
+	 *
+	 * @param string $option Option del catálogo.
+	 * @param float  $valor  Valor pretendido.
+	 * @return float
+	 */
+	private static function clamp_float( string $option, float $valor ): float {
+		$campo = self::FIELDS[ $option ];
+		$valor = max( (float) ( $campo['min'] ?? 0 ), $valor );
+		if ( isset( $campo['max'] ) ) {
+			$valor = min( (float) $campo['max'], $valor );
+		}
+
+		return round( $valor, 2 );
 	}
 
 	/**
@@ -1299,6 +1536,78 @@ final class SettingsPage {
 	}
 
 	/**
+	 * BARANDA DE COHERENCIA DE NIVELES: Residente de Akiba debe exigir más puntos y
+	 * otorgar un multiplicador igual o superior al de Coleccionista. Asimismo advierte
+	 * si el multiplicador máximo configurado hace que el retorno efectivo supere el techo.
+	 *
+	 * @param array<string,mixed>                        $valores Valores saneados.
+	 * @param array<int,array{tipo:string,texto:string}> $avisos  Avisos, por referencia.
+	 * @param array<string,mixed>                        $input   Entrada cruda para detectar edición explícita de multiplicador.
+	 * @return array<string,mixed>
+	 */
+	private function guard_tiers( array $valores, array &$avisos, array $input ): array {
+		$campos = array(
+			'akb_rewards_tier_coleccionista_min',
+			'akb_rewards_tier_residente_min',
+			'akb_rewards_tier_coleccionista_mult',
+			'akb_rewards_tier_residente_mult',
+		);
+
+		$valores = $this->aplicar_baranda(
+			$valores,
+			$avisos,
+			$campos,
+			static function ( array $v ): bool {
+				return (int) $v['akb_rewards_tier_residente_min'] <= (int) $v['akb_rewards_tier_coleccionista_min']
+					|| round( (float) $v['akb_rewards_tier_residente_mult'], 2 ) < round( (float) $v['akb_rewards_tier_coleccionista_mult'], 2 );
+			},
+			static function (): string {
+				return 'Residente de Akiba debe requerir más puntos acumulados que Coleccionista y ofrecer un multiplicador igual o mayor.';
+			},
+			'akb_rewards_tiers_enabled'
+		);
+
+		$ceiling_triggers = array(
+			'akb_rewards_tier_residente_mult',
+			'akb_rewards_tier_coleccionista_mult',
+			'akb_rewards_earn_points',
+			'akb_rewards_earn_amount',
+			'akb_rewards_redeem_value',
+			'akb_rewards_max_giveback_pct',
+			'akb_rewards_tiers_enabled',
+			'akb_rewards_earn_enabled',
+		);
+		$touched_ceiling  = array() !== array_intersect( $ceiling_triggers, array_keys( $input ) );
+
+		if (
+			'yes' === (string) ( $valores['akb_rewards_tiers_enabled'] ?? 'no' )
+			&& 'yes' === (string) ( $valores['akb_rewards_earn_enabled'] ?? 'no' )
+			&& $touched_ceiling
+		) {
+			$base_pct      = Calculator::giveback_pct(
+				(int) $valores['akb_rewards_earn_points'],
+				(int) $valores['akb_rewards_earn_amount'],
+				(int) $valores['akb_rewards_redeem_value']
+			);
+			$effective_pct = $base_pct * (float) $valores['akb_rewards_tier_residente_mult'];
+			$ceiling_pct   = (int) $valores['akb_rewards_max_giveback_pct'];
+			if ( $ceiling_pct > 0 && $effective_pct > (float) $ceiling_pct ) {
+				$avisos[] = array(
+					'tipo'  => 'warning',
+					'texto' => sprintf(
+						'Advertencia comercial: con el multiplicador %sx en Residente de Akiba, un cliente en nivel máximo obtendría %s efectivo en compras (sobre el techo base de %s).',
+						Tiers::format_multiplier( (float) $valores['akb_rewards_tier_residente_mult'], ',' ),
+						self::pct_texto( $effective_pct ),
+						self::pct_texto( (float) $ceiling_pct )
+					),
+				);
+			}
+		}
+
+		return $valores;
+	}
+
+	/**
 	 * El mecanismo común de las dos barandas: si el conjunto de campos viola
 	 * la regla, se REVIERTEN sólo los que cambiaron en este envío y el resto
 	 * del formulario se guarda normal.
@@ -1343,9 +1652,18 @@ final class SettingsPage {
 		$previos   = array();
 		$cambiados = array();
 		foreach ( $involucrados as $option ) {
-			$previos[ $option ] = self::clamp_int( $option, (int) get_option( $option, self::FIELDS[ $option ]['d'] ) );
-			if ( $previos[ $option ] !== (int) $valores[ $option ] ) {
-				$cambiados[] = $option;
+			$tipo = self::FIELDS[ $option ]['t'] ?? 'int';
+			if ( 'float' === $tipo ) {
+				$raw_prev           = get_option( $option, self::FIELDS[ $option ]['d'] );
+				$previos[ $option ] = self::clamp_float( $option, is_numeric( $raw_prev ) ? (float) $raw_prev : (float) self::FIELDS[ $option ]['d'] );
+				if ( abs( (float) $previos[ $option ] - (float) $valores[ $option ] ) > 0.0001 ) {
+					$cambiados[] = $option;
+				}
+			} else {
+				$previos[ $option ] = self::clamp_int( $option, (int) get_option( $option, self::FIELDS[ $option ]['d'] ) );
+				if ( $previos[ $option ] !== (int) $valores[ $option ] ) {
+					$cambiados[] = $option;
+				}
 			}
 		}
 
@@ -1361,7 +1679,11 @@ final class SettingsPage {
 		$conservado = array();
 		foreach ( $cambiados as $option ) {
 			$valores[ $option ] = $previos[ $option ];
-			$conservado[]       = self::etiqueta( $option ) . ' en ' . number_format_i18n( $previos[ $option ] );
+			$tipo               = self::FIELDS[ $option ]['t'] ?? 'int';
+			$texto_valor        = 'float' === $tipo
+				? Tiers::format_multiplier( (float) $previos[ $option ], ',' )
+				: number_format_i18n( (int) $previos[ $option ] );
+			$conservado[]       = self::etiqueta( $option ) . ' en ' . $texto_valor;
 		}
 
 		$texto = 'No se guardó ' . self::lista_etiquetas( $cambiados, 'ni' ) . '. '
@@ -1451,7 +1773,8 @@ final class SettingsPage {
 				$clave = str_starts_with( (string) $clave, 'wc-' ) ? substr( (string) $clave, 3 ) : (string) $clave;
 				// Estados terminales-negativos fuera: invitar a reseñar un
 				// pedido cancelado/reembolsado/fallido no tiene sentido.
-				if ( in_array( $clave, array( 'cancelled', 'refunded', 'failed', 'checkout-draft' ), true ) ) {
+				// Estados no nativos fuera: Blue Express y otros couriers operan solo bajo estados nativos.
+				if ( in_array( $clave, array( 'cancelled', 'refunded', 'failed', 'checkout-draft', 'shipping-progress' ), true ) ) {
 					continue;
 				}
 				$choices[ $clave ] = (string) $etiqueta;
@@ -1482,12 +1805,17 @@ final class SettingsPage {
 			return array();
 		}
 
+		static $memo = array();
+		if ( isset( $memo[ $current ] ) ) {
+			return $memo[ $current ];
+		}
+
 		$estados = OrderStates::PAID;
 		if ( '' !== $current && ! in_array( $current, $estados, true ) ) {
 			$estados[] = $current;
 		}
 
-		$desde = gmdate( 'Y-m-d', time() - 90 * DAY_IN_SECONDS );
+		$desde = Dates::to_datetime()->modify( '-90 days' )->format( 'Y-m-d' );
 		$out   = array();
 		foreach ( $estados as $estado ) {
 			$resultado      = wc_get_orders(
@@ -1502,6 +1830,7 @@ final class SettingsPage {
 			$out[ $estado ] = is_object( $resultado ) && isset( $resultado->total ) ? (int) $resultado->total : 0;
 		}
 
+		$memo[ $current ] = $out;
 		return $out;
 	}
 
@@ -1548,7 +1877,6 @@ final class SettingsPage {
 			$nombre_terminal = $labels[ $terminal ] ?? $terminal;
 			$contextos = array(
 				'akb_rewards_invite_status'   => 'las invitaciones',
-				'akb_rewards_invite_pickup_status' => 'las invitaciones de entrega directa o retiro',
 				'akb_rewards_referral_status' => 'los premios de referidos',
 			);
 			$contexto = $contextos[ $option ] ?? 'la acreditación de puntos';

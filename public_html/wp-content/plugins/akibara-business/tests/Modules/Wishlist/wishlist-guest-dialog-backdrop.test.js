@@ -1,102 +1,129 @@
 'use strict';
 
-/*
- * Aviso del corazón para invitados: tocar el fondo lo cierra, tocar DENTRO no.
+/**
+ * Cierre por toque en el fondo del diálogo de invitado (`wishlist.js`)
+ * verificado en el DOM Test Harness oficial (`createDOM`).
  *
- * El fondo de un <dialog> modal no tiene nodo propio: el target de un toque ahí
- * es el <dialog>. Pero también lo es su relleno —los márgenes junto al texto, el
- * hueco del safe-area del iPhone—, así que mirar sólo el target cerraba el aviso
- * cuando el cliente tocaba junto al texto (revisión B5-R3, medido en Chromium y
- * WebKit: (8, 663) en móvil y (508, 422) en escritorio caían en el DIALOG).
+ * B5-R3: el `<dialog>` es el `event.target` tanto en el `::backdrop` como en su
+ * propio padding. El listener debe cerrar únicamente cuando las coordenadas caen
+ * fuera del `getBoundingClientRect()` del diálogo.
  */
 
-const assert = require( 'node:assert/strict' );
-const fs = require( 'node:fs' );
-const test = require( 'node:test' );
-const vm = require( 'node:vm' );
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { createDOM } = require('../../../../../../../tools/testing/dom-harness.js');
 
-const source = fs.readFileSync( require.resolve( '../../../assets/js/wishlist.js' ), 'utf8' );
+const SCRIPT_REL = 'public_html/wp-content/plugins/akibara-business/assets/js/wishlist.js';
 
-function elemento( tag ) {
-	const escuchas = {};
-	const attrs = new Map();
-	return {
-		tagName: tag.toUpperCase(),
-		textContent: '',
-		innerHTML: '',
-		open: false,
-		escuchas,
-		addEventListener: ( tipo, fn ) => { ( escuchas[ tipo ] = escuchas[ tipo ] || [] ).push( fn ); },
-		setAttribute: ( k, v ) => attrs.set( k, String( v ) ),
-		getAttribute: ( k ) => ( attrs.has( k ) ? attrs.get( k ) : null ),
-		focus() {},
-	};
-}
-
-function entorno() {
-	// La caja visible del aviso en escritorio (1440x900), medida en el espejo.
-	const CAJA = { left: 500, top: 304, right: 940, bottom: 596 };
-	const hijos = {};
-	const dialogo = elemento( 'dialog' );
-	dialogo.querySelector = ( sel ) => ( hijos[ sel ] = hijos[ sel ] || elemento( 'div' ) );
-	dialogo.getBoundingClientRect = () => CAJA;
-	dialogo.showModal = () => { dialogo.open = true; };
-	dialogo.close = () => {
-		dialogo.open = false;
-		( dialogo.escuchas.close || [] ).forEach( ( fn ) => fn() );
-	};
-
-	const corazon = {
-		getAttribute: ( k ) => ( { 'data-product-id': '30534', 'data-name': 'Homunculus 08' }[ k ] ?? null ),
-		closest: ( sel ) => ( '.akb-wl-toggle' === sel ? corazon : null ),
-		focus() {},
-	};
-	let alClic = null;
-	const ctx = {
-		akbWishlist: { isLogged: false, guestPrompt: true, loginUrl: '/mi-cuenta/', labels: {} },
-		HTMLDialogElement: Object.assign( function () {}, { prototype: { showModal() {} } } ),
-		location: { href: 'http://localhost:8080/homunculus-08-ivrea-argentina/' },
-		sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-		document: {
-			readyState: 'complete',
-			addEventListener: ( tipo, fn ) => { if ( 'click' === tipo ) { alClic = fn; } },
-			createElement: ( tag ) => {
-				assert.equal( tag, 'dialog' );
-				return dialogo;
+function createGuestDOM() {
+	const dom = createDOM({
+		html: '<button id="heart" type="button" class="akb-wl-toggle" data-product-id="99" data-name="Berserk 1" aria-pressed="false"></button>',
+		globals: {
+			akbWishlist: {
+				ajaxUrl: '/wp-admin/admin-ajax.php',
+				nonce: 'n',
+				isLogged: false,
+				isLoggedIn: false,
+				savedIds: [],
+				guestPrompt: true,
+				guestStyle: 'https://akibara.cl/guest.css',
+				loginUrl: 'https://akibara.cl/mi-cuenta/',
+				labels: {
+					save: 'Guardar',
+					saved: 'Guardado',
+					addAria: 'Guardar en favoritos',
+					savedAria: 'Quitar de favoritos',
+					guestTitle: 'Guarda tus favoritos',
+					guestBody: 'Entra para guardar {producto}.',
+					guestCta: 'Iniciar sesión',
+					guestDismiss: 'Seguir mirando',
+					guestClose: 'Cerrar',
+					guestMarker: '{producto}',
+				},
 			},
-			body: { appendChild() {} },
-			documentElement: { classList: { add() {}, remove() {} } },
-			contains: () => true,
 		},
-		encodeURIComponent,
-	};
-	ctx.window = ctx;
-	vm.runInNewContext( source, ctx );
+	});
 
-	function abrir() {
-		alClic( { target: corazon, preventDefault() {} } );
-		assert.equal( dialogo.open, true, 'el toque en el corazón abre el aviso' );
-	}
-	function tocar( x, y ) {
-		( dialogo.escuchas.mousedown || [] ).forEach( ( fn ) => fn( { target: dialogo, clientX: x, clientY: y } ) );
-	}
-	return { dialogo, abrir, tocar };
+	dom.loadScript(SCRIPT_REL);
+	dom.click('#heart');
+
+	const dialog = dom.document.querySelector('dialog.akb-wl-login');
+	assert.ok(dialog, 'El diálogo de invitado debe existir.');
+	dialog.getBoundingClientRect = () => ({
+		left: 100,
+		right: 400,
+		top: 200,
+		bottom: 380,
+		width: 300,
+		height: 180,
+	});
+
+	return { dom, dialog };
 }
 
-test( 'tocar junto al texto, dentro de la caja, no cierra el aviso', () => {
-	const e = entorno();
-	e.abrir();
-	for ( const [ x, y ] of [ [ 508, 422 ], [ 932, 422 ], [ 720, 396 ], [ 500, 304 ], [ 940, 596 ] ] ) {
-		e.tocar( x, y );
-		assert.equal( e.dialogo.open, true, `(${ x }, ${ y }) está dentro de la caja: el aviso sigue abierto` );
+test('Tocar dentro del relleno del diálogo (target === dialog pero dentro de la caja) NO lo cierra', () => {
+	const { dom, dialog } = createGuestDOM();
+	try {
+		assert.equal(dialog.hasAttribute('open'), true);
+		dialog.dispatchEvent(
+			new dom.window.MouseEvent('mousedown', {
+				bubbles: true,
+				clientX: 115,
+				clientY: 250,
+			})
+		);
+		assert.equal(dialog.hasAttribute('open'), true, 'Un clic en el padding interno no debe cerrar el modal.');
+	} finally {
+		dom.teardown();
 	}
-} );
+});
 
-test( 'tocar el fondo, fuera de la caja, sí lo cierra', () => {
-	for ( const [ x, y ] of [ [ 12, 40 ], [ 499, 400 ], [ 941, 400 ], [ 720, 303 ], [ 720, 597 ] ] ) {
-		const e = entorno();
-		e.abrir();
-		e.tocar( x, y );
-		assert.equal( e.dialogo.open, false, `(${ x }, ${ y }) es fondo: el aviso se cierra` );
+test('Tocar sobre un hijo interno del diálogo nunca lo cierra', () => {
+	const { dom, dialog } = createGuestDOM();
+	try {
+		const body = dialog.querySelector('.akb-wl-login__body');
+		body.dispatchEvent(
+			new dom.window.MouseEvent('mousedown', {
+				bubbles: true,
+				clientX: 10,
+				clientY: 10,
+			})
+		);
+		assert.equal(dialog.hasAttribute('open'), true);
+	} finally {
+		dom.teardown();
 	}
-} );
+});
+
+test('Tocar fuera de la caja visible (en cualquiera de los cuatro lados del backdrop) cierra el diálogo y restaura foco', () => {
+	const outsidePoints = [
+		{ x: 50, y: 260 },
+		{ x: 450, y: 260 },
+		{ x: 250, y: 120 },
+		{ x: 250, y: 420 },
+	];
+
+	for (const pt of outsidePoints) {
+		const { dom, dialog } = createGuestDOM();
+		try {
+			dialog.dispatchEvent(
+				new dom.window.MouseEvent('mousedown', {
+					bubbles: true,
+					clientX: pt.x,
+					clientY: pt.y,
+				})
+			);
+			assert.equal(
+				dialog.hasAttribute('open'),
+				false,
+				`Toque en backdrop (${pt.x}, ${pt.y}) debe cerrar el diálogo.`
+			);
+			assert.equal(
+				dom.document.documentElement.classList.contains('akb-wl-login-open'),
+				false
+			);
+		} finally {
+			dom.teardown();
+		}
+	}
+});

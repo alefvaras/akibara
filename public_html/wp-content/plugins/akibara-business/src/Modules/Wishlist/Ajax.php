@@ -20,6 +20,10 @@ namespace Akibara\Business\Modules\Wishlist;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ */
 final class Ajax {
 
 	public const NONCE_ACTION = 'akb_wishlist';
@@ -49,12 +53,22 @@ final class Ajax {
 			);
 		}
 
+		$intent = isset( $_POST['intent'] ) ? sanitize_key( (string) $_POST['intent'] ) : 'toggle';
+		if ( 'sync' === $intent ) {
+			$ids = Storage::product_ids();
+			wp_send_json_success(
+				array(
+					'state'     => 'synced',
+					'saved_ids' => $ids,
+					'count'     => count( $ids ),
+				)
+			);
+		}
+
 		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 		if ( $product_id <= 0 ) {
 			wp_send_json_error( array( 'message' => 'product_id requerido' ), 400 );
 		}
-
-		$intent = isset( $_POST['intent'] ) ? sanitize_key( (string) $_POST['intent'] ) : 'toggle';
 
 		// Ambas ramas se validan: Storage sólo devuelve false ante fallo real de
 		// escritura (o argumentos inválidos), nunca ante el caso idempotente. Sin
@@ -83,6 +97,7 @@ final class Ajax {
 				'state'      => $state,
 				'product_id' => $product_id,
 				'count'      => Storage::count(),
+				'saved_ids'  => Storage::product_ids(),
 			)
 		);
 	}

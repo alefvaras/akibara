@@ -27,6 +27,12 @@ namespace Akibara\Business\Modules\Recommendations;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class Settings {
 
 	/** Pestaña del panel donde viven (la de «Recomendaciones» de siempre). */
@@ -121,6 +127,7 @@ final class Settings {
 	 * @internal Callback de {@see self::FILTER_EN_BUSQUEDA}, que aplica el tema.
 	 *
 	 * @param mixed $propuesto Lo que propone el tema (se ignora: decide el ajuste).
+	 * @psalm-suppress UnusedParam
 	 */
 	public static function mas_vendidos_en_busqueda( $propuesto = true ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- firma del filtro del tema.
 		return 'yes' === self::current( self::OPTION_MAS_VENDIDOS_BUSQUEDA );
@@ -139,12 +146,36 @@ final class Settings {
 	}
 
 	/**
-	 * Valor vigente. Fila ausente o con un valor desconocido = el de fábrica.
+	 * Mapeo de opciones a constantes de configuración Twelve-Factor.
+	 *
+	 * @var array<string, string>
+	 */
+	private const CONSTANT_MAP = array(
+		self::OPTION_RELATED               => 'AKB_RECO_RELATED',
+		self::OPTION_SERIE_AGOTADA         => 'AKB_RECO_SERIE_AGOTADA',
+		self::OPTION_MAS_VENDIDOS          => 'AKB_RECO_MAS_VENDIDOS',
+		self::OPTION_MAS_VENDIDOS_BUSQUEDA => 'AKB_RECO_MAS_VENDIDOS_BUSQUEDA',
+	);
+
+	/**
+	 * Valor vigente. Soporta constantes Twelve-Factor (AKB_RECO_*), con fallback a option o valor de fábrica.
 	 *
 	 * @param string $option Uno de los OPTION_*.
 	 */
 	public static function current( string $option ): string {
-		$default = self::DEFAULTS[ $option ] ?? '';
+		$default    = self::DEFAULTS[ $option ] ?? '';
+		$const_name = self::CONSTANT_MAP[ $option ] ?? null;
+
+		if ( null !== $const_name && defined( $const_name ) ) {
+			$val = constant( $const_name );
+			if ( is_bool( $val ) ) {
+				$val = $val ? 'yes' : 'no';
+			}
+			$parsed = self::parse( $option, (string) $val );
+			if ( null !== $parsed ) {
+				return $parsed;
+			}
+		}
 
 		return self::parse( $option, get_option( $option, $default ) ) ?? $default;
 	}

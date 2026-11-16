@@ -19,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class RateLimit {
 
@@ -94,7 +97,7 @@ final class RateLimit {
 	 * @param int    $limit Umbral que todavía puede pasar.
 	 * @return int Contador después de este request (>= 1).
 	 */
-	private static function bump( string $key, int $ttl, int $limit ): int {
+	private static function bump( string $key, int $ttl, int $limit ): int { // @phpstan-ignore complexity.functionLike
 		if ( wp_using_ext_object_cache() ) {
 			$blocked_at = max( 1, $limit + 1 );
 			$marker_key = $key . ':slots';

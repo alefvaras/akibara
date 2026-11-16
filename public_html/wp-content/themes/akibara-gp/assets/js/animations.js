@@ -29,19 +29,19 @@
 
 	gsap.registerPlugin(ScrollTrigger);
 
-	var FOLD = 0.92; // umbral: se considera "bajo el pliegue" si top >= 92% del viewport.
-	var akbCardTriggers = [];
+	const FOLD = 0.92; // umbral: se considera "bajo el pliegue" si top >= 92% del viewport.
+	let akbCardTriggers = [];
 
 	function revealNewCards() {
-		var all = gsap.utils.toArray('ul.products li.product:not(.akb-revealed)');
+		const all = gsap.utils.toArray('ul.products li.product:not(.akb-revealed)');
 		if (!all.length) {
 			return;
 		}
 
 		// Separación estricta de lecturas (DOM reads) y escrituras (DOM writes)
 		// para evitar reflows y layout trashing forzado en bucle.
-		var limite = window.innerHeight * FOLD;
-		var below = all.filter(function (card) {
+		const limite = window.innerHeight * FOLD;
+		const below = all.filter(function (card) {
 			return card.getBoundingClientRect().top >= limite;
 		});
 		all.forEach(function (card) {
@@ -61,11 +61,11 @@
 			// Opacity, no autoAlpha: visibility:hidden sacaba las cards del árbol
 			// accesible hasta que el visitante hiciera scroll.
 			gsap.set(below, { opacity: 0, y: 8 });
-			var batchTriggers = ScrollTrigger.batch(below, {
+			const batchTriggers = ScrollTrigger.batch(below, {
 				start: 'top ' + Math.round(FOLD * 100) + '%',
 				once: true,
-				onEnter: function (batch) {
-					var staggerAmount = Math.min(0.24, Math.max(0, batch.length - 1) * 0.035);
+				onEnter (batch) {
+					const staggerAmount = Math.min(0.24, Math.max(0, batch.length - 1) * 0.035);
 					gsap.to(batch, {
 						opacity: 1,
 						y: 0,
@@ -80,7 +80,7 @@
 				}
 			});
 			akbCardTriggers = akbCardTriggers.concat(batchTriggers || []);
-		} catch (e) {
+		} catch (_e) {
 			// Paridad con revealHero(): si set/batch falla a mitad, NUNCA dejar
 			// productos ocultos → revertir las cards afectadas a visible.
 			gsap.set(below, { clearProps: 'opacity,transform' });
@@ -93,21 +93,22 @@
 	 * (si el navegador restauró el scroll a un slide N o hay deep-link, no
 	 * animamos un slide fuera de pantalla). El scroll-snap nativo lo maneja
 	 * el plugin (home-hero.js); acá solo LEEMOS scrollLeft, no lo tocamos.
+	 * @param {*} hero
 	 */
 	function getHeroActiveSlide(hero) {
-		var slides = hero.querySelectorAll('.akb-hero__slide');
+		const slides = hero.querySelectorAll('.akb-hero__slide');
 		if (!slides.length) {
 			return null;
 		}
 		if (!hero.classList.contains('akb-hero--carousel')) {
 			return slides[0];
 		}
-		var track = hero.querySelector('.akb-hero__track');
-		var sl = track ? (track.scrollLeft || 0) : 0;
-		var best = slides[0];
-		var bestDist = Infinity;
+		const track = hero.querySelector('.akb-hero__track');
+		const sl = track ? (track.scrollLeft || 0) : 0;
+		let best = slides[0];
+		let bestDist = Infinity;
 		Array.prototype.forEach.call(slides, function (s) {
-			var d = Math.abs(s.offsetLeft - sl);
+			const d = Math.abs(s.offsetLeft - sl);
 			if (d < bestDist) {
 				bestDist = d;
 				best = s;
@@ -129,24 +130,24 @@
 	 * @return {Function|null} cleanup (revierte a estado base visible) o null.
 	 */
 	function revealHero() {
-		var hero = document.querySelector('.akb-hero');
+		const hero = document.querySelector('.akb-hero');
 		if (!hero) {
 			return null;
 		}
-		var slide = getHeroActiveSlide(hero);
+		const slide = getHeroActiveSlide(hero);
 		if (!slide) {
 			return null;
 		}
-		var content = slide.querySelector('.akb-hero__content');
+		const content = slide.querySelector('.akb-hero__content');
 		if (!content) {
 			return null;
 		}
-		var eyebrow = content.querySelector('.akb-hero__eyebrow');
-		var lede = content.querySelector('.akb-hero__lede');
-		var actions = content.querySelector('.akb-hero__actions');
+		const eyebrow = content.querySelector('.akb-hero__eyebrow');
+		const lede = content.querySelector('.akb-hero__lede');
+		const actions = content.querySelector('.akb-hero__actions');
 
-		var st = null;
-		var tl = null;
+		let st = null;
+		let tl = null;
 		function clearHeroStyles() {
 			gsap.set(content, { clearProps: 'transform' });
 			if (eyebrow) {
@@ -190,11 +191,11 @@
 				trigger: content,
 				start: 'top 90%',
 				once: true,
-				onEnter: function () {
+				onEnter () {
 					tl.play();
 				}
 			});
-		} catch (e) {
+		} catch (_e) {
 			// Si algo falla a mitad de construir el intro, revertir a estado base
 			// visible y no dejar nada oculto.
 			if (st) { st.kill(); }
@@ -234,20 +235,21 @@
 	 *    el vuelo (si estuviera en 'yes' abriría de inmediato y taparía el vuelo).
 	 *  - `rectDest` se lee como NÚMEROS (el ícono es un fragment WC que se reemplaza).
 	 */
-	var volarAlCarrito = (function () {
-		var activeTl = null;
+	const volarAlCarrito = (function () {
+		let activeTl = null;
 
 		function center(r) { return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
 
 		function resolveCartTarget() {
-			var mobile = window.matchMedia('(max-width: 1024px)').matches;
-			var sels = mobile
+			const mobile = window.matchMedia('(max-width: 1024px)').matches;
+			const sels = mobile
 				? ['.bottom-nav__item--cart', 'a.header-icon--cart']
 				: ['a.header-icon--cart', '.bottom-nav__item--cart'];
-			for (var i = 0; i < sels.length; i++) {
-				var el = document.querySelector(sels[i]);
+			for (let i = 0; i < sels.length; i++) {
+				// eslint-disable-next-line security/detect-object-injection
+				const el = document.querySelector(sels[i]);
 				if (!el) { continue; }
-				var r = el.getBoundingClientRect();
+				const r = el.getBoundingClientRect();
 				if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight) {
 					return r; // números; no guardamos el nodo (fragment WC).
 				}
@@ -261,25 +263,25 @@
 			if (btn.closest && btn.closest('form.cart')) {
 				return document.querySelector('.woocommerce-product-gallery__image img, .woocommerce-product-gallery img');
 			}
-			var card = btn.closest && btn.closest('li.product');
+			const card = btn.closest && btn.closest('li.product');
 			return card ? card.querySelector('img') : null;
 		}
 
 		// Vuela la portada al carrito y, al ATERRIZAR, invoca onDone (abrir drawer).
 		// Si no hay imagen/destino válidos, llama onDone igual (no perder el drawer).
 		function fly(btn, onDone) {
-			var img = findSourceImg(btn);
-			var dRect = resolveCartTarget();
+			const img = findSourceImg(btn);
+			const dRect = resolveCartTarget();
 			if (!img || !dRect) { onDone(); return; }
-			var oRect = img.getBoundingClientRect();
+			const oRect = img.getBoundingClientRect();
 			if (oRect.width <= 0 || oRect.height <= 0) { onDone(); return; }
-			var oC = center(oRect), dC = center(dRect);
+			const oC = center(oRect), dC = center(dRect);
 
 			if (activeTl) { activeTl.kill(); }
-			var stale = document.querySelector('.akb-fly-clone');
+			const stale = document.querySelector('.akb-fly-clone');
 			if (stale) { stale.remove(); }
 
-			var clone = img.cloneNode(true);
+			const clone = img.cloneNode(true);
 			clone.className = 'akb-fly-clone';
 			clone.removeAttribute('loading');
 			clone.removeAttribute('srcset'); // usa el src ya renderizado, sin re-elegir.
@@ -291,7 +293,7 @@
 				zIndex: 9998, pointerEvents: 'none', willChange: 'transform', force3D: true
 			});
 
-			var done = false;
+			let done = false;
 			function finish() {
 				if (done) { return; }
 				done = true;
@@ -347,15 +349,15 @@
 	 * despacha varias muestras del puntero por frame y todas menos la última
 	 * eran trabajo tirado.
 	 *
-	 * @returns {Function|null} cleanup, o null si no había nada que animar.
+	 * @return {Function|null} cleanup, o null si no había nada que animar.
 	 */
 	function setupBrandsMarquee() {
-		var track = document.querySelector('.akb-brands-home__track');
+		const track = document.querySelector('.akb-brands-home__track');
 		if (!track) {
 			return null;
 		}
 
-		var slides = Array.prototype.slice.call(track.children);
+		const slides = Array.prototype.slice.call(track.children);
 		if (slides.length < 2) {
 			return null; // Con un solo logo no hay recorrido que animar.
 		}
@@ -368,8 +370,8 @@
 		// display ya es flex.
 
 		// Duplicado para el bucle sin costura (marcado aria-hidden y rel=nofollow para evitar duplicados en Google).
-		var clones = slides.map(function (slide) {
-			var clone = slide.cloneNode(true);
+		const clones = slides.map(function (slide) {
+			const clone = slide.cloneNode(true);
 			clone.setAttribute('aria-hidden', 'true');
 			clone.classList.add('akb-brands-home__slide--clone');
 			Array.prototype.forEach.call(
@@ -396,12 +398,12 @@
 		// propia clase `.is-marquee`, así que usarlo como compuerta para
 		// añadirla no termina nunca. Se pregunta por un token que la hoja
 		// define en la SECCIÓN, que existe con o sin la clase.
-		var section = track.closest('.akb-brands-home') || track.parentElement;
+		const section = track.closest('.akb-brands-home') || track.parentElement;
 		function stylesReadyRaw() {
 			if (!section) {
 				return true; // Sin sección no hay compuerta posible: no bloquear.
 			}
-			var token = window.getComputedStyle(section).getPropertyValue('--akb-brand-slide-w');
+			const token = window.getComputedStyle(section).getPropertyValue('--akb-brand-slide-w');
 			return '' !== String(token).trim();
 		}
 
@@ -434,7 +436,7 @@
 			// acumula, pero era un salto sub-pixel evitable en un arreglo que
 			// se declaraba exacto. Los dos rects comparten el mismo transform
 			// del track, así que la resta lo cancela.
-			var exact = clones[0].getBoundingClientRect().left - slides[0].getBoundingClientRect().left;
+			const exact = clones[0].getBoundingClientRect().left - slides[0].getBoundingClientRect().left;
 			return exact > 0 ? exact : track.scrollWidth / 2;
 		}
 
@@ -457,26 +459,31 @@
 		// el aspecto de la caja cambia con el breakpoint (156px vs 190px de
 		// ancho contra la misma altura de placa) y ahí cambia quién es el
 		// "ganador": Ivrea pasa de limitado por ancho a limitado por alto.
-		var TARGET_COVERAGE = 0.55;
+		const TARGET_COVERAGE = 0.55;
 		function fitLogos() {
-			var all = track.querySelectorAll('.akb-brands-home__slide');
+			const all = track.querySelectorAll('.akb-brands-home__slide');
 			Array.prototype.forEach.call(all, function (slide) {
-				var img = slide.querySelector('.akb-brands-home__logo img');
-				if (!img || !img.naturalWidth || !img.naturalHeight) {
+				const img = slide.querySelector('.akb-brands-home__logo img') || slide.querySelector('.akb-brands-home__logo svg');
+				if (!img) {
+					return;
+				}
+				const nw = img.naturalWidth || (img.viewBox && img.viewBox.baseVal ? img.viewBox.baseVal.width : 0);
+				const nh = img.naturalHeight || (img.viewBox && img.viewBox.baseVal ? img.viewBox.baseVal.height : 0);
+				if (!nw || !nh) {
 					return;
 				}
 				// `offsetWidth/Height` y no `getBoundingClientRect()`: el rect ya
 				// viene multiplicado por el `scale` que escribimos la vuelta
 				// anterior, así que medirlo realimentaría el cálculo.
-				var bw = img.offsetWidth;
-				var bh = img.offsetHeight;
+				const bw = img.offsetWidth;
+				const bh = img.offsetHeight;
 				if (!bw || !bh) {
 					return;
 				}
-				var aspect = img.naturalWidth / img.naturalHeight;
-				var boxAspect = bw / bh;
-				var r = aspect >= boxAspect ? aspect / boxAspect : boxAspect / aspect;
-				var k = Math.sqrt(TARGET_COVERAGE * r);
+				const aspect = nw / nh;
+				const boxAspect = bw / bh;
+				const r = aspect >= boxAspect ? aspect / boxAspect : boxAspect / aspect;
+				const k = Math.sqrt(TARGET_COVERAGE * r);
 				slide.style.setProperty('--akb-brand-fit', (k < 1 ? k : 1).toFixed(3));
 			});
 		}
@@ -488,20 +495,20 @@
 		// adivinar el momento bueno, se observa la caja y se recalcula cuando
 		// cambie. `fitLogos()` sólo escribe `transform`, que no altera el
 		// tamaño observado — no hay realimentación.
-		var fitObserver = null;
+		let fitObserver = null;
 		if ('function' === typeof window.ResizeObserver) {
 			fitObserver = new window.ResizeObserver(function () { fitLogos(); });
 			// Se observa la IMAGEN, no la placa: la placa mide 156x56 con y sin
 			// la hoja diferida, así que observarla no avisaba nunca. Lo que
 			// cambia es la caja INTERIOR (el padding), y eso sólo lo ve la
 			// imagen, que es exactamente la caja contra la que se calcula.
-			var firstBox = track.querySelector('.akb-brands-home__logo img');
+			const firstBox = track.querySelector('.akb-brands-home__logo img') || track.querySelector('.akb-brands-home__logo svg');
 			if (firstBox) { fitObserver.observe(firstBox); }
 		}
 
-		var tween = null;
-		var distance = 0;
-		var wrapProgress = gsap.utils.wrap(0, 1);
+		let tween = null;
+		let distance = 0;
+		const wrapProgress = gsap.utils.wrap(0, 1);
 
 		function build() {
 			fitLogos();
@@ -550,7 +557,7 @@
 		// El gesto mueve tween.progress() (con wrap), no el transform directo:
 		// así el auto-scroll, el arrastre y la inercia comparten UN estado y
 		// nunca compiten escrituras sobre `x`.
-		var drag = {
+		const drag = {
 			active: false,
 			moved: false,
 			id: null,
@@ -560,24 +567,24 @@
 			velocity: 0, // px/ms del gesto, para la inercia.
 			startProgress: 0
 		};
-		var momentum = null;
-		var suppressClickTimer = null;
-		var suppressClick = false;
+		let momentum = null;
+		let suppressClickTimer = null;
+		let suppressClick = false;
 		// Último progreso pedido por el gesto, aún sin escribir. Ver flushDrag.
-		var pendingProgress = null;
+		let pendingProgress = null;
 		// Estados de pausa RASTREADOS: resumeAuto debe re-verificarlos todos.
 		// Sin esto, soltar un drag con el mouse aún encima (o con un logo
 		// enfocado por teclado) reanudaba la marquesina bajo el usuario,
 		// rompiendo el propio contrato de pausa (WCAG 2.2.2).
-		var hoverPaused = false;
-		var focusPaused = false;
+		let hoverPaused = false;
+		let focusPaused = false;
 		// Fuera de pantalla hasta que el observador diga lo contrario: su primer
 		// aviso llega siempre, pero asíncrono, y build() no debe echar a andar un
 		// tween que quizá ni se ve. Sin IntersectionObserver no hay forma de
 		// saberlo y se conserva el comportamiento de siempre.
-		var offscreenPaused = 'function' === typeof window.IntersectionObserver;
+		let offscreenPaused = 'function' === typeof window.IntersectionObserver;
 		// Pausa pedida con el botón: sólo la levanta otro clic en el botón.
-		var userPaused = false;
+		let userPaused = false;
 
 		function stopMomentum() {
 			if (momentum) {
@@ -593,7 +600,7 @@
 			if (null === pendingProgress) {
 				return;
 			}
-			var next = pendingProgress;
+			const next = pendingProgress;
 			pendingProgress = null;
 			if (tween) {
 				tween.progress(next);
@@ -636,7 +643,7 @@
 			if (track.setPointerCapture) {
 				try {
 					track.setPointerCapture(event.pointerId);
-				} catch (err) {
+				} catch (_err) {
 					// Puntero ya liberado (p. ej. cancel inmediato): sin captura igual funciona.
 				}
 			}
@@ -646,7 +653,7 @@
 			if (!drag.active || event.pointerId !== drag.id) {
 				return;
 			}
-			var dx = event.clientX - drag.startX;
+			const dx = event.clientX - drag.startX;
 			if (!drag.moved) {
 				// Umbral: un tap con micro-temblor no es un arrastre y debe
 				// seguir navegando al link.
@@ -656,7 +663,7 @@
 				drag.moved = true;
 				track.classList.add('is-dragging');
 			}
-			var dt = event.timeStamp - drag.lastT;
+			const dt = event.timeStamp - drag.lastT;
 			if (dt > 0) {
 				drag.velocity = (event.clientX - drag.lastX) / dt;
 			}
@@ -694,16 +701,16 @@
 				drag.velocity = 0;
 			}
 			// Inercia: proyecta ~160 ms del gesto y decae; al frenar, retoma sola.
-			var glide = { p: tween.progress() };
-			var throwDelta = -( drag.velocity * 160 ) / distance;
+			const glide = { p: tween.progress() };
+			const throwDelta = -( drag.velocity * 160 ) / distance;
 			momentum = gsap.to(glide, {
 				p: glide.p + throwDelta,
 				duration: Math.min(1.2, 0.35 + Math.abs(drag.velocity) * 0.55),
 				ease: 'power2.out',
-				onUpdate: function () {
+				onUpdate () {
 					tween.progress(wrapProgress(glide.p));
 				},
-				onComplete: function () {
+				onComplete () {
 					momentum = null;
 					resumeAuto();
 				}
@@ -753,7 +760,7 @@
 		// cambia bajo el foco. Va en la cabecera, junto a «Ver editoriales», y
 		// no dentro del track: ahí el foco pausaría por su cuenta y el botón
 		// viajaría con los logos.
-		var pauseBtn = null;
+		let pauseBtn = null;
 		function onPauseClick() {
 			userPaused = !userPaused;
 			pauseBtn.setAttribute('aria-pressed', userPaused ? 'true' : 'false');
@@ -764,7 +771,7 @@
 			}
 		}
 		function mountPauseBtn() {
-			var header = section ? section.querySelector('.akb-brands-home__header') : null;
+			const header = section ? section.querySelector('.akb-brands-home__header') : null;
 			if (!header || pauseBtn) {
 				return;
 			}
@@ -773,7 +780,7 @@
 			pauseBtn.className = 'akb-brands-home__pause';
 			pauseBtn.setAttribute('aria-label', 'Pausar el carrusel de editoriales');
 			pauseBtn.setAttribute('aria-pressed', 'false');
-			var icon = document.createElement('span');
+			const icon = document.createElement('span');
 			icon.className = 'akb-brands-home__pause-icon';
 			icon.setAttribute('aria-hidden', 'true');
 			pauseBtn.appendChild(icon);
@@ -785,7 +792,7 @@
 		// Arranque diferido: primero la hoja, después la marquesina. Si la hoja
 		// nunca llega, la sección se queda en su grilla estática, que es una
 		// experiencia válida — mejor que una columna deslizándose.
-		var started = false;
+		let started = false;
 		function start() {
 			if (started || !stylesReadyRaw()) {
 				return false;
@@ -802,8 +809,8 @@
 		// nunca en quien abre el home en segundo plano — medido en local, donde
 		// el panel oculto dejó `is-marquee` sin aplicar aunque el token ya
 		// estaba. `setTimeout` sigue disparando (throttleado, pero dispara).
-		var styleTries = 0;
-		var styleWatch = 0;
+		let styleTries = 0;
+		let styleWatch = 0;
 		function waitForStyles() {
 			styleWatch = 0;
 			if (start()) {
@@ -855,7 +862,7 @@
 
 		// Fuera de pantalla no anima (AI-1). Se observa la SECCIÓN, no el track:
 		// el track se traslada y su caja no dice dónde está la sección.
-		var visibilityObserver = null;
+		let visibilityObserver = null;
 		if (offscreenPaused) {
 			visibilityObserver = new window.IntersectionObserver(function (entries) {
 				offscreenPaused = !entries[entries.length - 1].isIntersecting;
@@ -869,7 +876,7 @@
 		}
 
 		// Al rotar el móvil o cambiar el ancho, el recorrido cambia: se recalcula.
-		var resizeTimer = null;
+		let resizeTimer = null;
 		function onResize() {
 			window.clearTimeout(resizeTimer);
 			resizeTimer = window.setTimeout(build, 200);
@@ -912,8 +919,8 @@
 
 	gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', function () {
 		revealNewCards();
-		var heroCleanup = revealHero();
-		var marqueeCleanup = setupBrandsMarquee();
+		const heroCleanup = revealHero();
+		const marqueeCleanup = setupBrandsMarquee();
 
 		// El buscador propio (akb-search.js) emite el evento nativo `akb:pjax`
 		// tras reemplazar la grilla por su swap; re-revelamos las cards nuevas
@@ -944,6 +951,6 @@
 	// Aviso al cargador (animations-loader.js): ya puede pedir vuelos. Va al
 	// final a propósito: si algo de arriba lanzara, el cargador no recibe un
 	// «listo» a medias y abre el cajón sin vuelo, que es lo seguro.
-	window.akbAnimations = { volarAlCarrito: volarAlCarrito };
+	window.akbAnimations = { volarAlCarrito };
 	document.dispatchEvent(new CustomEvent('akb:animaciones-listas'));
 })();

@@ -92,7 +92,7 @@ final class AstScopeAnalyzer extends NodeVisitorAbstract {
 
 	/**
 	 * Resuelve rutas de plantillas incluidas, soportando sub-plantillas anidadas
-	 * por prefijo/sufijo estático (ej. `__DIR__ . '/financial-rules/tab-' . $tab . '.php'`).
+	 * por prefijo/sufijo estático (ej. `__DIR__ . '/tabs/tab-' . $tab . '.php'`).
 	 *
 	 * @param Node   $expression   Expresión del `include`.
 	 * @param array  $values       Mapa de valores literales conocidos en el ámbito.

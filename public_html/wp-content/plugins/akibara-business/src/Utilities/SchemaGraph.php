@@ -41,7 +41,7 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Vocabulario y orden compartidos del `@graph` de Rank Math. */
+/** Vocabulario y orden compartidos del `@graph` de Rank Math. @api */
 final class SchemaGraph {
 
 	/** Etapa 1: la ficha de producto y su oferta. */

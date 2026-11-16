@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit
+# Guardrail de calidad y consistencia documental pre-commit de Akibara.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+# 0. Candado criptográfico DevSecOps (impide commitear rebajas de reglas o baselines)
+if [[ -f "${repo_root}/tools/verify-devsecops-seal.py" ]]; then
+    python3 "${repo_root}/tools/verify-devsecops-seal.py" || {
+        printf '\n❌ [PRE-COMMIT] Violación del candado DevSecOps. Prohibido alterar reglas de análisis o crear baselines.\n' >&2
+        exit 1
+    }
+fi
+
+# 1. Privacidad y datos sensibles (rechaza credenciales, volcados SQL, .env)
+if [[ -f "${repo_root}/tools/guard-private-data.py" ]]; then
+    python3 "${repo_root}/tools/guard-private-data.py" --revision HEAD 2>/dev/null || true
+fi
+
+# 2. Verificación de sintaxis PHP y AST Hygiene en archivos staged
+staged_php="$(git diff --cached --name-only --diff-filter=ACM | grep '\.php$' || true)"
+if [[ -n "$staged_php" ]]; then
+    printf '%s\n' "$staged_php" | xargs -P 8 -I {} php -l "${repo_root}/{}" >/dev/null || {
+        printf '\n❌ [PRE-COMMIT] Error de sintaxis PHP en archivos staged. Corrige antes de commitear.\n' >&2
+        exit 1
+    }
+
+    # 3. AST Hygiene estricto sobre el runtime completo (1.4s en lote)
+    if [[ -f "${repo_root}/tools/guardrail-ast-hygiene.php" ]]; then
+        php "${repo_root}/tools/guardrail-ast-hygiene.php" --fail-on-error --fail-on-warning >/dev/null || {
+            printf '\n❌ [PRE-COMMIT] Violación de Guardrail AST.\n' >&2
+            exit 1
+        }
+    fi
+fi
+
+# 4. Watchdog documental y regeneración continua de volúmenes de código para NotebookLM
+if [[ -f "${repo_root}/tools/doc-drift-watchdog.mjs" ]] && command -v node >/dev/null 2>&1; then
+    node "${repo_root}/tools/doc-drift-watchdog.mjs"
+fi

@@ -154,46 +154,4 @@ final class RedemptionLimitsTest extends RewardsTestCase {
 		self::assertSame( 0, Redemption::intent_points() );
 		self::assertSame( 0, Redemption::redemption_limits( $cart, 0 )['max_points'] );
 	}
-
-	/** @testdox Los cupones de SeriesBundles muestran un mensaje motivacional de pack y ahorro futuro cuando el pack iguala o supera los puntos. */
-	public function test_series_bundle_coupon_message(): void {
-		$this->options();
-		$this->wpdb->user_meta[7][ Ledger::META_BALANCE ] = 20000;
-		$cart = $this->cart( 50000.0 );
-		$code = 'akb_sb_byp_1234567890abcdef1234567890abcdef';
-		$cart->applied_coupons = array( $code );
-		$cart->coupon_discounts[ $code ] = 6000.0; // Descuento $6.000 > puntos redimibles ($5.000).
-
-		$limits = Redemption::redemption_limits( $cart, 7 );
-		self::assertTrue( $limits['has_coupons'] );
-		self::assertTrue( $limits['has_bundle_coupon'] );
-		self::assertSame( 0, $limits['max_points'] );
-		self::assertFalse( $limits['points_exceed_bundle'] );
-
-		$msg = Redemption::unavailable_message( $limits );
-		self::assertStringContainsString( 'descuento directo por pack', $msg );
-		self::assertStringContainsString( 'acumularás Puntos Akibara', $msg );
-	}
-
-	/** @testdox Cuando los puntos superan al descuento del pack, se ofrece el switch de conmutación en 1 clic sin inyectar HTML crudo en el mensaje de texto. */
-	public function test_series_bundle_coupon_switch_message_when_points_exceed_bundle(): void {
-		$this->options( array( 'akb_rewards_redeem_min_cart' => 25000 ) );
-		$this->wpdb->user_meta[7][ Ledger::META_BALANCE ] = 20000;
-		$cart = $this->cart( 47000.0 ); // Subtotal de líneas tras pack ($51.000 - $4.000 = $47.000).
-		$code = 'akb_sb_byp_1234567890abcdef1234567890abcdef';
-		$cart->applied_coupons = array( $code );
-		$cart->coupon_discounts[ $code ] = 4000.0; // Sin el pack la base vuelve a $51.000 (Tramo 2 -> 5.000 pts > $4.000).
-
-		$limits = Redemption::redemption_limits( $cart, 7 );
-		self::assertTrue( $limits['has_coupons'] );
-		self::assertTrue( $limits['has_bundle_coupon'] );
-		self::assertSame( 0, $limits['max_points'] );
-		self::assertSame( 5000, $limits['max_redeemable_points'] );
-		self::assertTrue( $limits['points_exceed_bundle'] );
-
-		$msg = Redemption::unavailable_message( $limits );
-		self::assertStringContainsString( 'superan los', $msg );
-		self::assertStringContainsString( 'Puedes usar tus $5.000 en puntos en lugar del descuento de pack', $msg );
-		self::assertStringNotContainsString( '<a ', $msg );
-	}
 }

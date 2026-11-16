@@ -6,7 +6,7 @@
 ( function () {
 	'use strict';
 
-	var SWAP = [
+	const SWAP = [
 		'ul.products',
 		'.woocommerce-pagination',
 		'.akb-facets',
@@ -17,49 +17,49 @@
 		'.term-description',
 		'.akb-route-updated'
 	];
-	var GRID = 'ul.products';
+	const GRID = 'ul.products';
 	// El aviso de «sin resultados». El tema pinta DENTRO su venta cruzada
 	// (`akibara_search_empty_after`), que también es una `ul.products`: esa
 	// rejilla viaja con el aviso y no es la del catálogo (ver mainGrid()).
-	var EMPTY = '[data-akb-empty]';
-	var FORM = '[data-akb-facets]';
+	const EMPTY = '[data-akb-empty]';
+	const FORM = '[data-akb-facets]';
 	// El aviso de un PJAX que no llegó por la red (ver avisarFalloDeRed()). Lo
 	// pinta el servidor, con el texto del panel, en un <template> de la barra de
 	// resultados: hasta que hace falta ni se ve ni es texto de la página.
-	var AVISO_RED = 'template[data-akb-aviso-red]';
-	var CFG = window.AKB_FACETS || {};
-	var MOBILE_MAX = CFG.mobileMax || 768;
+	const AVISO_RED = 'template[data-akb-aviso-red]';
+	const CFG = window.AKB_FACETS || {};
+	const MOBILE_MAX = CFG.mobileMax || 768;
 
-	var inflight = null;
-	var debounce = 0;
-	var countInflight = null;
-	var countTimer = 0;
-	var drawerOpen = false;   // el drawer mobile está abierto.
-	var pendingApply = false; // hay cambios sin aplicar (modo batch).
-	var drawerClose = null; // set en initDrawer.
+	let inflight = null;
+	let debounce = 0;
+	let countInflight = null;
+	let countTimer = 0;
+	let drawerOpen = false;   // el drawer mobile está abierto.
+	let pendingApply = false; // hay cambios sin aplicar (modo batch).
+	let drawerClose = null; // set en initDrawer.
 
 	// Caché LRU en memoria client-side (Map de 20 entradas, TTL 3 min):
 	// acelera el hover prefetch, navegación recurrente y desmarcado en 0ms.
-	var AkbCatalogCache = ( function ( maxEntries, ttlMs ) {
-		var cache = new Map();
+	const AkbCatalogCache = ( function ( maxEntries, ttlMs ) {
+		const cache = new Map();
 
 		function normalizeKey( uStr ) {
 			try {
-				var u = new URL( uStr, location.href );
+				const u = new URL( uStr, location.href );
 				u.searchParams.sort();
 				return u.pathname + '?' + u.searchParams.toString();
-			} catch ( e ) {
+			} catch ( _e ) {
 				return uStr;
 			}
 		}
 
 		return {
-			get: function ( uStr ) {
-				var key = normalizeKey( uStr );
+			get ( uStr ) {
+				const key = normalizeKey( uStr );
 				if ( ! cache.has( key ) ) {
 					return null;
 				}
-				var entry = cache.get( key );
+				const entry = cache.get( key );
 				if ( Date.now() - entry.timestamp > ttlMs ) {
 					cache.delete( key );
 					return null;
@@ -68,20 +68,20 @@
 				cache.set( key, entry );
 				return entry.html;
 			},
-			set: function ( uStr, html ) {
+			set ( uStr, html ) {
 				if ( typeof html !== 'string' || '' === html ) {
 					return;
 				}
-				var key = normalizeKey( uStr );
+				const key = normalizeKey( uStr );
 				if ( cache.has( key ) ) {
 					cache.delete( key );
 				} else if ( cache.size >= maxEntries ) {
-					var oldestKey = cache.keys().next().value;
+					const oldestKey = cache.keys().next().value;
 					cache.delete( oldestKey );
 				}
-				cache.set( key, { html: html, timestamp: Date.now() } );
+				cache.set( key, { html, timestamp: Date.now() } );
 			},
-			clear: function () {
+			clear () {
 				cache.clear();
 			}
 		};
@@ -89,32 +89,32 @@
 
 	// Prefetch especulativo (gate 07-16): slot ÚNICO {url,ctl,t,promise};
 	// go() lo consume si matchea o lo aborta. Intent = 150 ms sobre el label.
-	var pre = null;
-	var preTimer = 0;
-	var preLabel = null;
-	var dimTimer = 0;     // dim diferido 120ms (it2 C) — ÚNICO, limpiado al entrar a go().
-	var postSwap = false; // suprime el pointerover SINTÉTICO post-swap hasta que
+	let pre = null;
+	let preTimer = 0;
+	let preLabel = null;
+	let dimTimer = 0;     // dim diferido 120ms (it2 C) — ÚNICO, limpiado al entrar a go().
+	let postSwap = false; // suprime el pointerover SINTÉTICO post-swap hasta que
 	                      // haya movimiento REAL (pointermove) — sin ventana de reloj.
-	var pressPt = null;    // coords del último press: el jitter de ±3px al soltar
+	let pressPt = null;    // coords del último press: el jitter de ±3px al soltar
 	                       // el click NO cuenta como movimiento real (it3).
-	var onFirstMove = null; // listener ÚNICO post-swap (se reemplaza, no se acumula).
+	let onFirstMove = null; // listener ÚNICO post-swap (se reemplaza, no se acumula).
 	// Carga bajo demanda de las facetas grandes (Autor/Serie): un solo timer,
 	// porque sólo puede haber una expansión en vuelo a la vez. 220 ms, la misma
 	// ventana del autocomplete: es el mismo gesto de tecleo.
-	var facetLoadTimer = 0;
-	var FACET_LOAD_DEBOUNCE = 120;
+	let facetLoadTimer = 0;
+	const FACET_LOAD_DEBOUNCE = 120;
 	// Path + query que describe el DOM visible. El fragmento es estado UI local
 	// (por ejemplo, el selector de tomos) y nunca exige releer el catálogo.
-	var renderedLocation = location.pathname + location.search;
+	let renderedLocation = location.pathname + location.search;
 
 	// Capturar la modalidad del último gesto antes de los handlers y del clic sintético de
 	// Enter/Espacio. El drawer evita el anillo tras puntero y keepFocus() elige dónde devolver el
 	// foco después de PJAX. null cuenta como teclado: un lector puede activar controles sin
 	// pointerdown.
-	var modality = null;
+	let modality = null;
 	// Teclas pulsadas desde que cargó la página: si cambian mientras un PJAX
 	// espera, el cliente siguió con el teclado (ver avisarFalloDeRed()).
-	var teclas = 0;
+	let teclas = 0;
 	document.addEventListener( 'keydown', function () {
 		modality = 'teclado';
 		teclas++;
@@ -128,11 +128,11 @@
 	 * Retry-After/RestCache::RETRY_AFTER_SECONDS; no reintentar 429. La lógica se duplica en
 	 * search-suggest.js porque son bundles independientes.
 	 */
-	var RETRY_BASE = 1000;
-	var RETRY_MAX = 3;
+	const RETRY_BASE = 1000;
+	const RETRY_MAX = 3;
 
 	function abortado() {
-		var e = new Error( 'aborted' );
+		const e = new Error( 'aborted' );
 		e.name = 'AbortError';
 		return e;
 	}
@@ -148,8 +148,8 @@
 	}
 
 	function demoraReintento( r, intento ) {
-		var ra = r && r.headers && 'function' === typeof r.headers.get ? parseInt( r.headers.get( 'Retry-After' ), 10 ) : NaN;
-		var base = ra >= 1 && ra <= 4 ? ra * 1000 : RETRY_BASE;
+		const ra = r && r.headers && 'function' === typeof r.headers.get ? parseInt( r.headers.get( 'Retry-After' ), 10 ) : NaN;
+		const base = ra >= 1 && ra <= 4 ? ra * 1000 : RETRY_BASE;
 		return base * Math.pow( 2, intento );
 	}
 
@@ -160,7 +160,7 @@
 				reject( abortado() );
 				return;
 			}
-			var id = window.setTimeout( function () {
+			const id = window.setTimeout( function () {
 				if ( signal ) {
 					signal.removeEventListener( 'abort', alAbortar );
 				}
@@ -183,7 +183,7 @@
 	 * pintar resultados obsoletos. Un abort real del controller sí rechaza.
 	 */
 	function fetchReintentando( url, opciones, seguir, alReintentar ) {
-		var signal = opciones && opciones.signal;
+		const signal = opciones && opciones.signal;
 		function intento( n ) {
 			return fetch( url, opciones ).then( function ( r ) {
 				if ( r.ok || n >= RETRY_MAX ) {
@@ -216,9 +216,9 @@
 	 * corta de un guardado sino un cierre largo, y cada clic de filtro costaría
 	 * cuatro renders. Durante `FAIL_OPEN_PAUSA` se pinta lo que llega sin insistir.
 	 */
-	var FAIL_OPEN_MARCA = 'meta[name="akb-search-facets"][content="indisponible"]';
-	var FAIL_OPEN_PAUSA = 60000;
-	var failOpenHasta = 0;
+	const FAIL_OPEN_MARCA = 'meta[name="akb-search-facets"][content="indisponible"]';
+	const FAIL_OPEN_PAUSA = 60000;
+	let failOpenHasta = 0;
 
 	function reintentarFailOpen( doc, intento ) {
 		if ( ! doc || ! doc.querySelector( FAIL_OPEN_MARCA ) ) {
@@ -244,12 +244,15 @@
 		return drawerOpen && isMobile();
 	}
 
-	/** Clave de catálogo deliberadamente ajena al hash. */
+	/**
+	 * Clave de catálogo deliberadamente ajena al hash.
+	 * @param {*} url
+	 */
 	function navigationKey( url ) {
 		try {
-			var parsed = new URL( url, location.href );
+			const parsed = new URL( url, location.href );
 			return parsed.pathname + parsed.search;
-		} catch ( error ) {
+		} catch ( _error ) {
 			return '';
 		}
 	}
@@ -299,27 +302,27 @@
 	 * confirmarse la salida, retirar aviso, anuncio y desplazamientos para no guardar un error en
 	 * bfcache.
 	 */
-	var saliendo = false;
+	let saliendo = false;
 	// Un clic o un envío que se lleva la página (ver alGesto()).
-	var pista = false;
+	let pista = false;
 	// El aviso de un fallo de red que espera a ver si la página se va, y lo que
 	// hará al vencer (alGesto() puede alargar la espera).
-	var esperaRed = 0;
-	var avisoPendiente = null;
+	let esperaRed = 0;
+	let avisoPendiente = null;
 	// Hubo un fallo de red: el siguiente gesto del catálogo navega sin PJAX (ver
 	// go()).
-	var nativo = false;
+	let nativo = false;
 	// Lo que el cliente pidió y no llegó: lo que carga «Reintentar».
-	var urlFallida = '';
+	let urlFallida = '';
 	// ESPERA_RED de 4s cubre un Atrás sin señal previa que tarda hasta ese plazo en confirmarse.
 	// Un corte real con navigator.onLine=true asume esa demora adicional antes del aviso.
-	var ESPERA_RED = 4000;
+	const ESPERA_RED = 4000;
 	// 1 s: sin conexión no hay página nueva que esperar; cubre con holgura a
 	// `navigate`/`beforeunload` (≤ 60 ms tras el rechazo de un Atrás).
-	var ESPERA_SIN_CONEXION = 1000;
+	const ESPERA_SIN_CONEXION = 1000;
 	// 8 s: un enlace pulsado lleva a otra página casi seguro; sólo lo pagaría
 	// uno que no navegue (una respuesta 204, una descarga sin `download`).
-	var ESPERA_SALIDA = 8000;
+	const ESPERA_SALIDA = 8000;
 
 	function alSalir() {
 		saliendo = true;
@@ -334,7 +337,7 @@
 	// una descarga. Las del mismo documento (un ancla, el pushState del propio
 	// PJAX, un Atrás a una entrada del PJAX) no se llevan la página.
 	function alNavegar( e ) {
-		var destino = e && e.destination;
+		const destino = e && e.destination;
 		if ( ! destino || destino.sameDocument || 'string' === typeof e.downloadRequest ) {
 			return;
 		}
@@ -352,7 +355,7 @@
 	 * espera ya iniciada.
 	 */
 	function alGesto( e ) {
-		var el = null;
+		let el = null;
 		if ( 'submit' === e.type ) {
 			el = e.target;
 		} else if ( ! e.button && ! e.metaKey && ! e.ctrlKey && ! e.shiftKey && ! e.altKey && e.target && e.target.closest ) {
@@ -366,7 +369,7 @@
 		}
 		// El gesto es del PJAX que vuela (o espera) ahora: si para entonces
 		// terminó o lo reemplazó otro, ya no hay a quién avisar.
-		var suyo = inflight;
+		const suyo = inflight;
 		window.setTimeout( function () {
 			if ( suyo !== inflight || e.defaultPrevented ) {
 				return;
@@ -383,13 +386,13 @@
 	// ancla de esta misma página.
 	function otroDocumento( href ) {
 		try {
-			var destino = new URL( href, location.href );
-			var aqui = new URL( location.href );
+			const destino = new URL( href, location.href );
+			const aqui = new URL( location.href );
 			if ( ! /^https?:$/.test( destino.protocol ) ) {
 				return false;
 			}
 			return ! ( destino.hash && destino.origin === aqui.origin && destino.pathname + destino.search === aqui.pathname + aqui.search );
-		} catch ( err ) {
+		} catch ( _err ) {
 			return false;
 		}
 	}
@@ -415,16 +418,22 @@
 	}
 
 	function vigilarSalida( activa ) {
-		var metodo = activa ? 'addEventListener' : 'removeEventListener';
+		const metodo = activa ? 'addEventListener' : 'removeEventListener';
 		if ( activa ) {
 			saliendo = false;
 			pista = false;
 		}
+		// eslint-disable-next-line security/detect-object-injection
 		window[ metodo ]( 'beforeunload', alSalir );
+		// eslint-disable-next-line security/detect-object-injection
 		window[ metodo ]( 'pagehide', alSalir );
+		// eslint-disable-next-line security/detect-object-injection
 		window[ metodo ]( 'click', alGesto, true );
+		// eslint-disable-next-line security/detect-object-injection
 		window[ metodo ]( 'submit', alGesto, true );
+		// eslint-disable-next-line security/detect-object-injection
 		if ( window.navigation && window.navigation[ metodo ] ) {
+			// eslint-disable-next-line security/detect-object-injection
 			window.navigation[ metodo ]( 'navigate', alNavegar );
 		}
 	}
@@ -454,7 +463,7 @@
 		// Dónde estaba el foco al pedirla y cuántas teclas iban: si nada de
 		// eso cambió cuando haya que avisar de un fallo, el aviso se puede
 		// llevar la vista y el foco (ver avisarFalloDeRed()).
-		var pedido = { foco: document.activeElement, teclas: teclas };
+		const pedido = { foco: document.documentElement.ownerDocument.activeElement, teclas };
 		if ( inflight ) {
 			inflight.abort();
 			// El prefetch consumido corre con SU controller: abortarlo o la
@@ -463,7 +472,7 @@
 		}
 		// Carrera (m8): abort() no cancela un fetch ya resolviendo; comparar
 		// `mine` vs el vigente o pisa la request nueva.
-		var mine = new AbortController();
+		const mine = new AbortController();
 		inflight = mine;
 		vigilarSalida( true );
 		// Retrasar el atenuado unos 120ms según stalledSearchDelay para evitar parpadeo en un prefetch
@@ -475,7 +484,7 @@
 		}, 120 );
 
 		// Slot de prefetch: consumir si matchea fresco; si no, abortarlo.
-		var hit = pre && pre.url === url && Date.now() - pre.t < 5000 ? pre : null;
+		const hit = pre && pre.url === url && Date.now() - pre.t < 5000 ? pre : null;
 		if ( pre && ! hit ) { pre.ctl.abort(); }
 		pre = null;
 		if ( hit ) { mine.preCtl = hit.ctl; }
@@ -496,7 +505,7 @@
 				// empty-state, facetas y chips. Un 404 ajeno sigue rechazado por la forma exigida: grilla,
 				// empty-state o facetas.
 				if ( ! r.ok && 404 !== r.status ) { throw new Error( 'pjax_http_' + r.status ); }
-				var ct = r.headers.get( 'content-type' ) || '';
+				const ct = r.headers.get( 'content-type' ) || '';
 				if ( ct.indexOf( 'text/html' ) === -1 ) { throw new Error( 'pjax_ct' ); }
 				return r.text();
 		}
@@ -505,7 +514,7 @@
 				if ( mine !== inflight ) {
 					return; // una request más nueva ganó.
 				}
-				var doc = new DOMParser().parseFromString( html, 'text/html' );
+				const doc = new DOMParser().parseFromString( html, 'text/html' );
 				// …y contrato de FORMA: un 200 «raro» (login, challenge, error
 				// servido con 200) parsea sin fallar. Uno de los tres SIEMPRE
 				// existe en una respuesta de catálogo: la grilla, el empty-state
@@ -523,7 +532,7 @@
 						.then( pedir )
 						.then( function ( siguiente ) { return aplicar( siguiente, intento + 1 ); } );
 				}
-				var facetsState = captureFacetsState();
+				const facetsState = captureFacetsState();
 				document.title = doc.title;
 				SWAP.forEach( function ( sel ) { swap( doc, sel ); } );
 				restoreFacetsState( facetsState );
@@ -538,7 +547,7 @@
 				announce();
 				// El foco se decide ya; el desplazamiento al total, después de
 				// avisar al tema (ver revealResults()).
-				var alTotal = ! keepFocus( origen ) && focusGrid();
+				const alTotal = ! keepFocus( origen ) && focusGrid();
 				// El DOM nuevo bajo el puntero QUIETO dispara un pointerover
 				// sintético que armaría un prefetch de deshacer sin intención
 				// real (cazado por probe B1; WebKit lo emite tarde — la
@@ -639,22 +648,22 @@
 		} else {
 			volverALoPintado();
 		}
-		var molde = document.querySelector( AVISO_RED );
-		var bloque = molde && molde.content ? molde.content.firstElementChild : null;
+		const molde = document.querySelector( AVISO_RED );
+		let bloque = molde && molde.content ? molde.content.firstElementChild : null;
 		if ( ! bloque ) {
 			return;
 		}
 		bloque = bloque.cloneNode( true );
 		molde.replaceWith( bloque );
 		announce( bloque.textContent.trim() );
-		var aviso = bloque.querySelector( '.akb-aviso-red' ) || bloque;
-		var ahora = document.activeElement;
-		var siguio = teclas !== pedido.teclas || !! ( ahora && ahora !== pedido.foco && ahora !== document.body );
+		const aviso = bloque.querySelector( '.akb-aviso-red' ) || bloque;
+		const ahora = document.documentElement.ownerDocument.activeElement;
+		const siguio = teclas !== pedido.teclas || !! ( ahora && ahora !== pedido.foco && ahora !== document.body );
 		if ( ! origen && ( 'puntero' === modality || ! siguio ) ) {
 			aviso.scrollIntoView( { block: 'start', behavior: scrollBehavior() } );
 			if ( 'puntero' !== modality ) {
 				// Sin corchetes en el texto del panel no hay botón: el aviso mismo.
-				var destino = aviso.querySelector( '[data-akb-reintentar]' );
+				let destino = aviso.querySelector( '[data-akb-reintentar]' );
 				if ( ! destino ) {
 					destino = aviso;
 					destino.setAttribute( 'tabindex', '-1' );
@@ -673,12 +682,12 @@
 	 * cabecera fija.
 	 *
 	 * @param {Element} aviso El aviso de la barra de resultados.
-	 * @return {boolean}
+	 * @return {boolean} Resultado.
 	 */
 	function aLaVista( aviso ) {
-		var blanco = aviso.querySelector( '[data-akb-reintentar]' ) || aviso;
-		var caja = blanco.getBoundingClientRect();
-		var encima = document.elementFromPoint( caja.left + caja.width / 2, caja.top + caja.height / 2 );
+		const blanco = aviso.querySelector( '[data-akb-reintentar]' ) || aviso;
+		const caja = blanco.getBoundingClientRect();
+		const encima = document.elementFromPoint( caja.left + caja.width / 2, caja.top + caja.height / 2 );
 		return !! encima && blanco.contains( encima );
 	}
 
@@ -697,11 +706,11 @@
 	 * @param {Element|null} foco  Donde está el foco del cliente.
 	 */
 	function flotar( aviso, foco ) {
-		var copia = document.createElement( 'div' );
+		const copia = document.createElement( 'div' );
 		copia.className = 'akb-aviso-flotante';
 		copia.setAttribute( 'data-akb-aviso-flotante', '' );
 		copia.appendChild( aviso.cloneNode( true ) );
-		var ancla = foco && foco !== document.body && document.body.contains( foco ) ? foco.closest( 'label' ) || foco : null;
+		const ancla = foco && foco !== document.body && document.body.contains( foco ) ? foco.closest( 'label' ) || foco : null;
 		if ( ancla && 'function' === typeof copia.showPopover ) {
 			copia.setAttribute( 'popover', 'manual' );
 			ancla.after( copia );
@@ -713,8 +722,8 @@
 		// Mantener la copia fija en la ventana y reposicionarla al mover su control, hacer scroll o
 		// resize y abrir/cerrar sugerencias. Escuchar scroll en captura para cubrir listas internas
 		// cuyos eventos no burbujean hasta window.
-		var cuadro = 0;
-		var raf = window.requestAnimationFrame || function ( cb ) { return window.setTimeout( cb, 16 ); };
+		let cuadro = 0;
+		const raf = window.requestAnimationFrame || function ( cb ) { return window.setTimeout( cb, 16 ); };
 		function recolocar() {
 			if ( ! cuadro ) {
 				cuadro = raf( function () {
@@ -723,15 +732,15 @@
 				} );
 			}
 		}
-		var CAPTURA = { capture: true, passive: true };
+		const CAPTURA = { capture: true, passive: true };
 		window.addEventListener( 'scroll', recolocar, CAPTURA );
 		window.addEventListener( 'resize', recolocar );
-		var sugerencias = ancla && 'combobox' === foco.getAttribute( 'role' ) ? new MutationObserver( recolocar ) : null;
+		const sugerencias = ancla && 'combobox' === foco.getAttribute( 'role' ) ? new MutationObserver( recolocar ) : null;
 		if ( sugerencias ) {
 			sugerencias.observe( foco, { attributes: true, attributeFilter: [ 'aria-expanded' ] } );
 		}
 
-		var TIPOS = [ 'focusin', 'pointerdown', 'keydown' ];
+		const TIPOS = [ 'focusin', 'pointerdown', 'keydown' ];
 		function retirar( e ) {
 			if ( 'keydown' === e.type && 'Escape' !== e.key ) {
 				return;
@@ -740,7 +749,7 @@
 			if ( ( 'focusin' === e.type || 'pointerdown' === e.type ) && ( copia.contains( e.target ) || ( ancla && ancla.contains( e.target ) ) ) ) {
 				return;
 			}
-			var tenia = copia.contains( document.activeElement );
+			const tenia = copia.contains( document.documentElement.ownerDocument.activeElement );
 			copia.remove();
 			TIPOS.forEach( function ( t ) { document.removeEventListener( t, retirar, true ); } );
 			window.removeEventListener( 'pagehide', retirar );
@@ -774,22 +783,22 @@
 	 *                             está dentro de su etiqueta).
 	 */
 	function colocar( copia, ancla, foco ) {
-		var MARGEN = 16;
-		var HUECO = 8;
-		var caja = ancla ? loQueSeVe( ancla ) : null;
-		var oculta = !! ancla && ! copia.contains( document.activeElement ) &&
+		const MARGEN = 16;
+		const HUECO = 8;
+		let caja = ancla ? loQueSeVe( ancla ) : null;
+		const oculta = !! ancla && ! copia.contains( document.documentElement.ownerDocument.activeElement ) &&
 			( ! caja || ( 'combobox' === foco.getAttribute( 'role' ) && 'true' === foco.getAttribute( 'aria-expanded' ) ) );
 		copia.style.visibility = oculta ? 'hidden' : '';
 		if ( oculta ) {
 			return;
 		}
-		var raiz = document.documentElement;
-		var franja = parseFloat( window.getComputedStyle( raiz ).getPropertyValue( '--akb-franja-inferior' ) ) || 0;
-		var alto = copia.offsetHeight;
+		const raiz = document.documentElement;
+		const franja = parseFloat( window.getComputedStyle( raiz ).getPropertyValue( '--akb-franja-inferior' ) ) || 0;
+		const alto = copia.offsetHeight;
 		// El `top` que la deja al pie, sobre la franja.
-		var alPie = raiz.clientHeight - franja - MARGEN - alto;
-		var top = alPie;
-		var left = MARGEN;
+		const alPie = raiz.clientHeight - franja - MARGEN - alto;
+		let top = alPie;
+		let left = MARGEN;
 		if ( ancla ) {
 			caja = caja || ancla.getBoundingClientRect();
 			top = caja.bottom + HUECO <= alPie ? caja.bottom + HUECO : caja.top - HUECO - alto;
@@ -799,7 +808,7 @@
 		left = Math.round( Math.max( MARGEN, Math.min( left, raiz.clientWidth - copia.offsetWidth - MARGEN ) ) );
 		copia.style.top = top + 'px';
 		copia.style.left = left + 'px';
-		var quedo = copia.getBoundingClientRect();
+		const quedo = copia.getBoundingClientRect();
 		copia.style.top = Math.round( 2 * top - quedo.top ) + 'px';
 		copia.style.left = Math.round( 2 * left - quedo.left ) + 'px';
 	}
@@ -814,16 +823,16 @@
 	 *         Null si alguno lo esconde del todo.
 	 */
 	function loQueSeVe( el ) {
-		var r = el.getBoundingClientRect();
-		var caja = { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
-		for ( var a = el.parentElement; a && a !== document.body; a = a.parentElement ) {
-			var estilo = window.getComputedStyle( a );
+		const r = el.getBoundingClientRect();
+		const caja = { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+		for ( let a = el.parentElement; a && a !== document.body; a = a.parentElement ) {
+			const estilo = window.getComputedStyle( a );
 			if ( 'visible' === estilo.overflowX && 'visible' === estilo.overflowY ) {
 				continue;
 			}
-			var ra = a.getBoundingClientRect();
-			var top = ra.top + a.clientTop;
-			var left = ra.left + a.clientLeft;
+			const ra = a.getBoundingClientRect();
+			const top = ra.top + a.clientTop;
+			const left = ra.left + a.clientLeft;
 			caja.top = Math.max( caja.top, top );
 			caja.bottom = Math.min( caja.bottom, top + a.clientHeight );
 			caja.left = Math.max( caja.left, left );
@@ -838,10 +847,10 @@
 	 * `defaultSelected`) y la búsqueda que un chip o «Limpiar todo» apartó.
 	 */
 	function volverALoPintado() {
-		var f = form();
+		const f = form();
 		if ( f ) {
 			f.querySelectorAll( 'input' ).forEach( function ( i ) {
-				var tipo = i.getAttribute( 'type' );
+				const tipo = i.getAttribute( 'type' );
 				if ( 'checkbox' === tipo || 'radio' === tipo ) {
 					i.checked = i.defaultChecked;
 				} else if ( 'hidden' === tipo ) {
@@ -857,10 +866,12 @@
 	/**
 	 * Reemplaza `sel` por el de la respuesta: reemplazar, borrar (solo DOM),
 	 * o INSERTAR (solo respuesta, ej. pager que reaparece) con anchor.
+	 * @param {*} doc
+	 * @param {*} sel
 	 */
 	function swap( doc, sel ) {
-		var next = pick( doc, sel );
-		var cur  = pick( document, sel );
+		const next = pick( doc, sel );
+		const cur  = pick( document, sel );
 		if ( cur && next ) {
 			cur.replaceWith( next );
 		} else if ( cur && ! next ) {
@@ -877,6 +888,8 @@
 	 * pasaba por la rejilla: el swap la sacaba del aviso al sitio del catálogo
 	 * y, al volver a haber resultados, la barra de orden se insertaba DENTRO
 	 * del aviso y moría con él.
+	 * @param {*} root
+	 * @param {*} sel
 	 */
 	function pick( root, sel ) {
 		return GRID === sel ? mainGrid( root ) : root.querySelector( sel );
@@ -885,13 +898,15 @@
 	function mainGrid( root ) {
 		// Camino corto: con resultados, la primera rejilla ya es la del
 		// catálogo (el aviso va vacío) y no hace falta recorrer nada.
-		var first = root.querySelector( GRID );
+		const first = root.querySelector( GRID );
 		if ( ! first || ! first.closest( EMPTY ) ) {
 			return first;
 		}
-		var grids = root.querySelectorAll( GRID );
-		for ( var i = 1; i < grids.length; i++ ) {
+		const grids = root.querySelectorAll( GRID );
+		for ( let i = 1; i < grids.length; i++ ) {
+			// eslint-disable-next-line security/detect-object-injection
 			if ( ! grids[ i ].closest( EMPTY ) ) {
+				// eslint-disable-next-line security/detect-object-injection
 				return grids[ i ];
 			}
 		}
@@ -903,17 +918,17 @@
 	 * y sincroniza la X de ambos inputs después de avanzar, limpiar o volver.
 	 */
 	function syncSearchInputs() {
-		var value = '';
+		let value = '';
 		try {
 			value = new URL( location.href ).searchParams.get( '_buscar' ) || '';
-		} catch ( err ) {
+		} catch ( _err ) {
 			value = '';
 		}
 
 		document.querySelectorAll( '#akb-search-input, #akb-mobile-search-input' ).forEach( function ( input ) {
 			input.value = value;
-			var searchForm = input.closest( 'form' );
-			var clear = searchForm && searchForm.querySelector( '.akibara-search__clear' );
+			const searchForm = input.closest( 'form' );
+			const clear = searchForm && searchForm.querySelector( '.akibara-search__clear' );
 			if ( clear ) {
 				clear.hidden = ! value;
 			}
@@ -926,14 +941,14 @@
 	 * mantiene el ordenamiento dentro del mismo flujo PJAX.
 	 */
 	document.addEventListener( 'change', function ( e ) {
-		var select = e.target && e.target.closest
+		const select = e.target && e.target.closest
 			? e.target.closest( '.woocommerce-ordering select.orderby' )
 			: null;
 		if ( ! select ) {
 			return;
 		}
 
-		var ordering = select.closest( 'form' );
+		const ordering = select.closest( 'form' );
 		if ( ! ordering ) {
 			return;
 		}
@@ -941,9 +956,9 @@
 		e.preventDefault();
 		e.stopImmediatePropagation();
 
-		var params = new URLSearchParams( new FormData( ordering ) );
-		var action = ordering.getAttribute( 'action' ) || location.pathname;
-		var target = new URL( action, location.href );
+		const params = new URLSearchParams( new FormData( ordering ) );
+		const action = ordering.getAttribute( 'action' ) || location.pathname;
+		const target = new URL( action, location.href );
 		target.search = params.toString();
 		go( target.toString(), true, controlOrigin( select, '.woocommerce-ordering' ) );
 	}, true );
@@ -953,22 +968,25 @@
 	 * en 0 hits WC no emite `ul.products` y el grid nuevo, sin ancla, se
 	 * descartaba. Anclamos al chrome de facetas (count/chips/empty-state), que
 	 * SIEMPRE existe — también en 0 hits vía woocommerce_no_products_found.
+	 * @param {*} sel
+	 * @param {*} next
 	 */
 	function insertFresh( sel, next ) {
-		var grid = mainGrid( document );
+		const grid = mainGrid( document );
+		let header;
 		if ( '.woocommerce-pagination' === sel && grid ) {
 			grid.after( next ); // el pager va después del grid.
 			return;
 		}
 		if ( '.term-description' === sel ) {
-			var title = document.querySelector( '.woocommerce-products-header__title' ) || document.querySelector( '.page-title' );
+			const title = document.querySelector( '.woocommerce-products-header__title' ) || document.querySelector( '.page-title' );
 			if ( title && title.parentNode ) {
 				title.after( next );
 				return;
 			}
-			var header = document.querySelector( '.woocommerce-products-header' );
+			header = document.querySelector( '.woocommerce-products-header' );
 			if ( header ) {
-				var routeUpdated = header.querySelector( '.akb-route-updated' );
+				const routeUpdated = header.querySelector( '.akb-route-updated' );
 				if ( routeUpdated ) {
 					header.insertBefore( next, routeUpdated );
 				} else {
@@ -978,17 +996,17 @@
 			}
 		}
 		if ( '.akb-route-updated' === sel ) {
-			var desc = document.querySelector( '.term-description' );
+			const desc = document.querySelector( '.term-description' );
 			if ( desc && desc.parentNode ) {
 				desc.after( next );
 				return;
 			}
-			var header = document.querySelector( '.woocommerce-products-header' );
+			header = document.querySelector( '.woocommerce-products-header' );
 			if ( header ) {
 				header.appendChild( next );
 				return;
 			}
-			var titleFallback = document.querySelector( '.woocommerce-products-header__title' ) || document.querySelector( '.page-title' );
+			const titleFallback = document.querySelector( '.woocommerce-products-header__title' ) || document.querySelector( '.page-title' );
 			if ( titleFallback && titleFallback.parentNode ) {
 				titleFallback.after( next );
 				return;
@@ -999,7 +1017,7 @@
 			return;
 		}
 		// Fallback: el grid falta (0→N) o reaparece. Insertar tras el chrome.
-		var anchor = document.querySelector( '.akb-empty-state' ) ||
+		const anchor = document.querySelector( '.akb-empty-state' ) ||
 			document.querySelector( '.akb-facet-chips' ) ||
 			document.querySelector( '.akb-result-count' ) ||
 			document.querySelector( '.woocommerce-result-count' );
@@ -1018,7 +1036,7 @@
 	 *                         fallo de red, ver avisarFalloDeRed()).
 	 */
 	function announce( texto ) {
-		var live = document.getElementById( 'akb-live-region' );
+		let live = document.getElementById( 'akb-live-region' );
 		if ( ! live ) {
 			live = document.createElement( 'div' );
 			live.id = 'akb-live-region';
@@ -1031,7 +1049,7 @@
 			// Sólo el total: si la línea trae un extra al lado (el atajo «Último
 			// tomo» de las series), el lector no tiene por qué oírlo tras cada
 			// filtro.
-			var count = document.querySelector( '.akb-result-count__total' ) ||
+			const count = document.querySelector( '.akb-result-count__total' ) ||
 				document.querySelector( '.akb-result-count' );
 			texto = count ? count.textContent.trim() : '';
 		}
@@ -1048,7 +1066,7 @@
 	 * @return {boolean} true si había rejilla.
 	 */
 	function focusGrid() {
-		var grid = mainGrid( document );
+		const grid = mainGrid( document );
 		if ( ! grid ) {
 			return false;
 		}
@@ -1063,10 +1081,10 @@
 	 * evita que anule el desplazamiento suave.
 	 */
 	function revealResults() {
-		var raf = window.requestAnimationFrame || function ( cb ) { return window.setTimeout( cb, 16 ); };
+		const raf = window.requestAnimationFrame || function ( cb ) { return window.setTimeout( cb, 16 ); };
 		raf( function () {
 			// Ancla = inicio de resultados (no la grilla): el header sticky la tapaba.
-			var ancla = document.querySelector( '.akb-result-count' ) || mainGrid( document );
+			const ancla = document.querySelector( '.akb-result-count' ) || mainGrid( document );
 			if ( ancla ) {
 				ancla.scrollIntoView( { block: 'start', behavior: scrollBehavior() } );
 			}
@@ -1097,7 +1115,7 @@
 			return null;
 		}
 		return {
-			ambito: ambito,
+			ambito,
 			tag: String( el.tagName || '' ).toLowerCase(),
 			name: el.getAttribute( 'name' ),
 			value: 'select' === String( el.tagName || '' ).toLowerCase() ? null : el.getAttribute( 'value' )
@@ -1119,13 +1137,14 @@
 		if ( ! origen ) {
 			return false;
 		}
-		var root = document.querySelector( origen.ambito );
+		const root = document.querySelector( origen.ambito );
 		if ( ! root ) {
 			return false;
 		}
-		var candidatos = root.querySelectorAll( origen.tag );
-		for ( var i = 0; i < candidatos.length; i++ ) {
-			var el = candidatos[ i ];
+		const candidatos = root.querySelectorAll( origen.tag );
+		for ( let i = 0; i < candidatos.length; i++ ) {
+			// eslint-disable-next-line security/detect-object-injection
+			const el = candidatos[ i ];
 			if ( el.getAttribute( 'name' ) !== origen.name || ( null !== origen.value && el.getAttribute( 'value' ) !== origen.value ) ) {
 				continue;
 			}
@@ -1133,7 +1152,7 @@
 				return false;
 			}
 			el.focus();
-			return document.activeElement === el;
+			return document.documentElement.ownerDocument.activeElement === el;
 		}
 		return false;
 	}
@@ -1144,24 +1163,26 @@
 	 * ambas; el JS emite la limpia.
 	 */
 	function formUrl() {
-		var f = form();
+		const f = form();
 		if ( ! f ) {
 			return null;
 		}
-		var map = {};
+		const map = {};
 		new FormData( f ).forEach( function ( v, k ) {
 			if ( '' === v ) {
 				return;
 			}
-			var key = k.replace( /\[\]$/, '' );
+			const key = k.replace( /\[\]$/, '' );
+			// eslint-disable-next-line security/detect-object-injection
 			( map[ key ] = map[ key ] || [] ).push( v );
 		} );
-		var qs = new URLSearchParams();
+		const qs = new URLSearchParams();
 		Object.keys( map ).forEach( function ( k ) {
+			// eslint-disable-next-line security/detect-object-injection
 			qs.append( k, map[ k ].join( ',' ) );
 		} );
-		var base = f.getAttribute( 'action' ) || location.pathname;
-		var str  = qs.toString();
+		const base = f.getAttribute( 'action' ) || location.pathname;
+		const str  = qs.toString();
 		return str ? base + '?' + str : base;
 	}
 
@@ -1182,7 +1203,7 @@
 	 * @return {string} URL destino.
 	 */
 	function urlWithout( facet, value, keepSearch ) {
-		var qs = new URLSearchParams();
+		const qs = new URLSearchParams();
 		new URLSearchParams( location.search ).forEach( function ( v, k ) {
 			if ( '' === v ) {
 				return;
@@ -1201,26 +1222,26 @@
 			if ( null === value ) {
 				return;
 			}
-			var kept = v.split( ',' ).filter( function ( item ) {
+			const kept = v.split( ',' ).filter( function ( item ) {
 				return item !== value;
 			} );
 			if ( kept.length ) {
 				qs.append( k, kept.join( ',' ) );
 			}
 		} );
-		var str = qs.toString();
+		const str = qs.toString();
 		return str ? location.pathname + '?' + str : location.pathname;
 	}
 
 	function normalizeFacetText( value ) {
-		var text = String( value || '' ).toLowerCase();
+		const text = String( value || '' ).toLowerCase();
 		return typeof text.normalize === 'function'
 			? text.normalize( 'NFD' ).replace( /[\u0300-\u036f]/g, '' )
 			: text;
 	}
 
 	function setFacetStatus( section, text ) {
-		var status = section.querySelector( '[data-akb-facet-status]' );
+		const status = section.querySelector( '[data-akb-facet-status]' );
 		if ( status ) {
 			status.textContent = text;
 		}
@@ -1229,26 +1250,28 @@
 	/**
 	 * Filtra la lista ya disponible. Mientras la lista completa se carga, no
 	 * anuncia un falso «sin coincidencias» basado solo en las destacadas.
+	 * @param {*} section
+	 * @param {*} value
 	 */
 	function filterLargeFacet( section, value ) {
-		var q      = normalizeFacetText( value.trim() );
-		var loaded = 'true' === section.getAttribute( 'data-akb-facet-loaded' );
-		var total  = Number( section.getAttribute( 'data-akb-facet-total' ) || 0 );
-		var shown  = 0;
+		const q      = normalizeFacetText( value.trim() );
+		const loaded = 'true' === section.getAttribute( 'data-akb-facet-loaded' );
+		const total  = Number( section.getAttribute( 'data-akb-facet-total' ) || 0 );
+		let shown  = 0;
 
 		section.querySelectorAll( '.akb-facet-item' ).forEach( function ( item ) {
-			var label = item.querySelector( '.akb-facet-label' );
-			var match = ! q || ( label && normalizeFacetText( label.textContent ).indexOf( q ) !== -1 );
+			const label = item.querySelector( '.akb-facet-label' );
+			const match = ! q || ( label && normalizeFacetText( label.textContent ).indexOf( q ) !== -1 );
 			item.hidden = ! match;
 			if ( match ) { shown++; }
 		} );
 
-		var empty = section.querySelector( '.akb-facet-noresults' );
+		let empty = section.querySelector( '.akb-facet-noresults' );
 		if ( ! empty ) {
 			empty = document.createElement( 'li' );
 			empty.className = 'akb-facet-noresults';
 			empty.textContent = 'Sin coincidencias';
-			var list = section.querySelector( '.akb-facet-list' );
+			const list = section.querySelector( '.akb-facet-list' );
 			if ( list ) { list.appendChild( empty ); }
 		}
 		empty.hidden = shown > 0 || ( q && ! loaded );
@@ -1278,25 +1301,27 @@
 	 * - Posición de scroll de las listas .akb-facet-list
 	 */
 	function captureFacetsState() {
-		var state = { searches: {}, scrolls: {}, focusedSearch: null };
-		var f = form();
+		const state = { searches: {}, scrolls: {}, focusedSearch: null };
+		const f = form();
 		if ( ! f ) { return state; }
 
 		f.querySelectorAll( '.akb-facet' ).forEach( function ( section ) {
-			var name = section.getAttribute( 'data-facet' );
-			var search = section.querySelector( '[data-akb-facet-search]' );
+			const name = section.getAttribute( 'data-facet' );
+			const search = section.querySelector( '[data-akb-facet-search]' );
 			if ( name && search && search.value ) {
+				// eslint-disable-next-line security/detect-object-injection
 				state.searches[ name ] = search.value;
 			}
-			if ( search && document.activeElement === search ) {
+			if ( search && document.documentElement.ownerDocument.activeElement === search ) {
 				state.focusedSearch = {
 					facet: name,
 					start: typeof search.selectionStart === 'number' ? search.selectionStart : null,
 					end: typeof search.selectionEnd === 'number' ? search.selectionEnd : null
 				};
 			}
-			var list = section.querySelector( '.akb-facet-list' );
+			const list = section.querySelector( '.akb-facet-list' );
 			if ( name && list && list.scrollTop > 0 ) {
+				// eslint-disable-next-line security/detect-object-injection
 				state.scrolls[ name ] = list.scrollTop;
 			}
 		} );
@@ -1307,25 +1332,30 @@
 	 * Restaura el estado efímero del sidebar tras el swap PJAX:
 	 * re-aplica el texto en los inputs, re-filtra la lista con filterLargeFacet,
 	 * restaura el scroll de cada lista y devuelve el foco si el usuario estaba escribiendo.
+	 * @param {*} state
 	 */
 	function restoreFacetsState( state ) {
 		if ( ! state ) { return; }
-		var f = form();
+		const f = form();
 		if ( ! f ) { return; }
 
 		f.querySelectorAll( '.akb-facet' ).forEach( function ( section ) {
-			var name = section.getAttribute( 'data-facet' );
+			const name = section.getAttribute( 'data-facet' );
 			if ( ! name ) { return; }
-			var search = section.querySelector( '[data-akb-facet-search]' );
+			const search = section.querySelector( '[data-akb-facet-search]' );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( search && state.searches && state.searches[ name ] ) {
+				// eslint-disable-next-line security/detect-object-injection
 				search.value = state.searches[ name ];
 				filterLargeFacet( section, search.value );
 				if ( search.value.trim() && 'true' !== section.getAttribute( 'data-akb-facet-loaded' ) ) {
 					loadLargeFacet( section );
 				}
 			}
-			var list = section.querySelector( '.akb-facet-list' );
+			const list = section.querySelector( '.akb-facet-list' );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( list && state.scrolls && typeof state.scrolls[ name ] === 'number' ) {
+				// eslint-disable-next-line security/detect-object-injection
 				list.scrollTop = state.scrolls[ name ];
 			}
 			if ( search && state.focusedSearch && state.focusedSearch.facet === name ) {
@@ -1335,7 +1365,7 @@
 				if ( typeof state.focusedSearch.start === 'number' && typeof search.setSelectionRange === 'function' ) {
 					try {
 						search.setSelectionRange( state.focusedSearch.start, state.focusedSearch.end );
-					} catch ( e ) {}
+					} catch ( _e ) {}
 				}
 			}
 		} );
@@ -1345,10 +1375,11 @@
 	 * Carga Autor/Serie solo cuando la persona busca o pide ver todo. La
 	 * respuesta es el mismo render server-first con un parámetro auxiliar que
 	 * no entra en formUrl(), history ni la gramática pública de filtros.
+	 * @param {*} section
 	 */
 	function loadLargeFacet( section ) {
 		if ( 'true' === section.getAttribute( 'data-akb-facet-loaded' ) ) {
-			var readySearch = section.querySelector( '[data-akb-facet-search]' );
+			const readySearch = section.querySelector( '[data-akb-facet-search]' );
 			filterLargeFacet( section, readySearch ? readySearch.value : '' );
 			return;
 		}
@@ -1356,21 +1387,21 @@
 			return;
 		}
 
-		var name = section.getAttribute( 'data-facet' );
-		var base = formUrl();
+		const name = section.getAttribute( 'data-facet' );
+		const base = formUrl();
 		if ( ! name || ! base ) {
 			return;
 		}
 
-		var url = new URL( base, location.href );
+		const url = new URL( base, location.href );
 		url.searchParams.set( '_akb_expand', name );
 		// Pedir el fragmento en su propia URL. La caché del borde no varía necesariamente por
 		// X-Requested-With y puede servir HTML de invitado durante diez minutos; compartir la URL de
 		// página permitiría entregar un fragmento como documento completo.
 		url.searchParams.set( '_akb_fragment', '1' );
 
-		var button = section.querySelector( '[data-akb-facet-expand]' );
-		var search = section.querySelector( '[data-akb-facet-search]' );
+		const button = section.querySelector( '[data-akb-facet-expand]' );
+		const search = section.querySelector( '[data-akb-facet-search]' );
 		section.setAttribute( 'data-akb-facet-loading', 'true' );
 		section.setAttribute( 'aria-busy', 'true' );
 		if ( button ) {
@@ -1395,8 +1426,8 @@
 					return response.text();
 				} )
 				.then( function ( html ) {
-					var doc  = new DOMParser().parseFromString( html, 'text/html' );
-					var next = findFacetSection( doc, name );
+					const doc  = new DOMParser().parseFromString( html, 'text/html' );
+					const next = findFacetSection( doc, name );
 					if ( ! next && document.contains( section ) && reintentarFailOpen( doc, intento ) ) {
 						return esperar( RETRY_BASE * Math.pow( 2, intento ), null )
 							.then( function () { return cargar( intento + 1 ); } );
@@ -1410,8 +1441,8 @@
 				if ( ! document.contains( section ) ) {
 					return;
 				}
-				var nextList   = next && next.querySelector( '.akb-facet-list' );
-				var currentList = section.querySelector( '.akb-facet-list' );
+				const nextList   = next && next.querySelector( '.akb-facet-list' );
+				const currentList = section.querySelector( '.akb-facet-list' );
 				if ( ! nextList || ! currentList ) {
 					throw new Error( 'missing-facet' );
 				}
@@ -1448,7 +1479,7 @@
 	 * @param {boolean}     [lote]   Ver go().
 	 */
 	function submitForm( origen, lote ) {
-		var url = formUrl();
+		const url = formUrl();
 		if ( url ) {
 			go( url, true, origen || null, !! lote );
 		}
@@ -1462,8 +1493,8 @@
 		if ( AkbCatalogCache.get( url ) ) { return; }
 		if ( pre && pre.url === url && Date.now() - pre.t < 5000 ) { return; }
 		if ( pre ) { pre.ctl.abort(); }
-		var ctl = new AbortController();
-		var p   = fetch( url, { signal: ctl.signal, headers: { 'X-Requested-With': 'akb-pjax' }, credentials: 'same-origin', priority: 'low' } )
+		const ctl = new AbortController();
+		const p   = fetch( url, { signal: ctl.signal, headers: { 'X-Requested-With': 'akb-pjax' }, credentials: 'same-origin', priority: 'low' } )
 			.then( function ( r ) {
 				// Un non-OK (503/challenge) NO es cacheable: serviría el error
 				// hasta 5s después aunque el server ya se haya recuperado (it3).
@@ -1478,7 +1509,7 @@
 				AkbCatalogCache.set( url, html );
 				return html;
 			} );
-		pre = { url: url, ctl: ctl, t: Date.now(), promise: p };
+		pre = { url, ctl, t: Date.now(), promise: p };
 		p.catch( function () {
 			if ( pre && pre.ctl === ctl ) { pre = null; }
 		} );
@@ -1513,21 +1544,21 @@
 			// A1: sin cambios pendientes el CTA cierra SIN navegar — no quemar
 			// un fetch por tap no-op. Touch INCLUIDO acá (estado ya final).
 			if ( pendingApply && e.target && e.target.closest && e.target.closest( '.akb-facets-apply' ) ) {
-				var u = formUrl();
+				const u = formUrl();
 				if ( u ) { prefetch( u ); }
 			}
 			return;
 		}
 		// Labels desktop: mismos guards que el hover (B2) — mouse, checkbox vivo.
 		if ( e.pointerType && 'mouse' !== e.pointerType ) { return; }
-		var label = e.target && e.target.closest ? e.target.closest( 'label' ) : null;
+		const label = e.target && e.target.closest ? e.target.closest( 'label' ) : null;
 		if ( ! label ) { return; }
-		var box = label.querySelector( 'input[type="checkbox"]' );
+		const box = label.querySelector( 'input[type="checkbox"]' );
 		if ( ! box || box.disabled ) { return; }
 		window.clearTimeout( preTimer ); // el press supera al intent pendiente.
-		var was = box.checked;
+		const was = box.checked;
 		box.checked = ! was;
-		var url = formUrl();
+		const url = formUrl();
 		box.checked = was;
 		if ( url ) { prefetch( url ); }
 	}
@@ -1541,7 +1572,7 @@
 		// Pointerover sintético post-swap (puntero quieto, DOM nuevo): sin
 		// movimiento no hay intención — no armar hasta el primer pointermove.
 		if ( postSwap ) { return; }
-		var label = e.target && e.target.closest ? e.target.closest( 'label' ) : null;
+		const label = e.target && e.target.closest ? e.target.closest( 'label' ) : null;
 		if ( label === preLabel ) { return; } // movimiento interno: timer sigue.
 		preLabel = label;
 		window.clearTimeout( preTimer );
@@ -1549,15 +1580,15 @@
 		// Solo checkboxes: en radio el flip des-chequea al hermano y el restore
 		// NO lo devuelve → filtro perdido sin click (bug probado, gate H-1).
 		// Ghost (disabled) no entra a FormData → prefetchearía la URL actual.
-		var box = label.querySelector( 'input[type="checkbox"]' );
+		const box = label.querySelector( 'input[type="checkbox"]' );
 		if ( ! box || box.disabled ) { return; }
 		preTimer = window.setTimeout( function () {
 			// Sin :hover al disparar no hay intención — cubre puntero que salió
 			// y label descolgado por un swap en la ventana (gate H-3).
 			if ( ! label.matches( ':hover' ) ) { return; }
-			var was = box.checked;
+			const was = box.checked;
 			box.checked = ! was;
-			var url = formUrl();
+			const url = formUrl();
 			box.checked = was;
 			if ( url ) { prefetch( url ); }
 		}, 150 );
@@ -1572,9 +1603,9 @@
 	 * @param {number}  total Total que devolvió /count.
 	 */
 	function applyNoun( count, total ) {
-		var nouns = CFG.noun;
-		var apply = count.closest ? count.closest( '.akb-facets-apply' ) : null;
-		var noun  = apply ? apply.querySelector( '[data-akb-apply-noun]' ) : null;
+		const nouns = CFG.noun;
+		const apply = count.closest ? count.closest( '.akb-facets-apply' ) : null;
+		const noun  = apply ? apply.querySelector( '[data-akb-apply-noun]' ) : null;
 		if ( ! noun || ! nouns || ! nouns.one || ! nouns.other ) {
 			return;
 		}
@@ -1586,19 +1617,19 @@
 	 * debounced, sin recargar el grid por tap (Baymard).
 	 */
 	function updateCount() {
-		var btn = document.querySelector( '[data-akb-apply-count]' );
+		const btn = document.querySelector( '[data-akb-apply-count]' );
 		if ( ! btn || ! CFG.countUrl ) {
 			return;
 		}
-		var f = form();
+		const f = form();
 		if ( ! f ) {
 			return;
 		}
-		var url = formUrl();
-		var qs  = url.indexOf( '?' ) !== -1 ? url.slice( url.indexOf( '?' ) ) : '';
+		const url = formUrl();
+		let qs  = url.indexOf( '?' ) !== -1 ? url.slice( url.indexOf( '?' ) ) : '';
 		// Contexto del archive (data-attrs): /count lo recibe como param normal.
-		var cf = f.getAttribute( 'data-akb-ctx-facet' );
-		var cv = f.getAttribute( 'data-akb-ctx-value' );
+		const cf = f.getAttribute( 'data-akb-ctx-facet' );
+		const cv = f.getAttribute( 'data-akb-ctx-value' );
 		if ( cf && cv ) {
 			qs += ( qs ? '&' : '?' ) + encodeURIComponent( cf ) + '=' + encodeURIComponent( cv );
 		}
@@ -1607,7 +1638,7 @@
 		}
 		// Guarda de carrera: abort() no cancela un fetch ya resolviendo; si una
 		// la request más nueva gana (review 07-04).
-		var mine = new AbortController();
+		const mine = new AbortController();
 		countInflight = mine;
 		btn.closest( '.akb-facets-apply' ).classList.add( 'is-loading' );
 		// El 503 de la ventana de guardado se reintenta (el botón sigue en
@@ -1630,7 +1661,7 @@
 			.catch( function () { /* abort/red: dejamos el número anterior */ } )
 			.finally( function () {
 				if ( mine === countInflight ) {
-					var apply = document.querySelector( '.akb-facets-apply' );
+					const apply = document.querySelector( '.akb-facets-apply' );
 					if ( apply ) { apply.classList.remove( 'is-loading' ); }
 				}
 			} );
@@ -1639,10 +1670,10 @@
 	// El drawer vive en el sidebar, display:none en mobile → position:fixed no
 	// vence un ancestro oculto. Al abrir se mueve a <body>; al cerrar vuelve a
 	// su lugar (el layout desktop y el swap pjax lo esperan ahí).
-	var drawerHome = null;
+	let drawerHome = null;
 
 	function drawerToBody() {
-		var d = form();
+		const d = form();
 		if ( ! d || d.parentNode === document.body ) {
 			return;
 		}
@@ -1651,7 +1682,7 @@
 	}
 
 	function drawerRestore() {
-		var d = form();
+		const d = form();
 		if ( ! d || ! drawerHome ) {
 			return;
 		}
@@ -1659,7 +1690,10 @@
 		drawerHome = null;
 	}
 
-	/** Refleja el estado del drawer en los triggers (a11y). */
+	/**
+	 * Refleja el estado del drawer en los triggers (a11y).
+	 * @param {*} on
+	 */
 	function setTriggerExpanded( on ) {
 		document.querySelectorAll( '[data-akb-drawer-open]' ).forEach( function ( b ) {
 			b.setAttribute( 'aria-expanded', on ? 'true' : 'false' );
@@ -1678,7 +1712,7 @@
 
 	/** (Re)liga los listeners del form tras cada swap. */
 	function bindForm() {
-		var f = form();
+		const f = form();
 		if ( ! f || f.dataset.akbBound === '1' ) {
 			return;
 		}
@@ -1705,7 +1739,7 @@
 			}
 			// Desktop: refresh instantáneo (Baymard: instant > batch en desktop).
 			// El control se recuerda AHORA: tras el debounce el gesto ya pasó.
-			var origen = controlOrigin( e.target, FORM );
+			const origen = controlOrigin( e.target, FORM );
 			window.clearTimeout( debounce );
 			debounce = window.setTimeout( function () { submitForm( origen ); }, 100 );
 		} );
@@ -1736,22 +1770,22 @@
 		// móvil. Enter y «Ver todas» siguen siendo inmediatos — ahí el usuario
 		// ya declaró que quiere la lista.
 		f.addEventListener( 'focusin', function ( e ) {
-			var box = e.target;
+			const box = e.target;
 			if ( ! box || ! box.matches( '[data-akb-facet-search]' ) ) {
 				return;
 			}
-			var section = box.closest( '.akb-facet' );
+			const section = box.closest( '.akb-facet' );
 			if ( section && 'true' !== section.getAttribute( 'data-akb-facet-loaded' ) ) {
 				loadLargeFacet( section );
 			}
 		} );
 
 		f.addEventListener( 'input', function ( e ) {
-			var box = e.target;
+			const box = e.target;
 			if ( ! box || ! box.matches( '[data-akb-facet-search]' ) ) {
 				return;
 			}
-			var section = box.closest( '.akb-facet' );
+			const section = box.closest( '.akb-facet' );
 			if ( ! section ) {
 				return;
 			}
@@ -1765,13 +1799,13 @@
 		} );
 
 		f.addEventListener( 'keydown', function ( e ) {
-			var box = e.target;
+			const box = e.target;
 			if ( 'Enter' !== e.key || ! box || ! box.matches( '[data-akb-facet-search]' ) ) {
 				return;
 			}
 			e.preventDefault();
 			window.clearTimeout( facetLoadTimer );
-			var section = box.closest( '.akb-facet' );
+			const section = box.closest( '.akb-facet' );
 			if ( section ) {
 				loadLargeFacet( section );
 			}
@@ -1779,12 +1813,12 @@
 
 		f.addEventListener( 'click', function ( e ) {
 			window.clearTimeout( facetLoadTimer );
-			var button = e.target.closest( '[data-akb-facet-expand]' );
+			const button = e.target.closest( '[data-akb-facet-expand]' );
 			if ( ! button ) {
 				return;
 			}
 			e.preventDefault();
-			var section = button.closest( '.akb-facet' );
+			const section = button.closest( '.akb-facet' );
 			if ( section ) {
 				loadLargeFacet( section );
 			}
@@ -1803,10 +1837,6 @@
 
 	/** Chips (delegado en document, sobreviven a los swaps). */
 	document.addEventListener( 'click', function ( e ) {
-		var chip = e.target.closest( '[data-akb-chips] .akb-chip' );
-		var clear = e.target.closest( '[data-akb-clear]' );
-		var pager = e.target.closest( '.woocommerce-pagination a' );
-
 		// «Reintentar» del aviso de un fallo de red: carga, como sin JS, lo que
 		// el cliente pidió y no llegó (ver avisarFalloDeRed()).
 		if ( e.target.closest( '[data-akb-reintentar]' ) ) {
@@ -1815,17 +1845,18 @@
 			return;
 		}
 
+		const clear = e.target.closest( '[data-akb-clear]' );
 		if ( clear ) {
 			e.preventDefault();
 			// data-akb-clear=filtros conserva _buscar cuando los filtros dejan una búsqueda sin
 			// resultados. Sólo Limpiar todo elimina también el término escrito.
-			var keepSearch = 'filtros' === clear.getAttribute( 'data-akb-clear' );
-			var f = form();
+			const keepSearch = 'filtros' === clear.getAttribute( 'data-akb-clear' );
+			const f = form();
 			if ( f ) {
 				f.querySelectorAll( 'input:checked' ).forEach( function ( i ) { i.checked = false; } );
 				// Apartada, no quitada: si el PJAX no llega por la red, la
 				// búsqueda vuelve (ver volverALoPintado()).
-				var hidden = keepSearch ? null : f.querySelector( 'input[name="_buscar"]' );
+				const hidden = keepSearch ? null : f.querySelector( 'input[name="_buscar"]' );
 				if ( hidden ) { hidden.disabled = true; }
 				submitForm();
 			} else {
@@ -1834,10 +1865,11 @@
 			return;
 		}
 
+		const chip = e.target.closest( '[data-akb-chips] .akb-chip' );
 		if ( chip && ! chip.classList.contains( 'akb-chip--clear' ) ) {
 			e.preventDefault();
-			var facet = chip.getAttribute( 'data-facet' );
-			var value = chip.getAttribute( 'data-value' );
+			const facet = chip.getAttribute( 'data-facet' );
+			const value = chip.getAttribute( 'data-value' );
 			if ( form() ) {
 				uncheck( facet, value );
 				submitForm();
@@ -1847,6 +1879,7 @@
 			return;
 		}
 
+		const pager = e.target.closest( '.woocommerce-pagination a' );
 		if ( pager && pager.href ) {
 			e.preventDefault();
 			go( pager.href, true );
@@ -1854,13 +1887,13 @@
 	} );
 
 	function uncheck( facet, value ) {
-		var f = form();
+		const f = form();
 		if ( ! f ) {
 			return;
 		}
 		if ( 'buscar' === facet ) { // chip de búsqueda: no es checkbox.
 			// Apartada, no quitada (ver el handler de `[data-akb-clear]`).
-			var hidden = f.querySelector( 'input[name="_buscar"]' );
+			const hidden = f.querySelector( 'input[name="_buscar"]' );
 			if ( hidden ) { hidden.disabled = true; }
 			return;
 		}
@@ -1888,7 +1921,7 @@
 
 	// --- Drawer mobile ---
 	function initDrawer() {
-		var lastFocus = null;
+		let lastFocus = null;
 
 		// El restore de foco post-TAP no debe pintar el ring (ver `modality`);
 		// los caminos de teclado lo conservan.
@@ -1912,9 +1945,10 @@
 		 * Inertiza/restaura el fondo con el drawer abierto (major m1): tras
 		 * drawerToBody() el fondo = hermanos de <body> menos drawer y región
 		 * live; `inert` los saca del foco y del árbol de accesibilidad.
+		 * @param {*} on
 		 */
 		function setBackgroundInert( on ) {
-			var drawer = drawerEl();
+			const drawer = drawerEl();
 			Array.prototype.forEach.call( document.body.children, function ( el ) {
 				if ( el === drawer || el.id === 'akb-live-region' ) {
 					return;
@@ -1927,21 +1961,24 @@
 			} );
 		}
 
-		/** Lista de tabbables visibles dentro del drawer. */
+		/**
+		 * Lista de tabbables visibles dentro del drawer.
+		 * @param {*} drawer
+		 */
 		function tabbables( drawer ) {
-			var sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+			const sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 			return Array.prototype.filter.call( drawer.querySelectorAll( sel ), function ( el ) {
-				return el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement;
+				return el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.documentElement.ownerDocument.activeElement;
 			} );
 		}
 
 		function open( opener ) {
-			var drawer = drawerEl();
+			let drawer = drawerEl();
 			if ( ! drawer ) {
 				return;
 			}
 			// Safari no enfoca botones al tap → sin opener, lastFocus=<body>.
-			lastFocus = opener || document.activeElement;
+			lastFocus = opener || document.documentElement.ownerDocument.activeElement;
 			drawerOpen = true;
 			drawerToBody(); // escapar el sidebar display:none de mobile.
 			drawer = drawerEl();
@@ -1951,7 +1988,7 @@
 			drawer.removeAttribute( 'inert' );
 			setBackgroundInert( true );
 			setTriggerExpanded( true );
-			var first = drawer.querySelector( '[data-akb-drawer-close], input, button, summary' );
+			const first = drawer.querySelector( '[data-akb-drawer-close], input, button, summary' );
 			if ( first ) {
 				// Mantener el foco inicial del diálogo sin dejar un ring pegado tras
 				// tap. La apertura por teclado conserva el indicador visible.
@@ -1965,7 +2002,7 @@
 			document.removeEventListener( 'keydown', onKey );
 			setBackgroundInert( false ); // restaurar el fondo ANTES de reparentar.
 			// aria-modal/role: limpiar en AMBOS caminos.
-			var drawer = drawerEl();
+			const drawer = drawerEl();
 			if ( drawer ) {
 				drawer.removeAttribute( 'aria-modal' );
 				drawer.removeAttribute( 'role' );
@@ -1996,23 +2033,23 @@
 				return;
 			}
 			// Focus-trap real: Tab/Shift+Tab circulan dentro del drawer (WCAG 2.4.3).
-			var drawer = drawerEl();
+			const drawer = drawerEl();
 			if ( ! drawer ) {
 				return;
 			}
-			var items = tabbables( drawer );
+			const items = tabbables( drawer );
 			if ( ! items.length ) {
 				return;
 			}
-			var first = items[ 0 ];
-			var last  = items[ items.length - 1 ];
-			if ( e.shiftKey && document.activeElement === first ) {
+			const first = items[ 0 ];
+			const last  = items[ items.length - 1 ];
+			if ( e.shiftKey && document.documentElement.ownerDocument.activeElement === first ) {
 				e.preventDefault();
 				last.focus();
-			} else if ( ! e.shiftKey && document.activeElement === last ) {
+			} else if ( ! e.shiftKey && document.documentElement.ownerDocument.activeElement === last ) {
 				e.preventDefault();
 				first.focus();
-			} else if ( ! drawer.contains( document.activeElement ) ) {
+			} else if ( ! drawer.contains( document.documentElement.ownerDocument.activeElement ) ) {
 				e.preventDefault();
 				first.focus();
 			}
@@ -2020,7 +2057,7 @@
 
 		// Delegado en document → toggle/close sobreviven a los swaps de pjax.
 		document.addEventListener( 'click', function ( e ) {
-			var op = e.target.closest( '[data-akb-drawer-open]' );
+			const op = e.target.closest( '[data-akb-drawer-open]' );
 			if ( op ) {
 				open( op );
 				return;
@@ -2037,12 +2074,12 @@
 	}
 
 	// --- Colapso de facetas (persistido en localStorage) ---
-	var COLLAPSE_KEY = 'akb_facet_collapse';
+	const COLLAPSE_KEY = 'akb_facet_collapse';
 
 	function loadCollapse() {
 		try {
 			return JSON.parse( localStorage.getItem( COLLAPSE_KEY ) || '{}' ) || {};
-		} catch ( e ) {
+		} catch ( _e ) {
 			return {};
 		}
 	}
@@ -2050,12 +2087,12 @@
 	function saveCollapse( map ) {
 		try {
 			localStorage.setItem( COLLAPSE_KEY, JSON.stringify( map ) );
-		} catch ( e ) { /* modo privado */ }
+		} catch ( _e ) { /* modo privado */ }
 	}
 
 	function setFacetOpen( section, open ) {
-		var btn = section.querySelector( '[data-akb-facet-toggle]' );
-		var body = section.querySelector( '.akb-facet-body' );
+		const btn = section.querySelector( '[data-akb-facet-toggle]' );
+		const body = section.querySelector( '.akb-facet-body' );
 		if ( btn ) { btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' ); }
 		if ( body ) { body.hidden = ! open; }
 		section.classList.toggle( 'is-collapsed', ! open );
@@ -2063,27 +2100,29 @@
 
 	/** Aplica la preferencia guardada del usuario sobre el estado server. */
 	function applyCollapse() {
-		var map = loadCollapse();
+		const map = loadCollapse();
 		document.querySelectorAll( '.akb-facet[data-facet]' ).forEach( function ( sec ) {
-			var name = sec.getAttribute( 'data-facet' );
+			const name = sec.getAttribute( 'data-facet' );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( map[ name ] === 'open' || map[ name ] === 'closed' ) {
+				// eslint-disable-next-line security/detect-object-injection
 				setFacetOpen( sec, map[ name ] === 'open' );
 			}
 		} );
 	}
 
 	document.addEventListener( 'click', function ( e ) {
-		var toggle = e.target.closest( '[data-akb-facet-toggle]' );
+		const toggle = e.target.closest( '[data-akb-facet-toggle]' );
 		if ( ! toggle ) {
 			return;
 		}
-		var section = toggle.closest( '.akb-facet' );
+		const section = toggle.closest( '.akb-facet' );
 		if ( ! section ) {
 			return;
 		}
-		var open = 'true' !== toggle.getAttribute( 'aria-expanded' );
+		const open = 'true' !== toggle.getAttribute( 'aria-expanded' );
 		setFacetOpen( section, open );
-		var map = loadCollapse();
+		const map = loadCollapse();
 		map[ section.getAttribute( 'data-facet' ) ] = open ? 'open' : 'closed';
 		saveCollapse( map );
 	} );

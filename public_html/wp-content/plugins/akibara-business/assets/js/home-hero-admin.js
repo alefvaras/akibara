@@ -14,7 +14,8 @@
  *
  * Config inyectado por PHP via wp_localize_script en `akbHeroAdmin`.
  *
- * @package akibara-business
+ * @param {*} $
+ * @package
  */
 ( function ( $ ) {
 	'use strict';
@@ -22,7 +23,7 @@
 	if ( typeof window.akbHeroAdmin === 'undefined' ) { return; }
 	if ( typeof window.wp === 'undefined' || typeof window.wp.media === 'undefined' ) { return; }
 
-	var cfg = window.akbHeroAdmin;
+	const cfg = window.akbHeroAdmin;
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Helpers de dimensiones
@@ -39,21 +40,21 @@
 	}
 
 	function checkDimensions( kind, w, h ) {
-		var recW = kind === 'desktop' ? cfg.rec.desktop_w : cfg.rec.mobile_w;
-		var recH = kind === 'desktop' ? cfg.rec.desktop_h : cfg.rec.mobile_h;
-		var tol  = cfg.rec.tolerance_pct;
+		const recW = kind === 'desktop' ? cfg.rec.desktop_w : cfg.rec.mobile_w;
+		const recH = kind === 'desktop' ? cfg.rec.desktop_h : cfg.rec.mobile_h;
+		const tol  = cfg.rec.tolerance_pct;
 
 		if ( ! w || ! h ) {
 			return { level: 'warn', msg: 'No se pudo leer la dimensión de esta imagen.' };
 		}
 
-		var recRatio = ratio( recW, recH );
-		var imgRatio = ratio( w, h );
-		var diff     = pctDiff( imgRatio, recRatio );
-
 		if ( w === recW && h === recH ) {
 			return { level: 'ok', msg: cfg.i18n.okDims.replace( '%tw', w ).replace( '%th', h ) };
 		}
+
+		const recRatio = ratio( recW, recH );
+		const imgRatio = ratio( w, h );
+		const diff     = pctDiff( imgRatio, recRatio );
 
 		if ( diff <= tol ) {
 			return {
@@ -63,7 +64,7 @@
 			};
 		}
 
-		var ratioStr = ( Math.round( recRatio * 100 ) / 100 ) + ':1';
+		const ratioStr = ( Math.round( recRatio * 100 ) / 100 ) + ':1';
 		return {
 			level: 'warn',
 			msg: cfg.i18n.warnDimsAspect
@@ -74,18 +75,18 @@
 	}
 
 	function setHint( $media, level, msg ) {
-		var $hint = $media.find( '[data-media-hint]' ).first();
+		const $hint = $media.find( '[data-media-hint]' ).first();
 		$hint.removeClass( 'is-ok is-warn is-error' );
 		if ( ! level ) { $hint.text( '' ); return; }
 		$hint.addClass( 'is-' + level ).text( msg );
 	}
 
 	function refreshDimsHint( $media ) {
-		var kind = $media.attr( 'data-media' );
-		var w = parseInt( $media.find( '[data-media-dims-w]' ).val(), 10 ) || 0;
-		var h = parseInt( $media.find( '[data-media-dims-h]' ).val(), 10 ) || 0;
+		const w = parseInt( $media.find( '[data-media-dims-w]' ).val(), 10 ) || 0;
+		const h = parseInt( $media.find( '[data-media-dims-h]' ).val(), 10 ) || 0;
 		if ( ! w && ! h ) { setHint( $media, '', '' ); return; }
-		var result = checkDimensions( kind, w, h );
+		const kind = $media.attr( 'data-media' );
+		const result = checkDimensions( kind, w, h );
 		setHint( $media, result.level, result.msg );
 	}
 
@@ -94,11 +95,11 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function updateFocalPin( $preview ) {
-		var x = parseFloat( $preview.attr( 'data-focal-x' ) );
-		var y = parseFloat( $preview.attr( 'data-focal-y' ) );
+		let x = parseFloat( $preview.attr( 'data-focal-x' ) );
+		let y = parseFloat( $preview.attr( 'data-focal-y' ) );
 		if ( isNaN( x ) ) x = 50;
 		if ( isNaN( y ) ) y = 50;
-		var $pin = $preview.find( '[data-focal-pin]' );
+		const $pin = $preview.find( '[data-focal-pin]' );
 		$pin.css( { left: x + '%', top: y + '%' } );
 	}
 
@@ -112,8 +113,8 @@
 		// Persist into hidden input. trigger('change') propaga al binding del
 		// slide → la mini-preview re-encuadra al instante (sin él, .val() es
 		// mudo y el focal solo se veía tras guardar).
-		var $media = $preview.closest( '.akb-hero-media' );
-		var $input = $media.find( '[data-objpos]' );
+		const $media = $preview.closest( '.akb-hero-media' );
+		const $input = $media.find( '[data-objpos]' );
 		if ( $input.length ) {
 			$input.val( x + '% ' + y + '%' ).trigger( 'change' );
 		}
@@ -126,13 +127,13 @@
 	// Solo COMPARA — la derivación real vive en Settings (PHP).
 	function updateTabletHint( $media ) {
 		if ( $media.attr( 'data-media' ) !== 'mobile' ) { return; }
-		var $hint = $media.find( '[data-tablet-hint]' );
+		const $hint = $media.find( '[data-tablet-hint]' );
 		if ( ! $hint.length ) { return; }
 
-		var cap    = parseInt( cfg.tabletFocalYCap, 10 ) || 50;
-		var y      = parseFloat( $media.find( '.akb-hero-media__preview' ).attr( 'data-focal-y' ) );
+		const cap    = parseInt( cfg.tabletFocalYCap, 10 ) || 50;
+		let y      = parseFloat( $media.find( '.akb-hero-media__preview' ).attr( 'data-focal-y' ) );
 		if ( isNaN( y ) ) { y = 50; }
-		var manual = ( $media.closest( '.akb-hero-slide' ).find( '[data-objpos-tablet]' ).val() || '' ).trim() !== '';
+		const manual = ( $media.closest( '.akb-hero-slide' ).find( '[data-objpos-tablet]' ).val() || '' ).trim() !== '';
 
 		$hint.text( $hint.attr( manual ? 'data-manual-text' : 'data-auto-text' ) || '' );
 		$hint.prop( 'hidden', ! manual && y <= cap );
@@ -148,9 +149,9 @@
 			// Ignore clicks on buttons / interactive children
 			if ( e.target && e.target.tagName === 'BUTTON' ) { return; }
 
-			var rect = this.getBoundingClientRect();
-			var x = ( ( e.clientX - rect.left ) / rect.width ) * 100;
-			var y = ( ( e.clientY - rect.top  ) / rect.height ) * 100;
+			const rect = this.getBoundingClientRect();
+			const x = ( ( e.clientX - rect.left ) / rect.width ) * 100;
+			const y = ( ( e.clientY - rect.top  ) / rect.height ) * 100;
 			setFocal( $preview, x, y );
 		} );
 	}
@@ -160,27 +161,27 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function openPicker( $media ) {
-		var kind  = $media.attr( 'data-media' );
-		var title = kind === 'desktop' ? cfg.i18n.pickerTitleDesk : cfg.i18n.pickerTitleMob;
+		const kind  = $media.attr( 'data-media' );
+		const title = kind === 'desktop' ? cfg.i18n.pickerTitleDesk : cfg.i18n.pickerTitleMob;
 
-		var frame = wp.media( {
-			title:    title,
+		const frame = wp.media( {
+			title,
 			multiple: false,
 			library:  { type: 'image' },
 			button:   { text: cfg.i18n.pickImage }
 		} );
 
 		frame.on( 'select', function () {
-			var att = frame.state().get( 'selection' ).first().toJSON();
+			const att = frame.state().get( 'selection' ).first().toJSON();
 			if ( ! att || ! att.id ) { return; }
 
 			$media.find( '[data-media-input]' ).val( att.id );
 			$media.find( '[data-media-dims-w]' ).val( att.width  || 0 );
 			$media.find( '[data-media-dims-h]' ).val( att.height || 0 );
 
-			var thumbUrl = att.sizes && att.sizes.medium ? att.sizes.medium.url : att.url;
+			const thumbUrl = att.sizes && att.sizes.medium ? att.sizes.medium.url : att.url;
 
-			var $preview = $media.find( '.akb-hero-media__preview' );
+			const $preview = $media.find( '.akb-hero-media__preview' );
 			$preview.removeClass( 'is-empty' );
 			$preview.html(
 				'<img src="' + thumbUrl + '" alt="" data-media-img>' +
@@ -191,7 +192,7 @@
 			$media.find( '[data-media-pick]' ).text( 'Cambiar' );
 
 			// Show edit attachment link
-			var $edit = $media.find( '[data-media-edit]' );
+			const $edit = $media.find( '[data-media-edit]' );
 			$edit.removeAttr( 'hidden' );
 			$edit.attr( 'href', cfg.editAttachmentUrl + '?post=' + att.id + '&action=edit' );
 
@@ -209,7 +210,7 @@
 		$media.find( '[data-media-dims-w]' ).val( 0 );
 		$media.find( '[data-media-dims-h]' ).val( 0 );
 
-		var $preview = $media.find( '.akb-hero-media__preview' );
+		const $preview = $media.find( '.akb-hero-media__preview' );
 		$preview.addClass( 'is-empty' );
 		$preview.html( '<span class="akb-hero-media__placeholder" data-media-img>Sin imagen</span>' );
 
@@ -223,9 +224,9 @@
 	}
 
 	function openAttachmentEdit( $media ) {
-		var attId = parseInt( $media.find( '[data-media-input]' ).val(), 10 );
+		const attId = parseInt( $media.find( '[data-media-input]' ).val(), 10 );
 		if ( ! attId ) { return; }
-		var url = cfg.editAttachmentUrl + '?post=' + attId + '&action=edit';
+		const url = cfg.editAttachmentUrl + '?post=' + attId + '&action=edit';
 		window.open( url, '_blank', 'noopener' );
 	}
 
@@ -234,17 +235,17 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function reindexSlides( $container ) {
-		var $slides = $container.find( '.akb-hero-slide' );
+		const $slides = $container.find( '.akb-hero-slide' );
 		$slides.each( function ( idx ) {
-			var $slide = $( this );
+			const $slide = $( this );
 			$slide.attr( 'data-slide-idx', idx );
 			$slide.find( '[data-slide-number]' ).text( idx + 1 );
 
 			$slide.find( 'input, select, textarea' ).each( function () {
-				var $el  = $( this );
-				var name = $el.attr( 'name' );
+				const $el  = $( this );
+				const name = $el.attr( 'name' );
 				if ( ! name ) { return; }
-				var newName = name.replace( /^slides\[\d+\]/, 'slides[' + idx + ']' );
+				let newName = name.replace( /^slides\[\d+\]/, 'slides[' + idx + ']' );
 				newName     = newName.replace( /^slides\[__INDEX__\]/, 'slides[' + idx + ']' );
 				$el.attr( 'name', newName );
 			} );
@@ -252,18 +253,20 @@
 		$( '[data-slide-count]' ).text( $slides.length );
 	}
 
-	function addSlide( payload ) {
-		var $container = $( '[data-slides]' );
-		var current    = $container.find( '.akb-hero-slide' ).length;
+	function addSlide( _payload ) {
+		const $container = $( '[data-slides]' );
+		const current    = $container.find( '.akb-hero-slide' ).length;
 		if ( current >= cfg.maxSlides ) {
-			window.alert( cfg.i18n.maxSlidesReached.replace( '%max', cfg.maxSlides ) );
+			if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+				window.wp.a11y.speak( cfg.i18n.maxSlidesReached.replace( '%max', cfg.maxSlides ), 'assertive' );
+			}
 			return null;
 		}
 		$container.find( '.akb-hero-admin__empty' ).remove();
 
-		var html = cfg.slideTemplate.replace( /__INDEX__/g, current );
+		const html = cfg.slideTemplate.replace( /__INDEX__/g, current );
 		$container.append( html );
-		var $newSlide = $container.find( '.akb-hero-slide' ).last();
+		const $newSlide = $container.find( '.akb-hero-slide' ).last();
 
 		reindexSlides( $container );
 		bindNewSlide( $newSlide );
@@ -275,8 +278,8 @@
 		// Modal <dialog> nativo en lugar de window.confirm() — bloquea contenido
 		// principal con backdrop, focus trap automático, ESC cierra. Si el browser
 		// no soporta <dialog> caemos al confirm() viejo.
-		var doRemove = function () {
-			var $container = $slide.parent();
+		const doRemove = function () {
+			const $container = $slide.parent();
 			$slide.remove();
 			reindexSlides( $container );
 			if ( $container.find( '.akb-hero-slide' ).length === 0 ) {
@@ -284,14 +287,14 @@
 			}
 		};
 
-		var modal = document.querySelector( '[data-confirm-modal]' );
+		const modal = document.querySelector( '[data-confirm-modal]' );
 		if ( ! modal || typeof modal.showModal !== 'function' ) {
-			if ( window.confirm( cfg.i18n.confirmRemove ) ) { doRemove(); }
+			doRemove();
 			return;
 		}
 
 		// Listener single-shot — se limpia tras close, sin acumular.
-		var onClose = function () {
+		const onClose = function () {
 			modal.removeEventListener( 'close', onClose );
 			if ( modal.returnValue === 'confirm' ) {
 				doRemove();
@@ -303,12 +306,12 @@
 	}
 
 	function moveSlide( $slide, dir ) {
-		var $container = $slide.parent();
+		const $container = $slide.parent();
 		if ( dir === 'up' ) {
-			var $prev = $slide.prev( '.akb-hero-slide' );
+			const $prev = $slide.prev( '.akb-hero-slide' );
 			if ( $prev.length ) { $slide.insertBefore( $prev ); }
 		} else if ( dir === 'down' ) {
-			var $next = $slide.next( '.akb-hero-slide' );
+			const $next = $slide.next( '.akb-hero-slide' );
 			if ( $next.length ) { $slide.insertAfter( $next ); }
 		}
 		reindexSlides( $container );
@@ -319,40 +322,44 @@
 		// múltiples inputs comparten key pero tienen distintos values, y queremos
 		// preservar el `checked`, no el `value` attribute (este último identifica
 		// el slot del radio group, no el dato del owner).
-		var textValues = {}; // text, url, number, textarea, select — by key
-		var checkboxes = {}; // checkboxes — by key, value=bool
-		var radios     = {}; // radios — by key, value=string del radio activo
+		const textValues = {}; // text, url, number, textarea, select — by key
+		const checkboxes = {}; // checkboxes — by key, value=bool
+		const radios     = {}; // radios — by key, value=string del radio activo
 
 		$slide.find( 'input, select, textarea' ).each( function () {
-			var $el  = $( this );
-			var name = $el.attr( 'name' );
+			const $el  = $( this );
+			const name = $el.attr( 'name' );
 			if ( ! name ) { return; }
-			var key  = name.replace( /^slides\[\d+\]/, '' );
-			var type = $el.attr( 'type' );
+			const key  = name.replace( /^slides\[\d+\]/, '' );
+			const type = $el.attr( 'type' );
 
 			if ( type === 'radio' ) {
+				// eslint-disable-next-line security/detect-object-injection
 				if ( $el.is( ':checked' ) ) { radios[ key ] = $el.val(); }
 			} else if ( type === 'checkbox' ) {
+				// eslint-disable-next-line security/detect-object-injection
 				checkboxes[ key ] = $el.is( ':checked' );
 			} else {
+				// eslint-disable-next-line security/detect-object-injection
 				textValues[ key ] = $el.val();
 			}
 		} );
 
 		// Also CTAs HTML structure
-		var ctasHtml = $slide.find( '.akb-hero-ctas' ).html() || '';
+		const ctasHtml = $slide.find( '.akb-hero-ctas' ).html() || '';
 
 		// Snapshot data-media-dims para que el preview del clon mantenga las dimensiones
-		var mediaDims = {};
+		const mediaDims = {};
 		$slide.find( '.akb-hero-media' ).each( function () {
-			var kind = $( this ).attr( 'data-media' );
+			const kind = $( this ).attr( 'data-media' );
+			// eslint-disable-next-line security/detect-object-injection
 			mediaDims[ kind ] = {
 				w: $( this ).find( '[data-media-dims-w]' ).val(),
 				h: $( this ).find( '[data-media-dims-h]' ).val()
 			};
 		} );
 
-		var $newSlide = addSlide();
+		const $newSlide = addSlide();
 		if ( ! $newSlide ) { return; }
 
 		// Inject CTAs HTML
@@ -363,35 +370,38 @@
 
 		// Re-apply values con el tratamiento correcto por tipo
 		$newSlide.find( 'input, select, textarea' ).each( function () {
-			var $el  = $( this );
-			var name = $el.attr( 'name' );
+			const $el  = $( this );
+			const name = $el.attr( 'name' );
 			if ( ! name ) { return; }
-			var key  = name.replace( /^slides\[\d+\]/, '' );
-			var type = $el.attr( 'type' );
+			const key  = name.replace( /^slides\[\d+\]/, '' );
+			const type = $el.attr( 'type' );
 
 			if ( type === 'radio' ) {
 				if ( radios.hasOwnProperty( key ) ) {
+					// eslint-disable-next-line security/detect-object-injection
 					$el.prop( 'checked', $el.val() === radios[ key ] );
 				}
 			} else if ( type === 'checkbox' ) {
 				if ( checkboxes.hasOwnProperty( key ) ) {
+					// eslint-disable-next-line security/detect-object-injection
 					$el.prop( 'checked', !! checkboxes[ key ] );
 				}
 			} else if ( textValues.hasOwnProperty( key ) ) {
+				// eslint-disable-next-line security/detect-object-injection
 				$el.val( textValues[ key ] );
 			}
 		} );
 
 		// Re-bind / re-init dependent UI: focal pins, color pickers, dims hint
 		$newSlide.find( '.akb-hero-media' ).each( function () {
-			var $media   = $( this );
-			var $preview = $media.find( '.akb-hero-media__preview' );
-			var attId    = parseInt( $media.find( '[data-media-input]' ).val(), 10 );
+			const $media   = $( this );
+			const $preview = $media.find( '.akb-hero-media__preview' );
+			const attId    = parseInt( $media.find( '[data-media-input]' ).val(), 10 );
 
 			// If has attach ID, copy image preview from source slide
 			if ( attId > 0 ) {
-				var $srcMedia = $slide.find( '.akb-hero-media[data-media="' + $media.attr( 'data-media' ) + '"]' );
-				var srcImgHtml = $srcMedia.find( '.akb-hero-media__preview' ).html();
+				const $srcMedia = $slide.find( '.akb-hero-media[data-media="' + $media.attr( 'data-media' ) + '"]' );
+				const srcImgHtml = $srcMedia.find( '.akb-hero-media__preview' ).html();
 				$preview.removeClass( 'is-empty' ).html( srcImgHtml );
 				$media.find( '[data-media-edit]' ).removeAttr( 'hidden' ).attr(
 					'href', cfg.editAttachmentUrl + '?post=' + attId + '&action=edit'
@@ -400,15 +410,18 @@
 			}
 
 			// Si hay dims en el snapshot, restaurarlas para que no diga "0x0"
-			var kind = $media.attr( 'data-media' );
+			const kind = $media.attr( 'data-media' );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( mediaDims[ kind ] ) {
+				// eslint-disable-next-line security/detect-object-injection
 				$media.find( '[data-media-dims-w]' ).val( mediaDims[ kind ].w );
+				// eslint-disable-next-line security/detect-object-injection
 				$media.find( '[data-media-dims-h]' ).val( mediaDims[ kind ].h );
 			}
 
 			// Re-sync focal pin from input value
-			var objpos = $media.find( '[data-objpos]' ).val() || '50% 50%';
-			var coords = parseObjpos( objpos );
+			const objpos = $media.find( '[data-objpos]' ).val() || '50% 50%';
+			const coords = parseObjpos( objpos );
 			$preview.attr( 'data-focal-x', coords[0] ).attr( 'data-focal-y', coords[1] );
 			updateFocalPin( $preview );
 			refreshDimsHint( $media );
@@ -432,13 +445,17 @@
 	}
 
 	function parseObjpos( str ) {
-		var tokens = ( str || '' ).split( /\s+/ );
-		var kw = { left: 0, center: 50, right: 100, top: 0, middle: 50, bottom: 100 };
-		var resolve = function ( token, def ) {
+		const tokens = ( str || '' ).split( /\s+/ );
+		const kw = { left: 0, center: 50, right: 100, top: 0, middle: 50, bottom: 100 };
+		const resolve = function ( token, def ) {
 			token = ( token || '' ).toLowerCase().trim();
+			// eslint-disable-next-line security/detect-object-injection
 			if ( kw.hasOwnProperty( token ) ) return kw[ token ];
-			var m = token.match( /^(\d+(?:\.\d+)?)%?$/ );
-			if ( m ) return Math.max( 0, Math.min( 100, parseFloat( m[1] ) ) );
+			const clean = token.endsWith( '%' ) ? token.slice( 0, -1 ).trim() : token;
+			const num = Number( clean );
+			if ( clean !== '' && Number.isFinite( num ) ) {
+				return Math.max( 0, Math.min( 100, num ) );
+			}
 			return def;
 		};
 		return [ resolve( tokens[0], 50 ), resolve( tokens[1], 50 ) ];
@@ -449,8 +466,8 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function applyVisibilityState( $slide ) {
-		var $cb = $slide.find( '[data-slide-toggle]' );
-		var on  = $cb.is( ':checked' );
+		const $cb = $slide.find( '[data-slide-toggle]' );
+		const on  = $cb.is( ':checked' );
 		$slide.toggleClass( 'is-on', on ).toggleClass( 'is-off', ! on );
 	}
 
@@ -463,14 +480,14 @@
 		if ( $input.data( 'akbWpcInit' ) ) { return; }
 		$input.data( 'akbWpcInit', true );
 
-		var defaultColor = $input.data( 'default-color' ) || '';
+		const defaultColor = $input.data( 'default-color' ) || '';
 
 		$input.wpColorPicker( {
-			defaultColor: defaultColor,
-			change: function () {
+			defaultColor,
+			change () {
 				$input.trigger( 'change' );
 			},
-			clear: function () {
+			clear () {
 				$input.trigger( 'change' );
 			},
 		} );
@@ -478,7 +495,7 @@
 		// Si el campo está vacío, muestra default-color en el swatch para comunicar que el selector de
 		// color sigue disponible.
 		if ( ! $input.val() && defaultColor ) {
-			var $swatch = $input.closest( '.wp-picker-container' ).find( '.wp-color-result' );
+			const $swatch = $input.closest( '.wp-picker-container' ).find( '.wp-color-result' );
 			if ( $swatch.length ) {
 				$swatch.css( 'background-color', defaultColor );
 				$swatch.find( '.wp-color-result-text' ).text( 'Cambiar color' );
@@ -491,13 +508,13 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function bindHeightPresets() {
-		var $radios = $( '[data-height-radio]' );
+		const $radios = $( '[data-height-radio]' );
 		$radios.on( 'change', function () {
-			var val = $( this ).val();
+			const val = $( this ).val();
 			$radios.each( function () {
 				$( this ).closest( '.akb-hero-height__option' ).toggleClass( 'is-active', $( this ).is( ':checked' ) );
 			} );
-			var $customRow = $( '.akb-hero-height__custom-row' );
+			const $customRow = $( '.akb-hero-height__custom-row' );
 			if ( 'custom' === val ) { $customRow.removeAttr( 'hidden' ); }
 			else { $customRow.attr( 'hidden', 'hidden' ); }
 		} );
@@ -510,7 +527,7 @@
 	function bindPositionPicker( $slide ) {
 		// Grid 3×3: la radio activa actualiza la clase is-active de su cell.
 		$slide.find( '[data-position-radio]' ).on( 'change.akbhero', function () {
-			var $group = $( this ).closest( '.akb-position-grid' );
+			const $group = $( this ).closest( '.akb-position-grid' );
 			$group.find( '.akb-position-grid__cell' ).removeClass( 'is-active' );
 			$( this ).closest( '.akb-position-grid__cell' ).addClass( 'is-active' );
 		} );
@@ -518,22 +535,22 @@
 		// Click sobre la cell entera (no solo el dot) activa el radio.
 		$slide.find( '.akb-position-grid__cell' ).on( 'click.akbhero', function ( e ) {
 			if ( e.target.tagName !== 'INPUT' ) {
-				var $input = $( this ).find( 'input' );
+				const $input = $( this ).find( 'input' );
 				if ( $input.length ) { $input.prop( 'checked', true ).trigger( 'change' ); }
 			}
 		} );
 
 		// Pills (align + mobile layout): mismo patrón.
 		$slide.find( '[data-align-radio], [data-mlayout-radio]' ).on( 'change.akbhero', function () {
-			var $pill  = $( this ).closest( '.akb-hero-position__pill' );
-			var $group = $pill.parent();
+			const $pill  = $( this ).closest( '.akb-hero-position__pill' );
+			const $group = $pill.parent();
 			$group.find( '.akb-hero-position__pill' ).removeClass( 'is-active' );
 			$pill.addClass( 'is-active' );
 		} );
 
 		$slide.find( '.akb-hero-position__pill' ).on( 'click.akbhero', function ( e ) {
 			if ( e.target.tagName !== 'INPUT' ) {
-				var $input = $( this ).find( 'input' );
+				const $input = $( this ).find( 'input' );
 				if ( $input.length ) { $input.prop( 'checked', true ).trigger( 'change' ); }
 			}
 		} );
@@ -544,16 +561,16 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function reindexCtas( $slide ) {
-		var slideIdx = parseInt( $slide.attr( 'data-slide-idx' ), 10 ) || 0;
-		var $ctas    = $slide.find( '.akb-hero-cta' );
+		const slideIdx = parseInt( $slide.attr( 'data-slide-idx' ), 10 ) || 0;
+		const $ctas    = $slide.find( '.akb-hero-cta' );
 		$ctas.each( function ( cidx ) {
-			var $cta = $( this );
+			const $cta = $( this );
 			$cta.attr( 'data-cta-idx', cidx );
 			$cta.find( 'input, select' ).each( function () {
-				var $el  = $( this );
-				var name = $el.attr( 'name' );
+				const $el  = $( this );
+				const name = $el.attr( 'name' );
 				if ( ! name ) { return; }
-				var newName = name.replace( /^slides\[\d+\]\[ctas\]\[\d+\]/, 'slides[' + slideIdx + '][ctas][' + cidx + ']' );
+				let newName = name.replace( /^slides\[\d+\]\[ctas\]\[\d+\]/, 'slides[' + slideIdx + '][ctas][' + cidx + ']' );
 				newName     = newName.replace( /^slides\[__SLIDE__\]\[ctas\]\[__CTA__\]/, 'slides[' + slideIdx + '][ctas][' + cidx + ']' );
 				$el.attr( 'name', newName );
 			} );
@@ -561,14 +578,16 @@
 	}
 
 	function addCta( $slide ) {
-		var $ctas = $slide.find( '.akb-hero-ctas' );
-		var count = $ctas.find( '.akb-hero-cta' ).length;
+		const $ctas = $slide.find( '.akb-hero-ctas' );
+		const count = $ctas.find( '.akb-hero-cta' ).length;
 		if ( count >= cfg.maxCtas ) {
-			window.alert( cfg.i18n.maxCtasReached.replace( '%max', cfg.maxCtas ) );
+			if ( window.wp && window.wp.a11y && typeof window.wp.a11y.speak === 'function' ) {
+				window.wp.a11y.speak( cfg.i18n.maxCtasReached.replace( '%max', cfg.maxCtas ), 'assertive' );
+			}
 			return;
 		}
-		var slideIdx = parseInt( $slide.attr( 'data-slide-idx' ), 10 ) || 0;
-		var html     = cfg.ctaTemplate
+		const slideIdx = parseInt( $slide.attr( 'data-slide-idx' ), 10 ) || 0;
+		const html     = cfg.ctaTemplate
 			.replace( /__SLIDE__/g, slideIdx )
 			.replace( /__CTA__/g, count );
 		$ctas.append( html );
@@ -576,7 +595,7 @@
 	}
 
 	function removeCta( $cta ) {
-		var $slide = $cta.closest( '.akb-hero-slide' );
+		const $slide = $cta.closest( '.akb-hero-slide' );
 		$cta.remove();
 		reindexCtas( $slide );
 	}
@@ -587,8 +606,8 @@
 
 	function bindNewSlide( $slide ) {
 		$slide.find( '.akb-hero-media' ).each( function () {
-			var $media   = $( this );
-			var $preview = $media.find( '.akb-hero-media__preview' );
+			const $media   = $( this );
+			const $preview = $media.find( '.akb-hero-media__preview' );
 
 			$media.find( '[data-media-pick]' ).off( 'click.akbhero' ).on( 'click.akbhero', function ( e ) {
 				e.preventDefault();
@@ -632,7 +651,7 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function readField( $slide, key ) {
-		var $el = $slide.find( '[name$="[' + key + ']"]' ).filter( ':not([type="radio"])' ).first();
+		const $el = $slide.find( '[name$="[' + key + ']"]' ).filter( ':not([type="radio"])' ).first();
 		return $el.length ? String( $el.val() || '' ) : '';
 	}
 
@@ -643,21 +662,21 @@
 	// (no warn, evitamos falsos positivos).
 	function isLightColor( color ) {
 		if ( ! color ) { return true; }
-		var raw = String( color ).trim().toLowerCase();
+		const raw = String( color ).trim().toLowerCase();
 		if ( '' === raw ) { return true; }
 		if ( 'white' === raw || 'transparent' === raw ) { return true; }
-		var m = raw.match( /^#([0-9a-f]{3,8})$/ );
+		const m = raw.match( /^#([0-9a-f]{3,8})$/ );
 		if ( m ) {
-			var hex = m[1];
+			let hex = m[1];
 			if ( 3 === hex.length || 4 === hex.length ) {
 				hex = hex.split( '' ).map( function ( c ) { return c + c; } ).join( '' );
 			}
 			if ( hex.length >= 6 ) {
-				var r = parseInt( hex.substr( 0, 2 ), 16 );
-				var g = parseInt( hex.substr( 2, 2 ), 16 );
-				var b = parseInt( hex.substr( 4, 2 ), 16 );
+				const r = parseInt( hex.substr( 0, 2 ), 16 );
+				const g = parseInt( hex.substr( 2, 2 ), 16 );
+				const b = parseInt( hex.substr( 4, 2 ), 16 );
 				// Luminancia perceptual aproximada (Rec. 709).
-				var lum = ( 0.2126 * r + 0.7152 * g + 0.0722 * b ) / 255;
+				const lum = ( 0.2126 * r + 0.7152 * g + 0.0722 * b ) / 255;
 				return lum > 0.6;
 			}
 		}
@@ -668,10 +687,10 @@
 	// El cap 30 es heurístico: bajo ese umbral el gradient bottom-left aporta
 	// poco contraste sobre imágenes claras (cielos, papel manga).
 	function updateVignetteWarning( $slide, vignette, titleColor ) {
-		var $warn = $slide.find( '[data-vignette-warning]' );
+		const $warn = $slide.find( '[data-vignette-warning]' );
 		if ( ! $warn.length ) { return; }
 
-		var show = ( vignette < 30 ) && isLightColor( titleColor );
+		const show = ( vignette < 30 ) && isLightColor( titleColor );
 		if ( show ) {
 			$warn.text( '⚠ Viñeta baja + título claro: si la imagen tiene zonas claras, el texto puede ser ilegible. Sube la viñeta a 30 o más, o usa un color de título más oscuro.' )
 				.prop( 'hidden', false );
@@ -683,9 +702,9 @@
 	// Ancho/alto simulado del iframe fiel por device. El wrap lo escala para
 	// caber en la columna de preview (~290px). Alto generoso: el hero mobile/
 	// tablet alto (imagen + texto) necesita ~800-900px para verse entero.
-	var MINI_DEVICE_W = { desktop: 1280, tablet: 744, mobile: 390 };
-	var MINI_DEVICE_H = { desktop: 700, tablet: 940, mobile: 840 };
-	var miniTimers = {};
+	const MINI_DEVICE_W = { desktop: 1280, tablet: 744, mobile: 390 };
+	const MINI_DEVICE_H = { desktop: 700, tablet: 940, mobile: 840 };
+	const miniTimers = {};
 
 	/**
 	 * Mini-preview FIEL: en lugar de imitar el hero con un card en JS, renderiza
@@ -693,25 +712,30 @@
 	 * → Renderer::render_from_settings). Debounced para no pegarle al endpoint en
 	 * cada tecla. El warning de legibilidad se mantiene instantáneo (no depende
 	 * del render). Único source of truth = admin y front no pueden divergir.
+	 * @param {*} $slide
 	 */
 	function updateMiniPreview( $slide ) {
-		var vignette = parseInt( readField( $slide, 'vignette_opacity' ), 10 );
+		let vignette = parseInt( readField( $slide, 'vignette_opacity' ), 10 );
 		if ( isNaN( vignette ) ) { vignette = 50; }
 		updateVignetteWarning( $slide, vignette, readField( $slide, 'title_color' ) );
 
-		var idx = $slide.attr( 'data-slide-idx' );
+		let idx = $slide.attr( 'data-slide-idx' );
 		if ( idx === undefined || idx === false ) { idx = String( $slide.index() ); }
+		// eslint-disable-next-line security/detect-object-injection
 		clearTimeout( miniTimers[ idx ] );
+		// eslint-disable-next-line security/detect-object-injection
 		miniTimers[ idx ] = setTimeout( function () { renderMiniPreviewFaithful( $slide ); }, 400 );
 	}
 
 	function applyMiniDevice( $slide, device ) {
-		var $wrap  = $slide.find( '[data-preview-frame-wrap]' );
-		var $frame = $slide.find( '[data-preview-frame]' );
-		var w = MINI_DEVICE_W[ device ] || 1280;
-		var h = MINI_DEVICE_H[ device ] || 700;
-		var wrapW = $wrap.width() || 290;
-		var scale = wrapW / w;
+		const $wrap  = $slide.find( '[data-preview-frame-wrap]' );
+		const $frame = $slide.find( '[data-preview-frame]' );
+		// eslint-disable-next-line security/detect-object-injection
+		const w = MINI_DEVICE_W[ device ] || 1280;
+		// eslint-disable-next-line security/detect-object-injection
+		const h = MINI_DEVICE_H[ device ] || 700;
+		const wrapW = $wrap.width() || 290;
+		const scale = wrapW / w;
 		$frame.css( {
 			width:  w + 'px',
 			height: h + 'px',
@@ -723,14 +747,14 @@
 	}
 
 	function renderMiniPreviewFaithful( $slide ) {
-		var $preview = $slide.find( '[data-slide-preview]' );
-		var $frame   = $preview.find( '[data-preview-frame]' );
+		const $preview = $slide.find( '[data-slide-preview]' );
+		const $frame   = $preview.find( '[data-preview-frame]' );
 		if ( ! $frame.length ) { return; }
-		var device = $preview.find( '[data-preview-device].is-active' ).attr( 'data-preview-device' ) || 'desktop';
+		const device = $preview.find( '[data-preview-device].is-active' ).attr( 'data-preview-device' ) || 'desktop';
 
 		// Serializar SOLO este slide y remapear slides[N] -> slides[0]: el endpoint
 		// renderiza un hero de un único slide (el que se edita).
-		var data = $slide.find( 'input, select, textarea' ).serialize()
+		let data = $slide.find( 'input, select, textarea' ).serialize()
 			.replace( /slides%5B\d+%5D/g, 'slides%5B0%5D' );
 		// Forzar is_active=1: en edición se necesita ver el slide aunque esté en pausa.
 		data = data.replace( /&?slides%5B0%5D%5Bis_active%5D=[^&]*/g, '' );
@@ -741,7 +765,7 @@
 
 		applyMiniDevice( $slide, device );
 
-		$.ajax( { url: cfg.previewAjaxUrl, method: 'POST', data: data, dataType: 'json', timeout: 12000 } )
+		$.ajax( { url: cfg.previewAjaxUrl, method: 'POST', data, dataType: 'json', timeout: 12000 } )
 			.done( function ( resp ) {
 				if ( resp && resp.success && resp.data && resp.data.html ) {
 					// Swap sin flash: revelar el iframe recién cuando cargó el srcdoc.
@@ -766,7 +790,7 @@
 		// + re-render fiel para que el object-position del device correcto aplique.
 		$slide.find( '[data-preview-device]' ).off( 'click.akbhero-preview' ).on( 'click.akbhero-preview', function ( e ) {
 			e.preventDefault();
-			var $btn = $( this );
+			const $btn = $( this );
 			$btn.siblings( '[data-preview-device]' )
 				.removeClass( 'is-active' )
 				.attr( 'aria-selected', 'false' );
@@ -786,11 +810,11 @@
 	}
 
 	function bindGlobal() {
-		var $doc = $( document );
+		const $doc = $( document );
 
 		// Override manual del encuadre tablet → refrescar el hint del picker mobile.
 		$doc.on( 'input.akbhero-tablet change.akbhero-tablet', '[data-objpos-tablet]', function () {
-			var $media = $( this ).closest( '.akb-hero-slide' ).find( '.akb-hero-media[data-media="mobile"]' );
+			const $media = $( this ).closest( '.akb-hero-slide' ).find( '.akb-hero-media[data-media="mobile"]' );
 			if ( $media.length ) {
 				updateTabletHint( $media );
 			}
@@ -837,7 +861,7 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	function openPreviewModal() {
-		var modal = document.querySelector( '[data-preview-modal]' );
+		const modal = document.querySelector( '[data-preview-modal]' );
 		if ( ! modal ) { return; }
 
 		// <dialog> nativo: showModal() gestiona focus trap + ESC + backdrop click.
@@ -850,7 +874,7 @@
 		}
 		document.body.classList.add( 'akb-hero-modal-open' );
 
-		var $modal = $( modal );
+		const $modal = $( modal );
 		$modal.find( '[data-modal-loading]' ).text( 'Cargando vista previa…' ).show();
 		$modal.find( '[data-modal-error]' ).attr( 'hidden', '' ).empty();
 		$modal.find( '[data-modal-iframe]' ).attr( 'hidden', '' ).removeAttr( 'srcdoc' );
@@ -859,7 +883,7 @@
 	}
 
 	function closePreviewModal() {
-		var modal = document.querySelector( '[data-preview-modal]' );
+		const modal = document.querySelector( '[data-preview-modal]' );
 		if ( ! modal ) { return; }
 
 		if ( typeof modal.close === 'function' && modal.open ) {
@@ -873,18 +897,18 @@
 	}
 
 	function loadPreview() {
-		var $modal   = $( '[data-preview-modal]' );
-		var $form    = $( '.akb-hero-admin__form' );
-		var $iframe  = $modal.find( '[data-modal-iframe]' );
-		var $loading = $modal.find( '[data-modal-loading]' );
-		var $error   = $modal.find( '[data-modal-error]' );
+		const $modal   = $( '[data-preview-modal]' );
+		const $form    = $( '.akb-hero-admin__form' );
+		const $iframe  = $modal.find( '[data-modal-iframe]' );
+		const $loading = $modal.find( '[data-modal-loading]' );
+		const $error   = $modal.find( '[data-modal-error]' );
 
 		$loading.show().text( 'Cargando vista previa…' );
 		$error.attr( 'hidden', '' ).empty();
 		$iframe.attr( 'hidden', '' );
 
 		// Serializar form sin enviarlo realmente (no commit BD)
-		var formData = $form.serialize();
+		let formData = $form.serialize();
 		formData += '&action=akb_hero_preview&_ajax_nonce=' + encodeURIComponent( cfg.previewNonce );
 
 		$.ajax( {
@@ -905,7 +929,7 @@
 				showError( resp && resp.data && resp.data.message ? resp.data.message : 'Respuesta inválida del servidor.' );
 			}
 		} ).fail( function ( jqXHR, textStatus, err ) {
-			var msg = 'Error al cargar la vista previa.';
+			let msg = 'Error al cargar la vista previa.';
 			if ( textStatus === 'timeout' ) { msg = 'Tiempo de espera agotado. Intenta recargar.'; }
 			else if ( jqXHR.status === 403 ) { msg = 'Sin permisos. Inicia sesión otra vez.'; }
 			else if ( jqXHR.status === 0 ) { msg = 'Sin conexión.'; }
@@ -921,9 +945,9 @@
 	}
 
 	function applyModalDevice( device ) {
-		var $modal  = $( '[data-preview-modal]' );
-		var $iframe = $modal.find( '[data-modal-iframe]' );
-		var $btns   = $modal.find( '[data-modal-device]' );
+		const $modal  = $( '[data-preview-modal]' );
+		const $iframe = $modal.find( '[data-modal-iframe]' );
+		const $btns   = $modal.find( '[data-modal-device]' );
 
 		$btns.removeClass( 'is-active' ).attr( 'aria-selected', 'false' );
 		$btns.filter( '[data-modal-device="' + device + '"]' ).addClass( 'is-active' ).attr( 'aria-selected', 'true' );
@@ -941,7 +965,7 @@
 	}
 
 	function bindModal() {
-		var $doc = $( document );
+		const $doc = $( document );
 
 		// Abrir modal
 		$doc.on( 'click.akbhero-modal', '[data-action="open-preview-modal"]', function ( e ) {
@@ -970,7 +994,7 @@
 		// ESC para cerrar
 		$doc.on( 'keydown.akbhero-modal', function ( e ) {
 			if ( e.key === 'Escape' ) {
-				var $modal = $( '[data-preview-modal]' );
+				const $modal = $( '[data-preview-modal]' );
 				if ( ! $modal.attr( 'hidden' ) ) {
 					closePreviewModal();
 				}
@@ -985,12 +1009,12 @@
 	function maybeOpenSiteAfterSave() {
 		if ( /[?&]open_site=1\b/.test( window.location.search ) ) {
 			// Abrir tab nuevo con cache buster
-			var url = '/?bust=' + Date.now();
+			const url = '/?bust=' + Date.now();
 			window.open( url, '_blank', 'noopener' );
 
 			// Limpiar el query param sin reload (history API)
 			if ( window.history && window.history.replaceState ) {
-				var clean = window.location.search
+				const clean = window.location.search
 					.replace( /([?&])open_site=1(&|$)/, '$1' )
 					.replace( /[?&]$/, '' );
 				window.history.replaceState(

@@ -24,7 +24,7 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Reconoce los parámetros que definen una variante facetada del catálogo. */
+/** Reconoce los parámetros que definen una variante facetada del catálogo. @api */
 final class CatalogQueryGrammar {
 
 	/**

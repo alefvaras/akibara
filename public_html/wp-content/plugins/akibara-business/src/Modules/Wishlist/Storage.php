@@ -24,6 +24,9 @@ namespace Akibara\Business\Modules\Wishlist;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Storage {
 
 	/**
@@ -36,6 +39,23 @@ final class Storage {
 	 * @var array<int, array<int, true>>
 	 */
 	private static array $has_cache = array();
+
+	/**
+	 * Lista ordenada per-request de product_ids por usuario (`user_id => int[]`).
+	 * Unifica `product_ids()`, `has()` y `count()` en una sola consulta SQL por
+	 * petición en lugar de 5 lecturas redundantes (header + localize + endpoint).
+	 *
+	 * @var array<int, int[]>
+	 */
+	private static array $ids_cache = array();
+
+	/**
+	 * Limpia la caché en memoria del request actual (útil en suites de tests).
+	 */
+	public static function flush_cache(): void {
+		self::$has_cache = array();
+		self::$ids_cache = array();
+	}
 
 	/**
 	 * Agrega un producto. Idempotente: si ya existe, no-op.
@@ -75,6 +95,9 @@ final class Storage {
 		if ( isset( self::$has_cache[ $user_id ] ) ) {
 			self::$has_cache[ $user_id ][ $product_id ] = true;
 		}
+		if ( isset( self::$ids_cache[ $user_id ] ) && ! in_array( $product_id, self::$ids_cache[ $user_id ], true ) ) {
+			array_unshift( self::$ids_cache[ $user_id ], $product_id );
+		}
 
 		return true;
 	}
@@ -103,6 +126,11 @@ final class Storage {
 		);
 
 		unset( self::$has_cache[ $user_id ][ $product_id ] );
+		if ( isset( self::$ids_cache[ $user_id ] ) ) {
+			self::$ids_cache[ $user_id ] = array_values(
+				array_diff( self::$ids_cache[ $user_id ], array( $product_id ) )
+			);
+		}
 
 		return false !== $deleted;
 	}
@@ -126,6 +154,13 @@ final class Storage {
 			return 0;
 		}
 
+		if ( isset( self::$ids_cache[ $user_id ] ) ) {
+			return count( self::$ids_cache[ $user_id ] );
+		}
+		if ( isset( self::$has_cache[ $user_id ] ) ) {
+			return count( self::$has_cache[ $user_id ] );
+		}
+
 		global $wpdb;
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -146,6 +181,17 @@ final class Storage {
 			return array();
 		}
 
+		if ( isset( self::$ids_cache[ $user_id ] ) ) {
+			if ( $limit > 0 || $offset > 0 ) {
+				return array_slice(
+					self::$ids_cache[ $user_id ],
+					max( 0, $offset ),
+					$limit > 0 ? $limit : null
+				);
+			}
+			return self::$ids_cache[ $user_id ];
+		}
+
 		global $wpdb;
 		$sql = $wpdb->prepare(
 			'SELECT product_id FROM ' . Install::table_name() . ' WHERE user_id=%d ORDER BY added_at DESC', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Nombre de tabla propio (Install::table_name(), sin entrada de usuario); los valores sí viajan por marcadores de $wpdb->prepare().
@@ -159,7 +205,13 @@ final class Storage {
 			}
 		}
 
-		return array_map( 'intval', (array) $wpdb->get_col( $sql ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya viene armado por $wpdb->prepare() arriba (más el LIMIT, también preparado).
+		$ids = array_map( 'intval', (array) $wpdb->get_col( $sql ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ya viene armado por $wpdb->prepare() arriba (más el LIMIT, también preparado).
+		if ( 0 === $limit && 0 === $offset ) {
+			self::$ids_cache[ $user_id ] = $ids;
+			self::$has_cache[ $user_id ] = array_fill_keys( $ids, true );
+		}
+
+		return $ids;
 	}
 
 	/**
@@ -211,7 +263,7 @@ final class Storage {
 		global $wpdb;
 		$deleted = $wpdb->delete( Install::table_name(), array( 'user_id' => $user_id ), array( '%d' ) );
 
-		unset( self::$has_cache[ $user_id ] );
+		unset( self::$has_cache[ $user_id ], self::$ids_cache[ $user_id ] );
 
 		return false === $deleted ? 0 : (int) $deleted;
 	}
@@ -227,6 +279,13 @@ final class Storage {
 		}
 		global $wpdb;
 		$wpdb->delete( Install::table_name(), array( 'product_id' => $product_id ), array( '%d' ) );
+
+		foreach ( array_keys( self::$has_cache ) as $uid ) {
+			unset( self::$has_cache[ $uid ][ $product_id ] );
+		}
+		foreach ( self::$ids_cache as $uid => $ids ) {
+			self::$ids_cache[ $uid ] = array_values( array_diff( $ids, array( $product_id ) ) );
+		}
 	}
 
 	/**

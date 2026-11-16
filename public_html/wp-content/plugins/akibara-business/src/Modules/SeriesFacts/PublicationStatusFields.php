@@ -43,6 +43,9 @@ defined( 'ABSPATH' ) || exit;
  * Editor del estado de publicación en la UI nativa de `pa_serie`.
  *
  * @since 1.100.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class PublicationStatusFields {
 
@@ -274,47 +277,6 @@ final class PublicationStatusFields {
 				<p class="description"><?php $this->render_work_total_help(); ?></p>
 			</td>
 		</tr>
-		<tr class="form-field">
-			<th scope="row">Descuentos de esta serie</th>
-			<td>
-				<?php $this->render_bundles_link(); ?>
-			</td>
-		</tr>
-		<?php
-	}
-
-	/**
-	 * Enlace a la otra pantalla que configura ESTA MISMA serie.
-	 *
-	 * La configuración de una serie vive repartida: acá el estado de publicación,
-	 * en `SeriesEditions` las ediciones, y los tramos de «Arma tu Pack» en el
-	 * panel de Akibara. Ninguna enlazaba a las otras, así que para tocar los dos
-	 * lados había que saberse las rutas de memoria.
-	 *
-	 * El enlace apunta a la PESTAÑA y no a un ancla de la serie: el
-	 * `<details class="akb-sb-series">` que pinta cada serie en
-	 * `SeriesBundles\Admin\BypConfigController::render_series_block()` no lleva
-	 * atributo `id`, y un `#akb-sb-series-<id>` sería un enlace a un ancla que no
-	 * existe —el navegador lo ignora y el dueño cree que el panel se equivocó.
-	 */
-	private function render_bundles_link(): void {
-		if ( ! function_exists( 'admin_url' ) || ! function_exists( 'add_query_arg' ) ) {
-			return;
-		}
-
-		$url = add_query_arg(
-			array(
-				'page' => 'akibara-panel',
-				'tab'  => 'series_bundles',
-			),
-			admin_url( 'admin.php' )
-		);
-		?>
-		<a href="<?php echo esc_url( $url ); ?>">Configurar «Arma tu Pack» de las series</a>
-		<p class="description">
-			Los tramos de descuento por serie y los tomos elegibles se editan en el panel de Akibara,
-			no en esta pantalla.
-		</p>
 		<?php
 	}
 
@@ -441,8 +403,8 @@ final class PublicationStatusFields {
 	 * forma de parecer roto sin estarlo que el transient se cuidó de evitar.
 	 *
 	 * ── Por qué la etiqueta del término y no `litespeed_purge_all` ─────────────
-	 * El repo tiene las dos formas escritas (`AnnouncementBar`, `HomeHero\AdminUI`,
-	 * `CatalogOrder` y `TaxonomyDiscount\LscPurger` disparan `litespeed_purge_all`),
+	 * El repo tiene las dos formas escritas (`AnnouncementBar`, `HomeHero\AdminUI`
+	 * y `CatalogOrder` disparan `litespeed_purge_all`),
 	 * pero ésas cambian algo que sale en TODAS las páginas. Acá cambia UNA landing,
 	 * y la carga de las 104 series es una sesión seguida de guardados: con
 	 * `purge_all` cada guardado dejaría el sitio entero sin caché, 104 veces. La

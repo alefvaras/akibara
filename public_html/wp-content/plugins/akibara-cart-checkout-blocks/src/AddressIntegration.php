@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
  * Connects Business address configuration to WooCommerce's address provider.
  *
  * @since 2.0.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class AddressIntegration {
 

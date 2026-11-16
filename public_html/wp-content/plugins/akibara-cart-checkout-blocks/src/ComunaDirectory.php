@@ -20,6 +20,8 @@ defined( 'ABSPATH' ) || exit;
  * directory reports unavailable and the checkout keeps its free-text field.
  *
  * @since 2.2.0
+ * @api
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class ComunaDirectory {
 
@@ -275,7 +277,8 @@ final class ComunaDirectory {
 	 *
 	 * @return array<string,list<string>>
 	 */
-	private function load(): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function load(): array { // @phpstan-ignore complexity.functionLike
 		if ( null !== $this->by_region ) {
 			return $this->by_region;
 		}
@@ -380,10 +383,7 @@ final class ComunaDirectory {
 			if ( is_readable( $file ) ) {
 				require_once $file;
 			}
-		}
-
-		if ( ! function_exists( 'bluex_get_communes_by_region' ) ) {
-			return array();
+            return array();
 		}
 
 		return bluex_get_communes_by_region();

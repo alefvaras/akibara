@@ -18,14 +18,18 @@
 }
 
 @media (min-width: 769px) {
+
     .akb-home-series__grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
 @media (min-width: 900px) {
+
     .akb-home-series__grid--cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
     .akb-home-series__grid--cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
     .akb-home-series__grid--cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
@@ -68,15 +72,18 @@
 }
 
 @media (hover: hover) {
+
     .akb-home-series__link:hover .akb-home-series__cover img {
         transform: scale(1.04);
     }
+
     .akb-home-series__link:hover .akb-home-series__name {
-        color: var(--aki-red, #d90010);
+        color: var(--aki-red-text, #ff4756);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .akb-home-series__cover img {
         transition: none;
     }
@@ -86,11 +93,13 @@
     font-family: var(--font-heading, inherit);
     font-size: 1rem;
     line-height: 1.2;
+
     /* Bebas Neue sólo tiene 400: con 700 el navegador inventaba un trazo
        grueso (negrita falsa, DS-17). Mismo criterio que los títulos del tema. */
     font-weight: 400;
     font-synthesis: none;
     text-transform: uppercase;
+    text-wrap: balance;
     overflow-wrap: anywhere;
 }
 

@@ -123,7 +123,7 @@ test( 'el carrito de bloques no deja atrás guiones del carrito clásico', () =>
 test( 'el badge de filtros no cuenta el texto de búsqueda ni pierde valores', () => {
 	// `_buscar` es param reservado (FilterSet::PARAM_SEARCH), no una faceta:
 	// contarlo pintaba «Filtrar (1)» en rojo en 272 de 414 vistas de /tienda/.
-	assert.match( main, /var FACET_RESERVED_PARAMS = \['_paged', '_buscar'\];/ );
+	assert.match( main, /(?:var|let|const) FACET_RESERVED_PARAMS = \['_paged', '_buscar'\];/ );
 	assert.match( main, /FACET_RESERVED_PARAMS\.indexOf\(k\) !== -1/ );
 	// La gramática de la URL es multi-valor por coma: `?_categoria=shonen,seinen`
 	// son DOS filtros.

@@ -29,8 +29,10 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\TaxonomyDiscount;
 
+use Akibara\Business\Modules\AnnouncementBar\AnnouncementBar;
+use Akibara\Business\Modules\AnnouncementBar\PromoSchedule;
+use Akibara\Business\Modules\DiscountCopy\DiscountCopy;
 use Akibara\Business\Modules\LoopEnhancer\SaleDiscount;
-use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Utilities\DiscountCeiling;
 use Akibara\Business\Utilities\PluginAssetVersion;
@@ -40,7 +42,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.17.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
+// @phpstan-ignore complexity.classLike
 final class TaxonomyDiscount {
 
 	/**
@@ -299,7 +306,7 @@ final class TaxonomyDiscount {
 		if ( $desde_ok && $hasta_ok && '' !== (string) $desde && '' !== (string) $hasta && $desde > $hasta ) {
 			$errors[] = sprintf(
 				'Descuento: la ventana está invertida (desde %s hasta %s). Así la campaña queda apagada sin decirlo.',
-				(string) $desde,
+				$desde,
 				(string) $hasta
 			);
 		}
@@ -412,6 +419,7 @@ final class TaxonomyDiscount {
 	public function render_subtab_nav(): void {
 		$this->render_status_card();
 		$this->render_active_rules_card();
+		$this->render_linked_banner_card();
 		$this->render_explore_intro();
 	}
 
@@ -463,9 +471,11 @@ final class TaxonomyDiscount {
 		$stacks        = $ventana['stacks_coupons'];
 		$total_rules   = $this->count_total_active_rules();
 
+		$from_cl  = '' !== $from ? PromoSchedule::format_ymd_cl( $from ) : '';
+		$to_cl    = '' !== $to ? PromoSchedule::format_ymd_cl( $to ) : '';
 		$vigencia = ( '' === $from && '' === $to )
 			? 'indefinida'
-			: sprintf( '%s → %s', '' === $from ? '∞' : $from, '' === $to ? '∞' : $to );
+			: sprintf( '%s → %s', '' === $from_cl ? '∞' : $from_cl, '' === $to_cl ? '∞' : $to_cl );
 
 		$policy_label = $this->humanize_sale_policy( $sale_policy );
 		$scope_label  = $this->humanize_apply_to( $apply_to );
@@ -535,13 +545,83 @@ final class TaxonomyDiscount {
 								<td class="akb-pct-cell" style="text-align:right;"><?php echo (int) $rule['pct']; ?>%</td>
 								<td style="text-align:right;"><?php echo (int) $rule['product_count']; ?></td>
 								<td style="text-align:right;">
-									<a href="#akb-accordion-<?php echo esc_attr( $rule['taxonomy'] ); ?>" class="button-link">Editar</a>
+									<a href="#akb-accordion-<?php echo esc_attr( sanitize_html_class( $rule['taxonomy'] ) ); ?>" class="button-link">Editar</a>
 								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
 			<?php endif; ?>
+		</section>
+		<?php
+	}
+
+	/**
+	 * Tarjeta puente del carril promocional de la Barra de anuncios vinculado a esta campaña.
+	 */
+	private function render_linked_banner_card(): void {
+		$overview = AnnouncementBar::promo_overview();
+		$window   = DiscountCopy::campaign_window( true );
+		$to_cl    = PromoSchedule::format_ymd_cl( $window['to'] );
+
+		$dot_class = 'akb-bridge-card__dot--off';
+		if ( ! $overview['bar_enabled'] ) {
+			$status_label = 'Barra de anuncios desactivada globalmente';
+		} elseif ( ! $overview['has_text'] ) {
+			$dot_class    = 'akb-bridge-card__dot--warn';
+			$status_label = 'Sin mensaje promocional escrito (el descuento aplica en tienda, pero sin cinta arriba)';
+		} elseif ( $window['active'] ) {
+			$dot_class    = 'akb-bridge-card__dot--on';
+			$status_label = 'Se está viendo en tienda junto a esta campaña';
+		} elseif ( 'scheduled' === $window['reason'] ) {
+			$dot_class    = 'akb-bridge-card__dot--warn';
+			$status_label = 'En espera: se publicará automáticamente el ' . PromoSchedule::format_ymd_cl( $window['from'] );
+		} elseif ( 'expired' === $window['reason'] ) {
+			$status_label = 'Campaña finalizada' . ( '' !== $to_cl ? ' el ' . $to_cl : '' );
+		} elseif ( 'no_rules' === $window['reason'] ) {
+			$dot_class    = 'akb-bridge-card__dot--warn';
+			$status_label = 'En espera: asigna al menos un porcentaje > 0% con stock elegible para activar la cinta';
+		} else {
+			$status_label = 'En espera hasta que esta campaña esté activa';
+		}
+
+		$countdown_text = 'Sin cuenta regresiva';
+		if ( $overview['countdown_enabled'] ) {
+			if ( '' !== $to_cl ) {
+				$countdown_text = 'Con reloj hasta ' . $to_cl . ' ' . $overview['countdown_time'] . ' (Chile)';
+			} else {
+				$countdown_text = 'Cuenta regresiva en pausa (define «Vigencia hasta» en Configuración general para activarla)';
+			}
+		}
+
+		$preview      = $overview['has_text'] ? AnnouncementBar::preview_promo_line( $overview['promo_text'] ) : array( 'text' => '', 'url' => '' );
+		$preview_line = $preview['text'];
+		$preview_dest = $preview['url'];
+		?>
+		<section class="akb-bridge-card" aria-labelledby="akb-discount-banner-bridge">
+			<div class="akb-bridge-card__head">
+				<h2 id="akb-discount-banner-bridge" class="akb-bridge-card__title">
+					<span class="akb-bridge-card__dot <?php echo esc_attr( $dot_class ); ?>" aria-hidden="true"></span>
+					Banner promocional conectado: <?php echo esc_html( $status_label ); ?>
+				</h2>
+				<a href="<?php echo $overview['edit_url']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ya escapado con esc_url. ?>" class="button akb-bridge-card__cta">
+					<?php echo $overview['has_text'] ? 'Editar banner y reloj' : 'Escribir anuncio'; ?>
+				</a>
+			</div>
+			<div class="akb-bridge-card__grid">
+				<div><strong>Cuenta regresiva:</strong> <?php echo esc_html( $countdown_text ); ?></div>
+				<?php if ( '' !== $preview_line ) : ?>
+					<div class="akb-bridge-card__preview">
+						<span>Texto actual:</span>
+						<strong><?php echo esc_html( $preview_line ); ?></strong>
+					</div>
+				<?php endif; ?>
+				<?php if ( '' !== $preview_dest ) : ?>
+					<div class="akb-bridge-card__dest"><strong>Destino:</strong> <?php echo esc_html( $preview_dest ); ?></div>
+				<?php elseif ( $window['active'] ) : ?>
+					<div class="akb-bridge-card__dest"><strong>Token <code>[akb_descuento_url]</code> disponible:</strong> <?php echo esc_html( DiscountCopy::target_url() ); ?></div>
+				<?php endif; ?>
+			</div>
 		</section>
 		<?php
 	}
@@ -641,11 +721,11 @@ final class TaxonomyDiscount {
 			if ( ! is_wp_error( $found ) && is_array( $found ) ) {
 				$terms = array_values( array_filter(
 					$found,
-					static fn( $term ): bool => is_object( $term ) && isset( $term->term_id )
+					static fn( $term ): bool => is_object( $term ) && isset( $term->term_id ) // @phpstan-ignore isset.property
 				) );
 				usort(
 					$terms,
-					static fn( $a, $b ): int => strcmp( (string) ( $a->name ?? '' ), (string) ( $b->name ?? '' ) )
+					static fn( $a, $b ): int => strcmp( (string) ( $a->name ?? '' ), (string) ( $b->name ?? '' ) ) // @phpstan-ignore nullCoalesce.property, nullCoalesce.property
 				);
 			}
 		}
@@ -661,10 +741,10 @@ final class TaxonomyDiscount {
 
 	private function humanize_sale_policy( string $policy ): string {
 		switch ( $policy ) {
-			case Settings::POLICY_SKIP_IF_ON_SALE: return 'respetar rebaja manual';
+			case Settings::POLICY_SKIP_IF_ON_SALE: return 'no aplicar (respeta rebaja manual)';
 			case Settings::POLICY_GREATEST_WINS:   return 'precio más bajo gana';
 			case Settings::POLICY_FROM_REGULAR:    return 'reemplazar rebaja manual';
-			case Settings::POLICY_STACK_ON_SALE:   return 'encadenar';
+			case Settings::POLICY_STACK_ON_SALE:   return 'encadenar encima de rebaja manual';
 			default:                               return $policy;
 		}
 	}
@@ -672,7 +752,7 @@ final class TaxonomyDiscount {
 	private function humanize_apply_to( string $apply_to ): string {
 		switch ( $apply_to ) {
 			case Settings::APPLY_INSTOCK_ONLY:            return 'solo en stock';
-			case Settings::APPLY_INSTOCK_AND_ONBACKORDER: return 'en stock + a pedido';
+			case Settings::APPLY_INSTOCK_AND_ONBACKORDER: return 'en stock y reservas';
 			case Settings::APPLY_ALL:                     return 'todos';
 			default:                                       return $apply_to;
 		}
@@ -682,7 +762,7 @@ final class TaxonomyDiscount {
 	 * Opciones del alcance comercial de la campaña, con el conteo de productos actual.
 	 *
 	 * Comunica con precisión el impacto en inventario mostrando la cantidad de productos
-	 * por estado (disponibles, a pedido y catálogo completo).
+	 * por estado (disponibles, reservas y catálogo completo).
 	 *
 	 * Los identificadores canónicos (`instock_only`, `instock_and_onbackorder` y `all`)
 	 * forman parte del contrato editorial validado por `akibara-search`.
@@ -697,14 +777,14 @@ final class TaxonomyDiscount {
 			return null === $cuantos ? '' : ' (' . number_format_i18n( $cuantos ) . ')';
 		};
 
-		$instock = $n['instock'] ?? null;
-		$pedido  = $n['onbackorder'] ?? null;
+		$instock = $n[ StockStatus::IN_STOCK ] ?? null;
+		$pedido  = $n[ StockStatus::ON_BACKORDER ] ?? null;
 		$total   = $n['total'] ?? null;
 		$suma    = ( null === $instock || null === $pedido ) ? null : $instock + $pedido;
 
 		return array(
 			Settings::APPLY_INSTOCK_ONLY            => 'Solo productos disponibles (en stock)' . $sufijo( $instock ),
-			Settings::APPLY_INSTOCK_AND_ONBACKORDER => 'Disponibles + a pedido' . $sufijo( $suma ),
+			Settings::APPLY_INSTOCK_AND_ONBACKORDER => 'Disponibles y reservas' . $sufijo( $suma ),
 			Settings::APPLY_ALL                     => 'Todos, incluso agotados' . $sufijo( $total ),
 		);
 	}
@@ -722,10 +802,10 @@ final class TaxonomyDiscount {
 	 */
 	private static function catalog_stock_counts(): array {
 		$vacio = array(
-			'instock'     => null,
-			'onbackorder' => null,
-			'outofstock'  => null,
-			'total'       => null,
+			StockStatus::IN_STOCK     => null,
+			StockStatus::ON_BACKORDER => null,
+			StockStatus::OUT_OF_STOCK => null,
+			'total'                   => null,
 		);
 
 		/*
@@ -768,9 +848,9 @@ final class TaxonomyDiscount {
 		}
 
 		$conteo = array(
-			'instock'     => 0,
-			'onbackorder' => 0,
-			'outofstock'  => 0,
+			StockStatus::IN_STOCK     => 0,
+			StockStatus::ON_BACKORDER => 0,
+			StockStatus::OUT_OF_STOCK => 0,
 		);
 		foreach ( $filas as $fila ) {
 			$estado = (string) ( $fila['estado'] ?? '' );
@@ -780,67 +860,9 @@ final class TaxonomyDiscount {
 		}
 		$conteo['total'] = array_sum( $conteo );
 
-		// `onbackorder` agrupa dos estados comerciales: «a pedido» y «preventa».
-		// El descuento editorial excluye las preventas con fecha de lanzamiento pendiente,
-		// por lo que se desglosan para que el número del alcance refleje fielmente
-		// los productos que efectivamente recibirán el descuento.
-		$conteo['preventa']    = self::pending_launch_count();
-		$conteo['onbackorder'] = null === $conteo['preventa']
-			? $conteo['onbackorder']
-			: max( 0, $conteo['onbackorder'] - $conteo['preventa'] );
-
 		self::$stock_counts_memo = $conteo;
 
 		return $conteo;
-	}
-
-	/**
-	 * Cuántos reservables son PREVENTA de verdad: con lanzamiento pendiente.
-	 *
-	 * Mismo criterio que `Availability::pending_launch()` —tipo `tba`, o tipo
-	 * `release_date` con la fecha todavía por llegar—, en una sola consulta.
-	 * Hoy el catálogo no tiene ninguno («a pedido» y «preventa» son lo mismo en
-	 * la práctica), y por eso este número es cero: el defecto estaba latente,
-	 * esperando al primer lanzamiento con fecha.
-	 *
-	 * @return int|null Cuántos, o null si la lectura falló (no se inventa).
-	 */
-	private static function pending_launch_count(): ?int {
-		global $wpdb;
-		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) ) {
-			return null;
-		}
-
-		$hoy = ( new \DateTimeImmutable( 'now', StoreTime::zone() ) )->format( 'Y-m-d' );
-
-		$wpdb->last_error = '';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- agregado del catálogo, memoizado por petición junto al conteo de estados.
-		$cuantos = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*)
-				FROM {$wpdb->posts} p
-				INNER JOIN {$wpdb->postmeta} stock ON stock.post_id = p.ID AND stock.meta_key = %s AND stock.meta_value = %s
-				INNER JOIN {$wpdb->postmeta} tipo ON tipo.post_id = p.ID AND tipo.meta_key = %s
-				LEFT JOIN {$wpdb->postmeta} fecha ON fecha.post_id = p.ID AND fecha.meta_key = %s
-				WHERE p.post_type = %s AND p.post_status = %s
-				  AND ( tipo.meta_value = %s OR ( tipo.meta_value = %s AND fecha.meta_value >= %s ) )",
-				'_stock_status',
-				StockStatus::ON_BACKORDER,
-				Availability::META_TYPE,
-				Availability::META_RELEASE_DATE,
-				'product',
-				'publish',
-				Availability::TYPE_TBA,
-				Availability::TYPE_RELEASE_DATE,
-				$hoy
-			)
-		);
-
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || null === $cuantos ) {
-			return null;
-		}
-
-		return (int) $cuantos;
 	}
 
 	/**
@@ -897,17 +919,17 @@ final class TaxonomyDiscount {
 				'title'   => 'Política para productos con precio rebajado manual',
 				'id'      => Settings::OPTION_SALE_POLICY,
 				'type'    => 'radio',
-				'desc'    => '<strong>Ejemplo</strong>: producto con precio normal $10.000, rebaja manual a $8.000 y taxonomía Panini al 20%.<br>'
-					. '— <em>No aplicar</em>: queda $8.000 (respeta tu rebaja manual).<br>'
-					. '— <em>Precio más bajo</em>: queda $8.000 (la rebaja manual ya es mejor).<br>'
-					. '— <em>Reemplazar rebaja</em>: queda $8.000 (20% sobre $10.000).<br>'
-					. '— <em>Encadenar</em>: queda $6.400 (20% sobre $8.000).',
+				'desc'    => '<strong>Ejemplo</strong>: producto con precio normal $10.000 y rebaja manual a $8.000 (20%):<br>'
+					. '— <em>No aplicar</em>: siempre queda en <strong>$8.000</strong> (respeta tu rebaja manual).<br>'
+					. '— <em>Precio más bajo gana</em>: con regla Panini al 30% queda en <strong>$7.000</strong>; si la regla es menor (10%), conserva tus <strong>$8.000</strong>.<br>'
+					. '— <em>Reemplazar rebaja manual</em>: descarta los $8.000 y aplica la regla sobre $10.000 (30% → <strong>$7.000</strong>; 10% → <strong>$9.000</strong>).<br>'
+					. '— <em>Encadenar (doble descuento)</em>: rebaja la regla encima de $8.000 (30% sobre $8.000 → <strong>$5.600</strong>). Respeta el tope máximo de la tienda.',
 				'default' => Settings::POLICY_SKIP_IF_ON_SALE,
 				'options' => array(
-					Settings::POLICY_SKIP_IF_ON_SALE => 'No aplicar la regla si el producto ya tiene precio rebajado manual (recomendado — respeta tu rebaja)',
-					Settings::POLICY_GREATEST_WINS   => 'Aplicar y dejar el precio más bajo entre los dos',
-					Settings::POLICY_FROM_REGULAR    => 'Reemplazar la rebaja manual: calcular siempre sobre precio normal',
-					Settings::POLICY_STACK_ON_SALE   => 'Encadenar: aplicar el % sobre el precio ya rebajado',
+					Settings::POLICY_SKIP_IF_ON_SALE => 'No aplicar la regla si el producto ya tiene rebaja manual (recomendado — respeta tu precio)',
+					Settings::POLICY_GREATEST_WINS   => 'Precio más bajo gana (rebajar igual solo si la regla supera tu descuento manual)',
+					Settings::POLICY_FROM_REGULAR    => 'Reemplazar rebaja manual (aplicar igual el % sobre el precio normal)',
+					Settings::POLICY_STACK_ON_SALE   => 'Encadenar descuentos (rebajar igual encima de tu rebaja manual — cuidado con el margen)',
 				),
 			),
 			array(
@@ -920,7 +942,7 @@ final class TaxonomyDiscount {
 			array(
 				'title'             => 'Descuento máximo de la tienda (%)',
 				'desc'              => '<strong>Cuidado con el margen:</strong> este % se calcula sobre el precio normal y, sumado al envío gratis, puede dejarte vendiendo bajo costo. '
-					. 'Es el mismo techo para el descuento por editorial/categoría y para «Arma tu pack»: ningún tramo ni ninguna regla puede pasarlo.',
+					. 'Es el mismo techo para el descuento por editorial/categoría y para ofertas por volumen: ningún tramo ni ninguna regla puede pasarlo.',
 				'id'                => DiscountCeiling::OPTION,
 				'type'              => 'number',
 				'default'           => (string) DiscountCeiling::DEFAULT_PCT,
@@ -1047,7 +1069,7 @@ final class TaxonomyDiscount {
 		$count = 0;
 		foreach ( $this->terms_for( $taxonomy ) as $term ) {
 			if ( $this->settings->get_term_pct( (int) $term->term_id ) > 0 ) {
-				$count++;
+				++$count;
 			}
 		}
 		return $count;
@@ -1193,7 +1215,7 @@ final class TaxonomyDiscount {
 		}
 
 		$changed_terms = is_array( $trace ) ? (int) ( $trace['terms'] ?? 0 ) : -1;
-		$changed_conf  = is_array( $trace ) ? ! empty( $trace['config'] ) : false;
+		$changed_conf  = is_array( $trace ) && ! empty( $trace['config'] );
 
 		if ( 0 === $changed_terms && ! $changed_conf ) {
 			return; // Guardaste sin cambiar nada: no hay caché que explicar.

@@ -10,14 +10,10 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Tests\Modules\CopyManager;
 
 use Akibara\Business\Modules\AdminPanel\AdminPanel;
-use Akibara\Business\Modules\BrandsDirectory\EditionCopy;
 use Akibara\Business\Modules\CopyManager\CopyManager;
-use Akibara\Business\Modules\DisponiblesRoute\DisponiblesRoute;
 use Akibara\Business\Modules\Forms\Settings as FormsSettings;
 use Akibara\Business\Modules\GoogleLoginButton\AccessWall;
-use Akibara\Business\Modules\OrderPreventa\ShipPromise;
 use Akibara\Business\Modules\PdpEnhancer\PdpSeriesEnhancer;
-use Akibara\Business\Modules\PreventasRoute\PreventasRoute;
 use Akibara\Business\Services\CheckoutTrustSignals;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -102,26 +98,6 @@ final class CopyManagerTest extends TestCase {
 		self::assertSame( array(), $manager->report_rejected_values( array(), 'carrito' ), 'Otra pestaña no es asunto de este módulo.' );
 	}
 
-	/**
-	 * @testdox Una guía de preventas que ya no está publicada se nombra como «no guardada»; «Sin guía» no es error
-	 */
-	public function test_an_unpublished_guide_is_reported_as_not_saved(): void {
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'get_post_type' )->justReturn( 'post' );
-		Functions\when( 'get_post_status' )->alias( static fn( int $id ): string => 44 === $id ? 'publish' : 'draft' );
-		$manager = new CopyManager( new AdminPanel() );
-
-		$_POST = array( PreventasRoute::OPTION_GUIDE => '45' );
-		self::assertSame( array( PreventasRoute::OPTION_GUIDE ), $manager->report_rejected_values( array(), 'copys' ) );
-		self::assertNull( $manager->sanitize_preventas_guide( '0', array(), '45' ), 'Es exactamente lo que el saneador iba a descartar.' );
-
-		$_POST = array( PreventasRoute::OPTION_GUIDE => '44' );
-		self::assertSame( array(), $manager->report_rejected_values( array(), 'copys' ) );
-
-		$_POST = array( PreventasRoute::OPTION_GUIDE => '0' );
-		self::assertSame( array(), $manager->report_rejected_values( array(), 'copys' ) );
-	}
-
 	/** @testdox El aviso va por el canal PARCIAL del panel, no por el que tira la pestaña */
 	public function test_the_report_is_wired_to_the_partial_channel(): void {
 		$filtros = array();
@@ -181,16 +157,6 @@ final class CopyManagerTest extends TestCase {
 		self::assertStringNotContainsString( 'buscador', $motivo );
 	}
 
-	/** @testdox La guía despublicada tiene su propio motivo, no el del buscador. */
-	public function test_unpublished_guide_has_its_own_reason(): void {
-		$manager = new CopyManager( new AdminPanel() );
-
-		$motivo = $manager->option_not_saved_reason( 'motivo por defecto', PreventasRoute::OPTION_GUIDE, 'copys' );
-
-		self::assertStringContainsString( 'no está publicada', $motivo );
-		self::assertStringNotContainsString( 'buscador', $motivo );
-	}
-
 	/**
 	 * R-I1-5: un campo recortado SÍ se guardó. Por el canal de los que no
 	 * entraron, el panel decía «Se guardó todo menos esto: … Se guardó
@@ -203,41 +169,32 @@ final class CopyManagerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$manager = new CopyManager( new AdminPanel() );
 
-		$_POST  = array( 'akb_copy_eta_single_pedido' => str_repeat( 'x', 500 ) );
+		$_POST  = array( 'akb_copy_promise_dispatch' => str_repeat( 'x', 500 ) );
 		$avisos = $manager->report_saved_with_warning( array(), 'copys' );
 
-		self::assertArrayHasKey( 'akb_copy_eta_single_pedido', $avisos );
-		self::assertStringContainsString( 'recortad', $avisos['akb_copy_eta_single_pedido'] );
-		self::assertStringNotContainsString( 'buscador', $avisos['akb_copy_eta_single_pedido'] );
-		self::assertNotContains( 'akb_copy_eta_single_pedido', $manager->report_rejected_values( array(), 'copys' ), 'No es un rechazo: se guardó.' );
+		self::assertArrayHasKey( 'akb_copy_promise_dispatch', $avisos );
+		self::assertStringContainsString( 'recortad', $avisos['akb_copy_promise_dispatch'] );
+		self::assertStringNotContainsString( 'buscador', $avisos['akb_copy_promise_dispatch'] );
+		self::assertNotContains( 'akb_copy_promise_dispatch', $manager->report_rejected_values( array(), 'copys' ), 'No es un rechazo: se guardó.' );
 	}
 
 	/**
-	 * `recortados()` cubría sólo 4 de los ~25 campos que
-	 * `required_one_line_copies()` enumera: los otros ~21 —incluidos éste y
-	 * el de las cuotas del checkout— pasaban igual por
-	 * `sanitize_required_copy()` y se cortaban a `Text::ONE_LINE_MAX` en
-	 * silencio, sin que el panel dijera que se recortaron. Pintaba «Ajustes
-	 * guardados correctamente» sobre un texto cortado a mitad de frase
-	 * (2026-09-19, R2-0a2ff112).
-	 *
-	 * @testdox Un campo antes NO cubierto (la ventana de despacho) también avisa que se recortó.
+	 * @testdox Un campo antes NO cubierto (las cuotas del checkout) también avisa que se recortó.
 	 */
 	public function test_a_previously_uncovered_field_also_says_it_was_clamped(): void {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$manager = new CopyManager( new AdminPanel() );
 
-		$_POST = array( ShipPromise::OPTION_WINDOW => str_repeat( 'x', 500 ) );
+		$_POST = array( CheckoutTrustSignals::OPTION_INSTALLMENTS => str_repeat( 'x', 500 ) );
 
 		$avisos = $manager->report_saved_with_warning( array(), 'copys' );
 		self::assertArrayHasKey(
-			ShipPromise::OPTION_WINDOW,
-			$avisos,
-			'La ventana de despacho no estaba entre los 4 campos hardcodeados de recortados().'
+			CheckoutTrustSignals::OPTION_INSTALLMENTS,
+			$avisos
 		);
-		self::assertStringContainsString( 'recortad', $avisos[ ShipPromise::OPTION_WINDOW ] );
-		self::assertStringNotContainsString( 'buscador', $avisos[ ShipPromise::OPTION_WINDOW ] );
+		self::assertStringContainsString( 'recortad', $avisos[ CheckoutTrustSignals::OPTION_INSTALLMENTS ] );
+		self::assertStringNotContainsString( 'buscador', $avisos[ CheckoutTrustSignals::OPTION_INSTALLMENTS ] );
 	}
 
 	/** @testdox Un campo que cabe entero no se marca como recortado. */
@@ -246,7 +203,7 @@ final class CopyManagerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$manager = new CopyManager( new AdminPanel() );
 
-		$_POST = array( ShipPromise::OPTION_WINDOW => '2-4 días hábiles' );
+		$_POST = array( CheckoutTrustSignals::OPTION_INSTALLMENTS => '3 cuotas sin interés' );
 
 		self::assertSame( array(), $manager->report_rejected_values( array(), 'copys' ) );
 		self::assertSame( array(), $manager->report_saved_with_warning( array(), 'copys' ) );
@@ -299,73 +256,6 @@ final class CopyManagerTest extends TestCase {
 	/**
 	 * @testdox Preventas copy and published guide are editable from the Akibara panel
 	 */
-	public function test_preventas_content_is_exposed_in_admin(): void {
-		$settings = ( new CopyManager( new AdminPanel() ) )->get_settings();
-		$by_id    = array();
-		foreach ( $settings as $setting ) {
-			if ( isset( $setting['id'] ) ) {
-				$by_id[ $setting['id'] ] = $setting;
-			}
-		}
-
-		self::assertSame(
-			PreventasRoute::DEFAULT_INTRO_CONTENT,
-			$by_id[ PreventasRoute::OPTION_INTRO ]['default']
-		);
-		self::assertSame(
-			'Guía de preventas',
-			$by_id[ PreventasRoute::OPTION_GUIDE ]['options']['44']
-		);
-		self::assertArrayHasKey( '0', $by_id[ PreventasRoute::OPTION_GUIDE ]['options'] );
-	}
-
-	/**
-	 * @testdox Las palabras de la espera (a pedido / preventa / ya llegó / vencida) se editan en el panel.
-	 */
-	public function test_preventa_wording_is_exposed_in_admin(): void {
-		$by_id = array();
-		foreach ( ( new CopyManager( new AdminPanel() ) )->get_settings() as $setting ) {
-			if ( isset( $setting['id'] ) ) {
-				$by_id[ $setting['id'] ] = $setting;
-			}
-		}
-
-		foreach ( array(
-			'akb_copy_eta_single_preventa',
-			'akb_copy_eta_single_pedido',
-			'akb_copy_eta_noun_preventa',
-			'akb_copy_eta_noun_pedido',
-			'akb_copy_eta_item_arrived',
-			'akb_copy_eta_overdue',
-		) as $id ) {
-			self::assertArrayHasKey( $id, $by_id, 'La option ' . $id . ' se lee en el código y no se puede editar.' );
-		}
-		self::assertStringContainsString( '%s', (string) $by_id['akb_copy_eta_overdue']['default'], 'El texto de promesa vencida lleva la fecha.' );
-		self::assertSame(
-			$by_id['akb_copy_eta_overdue']['default'],
-			( new CopyManager( new AdminPanel() ) )->sanitize_required_copy( '', array( 'id' => 'akb_copy_eta_overdue' ), '  ' ),
-			'Vacío vuelve al literal: el cliente atrasado no puede quedarse sin la frase que explica el retraso.'
-		);
-	}
-
-	/**
-	 * @testdox Los textos de las ediciones de editorial se editan en el panel y no pueden quedar vacíos.
-	 */
-	public function test_edition_wording_is_exposed_and_required(): void {
-		$manager = new CopyManager( new AdminPanel() );
-		$by_id   = array();
-		foreach ( $manager->get_settings() as $setting ) {
-			if ( isset( $setting['id'] ) ) {
-				$by_id[ $setting['id'] ] = $setting;
-			}
-		}
-		foreach ( EditionCopy::defaults() as $id => $default ) {
-			self::assertArrayHasKey( $id, $by_id, $id );
-			self::assertSame( $default, $by_id[ $id ]['default'] );
-			self::assertSame( $default, $manager->sanitize_required_copy( '', array( 'id' => $id ), '   ' ), 'Vacío vuelve al literal: sin él, el botón de la tarjeta quedaría sin texto.' );
-		}
-	}
-
 	/**
 	 * @testdox Los textos del muro de acceso se editan en el panel y ninguno puede quedar vacío.
 	 */
@@ -386,31 +276,6 @@ final class CopyManagerTest extends TestCase {
 				'Vaciarlo dejaría la página de acceso con un encabezado en blanco.'
 			);
 		}
-	}
-
-	/**
-	 * @testdox Preventas settings reject executable markup and unpublished destinations
-	 */
-	public function test_preventas_settings_are_sanitized(): void {
-		Functions\when( 'get_post_type' )->alias(
-			static fn( int $post_id ): string => 44 === $post_id ? 'post' : 'page'
-		);
-		Functions\when( 'get_post_status' )->alias(
-			static fn( int $post_id ): string => 44 === $post_id ? 'publish' : 'draft'
-		);
-		$manager = new CopyManager( new AdminPanel() );
-
-		$copy = $manager->sanitize_preventas_intro(
-			'ignored',
-			array(),
-			'<h1>No</h1><strong>Reserva</strong><script>alert(1)</script>'
-		);
-		self::assertStringContainsString( '<strong>Reserva</strong>', $copy );
-		self::assertStringNotContainsString( '<h1', $copy );
-		self::assertStringNotContainsString( '<script', $copy );
-		self::assertSame( 44, $manager->sanitize_preventas_guide( '0', array(), '44' ) );
-		self::assertNull( $manager->sanitize_preventas_guide( '0', array(), '45' ) );
-		self::assertSame( 0, $manager->sanitize_preventas_guide( '44', array(), '0' ) );
 	}
 
 	/**
@@ -449,12 +314,11 @@ final class CopyManagerTest extends TestCase {
 	}
 
 	/**
-	 * @testdox The dispatch window, the installments promise and the footer contact are editable with their current literals
+	 * @testdox The installments promise and the footer contact are editable with their current literals
 	 */
 	public function test_promise_and_footer_copy_are_exposed_with_the_current_literals(): void {
 		$by_id = $this->settings_by_id();
 
-		self::assertSame( '1-3 días hábiles', $by_id[ ShipPromise::OPTION_WINDOW ]['default'] );
 		self::assertSame( '3 cuotas sin interés', $by_id[ CheckoutTrustSignals::OPTION_INSTALLMENTS ]['default'] );
 		self::assertSame(
 			'Horario de soporte: Lun a Vie · 10:00 a 18:00 hrs',
@@ -464,79 +328,18 @@ final class CopyManagerTest extends TestCase {
 	}
 
 	/**
-	 * @testdox An empty dispatch window falls back instead of promising nothing
+	 * @testdox La sección de disponibles ya no existe en los ajustes de copys
 	 */
-	public function test_dispatch_window_falls_back_when_blank(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $name, $default = false ) => ShipPromise::OPTION_WINDOW === $name ? '   ' : $default
-		);
-
-		self::assertSame( ShipPromise::DEFAULT_WINDOW, ShipPromise::window() );
-	}
-
-	/**
-	 * @testdox The saved dispatch window is the one the customer reads
-	 */
-	public function test_dispatch_window_is_read_back(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $name, $default = false ) => ShipPromise::OPTION_WINDOW === $name
-				? '2-5 días hábiles'
-				: $default
-		);
-
-		self::assertSame( '2-5 días hábiles', ShipPromise::window() );
-	}
-
-	/**
-	 * @testdox Los CTA de /a-pedido/ y /disponibles/ se editan con sus literales de siempre
-	 */
-	public function test_route_ctas_are_exposed_with_the_current_literals(): void {
-		$by_id = $this->settings_by_id();
-
-		self::assertSame( PreventasRoute::GUIDE_PREFIX, $by_id[ PreventasRoute::OPTION_GUIDE_PREFIX ]['default'] );
-		self::assertSame( PreventasRoute::GUIDE_LINK_COPY, $by_id[ PreventasRoute::OPTION_GUIDE_LINK ]['default'] );
-		self::assertSame( PreventasRoute::SIBLING_PREFIX, $by_id[ PreventasRoute::OPTION_SIBLING_PREFIX ]['default'] );
-		self::assertSame( PreventasRoute::SIBLING_LINK_COPY, $by_id[ PreventasRoute::OPTION_SIBLING_LINK ]['default'] );
-		self::assertSame( DisponiblesRoute::SIBLING_PREFIX, $by_id[ DisponiblesRoute::OPTION_SIBLING_PREFIX ]['default'] );
-		self::assertSame( DisponiblesRoute::SIBLING_LINK_COPY, $by_id[ DisponiblesRoute::OPTION_SIBLING_LINK ]['default'] );
-	}
-
-	/**
-	 * @testdox La descripción de «disponibles» ya no promete que el enlace sea fijo
-	 */
-	public function test_the_disponibles_section_no_longer_claims_the_link_is_fixed(): void {
-		$desc = '';
+	public function test_disponibles_section_is_not_registered_in_copy_settings(): void {
+		$ids = array();
 		foreach ( ( new CopyManager( new AdminPanel() ) )->get_settings() as $setting ) {
-			if ( 'akb_disponibles_content' === ( $setting['id'] ?? '' ) && 'title' === ( $setting['type'] ?? '' ) ) {
-				$desc = (string) ( $setting['desc'] ?? '' );
+			if ( isset( $setting['id'] ) ) {
+				$ids[] = $setting['id'];
 			}
 		}
 
-		self::assertStringNotContainsString( 'no se edita acá', $desc );
-	}
-
-	/**
-	 * @testdox Los CTA guardados son los que la ruta imprime; vaciarlos repone el literal
-	 */
-	public function test_route_ctas_are_read_back_and_never_blank(): void {
-		Functions\when( 'wp_strip_all_tags' )->alias(
-			static fn( string $text ): string => strip_tags( $text )
-		);
-		Functions\when( 'get_option' )->alias(
-			static fn( string $name, $default = false ) => match ( $name ) {
-				PreventasRoute::OPTION_SIBLING_PREFIX   => '<b>¿Lo quieres hoy?</b>',
-				PreventasRoute::OPTION_SIBLING_LINK     => '   ',
-				DisponiblesRoute::OPTION_SIBLING_PREFIX => "¿No está?\n Te lo traemos.",
-				default                                 => $default,
-			}
-		);
-
-		// Las etiquetas se retiran: el texto se imprime dentro de esc_html().
-		self::assertSame( '¿Lo quieres hoy?', PreventasRoute::sibling_prefix() );
-		// Vaciar el enlace a /disponibles/ dejaría esa ruta huérfana.
-		self::assertSame( PreventasRoute::SIBLING_LINK_COPY, PreventasRoute::sibling_link_copy() );
-		self::assertSame( '¿No está? Te lo traemos.', DisponiblesRoute::sibling_prefix() );
-		self::assertSame( DisponiblesRoute::SIBLING_LINK_COPY, DisponiblesRoute::sibling_link_copy() );
+		self::assertNotContains( 'akb_disponibles_content', $ids );
+		self::assertNotContains( 'akb_copy_disponibles_intro', $ids );
 	}
 
 	/**
@@ -550,12 +353,12 @@ final class CopyManagerTest extends TestCase {
 
 		self::assertSame( '', $manager->sanitize_optional_copy( '', array( 'id' => 'akb_copy_footer_phone' ), '  ' ) );
 		self::assertSame(
-			ShipPromise::DEFAULT_WINDOW,
-			$manager->sanitize_required_copy( '', array( 'id' => ShipPromise::OPTION_WINDOW ), '  ' )
+			CheckoutTrustSignals::DEFAULT_INSTALLMENTS,
+			$manager->sanitize_required_copy( '', array( 'id' => CheckoutTrustSignals::OPTION_INSTALLMENTS ), '  ' )
 		);
 		self::assertSame(
 			'2 a 4 días hábiles',
-			$manager->sanitize_required_copy( '', array( 'id' => ShipPromise::OPTION_WINDOW ), " 2 a 4 \n días hábiles " )
+			$manager->sanitize_required_copy( '', array( 'id' => 'akb_copy_promise_dispatch' ), " 2 a 4 \n días hábiles " )
 		);
 	}
 
@@ -573,27 +376,6 @@ final class CopyManagerTest extends TestCase {
 
 		self::assertSame( '6 cuotas sin interés', CheckoutTrustSignals::installments_copy() );
 		self::assertSame( '6 cuotas sin interés', $signals['installments'] );
-	}
-
-	/**
-	 * Revisión independiente de 1.116.9 (BAJA): el selector sólo listaba entradas
-	 * publicadas; con la guía guardada despublicada el navegador elegía «Sin
-	 * guía» y guardar cualquier texto la borraba en silencio.
-	 *
-	 * @testdox La guía guardada aparece en el selector aunque se haya despublicado.
-	 */
-	public function test_the_saved_guide_stays_in_the_selector_when_unpublished(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => PreventasRoute::OPTION_GUIDE === $option ? '45' : $default_value
-		);
-		Functions\when( 'get_the_title' )->alias( static fn( $id ): string => 45 === (int) $id ? 'Guía vieja' : '' );
-
-		$opciones = ( new \ReflectionMethod( CopyManager::class, 'published_post_options' ) );
-		$opciones->setAccessible( true );
-		$lista = $opciones->invoke( new CopyManager( new AdminPanel() ) );
-
-		self::assertSame( 'Guía de preventas', $lista['44'] ?? null, 'Las publicadas siguen ahí.' );
-		self::assertSame( 'Guía vieja (no publicada)', $lista['45'] ?? null, 'Y la guardada se nombra, para que guardar no la borre.' );
 	}
 
 	/**
@@ -817,17 +599,5 @@ final class CopyManagerTest extends TestCase {
 		self::assertSame( 'text', $by_id['akb_copy_hero_label']['type'] );
 		self::assertSame( 'Destacados', $manager->sanitize_required_copy( '', array( 'id' => 'akb_copy_hero_label' ), '   ' ), 'Vacío vuelve al de fábrica: el carrusel nunca queda sin nombre.' );
 		self::assertSame( 'Lo nuevo', $manager->sanitize_required_copy( '', array( 'id' => 'akb_copy_hero_label' ), "<b>Lo</b>\nnuevo" ), 'Una línea, sin etiquetas.' );
-	}
-
-	/**
-	 * @testdox La línea de llegada de la barra de compra se edita en Textos, con {fecha}, y no queda vacía.
-	 */
-	public function test_sticky_bar_eta_copy_is_exposed_and_required(): void {
-		$manager = new CopyManager( new AdminPanel() );
-		$by_id   = $this->settings_by_id();
-
-		self::assertArrayHasKey( 'akb_copy_eta_bar', $by_id );
-		self::assertSame( 'Llega {fecha}', $by_id['akb_copy_eta_bar']['default'] );
-		self::assertSame( 'Llega {fecha}', $manager->sanitize_required_copy( '', array( 'id' => 'akb_copy_eta_bar' ), '   ' ) );
 	}
 }

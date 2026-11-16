@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
  */
 final class Novedad {
 

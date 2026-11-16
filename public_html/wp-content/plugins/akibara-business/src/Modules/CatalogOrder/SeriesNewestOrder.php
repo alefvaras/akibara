@@ -16,6 +16,10 @@ use Akibara\Business\Modules\Stock\StockStatus;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class SeriesNewestOrder {
 
 	/** Taxonomía de las landings de serie. */

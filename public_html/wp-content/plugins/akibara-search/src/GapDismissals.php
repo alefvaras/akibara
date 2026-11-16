@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.39
+ * @api
  */
 final class GapDismissals {
 

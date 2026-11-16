@@ -15,7 +15,6 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests;
 
-use Akibara\Business\Modules\BrandsDirectory\BrandLandings;
 use Akibara\Business\Plugin;
 use PHPUnit\Framework\TestCase;
 use ReflectionClassConstant;
@@ -54,12 +53,6 @@ final class FrontOptionPrimingTest extends TestCase {
 			'esquema de lista de espera' => array( 'akb_bis_db_version', 'src/Modules/BackInStock/Install.php' ),
 			'esquema de sigue serie'     => array( 'akb_sf_db_version', 'src/Modules/SeriesFollow/Install.php' ),
 			'captura de lista de espera' => array( 'akb_bis_capture_enabled', 'src/Modules/BackInStock/BackInStock.php' ),
-			'recordatorio T-7'           => array( 'akb_preventa_t7_enabled', 'src/Modules/OrderPreventa/Settings.php' ),
-			'color primario'             => array( 'akb_brand_color_primary', 'src/Modules/ThemeCustomizer/ThemeCustomizer.php' ),
-			'color de superficie'        => array( 'akb_brand_color_surface', 'src/Modules/ThemeCustomizer/ThemeCustomizer.php' ),
-			'crossorigin'                => array( 'akb_crossorigin_scripts_enabled', 'src/Modules/ScriptDiagnostics/CrossOriginScripts.php' ),
-			'GA4 y Clarity tras la carga' => array( 'akb_analytics_after_load', 'src/Modules/SiteSpeed/AnalyticsAfterLoad.php' ),
-			'carrito liviano'            => array( 'akb_lean_cart', 'src/Modules/SiteSpeed/LeanCart.php' ),
 			'aviso del corazón'          => array( 'akb_wishlist_guest_prompt', 'src/Modules/Wishlist/GuestPrompt.php' ),
 			'título del aviso'           => array( 'akb_copy_wl_guest_title', 'src/Modules/Wishlist/GuestPrompt.php' ),
 			'bajada del aviso'           => array( 'akb_copy_wl_guest_body', 'src/Modules/Wishlist/GuestPrompt.php' ),
@@ -73,16 +66,8 @@ final class FrontOptionPrimingTest extends TestCase {
 			'título de relacionados'     => array( 'akb_copy_reco_related_heading', 'src/Modules/Recommendations/Headings.php' ),
 			'enlace del resumen de serie' => array( 'akb_copy_series_summary_link', 'src/Modules/SeriesFacts/SeriesFacts.php' ),
 			'atajo al último tomo'        => array( 'akb_copy_series_latest_volume', 'src/Modules/SeriesFacts/SeriesFacts.php' ),
-			'gancho del pack'            => array( 'akb_copy_series_offer_hook', 'src/Modules/SeriesBundles/LandingOffer.php' ),
-			'condiciones del pack'       => array( 'akb_copy_series_offer_rules', 'src/Modules/SeriesBundles/LandingOffer.php' ),
-			'fallo del armador'          => array( 'akb_copy_pack_error', 'src/Modules/SeriesBundles/SelectionCart.php' ),
-			// Revisión B3-D3: se lee en cada landing de serie y la fila no existe
-			// mientras el dueño no guarde un valor distinto de 48.
-			'tomos por página de serie'  => array( 'akb_series_landing_per_page', 'src/Modules/SeriesCatalog/LandingPageSize.php' ),
-			'fecha en la barra de compra' => array( 'akb_copy_eta_bar', 'src/Modules/EstimatedDelivery/BannerRenderer.php' ),
 			'botón de vista rápida'      => array( 'akb_copy_quick_view_label', 'src/Modules/QuickView/QuickView.php' ),
 			'enlace a la serie de la ficha' => array( 'akb_copy_pdp_series_link', 'src/Modules/PdpEnhancer/PdpSeriesEnhancer.php' ),
-			'otras ediciones de la obra' => array( 'akb_copy_series_editions_label', 'src/Modules/SeriesEditions/SeriesEditions.php' ),
 			'pista del buscador (tema)'  => array( 'akb_copy_search_placeholder', 'src/Modules/CopyManager/CopyManager.php' ),
 			'cierre del blog (tema)'     => array( 'akb_copy_guide_cta_text', 'src/Modules/CopyManager/CopyManager.php' ),
 			'botón a la tienda (tema)'   => array( 'akb_copy_guide_cta_shop', 'src/Modules/CopyManager/CopyManager.php' ),
@@ -98,49 +83,9 @@ final class FrontOptionPrimingTest extends TestCase {
 			'cuotas (tema)'              => array( 'akb_copy_promise_installments', 'src/Services/CheckoutTrustSignals.php' ),
 			'horario del pie (tema)'     => array( 'akb_copy_footer_support_hours', 'src/Modules/CopyManager/CopyManager.php' ),
 			'teléfono del pie (tema)'    => array( 'akb_copy_footer_phone', 'src/Modules/CopyManager/CopyManager.php' ),
-			'botón de preventa'          => array( 'akb_copy_cta_preventa', 'src/Modules/OrderPreventa/PreventaUX.php' ),
 			'nombre del carrusel de la portada' => array( 'akb_copy_hero_label', 'src/Modules/HomeHero/Renderer.php' ),
-			'popup primera compra activo' => array( 'akb_welcome_coupon_enabled', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra porcentaje' => array( 'akb_welcome_coupon_pct', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra mínimo' => array( 'akb_welcome_coupon_min_amount', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra vigencia' => array( 'akb_welcome_coupon_validity_days', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra espera' => array( 'akb_welcome_coupon_delay_seconds', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra scroll' => array( 'akb_welcome_coupon_scroll_pct', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra enfriamiento' => array( 'akb_welcome_coupon_dismiss_days', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra intención salida' => array( 'akb_welcome_coupon_exit_intent', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra distintivo reapertura' => array( 'akb_welcome_coupon_launcher', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra en portada' => array( 'akb_welcome_coupon_show_home', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra en catálogo' => array( 'akb_welcome_coupon_show_catalog', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra en ficha' => array( 'akb_welcome_coupon_show_product', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra en serie' => array( 'akb_welcome_coupon_show_series', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra turnstile activo' => array( 'akb_welcome_turnstile_enabled', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra turnstile sitekey' => array( 'akb_welcome_turnstile_sitekey', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra antetítulo' => array( 'akb_copy_welcome_kicker', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra título' => array( 'akb_copy_welcome_heading', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra bajada' => array( 'akb_copy_welcome_subtitle', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra botón' => array( 'akb_copy_welcome_cta', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra cierre' => array( 'akb_copy_welcome_dismiss', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra nota de confianza' => array( 'akb_copy_welcome_trust_note', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup primera compra legal' => array( 'akb_copy_welcome_legal', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático activo' => array( 'akb_welcome_promo_enabled', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático código' => array( 'akb_welcome_promo_code', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático audiencia' => array( 'akb_welcome_promo_audience', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático espera' => array( 'akb_welcome_promo_delay_seconds', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático enfriamiento' => array( 'akb_welcome_promo_dismiss_days', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático en portada' => array( 'akb_welcome_promo_show_home', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático en catálogo' => array( 'akb_welcome_promo_show_catalog', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático en ficha' => array( 'akb_welcome_promo_show_product', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático en serie' => array( 'akb_welcome_promo_show_series', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup cupón época de cookie' => array( 'akb_welcome_coupon_cookie_epoch', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático antetítulo' => array( 'akb_copy_welcome_promo_kicker', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático título' => array( 'akb_copy_welcome_promo_heading', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático bajada' => array( 'akb_copy_welcome_promo_subtitle', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático botón' => array( 'akb_copy_welcome_promo_cta', 'src/Modules/WelcomeCoupon/Settings.php' ),
-			'popup promo estático legal' => array( 'akb_copy_welcome_promo_legal', 'src/Modules/WelcomeCoupon/Settings.php' ),
 			'barra anuncios rotación' => array( 'akibara_announcement_rotate', 'src/Modules/AnnouncementBar/AnnouncementBar.php' ),
 			'barra anuncios segundos rotación' => array( 'akibara_announcement_rotate_secs', 'src/Modules/AnnouncementBar/AnnouncementBar.php' ),
-			'disponibilidad ficha a pedido' => array( 'akb_copy_eta_single_pedido', 'src/Modules/Stock/Availability.php' ),
-			'disponibilidad ficha preventa' => array( 'akb_copy_eta_single_preventa', 'src/Modules/Stock/Availability.php' ),
 			'upsells automáticos activos' => array( 'akibara_upsells_enabled', 'src/Modules/UpsellsAutofill/UpsellsAutofill.php' ),
 			'sitemap series cambios pendientes' => array( 'akb_pa_serie_sitemap_pending_changes', 'src/Modules/SeoIndexing/SeriesSitemapLastmod.php' ),
 			'sitemap series estado renderer' => array( 'akb_pa_serie_renderer_state', 'src/Modules/SeoIndexing/SeriesSitemapLastmod.php' ),
@@ -196,7 +141,7 @@ final class FrontOptionPrimingTest extends TestCase {
 	public function test_priming_happens_before_the_modules_register(): void {
 		$fuente = (string) file_get_contents( $this->plugin_root() . '/src/Plugin.php' );
 
-		$prime  = strpos( $fuente, 'wp_prime_option_caches( array_merge( self::FRONT_READ_OPTIONS, BrandLandings::front_read_options() ) )' );
+		$prime  = strpos( $fuente, 'wp_prime_option_caches( self::FRONT_READ_OPTIONS )' );
 		$primer = strpos( $fuente, "\$this->modules['mail_from'] = new MailFrom();" );
 
 		self::assertNotFalse( $prime, 'El priming del front tiene que existir.' );
@@ -209,47 +154,6 @@ final class FrontOptionPrimingTest extends TestCase {
 	}
 
 	/**
-	 * Las etiquetas de familia van en el mismo lote: el menú de Editoriales las
-	 * lee en cada página (MenuInjector → BrandLandings::all()).
-	 */
-	public function test_family_labels_are_primed_because_the_menu_reads_them(): void {
-		// `BrandLandings::all()` pasa por `apply_filters()`. Sin este fixture la
-		// prueba sólo pasaba cuando otra lo había cargado antes; corrida sola caía
-		// con «undefined function» (2026-09-19). Mismo require que usan las demás
-		// pruebas de servicio que no montan Brain Monkey.
-		require_once __DIR__ . '/fixtures/wordpress-functions.php';
-
-		$menu = (string) file_get_contents( $this->plugin_root() . '/src/Modules/BrandsDirectory/MenuInjector.php' );
-		self::assertStringContainsString( 'BrandLandings::all()', $menu );
-
-		$options = BrandLandings::front_read_options();
-		self::assertSame(
-			array(
-				'akb_brand_landing_ivrea_menu_label',
-				'akb_brand_landing_ivrea_callout_label',
-				'akb_brand_landing_panini_menu_label',
-				'akb_brand_landing_panini_callout_label',
-			),
-			$options
-		);
-		// Se calienta lo que all() lee de verdad: cada option escrita reaparece en la fila.
-		$GLOBALS['akibara_test_options'] = array();
-		foreach ( $options as $i => $option ) {
-			$GLOBALS['akibara_test_options'][ $option ] = 'valor ' . $i;
-		}
-		$landings = BrandLandings::all();
-		$vistos   = array();
-		foreach ( $landings as $key => $fila ) {
-			foreach ( array_keys( BrandLandings::label_fields() ) as $field ) {
-				$vistos[] = (string) ( $fila[ $field ] ?? '' );
-			}
-		}
-		unset( $GLOBALS['akibara_test_options'] );
-
-		self::assertSame( array( 'valor 0', 'valor 1', 'valor 2', 'valor 3' ), $vistos, 'Cada option calentada es una etiqueta que el menú pinta.' );
-	}
-
-	/**
 	 * Y sigue siendo una sola llamada: priming por lotes, no uno por option.
 	 */
 	public function test_the_front_priming_is_a_single_batched_call(): void {
@@ -257,7 +161,7 @@ final class FrontOptionPrimingTest extends TestCase {
 
 		self::assertSame(
 			1,
-			substr_count( $fuente, 'wp_prime_option_caches( array_merge( self::FRONT_READ_OPTIONS, BrandLandings::front_read_options() ) )' )
+			substr_count( $fuente, 'wp_prime_option_caches( self::FRONT_READ_OPTIONS )' )
 		);
 		self::assertNotSame( array(), $this->primed() );
 	}

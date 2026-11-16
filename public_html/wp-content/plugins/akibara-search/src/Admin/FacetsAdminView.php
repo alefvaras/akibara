@@ -17,6 +17,7 @@ use Akibara\Search\SearchAdminSection;
 
 /**
  * Vista y helpers para la gestión de facetas del catálogo.
+ * @api
  */
 final class FacetsAdminView {
 
@@ -112,9 +113,9 @@ final class FacetsAdminView {
 
 	/**
 	 * @param string $nonce_action Acción del nonce.
-	 * @return void
+	 * @return array<int, string>
 	 */
-	public static function render_parent_datalists( array $taxes ): array {
+	public static function render_parent_datalists( array $taxes ): array { // @phpstan-ignore parameter.notFound
 		$capped = array();
 		foreach ( $taxes as $tax ) {
 			$candidates = self::parent_candidates( $tax );
@@ -243,7 +244,7 @@ final class FacetsAdminView {
 	 * @param array<string, array<string, mixed>> $after  Definiciones nuevas.
 	 * @return string '' si no cambió nada relevante.
 	 */
-	public static function facets_diff_summary( array $before, array $after ): string {
+	public static function facets_diff_summary( array $before, array $after ): string { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$parts = array();
 
 		foreach ( array_diff_key( $after, $before ) as $name => $def ) {

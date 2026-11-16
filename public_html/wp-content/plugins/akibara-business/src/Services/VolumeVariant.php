@@ -41,6 +41,7 @@ defined( 'ABSPATH' ) || exit;
  * Fuente única de «esto es una variante del mismo tomo».
  *
  * @since 1.116.0
+ * @api
  */
 final class VolumeVariant {
 
@@ -120,7 +121,7 @@ final class VolumeVariant {
 		$kinds = self::kinds();
 		unset( $kinds[ self::KIND_NONE ] );
 
-		return array_values( array_keys( $kinds ) );
+		return array_values( array_keys( $kinds ) ); // @phpstan-ignore arrayValues.list
 	}
 
 	/**

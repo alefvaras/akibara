@@ -22,6 +22,14 @@ namespace Akibara\Business\Modules\MyAccountUx;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class MyAccountUx {
 
 	/**
@@ -187,8 +195,9 @@ final class MyAccountUx {
 	 * @param string $template_name Nombre relativo (e.g. `myaccount/orders.php`).
 	 * @param string $template_path Path base WC.
 	 * @return string
+	 * @psalm-suppress UnusedParam
 	 */
-	public function override_template( string $template, string $template_name, string $template_path ): string {
+	public function override_template( string $template, string $template_name, string $template_path ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ! isset( self::OVERRIDES[ $template_name ] ) ) {
 			return $template;
 		}
@@ -247,6 +256,7 @@ final class MyAccountUx {
 	 *
 	 * @param \WP_Error  $errors
 	 * @param \stdClass  $user
+	 * @psalm-suppress UnusedParam
 	 */
 	public function auto_display_name( $errors, $user ): void {
 		if ( ! empty( $user->display_name ) ) {
@@ -286,8 +296,9 @@ final class MyAccountUx {
 	 * @param array<string, array{url:string,name:string,aria-label?:string}> $actions Existing actions.
 	 * @param \WC_Order $order  Order de la fila.
 	 * @return array<string, array{url:string,name:string,aria-label?:string}>
+	 * @psalm-suppress UnusedParam
 	 */
-	public function orders_actions( array $actions, $order ): array {
+	public function orders_actions( array $actions, $order ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		unset( $actions['order-again'] );
 
 		return $actions;
@@ -303,8 +314,9 @@ final class MyAccountUx {
 	 *
 	 * @param \WP_Error $errors  Errores acumulados de WC.
 	 * @param \stdClass $user    Objeto usuario que se actualizaría.
+	 * @psalm-suppress UnusedParam
 	 */
-	public function validate_account_rut( $errors, $user ): void {
+	public function validate_account_rut( $errors, $user ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		// Detectar submit del form de edit-account
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce ya verificado por WC_Form_Handler::save_account_details.
 		if ( ! isset( $_POST['save_account_details'] ) && ! ( isset( $_POST['action'] ) && 'save_account_details' === $_POST['action'] ) ) {

@@ -23,6 +23,11 @@ defined( 'ABSPATH' ) || exit;
  * Guía editorial relacionada por término de serie.
  *
  * @since 1.93.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UndefinedMagicPropertyFetch
+ * @psalm-suppress UndefinedPropertyFetch
  */
 final class SeriesRelatedGuide {
 
@@ -91,7 +96,12 @@ final class SeriesRelatedGuide {
 		$this->queue_guide_post_purge( (int) $post_id );
 	}
 
-	/** Encola la aparición o retirada del bloque al cambiar publish. */
+	/**
+	 * Encola la aparición o retirada del bloque al cambiar publish.
+	 * @param mixed $new_status
+	 * @param mixed $old_status
+	 * @param mixed $post
+	 */
 	public function handle_guide_status_transition( $new_status, $old_status, $post ): void {
 		if (
 			! is_object( $post )
@@ -104,7 +114,11 @@ final class SeriesRelatedGuide {
 		$this->queue_guide_post_purge( (int) ( $post->ID ?? 0 ) );
 	}
 
-	/** Conserva la última purga cuando una guía se borra sin pasar por papelera. */
+	/**
+	 * Conserva la última purga cuando una guía se borra sin pasar por papelera.
+	 * @param mixed $post
+	 * @param mixed $post_id
+	 */
 	public function handle_guide_post_deleted( $post_id, $post ): void {
 		if ( ! is_object( $post ) || 'post' !== (string) ( $post->post_type ?? '' ) ) {
 			return;
@@ -277,7 +291,7 @@ final class SeriesRelatedGuide {
 		$nonce = $_POST[ self::NONCE_NAME ] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- se valida el tipo y luego se desescapa/sanea antes de verificar.
 		if ( ! is_string( $nonce )
 			|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $nonce ) ), self::NONCE_ACTION )
-			|| ! current_user_can( 'manage_product_terms' )
+			|| ! current_user_can( 'manage_product_terms' ) // phpcs:ignore WordPress.WP.Capabilities.Unknown
 			|| ! term_exists( $term_id, self::TAXONOMY ) ) {
 			return;
 		}
@@ -440,10 +454,12 @@ final class SeriesRelatedGuide {
 		?>
 		<select name="<?php echo esc_attr( self::FIELD_NAME ); ?>" id="<?php echo esc_attr( self::FIELD_NAME ); ?>" class="regular-text">
 			<option value="0">— Sin guía relacionada —</option>
-			<?php foreach ( $posts as $post ) : ?>
-				<?php if ( ! isset( $post->ID, $post->post_title ) ) : ?>
-					<?php continue; ?>
-				<?php endif; ?>
+			<?php
+			foreach ( $posts as $post ) :
+				if ( ! isset( $post->ID, $post->post_title ) ) {
+					continue;
+				}
+				?>
 				<option value="<?php echo esc_attr( (string) $post->ID ); ?>"<?php echo (int) $post->ID === $selected ? ' selected' : ''; ?>>
 					<?php echo esc_html( (string) $post->post_title ); ?>
 				</option>

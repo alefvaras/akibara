@@ -82,6 +82,17 @@
 	background: var(--aki-red-bright, #ff3445);
 }
 
+.akb-pudo-button.akb-pudo-button--selected {
+	background: var(--akb-pudo-surface-raised, #222);
+	border-color: rgb(255 255 255 / 24%);
+	color: var(--aki-white, #fff);
+}
+
+.akb-pudo-button.akb-pudo-button--selected:hover:not(:disabled) {
+	background: #2f2f2f;
+	border-color: rgb(255 255 255 / 42%);
+}
+
 /*
  * El tema ya define el anillo de foco de la marca (--aki-focus-ring: amarillo +
  * negro) para a/button/input:focus-visible. Este plugin además pintaba su propio
@@ -92,7 +103,7 @@
  */
 .akb-pudo-dialog iframe:focus-visible {
 	outline: none;
-	box-shadow: var(--aki-focus-ring, 0 0 0 3px #ffffff, 0 0 0 5px #121212);
+	box-shadow: var(--aki-focus-ring, 0 0 0 3px #fff, 0 0 0 5px #121212);
 }
 
 /*
@@ -135,7 +146,7 @@
 	outline: none;
 	box-shadow:
 		0 0 0 2px #ff9aa5,
-		0 0 0 5px var(--aki-focus-ring-color, #ffffff),
+		0 0 0 5px var(--aki-focus-ring-color, #fff),
 		0 0 0 8px var(--aki-black, #121212) !important;
 }
 
@@ -172,7 +183,7 @@ body.akb-pudo-modal-open #wpadminbar {
 	padding: 0 !important;
 	margin: -1px !important;
 	overflow: hidden !important;
-	clip: rect(0, 0, 0, 0) !important;
+	clip-path: inset(50%) !important;
 	white-space: nowrap !important;
 	border: 0 !important;
 }
@@ -347,12 +358,14 @@ body.akb-pudo-modal-open #wpadminbar {
 }
 
 @keyframes akb-pudo-spin {
+
 	to {
 		transform: rotate(360deg);
 	}
 }
 
 @media (max-width: 767px) {
+
 	.akb-pudo-button {
 		width: 100%;
 		min-height: 48px;
@@ -381,11 +394,12 @@ body.akb-pudo-modal-open #wpadminbar {
 	}
 
 	.akb-pudo-dialog__body {
-		padding-bottom: env(safe-area-inset-bottom, 0px);
+		padding-bottom: env(safe-area-inset-bottom, 0);
 	}
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
+
 	.akb-pudo-dialog__header {
 		min-height: 52px;
 		padding-block: 4px;
@@ -397,6 +411,7 @@ body.akb-pudo-modal-open #wpadminbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-pudo-spinner {
 		animation: none;
 	}

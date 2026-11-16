@@ -11,10 +11,13 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'plugins_loaded', 'akibara_mp_nota_sin_correo_enganchar', 20 );
 
 /**
  * Engancha el filtro sólo si Mercado Pago está cargado.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 function akibara_mp_nota_sin_correo_enganchar(): void {
 	if ( ! defined( 'MP_PLUGIN_FILE' ) ) {
@@ -38,12 +41,14 @@ function akibara_mp_nota_sin_correo_enganchar(): void {
  * dueño.
  *
  * @param mixed $nota Texto de la nota (puede traer HTML).
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 function akibara_mp_nota_es_de_mercado_pago( $nota ): bool {
 	if ( ! is_string( $nota ) ) {
 		return false;
 	}
-	$texto = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $nota ) : strip_tags( $nota );
+	$texto = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $nota ) : strip_tags( $nota ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
 
 	return 0 === strpos( ltrim( $texto ), 'Mercado Pago: ' );
 }
@@ -55,6 +60,8 @@ function akibara_mp_nota_es_de_mercado_pago( $nota ): bool {
  * @param mixed $order   Pedido (no se usa: la nota viaja en el correo).
  * @param mixed $email   Instancia de WC_Email_Customer_Note (o null desde el listado de correos del admin).
  * @return mixed
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 function akibara_mp_nota_sin_correo_filtrar( $enabled, $order, $email ) {
 	unset( $order );

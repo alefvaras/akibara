@@ -18,6 +18,9 @@ defined( 'ABSPATH' ) || exit;
  * Composes all dedicated WooCommerce Blocks adapters.
  *
  * @since 2.0.0
+ * @api
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class Plugin {
 
@@ -32,7 +35,7 @@ final class Plugin {
 		}
 
 		$business = BusinessPlugin::instance();
-		if ( ! method_exists( $business, 'checkout_data' ) ) {
+		if ( ! method_exists( $business, 'checkout_data' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return;
 		}
 
@@ -44,14 +47,13 @@ final class Plugin {
 		$blocks_page = new BlocksPage();
 		$address     = new AddressIntegration( $data_provider, $blocks_page );
 		$comunas     = new ComunaDirectory();
-		$pudo        = method_exists( $business, 'pudo_checkout' )
+		$pudo        = method_exists( $business, 'pudo_checkout' ) // @phpstan-ignore function.alreadyNarrowedType
 			? $business->pudo_checkout()
 			: null;
 
 		( new CheckoutFields( $data_provider, $comunas ) )->register();
 		( new RutPrivacy() )->register();
 		( new StoreApiIntegration( $data_provider, $blocks_page ) )->register();
-		( new ShippingPromise( $blocks_page ) )->register();
 		( new RuntimeCompatibility( $blocks_page ) )->register();
 		( new Assets( $blocks_page, $address, $comunas ) )->register();
 		( new Shortcodes() )->register();

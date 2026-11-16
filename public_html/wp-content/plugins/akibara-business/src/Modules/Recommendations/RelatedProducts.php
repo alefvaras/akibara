@@ -16,11 +16,15 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\Recommendations;
 
-use Akibara\Business\Modules\SeriesEditions\SeriesEditions;
 use Akibara\Business\Services\VolumeTitle;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidGlobal
+ */
 final class RelatedProducts {
 
 	/**
@@ -349,12 +353,8 @@ final class RelatedProducts {
 			);
 		}
 
-		// «No repite la serie de la ficha»: tampoco otra edición de la misma obra
-		// (campo «Ediciones relacionadas» de cada serie). Sus tomos caen en el
-		// grupo de la misma serie, detrás de todas las series que abren
-		// (revisión B2-2-R2).
 		$actuales = array_values(
-			array_unique( array_merge( SeriesShelf::series_of( $product_id ), SeriesEditions::same_work_series_tt_ids( $product_id ) ) )
+			array_unique( SeriesShelf::series_of( $product_id ) )
 		);
 
 		$pedir = array();

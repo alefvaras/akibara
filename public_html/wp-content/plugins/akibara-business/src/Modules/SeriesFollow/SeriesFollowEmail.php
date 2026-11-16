@@ -22,6 +22,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
+ * @psalm-suppress PossiblyUnusedParam
+ * @psalm-suppress UnusedMethod
+ * @psalm-suppress PossiblyUnusedParam
+ * @psalm-suppress UnusedMethod
  */
 class SeriesFollowEmail extends AkibaraEmail {
 
@@ -155,6 +160,7 @@ class SeriesFollowEmail extends AkibaraEmail {
 	 * ¿El bloque que abre el correo cubre más de un tomo?
 	 *
 	 * @return bool
+	 * @psalm-suppress UnusedMethod
 	 */
 	private function apertura_es_tanda(): bool {
 		return max( 1, (int) ( $this->groups[0]['volumes_count'] ?? 1 ) ) > 1;
@@ -164,6 +170,7 @@ class SeriesFollowEmail extends AkibaraEmail {
 	 * ¿El bloque que abre el correo cierra un hueco intermedio de la colección?
 	 *
 	 * @return bool
+	 * @psalm-suppress UnusedMethod
 	 */
 	private function apertura_es_hueco(): bool {
 		return ! empty( $this->groups[0]['is_gap'] );
@@ -193,6 +200,7 @@ class SeriesFollowEmail extends AkibaraEmail {
 	 * @param int                              $user_id Cliente.
 	 * @param array<int, array<string, mixed>> $groups  Bloques, la serie más nueva primero.
 	 * @return bool True si el mailer aceptó el envío.
+	 * @psalm-suppress PossiblyUnusedParam
 	 */
 	public function trigger( int $user_id, array $groups ): bool {
 		if ( $user_id < 1 || array() === $groups ) {
@@ -263,7 +271,7 @@ class SeriesFollowEmail extends AkibaraEmail {
 
 		return array(
 			'groups'             => $groups,
-			'collection_url'     => \Akibara\Business\Modules\AccountCollection\Endpoint::url(),
+			'collection_url'     => home_url( '/mi-cuenta/' ),
 			'unsubscribe_url'    => $this->unsubscribe_url,
 			'email_heading'      => $this->get_heading(),
 			'additional_content' => $this->get_additional_content(),

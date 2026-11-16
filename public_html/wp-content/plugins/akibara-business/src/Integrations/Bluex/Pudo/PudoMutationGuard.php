@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Makes request completion order irrelevant using a server lease and exact CAS.
  *
  * @since 1.96.0
+ * @api
  */
 final class PudoMutationGuard {
 

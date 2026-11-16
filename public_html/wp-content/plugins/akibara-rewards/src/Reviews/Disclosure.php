@@ -34,6 +34,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.4.1
+ * @api
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class Disclosure {
 
@@ -44,17 +47,18 @@ final class Disclosure {
 	public const TEXTO_SUMA = 'Quien escribió esta reseña sumó para un premio de Puntos Akibara.';
 
 	public function register(): void {
-		add_filter( 'comment_text', array( $this, 'append_notice' ), 24, 2 );
+		// Aviso visual eliminado por orden del dueño. No se engancha comment_text.
 	}
 
 	/**
-	 * El aviso de una reseña, si el dueño lo tiene encendido.
+	 * El aviso de una reseña: siempre vacío por orden del dueño.
 	 *
 	 * @param int $comment_id Reseña.
 	 * @return string
+	 * @psalm-suppress UnusedParam
 	 */
-	public static function visible_notice_for( int $comment_id ): string {
-		return Options::disclosure_on() ? self::notice_for( $comment_id ) : '';
+	public static function visible_notice_for( int $comment_id ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		return '';
 	}
 
 	/**
@@ -79,31 +83,14 @@ final class Disclosure {
 	}
 
 	/**
-	 * Añade el aviso al final del texto de una reseña premiada.
+	 * Retorna el texto sin modificar (aviso visual eliminado).
 	 *
 	 * @param string           $text    Texto ya filtrado.
 	 * @param \WP_Comment|null $comment Comentario, cuando el llamador lo pasa.
 	 * @return string
+	 * @psalm-suppress UnusedParam
 	 */
-	public function append_notice( $text, $comment = null ): string {
-		$text = (string) $text;
-
-		if ( ! $comment instanceof \WP_Comment ) {
-			return $text;
-		}
-		if ( 'product' !== get_post_type( (int) $comment->comment_post_ID ) ) {
-			return $text;
-		}
-		$aviso = self::visible_notice_for( (int) $comment->comment_ID );
-		if ( '' === $aviso ) {
-			return $text;
-		}
-
-		// «Clara y prominente» es la vara de Google para una reseña incentivada:
-		// sin opacidad, con su propio recuadro y a tamaño de lectura. En gris
-		// claro se leía como letra chica, que es justo lo que la guía descarta.
-		return $text . '<p class="akb-rw-disclosure" style="margin:8px 0 0;padding:6px 10px;border-left:3px solid var(--aki-red,#E60012);background:rgba(230,0,18,.06);font-size:0.9em;line-height:1.4">'
-			. esc_html( $aviso )
-			. '</p>';
+	public function append_notice( $text, $comment = null ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		return (string) $text;
 	}
 }

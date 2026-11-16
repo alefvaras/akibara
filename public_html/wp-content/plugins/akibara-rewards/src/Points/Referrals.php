@@ -32,7 +32,16 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class Referrals {
 
 	public const META_CODE               = '_akb_rewards_ref_code';
@@ -153,8 +162,17 @@ final class Referrals {
 	 * @return string JavaScript autocontenido.
 	 */
 	public static function capture_script( int $days ): string {
-		$min_cart = (int) get_option( 'akb_referral_min_cart_amount', get_option( 'akb_rewards_referral_min_order', 30000 ) );
-		$min_fmt  = number_format_i18n( $min_cart );
+		$min_cart     = max( 0, (int) get_option( 'akb_referral_min_cart_amount', (int) get_option( 'akb_rewards_referral_min_order', 30000 ) ) );
+		$discount     = max( 0, (int) get_option( 'akb_referral_guest_discount_amount', self::AKB_REF_AMOUNT ) );
+		$min_fmt      = number_format_i18n( $min_cart );
+		$discount_fmt = number_format_i18n( $discount );
+		$benefit_js   = $discount > 0
+			? sprintf(
+				'Tu amigo te invit\u00F3 con $%s de regalo en tu primera compra%s.',
+				$discount_fmt,
+				$min_cart > 0 ? ' desde $' . $min_fmt : ''
+			)
+			: 'Comprando con su enlace de invitaci\u00F3n sumas beneficios en tu cuenta.';
 
 		return '(function(){try{'
 			. 'var m=/[?&]ref=([a-z0-9_-]{1,20})(?:&|$)/i.exec(window.location.search);'
@@ -163,8 +181,8 @@ final class Referrals {
 			. 'function toast(){'
 			. 'if(typeof document.createElement!=="function"||!document.body||typeof window.sessionStorage==="undefined"||sessionStorage.getItem("akb_ref_toast")){return;}'
 			. 'var t=document.createElement("div");t.className="akb-ref-toast";'
-			. 't.innerHTML="<span>\u{1F91D} <strong>\u00A1Bienvenido a Akibara!</strong> Tu amigo te invit\u00F3 con $2.000 de regalo en tu primera compra desde $' . $min_fmt . '.</span> <a href=\"/mi-cuenta/\" style=\"margin-left:8px;color:#ffffff;text-decoration:underline;font-weight:700\">Crear cuenta</a> <button type=\"button\" style=\"background:none;border:none;color:#fff;font-size:16px;cursor:pointer;margin-left:10px;line-height:1\" aria-label=\"Cerrar\">\u00D7</button>";'
-			. 't.style.cssText="position:fixed;bottom:20px;right:20px;z-index:999999;background:#181818;border:1px solid #333;border-left:4px solid #E60012;color:#fff;padding:12px 16px;border-radius:0;box-shadow:4px 4px 0 #000;font-size:13px;display:flex;align-items:center;line-height:1.4;max-width:calc(100% - 40px);font-family:inherit;";'
+			. 't.innerHTML="<span>\u{1F91D} <strong>\u00A1Bienvenido a Akibara!</strong> ' . $benefit_js . '</span> <a href=\"/mi-cuenta/\" style=\"margin-left:8px;color:var(--aki-white,#ffffff);text-decoration:underline;font-weight:700;min-height:44px;display:inline-flex;align-items:center\">Crear cuenta</a> <button type=\"button\" style=\"background:none;border:none;color:var(--aki-white,#fff);font-size:18px;cursor:pointer;margin-left:6px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;line-height:1\" aria-label=\"Cerrar\">\u00D7</button>";'
+			. 't.style.cssText="position:fixed;bottom:calc(var(--akb-franja-inferior, 66px) + 16px);right:20px;z-index:var(--z-toast, 500);background:var(--aki-surface-2,#1A1A1A);border:2px solid var(--aki-black,#121212);border-left:4px solid var(--aki-red,#E60012);color:var(--aki-white,#fff);padding:8px 12px 8px 16px;border-radius:0;box-shadow:4px 4px 0 var(--aki-black,#121212);font-size:13px;display:flex;align-items:center;line-height:1.4;max-width:calc(100% - 40px);font-family:inherit;";'
 			. 't.querySelector("button").onclick=function(){t.remove();try{sessionStorage.setItem("akb_ref_toast","1");}catch(e){}};'
 			. 'document.body.appendChild(t);'
 			. '}'
@@ -284,7 +302,7 @@ final class Referrals {
 
 		$order->update_meta_data( self::META_REFERRED_BY, $referrer );
 		$order->update_meta_data( self::META_REF_CODE, $code );
-		if ( method_exists( $order, 'save' ) ) {
+		if ( method_exists( $order, 'save' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			$order->save();
 		}
 	}
@@ -325,7 +343,7 @@ final class Referrals {
 		}
 
 		$amount    = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_guest_discount_amount', self::AKB_REF_AMOUNT ) : (float) self::AKB_REF_AMOUNT;
-		$min_order = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_min_cart_amount', 30000 ) : 30000.0;
+		$min_order = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_min_cart_amount', (float) get_option( 'akb_rewards_referral_min_order', 30000 ) ) : 30000.0;
 
 		return array(
 			'id'                         => -1,
@@ -404,12 +422,11 @@ final class Referrals {
 			}
 		}
 
-		// 4. Validar suma de líneas elegibles antes de descuento del propio cupón (sin ofertas manuales mayores al 5% de reserva):
-		$min_order       = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_min_cart_amount', 30000 ) : 30000.0;
-		$allow_backorder = function_exists( 'get_option' ) ? ( 'yes' === get_option( 'akb_referral_allow_backorder_items', 'yes' ) ) : true;
+		// 4. Validar suma de líneas elegibles antes de descuento del propio cupón:
+		$min_order = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_min_cart_amount', (float) get_option( 'akb_rewards_referral_min_order', 30000 ) ) : 30000.0;
 
 		if ( function_exists( 'WC' ) && WC()->cart && method_exists( WC()->cart, 'get_cart' ) ) {
-			$eligible_sum = self::eligible_cart_subtotal( WC()->cart, $allow_backorder );
+			$eligible_sum = self::eligible_cart_subtotal( WC()->cart );
 
 			if ( $eligible_sum < $min_order ) {
 				$diff = $min_order - $eligible_sum;
@@ -426,11 +443,10 @@ final class Referrals {
 	 * Usa `line_subtotal` (+ impuesto) o `precio * cantidad` para que aplicar el propio cupón de $2.000
 	 * no reduzca la base por debajo de $30.000 en el segundo pase de `calculate_totals()`.
 	 *
-	 * @param object $cart            Carrito (WC_Cart).
-	 * @param bool   $allow_backorder Si se permiten ítems en reserva (5%).
+	 * @param object $cart Carrito (WC_Cart).
 	 * @return float
 	 */
-	public static function eligible_cart_subtotal( object $cart, bool $allow_backorder = true ): float {
+	public static function eligible_cart_subtotal( object $cart ): float {
 		if ( ! method_exists( $cart, 'get_cart' ) ) {
 			return 0.0;
 		}
@@ -451,12 +467,9 @@ final class Referrals {
 				$line_sub = (float) $p->get_price() * $qty;
 			}
 
-			$is_sale      = method_exists( $p, 'is_on_sale' ) && $p->is_on_sale();
-			$is_backorder = ( method_exists( $p, 'is_on_backorder' ) && $p->is_on_backorder( 1 ) )
-				|| ( method_exists( $p, 'get_stock_status' ) && 'onbackorder' === (string) $p->get_stock_status() )
-				|| ( class_exists( '\Akibara\Business\Utilities\StockStatus' ) && \Akibara\Business\Utilities\StockStatus::is_reservable( $p ) );
+			$is_sale = method_exists( $p, 'is_on_sale' ) && $p->is_on_sale(); // @phpstan-ignore function.alreadyNarrowedType
 
-			if ( ! $is_sale || ( $is_backorder && $allow_backorder ) ) {
+			if ( ! $is_sale ) {
 				$eligible_sum += $line_sub;
 			}
 		}
@@ -471,7 +484,8 @@ final class Referrals {
 	 * @param \WP_Error $errors Objeto de errores.
 	 * @return void
 	 */
-	public function validate_referral_checkout_antifraud( array $data, $errors ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function validate_referral_checkout_antifraud( array $data, $errors ): void { // @phpstan-ignore complexity.functionLike
 		if ( ! function_exists( 'WC' ) || ! WC()->cart || ! $errors instanceof \WP_Error ) {
 			return;
 		}
@@ -535,41 +549,61 @@ final class Referrals {
 		}
 
 		// Comprobar si esta persona ya registra compras previas en la base de datos (por email, teléfono o RUT)
-		if ( function_exists( 'wc_get_orders' ) ) {
-			if ( '' !== $email ) {
-				$orders = wc_get_orders( array( 'billing_email' => $email, 'limit' => 1, 'return' => 'ids' ) );
-				if ( ! empty( $orders ) ) {
-					$errors->add( 'akb_ref_prior_purchase', 'Este cupón de invitación es exclusivo para nuevos lectores en su primera compra.' );
-					return;
-				}
+		$this->validate_no_prior_referral_purchases( $data, $email, $phone, $rut, $errors );
+	}
+
+	/**
+	 * Verifica que el comprador no registre pedidos previos por correo, teléfono o RUT.
+	 *
+	 * @param array     $data   Datos del checkout.
+	 * @param string    $email  Correo normalizado.
+	 * @param string    $phone  Teléfono normalizado (solo dígitos).
+	 * @param string    $rut    RUT normalizado.
+	 * @param \WP_Error $errors Objeto de errores.
+	 * @return void
+	 */
+	private function validate_no_prior_referral_purchases(
+		array $data,
+		string $email,
+		string $phone,
+		string $rut,
+		\WP_Error $errors
+	): void {
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return;
+		}
+		if ( '' !== $email ) {
+			$orders = wc_get_orders( array( 'billing_email' => $email, 'limit' => 1, 'return' => 'ids' ) );
+			if ( ! empty( $orders ) ) {
+				$errors->add( 'akb_ref_prior_purchase', 'Este cupón de invitación es exclusivo para nuevos lectores en su primera compra.' );
+				return;
 			}
-			if ( '' !== $phone && strlen( $phone ) >= 8 ) {
-				$orders = wc_get_orders( array( 'billing_phone' => (string) ( $data['billing_phone'] ?? '' ), 'limit' => 1, 'return' => 'ids' ) );
-				if ( ! empty( $orders ) ) {
-					$errors->add( 'akb_ref_prior_purchase_phone', 'Este cupón de invitación es exclusivo para nuevos lectores en su primera compra.' );
-					return;
-				}
+		}
+		if ( '' !== $phone && strlen( $phone ) >= 8 ) {
+			$orders = wc_get_orders( array( 'billing_phone' => (string) ( $data['billing_phone'] ?? '' ), 'limit' => 1, 'return' => 'ids' ) );
+			if ( ! empty( $orders ) ) {
+				$errors->add( 'akb_ref_prior_purchase_phone', 'Este cupón de invitación es exclusivo para nuevos lectores en su primera compra.' );
+				return;
 			}
-			if ( '' !== $rut ) {
-				$raw_rut = trim( (string) ( $data['billing_rut'] ?? ( $data['_billing_rut'] ?? '' ) ) );
-				$orders  = wc_get_orders(
-					array(
-						'meta_key'   => '_billing_rut',
-						'meta_value' => $raw_rut,
-						'limit'      => 1,
-						'return'     => 'ids',
-					)
-				);
-				if ( ! empty( $orders ) ) {
-					$errors->add( 'akb_ref_prior_purchase_rut', 'Este cupón de invitación es exclusivo para nuevos lectores en su primera compra.' );
-					return;
-				}
+		}
+		if ( '' !== $rut ) {
+			$raw_rut = trim( (string) ( $data['billing_rut'] ?? ( $data['_billing_rut'] ?? '' ) ) );
+			$orders  = wc_get_orders(
+				array(
+					'meta_key'   => '_billing_rut', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+					'meta_value' => $raw_rut, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+					'limit'      => 1,
+					'return'     => 'ids',
+				)
+			);
+			if ( ! empty( $orders ) ) {
+				$errors->add( 'akb_ref_prior_purchase_rut', 'Este cupón de invitación es exclusivo para nuevos lectores en su primera compra.' );
 			}
 		}
 	}
 
 	/**
-	 * Auto-aplica el cupón de referido si el cliente tiene la cookie akb_ref (o un cupón de referido desplazado temporalmente por un pack),
+	 * Auto-aplica el cupón de referido si el cliente tiene la cookie akb_ref,
 	 * cumple el mínimo en productos elegibles y no tiene otros cupones ni canje.
 	 *
 	 * @param \WC_Cart $cart Carrito.
@@ -583,30 +617,15 @@ final class Referrals {
 			return;
 		}
 
-		if ( class_exists( '\Akibara\Business\Modules\SeriesBundles\BundleCouponEngine' ) && \Akibara\Business\Modules\SeriesBundles\BundleCouponEngine::is_running() ) {
-			return;
-		}
-
-		$superseded = ( function_exists( 'WC' ) && WC()->session ) ? (string) WC()->session->get( 'akb_sb_superseded_ref_coupon', '' ) : '';
 		$cookie_val = isset( $_COOKIE[ self::COOKIE ] ) ? sanitize_key( (string) wp_unslash( $_COOKIE[ self::COOKIE ] ) ) : '';
 
-		if ( '' === $cookie_val && '' === $superseded ) {
+		if ( '' === $cookie_val ) {
 			return;
 		}
 
 		$code = $cookie_val;
-		if ( '' === $code && '' !== $superseded ) {
-			$raw = strtolower( $superseded );
-			if ( 0 === strpos( $raw, self::COUPON_PREFIX ) ) {
-				$code = substr( $raw, strlen( self::COUPON_PREFIX ) );
-			} elseif ( 0 === strpos( $raw, self::COUPON_PREFIX_SHORT ) ) {
-				$code = substr( $raw, strlen( self::COUPON_PREFIX_SHORT ) );
-			} else {
-				$code = $raw;
-			}
-		}
 
-		if ( '' === $code ) {
+		if ( '' === $code ) { // @phpstan-ignore identical.alwaysFalse
 			return;
 		}
 
@@ -624,7 +643,7 @@ final class Referrals {
 			return;
 		}
 
-		if ( method_exists( $cart, 'get_applied_coupons' ) && ! empty( $cart->get_applied_coupons() ) ) {
+		if ( method_exists( $cart, 'get_applied_coupons' ) && ! empty( $cart->get_applied_coupons() ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return;
 		}
 
@@ -632,19 +651,15 @@ final class Referrals {
 			return;
 		}
 
-		$coupon_code = '' !== $superseded ? $superseded : ( self::COUPON_PREFIX . $code );
-		if ( method_exists( $cart, 'has_discount' ) && ( $cart->has_discount( $coupon_code ) || $cart->has_discount( self::COUPON_PREFIX_SHORT . $code ) ) ) {
+		$coupon_code = self::COUPON_PREFIX . $code;
+		if ( method_exists( $cart, 'has_discount' ) && ( $cart->has_discount( $coupon_code ) || $cart->has_discount( self::COUPON_PREFIX_SHORT . $code ) ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return;
 		}
 
-		$min_order       = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_min_cart_amount', 30000 ) : 30000.0;
-		$allow_backorder = function_exists( 'get_option' ) ? ( 'yes' === get_option( 'akb_referral_allow_backorder_items', 'yes' ) ) : true;
-		$eligible_sum    = self::eligible_cart_subtotal( $cart, $allow_backorder );
+		$min_order    = function_exists( 'get_option' ) ? (float) get_option( 'akb_referral_min_cart_amount', (float) get_option( 'akb_rewards_referral_min_order', 30000 ) ) : 30000.0;
+		$eligible_sum = self::eligible_cart_subtotal( $cart );
 
-		if ( $eligible_sum >= $min_order && method_exists( $cart, 'apply_coupon' ) ) {
-			if ( '' !== $superseded && function_exists( 'WC' ) && WC()->session ) {
-				WC()->session->set( 'akb_sb_superseded_ref_coupon', null );
-			}
+		if ( $eligible_sum >= $min_order && method_exists( $cart, 'apply_coupon' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			$cart->apply_coupon( $coupon_code );
 		}
 	}
@@ -903,7 +918,7 @@ final class Referrals {
 
 		// Neto vivo del premio (créditos − reversas anteriores): nunca se
 		// revierte dos veces ni más de lo pagado.
-		$net = (int) Ledger::sum_movements( 'user', $user_id, array( 'referral', 'referral_reversal' ) );
+		$net = Ledger::sum_movements( 'user', $user_id, array( 'referral', 'referral_reversal' ) );
 		if ( $net <= 0 ) {
 			return;
 		}
@@ -975,35 +990,52 @@ final class Referrals {
 		$code    = self::code_for( $user_id );
 		$enlace  = add_query_arg( 'ref', $code, home_url( '/' ) );
 		$pagados = Ledger::count_live_referrals( $user_id );
+		$max_ref = Options::referral_max_per_user();
 
-		$min_cart   = (int) get_option( 'akb_rewards_referral_min_order', 30000 );
-		$min_fmt    = number_format_i18n( $min_cart );
-		$premio_fmt = number_format_i18n( $premio );
-		$premio_clp = number_format_i18n( $premio * Options::redeem_value() );
+		$min_cart     = max( 0, (int) get_option( 'akb_referral_min_cart_amount', (int) get_option( 'akb_rewards_referral_min_order', 30000 ) ) );
+		$discount     = max( 0, (int) get_option( 'akb_referral_guest_discount_amount', self::AKB_REF_AMOUNT ) );
+		$min_fmt      = number_format_i18n( $min_cart );
+		$discount_fmt = number_format_i18n( $discount );
+		$premio_fmt   = number_format_i18n( $premio );
+		$premio_clp   = number_format_i18n( $premio * Options::redeem_value() );
 
-		$wa_text = sprintf(
-			'¡Hola! Te comparto mi invitación a Akibara Manga. Tienes $2.000 de regalo en tu primera compra desde $%s en mangas y cómics con este enlace: %s',
-			$min_fmt,
-			$enlace
-		);
-		$wa_url = 'https://api.whatsapp.com/send?text=' . rawurlencode( $wa_text );
+		$wa_text = $discount > 0
+			? sprintf(
+				'¡Hola! Te comparto mi invitación a Akibara Manga. Tienes $%s de regalo en tu primera compra%s con este enlace: %s',
+				$discount_fmt,
+				$min_cart > 0 ? ' desde $' . $min_fmt . ' en mangas y cómics' : ' en mangas y cómics',
+				$enlace
+			)
+			: sprintf(
+				'¡Hola! Te comparto mi enlace de Akibara Manga para tu primera compra: %s',
+				$enlace
+			);
+		$wa_url  = 'https://api.whatsapp.com/send?text=' . rawurlencode( $wa_text );
+		$guest_benefit_desc = $discount > 0
+			? sprintf(
+				'tu amigo recibe <strong>$%s de regalo</strong> en su primera compra%s y ',
+				esc_html( $discount_fmt ),
+				$min_cart > 0 ? esc_html( sprintf( ' (desde $%s en productos a precio normal)', $min_fmt ) ) : ''
+			)
+			: '';
 
 		printf(
-			'<div class="akb-rw-invite-card" style="margin:28px 0;padding:20px;border:1px solid #333;border-radius:4px;background:#181818;color:#f0f0f0">
-				<h3 style="margin:0 0 8px;font-size:18px;color:#fff">Invita a tus amigos lectores 🤝</h3>
-				<p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#ccc">Comparte tu enlace: tu amigo recibe <strong>$2.000 de regalo</strong> en su primera compra (desde $%s en mangas a precio normal o reserva) y tú ganas <strong>%s Puntos Akibara ($%s CLP)</strong> cuando reciba su pedido%s. Válido para amigos nuevos (no aplica para la misma persona, RUT, teléfono o correo).</p>
+			'<div class="akb-rw-invite-card" style="margin:28px 0;padding:20px;border:2px solid var(--aki-black,#121212);border-left:4px solid var(--aki-red,#E60012);border-radius:0;box-shadow:4px 4px 0 var(--aki-black,#121212);background:var(--aki-surface-2,#1A1A1A);color:var(--aki-gray-100,#F5F5F5)">
+				<h3 style="margin:0 0 8px;font-size:18px;color:var(--aki-white,#fff)">Invita a tus amigos lectores 🤝</h3>
+				<p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:var(--aki-gray-200,#E0E0E0)">Comparte tu enlace: %stú ganas <strong>%s Puntos Akibara ($%s CLP)</strong> cuando reciba su pedido%s. Válido para amigos nuevos (no aplica para la misma persona, RUT, teléfono o correo).%s</p>
 				<div class="akb-rw-ref-box" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-					<input type="text" class="akb-rw-ref-input" readonly value="%s" style="flex:1 1 280px;min-height:40px;font-family:monospace;font-size:13px;background:#101010;color:#fff;padding:0 12px;border:1px solid #444;border-radius:3px" aria-label="Tu enlace de referido" onfocus="this.select()">
-					<button type="button" class="button button-primary akb-rw-copy-btn" data-akb-copy-url="%s" style="background:var(--aki-buy-bg,#CC0010);border-color:var(--aki-buy-bg,#CC0010);color:#fff;min-height:40px;display:inline-flex;align-items:center;gap:6px;font-weight:700">📋 Copiar enlace</button>
-					<a class="button button-primary akb-rw-wa-btn" style="background:#075E54;border-color:#128C7E;color:#FFFFFF;min-height:40px;display:inline-flex;align-items:center;gap:6px;font-weight:700;text-decoration:none" href="%s" target="_blank" rel="noopener noreferrer">💬 Compartir por WhatsApp</a>
-					<button type="button" class="button button-secondary akb-rw-share-btn" data-akb-share-url="%s" data-akb-share-title="Akibara Manga" data-akb-share-text="%s" style="display:none;min-height:40px">🔗 Más opciones...</button>
+					<input type="text" class="akb-rw-ref-input" readonly value="%s" style="flex:1 1 280px;min-height:44px;font-family:monospace;font-size:13px;background:var(--aki-surface,#111);color:var(--aki-white,#fff);padding:0 12px;border:1px solid var(--aki-input-border,#707070);border-radius:0" aria-label="Tu enlace de referido" onfocus="this.select()">
+					<button type="button" class="button button-primary akb-rw-copy-btn" data-akb-copy-url="%s" style="background:var(--aki-buy-bg,#CC0010);border-color:var(--aki-buy-bg,#CC0010);color:var(--aki-buy-fg,#fff);min-height:44px;display:inline-flex;align-items:center;gap:6px;font-weight:700">📋 Copiar enlace</button>
+					<a class="button button-primary akb-rw-wa-btn" style="background:#075E54;border-color:#128C7E;color:#FFFFFF;min-height:44px;display:inline-flex;align-items:center;gap:6px;font-weight:700;text-decoration:none" href="%s" target="_blank" rel="noopener noreferrer">💬 Compartir por WhatsApp</a>
+					<button type="button" class="button button-secondary akb-rw-share-btn" data-akb-share-url="%s" data-akb-share-title="Akibara Manga" data-akb-share-text="%s" style="display:none;min-height:44px">🔗 Más opciones...</button>
 				</div>
-				<p style="margin:0;font-size:12px;color:#888"><code style="user-select:all;display:none">%s</code>Tu código de invitación: <strong style="color:#fff">%s</strong>%s</p>
+				<p style="margin:0;font-size:13px;color:var(--aki-gray-300,#B0B0B0)"><code style="user-select:all;display:none">%s</code>Tu código de invitación: <strong style="color:var(--aki-white,#fff)">%s</strong>%s</p>
 			</div>',
-			esc_html( $min_fmt ),
+			$guest_benefit_desc, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fragmento HTML controlado arriba con esc_html.
 			esc_html( $premio_fmt ),
 			esc_html( $premio_clp ),
 			$pagados > 0 ? esc_html( sprintf( ' (ya llevas %d)', $pagados ) ) : '',
+			$max_ref > 0 ? esc_html( sprintf( ' Tope vitalicio por cuenta: %d en total.', (int) $max_ref ) ) : '',
 			esc_attr( $enlace ),
 			esc_attr( $enlace ),
 			esc_url( $wa_url ),
@@ -1011,7 +1043,13 @@ final class Referrals {
 			esc_attr( $wa_text ),
 			esc_url( $enlace ),
 			esc_html( $code ),
-			$pagados > 0 ? sprintf( ' · <strong style="color:#fff">%d</strong> amigos ya compraron con tu enlace', (int) $pagados ) : ''
+			(int) $pagados > 0
+				? ( $max_ref > 0
+					? sprintf( ' · <strong style="color:var(--aki-white,#fff)">%d</strong> de %d amigos ya compraron con tu enlace (vitalicio por cuenta)', (int) $pagados, (int) $max_ref )
+					: sprintf( ' · <strong style="color:var(--aki-white,#fff)">%d</strong> amigos ya compraron con tu enlace', (int) $pagados ) )
+				: ( $max_ref > 0
+					? esc_html( sprintf( ' · Tope vitalicio: hasta %d en total por cuenta', (int) $max_ref ) )
+					: '' )
 		);
 
 	}

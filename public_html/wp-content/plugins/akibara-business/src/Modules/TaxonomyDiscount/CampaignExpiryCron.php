@@ -15,6 +15,7 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\TaxonomyDiscount;
 
+use Akibara\Business\Modules\DiscountCopy\DiscountCopy;
 use Akibara\Business\Utilities\Log;
 use Akibara\Business\Utilities\StoreTime;
 
@@ -22,6 +23,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.5
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
  */
 final class CampaignExpiryCron {
 
@@ -54,8 +58,18 @@ final class CampaignExpiryCron {
 	 */
 	public function maybe_schedule(): void {
 		if ( ! wp_next_scheduled( self::HOOK ) ) {
-			wp_schedule_event( time(), self::SCHEDULE, self::HOOK );
+			wp_schedule_event( self::next_midnight_sweep_timestamp(), self::SCHEDULE, self::HOOK );
 		}
+	}
+
+	/**
+	 * Calcula la próxima 00:02:00 en la zona horaria oficial de la tienda (resistente a DST).
+	 */
+	private static function next_midnight_sweep_timestamp(): int {
+		$zone = StoreTime::zone();
+		$next = ( new \DateTimeImmutable( 'now', $zone ) )->modify( '+1 day' )->setTime( 0, 2, 0 );
+
+		return $next->getTimestamp();
 	}
 
 	/**
@@ -82,6 +96,14 @@ final class CampaignExpiryCron {
 		}
 
 		if ( ! update_option( Settings::OPTION_ENABLED, 'no' ) ) {
+			// La campaña ya venció por fechas aunque el interruptor siga en 'yes': limpiar igual foto y caché.
+			if ( class_exists( DiscountCopy::class ) ) {
+				DiscountCopy::forget();
+			}
+			if ( function_exists( 'do_action' ) ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- hook público de LiteSpeed Cache.
+				do_action( 'litespeed_purge_all' );
+			}
 			Log::warn(
 				'descuentos',
 				'La campaña terminó el ' . $to . ' pero el interruptor no se pudo apagar: la escritura de la option fue rechazada. Se reintenta mañana.'

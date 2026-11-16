@@ -34,6 +34,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
  */
 final class DigestQueue {
 
@@ -64,6 +65,7 @@ final class DigestQueue {
 	public const DROP_OWNED       = 'owned';
 	public const DROP_OPTOUT      = 'optout';
 	public const DROP_UNPUBLISHED = 'unpublished';
+	public const DROP_BIS         = 'bis';
 
 	/** Intentos de envío antes de dar la fila por perdida. */
 	public const MAX_ATTEMPTS = 3;

@@ -40,12 +40,12 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\SeriesFollow;
 
-use Akibara\Business\Modules\AccountCollection\Endpoint;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class GlobalToggle {
 
@@ -133,7 +133,7 @@ final class GlobalToggle {
 			$this->notice( self::NOTICE_OFF, 'success' );
 		} elseif ( self::VALUE_ON === $value ) {
 			FollowRegistry::opt_in_all( $user_id );
-			$this->notice( self::NOTICE_ON, 'success' );
+			$this->notice( SeriesFollow::enabled() ? self::NOTICE_ON : 'Preferencia guardada. Los avisos automáticos están pausados.', 'success' );
 			if ( array() !== FollowRegistry::opted_out_terms( $user_id ) ) {
 				$this->notice( self::NOTICE_ON_PARTIAL, 'notice' );
 			}
@@ -155,8 +155,7 @@ final class GlobalToggle {
 	 * @return void
 	 */
 	private function reject( string $message ): void {
-		if ( function_exists( 'WC' ) && isset( WC()->session ) && is_callable( array( WC()->session, 'set_customer_session_cookie' ) ) ) {
-			WC()->session->set_customer_session_cookie( true );
+		if ( function_exists( 'WC' ) && isset( WC()->session ) && is_callable( array( WC()->session, 'set_customer_session_cookie' ) ) ) {			WC()->session->set_customer_session_cookie( true ); // @phpstan-ignore isset.property
 		}
 
 		$this->notice( $message, 'error' );
@@ -183,7 +182,8 @@ final class GlobalToggle {
 	 * @return void
 	 */
 	private function redirect(): void {
-		wp_safe_redirect( Endpoint::url() );
+		$target = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'myaccount' ) : home_url( '/mi-cuenta/' );
+		wp_safe_redirect( $target );
 
 		/**
 		 * Cortocircuito para pruebas (evita el `exit`), como

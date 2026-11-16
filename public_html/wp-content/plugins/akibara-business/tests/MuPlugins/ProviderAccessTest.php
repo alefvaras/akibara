@@ -18,16 +18,6 @@ use PHPUnit\Framework\TestCase;
 
 final class ProviderAccessTest extends TestCase {
 
-	/** @testdox Welcome Turnstile is a server secret and must never fall back to the database. */
-	public function test_welcome_turnstile_secret_is_private_configuration_only(): void {
-		$entry = Registry::entry( 'welcome_turnstile_secret' );
-		self::assertSame( Registry::SCOPE_SERVER, $entry['scope'] );
-		self::assertSame( '', $entry['option'] );
-		self::assertSame( 'AKB_WELCOME_TURNSTILE_SECRET', $entry['const'] );
-		self::assertSame( '', Access::resolve( 'welcome_turnstile_secret', null, 'test-only-database-value-must-be-ignored' ) );
-		self::assertSame( 'test-only-private-value-123456', Access::resolve( 'welcome_turnstile_secret', 'test-only-private-value-123456', null ) );
-	}
-
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();

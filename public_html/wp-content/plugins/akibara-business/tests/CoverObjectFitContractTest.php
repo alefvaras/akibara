@@ -29,9 +29,7 @@ final class CoverObjectFitContractTest extends TestCase {
 			'carrito'            => array( 'native-cart-v2.css', '.akb-cart-item-img img' ),
 			'venta cruzada'      => array( 'native-cart-v2.css', '.akb-cs-img img' ),
 			'vista rápida'       => array( 'quick-view.css', '.akb-qv__media img' ),
-			'mi colección'       => array( 'account-collection.css', '.akb-account-collection__cover img' ),
 			'vitrina de series'  => array( 'home-series-destacadas.css', '.akb-home-series__cover img' ),
-			'tarjeta de edición' => array( 'brand-family.css', '.akb-edition-card__covers img' ),
 		);
 	}
 

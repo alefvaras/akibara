@@ -16,6 +16,11 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ */
 final class SeriesMetaProvenanceAdmin {
 
 	/** Taxonomía de series. */

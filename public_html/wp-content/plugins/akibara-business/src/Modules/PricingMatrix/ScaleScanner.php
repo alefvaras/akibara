@@ -14,6 +14,10 @@ use Akibara\Business\Modules\Stock\StockStatus;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidOperand
+ */
 final class ScaleScanner {
 
 	/**
@@ -22,7 +26,7 @@ final class ScaleScanner {
 	 *
 	 * @return list<array<string, mixed>>
 	 */
-	public static function scan_editorial_scales(): array {
+	public static function scan_editorial_scales(): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		global $wpdb;
 
 		$rows = $wpdb->get_results(
@@ -35,7 +39,6 @@ final class ScaleScanner {
 					CAST(pm_reg.meta_value AS UNSIGNED) AS escala_precio_regular,
 					COUNT(DISTINCT p.ID) AS total_tomos,
 					SUM(CASE WHEN pm_st.meta_value = %s THEN 1 ELSE 0 END) AS en_stock,
-					SUM(CASE WHEN pm_st.meta_value = %s THEN 1 ELSE 0 END) AS a_pedido,
 					SUM(CASE WHEN pm_st.meta_value = %s THEN 1 ELSE 0 END) AS agotados,
 					MIN(CAST(NULLIF(pm_sale.meta_value, '') AS UNSIGNED)) AS min_sale_actual,
 					MAX(CAST(NULLIF(pm_sale.meta_value, '') AS UNSIGNED)) AS max_sale_actual
@@ -57,7 +60,6 @@ final class ScaleScanner {
 				GROUP BY t_brand.term_id, t_brand.name, t_brand.slug, tm_country.meta_value, CAST(pm_reg.meta_value AS UNSIGNED)
 				ORDER BY t_brand.name ASC, escala_precio_regular ASC",
 				StockStatus::IN_STOCK,
-				StockStatus::ON_BACKORDER,
 				StockStatus::OUT_OF_STOCK,
 				'_stock_status'
 			),
@@ -77,9 +79,8 @@ final class ScaleScanner {
 			$key            = $brand_id . ':' . $scale_reg;
 
 			$meta        = $scale_meta[ $key ] ?? array(
-				'locked_pids'   => array(),
-				'locked_orders' => array(),
-				'series'        => array(),
+				'series'       => array(),
+				'series_items' => array(),
 			);
 			$series_list = array_keys( $meta['series'] );
 			sort( $series_list, SORT_NATURAL | SORT_FLAG_CASE );
@@ -102,13 +103,12 @@ final class ScaleScanner {
 				'escala_precio_regular' => $scale_reg,
 				'total_tomos'           => (int) ( $row['total_tomos'] ?? 0 ),
 				'en_stock'              => (int) ( $row['en_stock'] ?? 0 ),
-				'a_pedido'              => (int) ( $row['a_pedido'] ?? 0 ),
 				'agotados'              => (int) ( $row['agotados'] ?? 0 ),
 				'min_sale_actual'       => null !== $row['min_sale_actual'] ? (int) $row['min_sale_actual'] : null,
 				'max_sale_actual'       => null !== $row['max_sale_actual'] ? (int) $row['max_sale_actual'] : null,
-				'comprometidos_count'   => count( $meta['locked_pids'] ),
-				'comprometidos_pids'    => array_keys( $meta['locked_pids'] ),
-				'comprometidos_orders'  => array_keys( $meta['locked_orders'] ),
+				'comprometidos_count'   => 0,
+				'comprometidos_pids'    => array(),
+				'comprometidos_orders'  => array(),
 				'series_count'          => count( $series_list ),
 				'series_names'          => $series_list,
 				'series_items'          => $series_items,
@@ -124,9 +124,9 @@ final class ScaleScanner {
 	}
 
 	/**
-	 * Construye en una sola consulta el mapa de series y productos bloqueados por (brand_id:escala).
+	 * Construye en una sola consulta el mapa de series por (brand_id:escala).
 	 *
-	 * @return array<string, array{locked_pids: array<int, true>, locked_orders: array<int, true>, series: array<string, true>}>
+	 * @return array<string, array{series: array<string, true>, series_items: array<int, array{id: int, name: string, count: int}>}>
 	 */
 	private static function build_scale_meta_map(): array {
 		global $wpdb;
@@ -158,12 +158,9 @@ final class ScaleScanner {
 			return array();
 		}
 
-		$locked_ids = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-		$locked_map = OrderLockGuard::get_locked_map_by_product();
 		$scale_meta = array();
 
 		foreach ( $prod_rows as $pr ) {
-			$pid   = (int) ( $pr['product_id'] ?? 0 );
 			$bid   = (int) ( $pr['brand_id'] ?? 0 );
 			$scale = (int) ( $pr['escala_precio_regular'] ?? 0 );
 			$sid   = (int) ( $pr['serie_id'] ?? 0 );
@@ -172,10 +169,8 @@ final class ScaleScanner {
 
 			if ( ! isset( $scale_meta[ $key ] ) ) {
 				$scale_meta[ $key ] = array(
-					'locked_pids'   => array(),
-					'locked_orders' => array(),
-					'series'        => array(),
-					'series_items'  => array(),
+					'series'       => array(),
+					'series_items' => array(),
 				);
 			}
 
@@ -189,33 +184,12 @@ final class ScaleScanner {
 							'count' => 0,
 						);
 					}
-					$scale_meta[ $key ]['series_items'][ $sid ]['count']++;
+					++$scale_meta[ $key ]['series_items'][ $sid ]['count'];
 				}
-			}
-
-			if ( isset( $locked_ids[ $pid ] ) ) {
-				$scale_meta[ $key ]['locked_pids'][ $pid ] = true;
-				self::append_locked_order_ids( $scale_meta[ $key ]['locked_orders'], $locked_map[ $pid ] ?? array() );
 			}
 		}
 
 		return $scale_meta;
-	}
-
-	/**
-	 * Agrega los order_id asociados a un producto bloqueado.
-	 *
-	 * @param array<int, true>            $target     Mapa acumulador de order_ids.
-	 * @param list<array<string, mixed>>  $order_rows Filas de órdenes del producto.
-	 * @return void
-	 */
-	private static function append_locked_order_ids( array &$target, array $order_rows ): void {
-		foreach ( $order_rows as $order_row ) {
-			$oid = (int) ( $order_row['order_id'] ?? 0 );
-			if ( $oid > 0 ) {
-				$target[ $oid ] = true;
-			}
-		}
 	}
 
 	/**
@@ -331,8 +305,7 @@ final class ScaleScanner {
 			return array();
 		}
 
-		$locked_set = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-		$grouped    = array();
+		$grouped = array();
 
 		foreach ( $rows as $row ) {
 			if ( ! self::is_standard_volume_row( $row ) ) {
@@ -355,7 +328,6 @@ final class ScaleScanner {
 					'editorial_slug' => (string) ( $row['editorial_slug'] ?? '' ),
 					'scales'         => array(),
 					'products'       => array(),
-					'locked_pids'    => array(),
 				);
 			}
 
@@ -364,11 +336,8 @@ final class ScaleScanner {
 				'product_id'    => $pid,
 				'title'         => (string) ( $row['post_title'] ?? '' ),
 				'regular_price' => $reg,
-				'locked'        => isset( $locked_set[ $pid ] ),
+				'locked'        => false,
 			);
-			if ( isset( $locked_set[ $pid ] ) ) {
-				$grouped[ $key ]['locked_pids'][ $pid ] = true;
-			}
 		}
 
 		return self::format_series_discrepancies( $grouped );
@@ -434,7 +403,7 @@ final class ScaleScanner {
 				'dominant_scale' => $dominant_scale,
 				'average_price'  => $average_price,
 				'total_tomos'    => count( $entry['products'] ),
-				'locked_count'   => count( $entry['locked_pids'] ),
+				'locked_count'   => 0,
 				'product_ids'    => array_keys( $entry['products'] ),
 			);
 		}
@@ -445,95 +414,5 @@ final class ScaleScanner {
 		);
 
 		return $discrepancies;
-	}
-
-	/**
-	 * Escanea productos en `outofstock` elegibles para rescate a `onbackorder`
-	 * (`_akb_eta_type = 'auto'` o vacío, excluyendo siempre `OrderLockGuard::get_locked_product_ids()`).
-	 *
-	 * @param int|null $brand_id Filtrar por ID de editorial opcional.
-	 * @return list<array<string, mixed>>
-	 */
-	public static function scan_rescuable_outofstock( ?int $brand_id = null ): array {
-		global $wpdb;
-
-		$locked_ids  = OrderLockGuard::get_locked_product_ids();
-		$locked_map  = array_fill_keys( $locked_ids, true );
-		$brand_where = ( null !== $brand_id && $brand_id > 0 )
-			? $wpdb->prepare( ' AND tt_brand.term_id = %d', $brand_id )
-			: '';
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $brand_where viene de $wpdb->prepare() o cadena vacía.
-		$sql = $wpdb->prepare(
-			"SELECT
-				p.ID AS product_id,
-				p.post_title,
-				t_brand.term_id AS brand_id,
-				t_brand.name AS editorial,
-				t_brand.slug AS editorial_slug,
-				CAST(pm_reg.meta_value AS UNSIGNED) AS regular_price,
-				COALESCE(pm_eta.meta_value, 'auto') AS eta_type,
-				pm_oos.meta_value AS out_of_stock_at
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
-			INNER JOIN {$wpdb->term_taxonomy} tt_brand
-				ON tr_brand.term_taxonomy_id = tt_brand.term_taxonomy_id AND tt_brand.taxonomy = 'product_brand'{$brand_where}
-			INNER JOIN {$wpdb->terms} t_brand ON tt_brand.term_id = t_brand.term_id
-			INNER JOIN {$wpdb->postmeta} pm_st
-				ON p.ID = pm_st.post_id AND pm_st.meta_key = %s AND pm_st.meta_value = %s
-			INNER JOIN {$wpdb->postmeta} pm_reg
-				ON p.ID = pm_reg.post_id AND pm_reg.meta_key = '_regular_price' AND pm_reg.meta_value != ''
-			LEFT JOIN {$wpdb->postmeta} pm_eta
-				ON p.ID = pm_eta.post_id AND pm_eta.meta_key = '_akb_eta_type'
-			LEFT JOIN {$wpdb->postmeta} pm_oos
-				ON p.ID = pm_oos.post_id AND pm_oos.meta_key = '_akb_out_of_stock_at'
-			WHERE p.post_type = 'product'
-			  AND p.post_status = 'publish'
-			ORDER BY t_brand.name ASC, p.post_title ASC",
-			'_stock_status',
-			StockStatus::OUT_OF_STOCK
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contiene únicamente tablas de $wpdb y $brand_where ya preparado.
-		$rows = $wpdb->get_results( $sql, ARRAY_A );
-		if ( ! is_array( $rows ) ) {
-			return array();
-		}
-
-		$candidates = array();
-		foreach ( $rows as $row ) {
-			$pid = (int) ( $row['product_id'] ?? 0 );
-			if ( $pid <= 0 || isset( $locked_map[ $pid ] ) ) {
-				continue;
-			}
-			$eta_type = trim( (string) ( $row['eta_type'] ?? '' ) );
-			if ( '' !== $eta_type && 'auto' !== $eta_type ) {
-				continue;
-			}
-			$reg  = (int) ( $row['regular_price'] ?? 0 );
-			$slug = (string) ( $row['editorial_slug'] ?? '' );
-			if ( $reg <= 0 ) {
-				continue;
-			}
-
-			$rule = PricingRulesRepository::resolve_rule_for_scale( $slug, $reg );
-			$oos_ts = ! empty( $row['out_of_stock_at'] ) && is_numeric( $row['out_of_stock_at'] ) ? (int) $row['out_of_stock_at'] : null;
-			$dias_agotado = null !== $oos_ts ? (int) max( 0, floor( ( time() - $oos_ts ) / DAY_IN_SECONDS ) ) : null;
-			$candidates[] = array(
-				'product_id'           => $pid,
-				'title'                => (string) ( $row['post_title'] ?? '' ),
-				'brand_id'             => (int) ( $row['brand_id'] ?? 0 ),
-				'editorial'            => (string) ( $row['editorial'] ?? '' ),
-				'editorial_slug'       => $slug,
-				'regular_price'        => $reg,
-				'proposed_sale_price'  => (int) $rule['sale_price'],
-				'eta_type'             => '' === $eta_type ? 'auto' : $eta_type,
-				'out_of_stock_at'      => $oos_ts,
-				'dias_agotado'         => $dias_agotado,
-			);
-		}
-
-		return $candidates;
 	}
 }

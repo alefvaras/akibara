@@ -82,7 +82,7 @@ $akb_render_footer_column = static function ( string $location, string $title, s
 				?>
 				</a>
 				<p class="footer-brand__desc">
-					<strong>Tu rincón de Akihabara en Chile.</strong> Librería online de manga y cómics, disponibles y a pedido. Envíos a todo Chile.
+					<strong>Tu rincón de Akihabara en Chile.</strong> Librería online de manga y cómics. Envíos a todo Chile.
 				</p>
 			<?php
 			// Información pública coherente con una operación 100% online. San Miguel

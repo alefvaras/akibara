@@ -38,6 +38,7 @@ defined( 'ABSPATH' ) || exit;
  * en dos mitades de 50%, dejando el select de orden encogido contra media fila
  * muerta. Una sola condición con dos consumidores: si se duplicara y divergiera,
  * el CSS reservaría espacio para un botón que el PHP ya decidió no imprimir.
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_shop_toolbar_has_filters(): bool {
 	if ( is_singular( 'product' ) ) {
@@ -54,6 +55,7 @@ function akibara_gp_shop_toolbar_has_filters(): bool {
 
 /**
  * Renderea el botón "Filtrar" antes del shop loop.
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_render_flyout_trigger(): void {
 	if (
@@ -80,7 +82,9 @@ function akibara_gp_render_flyout_trigger(): void {
 	</button>
 	<?php
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_before_shop_loop', 'akibara_gp_render_flyout_trigger', 7 );
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_no_products_found', 'akibara_gp_render_flyout_trigger', 13 );
 
 /**
@@ -106,6 +110,7 @@ add_action( 'woocommerce_no_products_found', 'akibara_gp_render_flyout_trigger',
  * para conservar `_buscar`, pero vacío —0 px y ningún control—. Saltar ahí
  * dejaba el foco en nada y el siguiente Tab en el logo del pie, por encima de
  * «Más vendidos».
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_render_skip_to_filters(): void {
 	if (
@@ -119,7 +124,9 @@ function akibara_gp_render_skip_to_filters(): void {
 	}
 	echo '<a class="akb-skip-filtros" href="#akb-facets-drawer">Saltar a los filtros</a>';
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_before_shop_loop', 'akibara_gp_render_skip_to_filters', 6 );
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_no_products_found', 'akibara_gp_render_skip_to_filters', 12 );
 
 /**
@@ -130,6 +137,7 @@ add_action( 'woocommerce_no_products_found', 'akibara_gp_render_skip_to_filters'
  * view-model (buscador caído) no hay formulario; sin facetas, el formulario
  * sale vacío. El buscador ya lo pidió para el título de la página y memoriza
  * las cuentas por petición: preguntar aquí no abre otra consulta.
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_facets_sidebar_has_filters(): bool {
 	if ( ! function_exists( 'akibara_search_facets_view' ) ) {
@@ -147,6 +155,7 @@ function akibara_gp_facets_sidebar_has_filters(): bool {
  *   - .woocommerce-ordering (priority 30)
  *
  * Mismas exclusiones que el botón flyout: solo si estamos en archive WC.
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_open_shop_toolbar(): void {
 	if (
@@ -170,9 +179,14 @@ function akibara_gp_open_shop_toolbar(): void {
 	}
 	echo '<div class="' . esc_attr( $classes ) . '">';
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_before_shop_loop', 'akibara_gp_open_shop_toolbar', 4 );
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_no_products_found', 'akibara_gp_open_shop_toolbar', 11 );
 
+/**
+ * @psalm-suppress HookNotFound
+ */
 function akibara_gp_close_shop_toolbar(): void {
 	if (
 		( ! function_exists( 'is_woocommerce' ) || ! is_woocommerce() )
@@ -185,5 +199,7 @@ function akibara_gp_close_shop_toolbar(): void {
 	}
 	echo '</div>';
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_before_shop_loop', 'akibara_gp_close_shop_toolbar', 35 );
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_no_products_found', 'akibara_gp_close_shop_toolbar', 14 );

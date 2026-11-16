@@ -28,6 +28,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.4.15
+ * @api
  */
 final class QueueHooks {
 
@@ -38,6 +39,7 @@ final class QueueHooks {
 		'akb_rewards_birthday_daily',
 		'akb_rewards_redemption_retry',
 		'akb_rewards_accrual_sweep_daily',
+		'akb_rewards_release_accrual_escrow',
 		'akb_rewards_send_review_invite',
 		'akb_rewards_order_email_retry',
 		'akb_rewards_review_email_retry',

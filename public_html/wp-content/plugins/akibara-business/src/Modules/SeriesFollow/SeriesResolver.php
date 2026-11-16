@@ -32,6 +32,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
  */
 final class SeriesResolver {
 
@@ -55,7 +56,7 @@ final class SeriesResolver {
 		}
 
 		$term = reset( $terms );
-		if ( ! is_object( $term ) || ! isset( $term->term_id, $term->term_taxonomy_id ) ) {
+		if ( ! is_object( $term ) || ! isset( $term->term_id, $term->term_taxonomy_id ) ) { // @phpstan-ignore isset.property, isset.property
 			return null;
 		}
 
@@ -86,7 +87,7 @@ final class SeriesResolver {
 		return array(
 			'term_id'          => $term_id,
 			'term_taxonomy_id' => $term_taxonomy_id,
-			'name'             => isset( $term->name ) ? (string) $term->name : '',
+			'name'             => isset( $term->name ) ? (string) $term->name : '', // @phpstan-ignore isset.property
 			'volume'           => $volume,
 		);
 	}
@@ -114,7 +115,7 @@ final class SeriesResolver {
 		// Mismas dos puertas de identidad del término que `resolve()`: un
 		// término sin ids no es una serie utilizable (revisión independiente, B1).
 		$term = reset( $terms );
-		if ( ! is_object( $term ) || ! isset( $term->term_id, $term->term_taxonomy_id )
+		if ( ! is_object( $term ) || ! isset( $term->term_id, $term->term_taxonomy_id ) // @phpstan-ignore isset.property, isset.property
 			|| (int) $term->term_id < 1 || (int) $term->term_taxonomy_id < 1 ) {
 			return 'sin_serie_unica';
 		}

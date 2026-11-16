@@ -31,31 +31,31 @@
 	 * mañana se estrena otra barra basta añadirla aquí —y aunque no se añada,
 	 * la red de seguridad de más abajo la detecta igual, porque mira lo que
 	 * hay dibujado y no una lista de clases. */
-	var BARRAS = '.bottom-nav, .akb-sticky-atc';
-	var PROPIEDAD = '--akb-franja-inferior';
+	const BARRAS = '.bottom-nav, .akb-sticky-atc';
+	const PROPIEDAD = '--akb-franja-inferior';
 
 	/* Cuánto dura, tras un pointerdown, la sospecha de que el siguiente
 	 * focusin viene del puntero. En un toque, el focus se sintetiza junto al
 	 * mousedown como mucho unos cientos de ms después del pointerdown; un
 	 * segundo lo cubre de sobra. Una tecla cierra la ventana al instante. */
-	var VENTANA_PUNTERO = 1000;
+	const VENTANA_PUNTERO = 1000;
 
-	var raiz = document.documentElement;
+	const raiz = document.documentElement;
 
 	/* Último valor escrito en la propiedad, en px. Sirve para no reescribir
 	 * la propiedad heredada por todo el documento cuando nada cambió, y para
 	 * que aire() deduzca el aire del CSS restándolo de la reserva computada. */
-	var escrito = -1;
+	let escrito = -1;
 
 	/* requestAnimationFrame pendiente: todas las señales de remedida (resize,
 	 * clase, transición, ResizeObserver) se agrupan en una sola pasada por
 	 * cuadro. En iOS Safari el colapso de la barra de URL emite `resize` de
 	 * continuo DURANTE el scroll; medir en cada uno forzaba layout en el peor
 	 * momento. */
-	var pendiente = 0;
+	let pendiente = 0;
 
 	/* Momento del último pointerdown/mousedown; 0 cuando lo cerró una tecla. */
-	var ultimoPuntero = 0;
+	let ultimoPuntero = 0;
 
 	/* Cuánto dura la vigilancia del control recién enfocado con teclado. La
 	 * barra aparece uno o dos cuadros después del desplazamiento del foco
@@ -63,11 +63,11 @@
 	 * --transition-fast); 1,5 s lo cubre con holgura y no llega a pisar un
 	 * desplazamiento que el cliente haga después: cualquier gesto o tecla
 	 * termina la vigilancia antes (ver soltarVigilado). */
-	var VIGILANCIA = 1500;
+	const VIGILANCIA = 1500;
 
 	/* Control enfocado con teclado cuya visibilidad se vigila mientras la
 	 * franja crece: { control, hasta } o null. */
-	var vigilado = null;
+	let vigilado = null;
 
 	/* ¿Está el nodo a medio aparecer o desaparecer? La barra de compra
 	 * transiciona `visibility`, y esa propiedad computa `hidden` en el
@@ -78,7 +78,7 @@
 	 * transición corriendo sobre el nodo, está pintado: al terminar, el
 	 * `transitionend` remide con el estado definitivo. Sin getAnimations()
 	 * (navegadores viejos) queda el criterio de antes. */
-	var enTransicion = function (nodo) {
+	const enTransicion = function (nodo) {
 		return typeof nodo.getAnimations === 'function' && nodo.getAnimations().length > 0;
 	};
 
@@ -88,7 +88,7 @@
 	 * borde inferior de la ventana no forma parte de la franja. El rect se
 	 * lee UNA vez y se devuelve: los consumidores lo reutilizan en vez de
 	 * volver a forzar layout sobre el mismo nodo. */
-	var cajaPegada = function (nodo, techo, estilo) {
+	const cajaPegada = function (nodo, techo, estilo) {
 		estilo = estilo || window.getComputedStyle(nodo);
 
 		if (estilo.display === 'none') {
@@ -99,7 +99,7 @@
 			return null;
 		}
 
-		var caja = nodo.getBoundingClientRect();
+		const caja = nodo.getBoundingClientRect();
 
 		return caja.height > 0
 			&& caja.width > 0
@@ -113,17 +113,17 @@
 	 * carrito, el drawer del menú o su overlay. Medidos con el carrito CERRADO
 	 * siguen midiendo 812px, así que sin este descarte la red de seguridad
 	 * creería que toda la pantalla está tapada. */
-	var esOverlay = function (caja) {
+	const esOverlay = function (caja) {
 		return caja.height > window.innerHeight / 2;
 	};
 
-	var medir = function () {
-		var barras = document.querySelectorAll(BARRAS);
-		var techo = window.innerHeight;
-		var vueltas = 0;
-		var muestra;
-		var caja;
-		var j;
+	const medir = function () {
+		const barras = document.querySelectorAll(BARRAS);
+		let techo = window.innerHeight;
+		let vueltas = 0;
+		let muestra;
+		let caja;
+		let j;
 
 		/* Se sube techo a techo, no de una pasada: la barra de compra se
 		 * apoya SOBRE el bottom-nav y no toca el borde de la ventana, así que
@@ -135,6 +135,7 @@
 			muestra = techo;
 
 			for (j = 0; j < barras.length; j++) {
+				// eslint-disable-next-line security/detect-object-injection
 				caja = cajaPegada(barras[j], muestra);
 
 				if (caja) {
@@ -143,13 +144,13 @@
 			}
 		} while (techo < muestra && ++vueltas < 4);
 
-		var valor = Math.max(0, Math.ceil(window.innerHeight - techo));
+		const valor = Math.max(0, Math.ceil(window.innerHeight - techo));
 
 		if (valor === escrito) {
 			return;
 		}
 
-		var crecio = valor > escrito;
+		const crecio = valor > escrito;
 
 		escrito = valor;
 		raiz.style.setProperty(PROPIEDAD, valor + 'px');
@@ -157,7 +158,7 @@
 		/* La franja creció (la barra de compra entró) con un control recién
 		 * enfocado con teclado: puede haber quedado debajo. */
 		if (crecio && vigilado) {
-			if (Date.now() < vigilado.hasta && document.activeElement === vigilado.control) {
+			if (Date.now() < vigilado.hasta && document.documentElement.ownerDocument.activeElement === vigilado.control) {
 				rematar(vigilado.control);
 			} else {
 				vigilado = null;
@@ -165,7 +166,7 @@
 		}
 	};
 
-	var programar = function () {
+	const programar = function () {
 		if (pendiente) {
 			return;
 		}
@@ -185,8 +186,8 @@
 	 * escrita + aire»; restar lo escrito deja exactamente el aire del CSS,
 	 * también cuando la raíz no mide 16px. Si la reserva no está fijada (en
 	 * escritorio computa `auto`), 8px: el mismo respaldo de base.css. */
-	var aire = function () {
-		var reservado = parseFloat(window.getComputedStyle(raiz).scrollPaddingBottom);
+	const aire = function () {
+		const reservado = parseFloat(window.getComputedStyle(raiz).scrollPaddingBottom);
 
 		if (isNaN(reservado) || escrito < 0) {
 			return 8;
@@ -199,8 +200,8 @@
 	 * debe «viajar». Fijar `scroll-behavior:auto` en línea durante el salto
 	 * respeta prefers-reduced-motion por construcción —no hay smooth que
 	 * apagar— y no depende de que el navegador acepte `behavior:'instant'`. */
-	var desplazar = function (px) {
-		var previo = raiz.style.scrollBehavior;
+	const desplazar = function (px) {
+		const previo = raiz.style.scrollBehavior;
 
 		raiz.style.scrollBehavior = 'auto';
 		window.scrollBy(0, px);
@@ -210,8 +211,8 @@
 	/* ¿Está el control dentro de un fijo? Entonces se desplaza dentro de su
 	 * contenedor (cajón del carrito, drawer), no con el documento, y la
 	 * corrección de abajo movería la página de detrás sin arreglar nada. */
-	var dentroDeFijo = function (control) {
-		var nodo = control.parentElement;
+	const dentroDeFijo = function (control) {
+		let nodo = control.parentElement;
 
 		while (nodo && nodo !== document.body) {
 			if (window.getComputedStyle(nodo).position === 'fixed') {
@@ -231,16 +232,16 @@
 	 * bottom-nav —que no toca el último píxel de la ventana— también cuenta.
 	 * El tope de vueltas evita un bucle si algo se pinta raro; cuatro barras
 	 * apiladas es más de lo que el tema ha tenido nunca. */
-	var techoDibujado = function (control, x) {
-		var techo = window.innerHeight;
-		var vueltas = 0;
-		var muestra;
-		var encontrado;
-		var encima;
-		var nodo;
-		var estilo;
-		var caja;
-		var m;
+	const techoDibujado = function (control, x) {
+		let techo = window.innerHeight;
+		let vueltas = 0;
+		let muestra;
+		let encontrado;
+		let encima;
+		let nodo;
+		let estilo;
+		let caja;
+		let m;
 
 		while (vueltas++ < 4 && techo > 0) {
 			/* Todos los nodos de esta vuelta se juzgan contra el MISMO punto
@@ -250,6 +251,7 @@
 			encima = document.elementsFromPoint(x, muestra - 1);
 
 			for (m = 0; m < encima.length; m++) {
+				// eslint-disable-next-line security/detect-object-injection
 				nodo = encima[m];
 
 				if (nodo === control || nodo.contains(control)) {
@@ -291,8 +293,8 @@
 	 * desplazamiento mínimo y sin animación. La llaman el focusin (foco de
 	 * teclado o programático) y medir(), cuando la franja crece con ese
 	 * control todavía enfocado. */
-	var rematar = function (control) {
-		var caja = control.getBoundingClientRect();
+	const rematar = function (control) {
+		const caja = control.getBoundingClientRect();
 
 		if (caja.height <= 0) {
 			return;
@@ -302,8 +304,8 @@
 			return;
 		}
 
-		var x = Math.min(Math.max(caja.left + caja.width / 2, 1), window.innerWidth - 1);
-		var techo = techoDibujado(control, x);
+		const x = Math.min(Math.max(caja.left + caja.width / 2, 1), window.innerWidth - 1);
+		const techo = techoDibujado(control, x);
 
 		/* Sin nada pegado abajo no hay nada que rematar: del control que
 		 * simplemente no cabe ya se encarga el navegador. */
@@ -311,26 +313,26 @@
 			return;
 		}
 
-		var tapado = caja.bottom - techo;
+		const tapado = caja.bottom - techo;
 
 		if (tapado <= 0) {
 			return;
 		}
 
-		var recorrido = raiz.scrollHeight - window.innerHeight - window.scrollY;
+		const recorrido = raiz.scrollHeight - window.innerHeight - window.scrollY;
 
 		desplazar(Math.min(Math.ceil(tapado + aire()), Math.max(0, recorrido)));
 	};
 
-	var soltarVigilado = function () {
+	const soltarVigilado = function () {
 		vigilado = null;
 	};
 
-	var marcarPuntero = function () {
+	const marcarPuntero = function () {
 		ultimoPuntero = Date.now();
 	};
 
-	var cerrarPuntero = function () {
+	const cerrarPuntero = function () {
 		ultimoPuntero = 0;
 	};
 
@@ -338,17 +340,17 @@
 	 * `transitionend` burbujea, y los ítems del bottom-nav (color, transform
 	 * al pulsar) y el botón de la barra (background) transicionan en cada
 	 * hover o toque sin que la franja cambie de alto. */
-	var alTerminarTransicion = function (evento) {
+	const alTerminarTransicion = function (evento) {
 		if (evento.target === evento.currentTarget) {
 			programar();
 		}
 	};
 
-	var arrancar = function () {
+	const arrancar = function () {
 		medir();
 
-		var barras = document.querySelectorAll(BARRAS);
-		var k;
+		const barras = document.querySelectorAll(BARRAS);
+		let k;
 
 		/* ResizeObserver, no un cálculo de una vez: la barra cambia de alto
 		 * al rotar el móvil o cuando el precio envuelve en otro ancho, y pasa
@@ -358,9 +360,10 @@
 		 * el borde. Los navegadores que no entienden la opción la ignoran y
 		 * observan el contenido, que es lo que había. */
 		if (typeof window.ResizeObserver === 'function') {
-			var observadorTamano = new window.ResizeObserver(programar);
+			const observadorTamano = new window.ResizeObserver(programar);
 
 			for (k = 0; k < barras.length; k++) {
+				// eslint-disable-next-line security/detect-object-injection
 				observadorTamano.observe(barras[k], { box: 'border-box' });
 			}
 		}
@@ -373,10 +376,12 @@
 		 * pone el `transitionend`: no es redundante, es el único que mide la
 		 * barra en su sitio. */
 		if (typeof window.MutationObserver === 'function') {
-			var observadorClase = new window.MutationObserver(programar);
+			const observadorClase = new window.MutationObserver(programar);
 
 			for (k = 0; k < barras.length; k++) {
+				// eslint-disable-next-line security/detect-object-injection
 				observadorClase.observe(barras[k], { attributes: true, attributeFilter: ['class'] });
+				// eslint-disable-next-line security/detect-object-injection
 				barras[k].addEventListener('transitionend', alTerminarTransicion);
 			}
 		}
@@ -394,7 +399,7 @@
 		/* Cada foco de teclado o programático pasa por la red de seguridad
 		 * (rematar) y queda vigilado por si la franja crece encima. */
 		document.addEventListener('focusin', function (evento) {
-			var control = evento.target;
+			const control = evento.target;
 
 			if (!control || !control.getBoundingClientRect || !control.closest) {
 				return;
@@ -412,7 +417,7 @@
 				return;
 			}
 
-			vigilado = { control: control, hasta: Date.now() + VIGILANCIA };
+			vigilado = { control, hasta: Date.now() + VIGILANCIA };
 			rematar(control);
 		});
 

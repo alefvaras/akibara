@@ -295,9 +295,9 @@ final class BusquedaSinResultadosTieneSalidaTest extends TestCase {
 
 		// Las reproducciones del revisor: búsquedas en cero que antes del filtro
 		// de cola ofrecían la serie buena y con él se quedaron sin ella.
-		self::assertSame( $kaguya, $series( 'kaguya sama a pedido' ), 'El vocabulario de la propia tienda.' );
-		self::assertSame( $demon, $series( 'demon slayer preventa' ) );
-		self::assertSame( $rezero, $series( 're zero precio' ) );
+		self::assertSame( $kaguya, $series( 'kaguya sama oferta' ), 'El vocabulario de la propia tienda.' );
+		self::assertSame( $demon, $series( 'demon slayer precio' ) );
+		self::assertSame( $rezero, $series( 're zero descuento' ) );
 		self::assertSame( array( 'Attack On Titan Edición Deluxe' ), $series( 'attack on titan oferta' ) );
 		self::assertSame( array( 'Slam Dunk Deluxe' ), $series( 'slam dunk usado' ) );
 		self::assertSame( $demon, $series( 'demon slayer segunda temporada' ) );
@@ -310,7 +310,7 @@ final class BusquedaSinResultadosTieneSalidaTest extends TestCase {
 		self::assertSame( $rezero, $series( 're zero 3rd season' ), 'El ordinal inglés también.' );
 
 		// Un calificativo no rescata la cola que ya nombró otra obra.
-		self::assertSame( array(), $series( 'biblioteca vertigo sandman preventa' ) );
+		self::assertSame( array(), $series( 'biblioteca vertigo sandman oferta' ) );
 		self::assertSame( array(), $series( 'kaiju no hanayome 2da temporada' ) );
 		// El ordinal es la cifra con su terminación, no cualquier cifra con letras.
 		self::assertSame( array(), $series( 'kaguya sama 3dx' ) );
@@ -327,7 +327,7 @@ final class BusquedaSinResultadosTieneSalidaTest extends TestCase {
 		// «1era» y «3ero», la grafía más común en castellano (revisión RN-REV2-1).
 		self::assertSame( array( 'Kaguya-sama: Love is War' ), $series( 'kaguya sama 1era' ) );
 		self::assertSame( array( 'Kaguya-sama: Love is War' ), $series( 'kaguya sama 3ero' ) );
-		self::assertSame( array(), $series( 'kaguya sama preventa' ), '«preventa» es de la lista: el dueño la puede quitar.' );
+		self::assertSame( array(), $series( 'kaguya sama oferta' ), '«oferta» es de la lista: el dueño la puede quitar.' );
 		self::assertSame( array(), $series( 'kaguya sama tomo iii' ), 'El romano también es de la lista.' );
 	}
 
@@ -361,7 +361,7 @@ final class BusquedaSinResultadosTieneSalidaTest extends TestCase {
 		self::assertSame( $rezero, $series( 're zero en ingles' ) );
 		self::assertSame( $slam, $series( 'slam dunk tapa dura' ) );
 		self::assertSame( $kaguya, $series( 'kaguya sama reedicion' ) );
-		self::assertSame( $kaguya, $series( 'kaguya sama encargo' ) );
+		self::assertSame( $kaguya, $series( 'kaguya sama promocion' ) );
 		self::assertSame( $kaguya, $series( 'kaguya sama importado' ) );
 		self::assertSame( $kaguya, $series( 'kaguya sama baratos' ) );
 		self::assertSame( $kaguya, $series( 'kaguya sama precio chile' ) );
@@ -979,7 +979,7 @@ final class BusquedaSinResultadosTieneSalidaTest extends TestCase {
 		// Lo que sobra puede llevar también palabras ignoradas (RN1-D1).
 		self::assertStringContainsString( 'si lo que sobra son números, palabras ignoradas o estas palabras', $html );
 		// Qué cubren las de fábrica y el coste de la errata (RN-REV1-1).
-		self::assertStringContainsString( 'cómo se compra («a pedido», «preventa», «precio», «usado»)', $html );
+		self::assertStringContainsString( 'cómo se compra («oferta», «precio», «usado»)', $html );
 		self::assertStringContainsString( 'Una palabra mal escrita en lo que sobra («kaguya sama novla») también deja sin serie', $html );
 
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ): string => trim( strip_tags( (string) $v ) ) );

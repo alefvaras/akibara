@@ -1,0 +1,462 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-gp-production-release",
+  "release_id": "akibara-gp-2.1.70",
+  "seal_state": "sealed",
+  "sealed_at_utc": "2026-08-07T01:03:00Z",
+  "promotion_sequence": [
+    "docker-local-integrated",
+    "production-ui-integrated"
+  ],
+  "exclusive_targets": [
+    "public_html/wp-content/themes/akibara-gp"
+  ],
+  "component": {
+    "kind": "theme",
+    "slug": "akibara-gp",
+    "version": "2.1.70",
+    "source_root": "public_html/wp-content/themes/akibara-gp",
+    "source_exact": {
+      "mode": "byte-exact-runtime-inventory",
+      "inventory": "dist/akibara-gp-2.1.70.files.sha256",
+      "inventory_sha256": "5efeda6f76c556be5fb209fb922ab74565cb34389f7ae5649348c300bdb3142b",
+      "runtime_files": 103,
+      "included_top_level": [
+        "404.php",
+        "archive.php",
+        "assets",
+        "customer-reviews-woocommerce",
+        "footer.php",
+        "functions.php",
+        "header.php",
+        "home.php",
+        "inc",
+        "single.php",
+        "style.css",
+        "template-parts",
+        "theme.json",
+        "woocommerce"
+      ],
+      "excluded_top_level": [
+        "tests"
+      ]
+    },
+    "packager": {
+      "path": "tools/akibara-releases/package-runtime.sh",
+      "sha256": "ff8e90a40d12af20f235213fce6297217ae02d05759c52182331e74db07b5483",
+      "component": "theme",
+      "command": "bash tools/akibara-releases/package-runtime.sh theme",
+      "verify_command": "bash tools/akibara-releases/package-runtime.sh theme --verify-only"
+    },
+    "preimage": {
+      "version": "2.1.69",
+      "archive": "dist/akibara-gp-2.1.69.zip",
+      "archive_sha256": "dfbfd1717b5f9e4e6c126ff59cabe10c4d410563819515f9334631ecb63b641b",
+      "checksum_sidecar": "dist/akibara-gp-2.1.69.zip.sha256",
+      "checksum_sidecar_sha256": "17d8ea032896f31bf21603f035473195fb55708914c841524a59c3dba1b6858f",
+      "inventory": "dist/akibara-gp-2.1.69.files.sha256",
+      "inventory_sha256": "f58dd384851468a6993783ca8da7b59ba7349906f556957d14ea40d4ca448eb2",
+      "runtime_files": 103,
+      "archive_policy": {
+        "root": "akibara-gp",
+        "entries": "regular-files-only",
+        "file_mode": "0644",
+        "compression": "stored",
+        "mtime_utc": "1980-01-01T00:00:00Z",
+        "order": "bytewise-ascending"
+      }
+    },
+    "candidate": {
+      "version": "2.1.70",
+      "archive": "dist/akibara-gp-2.1.70.zip",
+      "archive_sha256": "69c10a7c7842e0f76f91350f76733da957a53d5dc8560342cc37e5a3ccf7e69c",
+      "checksum_sidecar": "dist/akibara-gp-2.1.70.zip.sha256",
+      "checksum_sidecar_sha256": "a69a2a1f805746671964f2e507581785f57f26f67c952163ff6d1d114ef78041",
+      "inventory": "dist/akibara-gp-2.1.70.files.sha256",
+      "inventory_sha256": "5efeda6f76c556be5fb209fb922ab74565cb34389f7ae5649348c300bdb3142b",
+      "runtime_files": 103,
+      "archive_policy": {
+        "root": "akibara-gp",
+        "entries": "regular-files-only",
+        "file_mode": "0644",
+        "compression": "stored",
+        "mtime_utc": "1980-01-01T00:00:00Z",
+        "order": "bytewise-ascending"
+      }
+    },
+    "required_runtime_paths": [
+      "style.css",
+      "functions.php",
+      "theme.json",
+      "inc/setup.php",
+      "inc/enqueue.php",
+      "template-parts/header/shell.php",
+      "woocommerce/archive-product.php"
+    ]
+  },
+  "headers": {
+    "style_css": {
+      "path": "public_html/wp-content/themes/akibara-gp/style.css",
+      "sha256": "58454493986bbb2f35bd3554a1abb7e0d3f902b3745c87205345e5354cfee4dc",
+      "required_fields": {
+        "Theme Name": "Akibara GP",
+        "Theme URI": "https://akibara.cl",
+        "Template": "generatepress",
+        "Version": "2.1.70",
+        "Requires at least": "6.8",
+        "Requires PHP": "8.0",
+        "Text Domain": "akibara-gp"
+      }
+    },
+    "functions_php": {
+      "path": "public_html/wp-content/themes/akibara-gp/functions.php",
+      "sha256": "334546711ad8df8489860c218e4aec2d8e22db90f8b17be7a9ef97758840f646"
+    },
+    "theme_json": {
+      "path": "public_html/wp-content/themes/akibara-gp/theme.json",
+      "sha256": "f41119fd9fc4ce7c97ad071b81c161e686755120bbfbc2cb4a6e7da082dd716e",
+      "schema": "https://schemas.wp.org/trunk/theme.json",
+      "schema_version": 3,
+      "title": "Akibara GP"
+    }
+  },
+  "forbidden_runtime": {
+    "path_segments": [
+      "tests",
+      "node_modules",
+      "migrations",
+      "graphify-out",
+      "coverage",
+      "backups",
+      ".git",
+      ".github",
+      ".idea",
+      ".vscode"
+    ],
+    "file_names": [
+      ".DS_Store",
+      ".phpunit.result.cache",
+      "composer.json",
+      "composer.lock",
+      "package.json",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "phpunit.xml",
+      "phpunit.xml.dist",
+      "coverage.xml",
+      "debug.log",
+      "error_log"
+    ],
+    "file_prefixes": [
+      "._"
+    ],
+    "file_suffixes": [
+      ".bak",
+      ".bk",
+      ".orig",
+      ".rej",
+      ".tmp",
+      ".temp",
+      ".dump",
+      ".backup",
+      ".sql",
+      ".sqlite",
+      ".tar",
+      ".tgz",
+      ".zip",
+      "~"
+    ],
+    "special_files_allowed": false
+  },
+  "residential_truth_policy": {
+    "operating_model": "online-only-no-public-storefront",
+    "public_storefront": false,
+    "pickup_policy": "coordinated-only-exact-address-after-confirmed-order",
+    "sii_tax_domicile": {
+      "acknowledged": true,
+      "is_public_storefront_evidence": false,
+      "sufficient_as_sole_legal_domicile_evidence": false
+    },
+    "exact_residential_address_must_not_appear": true,
+    "public_schema_types_forbidden": [
+      "LocalBusiness",
+      "Place"
+    ],
+    "public_location_properties_forbidden": [
+      "streetAddress",
+      "postalCode",
+      "addressLocality",
+      "hasMap",
+      "geo",
+      "location"
+    ],
+    "text_extensions": [
+      ".php",
+      ".css",
+      ".js",
+      ".json",
+      ".txt",
+      ".md",
+      ".html",
+      ".xml",
+      ".svg"
+    ],
+    "forbidden_content_patterns": [
+      {
+        "id": "physical-schema-type",
+        "regex": "[\"']@type[\"']\\s*(?:=>|:)\\s*[\"'](?:LocalBusiness|Place)[\"']",
+        "flags": "iu"
+      },
+      {
+        "id": "public-location-property",
+        "regex": "[\"'](?:streetAddress|postalCode|addressLocality|hasMap|geo|location)[\"']\\s*(?:=>|:)",
+        "flags": "iu"
+      },
+      {
+        "id": "public-map-url",
+        "regex": "https?://(?:www\\.)?(?:google\\.[^/\\s]+/maps|maps\\.google\\.)",
+        "flags": "iu"
+      },
+      {
+        "id": "walk-in-claim",
+        "regex": "\\b(?:retiro\\s+presencial|vis[ií]tanos|puedes\\s+visitarnos)\\b",
+        "flags": "iu"
+      }
+    ]
+  },
+  "promotion_requirements": {
+    "phase1_candidate_receipt": {
+      "schema_version": 3,
+      "kind": "akibara-business-search-verified-operation-receipt",
+      "purpose": "candidate",
+      "max_age_seconds": 1800,
+      "sidecar_required": true,
+      "revalidate_material_bundle": true,
+      "same_release_digest": true
+    },
+    "handoff": {
+      "schema_version": 1,
+      "kind": "akibara-theme-phase2-mcp-handoff",
+      "exclusive_theme_only": true
+    },
+    "preflight_receipt": {
+      "schema_version": 1,
+      "kind": "akibara-theme-phase2-verified-preflight-receipt",
+      "max_age_seconds": 900
+    },
+    "operation_receipt": {
+      "schema_version": 1,
+      "kind": "akibara-theme-phase2-verified-operation-receipt",
+      "purposes": [
+        "candidate",
+        "rollback"
+      ]
+    },
+    "integrated_close_receipt": {
+      "schema_version": 1,
+      "kind": "akibara-ai-discoverability-integrated-production-verified-receipt",
+      "verify_close_required": true
+    },
+    "cache_order": [
+      "litespeed-ui",
+      "hostinger-mcp",
+      "cloudflare-mcp"
+    ],
+    "maintenance_off_before_cloudflare": true,
+    "graphify_before_verify_close_allowed": false
+  },
+  "quality_gates": {
+    "static_contract": {
+      "path": "tools/akibara-releases/test-theme-2.1.70-production-release.sh",
+      "sha256": "4bec2dc7703f468948dd32071222ce3e7e5dda6c51abce6242013bb8fa88c767",
+      "command": "bash tools/akibara-releases/test-theme-2.1.70-production-release.sh",
+      "negative_mutations_required": 10
+    },
+    "node_theme": {
+      "command": "node --test public_html/wp-content/themes/akibara-gp/tests/*.test.js",
+      "expected_tests": 31,
+      "expected_failures": 0,
+      "test_files": [
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/archive-intro.test.js",
+          "sha256": "6bdcb578dd1a4c85b36fc39cf759f423ea60b38ec33509b650a76b252453ed1b"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/asset-version.test.js",
+          "sha256": "d9d44b6bd7fdc5c020389e761121d84be46ade261fa6197aaff29681d911ca2c"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/cart-semantics.test.js",
+          "sha256": "58ef6f083cfe07f83276dd5754685b06afa1e776da7d11b45232593a34334bc2"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/home-deferred-styles.test.js",
+          "sha256": "ac54b19dfb1180a6e8f8981f1c722f88f9c7f899576a5a61c37515c320957bf4"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/online-store-truth.test.js",
+          "sha256": "b9f12d99637b632a7a6b654ca26f0a55d76b49e9d6c992bddd3e3954669e03f3"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/quantity-stepper.test.js",
+          "sha256": "d1349ee85148c75166a1079acc09d37e85ede17e80fa115c03901af0ba5d9744"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/rankmath-featured-image.test.js",
+          "sha256": "b04a3a81fccd866e2bb70c04f39281fd63a09c1dbfa452ebc278170c0e1e12d4"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/rankmath-toc.test.js",
+          "sha256": "f317d5d9d452c2683d6808c42a1546b2b93fbce74a3dd0f06a37fffbcd54c2bb"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/shop-filters-a11y.test.js",
+          "sha256": "0f998b269627fb90a31e738c2f8bdbf343df97c1181d95e2c3a59b6567b82abd"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/shop-toolbar-layout.test.js",
+          "sha256": "10f6c2a8f3824fe92b248bf1e6d7efa38228f077c4042f17b74098ef96eda0cb"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/third-party-contrast.test.js",
+          "sha256": "73464953b33c2d7d857ffd5f051b6c303c0d9513b45aa64551d5d7bf03cde17a"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/visual-polish.test.js",
+          "sha256": "b7b7cb43d6b08e39589f6e4e9c5968709edc70b14064bd7b813894a8814fefe4"
+        }
+      ]
+    },
+    "phpunit_theme": {
+      "command": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-gp/phpunit.xml.dist",
+      "config": "tools/akibara-gp/phpunit.xml.dist",
+      "config_sha256": "08b8ef52ff70a82007570075ea3ba14c12a7937f216c29ca931ec13c999e459a",
+      "expected_tests": 18,
+      "expected_assertions": 52,
+      "test_files": [
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/EmailFooterTruthTest.php",
+          "sha256": "825e5a647f82df361ee2b09d6a54c4371492651fd5f3e93fe67d6f25427f9ded"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/IconSemanticsTest.php",
+          "sha256": "b419459dfd53097f3b750dbbea820a5b16bf6654c7087a8fe8a43f71639d3b5d"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/PageTargetsTest.php",
+          "sha256": "06b0e87005dbba731bcae629a2c3d1d5012e235a53a18f81a3f06e3e5db99bb9"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/PerformanceHooksTest.php",
+          "sha256": "f7f5827e79db706aecf34daf0057328703e1ccafb8ebd9905f68f237ad08f4c3"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/bootstrap.php",
+          "sha256": "4c20b17ff19b557603c5da6ea1f13b5cd635c2434f6f808d6f58b53cd6e086ae"
+        },
+        {
+          "path": "public_html/wp-content/themes/akibara-gp/tests/wp-stubs.php",
+          "sha256": "bcf857336d33dfc992c46fd2110840bf4a924b9cf3bf041374613ba5489200e4"
+        }
+      ]
+    },
+    "package_verify": {
+      "command": "bash tools/akibara-releases/package-runtime.sh theme --verify-only",
+      "expected_runtime_files": 103,
+      "expected_archive_sha256": "69c10a7c7842e0f76f91350f76733da957a53d5dc8560342cc37e5a3ccf7e69c"
+    },
+    "production_handoff": {
+      "rail": {
+        "path": "ops/akibara-theme-2.1.70-production-promotion.sh",
+        "sha256": "a59313aa9c90f9c237a66e521718a63df6835aff1d0f2b105e644aae08ab6693"
+      },
+      "test": {
+        "path": "ops/test-akibara-theme-2.1.70-production-promotion.sh",
+        "sha256": "2fd4d88c8163738c7698a0a99a826ca92a65026c7e0a3b90bbf2fbf6d1cd62fc",
+        "command": "bash ops/test-akibara-theme-2.1.70-production-promotion.sh"
+      },
+      "library": {
+        "path": "ops/akibara-search-0.1.14-production-promotion.sh",
+        "sha256": "d5c7d61cb0c427a282035a8ca007337c560947edb4945de864ce5d9ea6516cae"
+      },
+      "required_passes": 2
+    }
+  },
+  "integrated_release_binding": {
+    "required": true,
+    "required_external_binding_fields": [
+      "theme_contract_path",
+      "theme_contract_sha256",
+      "theme_version",
+      "theme_archive_sha256",
+      "theme_inventory_sha256",
+      "theme_rollback_version",
+      "theme_rollback_archive_sha256",
+      "theme_rollback_inventory_sha256"
+    ],
+    "theme_contract_path": "ops/contracts/akibara-gp-2.1.70.json",
+    "binding_policy": "The integrated release must calculate and pin this contract SHA-256 after sealing, pin the candidate archive and inventory SHA-256 values, and run every quality gate command before promotion.",
+    "mixed_theme_version_allowed": false,
+    "contract_reseal_required_after_any_pinned_input_change": true
+  },
+  "production_invariants": {
+    "deployment_transport": "mcp__hostinger_hosting__hosting_deployWordpressTheme",
+    "deployment_args": {
+      "activate": true,
+      "domain": "akibara.cl",
+      "slug": "akibara-gp",
+      "candidate_version": "2.1.70",
+      "rollback_version": "2.1.69"
+    },
+    "protected_pair": {
+      "business": {
+        "slug": "akibara-business",
+        "version": "1.99.16",
+        "active": true
+      },
+      "search": {
+        "slug": "akibara-search",
+        "version": "0.1.14",
+        "active": true
+      }
+    },
+    "deployment_receipt_policy": {
+      "transport_response_is_release_proof": false,
+      "allowed_ack_loss_result": {
+        "Err": "tool call error: tool call failed for `hostinger-hosting/hosting_deployWordpressTheme`\n\nCaused by:\n    timed out awaiting tools/call after 120s"
+      },
+      "explicit_failure_rejected": true,
+      "postconditions_always_required": [
+        "wordpress-ui-active-theme-version",
+        "theme-runtime-inventory",
+        "business-runtime-inventory",
+        "search-runtime-inventory",
+        "complete-theme-witness-bundle"
+      ]
+    },
+    "public_ai_audit": {
+      "schema_version": 3,
+      "base_url": "https://akibara.cl/",
+      "fetch_base_url": "https://akibara.cl/",
+      "strict": true,
+      "expected_pickup_locality": "San Miguel",
+      "expected_ai_train": "yes",
+      "require_return_policy": true,
+      "require_llms_manga": true,
+      "redirect_policy": "manual_fail_closed",
+      "online_only": true,
+      "public_storefront": false
+    },
+    "remote_cleanup_paths": [
+      "public_html",
+      "public_html/wp-content/plugins",
+      "public_html/wp-content/themes"
+    ],
+    "remote_backups_allowed": false,
+    "rollback_artifacts_location": "local-only",
+    "graphify_during_release_allowed": false,
+    "graphify_after_confirmed_public_verification": true,
+    "production_domain": "akibara.cl"
+  }
+}

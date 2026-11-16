@@ -1,41 +1,90 @@
-/* Akibara Business admin shell */
+/* Akibara Business admin shell — Sistema Neo-Brutalista Oficial */
 .akb-panel {
-	--akb-admin-red: #d90010;
-	--akb-admin-ink: #171717;
-	--akb-admin-paper: #ffffff;
-	--akb-admin-wash: #f5f5f5;
-	--akb-admin-line: #d7d7d7;
-	--akb-admin-yellow: #ffd401;
+	--akb-admin-ink: #141416;
+	--akb-admin-charcoal: #1E1E24;
+	--akb-admin-red: #E60012;
+	--akb-admin-red-hover: #C0000F;
+	--akb-admin-yellow: #FC0;
+	--akb-admin-white: #FFF;
+	--akb-admin-cream: #F8F9FA;
+	--akb-admin-border: #141416;
+	--akb-admin-border-subtle: #D8D8DC;
+	--akb-admin-muted: #555558;
+	--akb-admin-shadow: 3px 3px 0 #141416;
+	--akb-admin-paper: #fff;
+	--akb-admin-wash: #f8f9fa;
+	--akb-admin-line: #141416;
+
+	margin: 20px 20px 0 2px;
+	max-width: 1280px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	color: var(--akb-admin-ink);
 }
 
+.akb-panel-head,
 .akb-panel-header {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin: 16px 0 14px;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 16px;
+	padding: 14px 24px;
+	min-height: 64px;
+	background: var(--akb-admin-ink);
+	color: var(--akb-admin-white);
+	border: 2px solid var(--akb-admin-border);
+	border-radius: 8px 8px 0 0;
+	box-shadow: 4px 4px 0 rgba(20, 20, 22, 0.12);
+	margin-bottom: 16px;
 }
 
+.akb-panel-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.akb-panel-head h1,
 .akb-panel-header h1 {
-	color: var(--akb-admin-red);
-	font-size: 26px;
-	font-weight: 700;
+	color: var(--akb-admin-white);
+	font-size: 22px;
+	font-weight: 900;
+	letter-spacing: -0.3px;
 	margin: 0;
 	line-height: 1;
 }
 
+.akb-panel-gem {
+	color: var(--akb-admin-red);
+	font-size: 24px;
+	line-height: 1;
+	filter: drop-shadow(0 0 6px rgba(230, 0, 18, 0.6));
+}
+
+.akb-panel-ver,
 .akb-panel-version {
 	background: var(--akb-admin-red);
-	color: #fff;
+	color: var(--akb-admin-white);
 	font-size: 11px;
-	font-weight: 700;
-	padding: 2px 8px;
-	border-radius: 10px;
-	letter-spacing: .04em;
+	font-weight: 800;
+	padding: 3px 8px;
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	letter-spacing: .05em;
+	text-transform: uppercase;
+}
+
+.akb-panel-tagline {
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+	color: var(--akb-admin-yellow);
 }
 
 .akb-panel-shell {
 	display: grid;
-	grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+	grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
 	gap: 20px;
 	align-items: start;
 	max-width: 1280px;
@@ -46,67 +95,122 @@
 	top: 44px;
 }
 
+.akb-panel-search {
+	margin-bottom: 12px;
+}
+
+.akb-panel-search__input {
+	width: 100%;
+	border: 2px solid var(--akb-admin-border) !important;
+	border-radius: 6px !important;
+	padding: 8px 12px !important;
+	font-size: 13px !important;
+	font-weight: 600 !important;
+	color: var(--akb-admin-ink) !important;
+	background: var(--akb-admin-white) !important;
+	box-shadow: 2px 2px 0 var(--akb-admin-border) !important;
+}
+
+.akb-panel-search__input:focus {
+	border-color: var(--akb-admin-red) !important;
+	outline: 2px solid var(--akb-admin-red) !important;
+	outline-offset: 1px !important;
+}
+
 .akb-panel-section-select {
 	display: none;
 	width: 100%;
 	max-width: 100%;
 	margin: 0 0 12px;
+	border: 2px solid var(--akb-admin-border);
+	border-radius: 4px;
+	padding: 8px 12px;
+	font-weight: 700;
 }
 
 .akb-panel-nav {
 	display: grid;
-	gap: 6px;
-	padding: 10px;
+	gap: 4px;
+	padding: 12px;
 	background: var(--akb-admin-ink);
-	border: 2px solid #000;
-	box-shadow: 6px 6px 0 var(--akb-admin-red);
+	border: 2px solid var(--akb-admin-border);
+	border-radius: 6px;
+	box-shadow: var(--akb-admin-shadow);
+}
+
+.akb-panel-nav__group {
+	font-size: 11px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+	color: var(--akb-admin-yellow);
+	padding: 12px 10px 4px;
+	display: block;
 }
 
 .akb-panel-nav__link {
-	/*
-	 * Área táctil mínima de 44px. border-box incluye el relleno en la altura total y evita que el
-	 * content-box administrativo la aumente.
-	 */
 	display: flex;
 	align-items: center;
 	box-sizing: border-box;
 	min-height: 44px;
-	padding: 10px 12px;
-	color: #fff;
+	padding: 10px 14px;
+	color: #D8D8DC;
 	text-decoration: none;
 	font-weight: 800;
+	font-size: 13px;
 	line-height: 1.2;
 	border-left: 4px solid transparent;
+	border-radius: 4px;
 	background: rgba(255, 255, 255, 0.06);
+	transition: all 0.15s ease;
 }
 
 .akb-panel-nav__link:hover,
 .akb-panel-nav__link:focus {
-	color: #000;
+	color: #141416;
 	background: var(--akb-admin-yellow);
-	outline: 2px solid #000;
-	outline-offset: 1px;
+	border-left-color: #141416;
+	outline: none;
+	transform: translateX(2px);
 }
 
 .akb-panel-nav__link.is-active {
-	color: #fff;
+	color: #FFF;
 	background: var(--akb-admin-red);
 	border-left-color: var(--akb-admin-yellow);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .akb-panel-content {
 	min-width: 0;
 	background: var(--akb-admin-paper);
-	border-top: 4px solid var(--akb-admin-red);
-	padding: 18px 20px 8px;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	border: 2px solid var(--akb-admin-border);
+	border-radius: 6px;
+	padding: 24px 28px;
+	box-shadow: var(--akb-admin-shadow);
 }
 
 .akb-panel-current-title {
-	margin: 0 0 16px;
-	font-size: 20px;
-	line-height: 1.25;
+	margin: 0 0 20px;
+	font-size: 18px;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 	color: var(--akb-admin-ink);
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding-bottom: 12px;
+	border-bottom: 2px solid var(--akb-admin-border-subtle);
+}
+
+.akb-panel-current-title::before {
+	content: "";
+	display: inline-block;
+	width: 4px;
+	height: 18px;
+	background: var(--akb-admin-red);
+	border-radius: 2px;
 }
 
 .akb-panel-form {
@@ -116,15 +220,25 @@
 .akb-panel .form-table {
 	margin-top: 0;
 	table-layout: fixed;
+	border-collapse: collapse;
 }
 
 .akb-panel .form-table th {
-	width: 240px;
-	padding: 14px 10px 14px 0;
+	width: 260px;
+	padding: 16px 18px;
+	font-weight: 700;
+	color: var(--akb-admin-ink);
+	font-size: 14px;
+	vertical-align: top;
+	background: #FAFAFB;
+	border-right: 1px solid var(--akb-admin-border-subtle);
+	border-bottom: 1px solid var(--akb-admin-border-subtle);
 }
 
 .akb-panel .form-table td {
-	padding: 12px 10px;
+	padding: 16px 20px;
+	vertical-align: top;
+	border-bottom: 1px solid var(--akb-admin-border-subtle);
 }
 
 /*
@@ -138,7 +252,45 @@
 .akb-panel .form-table input[type="password"],
 .akb-panel .form-table textarea,
 .akb-panel .form-table select {
+	border: 1.5px solid var(--akb-admin-border);
+	border-radius: 4px;
+	padding: 8px 12px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--akb-admin-ink);
+	background: var(--akb-admin-white);
+	transition: border-color 0.15s ease;
+	box-shadow: none;
 	max-width: 100%;
+}
+
+.akb-panel .form-table input[type="text"]:focus,
+.akb-panel .form-table input[type="email"]:focus,
+.akb-panel .form-table input[type="url"]:focus,
+.akb-panel .form-table input[type="number"]:focus,
+.akb-panel .form-table input[type="password"]:focus,
+.akb-panel .form-table textarea:focus,
+.akb-panel .form-table select:focus {
+	border-color: var(--akb-admin-red) !important;
+	outline: 2px solid var(--akb-admin-red) !important;
+	outline-offset: 1px !important;
+	box-shadow: none !important;
+}
+
+.akb-panel .form-table input[type="checkbox"] {
+	border: 2px solid var(--akb-admin-border) !important;
+	border-radius: 4px;
+	accent-color: var(--akb-admin-red);
+	width: 20px;
+	height: 20px;
+	vertical-align: middle;
+	margin-right: 8px;
+	cursor: pointer;
+}
+
+.akb-panel .form-table input[type="checkbox"]:focus {
+	outline: 2px solid var(--akb-admin-red) !important;
+	outline-offset: 1px !important;
 }
 
 .akb-panel .form-table .description {
@@ -162,14 +314,55 @@ html {
 .akb-panel .submit {
 	position: sticky;
 	bottom: 0;
-	z-index: 2;
-	margin: 20px -20px 0;
-	padding: 12px 20px;
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), #fff 30%);
-	border-top: 1px solid var(--akb-admin-line);
+	z-index: 20;
+	margin: 24px -28px -24px;
+	padding: 16px 28px;
+	background: var(--akb-admin-white);
+	border-top: 2px solid var(--akb-admin-border);
+	box-shadow: 0 -4px 16px rgba(20, 20, 22, 0.08);
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.akb-panel .button-primary,
+.akb-panel button[type="submit"].button-primary,
+.akb-panel input[type="submit"].button-primary {
+	background: var(--akb-admin-red) !important;
+	border: 2px solid var(--akb-admin-border) !important;
+	color: var(--akb-admin-white) !important;
+	font-weight: 800 !important;
+	font-size: 14px !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.5px !important;
+	padding: 8px 24px !important;
+	height: auto !important;
+	line-height: 24px !important;
+	border-radius: 6px !important;
+	box-shadow: 3px 3px 0 var(--akb-admin-border) !important;
+	text-shadow: none !important;
+	cursor: pointer;
+	transition: all 0.12s ease !important;
+}
+
+.akb-panel .button-primary:hover,
+.akb-panel button[type="submit"].button-primary:hover,
+.akb-panel input[type="submit"].button-primary:hover {
+	background: var(--akb-admin-red-hover) !important;
+	transform: translate(-1px, -1px);
+	box-shadow: 4px 4px 0 var(--akb-admin-border) !important;
+	color: var(--akb-admin-white) !important;
+}
+
+.akb-panel .button-primary:active,
+.akb-panel button[type="submit"].button-primary:active,
+.akb-panel input[type="submit"].button-primary:active {
+	transform: translate(1px, 1px);
+	box-shadow: 1px 1px 0 var(--akb-admin-border) !important;
 }
 
 @media (max-width: 960px) {
+
 	.akb-panel-header {
 		flex-wrap: wrap;
 	}
@@ -187,7 +380,8 @@ html {
 		display: block;
 	}
 
-	.akb-panel-nav {
+	.akb-panel-nav,
+	.akb-panel-search {
 		display: none;
 	}
 
@@ -220,6 +414,7 @@ html {
 }
 
 @media (max-width: 782px) {
+
 	.akb-panel-header {
 		align-items: stretch;
 		flex-direction: column;
@@ -246,42 +441,35 @@ html {
  * encabezado de columna se rehidrata desde data-label. Sin overflow, sin
  * recortes, legible con el pulgar.
  *
- * Lo comparten la tabla de demanda de «Avísame cuando llegue» y la de
- * «Preventas»: mismo problema (muchas columnas en 375px) y misma solución, así
- * que se listan juntas en vez de duplicar el bloque entero. */
+ * Responsive para la tabla BIS (Back-In-Stock).
+ */
 @media (max-width: 782px) {
-	.akb-bis-demand,
-	.akb-preventas__wrap {
+
+	.akb-bis-demand {
 		overflow-x: visible;
 	}
 
 	.akb-bis-demand__table,
-	.akb-preventas__table,
 	.akb-bis-demand__table tbody,
-	.akb-preventas__table tbody,
 	.akb-bis-demand__table tr,
-	.akb-preventas__table tr,
-	.akb-bis-demand__table td,
-	.akb-preventas__table td {
+	.akb-bis-demand__table td {
 		display: block;
 		width: auto;
 	}
 
-	.akb-bis-demand__table thead,
-	.akb-preventas__table thead {
+	.akb-bis-demand__table thead {
 		position: absolute;
 		width: 1px;
 		height: 1px;
 		margin: -1px;
 		padding: 0;
 		overflow: hidden;
-		clip: rect(0 0 0 0);
+		clip-path: inset(50%);
 		white-space: nowrap;
 		border: 0;
 	}
 
-	.akb-bis-demand__table tr,
-	.akb-preventas__table tr {
+	.akb-bis-demand__table tr {
 		margin: 0 0 12px;
 		border: 1px solid #dcdcde;
 		border-radius: 4px;
@@ -289,33 +477,28 @@ html {
 		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 	}
 
-	.akb-bis-demand__table.striped > tbody > tr:nth-child(odd),
-	.akb-preventas__table.striped > tbody > tr:nth-child(odd) {
+	.akb-bis-demand__table.striped > tbody > tr:nth-child(odd) {
 		background: #fff;
 	}
 
-	.akb-bis-demand__table td,
-	.akb-preventas__table td {
+	.akb-bis-demand__table td {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 12px;
 		width: auto;
-		/* Anula los anchos fijos inline (width:110px/160px) del <th> heredados. */
 		max-width: none;
 		padding: 8px 12px;
 		border-bottom: 1px solid #f0f0f1;
 		text-align: right;
-		word-break: break-word;
+		overflow-wrap: break-word;
 	}
 
-	.akb-bis-demand__table td:last-child,
-	.akb-preventas__table td:last-child {
+	.akb-bis-demand__table td:last-child {
 		border-bottom: 0;
 	}
 
-	.akb-bis-demand__table td::before,
-	.akb-preventas__table td::before {
+	.akb-bis-demand__table td::before {
 		content: attr(data-label);
 		flex: 0 0 auto;
 		margin-right: 12px;
@@ -324,8 +507,7 @@ html {
 		text-align: left;
 	}
 
-	.akb-bis-demand__table td[data-label="Producto"],
-	.akb-preventas__table td[data-label="Tomo"] {
+	.akb-bis-demand__table td[data-label="Producto"] {
 		text-align: left;
 		font-weight: 600;
 	}
@@ -341,6 +523,7 @@ html {
 }
 
 @media (max-width: 960px) {
+
 	.akb-sf-pending {
 		overflow-x: visible;
 	}
@@ -360,7 +543,7 @@ html {
 		margin: -1px;
 		padding: 0;
 		overflow: hidden;
-		clip: rect(0 0 0 0);
+		clip-path: inset(50%);
 		white-space: nowrap;
 		border: 0;
 	}
@@ -387,7 +570,7 @@ html {
 		padding: 8px 12px;
 		border-bottom: 1px solid #f0f0f1;
 		text-align: right;
-		word-break: break-word;
+		overflow-wrap: break-word;
 	}
 
 	.akb-panel .akb-sf-pending__table td:last-child {
@@ -409,30 +592,7 @@ html {
 	}
 }
 
-/*
- * Separadores de grupos de navegación del panel.
- */
-.akb-panel-nav__group {
-	display: block;
-	margin: 14px 12px 4px;
-	font-size: 11px;
-	font-weight: 700;
-	letter-spacing: .08em;
-	text-transform: uppercase;
-	color: #8c8f94;
-}
-.akb-panel-nav__group:first-child {
-	margin-top: 4px;
-}
-
-/*
- * Contiene el scroll horizontal en la envoltura de la tabla de cortes. Los campos de WordPress
- * y selectWoo no deben superar el ancho de sus celdas.
- */
-.akb-cortes-form {
-	overflow-x: auto;
-	-webkit-overflow-scrolling: touch;
-}
+/* Borde de campos de formulario */
 
 .akb-panel-content input[type="text"],
 .akb-panel-content input[type="email"],
@@ -441,6 +601,7 @@ html {
 .akb-panel-content input[type="password"],
 .akb-panel-content textarea,
 .akb-panel-content select {
+
 	/* Los campos de la Settings API traen `min-width` inline (320-360 px);
 	 * min-width gana a max-width, así que hay que soltarlo. */
 	min-width: 0 !important;
@@ -462,34 +623,10 @@ body .akb-panel-content table.form-table .select2-container,
 .akb-panel .akb-line-counter {
 	margin: 4px 0 0;
 }
+
 .akb-panel .akb-line-counter.is-over {
 	color: #b32d2e;
 	font-weight: 600;
-}
-
-/* Buscador rápido de ajustes y navegación optimizada */
-.akb-panel-search {
-	margin-bottom: 8px;
-}
-.akb-panel-search__input {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 8px 12px;
-	background: rgba(255, 255, 255, 0.08);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	color: #fff;
-	font-size: 13px;
-	border-radius: 4px;
-	transition: border-color 150ms ease, background 150ms ease;
-}
-.akb-panel-search__input:focus {
-	outline: none;
-	border-color: var(--akb-admin-yellow);
-	background: rgba(255, 255, 255, 0.14);
-	box-shadow: 0 0 0 2px rgba(255, 212, 1, 0.25);
-}
-.akb-panel-search__input::placeholder {
-	color: rgba(255, 255, 255, 0.5);
 }
 
 .akb-panel-nav__link.is-hidden,
@@ -497,12 +634,109 @@ body .akb-panel-content table.form-table .select2-container,
 	display: none !important;
 }
 
-/* Transiciones fluidas de contenido (Client-Side Swap) */
-.akb-panel-content {
-	transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+/* Tarjeta puente bidireccional entre Descuentos por taxonomía y Barra de anuncios. */
+.akb-bridge-card {
+	background: #fff;
+	border: 2px solid #141416;
+	border-left: 5px solid #e60012;
+	border-radius: 4px;
+	padding: 14px 18px;
+	margin: 14px 0 18px;
+	box-shadow: 3px 3px 0 #141416;
 }
-.akb-panel-content.is-loading {
-	opacity: 0.5;
-	pointer-events: none;
+
+.akb-bridge-card__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px 16px;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.akb-bridge-card__title {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #141416;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.akb-bridge-card__dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	display: inline-block;
+	flex-shrink: 0;
+}
+
+.akb-bridge-card__dot--on {
+	background: #00a32a;
+	box-shadow: 0 0 0 3px rgba(0, 163, 42, 0.16);
+}
+
+.akb-bridge-card__dot--warn {
+	background: #dba617;
+	box-shadow: 0 0 0 3px rgba(219, 166, 23, 0.18);
+}
+
+.akb-bridge-card__dot--off {
+	background: #8c8f94;
+}
+
+.akb-bridge-card__grid {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 13px;
+	color: #3c434a;
+}
+
+.akb-bridge-card__preview {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 4px;
+	padding: 8px 12px;
+	background: #141416;
+	color: #fff;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+.akb-bridge-card__preview code {
+	background: #fc0;
+	color: #141416;
+	font-weight: 700;
+	padding: 1px 6px;
+	border-radius: 2px;
+}
+
+.akb-bridge-card__dest {
+	font-size: 12px;
+	color: #50575e;
+	word-break: break-all;
+}
+
+.akb-bridge-card__note {
+	margin: 4px 0 0;
+	font-size: 12px;
+	color: #8a4f00;
+	background: #fcf9e8;
+	border-left: 3px solid #dba617;
+	padding: 6px 10px;
+}
+
+.akb-bridge-card__cta.button {
+	min-height: 44px;
+	display: inline-flex;
+	align-items: center;
 }
 

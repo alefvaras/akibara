@@ -64,7 +64,6 @@ final class CrossOriginScriptsTest extends TestCase {
 			'https://www.mercadopago.com/v2/security.js',
 			'https://http2.mlstatic.com/storage/v1/mercadopago/woocommerce/scripts/x.js',
 			'https://www.googletagmanager.com/gtag/js?id=G-VXW8CW2FXR',
-			'https://scripts.clarity.ms/0.8.69/clarity.js',
 		) as $src ) {
 			$out = $this->sut->mark_third_party( $this->etiqueta( $src ), 'x', $src );
 
@@ -138,9 +137,9 @@ final class CrossOriginScriptsTest extends TestCase {
 	 * @testdox No duplica el atributo si el tercero ya lo trae.
 	 */
 	public function test_it_does_not_duplicate_an_existing_attribute(): void {
-		$tag = '<script crossorigin="anonymous" src="https://scripts.clarity.ms/x.js"></script>';
+		$tag = '<script crossorigin="anonymous" src="https://sdk.mercadopago.com/x.js"></script>';
 
-		self::assertSame( $tag, $this->sut->mark_third_party( $tag, 'x', 'https://scripts.clarity.ms/x.js' ) );
+		self::assertSame( $tag, $this->sut->mark_third_party( $tag, 'x', 'https://sdk.mercadopago.com/x.js' ) );
 	}
 
 	/**

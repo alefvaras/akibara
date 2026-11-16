@@ -45,33 +45,6 @@ final class NativeCartAssetsTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Should keep cart data in memory and protect live reads from stale responses.
-	 */
-	public function test_javascript_has_session_and_race_safeguards(): void {
-		$javascript = (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/js/native-cart.js' );
-
-		self::assertStringNotContainsString( 'localStorage', $javascript );
-		self::assertStringNotContainsString( 'sessionStorage', $javascript );
-		self::assertStringNotContainsString( 'xoo-wsc', $javascript );
-		self::assertStringContainsString( 'AbortController', $javascript );
-		self::assertStringContainsString( 'requestId !== cartReadSequence', $javascript );
-		self::assertStringContainsString( "endpoint('add_to_cart')", $javascript );
-		self::assertStringContainsString( 'btn.disabled = true', $javascript );
-		self::assertStringContainsString( 'btn.disabled = false', $javascript );
-		self::assertStringContainsString( 'restoreFocusAfterRecommendation(recommendationIndex)', $javascript );
-		self::assertStringContainsString( 'Math.min(previousIndex, nextButtons.length - 1)', $javascript );
-		self::assertStringContainsString( 'renderEmptyState(settings)', $javascript );
-		self::assertStringContainsString( "continueLink.className = 'akb-cart-empty__cta'", $javascript );
-		self::assertStringContainsString( "retryButton.textContent = 'Reintentar'", $javascript );
-		self::assertStringContainsString( 'renderCart(json.data, false)', $javascript );
-		self::assertStringContainsString( 'renderCart(json.data, true)', $javascript );
-		self::assertStringContainsString( 'if (announceMutation)', $javascript );
-		self::assertStringContainsString( 'data.has_discount && data.discount_html && data.total_html', $javascript );
-		self::assertStringContainsString( "discountRow.toggleAttribute('hidden', !showDiscountBreakdown)", $javascript );
-		self::assertStringContainsString( "totalRow.toggleAttribute('hidden', !showDiscountBreakdown)", $javascript );
-	}
-
-	/**
 	 * @testdox Should use a dynamic mobile viewport and honor reduced motion.
 	 */
 	public function test_styles_support_mobile_viewport_and_reduced_motion(): void {
@@ -99,7 +72,6 @@ final class NativeCartAssetsTest extends TestCase {
 	public function test_loading_pulse_runs_only_with_the_drawer_open(): void {
 		$css = (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/css/native-cart-v2.css' );
 		$css = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
-		$js  = (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/js/native-cart.js' );
 
 		preg_match_all( '/([^{}]+)\{([^{}]*)\}/', $css, $reglas, PREG_SET_ORDER );
 		$con_pulso = array();
@@ -110,7 +82,6 @@ final class NativeCartAssetsTest extends TestCase {
 		}
 
 		self::assertSame( array( '.akb-cart-drawer.akb-open .akb-cart-loading' ), $con_pulso, 'El pulso sólo puede declararse con el cajón abierto.' );
-		self::assertStringContainsString( "drawer.classList.add('akb-open')", $js, 'La clase de abierto que el CSS espera la pone native-cart.js.' );
 	}
 
 	/**

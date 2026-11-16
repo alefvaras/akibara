@@ -24,8 +24,9 @@ declare( strict_types = 1 );
 namespace Akibara\Rewards\Blocks;
 
 use Akibara\Rewards\Points\Accrual;
-use Akibara\Rewards\Points\Calculator;
+use Akibara\Rewards\Points\Promise;
 use Akibara\Rewards\Points\Redemption;
+use Akibara\Rewards\Points\Tiers;
 use Akibara\Rewards\Support\Assets;
 use Akibara\Rewards\Support\Options;
 
@@ -33,6 +34,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class CheckoutIntegration {
 
@@ -110,8 +113,17 @@ final class CheckoutIntegration {
 					'akb_rewards_welcome_bonus',
 					'akb_rewards_welcome_teaser_enabled',
 					'akb_rewards_redeem_min_cart',
+					'akb_rewards_redeem_tier2_min_cart',
+					'akb_rewards_redeem_tier1_max_amount',
+					'akibara_fsp_carrier_threshold',
 					'akb_rewards_first_purchase_min',
 					'akb_rewards_program_start',
+					'akb_rewards_tiers_enabled',
+					'akb_rewards_tier_coleccionista_min',
+					'akb_rewards_tier_coleccionista_mult',
+					'akb_rewards_tier_residente_min',
+					'akb_rewards_tier_residente_mult',
+					'akb_rewards_tier_validity_days',
 				)
 			);
 		}
@@ -123,15 +135,6 @@ final class CheckoutIntegration {
 		$limits  = Redemption::redemption_limits( $cart, $user_id );
 		$balance = $limits['available'];
 		$intent  = Redemption::intent_points();
-
-		// Y para los PUNTOS hay que restar lo que ya se está pagando con puntos,
-		// que es lo que hace `award_base_for_order()` al acreditar. Ojo: el canje
-		// entra como FEE, no como línea, así que la base de arriba NO baja sola
-		// al aplicarlo —recalcular el carrito no cambia esa base— y sin esta
-		// resta el checkout prometería puntos sobre dinero que se paga con
-		// puntos. Hoy no se ve (el aviso es para invitados y canjear exige
-		// cuenta), pero la promesa viajaba inflada en el payload.
-		$canje_bruto = self::cart_redeemed_gross();
 
 		// ¿El programa rige HOY? Es la compuerta que aplica la acreditación
 		// (`Accrual::in_program()`): con la fecha de inicio en el futuro —o
@@ -156,6 +159,7 @@ final class CheckoutIntegration {
 
 		return array(
 			'logged_in'     => $user_id > 0,
+			'tier_notice' => $vigente ? Tiers::progress_label( $user_id ) : '',
 			'balance'       => $balance,
 			'intent'        => $intent,
 			'effective'     => Redemption::effective_points_for_limits( $intent, $limits ),
@@ -188,7 +192,7 @@ final class CheckoutIntegration {
 			// panel, y el checkout prometería puntos que luego no se abonan—.
 			// Cero sin carrito, y cero también si el programa todavía no rige o su
 			// fecha de inicio quedó malformada: ahí no acredita nadie.
-			'earn_now'      => $vigente ? Calculator::points_for( self::cart_award_base( $canje_bruto ) ) : 0,
+			'earn_now'      => Promise::for_cart( $cart, $user_id ),
 			// Pesos por punto, para poder decir «500 puntos = $500» sin que la
 			// caja se invente el cambio. Es el mismo valor con que se canjean.
 			'redeem_value'  => Options::redeem_value(),
@@ -199,22 +203,7 @@ final class CheckoutIntegration {
 			'account_url'   => $user_id > 0 ? '' : self::account_url(),
 			'teaser'        => 'yes' === (string) get_option( 'akb_rewards_welcome_teaser_enabled', 'yes' ),
 			'referrer_name' => $ref_name,
-			'switch_points' => ! empty( $limits['can_switch_from_bundle'] ) ? (int) ( $limits['max_redeemable_points'] ?? 0 ) : 0,
 		);
-	}
-
-	/**
-	 * Base puntuable del carrito vivo, con el canje ya restado.
-	 *
-	 * Delega el cálculo de base puntuable a `Calculator::award_base_for_cart()`.
-	 *
-	 * @param float $canje_bruto Pesos que este carrito paga con puntos.
-	 * @return float
-	 */
-	private static function cart_award_base( float $canje_bruto ): float {
-		$cart = self::cart();
-
-		return $cart instanceof \WC_Cart ? Calculator::award_base_for_cart( $cart, $canje_bruto ) : 0.0;
 	}
 
 	/**
@@ -252,43 +241,9 @@ final class CheckoutIntegration {
 		}
 
 		$wc   = WC();
-		$cart = is_object( $wc ) ? ( $wc->cart ?? null ) : null;
-
+		$cart = is_object( $wc ) ? ( $wc->cart ?? null ) : null; // @phpstan-ignore nullCoalesce.property
 		return $cart instanceof \WC_Cart ? $cart : null;
 	}
-
-	/**
-	 * Lo que este carrito ya está pagando con puntos, en pesos.
-	 *
-	 * Es la resta que `award_base_for_order()` aplica al acreditar: los puntos no
-	 * se ganan sobre dinero pagado con puntos.
-	 *
-	 * @return float 0.0 si no hay carrito o no hay canje aplicado.
-	 */
-	private static function cart_redeemed_gross(): float {
-		$cart = self::cart();
-		if ( ! $cart instanceof \WC_Cart ) {
-			return 0.0;
-		}
-
-		// Espejo exacto de `Redemption::granted_gross()`, que hace lo mismo sobre
-		// el pedido: el fee del canje es el único negativo con ese nombre.
-		foreach ( $cart->get_fees() as $fee ) {
-			if ( ! is_object( $fee ) || Redemption::FEE_NAME !== ( $fee->name ?? '' ) ) {
-				continue;
-			}
-
-			// Sólo `total` + `tax`: `amount` es el importe SIN IVA y restaría un
-			// 19 % de menos, prometiendo puntos de más.
-			$total = (float) ( $fee->total ?? 0 ) + (float) ( $fee->tax ?? 0 );
-			if ( $total < 0 ) {
-				return -$total;
-			}
-		}
-
-		return 0.0;
-	}
-
 
 	/**
 	 * Schema del bloque de datos.
@@ -299,6 +254,7 @@ final class CheckoutIntegration {
 		$entero = array( 'type' => 'integer', 'readonly' => true );
 		return array(
 			'logged_in'     => array( 'type' => 'boolean', 'readonly' => true ),
+			'tier_notice' => array( 'type' => 'string', 'readonly' => true ),
 			'balance'       => $entero,
 			'intent'        => $entero,
 			'effective'     => $entero,
@@ -316,7 +272,6 @@ final class CheckoutIntegration {
 			'account_url'   => array( 'type' => 'string', 'readonly' => true ),
 			'teaser'        => array( 'type' => 'boolean', 'readonly' => true ),
 			'referrer_name' => array( 'type' => 'string', 'readonly' => true ),
-			'switch_points' => $entero,
 		);
 	}
 
@@ -347,11 +302,23 @@ final class CheckoutIntegration {
 		$fname = trim( (string) $padrino->first_name );
 		$name  = '' !== $fname ? $fname : (string) $padrino->display_name;
 
+		$guest_discount = max( 0, (int) get_option( 'akb_referral_guest_discount_amount', \Akibara\Rewards\Points\Referrals::AKB_REF_AMOUNT ) );
+		$guest_min      = max( 0, (int) get_option( 'akb_referral_min_cart_amount', (int) get_option( 'akb_rewards_referral_min_order', 30000 ) ) );
+		$guest_benefit  = $guest_discount > 0
+			? sprintf(
+				'tienes $%s de descuento en tu primera compra%s y %s recibe puntos al completar tu pedido.',
+				number_format_i18n( $guest_discount ),
+				$guest_min > 0 ? sprintf( ' desde $%s en productos a precio normal', number_format_i18n( $guest_min ) ) : '',
+				$name
+			)
+			: sprintf( '%s recibirá Puntos Akibara al completar tu pedido.', $name );
+
 		printf(
-			'<div class="akb-rw-referral-checkout-notice" style="border:1px solid #333333;border-left:4px solid #E60012;background:#181818;color:#f0f0f0;padding:12px 16px;margin:12px 0;font-size:14px;line-height:1.4;">'
-			. '🤝 Estás comprando con la recomendación de <strong>%s</strong>. ¡Ambos recibirán Puntos Akibara al completar tu pedido!'
+			'<div class="akb-rw-referral-checkout-notice" style="border:1px solid var(--aki-border-light,#333333);border-left:4px solid var(--aki-red,#E60012);background:var(--aki-surface-2,#1A1A1A);color:var(--aki-gray-100,#F5F5F5);padding:12px 16px;margin:12px 0;font-size:14px;line-height:1.4;">'
+			. '🤝 Estás comprando con la recomendación de <strong>%s</strong>: %s'
 			. '</div>',
-			esc_html( $name )
+			esc_html( $name ),
+			esc_html( $guest_benefit )
 		);
 	}
 
@@ -383,34 +350,10 @@ final class CheckoutIntegration {
 		if ( null !== $cart ) {
 			$cart->calculate_totals();
 		}
-		$limits            = Redemption::redemption_limits( $cart, $user_id );
-		$switched_from_byp = false;
-		$allow_manual_switch = function_exists( 'get_option' ) ? ( 'yes' === get_option( 'akb_rewards_allow_manual_switch_below_bundle', 'yes' ) ) : true;
-
-		if ( $points > 0 && ( ! empty( $limits['points_exceed_bundle'] ) || $allow_manual_switch ) && $cart instanceof \WC_Cart && method_exists( $cart, 'remove_coupon' ) ) {
-			$switched_from_byp = true;
-			if ( function_exists( 'WC' ) && WC()->session ) {
-				WC()->session->set( 'akb_prefer_points_over_bundle', true );
-			}
-			foreach ( $cart->get_applied_coupons() as $coupon_code ) {
-				if ( 0 === strpos( (string) $coupon_code, 'akb_sb_' ) ) {
-					$cart->remove_coupon( $coupon_code );
-				}
-			}
-			$cart->calculate_totals();
-			$limits = Redemption::redemption_limits( $cart, $user_id );
-		}
-		$error = Redemption::requested_error( $points, $limits );
+		$limits = Redemption::redemption_limits( $cart, $user_id );
+		$error  = Redemption::requested_error( $points, $limits );
 		if ( '' !== $error ) {
-			if ( $switched_from_byp ) {
-				if ( function_exists( 'WC' ) && WC()->session ) {
-					WC()->session->set( 'akb_prefer_points_over_bundle', false );
-				}
-				if ( null !== $cart ) {
-					$cart->calculate_totals();
-				}
-			}
-			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'akb_rewards_unavailable', $error, 400 );
+			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'akb_rewards_unavailable', esc_html( $error ), 400 );
 		}
 		Redemption::set_intent( $points );
 	}

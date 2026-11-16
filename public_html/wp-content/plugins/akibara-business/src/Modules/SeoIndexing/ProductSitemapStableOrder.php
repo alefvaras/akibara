@@ -22,6 +22,9 @@ defined( 'ABSPATH' ) || exit;
  * filter. If Rank Math changes the SQL shape, the query remains untouched.
  *
  * @since 1.93.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UnusedClosureParam
  */
 final class ProductSitemapStableOrder {
 
@@ -131,7 +134,7 @@ final class ProductSitemapStableOrder {
 	 * @return int
 	 */
 	private static function links_per_page(): int {
-		if ( class_exists( '\RankMath\Helper' ) && method_exists( '\RankMath\Helper', 'get_settings' ) ) {
+		if ( class_exists( '\RankMath\Helper' ) && method_exists( '\RankMath\Helper', 'get_settings' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return max( 1, (int) \RankMath\Helper::get_settings( 'sitemap.items_per_page', 100 ) );
 		}
 		$settings = get_option( 'rank-math-options-sitemap', array() );
@@ -164,9 +167,9 @@ final class ProductSitemapStableOrder {
 		}
 		$indexable = $this->indexable;
 		if ( null === $indexable ) {
-			$indexable = class_exists( '\RankMath\Sitemap\Sitemap' ) && method_exists( '\RankMath\Sitemap\Sitemap', 'is_object_indexable' )
+			$indexable = class_exists( '\RankMath\Sitemap\Sitemap' ) && method_exists( '\RankMath\Sitemap\Sitemap', 'is_object_indexable' ) // @phpstan-ignore function.impossibleType
 				? static fn( int $post_id ): bool => (bool) \RankMath\Sitemap\Sitemap::is_object_indexable( $post_id )
-				: static fn( int $post_id ): bool => true;
+				: static fn( int $post_id ): bool => true; // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 		}
 
 		$max = 0;

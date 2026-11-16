@@ -27,6 +27,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.1
+ * @api
+ * @psalm-suppress InvalidOperand
  */
 final class SaleDiscount {
 

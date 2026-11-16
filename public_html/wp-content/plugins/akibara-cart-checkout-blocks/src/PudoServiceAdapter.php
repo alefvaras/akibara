@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Keeps the Blocks transport decoupled from the Business implementation class.
  *
  * @since 2.1.0
+ * @api
  */
 final class PudoServiceAdapter {
 

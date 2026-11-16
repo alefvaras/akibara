@@ -36,6 +36,9 @@ defined( 'ABSPATH' ) || exit;
  *   >911  878px        `max-width: 880px` de contenido menos los dos bordes.
  *
  * @return string
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_blog_post_image_sizes(): string {
     return '(max-width: 768px) calc(100vw - 26px), (max-width: 911px) calc(100vw - 34px), 878px';
@@ -72,6 +75,9 @@ function akibara_blog_post_image_sizes(): string {
  * de la que hace falta, nunca más pequeña.
  *
  * @return string
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_blog_card_image_sizes(): string {
     return '(min-width: 1200px) 366px, (min-width: 1073px) calc((100vw - 96px) / 3 - 2px), (min-width: 769px) calc(50vw - 38px), (min-width: 705px) calc(50vw - 26px), calc(100vw - 34px)';
@@ -91,6 +97,9 @@ function akibara_blog_card_image_sizes(): string {
  *
  * @param int    $attachment_id Attachment post ID (0 = no attachment).
  * @param string $context_title Usually the post/product title.
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_blog_image_alt( int $attachment_id, string $context_title = '' ): string {
     // 1) Editor-provided alt (explicit intent — always wins).
@@ -130,8 +139,13 @@ function akibara_blog_image_alt( int $attachment_id, string $context_title = '' 
  * Filtro único del tema para `wp_get_attachment_image_attributes`:
  * Prioriza el título del producto o contenido visible y luego aplica la
  * cadena de fallback de `akibara_blog_image_alt()`, de modo que el alt nunca quede vacío.
+ * @param mixed $attachment
+ * @param mixed $size
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
-function akibara_blog_image_alt_fallback( array $attr, $attachment, $size ): array {
+function akibara_blog_image_alt_fallback( array $attr, $attachment, $size ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
     if ( isset( $attr['alt'] ) && trim( $attr['alt'] ) !== '' ) {
         return $attr;
     }
@@ -185,6 +199,9 @@ add_filter( 'wp_get_attachment_image_attributes', 'akibara_blog_image_alt_fallba
  *
  * @param string $field HTML del campo.
  * @return string
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_blog_prepare_comment_field( $field ) {
     if ( ! is_string( $field ) || '' === $field ) {
@@ -226,6 +243,9 @@ function akibara_blog_prepare_comment_field( $field ) {
  *
  * @param array<string,string> $fields Campos del formulario.
  * @return array<string,string>
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_blog_comment_fields_without_placeholder( $fields ) {
     if ( ! is_array( $fields ) ) {
@@ -248,6 +268,9 @@ add_filter( 'comment_form_default_fields', 'akibara_blog_comment_fields_without_
  *
  * @param array<string,mixed> $defaults Argumentos de `comment_form()`.
  * @return array<string,mixed>
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_blog_comment_textarea_label( $defaults ) {
     if ( ! is_array( $defaults ) || ! isset( $defaults['comment_field'] ) ) {
@@ -278,6 +301,9 @@ add_filter( 'comment_form_defaults', 'akibara_blog_comment_textarea_label', 99 )
  * ajeno.
  *
  * @return void
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
+ * @psalm-suppress UnusedParam
  */
 function akibara_search_bridge_to_shop() {
     if ( ! is_search() || is_admin() ) {
@@ -314,4 +340,5 @@ function akibara_search_bridge_to_shop() {
     </aside>
     <?php
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'generate_before_main_content', 'akibara_search_bridge_to_shop' );

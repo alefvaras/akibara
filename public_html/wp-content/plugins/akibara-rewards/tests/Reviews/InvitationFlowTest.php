@@ -207,10 +207,10 @@ final class InvitationFlowTest extends RewardsTestCase {
 		$this->assertSame( 'Este enlace ya se usó o caducó.', $this->form->process( $token ) );
 	}
 
-	/** @testdox El formulario conserva la insignia de compra verificada de Listo para enviar pagado. */
-	public function test_token_form_verifies_paid_shipping_progress(): void {
+	/** @testdox El formulario conserva la insignia de compra verificada de pedido pagado. */
+	public function test_token_form_verifies_paid_order(): void {
 		$order = $this->completed_order( 100 );
-		$order->status = 'shipping-progress';
+		$order->status = 'completed';
 		$order->date_paid = new \WC_DateTime( '2026-10-01 10:00:00' );
 		$token = Invitations::issue_token( 100 );
 		$_POST = array( 'akb_rf_mode' => 'reward', 'akb_rf_points_requested' => '1', '_akbnonce' => 'x', 'akb_rf_product' => 777, 'akb_rf_rating' => 5, 'akb_rf_content' => 'Edición impecable, papel excelente.' );
@@ -645,6 +645,54 @@ final class InvitationFlowTest extends RewardsTestCase {
 		$correo = end( $this->wc->mailer()->sent );
 		self::assertStringContainsString( 'vence en 1 día.', $correo['body'] );
 		self::assertStringNotContainsString( '1 días', $correo['body'] );
+	}
+
+	/** @testdox Un pedido con varios tomos mantiene activo el token hasta reseñar todos los tomos elegibles. */
+	public function test_multi_item_order_keeps_token_open_until_all_items_are_reviewed(): void {
+		Functions\when( 'wp_nonce_field' )->justReturn( '<input name="_akbnonce" value="test">' );
+		$order = $this->completed_order( 100 );
+		$order->items['line_item'] = array(
+			new \WC_Order_Item_Fake( 777, 'Atelier of Witch Hat 15' ),
+			new \WC_Order_Item_Fake( 778, 'Atelier of Witch Hat 16' ),
+		);
+		$token = Invitations::issue_token( 100 );
+
+		// Primer envío: reseña del tomo 777.
+		$_POST = array(
+			'_akbnonce'               => 'x',
+			'akb_rf_mode'             => 'reward',
+			'akb_rf_points_requested' => '1',
+			'akb_rf_product'          => 777,
+			'akb_rf_rating'           => 5,
+			'akb_rf_content'          => 'Excelente primer tomo del pedido.',
+		);
+		$_FILES = array(
+			'akb_rf_photo' => array(
+				'name'     => 'tomo15.jpg',
+				'tmp_name' => '/tmp/tomo15.jpg',
+				'size'     => 100,
+				'error'    => UPLOAD_ERR_OK,
+			),
+		);
+
+		self::assertTrue( $this->form->process( $token ) );
+		self::assertNotNull( ReviewForm::validate_token( $token ), 'Queda el tomo 778 pendiente: el token NO se quema todavía.' );
+
+		$thanks = new \ReflectionMethod( ReviewForm::class, 'thanks_body' );
+		$thanks->setAccessible( true );
+		$thanks_html = (string) $thanks->invoke( $this->form, $token, 100 );
+		self::assertStringContainsString( 'Reseñar otro tomo de este pedido', $thanks_html );
+
+		// El formulario filtra el tomo ya reseñado (777) y ofrece sólo el pendiente (778).
+		$page_html = $this->form->render_page( $token );
+		self::assertStringNotContainsString( 'value="777"', $page_html );
+		self::assertStringContainsString( 'value="778"', $page_html );
+
+		// Segundo envío: reseña del tomo 778 → cierra el pedido y quema el token.
+		$_POST['akb_rf_product'] = 778;
+		$_POST['akb_rf_content'] = 'Excelente segundo tomo del pedido.';
+		self::assertTrue( $this->form->process( $token ) );
+		self::assertNull( ReviewForm::validate_token( $token ), 'Todos los tomos del pedido fueron reseñados: el token se cierra definitivamente.' );
 	}
 
 }

@@ -157,8 +157,7 @@ final class SchemaProductRankMathTest extends TestCase {
 
 		$result = ( new SchemaProductRankMath( null, false ) )->augment_woocommerce_entity( $entity, $product );
 
-		self::assertSame( 'https://schema.org/PreOrder', $result['offers'][0]['availability'], 'Preventas must use Schema.org PreOrder.' );
-		self::assertSame( '2028-08-31', $result['offers'][0]['availabilityStarts'], 'A valid release date (real day, within the 5-year cap) must remain crawlable.' );
+		self::assertSame( 'https://schema.org/BackOrder', $result['offers'][0]['availability'] );
 		self::assertSame( 'https://schema.org/Book', $result['additionalType'], 'Manga should retain Book semantics in the fallback.' );
 		self::assertSame( '9791388298844', $result['isbn'], 'A valid ISBN should remain available without Rank Math.' );
 		self::assertSame( 'es', $result['inLanguage'], 'The fallback should retain the catalog language.' );
@@ -687,28 +686,6 @@ final class SchemaProductRankMathTest extends TestCase {
 		self::assertSame( $entity['offers'], $result['offers'], 'Variable and aggregate offers are outside this sanitation contract.' );
 	}
 
-	/**
-	 * @testdox Should omit false Open Graph instock only for preorders.
-	 */
-	public function test_filters_false_opengraph_availability_for_preorders(): void {
-		$preorder = new \WC_Product( 'onbackorder' );
-		$instock  = new \WC_Product( 'instock' );
-
-		Functions\when( 'is_singular' )->justReturn( true );
-		Functions\when( 'get_the_ID' )->justReturn( 123 );
-		Functions\when( 'wc_get_product' )->alias(
-			static function () use ( &$preorder ) {
-				return $preorder;
-			}
-		);
-
-		$sut = new SchemaProductRankMath( null, true );
-
-		self::assertSame( '', $sut->filter_facebook_product_availability( 'instock' ) );
-
-		$preorder = $instock;
-		self::assertSame( 'instock', $sut->filter_facebook_product_availability( 'instock' ) );
-	}
 
 	/**
 	 * @testdox Should restore ComicSeries on the existing Product and preserve mainEntityOfPage.

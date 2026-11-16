@@ -69,9 +69,6 @@ final class CacheBustContractTest extends TestCase {
 		// regenerarse. Las portadas las sube el pipeline, no el empaquetador,
 		// así que su mtime en prod es real y la comparación es el contrato.
 		'akibara-business/src/Modules/SeoSocial/SocialImageDerivatives.php' => 'comparación fuente-derivada del pipeline de imágenes; no construye ningún ?ver=',
-		// Tampoco versiona assets: mide la edad de sus propios temporales de
-		// recompresión para barrer los que dejó una corrida muerta.
-		'akibara-business/src/Modules/ImageQuality/Recompressor.php' => 'edad de temporales propios de la recompresión de imágenes; no construye ningún ?ver=',
 		// Clave de caché para derivadas de imágenes en correos electrónicos.
 		// No construye ningún ?ver= ni encola assets web.
 		'akibara-business/src/Modules/SeoSocial/EmailImageDerivatives.php' => 'clave de caché para derivadas de correo; no construye ningún ?ver=',

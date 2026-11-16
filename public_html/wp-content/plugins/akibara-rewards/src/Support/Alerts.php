@@ -26,6 +26,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.4.1
+ * @api
  */
 final class Alerts {
 
@@ -269,7 +270,7 @@ final class Alerts {
 		}
 
 		$this->send(
-			'email_' . md5( (string) $hook . '|' . implode( '|', array_map( 'strval', array_slice( $args, 0, -1 ) ) ) ),
+			'email_' . md5( $hook . '|' . implode( '|', array_map( 'strval', array_slice( $args, 0, -1 ) ) ) ),
 			'Un correo de Puntos Akibara no salió',
 			sprintf(
 				'<p style="margin:0 0 12px">Tras tres intentos en doce horas no salió %s.</p><p style="margin:0">Si también fallan otros correos de la tienda, revisa el correo del sitio (la conexión de envío). Si no, revisa que la dirección del cliente esté bien escrita.</p>',

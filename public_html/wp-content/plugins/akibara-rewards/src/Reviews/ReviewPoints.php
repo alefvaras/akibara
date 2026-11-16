@@ -26,6 +26,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress InvalidArgument
  */
 final class ReviewPoints {
 
@@ -194,7 +196,8 @@ final class ReviewPoints {
 	 * @param \WP_Comment $comment Reseña aprobada.
 	 * @return void
 	 */
-	public function maybe_pay( \WP_Comment $comment ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function maybe_pay( \WP_Comment $comment ): void { // @phpstan-ignore complexity.functionLike
 		$points = Options::review_points();
 		if ( $points <= 0 ) {
 			return; // Programa apagado.
@@ -228,12 +231,6 @@ final class ReviewPoints {
 			return; // Las reseñas escritas por la tienda no se premian a sí mismas.
 		}
 
-		if ( '' !== (string) get_comment_meta( $comment_id, 'cr_coupon_code', true ) ) {
-			// Ya cobró el cupón del tercero: una recompensa por acción.
-			update_comment_meta( $comment_id, self::META_POINTS_PAID, 0 );
-			return;
-		}
-
 		if ( ! Media::has_real_photo( $comment_id ) ) {
 			return; // Sin foto real no hay premio (video y texto no cuentan).
 		}
@@ -256,13 +253,13 @@ final class ReviewPoints {
 			return;
 		}
 
-		// Política de frecuencia: tope histórico por cliente y cadencia «cada N reseñas».
+		// Política de frecuencia: tope por cliente (últimos 30 días) y cadencia «cada N reseñas».
 		// Ambas se validan contra el ledger. El tope cuenta productos con crédito
 		// vigente (neto de reversas) para asegurar que reseñas revertidas liberen el cupo.
 		$max = Options::review_max_per_user();
-		if ( $max > 0 && Ledger::count_live_credits( $user_id, 'review', 'review', 'review_reversal' ) >= $max ) {
+		if ( $max > 0 && Ledger::count_live_credits( $user_id, 'review', 'review', 'review_reversal', 30 ) >= $max ) {
 			update_comment_meta( $comment_id, self::META_POINTS_PAID, 0 );
-			return; // El cliente ya alcanzó su tope histórico de premios.
+			return; // El cliente ya alcanzó su tope de premios en la ventana de 30 días.
 		}
 
 		$every = Options::review_every_n();

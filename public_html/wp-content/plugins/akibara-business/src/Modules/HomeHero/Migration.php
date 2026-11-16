@@ -26,6 +26,9 @@ namespace Akibara\Business\Modules\HomeHero;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Migration {
 
 	/** Slugs/filenames del hero histórico que buscamos al sembrar. */
@@ -87,7 +90,7 @@ final class Migration {
 
 		$slide['alt']   = '';
 		$slide['title'] = 'Encuentra tu próxima historia';
-		$slide['lede']  = 'Manga, cómics, preventas y novedades en un solo lugar.';
+		$slide['lede']  = 'Manga, cómics y novedades en un solo lugar.';
 		$slide['ctas']  = array(
 			array( 'label' => 'Ver manga',    'url' => '/manga/',  'style' => 'manga' ),
 			array( 'label' => 'Ver cómics',   'url' => '/comics/', 'style' => 'comics' ),

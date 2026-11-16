@@ -15,8 +15,24 @@ if (!defined('ABSPATH')) {
  */
 class WC_Correios_Get_Logs_Endpoint
 {
+    const DEFAULT_PAGE_SIZE = 10;
+    const MAX_PAGE_SIZE = 100;
+
     /**
-     * Get integration settings endpoint
+     * @param mixed $requested Requested page size.
+     * @return int
+     */
+    public static function page_size($requested)
+    {
+        $size = (int) $requested;
+        if ($size < 1) {
+            return self::DEFAULT_PAGE_SIZE;
+        }
+        return min($size, self::MAX_PAGE_SIZE);
+    }
+
+    /**
+     * Get logs endpoint
      *
      * @param WP_REST_Request $request Request object.
      * @return WP_REST_Response
@@ -92,7 +108,7 @@ class WC_Correios_Get_Logs_Endpoint
 
             // Get paginated results
             $page = !empty($request['page']) ? (int) $request['page'] : 1;
-            $per_page = !empty($request['per_page']) ? (int) $request['per_page'] : 10;
+            $per_page = self::page_size($request['per_page']);
             $offset = ($page - 1) * $per_page;
 
             $query = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY log_timestamp DESC LIMIT %d OFFSET %d";

@@ -15,6 +15,7 @@ use Akibara\Business\Plugin;
  * Manages the version check, compare-and-swap upgrade claims, and search feed contract reconciliations.
  *
  * @since 1.99.16
+ * @api
  */
 final class UpgradeManager {
 
@@ -63,11 +64,16 @@ final class UpgradeManager {
 			);
 		}
 
+		$current = defined( 'AKIBARA_BUSINESS_VERSION' ) ? AKIBARA_BUSINESS_VERSION : '1.0.0';
+		if ( $this->newer_runtime_state_exists( $current ) ) {
+			return;
+		}
 		$this->maybe_upgrade_search_feed_contract();
 
-		$current = defined( 'AKIBARA_BUSINESS_VERSION' ) ? AKIBARA_BUSINESS_VERSION : '1.0.0';
-
 		for ( $attempt = 0; $attempt < 4; ++$attempt ) {
+			if ( $this->newer_runtime_state_exists( $current ) ) {
+				return;
+			}
 			$pending = (string) get_option( self::OPTION_UPGRADE_TASKS_PENDING, '' );
 			if ( '' !== $pending ) {
 				if ( ! $this->maybe_resume_upgrade_tasks( $current, $pending ) ) {
@@ -83,6 +89,8 @@ final class UpgradeManager {
 
 			$queued = $this->encode_upgrade_task_state( 'queued', $current, $stored, '', 0 );
 			if ( ! $this->claim_upgrade_queue( $queued, $stored ) ) {
+				$this->purge_option_cache( self::OPTION_VERSION_INSTALLED );
+				$this->purge_option_cache( self::OPTION_UPGRADE_TASKS_PENDING );
 				continue;
 			}
 
@@ -126,6 +134,9 @@ final class UpgradeManager {
 	 * @return bool True cuando el marcador quedó consumido y se puede continuar.
 	 */
 	public function maybe_resume_upgrade_tasks( string $current, ?string $known_pending = null ): bool {
+		if ( $this->newer_runtime_state_exists( $current ) ) {
+			return false;
+		}
 		$pending = null === $known_pending
 			? (string) get_option( self::OPTION_UPGRADE_TASKS_PENDING, '' )
 			: $known_pending;
@@ -432,6 +443,10 @@ final class UpgradeManager {
 	 * @return void
 	 */
 	public function maybe_upgrade_search_feed_contract(): void {
+		$runtime = defined( 'AKIBARA_BUSINESS_VERSION' ) ? AKIBARA_BUSINESS_VERSION : '1.0.0';
+		if ( $this->newer_runtime_state_exists( $runtime ) ) {
+			return;
+		}
 		$current = self::SEARCH_FEED_CONTRACT_VERSION;
 		$stored  = get_option( self::OPTION_SEARCH_FEED_CONTRACT_VERSION, null );
 
@@ -450,13 +465,23 @@ final class UpgradeManager {
 		}
 
 		$stored = (string) $stored;
-		if ( $stored === $current ) {
+		if ( version_compare( $stored, $current, '>=' ) ) {
 			return;
 		}
 
 		if ( $this->claim_version_option( self::OPTION_SEARCH_FEED_CONTRACT_VERSION, $current, $stored ) ) {
 			$this->schedule_search_reindex();
 		}
+	}
+
+	/** Old files cannot reconcile or repair state owned by a newer runtime. */
+	private function newer_runtime_state_exists( string $current ): bool {
+		$installed = (string) get_option( self::OPTION_VERSION_INSTALLED, '' );
+		if ( '' !== $installed && version_compare( $installed, $current, '>' ) ) {
+			return true;
+		}
+		$pending = $this->decode_upgrade_task_state( (string) get_option( self::OPTION_UPGRADE_TASKS_PENDING, '' ) );
+		return null !== $pending && version_compare( $pending['current'], $current, '>' );
 	}
 
 	/**

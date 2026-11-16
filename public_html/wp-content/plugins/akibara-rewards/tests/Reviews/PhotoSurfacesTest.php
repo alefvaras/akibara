@@ -133,45 +133,11 @@ final class PhotoSurfacesTest extends RewardsTestCase {
 		$this->assertStringContainsString( 'rel="noopener noreferrer"', $salida );
 	}
 
-	/** @testdox Una foto remota (importada) también se pinta. */
-	public function test_una_foto_remota_tambien_se_pinta(): void {
-		$comment = $this->resena_con_foto( 501, 950 ); // 950 no es adjunto válido.
-		$this->wpdb->comment_meta[501][ Media::META_REMOTE_IMAGE ] = array( array( 'url' => 'http://cdn.example/opinion.jpg' ) );
-
-		$salida = $this->surfaces->append_photo( 'Texto', $comment );
-
-		$this->assertStringContainsString( 'https://cdn.example/opinion.jpg', $salida, 'Una remota en http se sirve por https: el navegador bloquea el contenido mixto y dejaría el hueco de la foto.' );
-		$this->assertStringNotContainsString( 'http://cdn.example', $salida );
-	}
-
-	/** @testdox En un sitio servido por http la remota conserva su esquema. */
-	public function test_sin_https_la_remota_conserva_el_esquema(): void {
-		$this->con_ssl = false;
-		$comment       = $this->resena_con_foto( 506, 950 );
-		$this->wpdb->comment_meta[506][ Media::META_REMOTE_IMAGE ] = array( array( 'url' => 'http://cdn.example/opinion.jpg' ) );
-
-		$salida = $this->surfaces->append_photo( 'Texto', $comment );
-
-		$this->assertStringContainsString( 'http://cdn.example/opinion.jpg', $salida, 'Forzar https en un sitio sin TLS rompe la foto: medido en el espejo.' );
-	}
-
 	/** @testdox La foto nunca es más ancha que la tarjeta de la reseña. */
 	public function test_el_tope_de_ancho_respeta_el_contenedor(): void {
-		$local  = $this->surfaces->append_photo( 'Texto', $this->resena_con_foto() );
-		$remota = $this->resena_con_foto( 507, 950 );
-		$this->wpdb->comment_meta[507][ Media::META_REMOTE_IMAGE ] = array( array( 'url' => 'https://cdn.example/opinion.jpg' ) );
+		$local = $this->surfaces->append_photo( 'Texto', $this->resena_con_foto() );
 
-		foreach ( array( $local, $this->surfaces->append_photo( 'Texto', $remota ) ) as $salida ) {
-			$this->assertStringContainsString( 'max-width:min(240px,100%)', $salida, 'Con max-width:240px a secas la foto se salía 30px de la tarjeta en un móvil de 375px.' );
-		}
-	}
-
-	/** @testdox Una meta remota con un esquema raro no se pinta. */
-	public function test_una_remota_con_esquema_raro_no_se_pinta(): void {
-		$comment = $this->resena_con_foto( 505, 950 );
-		$this->wpdb->comment_meta[505][ Media::META_REMOTE_IMAGE ] = array( array( 'url' => 'javascript:alert(1)' ) );
-
-		$this->assertSame( 'Texto', $this->surfaces->append_photo( 'Texto', $comment ) );
+		$this->assertStringContainsString( 'max-width:min(240px,100%)', $local, 'Con max-width:240px a secas la foto se salía 30px de la tarjeta en un móvil de 375px.' );
 	}
 
 	/** @testdox El filtro no empata con force_balance_tags del core. */

@@ -10,7 +10,7 @@
  * Es un hecho DERIVADO: un cliente sigue la serie S si (a) compró al menos un
  * producto con `pa_serie` = S en un pedido pagado y (b) no hizo opt-out de S.
  * (a) usa la MISMA autoridad que define «lo tenés» en toda la casa —
- * `SeriesBundles\CustomerCollection::purchase_statuses()`, filtrable por
+ * `AccountCollection\CustomerCollection::purchase_statuses()`, filtrable por
  * `akibara_business_series_purchase_statuses`. La ventaja de que sea derivado y
  * no almacenado es concreta: un pedido que cae de `processing` a `cancelled`
  * deja de producir seguimiento en la lectura siguiente, sin evento de baja ni
@@ -33,14 +33,16 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\SeriesFollow;
 
-use Akibara\Business\Contracts\EtaProvider;
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress RedundantCast
  */
 final class SeriesFollow {
 
@@ -74,31 +76,13 @@ final class SeriesFollow {
 	/** @var CustomerCollection */
 	private CustomerCollection $collection;
 
-	/** @var EtaProvider */
-	private EtaProvider $eta;
-
-	/** @var PedidoPolicy */
-	private PedidoPolicy $policy;
-
 	/** @var DigestQueue|null */
 	private ?DigestQueue $queue = null;
 
-	/**
-	 * @param CustomerCollection $collection Autoridad de compras netas.
-	 * @param EtaProvider        $eta        Calculador de fechas.
-	 * @param PedidoPolicy       $policy     Política de cortes.
-	 */
-	public function __construct( CustomerCollection $collection, EtaProvider $eta, PedidoPolicy $policy ) {
+	public function __construct( CustomerCollection $collection ) {
 		$this->collection = $collection;
-		$this->eta        = $eta;
-		$this->policy     = $policy;
 	}
 
-	/**
-	 * Cola del módulo (la construye perezosamente sobre el `$wpdb` global).
-	 *
-	 * @return DigestQueue
-	 */
 	public function queue(): DigestQueue {
 		if ( null === $this->queue ) {
 			global $wpdb;
@@ -108,11 +92,6 @@ final class SeriesFollow {
 		return $this->queue;
 	}
 
-	/**
-	 * Cablea los submódulos. Llamado por Plugin::register_modules().
-	 *
-	 * @return void
-	 */
 	public function register(): void {
 		Install::maybe_install();
 
@@ -122,7 +101,7 @@ final class SeriesFollow {
 			$this->queue(),
 			new FollowerFinder( $this->collection ),
 			$this->collection,
-			new CutoffPhrase( $this->eta, $this->policy )
+			new CutoffPhrase()
 		) )->register();
 
 		// La baja, el interruptor por serie y el interruptor global de «Mi
@@ -172,11 +151,11 @@ final class SeriesFollow {
 				'default'  => 'no',
 			),
 			array(
-				'title'    => 'Despertar al habilitar stock o pedidos',
+				'title'    => 'Despertar al reponer stock',
 				'id'       => self::OPTION_TRIGGER_RESTOCK,
 				'type'     => 'checkbox',
-				'desc'     => 'Avisar también cuando un tomo agotado pase a «Disponible», «A pedido» o «Preventa»',
-				'desc_tip' => 'Recomendado: si publicas un tomo inicialmente agotado o vuelves a habilitar un tomo agotado como «Disponible», «A pedido» o «Preventa», se evalúa y avisa a los coleccionistas que correspondan.',
+				'desc'     => 'Avisar también cuando un tomo agotado vuelva a estar «Disponible»',
+				'desc_tip' => 'Recomendado: si publicas un tomo inicialmente agotado o repones stock de un tomo agotado («Disponible»), se evalúa y avisa a los coleccionistas que correspondan.',
 				'default'  => 'yes',
 			),
 			array(
@@ -395,7 +374,7 @@ final class SeriesFollow {
 	}
 
 	/**
-	 * ¿Despertar el escaneo cuando un tomo pasa a estado comprable (`instock` / `onbackorder`)?
+	 * ¿Despertar el escaneo cuando un tomo pasa a estado disponible (`instock`)?
 	 *
 	 * @since 1.118.1
 	 *
@@ -407,7 +386,7 @@ final class SeriesFollow {
 
 		/**
 		 * Habilita el escaneo de seguidores cuando un tomo pasa a estado
-		 * comprable (`instock` u `onbackorder`).
+		 * disponible (`instock`).
 		 *
 		 * @since 1.118.1
 		 *

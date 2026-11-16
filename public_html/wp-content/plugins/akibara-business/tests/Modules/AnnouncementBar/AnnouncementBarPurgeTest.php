@@ -116,13 +116,12 @@ final class AnnouncementBarPurgeTest extends TestCase {
 		return array(
 			'akibara_announcement_enabled',
 			'akibara_announcement_messages',
-			'akibara_announcement_bg',
-			'akibara_announcement_color',
-			'akibara_announcement_border',
+			'akibara_announcement_rotate',
+			'akibara_announcement_rotate_secs',
 			'akibara_announcement_promo_text',
-			'akibara_announcement_promo_from',
-			'akibara_announcement_promo_to',
-			'akibara_announcement_promo_follow_discount',
+			'akibara_announcement_countdown_enabled',
+			'akibara_announcement_countdown_time',
+			'akibara_announcement_countdown_label',
 		);
 	}
 }

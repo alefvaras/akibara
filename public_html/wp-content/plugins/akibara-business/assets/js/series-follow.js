@@ -11,24 +11,24 @@
 ( function () {
 	'use strict';
 
-	var config = window.akbSeriesFollow || {};
+	const config = window.akbSeriesFollow || {};
 	if ( ! config.root || ! config.nonce ) {
 		return;
 	}
 
-	var LABEL_ON = 'Avisos activados';
-	var LABEL_OFF = 'Avisarme del siguiente tomo';
+	const LABEL_ON = 'Avisos activados';
+	const LABEL_OFF = 'Avisarme del siguiente tomo';
 
 	function paint( button, following ) {
 		button.setAttribute( 'aria-pressed', following ? 'true' : 'false' );
-		var label = button.querySelector( '.akb-series-follow__label' );
+		const label = button.querySelector( '.akb-series-follow__label' );
 		if ( label ) {
 			label.textContent = following ? LABEL_ON : LABEL_OFF;
 		}
 	}
 
 	function announce( button, text, isError ) {
-		var msg = button.parentNode
+		const msg = button.parentNode
 			? button.parentNode.querySelector( '.akb-series-follow__msg' )
 			: null;
 		if ( ! msg ) {
@@ -39,12 +39,12 @@
 	}
 
 	function toggle( button ) {
-		var termId = parseInt( button.getAttribute( 'data-term-id' ), 10 );
+		const termId = parseInt( button.getAttribute( 'data-term-id' ), 10 );
 		if ( ! termId || button.disabled ) {
 			return;
 		}
 
-		var next = 'true' !== button.getAttribute( 'aria-pressed' );
+		const next = 'true' !== button.getAttribute( 'aria-pressed' );
 
 		button.disabled = true;
 
@@ -60,7 +60,7 @@
 			} )
 			.then( function ( response ) {
 				return response.json().then( function ( payload ) {
-					return { ok: response.ok, payload: payload };
+					return { ok: response.ok, payload };
 				} );
 			} )
 			.then( function ( result ) {
@@ -71,11 +71,14 @@
 				// clic: si otra pestaña ya lo cambió, la tarjeta se alinea.
 				paint( button, true === result.payload.following );
 				announce( button, result.payload.message || '', false );
+				document.dispatchEvent( new CustomEvent( 'akb:series-follow:changed', {
+					detail: { term_id: termId, following: true === result.payload.following }
+				} ) );
 			} )
 			.catch( function () {
 				// El nombre de la serie distingue QUÉ toggle falló cuando el
 				// lector de pantalla anuncia el mensaje en una lista con varios.
-				var seriesName = button.getAttribute( 'data-series-name' ) || '';
+				const seriesName = button.getAttribute( 'data-series-name' ) || '';
 				announce(
 					button,
 					seriesName
@@ -90,7 +93,7 @@
 	}
 
 	document.addEventListener( 'click', function ( event ) {
-		var button = event.target.closest
+		const button = event.target.closest
 			? event.target.closest( '[data-akb-series-follow]' )
 			: null;
 		if ( ! button ) {

@@ -214,20 +214,19 @@ final class UnfollowHandlerTest extends TestCase {
 	}
 
 	/**
-	 * La página «Listo» cierra el ciclo: dice cómo volver. Y con token inválido
-	 * sirve la misma página —con el mismo enlace— sin mutar nada.
+	 * La página «Listo» cierra el ciclo y enlaza de vuelta a la tienda.
 	 *
-	 * @testdox La página «Listo» enlaza al interruptor de Mi cuenta → Colección.
+	 * @testdox La página «Listo» enlaza a la tienda sin referencias a la colección erradicada.
 	 */
 	public function test_la_pagina_listo_enlaza_a_la_coleccion(): void {
 		$html = $this->pedir( 'POST', 10, 0 );
 
-		self::assertStringContainsString( 'Si cambias de idea, los vuelves a encender en', $html );
-		self::assertStringContainsString( '<a href="https://akibara.test/mi-cuenta/coleccion/">Mi cuenta, pestaña Colección</a>', $html );
+		self::assertStringContainsString( 'Ya no te enviaremos estos avisos.', $html );
+		self::assertStringContainsString( '<a href="https://akibara.test/">Volver a la tienda</a>', $html );
 
 		$robado = $this->pedir( 'POST', 11, 0, UnfollowHandler::token( 10, 0 ) );
 
-		self::assertStringContainsString( 'https://akibara.test/mi-cuenta/coleccion/', $robado );
+		self::assertStringContainsString( '<a href="https://akibara.test/">Volver a la tienda</a>', $robado );
 		self::assertArrayNotHasKey( 11, $this->bajas_globales, 'Token de otro cliente: misma página, sin mutar.' );
 	}
 

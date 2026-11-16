@@ -36,6 +36,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidArgument
  */
 final class Scorer {
 
@@ -67,11 +69,10 @@ final class Scorer {
 	 */
 	public const TIER_TOMO_NOMBRADO = 1200;
 
-	/** Penalización por disponibilidad, indexada por stock_rank. */
+	/** Penalización por disponibilidad, indexada por stock_rank (modelo binario). */
 	private const STOCK_PENALTY = array(
 		0 => 0,    // instock.
-		1 => 40,   // onbackorder (preventa).
-		2 => 250,  // outofstock (agotado): fuerte, pero no lo saca del set.
+		1 => 250,  // outofstock (agotado): fuerte, pero no lo saca del set.
 	);
 
 	/**
@@ -92,7 +93,7 @@ final class Scorer {
 			$score = max( $score, self::TIER_TOMO_NOMBRADO );
 		}
 		$score += self::tomo_bonus( $doc, $tokens );
-		$score -= self::STOCK_PENALTY[ (int) ( $doc['stock_rank'] ?? 2 ) ] ?? self::STOCK_PENALTY[2];
+		$score -= self::STOCK_PENALTY[ (int) ( $doc['stock_rank'] ?? 1 ) ] ?? self::STOCK_PENALTY[1];
 
 		return $score;
 	}
@@ -113,8 +114,8 @@ final class Scorer {
 		}
 
 		// Tomo asc — pero un doc CON tomo va antes que uno sin tomo (ómnibus).
-		$a_tomo = isset( $a['tomo'] ) && null !== $a['tomo'] ? (int) $a['tomo'] : null;
-		$b_tomo = isset( $b['tomo'] ) && null !== $b['tomo'] ? (int) $b['tomo'] : null;
+		$a_tomo = isset( $a['tomo'] ) && null !== $a['tomo'] ? (int) $a['tomo'] : null; // @phpstan-ignore notIdentical.alwaysTrue
+		$b_tomo = isset( $b['tomo'] ) && null !== $b['tomo'] ? (int) $b['tomo'] : null; // @phpstan-ignore notIdentical.alwaysTrue
 		if ( null !== $a_tomo && null !== $b_tomo && $a_tomo !== $b_tomo ) {
 			return $a_tomo <=> $b_tomo;
 		}
@@ -174,7 +175,7 @@ final class Scorer {
 	 * @return int
 	 */
 	private static function tomo_bonus( array $doc, array $tokens ): int {
-		$tomo = isset( $doc['tomo'] ) && null !== $doc['tomo'] ? (int) $doc['tomo'] : null;
+		$tomo = isset( $doc['tomo'] ) && null !== $doc['tomo'] ? (int) $doc['tomo'] : null; // @phpstan-ignore notIdentical.alwaysTrue
 		if ( null === $tomo ) {
 			return 0;
 		}

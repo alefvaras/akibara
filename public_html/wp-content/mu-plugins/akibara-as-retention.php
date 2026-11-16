@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'action_scheduler_retention_period',
 	static function (): int {

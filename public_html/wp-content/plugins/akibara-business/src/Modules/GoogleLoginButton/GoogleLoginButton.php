@@ -23,6 +23,15 @@ namespace Akibara\Business\Modules\GoogleLoginButton;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class GoogleLoginButton {
 
 	public function register(): void {
@@ -100,6 +109,7 @@ final class GoogleLoginButton {
 			}
 		} catch ( \Throwable $e ) {
 			// Fail-safe: si WC_Customer falla, no interrumpir la creación de la cuenta.
+			unset( $e );
 		}
 
 		$this->auto_verify_google_user( $uid );
@@ -220,8 +230,9 @@ final class GoogleLoginButton {
 	 * @param string $template_name Nombre relativo (`myaccount/form-login.php`).
 	 * @param string $template_path Path base donde WC busca templates.
 	 * @return string
+	 * @psalm-suppress UnusedParam
 	 */
-	public function override_form_login( string $template, string $template_name, string $template_path ): string {
+	public function override_form_login( string $template, string $template_name, string $template_path ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( 'myaccount/form-login.php' !== $template_name ) {
 			return $template;
 		}

@@ -47,4 +47,11 @@ final class StoreTimeTest extends TestCase {
 		self::assertLessThan( $corte, (int) ( new \DateTimeImmutable( '2026-09-03 23:59:59', new \DateTimeZone( 'America/Santiago' ) ) )->getTimestamp() );
 		self::assertGreaterThanOrEqual( $corte, (int) ( new \DateTimeImmutable( '2026-09-04 00:00:00', new \DateTimeZone( 'America/Santiago' ) ) )->getTimestamp() );
 	}
+
+	/** @testdox El formato respeta la zona horaria de la tienda. */
+	public function test_format_respects_store_timezone(): void {
+		$ts = (int) ( new \DateTimeImmutable( '2026-11-10 03:00:00', new \DateTimeZone( 'UTC' ) ) )->getTimestamp(); // 00:00 en Santiago (UTC-3)
+		self::assertSame( '2026-11-10 00:00:00', StoreTime::format( $ts, 'Y-m-d H:i:s' ) );
+		self::assertSame( '10/11/2026', StoreTime::format( $ts, 'd/m/Y' ) );
+	}
 }

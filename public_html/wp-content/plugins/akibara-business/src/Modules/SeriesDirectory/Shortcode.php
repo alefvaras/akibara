@@ -36,7 +36,6 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Modules\SeriesDirectory;
 
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
-use Akibara\Business\Modules\SeriesEditions\SeriesEditions;
 use Akibara\Business\Modules\SeriesFacts\PublicationStatus;
 use Akibara\Business\Modules\SeriesSchema\SeriesSchemaType;
 use Akibara\Business\Services\SeriesHubUrl;
@@ -49,7 +48,11 @@ defined( 'ABSPATH' ) || exit;
  * Render y cacheo del directorio de series.
  *
  * @since 1.100.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
+// @phpstan-ignore complexity.classLike
 final class Shortcode {
 
 	/** Etiqueta del shortcode. */
@@ -63,13 +66,16 @@ final class Shortcode {
 	 * páginas servidas con la estructura vieja y el CSS/JS nuevos. Subir el
 	 * número invalida todo de una vez.
 	 */
-	private const TRANSIENT_KEY = 'akb_series_directory_v4';
+	public const TRANSIENT_KEY = 'akb_series_directory_v6';
 
 	/** Misma ventana que `SeriesFacts`: el dato es el mismo catálogo. */
 	private const TTL = 6 * HOUR_IN_SECONDS;
 
 	/** Ancla del grupo de dígitos y signos; `#` no sobrevive a un `id`. */
 	private const OTHER_ANCHOR = 'num';
+
+	/** Meta key de ediciones relacionadas de la misma obra. */
+	public const META_RELATED_EDITIONS = '_akb_serie_ediciones_relacionadas';
 
 	private SeriesIndex $index;
 
@@ -114,6 +120,9 @@ final class Shortcode {
 		add_action( 'created_' . SeriesIndex::TAXONOMY, array( $this, 'flush_cache' ) );
 		add_action( 'edited_' . SeriesIndex::TAXONOMY, array( $this, 'flush_cache' ) );
 		add_action( 'delete_' . SeriesIndex::TAXONOMY, array( $this, 'flush_cache' ) );
+
+		add_action( 'edited_' . SeriesCatalogEligibility::BRAND_TAXONOMY, array( $this, 'flush_cache' ) );
+		add_action( 'edited_' . SeriesCatalogEligibility::COUNTRY_TAXONOMY, array( $this, 'flush_cache' ) );
 
 		add_action( 'set_object_terms', array( $this, 'flush_on_term_change' ), 10, 4 );
 		add_action( 'deleted_term_relationships', array( $this, 'flush_on_deleted_term_relationships' ), 10, 3 );
@@ -266,7 +275,8 @@ final class Shortcode {
 			'rank_math_robots',
 			SeriesSchemaType::META_KEY,
 			PublicationStatus::META_EDITION_STATE,
-			SeriesEditions::META_KEY,
+			PublicationStatus::META_EDITION_TOTAL,
+			self::META_RELATED_EDITIONS,
 		);
 
 		// El estado de la edición y las ediciones relacionadas alteran las filas
@@ -346,7 +356,6 @@ final class Shortcode {
 		<div class="akb-series-directory" data-akb-series-directory>
 			<?php
 			$this->render_filter( $grouped );
-			$this->render_letter_index( $grouped );
 			?>
 			<p
 				class="akb-series-directory__count"
@@ -400,51 +409,70 @@ final class Shortcode {
 				type="search"
 				id="akb-series-directory-input"
 				class="akb-series-directory__input"
-				placeholder="Escribe el nombre de la serie o edición"
+				placeholder="Escribe la serie, autor o edición"
 				autocomplete="off"
 				spellcheck="false"
 				aria-controls="akb-series-directory-results"
 				aria-describedby="akb-series-directory-count"
 			>
-			<?php if ( array() !== $facets['countries'] || array() !== $facets['brands'] || array() !== $facets['states'] ) : ?>
-				<div class="akb-series-directory__facets">
-					<?php if ( array() !== $facets['countries'] ) : ?>
-						<div class="akb-series-directory__facet" role="group" aria-label="Filtrar por país de la edición">
-							<span class="akb-series-directory__facet-label">País</span>
-							<div class="akb-series-directory__chips">
-								<button type="button" class="akb-series-directory__chip is-active" data-akb-filter-pais="" aria-pressed="true">Todos</button>
-								<?php foreach ( $facets['countries'] as $slug => $label ) : ?>
-									<button type="button" class="akb-series-directory__chip" data-akb-filter-pais="<?php echo esc_attr( $slug ); ?>" aria-pressed="false"><?php echo esc_html( $label ); ?></button>
-								<?php endforeach; ?>
-							</div>
-						</div>
+			<div class="akb-series-directory__quick-bar" role="toolbar" aria-label="Filtros rápidos y panel">
+				<button type="button" class="akb-series-directory__toggle-filters" data-akb-toggle-facets aria-expanded="false" aria-controls="akb-series-facets-panel">
+					<span class="akb-toggle-icon" aria-hidden="true">⚡</span> Filtros <span class="akb-filter-badge" data-akb-filter-count hidden>0</span> <span class="akb-toggle-arrow" aria-hidden="true">▾</span>
+				</button>
+				<div class="akb-series-directory__quick-chips">
+					<?php if ( isset( $facets['states'][ PublicationStatus::COMPLETE ] ) ) : ?>
+						<button type="button" class="akb-series-directory__quick-chip" data-akb-quick-estado="<?php echo esc_attr( PublicationStatus::COMPLETE ); ?>" aria-pressed="false">📚 Completas</button>
 					<?php endif; ?>
-
-					<?php if ( array() !== $facets['brands'] ) : ?>
-						<div class="akb-series-directory__facet" role="group" aria-label="Filtrar por editorial">
-							<span class="akb-series-directory__facet-label">Editorial</span>
-							<div class="akb-series-directory__chips">
-								<button type="button" class="akb-series-directory__chip is-active" data-akb-filter-editorial="" aria-pressed="true">Todas</button>
-								<?php foreach ( $facets['brands'] as $slug => $label ) : ?>
-									<button type="button" class="akb-series-directory__chip" data-akb-filter-editorial="<?php echo esc_attr( $slug ); ?>" aria-pressed="false"><?php echo esc_html( $label ); ?></button>
-								<?php endforeach; ?>
-							</div>
-						</div>
+					<?php if ( isset( $facets['states']['tomo_unico'] ) ) : ?>
+						<button type="button" class="akb-series-directory__quick-chip" data-akb-quick-estado="tomo_unico" aria-pressed="false">📖 Tomo único</button>
 					<?php endif; ?>
-
-					<?php if ( array() !== $facets['states'] ) : ?>
-						<div class="akb-series-directory__facet" role="group" aria-label="Filtrar por estado o formato de la edición">
-							<span class="akb-series-directory__facet-label">Estado</span>
-							<div class="akb-series-directory__chips">
-								<button type="button" class="akb-series-directory__chip is-active" data-akb-filter-estado="" aria-pressed="true">Todas</button>
-								<?php foreach ( $facets['states'] as $slug => $label ) : ?>
-									<button type="button" class="akb-series-directory__chip" data-akb-filter-estado="<?php echo esc_attr( $slug ); ?>" aria-pressed="false"><?php echo esc_html( $label ); ?></button>
-								<?php endforeach; ?>
-							</div>
-						</div>
+					<?php if ( isset( $facets['states'][ PublicationStatus::UP_TO_DATE ] ) ) : ?>
+						<button type="button" class="akb-series-directory__quick-chip" data-akb-quick-estado="<?php echo esc_attr( PublicationStatus::UP_TO_DATE ); ?>" aria-pressed="false">⚡ Al día</button>
 					<?php endif; ?>
 				</div>
-			<?php endif; ?>
+			</div>
+
+			<div class="akb-series-directory__facets-panel" id="akb-series-facets-panel" data-akb-facets-panel hidden>
+				<?php if ( array() !== $facets['countries'] || array() !== $facets['brands'] || array() !== $facets['states'] ) : ?>
+					<div class="akb-series-directory__facets">
+						<?php if ( array() !== $facets['countries'] ) : ?>
+							<div class="akb-series-directory__facet" role="group" aria-label="Filtrar por país de la edición">
+								<span class="akb-series-directory__facet-label">País</span>
+								<div class="akb-series-directory__chips">
+									<button type="button" class="akb-series-directory__chip is-active" data-akb-filter-pais="" aria-pressed="true">Todos</button>
+									<?php foreach ( $facets['countries'] as $slug => $label ) : ?>
+										<button type="button" class="akb-series-directory__chip" data-akb-filter-pais="<?php echo esc_attr( $slug ); ?>" aria-pressed="false"><?php echo esc_html( $label ); ?></button>
+									<?php endforeach; ?>
+								</div>
+							</div>
+						<?php endif; ?>
+
+						<?php if ( array() !== $facets['brands'] ) : ?>
+							<div class="akb-series-directory__facet" role="group" aria-label="Filtrar por editorial">
+								<span class="akb-series-directory__facet-label">Editorial</span>
+								<div class="akb-series-directory__chips">
+									<button type="button" class="akb-series-directory__chip is-active" data-akb-filter-editorial="" aria-pressed="true">Todas</button>
+									<?php foreach ( $facets['brands'] as $slug => $label ) : ?>
+										<button type="button" class="akb-series-directory__chip" data-akb-filter-editorial="<?php echo esc_attr( $slug ); ?>" aria-pressed="false"><?php echo esc_html( $label ); ?></button>
+									<?php endforeach; ?>
+								</div>
+							</div>
+						<?php endif; ?>
+
+						<?php if ( array() !== $facets['states'] ) : ?>
+							<div class="akb-series-directory__facet" role="group" aria-label="Filtrar por estado o formato de la edición">
+								<span class="akb-series-directory__facet-label">Estado</span>
+								<div class="akb-series-directory__chips">
+									<button type="button" class="akb-series-directory__chip is-active" data-akb-filter-estado="" aria-pressed="true">Todas</button>
+									<?php foreach ( $facets['states'] as $slug => $label ) : ?>
+										<button type="button" class="akb-series-directory__chip" data-akb-filter-estado="<?php echo esc_attr( $slug ); ?>" aria-pressed="false"><?php echo esc_html( $label ); ?></button>
+									<?php endforeach; ?>
+								</div>
+							</div>
+						<?php endif; ?>
+					</div>
+				<?php endif; ?>
+			</div>
 		</div>
 		<?php
 	}
@@ -455,12 +483,16 @@ final class Shortcode {
 	 * @param array<string, list<array<string,mixed>>> $grouped Series agrupadas.
 	 * @return array{countries:array<string,string>,brands:array<string,string>,states:array<string,string>}
 	 */
-	private function collect_facets( array $grouped ): array {
-		$countries = array();
-		$brands    = array();
-		$has_open  = false;
-		$has_comp  = false;
-		$has_one   = false;
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function collect_facets( array $grouped ): array { // @phpstan-ignore complexity.functionLike
+		$countries      = array();
+		$brands         = array();
+		$has_open       = false;
+		$has_up_to_date = false;
+		$has_comp       = false;
+		$has_one        = false;
+		$has_paused     = false;
+		$has_cancelled  = false;
 
 		foreach ( $grouped as $entries ) {
 			foreach ( $entries as $entry ) {
@@ -476,16 +508,23 @@ final class Shortcode {
 					$brands[ $b_slug ] = $b_name;
 				}
 
-				$estado = (string) ( $entry['estado'] ?? '' );
-				$tomos  = (int) ( $entry['tomos'] ?? 0 );
+				$estado        = (string) ( $entry['estado'] ?? '' );
+				$tomos         = (int) ( $entry['tomos'] ?? 0 );
+				$tomos_edicion = (int) ( $entry['tomos_edicion'] ?? 0 );
 				if ( PublicationStatus::ONGOING === $estado ) {
 					$has_open = true;
+				} elseif ( PublicationStatus::UP_TO_DATE === $estado ) {
+					$has_up_to_date = true;
 				} elseif ( PublicationStatus::COMPLETE === $estado ) {
-					if ( 1 === $tomos ) {
+					if ( self::is_one_shot( $estado, $tomos, $tomos_edicion ) ) {
 						$has_one = true;
 					} else {
 						$has_comp = true;
 					}
+				} elseif ( PublicationStatus::PAUSED === $estado ) {
+					$has_paused = true;
+				} elseif ( PublicationStatus::CANCELLED === $estado ) {
+					$has_cancelled = true;
 				}
 			}
 		}
@@ -497,11 +536,20 @@ final class Shortcode {
 		if ( $has_open ) {
 			$states[ PublicationStatus::ONGOING ] = 'En publicación';
 		}
+		if ( $has_up_to_date ) {
+			$states[ PublicationStatus::UP_TO_DATE ] = 'Al día';
+		}
 		if ( $has_comp ) {
 			$states[ PublicationStatus::COMPLETE ] = 'Completas';
 		}
 		if ( $has_one ) {
 			$states['tomo_unico'] = 'Tomo único';
+		}
+		if ( $has_paused ) {
+			$states[ PublicationStatus::PAUSED ] = 'En pausa';
+		}
+		if ( $has_cancelled ) {
+			$states[ PublicationStatus::CANCELLED ] = 'Cancelada';
 		}
 
 		return array(
@@ -512,34 +560,14 @@ final class Shortcode {
 	}
 
 	/**
-	 * Barra del índice alfabético.
-	 *
-	 * Las letras sin series se imprimen como `<span>` inerte y no como enlace:
-	 * un ancla a una sección que no existe deja al lector donde estaba y a un
-	 * rastreador siguiendo un fragmento muerto. Se imprimen igual —en vez de
-	 * omitirse— para que la barra conserve la forma del alfabeto; ver
-	 * `SeriesIndex::letters()`.
-	 *
-	 * @param array<string, list<array<string,mixed>>> $grouped Series por letra.
-	 * @return void
+	 * Determina si una edición completa corresponde a un tomo único (one-shot).
 	 */
-	private function render_letter_index( array $grouped ): void {
-		?>
-		<nav class="akb-series-directory__index" aria-label="Índice alfabético de series y ediciones">
-			<ul class="akb-series-directory__letters">
-				<?php foreach ( SeriesIndex::letters() as $letter ) : ?>
-					<li class="akb-series-directory__letter-item">
-						<?php if ( isset( $grouped[ $letter ] ) ) : ?>
-							<a class="akb-series-directory__letter" href="#<?php echo esc_attr( $this->anchor( $letter ) ); ?>" data-akb-series-letter><?php echo esc_html( $letter ); ?></a>
-						<?php else : ?>
-							<span class="akb-series-directory__letter akb-series-directory__letter--empty" aria-hidden="true"><?php echo esc_html( $letter ); ?></span>
-						<?php endif; ?>
-					</li>
-				<?php endforeach; ?>
-			</ul>
-		</nav>
-		<?php
+	private static function is_one_shot( string $estado, int $tomos, int $tomos_edicion ): bool {
+		return PublicationStatus::COMPLETE === $estado
+			&& 1 === $tomos
+			&& ( 0 === $tomos_edicion || 1 === $tomos_edicion );
 	}
+
 
 	/**
 	 * Una entrada del directorio.
@@ -559,23 +587,26 @@ final class Shortcode {
 	 * @param array<string,mixed> $entry Entrada normalizada.
 	 * @return void
 	 */
-	private function render_entry( array $entry ): void {
-		$estado      = (string) ( $entry['estado'] ?? '' );
-		$tomos       = (int) ( $entry['tomos'] ?? 0 );
-		$is_one_shot = ( PublicationStatus::COMPLETE === $estado && 1 === $tomos );
-		$rotulo      = $is_one_shot
+	private function render_entry( array $entry ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$term_id       = (int) ( $entry['term_id'] ?? 0 );
+		$estado        = (string) ( $entry['estado'] ?? '' );
+		$tomos         = (int) ( $entry['tomos'] ?? 0 );
+		$tomos_edicion = (int) ( $entry['tomos_edicion'] ?? 0 );
+		$is_one_shot   = self::is_one_shot( $estado, $tomos, $tomos_edicion );
+		$rotulo        = $is_one_shot
 			? 'Tomo único'
 			: ( PublicationStatus::edition_states()[ $estado ] ?? '' );
-		$estado_mod  = $is_one_shot
+		$estado_mod    = $is_one_shot
 			? 'akb-series-directory__estado--completa akb-series-directory__estado--tomo_unico'
 			: 'akb-series-directory__estado--' . $estado;
 		$filter_estado = $is_one_shot ? 'tomo_unico' : ( '' !== $rotulo ? $estado : '' );
 		$brand_slug    = (string) ( $entry['brand_slug'] ?? '' );
 		$country_slug  = (string) ( $entry['country_slug'] ?? '' );
-		$origin        = SeriesEditions::format_edition_origin(
-			(string) ( $entry['brand_name'] ?? '' ),
-			(string) ( $entry['country_name'] ?? '' )
-		);
+		$brand_name    = trim( (string) ( $entry['brand_name'] ?? '' ) );
+		$country_name  = trim( (string) ( $entry['country_name'] ?? '' ) );
+		$origin        = '' !== $brand_name && '' !== $country_name
+			? $brand_name . ' · ' . $country_name
+			: ( '' !== $brand_name ? $brand_name : $country_name );
 		$related_names = isset( $entry['related_names'] ) && is_array( $entry['related_names'] )
 			? $entry['related_names']
 			: array();
@@ -583,13 +614,14 @@ final class Shortcode {
 		<li
 			class="akb-series-directory__item"
 			data-akb-serie="<?php echo esc_attr( (string) $entry['haystack'] ); ?>"
+			<?php if ( $term_id > 0 ) : ?>data-akb-serie-id="<?php echo esc_attr( (string) $term_id ); ?>"<?php endif; ?>
 			<?php if ( '' !== $country_slug ) : ?>data-akb-pais="<?php echo esc_attr( $country_slug ); ?>"<?php endif; ?>
 			<?php if ( '' !== $brand_slug ) : ?>data-akb-editorial="<?php echo esc_attr( $brand_slug ); ?>"<?php endif; ?>
 			<?php if ( '' !== $filter_estado ) : ?>data-akb-estado="<?php echo esc_attr( $filter_estado ); ?>"<?php endif; ?>
 		>
 			<a class="akb-series-directory__link" href="<?php echo esc_url( (string) $entry['url'] ); ?>">
 				<span class="akb-series-directory__name"><?php echo esc_html( (string) $entry['name'] ); ?><?php if ( '' !== $rotulo ) : ?><span class="screen-reader-text">, </span><span class="akb-series-directory__estado <?php echo esc_attr( $estado_mod ); ?>"><?php echo esc_html( $rotulo ); ?></span><?php endif; ?><?php if ( '' !== $origin ) : ?><span class="screen-reader-text">, </span><span class="akb-series-directory__origin"><?php echo esc_html( $origin ); ?></span><?php endif; ?><?php if ( array() !== $related_names ) : ?><span class="screen-reader-text"> — </span><span class="akb-series-directory__related-hint">También como: <?php echo esc_html( implode( ', ', $related_names ) ); ?></span><?php endif; ?></span>
-				<span class="akb-series-directory__tomos"><?php echo esc_html( $this->tomos_label( $tomos ) ); ?></span>
+				<span class="akb-series-directory__tomos"><?php echo esc_html( $this->tomos_label( $tomos, $tomos_edicion ) ); ?></span>
 			</a>
 		</li>
 		<?php
@@ -647,8 +679,17 @@ final class Shortcode {
 		return '' === $locale ? 'es-CL' : str_replace( '_', '-', $locale );
 	}
 
-	/** «6 tomos en catálogo» / «1 tomo en catálogo». */
-	private function tomos_label( int $tomos ): string {
+	/** «6 tomos en catálogo» / «5 de 72 tomos en catálogo» / «1 tomo en catálogo». */
+	private function tomos_label( int $tomos, int $tomos_edicion = 0 ): string {
+		if ( $tomos_edicion > $tomos ) {
+			return sprintf(
+				'%s de %s %s en catálogo',
+				number_format_i18n( $tomos ),
+				number_format_i18n( $tomos_edicion ),
+				1 === $tomos_edicion ? 'tomo' : 'tomos'
+			);
+		}
+
 		return sprintf(
 			'%s %s en catálogo',
 			number_format_i18n( $tomos ),

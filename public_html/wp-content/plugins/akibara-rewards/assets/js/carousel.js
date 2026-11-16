@@ -15,19 +15,20 @@
 	'use strict';
 
 	function initNav() {
-		var carousel = document.querySelector( '.akb-rw-carousel' );
+		const carousel = document.querySelector( '.akb-rw-carousel' );
 		if ( ! carousel ) {
 			return;
 		}
 
-		var track = carousel.querySelector( '.akb-rw-track' );
-		var nav = carousel.querySelector( '.akb-rw-nav' );
-		var prevBtn = carousel.querySelector( '[data-akb-rw-prev]' );
-		var nextBtn = carousel.querySelector( '[data-akb-rw-next]' );
+		const track = carousel.querySelector( '.akb-rw-track' );
+		const prevBtn = carousel.querySelector( '[data-akb-rw-prev]' );
+		const nextBtn = carousel.querySelector( '[data-akb-rw-next]' );
 
 		if ( ! track || ! prevBtn || ! nextBtn ) {
 			return;
 		}
+
+		const nav = carousel.querySelector( '.akb-rw-nav' );
 
 		function getCards() {
 			return Array.prototype.slice.call( track.querySelectorAll( '.akb-rw-card' ) );
@@ -45,7 +46,7 @@
 		}
 
 		function updateNavState() {
-			var maxScroll = getMaxScroll();
+			const maxScroll = getMaxScroll();
 
 			// Si todas las tarjetas entran en la pantalla sin scroll (ej. grid de escritorio)
 			if ( maxScroll <= 6 ) {
@@ -63,9 +64,9 @@
 				nav.removeAttribute( 'data-hidden' );
 			}
 
-			var currentScroll = track.scrollLeft;
-			var atStart = currentScroll <= 6;
-			var atEnd = currentScroll >= ( maxScroll - 6 );
+			const currentScroll = track.scrollLeft;
+			const atStart = currentScroll <= 6;
+			const atEnd = currentScroll >= ( maxScroll - 6 );
 
 			prevBtn.disabled = atStart;
 			prevBtn.setAttribute( 'aria-disabled', atStart ? 'true' : 'false' );
@@ -75,19 +76,19 @@
 		}
 
 		function scrollToCard( direction ) {
-			var cards = getCards();
+			const cards = getCards();
 			if ( ! cards.length ) {
 				return;
 			}
 
-			var maxScroll = getMaxScroll();
-			var currentScroll = track.scrollLeft;
+			const currentScroll = track.scrollLeft;
 
 			if ( direction > 0 ) {
 				// Avanzar: buscar la primera tarjeta cuyo inicio relativo esté por delante del scroll
-				var nextTarget = null;
-				for ( var i = 0; i < cards.length; i++ ) {
-					var pos = getCardPosition( cards[ i ] );
+				let nextTarget = null;
+				for ( let i = 0; i < cards.length; i++ ) {
+					// eslint-disable-next-line security/detect-object-injection
+					const pos = getCardPosition( cards[ i ] );
 					if ( pos > currentScroll + 15 ) {
 						nextTarget = pos;
 						break;
@@ -98,15 +99,17 @@
 					return;
 				}
 
+				const maxScroll = getMaxScroll();
 				track.scrollTo( {
 					left: Math.min( maxScroll, nextTarget ),
 					behavior: 'smooth'
 				} );
 			} else {
 				// Retroceder: buscar la última tarjeta cuyo inicio relativo esté por detrás del scroll
-				var prevTarget = 0;
-				for ( var j = cards.length - 1; j >= 0; j-- ) {
-					var p = getCardPosition( cards[ j ] );
+				let prevTarget = 0;
+				for ( let j = cards.length - 1; j >= 0; j-- ) {
+					// eslint-disable-next-line security/detect-object-injection
+					const p = getCardPosition( cards[ j ] );
 					if ( p < currentScroll - 15 ) {
 						prevTarget = p;
 						break;
@@ -136,7 +139,7 @@
 			scrollToCard( 1 );
 		} );
 
-		var scrollTicking = false;
+		let scrollTicking = false;
 		track.addEventListener( 'scroll', function () {
 			if ( ! scrollTicking ) {
 				window.requestAnimationFrame( function () {
@@ -147,7 +150,7 @@
 			}
 		}, { passive: true } );
 
-		var resizeTimer = null;
+		let resizeTimer = null;
 		window.addEventListener( 'resize', function () {
 			window.clearTimeout( resizeTimer );
 			resizeTimer = window.setTimeout( updateNavState, 100 );
@@ -176,10 +179,10 @@
 		return;
 	}
 
-	var FOLD = 0.92;
+	const FOLD = 0.92;
 
 	function init() {
-		var carousel = document.querySelector( '.akb-rw-carousel' );
+		const carousel = document.querySelector( '.akb-rw-carousel' );
 		if ( ! carousel ) {
 			return;
 		}
@@ -187,7 +190,7 @@
 		gsap.registerPlugin( ScrollTrigger );
 
 		gsap.matchMedia().add( '(prefers-reduced-motion: no-preference)', function () {
-			var cards = carousel.querySelectorAll( '.akb-rw-card' );
+			const cards = carousel.querySelectorAll( '.akb-rw-card' );
 			if ( ! cards.length ) {
 				return;
 			}
@@ -196,14 +199,14 @@
 				gsap.set( cards, { clearProps: 'opacity,transform' } );
 			}
 
-			var trigger = null;
+			let trigger = null;
 			try {
 				gsap.set( cards, { opacity: 0, y: 12 } );
 				trigger = ScrollTrigger.create( {
 					trigger: carousel,
 					start: 'top ' + Math.round( FOLD * 100 ) + '%',
 					once: true,
-					onEnter: function () {
+					onEnter () {
 						gsap.to( cards, {
 							opacity: 1,
 							y: 0,
@@ -214,7 +217,7 @@
 						} );
 					}
 				} );
-			} catch ( e ) {
+			} catch ( _e ) {
 				restoreAll();
 			}
 

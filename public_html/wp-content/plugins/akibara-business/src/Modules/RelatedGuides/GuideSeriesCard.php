@@ -30,6 +30,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.41
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
  */
 final class GuideSeriesCard {
 
@@ -190,7 +193,7 @@ final class GuideSeriesCard {
 		}
 
 		$cover = SeriesCover::for_tax_query(
-			array(
+			array( // @phpstan-ignore argument.type
 				array(
 					'taxonomy' => self::TAXONOMY,
 					'field'    => 'term_id',
@@ -228,7 +231,7 @@ final class GuideSeriesCard {
 	 */
 	private function estados( WP_Term $term ): array {
 		$modulo = ( $this->series_facts )();
-		if ( ! is_object( $modulo ) || ! method_exists( $modulo, 'catalog_facts' ) || ! isset( $term->term_taxonomy_id ) ) {
+		if ( ! is_object( $modulo ) || ! method_exists( $modulo, 'catalog_facts' ) || ! isset( $term->term_taxonomy_id ) ) { // @phpstan-ignore isset.property
 			return array();
 		}
 

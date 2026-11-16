@@ -16,6 +16,10 @@ namespace Akibara\CartCheckoutBlocks;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class RutPrivacy {
 
 	/** El campo nativo de bloques, en pedido y en cliente (ubicación `contact` → grupo `other`). */

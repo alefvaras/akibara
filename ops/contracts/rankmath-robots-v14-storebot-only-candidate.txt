@@ -1,0 +1,56 @@
+# Akibara permite búsqueda, citas, grounding y entrenamiento de IA. La visibilidad
+# en Google y en asistentes de IA (ChatGPT, Claude, Gemini, Perplexity y otros) es
+# un objetivo comercial del sitio. Storebot-Google recibe acceso comercial
+# específico para verificar producto, carrito, checkout y WooCommerce Store API.
+# Política v14 Storebot-only (2026-08-06); no cambia la política de entrenamiento.
+
+User-agent: Storebot-Google
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /xmlrpc.php
+Disallow: /wp-cron.php
+Disallow: /wp-json/
+Allow: /wp-json/wc/store/
+Disallow: /trackback/
+Disallow: /mi-cuenta/
+Disallow: /?s=
+Disallow: /search/
+Disallow: /*/feed/
+Disallow: /feed/
+Disallow: /comments/feed/
+
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+
+# WordPress core
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /xmlrpc.php
+Disallow: /wp-cron.php
+
+# Private commerce pages
+Disallow: /carrito/
+Disallow: /checkout/
+Disallow: /finalizar-compra/
+Disallow: /mi-cuenta/
+
+# APIs and internal endpoints
+Disallow: /wp-json/
+Disallow: /trackback/
+
+# Internal search results
+Disallow: /?s=
+Disallow: /search/
+
+# Query-driven catalog variants and utility actions remain crawlable so
+# Akibara Business can return their noindex,follow directive.
+
+# Feeds
+Disallow: /*/feed/
+Disallow: /feed/
+Disallow: /comments/feed/
+
+Sitemap: https://akibara.cl/sitemap_index.xml

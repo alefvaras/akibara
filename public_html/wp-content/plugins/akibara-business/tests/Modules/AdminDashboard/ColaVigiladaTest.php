@@ -58,28 +58,21 @@ final class ColaVigiladaTest extends TestCase {
 	 * independiente, B5): que `QUEUE` esté completa lo vigila
 	 * `CronsQueNoQuedanHuerfanosTest` contra el código.
 	 *
-	 * @testdox Vigila los doce hooks propios de la cola, sin repetidos, y admite los de otros plugins por filtro.
+	 * @testdox Vigila los diez hooks propios de la cola, sin repetidos, y admite los de otros plugins por filtro.
 	 */
 	public function test_vigila_todos_los_hooks_propios(): void {
 		Functions\when( 'apply_filters' )->alias( static fn ( string $hook, $value ) => $value );
 		$esperados = array(
 			'akb_bis_notify_product',
-			'akb_order_preventa_dispatch_ready_email',
-			'akb_order_preventa_recompute_for_product',
-			'akb_order_preventa_release_date_changed_batch',
-			'akb_order_preventa_verify_carrier_handoff',
 			'akb_sf_digest_run',
 			'akb_sf_scan_product',
 			'akibara_catalog_order_daily',
 			'akibara_catalog_order_recompute',
-			'akibara_business_image_recompress',
-			'akibara_business_image_recompress_purge',
 			'akibara_business_cache_warm',
-			'akb_welcome_coupon_gc_expired',
+			'akb_bacs_auto_expire_order',
+			'akb_bacs_send_reminder_email',
 			'akibara_business_cleanup_collection_owner_fence',
 			'akibara_edge_purge_run',
-			'akb_bacs_send_reminder_email',
-			'akb_bacs_auto_expire_order',
 		);
 
 		self::assertSame( $esperados, QueueHealth::own_hooks() );
@@ -141,15 +134,23 @@ final class ColaVigiladaTest extends TestCase {
 	public function test_sin_filas_no_hay_alertas(): void {
 		self::assertSame( array(), $this->cola( array(), array() )->alerts( 60 ) );
 
-		$sin_base = new QueueHealth(
-			function ( string $sql ): array {
-				$this->sql[] = $sql;
-				return array();
-			},
-			''
-		);
-		self::assertSame( array(), $sin_base->alerts( 60 ) );
-		self::assertSame( 2, count( $this->sql ), 'Sin tabla no se lanza ninguna consulta más.' );
+		$saved_wpdb = $GLOBALS['wpdb'] ?? null;
+		unset( $GLOBALS['wpdb'] );
+		try {
+			$sin_base = new QueueHealth(
+				function ( string $sql ): array {
+					$this->sql[] = $sql;
+					return array();
+				},
+				''
+			);
+			self::assertSame( array(), $sin_base->alerts( 60 ) );
+			self::assertSame( 2, count( $this->sql ), 'Sin tabla no se lanza ninguna consulta más.' );
+		} finally {
+			if ( null !== $saved_wpdb ) {
+				$GLOBALS['wpdb'] = $saved_wpdb;
+			}
+		}
 	}
 
 	/** @testdox La tarjeta de salud incorpora la cola con el mismo margen que WP-Cron. */

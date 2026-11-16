@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * Alarma de disponibilidad de búsqueda y servido de facetas.
  *
  * @since 0.1.85
+ * @api
  */
 final class ServingAlarm {
 

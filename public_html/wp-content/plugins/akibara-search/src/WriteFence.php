@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
  * Serializa writers live, transiciones y swap sobre una sola conexión física.
  *
  * @since 1.55.0
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class WriteFence {
 

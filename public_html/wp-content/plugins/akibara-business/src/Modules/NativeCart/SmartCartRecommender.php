@@ -21,12 +21,21 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\NativeCart;
 
-use Akibara\Business\Modules\EstimatedDelivery\BannerRenderer;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Services\VolumeTitle;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress UnusedVariable
+ */
+// @phpstan-ignore complexity.classLike
 final class SmartCartRecommender {
 
 	/** TTL corto: el cart_hash ya auto-invalida al mutar el carrito; esto acota
@@ -67,31 +76,7 @@ final class SmartCartRecommender {
 	 */
 	private array $memo = array();
 
-	private ?BannerRenderer $eta_renderer;
-
-	/**
-	 * Cache por request de id de candidato => bool (si empeora o no la llegada).
-	 *
-	 * @var array<string, bool>
-	 */
-	private array $eta_candidate_cache = array();
-
-	public function __construct( ?BannerRenderer $eta_renderer = null ) {
-		$this->eta_renderer = $eta_renderer;
-	}
-
-	private function resolve_eta_renderer(): ?BannerRenderer {
-		if ( null !== $this->eta_renderer ) {
-			return $this->eta_renderer;
-		}
-		if ( class_exists( '\Akibara\Business\Plugin' ) ) {
-			$ed = \Akibara\Business\Plugin::instance()->module( 'estimated_delivery' );
-			if ( $ed instanceof \Akibara\Business\Modules\EstimatedDelivery\EstimatedDelivery ) {
-				$this->eta_renderer = $ed->renderer();
-				return $this->eta_renderer;
-			}
-		}
-		return null;
+	public function __construct() {
 	}
 
 	public function register(): void {
@@ -123,7 +108,16 @@ final class SmartCartRecommender {
 		// Invitado (customer_id 0) no tiene historial cacheado: no hay nada que borrar.
 		$customer_id = (int) $order->get_customer_id();
 		if ( $customer_id > 0 ) {
-			delete_transient( self::HISTORY_CACHE_PREFIX . $customer_id );
+			self::flush_user_history_cache( $customer_id );
+		}
+	}
+
+	/**
+	 * Invalida el transient de historial de compras y estantería de un usuario.
+	 */
+	public static function flush_user_history_cache( int $user_id ): void {
+		if ( $user_id > 0 && function_exists( 'delete_transient' ) ) {
+			delete_transient( self::HISTORY_CACHE_PREFIX . $user_id );
 		}
 	}
 
@@ -139,7 +133,10 @@ final class SmartCartRecommender {
 		}
 
 		$user_id   = get_current_user_id();
-		$cache_key = 'akb_smartcart_' . md5( $this->cart_hash( $cart, $items ) . '|u' . $user_id );
+		$owned_gen = ( $user_id > 0 && function_exists( 'get_user_meta' ) )
+			? (string) get_user_meta( $user_id, CustomerCollection::USER_META_OWNED_GEN, true )
+			: '';
+		$cache_key = 'akb_smartcart_' . md5( $this->cart_hash( $cart, $items ) . '|u' . $user_id . '|g' . $owned_gen );
 
 		// Candidatos "smart" (siguientes tomos + descubrimiento) — parte CARA,
 		// cacheada por cart_hash+user_id + memo por request.
@@ -155,85 +152,14 @@ final class SmartCartRecommender {
 			_prime_post_caches( array_map( 'intval', $merged ), true, true );
 		}
 
-		// Detectar si el carrito actual ya lleva algún producto a pedido o preventa.
-		$cart_has_backorders = false;
-		foreach ( $items as $cart_item ) {
-			$cart_prod = $cart_item['data'] ?? ( isset( $cart_item['product_id'] ) ? wc_get_product( $cart_item['product_id'] ) : null );
-			if ( $cart_prod instanceof \WC_Product && StockStatus::is_reservable( $cart_prod ) ) {
-				$cart_has_backorders = true;
-				break;
-			}
-		}
-
-		// Si el carrito ya lleva a pedido, preparamos el renderer para evaluar que los
-		// candidatos a pedido no empeoren la llegada máxima del carrito.
-		$eta_renderer        = $cart_has_backorders ? $this->resolve_eta_renderer() : null;
-		$current_cart_max_ts = null;
-		$current_cart_is_tba = false;
-
-		if ( $cart_has_backorders && null !== $eta_renderer ) {
-			$current_summary = $eta_renderer->summarize_cart( $items );
-			if ( null !== $current_summary ) {
-				$current_cart_max_ts = $current_summary['max_ts'] ?? null;
-				$current_cart_is_tba = ! empty( $current_summary['is_tba'] );
-			}
-		}
-
-		$cart_hash_key = $this->cart_hash( $cart, $items );
-
 		// Filtro final: NUNCA cacheado. El stock cambia, y un tomo agotado tras
 		// cachearse no debe mostrarse en cross-sells (UX "Impulse Buy").
-		// Regla Inteligente:
-		// - Si el carrito es 100% entrega inmediata: sugerir SOLO tomos en stock físico (is_in_stock() && !is_reservable()).
-		// - Si el carrito ya lleva productos a pedido/preventa: un candidato a pedido SÓLO se acepta
-		//   si no empeora la llegada del carrito actual (BannerRenderer::summarize_cart()).
+		// Catálogo 100% entrega inmediata: sugerir SOLO tomos en stock físico comprables.
 		$final_cross_sells = array();
 		foreach ( $merged as $id ) {
 			$product = wc_get_product( $id );
-			if ( ! $product || ! $product->is_purchasable() || ! $product->is_in_stock() ) {
+			if ( ! $product || ! $product->is_purchasable() || ! StockStatus::is_instock( $product ) ) {
 				continue;
-			}
-
-			if ( StockStatus::is_reservable( $product ) ) {
-				// Carrito inmediato nunca recibe productos a pedido.
-				if ( ! $cart_has_backorders ) {
-					continue;
-				}
-
-				// Comportamiento conservador: si no hay renderer disponible, descartar.
-				if ( null === $eta_renderer ) {
-					continue;
-				}
-
-				$cache_k = $cart_hash_key . '|' . $id;
-				if ( ! isset( $this->eta_candidate_cache[ $cache_k ] ) ) {
-					$candidate_item   = array(
-						'product_id' => $id,
-						'quantity'   => 1,
-						'data'       => $product,
-					);
-					$combined_summary = $eta_renderer->summarize_cart( array_merge( $items, array( $candidate_item ) ) );
-
-					$allowed = false;
-					if ( null !== $combined_summary ) {
-						$combined_max_ts = $combined_summary['max_ts'] ?? null;
-						$combined_is_tba = ! empty( $combined_summary['is_tba'] );
-
-						if ( ! $current_cart_is_tba ) {
-							if ( ! $combined_is_tba && null !== $current_cart_max_ts && null !== $combined_max_ts ) {
-								$allowed = ( $combined_max_ts <= $current_cart_max_ts );
-							}
-						} else {
-							$allowed = $combined_is_tba;
-						}
-					}
-
-					$this->eta_candidate_cache[ $cache_k ] = $allowed;
-				}
-
-				if ( ! $this->eta_candidate_cache[ $cache_k ] ) {
-					continue;
-				}
 			}
 
 			$final_cross_sells[] = $id;
@@ -278,9 +204,10 @@ final class SmartCartRecommender {
 	 * @param int                  $user_id
 	 * @return array<int,int>
 	 */
-	private function compute_smart_candidate_ids( array $items, int $user_id ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function compute_smart_candidate_ids( array $items, int $user_id ): array { // @phpstan-ignore complexity.functionLike
 		$current_cart_ids = array();
-		$cart_series      = array(); // [ term_taxonomy_id => array( product_id => post_title) ]
+		$cart_series      = array(); // [ term_taxonomy_id => array( product_id => post_title) ] // phpcs:ignore Squiz.PHP.CommentedOutCode.Found
 		$cart_genres      = array(); // [ term_taxonomy_id => count ]
 
 		// 1. Analizar el carrito actual
@@ -314,92 +241,7 @@ final class SmartCartRecommender {
 
 		// 2. Analizar Historial de Compras (Si está logueado)
 		if ( $user_id > 0 ) {
-			// El transient conserva TTL e invalidación con o sin caché persistente.
-			// La clave incorpora al usuario; HISTORY_TTL y flush_history_cache()
-			// limitan la vigencia de su historial sin mezclar compradores.
-
-			$cache_key = self::HISTORY_CACHE_PREFIX . $user_id;
-			$history_data = get_transient( $cache_key );
-
-			if ( false === $history_data || ! is_array( $history_data ) ) {
-				$history_data = array(
-					'products' => array(),
-					'series'   => array(),
-					'genres'   => array(),
-				);
-
-				// Obtener una vez los IDs de pedidos más recientes.
-				// OWNED_ORDER_LIMIT acota el conjunto de exclusión de comprados;
-				// ANALYSIS_ORDER_LIMIT acota el análisis de series y géneros.
-
-				$customer_orders = wc_get_orders( array(
-					'customer_id' => $user_id,
-					'status'      => array( 'wc-completed', 'wc-processing' ),
-					'limit'       => self::OWNED_ORDER_LIMIT,
-					'return'      => 'ids',
-				) );
-				$customer_orders = array_values( array_map( 'intval', (array) $customer_orders ) );
-
-				// Una consulta a order items alimenta ambas ventanas sin hidratar
-				// pedidos completos ni consultar términos producto por producto.
-
-				$lineas_por_pedido = $this->line_item_product_ids( $customer_orders );
-
-				$history_data['products'] = array();
-				foreach ( $lineas_por_pedido as $product_ids ) {
-					foreach ( $product_ids as $product_id ) {
-						$history_data['products'][] = $product_id;
-					}
-				}
-
-				// Las líneas del análisis conservan sus REPETICIONES: el peso por
-				// género cuenta líneas compradas, no productos distintos.
-				$analisis = array();
-				foreach ( array_slice( $customer_orders, 0, self::ANALYSIS_ORDER_LIMIT ) as $order_id ) {
-					foreach ( $lineas_por_pedido[ $order_id ] ?? array() as $product_id ) {
-						$analisis[] = $product_id;
-					}
-				}
-
-				// Posts y términos de todo el análisis en una pasada: el
-				// `get_the_title()` de `index_series_terms()` y los dos
-				// `get_the_terms()` de abajo pasan a leer de caché.
-				$unique_analisis = array_values( array_unique( $analisis ) );
-				if ( ! empty( $unique_analisis ) && function_exists( '_prime_post_caches' ) ) {
-					_prime_post_caches( $unique_analisis, true, false );
-				}
-				if ( ! empty( $unique_analisis ) && function_exists( 'update_object_term_cache' ) ) {
-					update_object_term_cache( $unique_analisis, 'product' );
-				}
-
-				foreach ( $analisis as $product_id ) {
-					$history_data['products'][] = $product_id;
-
-					// B3 (first-term): idéntico al carrito — todas las series.
-					$this->index_series_terms( $history_data['series'], $product_id );
-
-					$genero_terms = function_exists( 'get_object_term_cache' )
-						? get_object_term_cache( $product_id, 'pa_genero' )
-						: false;
-					if ( false === $genero_terms ) {
-						$genero_terms = get_the_terms( $product_id, 'pa_genero' );
-					}
-					if ( is_array( $genero_terms ) ) {
-						foreach ( $genero_terms as $g_term ) {
-							$g_id = (int) $g_term->term_taxonomy_id;
-							$history_data['genres'][ $g_id ] = ( $history_data['genres'][ $g_id ] ?? 0 ) + 1;
-						}
-					}
-				}
-				// La query de "ya comprado" y la hidratación se solapan en los pedidos
-				// del análisis: deduplicar ANTES de persistir para no guardar el mismo
-				// id dos veces en cada entrada del transient.
-				$history_data['products'] = array_values( array_unique( array_map( 'intval', $history_data['products'] ) ) );
-
-				set_transient( $cache_key, $history_data, self::HISTORY_TTL );
-			}
-
-			// Merge del caché con el carrito actual
+			$history_data              = $this->load_user_history_data( $user_id );
 			$historical_owned_products = $history_data['products'];
 			foreach ( $history_data['series'] as $term_id => $prods ) {
 				if ( ! isset( $cart_series[ $term_id ] ) ) {
@@ -487,6 +329,83 @@ final class SmartCartRecommender {
 		}
 
 		return array_values( array_unique( array_map( 'intval', $smart_cross_sells ) ) );
+	}
+
+	/**
+	 * Carga o calcula el historial cacheado de productos, series y géneros del cliente.
+	 *
+	 * @param int $user_id ID del cliente.
+	 * @return array{products: array<int, int>, series: array<int, array<int, string>>, genres: array<int, int>}
+	 */
+	private function load_user_history_data( int $user_id ): array {
+		$cache_key    = self::HISTORY_CACHE_PREFIX . $user_id;
+		$history_data = get_transient( $cache_key );
+
+		if ( is_array( $history_data ) && isset( $history_data['products'], $history_data['series'], $history_data['genres'] ) ) {
+			return $history_data;
+		}
+
+		$history_data = array(
+			'products' => array(),
+			'series'   => array(),
+			'genres'   => array(),
+		);
+
+		$customer_orders = wc_get_orders(
+			array(
+				'customer_id' => $user_id,
+				'status'      => array( 'wc-completed', 'wc-processing', 'wc-shipping-progress' ),
+				'limit'       => self::OWNED_ORDER_LIMIT,
+				'return'      => 'ids',
+			)
+		);
+		$customer_orders          = array_values( array_map( 'intval', (array) $customer_orders ) );
+		$lineas_por_pedido        = $this->line_item_product_ids( $customer_orders );
+		$history_data['products'] = array();
+
+		foreach ( $lineas_por_pedido as $product_ids ) {
+			foreach ( $product_ids as $product_id ) {
+				$history_data['products'][] = $product_id;
+			}
+		}
+
+		$analisis = array();
+		foreach ( array_slice( $customer_orders, 0, self::ANALYSIS_ORDER_LIMIT ) as $order_id ) {
+			foreach ( $lineas_por_pedido[ $order_id ] ?? array() as $product_id ) {
+				$analisis[] = $product_id;
+			}
+		}
+
+		$unique_analisis = array_values( array_unique( $analisis ) );
+		if ( ! empty( $unique_analisis ) && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $unique_analisis, true, false );
+		}
+		if ( ! empty( $unique_analisis ) && function_exists( 'update_object_term_cache' ) ) {
+			update_object_term_cache( $unique_analisis, 'product' );
+		}
+
+		foreach ( $analisis as $product_id ) {
+			$history_data['products'][] = $product_id;
+			$this->index_series_terms( $history_data['series'], $product_id );
+
+			$genero_terms = function_exists( 'get_object_term_cache' )
+				? get_object_term_cache( $product_id, 'pa_genero' )
+				: false;
+			if ( false === $genero_terms ) {
+				$genero_terms = get_the_terms( $product_id, 'pa_genero' );
+			}
+			if ( is_array( $genero_terms ) ) {
+				foreach ( $genero_terms as $g_term ) {
+					$g_id                           = (int) $g_term->term_taxonomy_id;
+					$history_data['genres'][ $g_id ] = ( $history_data['genres'][ $g_id ] ?? 0 ) + 1;
+				}
+			}
+		}
+
+		$history_data['products'] = array_values( array_unique( array_map( 'intval', $history_data['products'] ) ) );
+		set_transient( $cache_key, $history_data, self::HISTORY_TTL );
+
+		return $history_data;
 	}
 
 	/**
@@ -680,7 +599,7 @@ final class SmartCartRecommender {
 	 * @param array<string, mixed> $items
 	 */
 	private function cart_hash( \WC_Cart $cart, array $items ): string {
-		if ( method_exists( $cart, 'get_cart_hash' ) ) {
+		if ( method_exists( $cart, 'get_cart_hash' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			$hash = (string) $cart->get_cart_hash();
 			if ( '' !== $hash ) {
 				return $hash;

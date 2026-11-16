@@ -1,0 +1,39 @@
+option_name	option_value
+akb_rewards_award_status	shipping-progress
+akb_rewards_birthday_points	1000
+akb_rewards_carousel_cards	8
+akb_rewards_carousel_enabled	yes
+akb_rewards_carousel_exclude_rewarded	no
+akb_rewards_carousel_min	8
+akb_rewards_carousel_min_chars	40
+akb_rewards_carousel_title	Voces del Distrito
+akb_rewards_db_version	1.2.0
+akb_rewards_earn_amount	100
+akb_rewards_earn_enabled	yes
+akb_rewards_earn_points	2
+akb_rewards_expiry_enabled	yes
+akb_rewards_expiry_warn_days	30
+akb_rewards_invite_delay_days	3
+akb_rewards_invite_enabled	yes
+akb_rewards_invite_status	completed
+akb_rewards_invite_token_days	30
+akb_rewards_migration_epoch	2026-08-31 02:24:39
+akb_rewards_moderate_reviews	yes
+akb_rewards_nudge_email_ids	customer_completed_order
+akb_rewards_pdp_notice_enabled	yes
+akb_rewards_program_start	2026-08-17 00:00:00
+akb_rewards_redeem_value	1
+akb_rewards_referral_cookie_days	30
+akb_rewards_referral_enabled	yes
+akb_rewards_referral_max_per_user	0
+akb_rewards_referral_points	500
+akb_rewards_review_every_n	1
+akb_rewards_review_max_per_user	0
+akb_rewards_review_nudge_enabled	yes
+akb_rewards_review_require_verified	yes
+akb_rewards_reviews_enabled	yes
+akb_rewards_rewrite_version	2-rf
+akb_rewards_welcome_bonus	500
+akb_rewards_welcome_enabled	yes
+akb_rewards_welcome_teaser_enabled	yes
+

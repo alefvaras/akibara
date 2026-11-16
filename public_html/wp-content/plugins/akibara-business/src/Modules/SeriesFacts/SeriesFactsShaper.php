@@ -20,6 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * Conformador de hechos de catálogo para una serie.
  *
  * @since 1.120.4
+ * @api
  */
 final class SeriesFactsShaper {
 
@@ -47,7 +48,7 @@ final class SeriesFactsShaper {
 	 * Normaliza la fila única de la consulta en la estructura de hechos.
 	 *
 	 * @param array<string, mixed> $row Fila de query_row().
-	 * @return array{tomos:int,instock:int,preventa:int,agotados:int,productos:int,productos_instock:int,productos_preventa:int,productos_agotados:int,agotados_tomos:array<int,string>,price_min:?float,price_max:?float,updated:string,autores:array<int,array{name:string,term_id:int}>,editoriales:array<int,array{name:string,term_id:int}>,ultimo_tomo:array{id:int,numero:int}|null}
+	 * @return array{tomos:int,instock:int,agotados:int,productos:int,productos_instock:int,productos_agotados:int,agotados_tomos:array<int,string>,price_min:?float,price_max:?float,updated:string,autores:array<int,array{name:string,term_id:int}>,editoriales:array<int,array{name:string,term_id:int}>,ultimo_tomo:array{id:int,numero:int}|null}
 	 */
 	public static function shape( array $row ): array {
 		$min = isset( $row['price_min'] ) ? (float) $row['price_min'] : 0.0;
@@ -75,16 +76,14 @@ final class SeriesFactsShaper {
 	 * Extrae los conteos enteros de tomos y productos.
 	 *
 	 * @param array<string, mixed> $row Fila cruda.
-	 * @return array{tomos:int,instock:int,preventa:int,productos:int,productos_instock:int,productos_preventa:int,productos_agotados:int}
+	 * @return array{tomos:int,instock:int,productos:int,productos_instock:int,productos_agotados:int}
 	 */
 	private static function extract_counts( array $row ): array {
 		return array(
 			'tomos'              => max( 0, (int) ( $row['tomos'] ?? 0 ) ),
 			'instock'            => max( 0, (int) ( $row['instock'] ?? 0 ) ),
-			'preventa'           => max( 0, (int) ( $row['preventa'] ?? 0 ) ),
 			'productos'          => max( 0, (int) ( $row['productos'] ?? 0 ) ),
 			'productos_instock'  => max( 0, (int) ( $row['productos_instock'] ?? 0 ) ),
-			'productos_preventa' => max( 0, (int) ( $row['productos_preventa'] ?? 0 ) ),
 			'productos_agotados' => max( 0, (int) ( $row['productos_agotados'] ?? 0 ) ),
 		);
 	}
@@ -92,25 +91,53 @@ final class SeriesFactsShaper {
 	/**
 	 * ID y número del tomo más nuevo, o null si no se puede afirmar.
 	 *
-	 * @param string $pair título<US>ID de query_row().
+	 * Resuelve numéricamente el volumen con el mayor número de tomo entero
+	 * extraído por VolumeTitle::extract_number(), desempatando por mayor ID en
+	 * caso de igualdad. Admite tanto un único par título<US>ID como una lista
+	 * de pares concatenados por LIST_SEPARATOR.
+	 *
+	 * @param string $pair título<US>ID de query_row(), o lista separada por LIST_SEPARATOR.
 	 * @return array{id:int,numero:int}|null
 	 */
 	public static function latest_volume( string $pair ): ?array {
-		$cut = strrpos( $pair, self::PAIR_SEPARATOR );
-		if ( false === $cut ) {
+		if ( '' === trim( $pair ) ) {
 			return null;
 		}
 
-		$id     = (int) substr( $pair, $cut + strlen( self::PAIR_SEPARATOR ) );
-		$number = VolumeTitle::extract_number( substr( $pair, 0, $cut ) );
-		if ( $id < 1 || null === $number ) {
-			return null;
+		$candidates     = explode( self::LIST_SEPARATOR, $pair );
+		$best_candidate = null;
+
+		foreach ( $candidates as $candidate ) {
+			$cut = strrpos( $candidate, self::PAIR_SEPARATOR );
+			if ( false === $cut ) {
+				continue;
+			}
+
+			$id     = (int) substr( $candidate, $cut + strlen( self::PAIR_SEPARATOR ) );
+			$number = VolumeTitle::extract_number( substr( $candidate, 0, $cut ) );
+			if ( $id < 1 || null === $number ) {
+				continue;
+			}
+
+			if ( null === $best_candidate ) {
+				$best_candidate = array(
+					'id'     => $id,
+					'numero' => $number,
+				);
+			} elseif ( $number > $best_candidate['numero'] ) {
+				$best_candidate = array(
+					'id'     => $id,
+					'numero' => $number,
+				);
+			} elseif ( $number === $best_candidate['numero'] && $id > $best_candidate['id'] ) {
+				$best_candidate = array(
+					'id'     => $id,
+					'numero' => $number,
+				);
+			}
 		}
 
-		return array(
-			'id'     => $id,
-			'numero' => $number,
-		);
+		return $best_candidate;
 	}
 
 	/**
@@ -174,7 +201,7 @@ final class SeriesFactsShaper {
 		$terms = array();
 		foreach ( explode( self::LIST_SEPARATOR, $concat ) as $entry ) {
 			$parts = explode( self::PAIR_SEPARATOR, $entry, 2 );
-			$name  = trim( (string) ( $parts[0] ?? '' ) );
+			$name  = trim( $parts[0] ?? '' );
 			if ( '' === $name || isset( $terms[ $name ] ) ) {
 				continue;
 			}

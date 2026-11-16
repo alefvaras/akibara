@@ -47,6 +47,8 @@ defined( 'ABSPATH' ) || exit;
  * Inyecta badges en cards de productos en shop loop, archive, [products] shortcode + single.
  *
  * @since 1.1.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class LoopEnhancer {
 
@@ -82,7 +84,6 @@ final class LoopEnhancer {
 	 */
 	private const STOCK_VARIANT_STATUS = array(
 		'available'    => StockStatus::IN_STOCK,
-		'preorder'     => StockStatus::ON_BACKORDER,
 		'out_of_stock' => StockStatus::OUT_OF_STOCK,
 	);
 
@@ -125,13 +126,6 @@ final class LoopEnhancer {
 
 		// Precio de un producto AGOTADO: un solo importe, el vigente (ver el
 		// docblock de simplify_out_of_stock_price_html para el contrato de precio).
-		// Prio 30 a propósito: los tres filtros de la casa sobre este hook son
-		// disjuntos por stock_status, pero el ORDEN importa igual —
-		//   20 TaxonomyDiscount\PriceFilters  (reescribe el html con el precio de campaña)
-		//   25 OrderPreventa\PreventaUX       (limpia la lectura SR de la preventa)
-		//   30 este                           (última palabra para el agotado)
-		// Correr antes del 20 permitiría que una campaña reescribiera el markup con
-		// <del>/<ins> en productos agotados con descuento por taxonomía.
 		add_filter( 'woocommerce_get_price_html',              array( $this, 'simplify_out_of_stock_price_html' ), 30, 2 );
 
 		// Rating en el loop con compuerta de volumen para evitar ratings artificiales.
@@ -292,8 +286,7 @@ final class LoopEnhancer {
 	 *
 	 * @since 1.100.0
 	 *
-	 * @param mixed      $html    HTML del precio construido por WooCommerce (y ya
-	 *                            reescrito por TaxonomyDiscount si hay campaña).
+	 * @param mixed      $html    HTML del precio construido por WooCommerce.
 	 * @param WC_Product $product Producto.
 	 * @return string
 	 */
@@ -343,12 +336,6 @@ final class LoopEnhancer {
 	 *
 	 *   - sin stock (outofstock)  → "Agotado"
 	 *   - disponible (instock)    → $text original WC ("Añadir al carrito")
-	 *
-	 * El copy de preventa (onbackorder → "Reservar en Preventa") es dominio
-	 * EXCLUSIVO de OrderPreventa\PreventaUX, que hookea estos mismos filters.
-	 * Acá onbackorder pasa por is_in_stock()=true y devuelve $text sin tocar —
-	 * antes ambos módulos competían a prio 10 y el ganador dependía del orden
-	 * de instanciación en Plugin.php.
 	 *
 	 * @param string     $text
 	 * @param WC_Product $product
@@ -426,12 +413,16 @@ final class LoopEnhancer {
 		// El ancla la resuelve su dueño (`CaptureForm`), que aplica el filtro
 		// `akibara_bis_form_anchor` sobre el id real del form. Acá vivía el
 		// literal '#akb-bis-form' escrito a mano.
-		$anchor = CaptureForm::anchor();
-		$url    = get_permalink( $product->get_id() ) . $anchor;
+		$anchor       = CaptureForm::anchor();
+		$url          = get_permalink( $product->get_id() ) . $anchor;
+		$product_id   = (int) $product->get_id();
+		$product_name = $product->get_name();
 		return sprintf(
-			'<a href="%s" class="button akb-notify-link" aria-label="%s">%s</a>',
+			'<a href="%s" class="button akb-notify-link" aria-label="%s" data-product-id="%d" data-product-name="%s">%s</a>',
 			esc_url( $url ),
-			esc_attr( sprintf( 'Avísame cuando vuelva — «%s»', $product->get_name() ) ),
+			esc_attr( sprintf( 'Avísame cuando vuelva — «%s»', $product_name ) ),
+			$product_id,
+			esc_attr( $product_name ),
 			esc_html( 'Avísame cuando vuelva' )
 		);
 	}
@@ -461,8 +452,7 @@ final class LoopEnhancer {
 	/**
 	 * ¿Hay sistema de waitlist operativo? (módulo BackInStock propio).
 	 *
-	 * Espeja el criterio de SeriesBundles\BuilderWidget::waitlist_active(). El
-	 * filter permite forzarlo en tests y apagar el CTA si la captura se apaga.
+	 * El filter permite forzarlo en tests y apagar el CTA si la captura se apaga.
 	 *
 	 * @return bool
 	 */
@@ -483,9 +473,6 @@ final class LoopEnhancer {
 
 	/**
 	 * Alinea la descripción accesible del botón con su label visible (WCAG 2.5.3).
-	 *
-	 * Mismo reparto de dominios que `cart_button_text`: acá solo el caso agotado;
-	 * el de preventa lo cubre OrderPreventa\PreventaUX en este mismo filter.
 	 *
 	 * @param string     $description Descripción de WC core ("Lee más sobre «X»").
 	 * @param WC_Product $product     Producto.
@@ -550,11 +537,9 @@ final class LoopEnhancer {
 		}
 
 		/**
-		 * Permite a otros módulos suprimir/ajustar los badges de un producto en un
-		 * contexto (ej. SeriesBundles quita "Disponible" en las cards de packs, donde
-		 * es redundante porque los packs agotados ya se ocultan del listado).
+		 * Permite a otros módulos suprimir/ajustar los badges de un producto en un contexto.
 		 *
-		 * @param list<string> $variants Variants resueltos (out_of_stock, preorder, sale, available).
+		 * @param list<string> $variants Variants resueltos (out_of_stock, sale, available).
 		 * @param WC_Product   $product  Producto del loop/single.
 		 * @param string       $context  CONTEXT_LOOP o CONTEXT_SINGLE.
 		 */
@@ -650,45 +635,10 @@ final class LoopEnhancer {
 			return array( 'out_of_stock' );
 		}
 
-		$is_preorder = $this->is_preorder( $product );
-		$is_on_sale  = $product->is_on_sale();
-
-		if ( $is_preorder && $is_on_sale ) {
-			return array( 'preorder', 'sale' );
+		if ( $product->is_on_sale() ) {
+			return array( 'available', 'sale' );
 		}
 
-		if ( $is_preorder ) {
-			return array( 'preorder' );
-		}
-
-		// Para productos con existencias sin preventa, el estado base es "available" (Disponible),
-		// asegurando consistencia visual sin alternancias artificiales.
-		$base = 'available';
-
-		if ( $is_on_sale ) {
-			return array( $base, 'sale' );
-		}
-
-		return array( $base );
-	}
-
-	/**
-	 * Detecta si el producto es RESERVABLE (se compra hoy, se trae después).
-	 *
-	 * `onbackorder` agrupa «A pedido» y «Preventa» (los separa Availability); el
-	 * variant visual `preorder` cubre ambos y la palabra la pone label_of().
-	 * WC considera onbackorder como `is_in_stock() = true` y `is_purchasable() = true`,
-	 * por lo que el cliente sí puede agregar al carrito y completar la compra.
-	 *
-	 * No se usa la categoría WC `preventas`: esa taxonomía es semántica/SEO (alimenta
-	 * landing y shortcode `[akb_preventas_destacadas]`) pero NO se mantiene en sync
-	 * automáticamente con stock_status, por lo que es fuente de verdad poco fiable
-	 * (ej. producto cambia a `instock` pero la categoría queda colgada → badge erróneo).
-	 *
-	 * @param WC_Product $product Producto a evaluar.
-	 * @return bool
-	 */
-	private function is_preorder( WC_Product $product ): bool {
-		return StockStatus::is_reservable( $product );
+		return array( 'available' );
 	}
 }

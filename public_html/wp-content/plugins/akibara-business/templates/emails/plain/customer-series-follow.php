@@ -85,7 +85,7 @@ foreach ( $groups as $akibara_group ) {
 	echo 'Darme de baja de esta serie: ' . esc_url_raw( (string) $akibara_group['unfollow_url'] ) . "\n\n";
 }
 
-echo "Ver mi colección completa:\n";
+echo "Ir a Mi Cuenta:\n";
 echo esc_url_raw( $collection_url ) . "\n\n";
 
 if ( '' !== $additional_content ) {

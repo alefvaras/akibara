@@ -1,0 +1,151 @@
+{
+  "schema_version": 2,
+  "contract": "akibara-gp-production-seo-overlay",
+  "release": {
+    "release_set": "akibara-gp-seo-production-2.1.50",
+    "environment_flow": [
+      "docker-local",
+      "production"
+    ],
+    "filtered_urls_owner": "akibara-business"
+  },
+  "source_theme": {
+    "root": "public_html/wp-content/themes/akibara-gp",
+    "version": "2.1.48",
+    "required_input_files": [
+      {
+        "path": "functions.php",
+        "sha256": "2547ad8cbf62f25ff7dd347f0fbd6cfaf2e3fba5ed64f6de6ca28e86288526a6"
+      },
+      {
+        "path": "single.php",
+        "sha256": "b2e5e5fc035c906c0606f7f778057f41b31968c6347497fae84d890121e2e998"
+      },
+      {
+        "path": "inc/blog.php",
+        "sha256": "353fcdf4634b0e7c33f405f4f7eeabbe110905a81e3743db63ec196da0929b41"
+      },
+      {
+        "path": "inc/rank-math.php",
+        "sha256": "a042124f3573bb60310b60cc2fa0b1d18210ed0790e0d538ad8c0a887350719d"
+      },
+      {
+        "path": "assets/js/rank-math-content-analysis.js",
+        "sha256": "5c94013a09ae2f905e446ada7a48759286c5916b79dc58df4c60ef716f5a8ed7"
+      }
+    ]
+  },
+  "production_preimage": {
+    "version": "2.1.49",
+    "archive": "dist/akibara-gp-2.1.49.zip",
+    "archive_sha256": "e8c5ce31a5cbf1e0e49acba4dd5ba5873fdd0314d70b55c75930e40efe0f983e",
+    "inventory": "dist/akibara-gp-2.1.49.files.sha256",
+    "inventory_sha256": "fe04c034b462f1390d62bf9aa6bfc82eb1196e702044cba4ac925b978e9a3769",
+    "files": 102,
+    "normal_tree_sha256": "1dd54fadba5f71d40eb87d5679285ec7b356053a182c3b056b7d4dd5546491c5"
+  },
+  "production_candidate": {
+    "version": "2.1.50",
+    "archive": "dist/akibara-gp-2.1.50.zip",
+    "archive_sha256": "476628717e247105974c0376e47ba39e38ca73e10e74549718f3a06e115a1956",
+    "inventory": "dist/akibara-gp-2.1.50.files.sha256",
+    "inventory_sha256": "4233b4713780d0d4e5f3b7198b16907c0db8e85d439eb28d6e9b6dd383f04767",
+    "files": 103,
+    "preserved_files": 97,
+    "modified_files": 4,
+    "added_files": 2,
+    "removed_files": 1,
+    "normal_tree_sha256": "d476cba7a5fb897224123479e9a603b2aca5b9a7c5aa8994b0a68e28cca17a01"
+  },
+  "modified_files": [
+    {
+      "path": "functions.php",
+      "mode": "reviewed_merge",
+      "preimage_sha256": "751fd4e739335cd61dfaa0533be6103584799e181c4743f81d9df01dc63c6361",
+      "candidate_sha256": "2547ad8cbf62f25ff7dd347f0fbd6cfaf2e3fba5ed64f6de6ca28e86288526a6",
+      "merge": "remove the legacy seo-filtered-urls.php require and insert rank-math.php after blog.php"
+    },
+    {
+      "path": "inc/blog.php",
+      "mode": "source_exact",
+      "preimage_sha256": "2b2fe08d8cb09b6a86f5523fcce683a0a359a7769d9585f97e5ed77ebefae392",
+      "candidate_sha256": "353fcdf4634b0e7c33f405f4f7eeabbe110905a81e3743db63ec196da0929b41"
+    },
+    {
+      "path": "single.php",
+      "mode": "source_exact",
+      "preimage_sha256": "0e5c45fef0be8ffcd61ee84037d5c8e4dd9056e41e38a0d220641a18d2b44bb2",
+      "candidate_sha256": "b2e5e5fc035c906c0606f7f778057f41b31968c6347497fae84d890121e2e998"
+    },
+    {
+      "path": "style.css",
+      "mode": "version_only",
+      "preimage_sha256": "d61e44b6fde49d2ad0bfd6b30ca7129145f20bddec1fa68ad863f1117aa0399f",
+      "candidate_sha256": "3c85628872982c869290c1df02956eeb3b1ab8f8f12bc43af3d9767868d8d21b",
+      "from": "2.1.49",
+      "to": "2.1.50"
+    }
+  ],
+  "added_files": [
+    {
+      "path": "assets/js/rank-math-content-analysis.js",
+      "mode": "source_exact",
+      "candidate_sha256": "5c94013a09ae2f905e446ada7a48759286c5916b79dc58df4c60ef716f5a8ed7"
+    },
+    {
+      "path": "inc/rank-math.php",
+      "mode": "source_exact",
+      "candidate_sha256": "a042124f3573bb60310b60cc2fa0b1d18210ed0790e0d538ad8c0a887350719d"
+    }
+  ],
+  "removed_files": [
+    {
+      "path": "inc/seo-filtered-urls.php",
+      "mode": "ownership_transfer",
+      "preimage_sha256": "3e7e50bf3b357304a2314d1bc9ff8cdfbf0ce6fe14428b86db221f591b2ddc2a",
+      "owner": "akibara-business"
+    }
+  ],
+  "required_production_only_files": [
+    {
+      "path": "assets/images/embalaje/caja-abierta.webp",
+      "sha256": "24424360220011b4baca70872db243325986111e494b81bb263a7cde83a4d019"
+    },
+    {
+      "path": "assets/images/embalaje/caja-burbujas.webp",
+      "sha256": "3644c52f771ac7a4a25e0e2daea861165c9c6d5b1bcdb88c4300c909f530e67d"
+    },
+    {
+      "path": "assets/images/embalaje/caja-cerrada.webp",
+      "sha256": "34b213bffa83999a65a02d003f59689f1d8c14bbed2ead7447590835a8ee2f6e"
+    },
+    {
+      "path": "assets/images/embalaje/manga_sleeve_real.webp",
+      "sha256": "b753ccd4eda01cf8860460420afd28485af0cbc2b05b9678c92fb17127d64d18"
+    },
+    {
+      "path": "assets/img/akibara-logo.svg",
+      "sha256": "6107e0bd7d5c2e521c6c8ceeb381bb53a47a0195666630ec650829288d298fa0"
+    },
+    {
+      "path": "assets/img/logo-akibara-2x.webp",
+      "sha256": "b62a558712d94254e523cb94fe60daf1eed87fb8fea1e5491d72389ddfaaa458"
+    }
+  ],
+  "quality_gate": {
+    "rank_math_tests": [
+      {
+        "path": "public_html/wp-content/themes/akibara-gp/tests/rankmath-featured-image.test.js",
+        "sha256": "b04a3a81fccd866e2bb70c04f39281fd63a09c1dbfa452ebc278170c0e1e12d4"
+      },
+      {
+        "path": "public_html/wp-content/themes/akibara-gp/tests/rankmath-toc.test.js",
+        "sha256": "f317d5d9d452c2683d6808c42a1546b2b93fbce74a3dd0f06a37fffbcd54c2bb"
+      }
+    ],
+    "checkout_dependency": "dist/akibara-cart-checkout-blocks-2.0.1.zip",
+    "checkout_dependency_sha256": "bf9ebceb16964952a309fffeb21ea372032b7a2c5444d217f0c183f65d0b4999",
+    "tests_packaged": false,
+    "docker_image": "wordpress:php8.4-apache"
+  }
+}

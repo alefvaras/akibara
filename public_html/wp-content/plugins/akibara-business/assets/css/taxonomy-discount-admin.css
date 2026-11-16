@@ -241,6 +241,7 @@
 }
 
 @media (max-width: 782px) {
+
 	.akb-status {
 		align-items: flex-start;
 		flex-direction: column;
@@ -268,6 +269,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-accordion__summary::before {
 		transition: none;
 	}

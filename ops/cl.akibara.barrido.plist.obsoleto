@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>cl.akibara.barrido</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/alefvaras/Documents/akibara/ops/barrido-launchd.sh</string>
+    </array>
+
+    <!-- Lunes a las 08:00. Si el Mac esta dormido a esa hora, launchd lo corre
+         al despertar; no se pierde la semana. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key><integer>1</integer>
+        <key>Hour</key><integer>8</integer>
+        <key>Minute</key><integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/alefvaras/Documents/akibara/.local-reports/barrido/logs/launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/alefvaras/Documents/akibara/.local-reports/barrido/logs/launchd.err</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/alefvaras/Documents/akibara/ops</string>
+</dict>
+</plist>

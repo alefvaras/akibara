@@ -84,8 +84,6 @@ final class PdpSeriesEstadoTest extends TestCase {
 	 * 'completa' (55 series), 'en_publicacion' (46) y 'al_dia' (3).
 	 */
 	public function test_no_inventa_estados(): void {
-		$f = $this->fuente();
-
 		foreach ( array( 'en_curso', 'en-curso', 'pausada' ) as $inventado ) {
 			$this->assertStringNotContainsString(
 				"'" . $inventado . "'",

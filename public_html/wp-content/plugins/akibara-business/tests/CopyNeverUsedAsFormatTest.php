@@ -189,7 +189,7 @@ final class CopyNeverUsedAsFormatTest extends TestCase {
 	public function test_the_detector_actually_detects(): void {
 		self::assertFalse( $this->formato_es_seguro( '$texto, $otro )' ), 'Una variable como formato es el defecto.' );
 		self::assertFalse( $this->formato_es_seguro( 'get_option( "akb_copy_x" ) )' ), 'Una option como formato es el defecto exacto que pasó.' );
-		self::assertFalse( $this->formato_es_seguro( 'EditionCopy::text( $k ) )' ), 'El texto del dueño por método tampoco vale.' );
+		self::assertFalse( $this->formato_es_seguro( 'CustomCopy::text( $k ) )' ), 'El texto del dueño por método tampoco vale.' );
 
 		self::assertTrue( $this->formato_es_seguro( "'%s en Akibara', \$texto )" ), 'Un literal es la forma correcta.' );
 		self::assertTrue( $this->formato_es_seguro( '"%d tomos", $n )' ), 'Con comillas dobles también.' );

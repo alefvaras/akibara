@@ -1,0 +1,72 @@
+[
+  {
+    "superficie": "puntos-pagina",
+    "viewport": "movil",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "puntos-micuenta",
+    "viewport": "movil",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "buscador-abierto",
+    "viewport": "movil",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "buscador-resultados",
+    "viewport": "movil",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "buscador-sin-resultados",
+    "viewport": "movil",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "puntos-pagina",
+    "viewport": "escritorio",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "puntos-micuenta",
+    "viewport": "escritorio",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "buscador-abierto",
+    "viewport": "escritorio",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "buscador-resultados",
+    "viewport": "escritorio",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  },
+  {
+    "superficie": "buscador-sin-resultados",
+    "viewport": "escritorio",
+    "desbordePagina": 0,
+    "fueraDeViewport": [],
+    "recortados": []
+  }
+]

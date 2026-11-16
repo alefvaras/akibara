@@ -16,6 +16,7 @@ namespace Akibara\Rewards\Tests\Points;
 
 use Akibara\Rewards\Points\Accrual;
 use Akibara\Rewards\Points\Ledger;
+use Akibara\Rewards\Points\Tiers;
 use Akibara\Rewards\Tests\Support\RewardsTestCase;
 use Brain\Monkey\Functions;
 
@@ -246,7 +247,7 @@ final class AccrualTest extends RewardsTestCase {
 		$this->assertSame( 'invitado', $guest->saved_meta[ Accrual::META_SWEEP_SKIPPED ] );
 		$claves = array_column( array_filter( $consulta['meta_query'], 'is_array' ), 'key' );
 		$this->assertSame( array( Accrual::META_EARNED, Accrual::META_PRE_PROGRAM_NOTED, Accrual::META_SWEEP_SKIPPED ), $claves, 'La consulta excluye lo acreditado, lo anterior al programa y lo sellado.' );
-		$this->assertSame( array( 'processing', 'shipping-progress', 'completed' ), $consulta['status'] );
+		$this->assertSame( array( 'processing', 'completed' ), $consulta['status'] );
 	}
 
 	/**
@@ -460,10 +461,10 @@ final class AccrualTest extends RewardsTestCase {
 		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
 		$this->orders[100] = $order;
 
-		$this->accrual->on_status_changed( 100, 'processing', 'shipping-progress', $order );
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
 		$this->assertSame( 238, Ledger::balance( 7 ) );
 
-		$this->accrual->on_status_changed( 100, 'shipping-progress', 'cancelled', $order );
+		$this->accrual->on_status_changed( 100, 'processing', 'cancelled', $order );
 		$this->assertSame( 0, Ledger::balance( 7 ) );
 	}
 
@@ -507,8 +508,7 @@ final class AccrualTest extends RewardsTestCase {
 		$this->orders[100] = $order;
 
 		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
-		$this->accrual->on_status_changed( 100, 'processing', 'shipping-progress', $order );
-		$this->accrual->on_status_changed( 100, 'shipping-progress', 'completed', $order );
+		$this->accrual->on_status_changed( 100, 'processing', 'completed', $order );
 
 		$this->assertSame( 238, Ledger::balance( 7 ) );
 	}
@@ -612,4 +612,321 @@ final class AccrualTest extends RewardsTestCase {
 		$this->assertStringContainsString( 'no se devuelven solos', strtolower( (string) end( $order->notes ) ) );
 	}
 
+	/** @testdox Transición pending -> processing -> completed acredita en processing y es no-op silencioso en completed. */
+	public function test_transicion_pending_processing_completed_acredita_una_vez(): void {
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$this->orders[100] = $order;
+
+		// 1. Pasa a processing: se acreditan 238 puntos (2% sobre $11.900)
+		$order->status = 'processing';
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
+		$this->accrual->maybe_award( 100 );
+		$this->assertSame( 238, Ledger::balance( 7 ) );
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_EARNED ] );
+
+		// 2. Pasa a completed: no-op silencioso, no vuelve a acreditar ni duplicar puntos
+		$order->status = 'completed';
+		$this->accrual->on_status_changed( 100, 'processing', 'completed', $order );
+		$this->accrual->maybe_award( 100 );
+		$this->assertSame( 238, Ledger::balance( 7 ) );
+	}
+
+	/** @testdox Cliente nuevo en processing no se auto-bloquea el welcome bonus de +500 pts al consultar compras previas. */
+	public function test_nuevo_cliente_en_processing_no_autobloquea_welcome_bonus(): void {
+		$welcome = new \Akibara\Rewards\Points\WelcomeBonus();
+		$welcome->register();
+
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$order->status     = 'processing';
+		$this->orders[100] = $order;
+
+		// Simulamos que wc_get_orders devuelve el mismo pedido [100] porque ya existe en wp_wc_orders con estado processing
+		Functions\when( 'wc_get_orders' )->justReturn( array( 100 ) );
+
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
+		$this->assertSame( 238, Ledger::balance( 7 ) );
+
+		( new \Akibara\Rewards\Points\WelcomeBonus() )->maybe_pay( $order, 7, 238 );
+
+		// 238 puntos de compra + 500 puntos de bono de bienvenida = 738 puntos
+		$this->assertSame( 738, Ledger::balance( 7 ), 'El pedido actual 100 no debe auto-bloquear su propio bono de bienvenida.' );
+		$this->assertSame( 738, $order->saved_meta[ Accrual::META_EARNED ] );
+		$this->assertSame( 500, $order->saved_meta[ Accrual::META_WELCOME_BONUS ] );
+	}
+
+	/** @testdox Transición processing -> cancelled revoca los puntos acreditados en processing. */
+	public function test_transicion_processing_a_cancelled_revoca_puntos_acreditados(): void {
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$this->orders[100] = $order;
+
+		// 1. Acredita en processing
+		$order->status = 'processing';
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
+		$this->assertSame( 238, Ledger::balance( 7 ) );
+
+		// 2. Se cancela el pedido pasando a cancelled
+		$order->status = 'cancelled';
+		$this->accrual->on_status_changed( 100, 'processing', 'cancelled', $order );
+
+		$this->assertSame( 0, Ledger::balance( 7 ), 'La cancelación revierte todos los puntos acreditados.' );
+		$this->assertSame( 0, $order->saved_meta[ Accrual::META_EARNED ] );
+
+		// 3. Un hook redundante woocommerce_order_status_cancelled no produce saldo negativo ni falla
+		$this->accrual->deduct_all( 100 );
+		$this->assertSame( 0, Ledger::balance( 7 ) );
+	}
+
+	/** @testdox Periodo de carencia (7 días): retiene puntos en pending y los libera vía Action Scheduler al completar. */
+	public function test_escrow_carencia_retiene_puntos_y_libera_a_los_7_dias(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+
+		$scheduled = array();
+		Functions\when( 'as_schedule_single_action' )->alias(
+			static function ( int $due, string $hook, array $args, string $group = '', bool $unique = false ) use ( &$scheduled ): int {
+				$scheduled[] = array(
+					'due'    => $due,
+					'hook'   => $hook,
+					'args'   => $args,
+					'group'  => $group,
+					'unique' => $unique,
+				);
+				return 101;
+			}
+		);
+		Functions\when( 'as_next_scheduled_action' )->justReturn( false );
+
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$this->orders[100] = $order;
+
+		// 1. En processing, los puntos quedan en pending y NO entran al Ledger
+		$order->status = 'processing';
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
+
+		$this->assertSame( 0, Ledger::balance( 7 ), 'Durante la carencia el saldo disponible debe ser 0.' );
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 'pending', $order->saved_meta[ Accrual::META_PENDING_STATUS ] );
+		$this->assertCount( 0, $scheduled, 'En processing todavía no se agenda la liberación a 7 días.' );
+
+		// 2. Al completar el pedido, se programa Action Scheduler a 7 días exactos
+		$order->status = 'completed';
+		$this->accrual->on_status_changed( 100, 'processing', 'completed', $order );
+
+		$this->assertSame( 0, Ledger::balance( 7 ), 'Sigue en carencia tras completarse.' );
+		$this->assertCount( 1, $scheduled, 'Se debe haber agendado exactamente 1 acción de liberación.' );
+		$this->assertSame( Accrual::HOOK_RELEASE_ESCROW, $scheduled[0]['hook'] );
+		$this->assertSame( array( 100 ), $scheduled[0]['args'] );
+		$this->assertGreaterThanOrEqual( time() + 7 * 86400, $scheduled[0]['due'] );
+
+		// 3. Ejecución del job tras los 7 días
+		$this->accrual->release_escrow( 100 );
+
+		$this->assertSame( 238, Ledger::balance( 7 ), 'Tras liberar la carencia, los puntos pasan al saldo disponible del cliente.' );
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_EARNED ] );
+		$this->assertSame( 0, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 'released', $order->saved_meta[ Accrual::META_PENDING_STATUS ] );
+	}
+
+	/** @testdox Cancelación durante carencia revoca puntos pendientes sin afectar saldo previo del cliente. */
+	public function test_escrow_carencia_cancelacion_revoca_sin_alterar_saldo_previo(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+
+		$unscheduled = array();
+		Functions\when( 'as_unschedule_all_actions' )->alias(
+			static function ( string $hook, array $args ) use ( &$unscheduled ): void {
+				$unscheduled[] = array( 'hook' => $hook, 'args' => $args );
+			}
+		);
+
+		// Cliente con saldo previo legítimo de 500 puntos en Ledger
+		Ledger::credit( 7, 500, 'bonus', 'test', 1, 'Saldo previo' );
+		$this->assertSame( 500, Ledger::balance( 7 ) );
+
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$this->orders[100] = $order;
+
+		$order->status = 'processing';
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
+
+		$this->assertSame( 500, Ledger::balance( 7 ), 'Saldo disponible previo intacto.' );
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_PENDING ] );
+
+		// Cancelación del pedido durante los 7 días
+		$order->status = 'cancelled';
+		$this->accrual->on_status_changed( 100, 'processing', 'cancelled', $order );
+
+		$this->assertSame( 500, Ledger::balance( 7 ), 'El saldo previo del cliente no se trunca ni reduce.' );
+		$this->assertSame( 0, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 'revoked', $order->saved_meta[ Accrual::META_PENDING_STATUS ] );
+		$this->assertCount( 1, $unscheduled );
+		$this->assertSame( Accrual::HOOK_RELEASE_ESCROW, $unscheduled[0]['hook'] );
+	}
+
+	/** @testdox Reembolso parcial en carencia ajusta los puntos pendientes sin debitar del ledger. */
+	public function test_escrow_carencia_reembolso_parcial_ajusta_puntos_pendientes(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+
+		// Pedido con $10.000 + $1.900 IVA = $11.900 -> 238 puntos
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$this->orders[100] = $order;
+
+		$order->status = 'processing';
+		$this->accrual->on_status_changed( 100, 'pending', 'processing', $order );
+
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 0, Ledger::balance( 7 ) );
+
+		// Reembolso de $5.000 + $950 de IVA: base conservada $5.950 -> 119 pts
+		$order->refunds[] = new \WC_Order_Refund(
+			array( new \WC_Order_Item( 'Tomo devuelto', -5000.0, -950.0 ) )
+		);
+
+		$this->accrual->on_order_refunded( 100, 1 );
+
+		// Debe haberse ajustado a 119 puntos pendientes
+		$this->assertSame( 119, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 0, Ledger::balance( 7 ), 'No debe haber débitos al ledger porque nunca fueron acreditados a disponible.' );
+	}
+
+	/** @testdox El barrido diario no duplica notas en pedidos en carencia y libera carencias vencidas. */
+	public function test_sweep_no_duplica_notas_en_carencia_y_rescata_carencia_vencida(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+
+		$order             = $this->make_order( 100, 7, 10000.0, 1900.0 );
+		$order->status     = 'processing';
+		$this->orders[100] = $order;
+
+		Functions\when( 'wc_get_orders' )->alias(
+			static fn( array $args ): array => array( 100 )
+		);
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_registered' => '2026-08-25 10:00:00' ) );
+
+		// Primera pasada del barrido: entra en carencia y recibe notas.
+		$this->accrual->sweep_unawarded();
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 0, Ledger::balance( 7 ) );
+		$conteo_notas_inicial = count( $order->notes );
+		$this->assertGreaterThan( 0, $conteo_notas_inicial );
+
+		// Segunda pasada del barrido: como ya tiene META_PENDING > 0, no duplica notas.
+		$this->accrual->sweep_unawarded();
+		$this->assertCount( $conteo_notas_inicial, $order->notes, 'No debe haber notas adicionales en la segunda pasada del barrido.' );
+		$this->assertSame( 0, Ledger::balance( 7 ) );
+
+		// Ahora el pedido pasa a completed con fecha de carencia vencida (time() - 60).
+		$order->status = 'completed';
+		$order->update_meta_data( Accrual::META_ESCROW_DUE, time() - 60 );
+		$order->save_meta_data();
+
+		// Tercera pasada del barrido: detecta carencia vencida y libera automáticamente los puntos.
+		$this->accrual->sweep_unawarded();
+		$this->assertSame( 238, Ledger::balance( 7 ), 'Puntos liberados al balance del Ledger.' );
+		$this->assertSame( 238, $order->saved_meta[ Accrual::META_EARNED ] );
+		$this->assertSame( 0, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 'released', $order->saved_meta[ Accrual::META_PENDING_STATUS ] );
+	}
+
+	/** @testdox El pedido que asciende de nivel sella el multiplicador previo (1.0x) aplicado a la compra y solo renueva vigencia al liberar carencia. */
+	public function test_promotion_order_seals_multiplier_earned_before_credit_and_skips_renew_during_escrow(): void {
+		// Cliente con 1.900 pts históricos de compras (aún Lector, 1.0x; Coleccionista parte en 2.000).
+		Ledger::credit( 7, 1900, 'order', 'order', 1, 'Previo', true );
+
+		// 1. Modo directo: compra $10.000 neto -> gana 200 pts (sube a 2.100 Coleccionista), pero debe sellar 1.0x.
+		$order1             = $this->make_order( 200, 7, 10000.0, 0.0 );
+		$order1->status     = 'processing';
+		$this->orders[200]  = $order1;
+		$this->accrual->on_status_changed( 200, 'pending', 'processing', $order1 );
+
+		$this->assertSame( 200, $order1->saved_meta[ Accrual::META_EARNED ] );
+		$this->assertSame( Tiers::TIER_LECTOR, $order1->saved_meta[ Tiers::META_TIER ] );
+		$this->assertSame( 1.0, $order1->saved_meta[ Tiers::META_TIER_MULTIPLIER ] );
+		$this->assertArrayHasKey( Tiers::META_TIER_EXPIRES_AT, $this->wpdb->user_meta[7] ?? array() );
+
+		// Limpiar marca para aislar la comprobación en carencia.
+		unset( $this->wpdb->user_meta[7][ Tiers::META_TIER_EXPIRES_AT ] );
+
+		// 2. Modo carencia: entrar en processing NO debe renovar la vigencia aún.
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+		$order2            = $this->make_order( 201, 7, 10000.0, 0.0 );
+		$order2->status    = 'processing';
+		$this->orders[201] = $order2;
+		$this->accrual->on_status_changed( 201, 'pending', 'processing', $order2 );
+
+		$this->assertSame( 240, $order2->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertArrayNotHasKey( Tiers::META_TIER_EXPIRES_AT, $this->wpdb->user_meta[7] ?? array(), 'Entrar en carencia no debe renovar vigencia todavía.' );
+
+		$order2->status = 'completed';
+		$this->accrual->release_escrow( 201 );
+		$this->assertArrayHasKey( Tiers::META_TIER_EXPIRES_AT, $this->wpdb->user_meta[7] ?? array(), 'Al liberar la carencia sí se renueva vigencia.' );
+	}
+
+	/** @testdox Reembolso parcial en carencia con bono de bienvenida ya en ledger reduce META_PENDING sin debitar el bono. */
+	public function test_escrow_partial_refund_with_welcome_bonus_shrinks_pending_without_debiting_ledger(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+
+		$order             = $this->make_order( 300, 7, 10000.0, 0.0 );
+		$order->status     = 'processing';
+		$this->orders[300] = $order;
+		$this->accrual->on_status_changed( 300, 'pending', 'processing', $order );
+
+		// Simular que el bono de bienvenida (500) sí se acreditó al ledger en el mismo pedido mientras los 200 están en pending.
+		Ledger::credit( 7, 500, 'welcome_bonus', 'order', 300, 'Bienvenida' );
+		$order->update_meta_data( Accrual::META_EARNED, 500 );
+		$order->update_meta_data( Accrual::META_WELCOME_BONUS, 500 );
+		$order->save_meta_data();
+
+		$order->refunds[] = new \WC_Order_Refund(
+			array( new \WC_Order_Item( 'Tomo', -5000.0, 0.0 ) )
+		);
+		$this->accrual->on_order_refunded( 300, 1 );
+
+		$this->assertSame( 100, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 500, Ledger::balance( 7 ), 'El bono de bienvenida permanece intacto en el ledger.' );
+	}
+
+	/** @testdox release_escrow exige estado pagado, reconcilia doble crédito y sweep_unawarded excluye carencia no vencida. */
+	public function test_release_escrow_requires_paid_status_reconciles_double_credit_and_sweep_skips_inflight(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static fn( string $hook, $val ) => 'akb_rewards_accrual_escrow_days' === $hook ? 7 : $val
+		);
+
+		$order             = $this->make_order( 400, 7, 10000.0, 0.0 );
+		$order->status     = 'on-hold';
+		$order->update_meta_data( Accrual::META_PENDING, 200 );
+		$order->save_meta_data();
+		$this->orders[400] = $order;
+
+		$this->accrual->release_escrow( 400 );
+		$this->assertSame( 0, Ledger::balance( 7 ), 'No libera si el pedido quedó en espera/no pagado.' );
+
+		// Simular acreditación previa en ledger antes de caer al sellar metas.
+		Ledger::credit( 7, 200, 'order', 'order', 400, 'Ya acreditado' );
+		$order->status = 'completed';
+		$this->accrual->release_escrow( 400 );
+
+		$this->assertSame( 200, Ledger::balance( 7 ), 'Reconcilia sin volver a acreditar doble.' );
+		$this->assertSame( 0, $order->saved_meta[ Accrual::META_PENDING ] );
+		$this->assertSame( 'released', $order->saved_meta[ Accrual::META_PENDING_STATUS ] );
+
+		$consulta = array();
+		Functions\when( 'wc_get_orders' )->alias(
+			static function ( array $args ) use ( &$consulta ): array {
+				$consulta = $args;
+				return array();
+			}
+		);
+		$this->accrual->sweep_unawarded();
+		$this->assertStringContainsString( Accrual::META_PENDING_STATUS, wp_json_encode( $consulta['meta_query'] ) );
+	}
 }

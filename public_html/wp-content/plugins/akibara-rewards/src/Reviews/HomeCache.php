@@ -8,6 +8,10 @@ use Akibara\Rewards\Support\Log;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ */
 final class HomeCache {
 
 	public const TAG  = 'akb_reviews_home_v1';

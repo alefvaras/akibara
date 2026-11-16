@@ -125,6 +125,7 @@ defined( 'ABSPATH' ) || exit;
 		<div class="header-icons">
 			<a href="<?php echo esc_url( $akb_account_url ); ?>" class="header-icon header-icon--account" aria-label="Mi cuenta">
 				<?php echo akibara_gp_icon( 'user', 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- akibara_gp_icon() devuelve un SVG de la lista blanca de nombres de inc/icons.php; el tamaño entra como %d en sprintf. No interpola nada del usuario. ?>
+				<?php do_action( 'akibara_gp_account_badge' ); ?>
 			</a>
 			<a href="<?php echo esc_url( $akb_wishlist_url ); ?>" class="header-icon header-icon--wishlist" aria-label="Mis favoritos" data-akb-wishlist-count="<?php echo esc_attr( (string) $akb_wishlist_count ); ?>">
 				<?php echo akibara_gp_icon( 'heart', 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- akibara_gp_icon() devuelve un SVG de la lista blanca de nombres de inc/icons.php; el tamaño entra como %d en sprintf. No interpola nada del usuario. ?>

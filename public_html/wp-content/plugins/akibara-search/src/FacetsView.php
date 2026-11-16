@@ -22,6 +22,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidOperand
  */
 final class FacetsView {
 

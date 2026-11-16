@@ -30,6 +30,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.4.0
+ * @api
  */
 final class FirstPurchase {
 
@@ -109,8 +110,14 @@ final class FirstPurchase {
 			);
 		}
 
+		$current_order_id = (int) $order->get_id();
 		foreach ( $consultas as $consulta ) {
-			if ( array() !== (array) wc_get_orders( $base + $consulta ) ) {
+			$found_ids    = array_map( 'intval', (array) wc_get_orders( $base + $consulta ) );
+			$filtered_ids = array_filter(
+				$found_ids,
+				static fn( int $id ): bool => $id > 0 && $id !== $current_order_id
+			);
+			if ( array() !== $filtered_ids ) {
 				return true;
 			}
 		}
@@ -166,6 +173,13 @@ final class FirstPurchase {
 	 * @return string '' si no sirve para identificar.
 	 */
 	public static function normalize_phone( string $raw ): string {
+		if ( class_exists( '\Akibara\Business\Utilities\ChileanPhone' ) ) {
+			$eight = \Akibara\Business\Utilities\ChileanPhone::extract_digits( $raw );
+			if ( '' !== $eight ) {
+				return '9' . $eight;
+			}
+		}
+
 		$digitos = (string) preg_replace( '/\D+/', '', $raw );
 
 		if ( strlen( $digitos ) >= 11 && 0 === strpos( $digitos, '56' ) ) {

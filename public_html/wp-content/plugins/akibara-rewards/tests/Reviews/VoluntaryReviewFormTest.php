@@ -30,6 +30,7 @@ final class VoluntaryReviewFormTest extends RewardsTestCase {
 		$this->wpdb->users[42] = array( 'user_email' => 'cliente@example.com' );
 		$this->order = $this->make_order( 100, 42, 10000, 1900 );
 		$this->order->status = 'completed';
+		$this->order->date_paid = new \WC_DateTime( '2026-10-01 10:00:00' );
 		$this->order->billing_email = 'cliente@example.com';
 		$this->order->items['line_item'] = array( new \WC_Order_Item_Fake( 777, 'Tomo comprado' ) );
 		Functions\when( 'wc_get_orders' )->alias( fn() => array( $this->order ) );
@@ -64,11 +65,11 @@ final class VoluntaryReviewFormTest extends RewardsTestCase {
 		return array( 'name' => 'tomo.jpg', 'tmp_name' => '/tmp/tomo.jpg', 'size' => 100, 'error' => UPLOAD_ERR_OK );
 	}
 
-	/** @testdox La ficha ofrece foto opcional y envía un no explícito sin casillas de premio. */
+	/** @testdox La ficha ofrece foto opcional y señaliza la elegibilidad unificada cuando el carril está activo. */
 	public function test_native_form_fields_are_optional_and_explicit(): void {
 		$args = $this->sut->handle_form_args( array( 'comment_field' => '<textarea name="comment"></textarea>' ) );
 		self::assertStringContainsString( '<textarea name="comment"></textarea>', $args['comment_field'] );
-		self::assertStringContainsString( 'name="akb_rf_points_requested" value="0"', $args['comment_field'] );
+		self::assertStringContainsString( 'name="akb_rf_points_requested" value="1"', $args['comment_field'] );
 		self::assertStringContainsString( 'name="akb_vr_photo"', $args['comment_field'] );
 		self::assertStringContainsString( '_akb_vr_nonce', $args['comment_field'] );
 		self::assertStringNotContainsString( 'required', $args['comment_field'] );
@@ -97,12 +98,13 @@ final class VoluntaryReviewFormTest extends RewardsTestCase {
 		self::assertSame( 'spam', $this->sut->handle_pre_comment_approved( 'spam', $data ) );
 	}
 
-	/** @testdox Una foto voluntaria conserva el no y se adjunta antes de premiar, sin residuo al cerrar. */
-	public function test_photo_review_is_still_voluntary_and_attaches(): void {
+	/** @testdox Una foto real de comprador verificado solicita puntos, queda pendiente de moderación y se adjunta antes de premiar. */
+	public function test_photo_review_requests_points_for_verified_buyer_and_attaches(): void {
 		$_FILES['akb_vr_photo'] = $this->photo();
 		$data = $this->sut->handle_preprocess_comment( $this->data() );
-		self::assertSame( 0, $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] );
-		$this->wpdb->comment_meta[901][ ReviewPoints::META_POINTS_REQUESTED ] = array( 0 );
+		self::assertSame( 1, $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ], 'Unificación de elegibilidad: comprador verificado + foto real = solicita puntos.' );
+		self::assertSame( 0, $this->sut->handle_pre_comment_approved( 1, $data ), 'Toda reseña que solicita puntos pasa por moderación.' );
+		$this->wpdb->comment_meta[901][ ReviewPoints::META_POINTS_REQUESTED ] = array( 1 );
 		$this->sut->handle_inserted_comment( 901, new \WP_Comment( array( 'comment_ID' => 901, 'comment_post_ID' => 777 ) ) );
 		self::assertSame( array( 8801 ), $this->wpdb->comment_meta[901][ Media::META_LOCAL_IMAGE ] );
 		$this->sut->discard_orphan_photo();
@@ -183,8 +185,8 @@ final class VoluntaryReviewFormTest extends RewardsTestCase {
 		$this->sut->handle_preprocess_comment( $this->data() );
 	}
 
-	/** @testdox ON retiene y OFF conserva el veredicto de Core para reseñas nativas con y sin foto, siempre sin premio. */
-	public function test_native_moderation_toggle_controls_text_and_photo_reviews_without_reward(): void {
+	/** @testdox Sin foto obedece el interruptor nativo; con foto elegible retiene siempre en moderación y solicita puntos. */
+	public function test_native_moderation_toggle_controls_text_and_photo_reviews_with_unified_reward(): void {
 		$moderation = new Moderation();
 		foreach ( array( 'yes', 'no' ) as $enabled ) {
 			Functions\when( 'get_option' )->alias( static fn( string $key, $default = false ) => 'akb_rewards_moderate_reviews' === $key ? $enabled : $default );
@@ -194,12 +196,13 @@ final class VoluntaryReviewFormTest extends RewardsTestCase {
 				$data = $sut->handle_preprocess_comment( $this->data() );
 				$core_status = $moderation->hold_product_reviews( 1, $data );
 				$status = $sut->handle_pre_comment_approved( $core_status, $data );
-				self::assertSame( 'yes' === $enabled ? 0 : 1, $status, 'Interruptor ' . $enabled . ', foto ' . (int) $photo );
-				self::assertSame( 0, $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ], 'La aprobación automática nunca inscribe en premios.' );
-				$this->wpdb->comment_meta[901][ ReviewPoints::META_POINTS_REQUESTED ] = array( 0 );
-				$comment = new \WP_Comment( array( 'comment_ID' => 901, 'comment_post_ID' => 777, 'comment_approved' => (string) $status ) );
-				( new ReviewPoints() )->maybe_pay( $comment );
-				self::assertSame( array(), $this->wpdb->inserts, 'Ni ON ni OFF acredita puntos a una reseña voluntaria.' );
+				if ( $photo ) {
+					self::assertSame( 0, $status, 'Con foto elegible queda siempre pendiente de moderación (' . $enabled . ').' );
+					self::assertSame( 1, $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] );
+				} else {
+					self::assertSame( 'yes' === $enabled ? 0 : 1, $status, 'Sin foto respeta el interruptor ' . $enabled );
+					self::assertSame( 0, $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] );
+				}
 				$sut->discard_orphan_photo();
 			}
 		}

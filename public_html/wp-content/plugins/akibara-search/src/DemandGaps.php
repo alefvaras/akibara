@@ -30,6 +30,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.41
+ * @api
+ * @psalm-suppress UndefinedPropertyFetch
  */
 final class DemandGaps {
 

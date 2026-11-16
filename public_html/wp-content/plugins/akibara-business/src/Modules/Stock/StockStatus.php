@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.25.0
+ * @api
  */
 final class StockStatus {
 
@@ -75,23 +76,10 @@ final class StockStatus {
 	/**
 	 * Palabra VIGENTE del grupo, sin pasar por el filtro.
 	 *
-	 * Existe por dos razones. Una: `onbackorder` se nombra con la palabra que el
-	 * dueño escribe en Akibara → Textos para «A pedido» (es el default y la
-	 * realidad de todo el grupo reservable), y el `const` de arriba pasó a ser
-	 * sólo el valor de fábrica. Otra: quien RESPONDE `akb_stock_status_label`
-	 * —el puente con el buscador— necesita la palabra sin volver a aplicar el
-	 * filtro, que sería recursión infinita.
-	 *
-	 * @since 1.116.20
-	 *
 	 * @param string $status Estado de stock crudo (otro → fail-closed a 'Agotado').
 	 * @return string
 	 */
 	public static function palabra( string $status ): string {
-		if ( self::ON_BACKORDER === $status ) {
-			return Availability::palabra( Availability::A_PEDIDO );
-		}
-
 		return self::LABELS[ $status ] ?? self::LABELS[ self::OUT_OF_STOCK ];
 	}
 
@@ -108,7 +96,7 @@ final class StockStatus {
 	 *
 	 * @since 1.84.0
 	 *
-	 * @param string $status Uno de IN_STOCK|OUT_OF_STOCK|ON_BACKORDER (otro → fail-closed).
+	 * @param string $status Uno de IN_STOCK|ON_BACKORDER|OUT_OF_STOCK (otro → fail-closed).
 	 * @return string Palabra visible del estado.
 	 */
 	public static function label( string $status ): string {
@@ -119,7 +107,7 @@ final class StockStatus {
 
 		/**
 		 * Filtra la palabra visible de un estado de stock. ÚNICO punto de override
-		 * del vocabulario Disponible/Preventa/Agotado (lo consume el buscador con su
+		 * del vocabulario Disponible/Agotado (lo consume el buscador con su
 		 * propio default). Devolvé la palabra a mostrar para ese estado.
 		 *
 		 * @since 1.84.0
@@ -138,30 +126,14 @@ final class StockStatus {
 	 * Estado de stock crudo del producto.
 	 *
 	 * @param \WC_Product $product
-	 * @return string Uno de IN_STOCK|OUT_OF_STOCK|ON_BACKORDER.
+	 * @return string Uno de IN_STOCK|ON_BACKORDER|OUT_OF_STOCK.
 	 */
 	public static function of( \WC_Product $product ): string {
 		return (string) $product->get_stock_status();
 	}
 
 	/**
-	 * Indica si el producto es reservable mediante onbackorder.
-	 *
-	 * El predicado responde si puede comprarse sin stock físico. Para distinguir
-	 * obra publicada A pedido y lanzamiento Preventa se usa Availability::of(),
-	 * is_preventa() o is_a_pedido().
-	 *
-	 * @since 1.109.0 (renombrado desde is_preventa)
-	 *
-	 * @param \WC_Product $product
-	 * @return bool
-	 */
-	public static function is_reservable( \WC_Product $product ): bool {
-		return self::ON_BACKORDER === self::of( $product );
-	}
-
-	/**
-	 * ¿El producto está agotado? (`outofstock` estricto — NO incluye preventa).
+	 * ¿El producto está agotado? (`outofstock` estricto).
 	 *
 	 * @param \WC_Product $product
 	 * @return bool
@@ -171,7 +143,7 @@ final class StockStatus {
 	}
 
 	/**
-	 * ¿El producto está en stock real? (`instock` estricto — NO incluye preventa).
+	 * ¿El producto está en stock real? (`instock` estricto).
 	 * Distinto de WC_Product::is_in_stock(), que considera onbackorder como true.
 	 *
 	 * @param \WC_Product $product

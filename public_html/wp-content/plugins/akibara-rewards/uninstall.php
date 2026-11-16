@@ -30,6 +30,7 @@ if ( function_exists( 'as_unschedule_all_actions' ) ) {
 	as_unschedule_all_actions( 'akb_rewards_birthday_daily' );    // Points\Birthday::HOOK
 	as_unschedule_all_actions( 'akb_rewards_redemption_retry' );  // Points\Redemption::HOOK_RETRY
 	as_unschedule_all_actions( 'akb_rewards_accrual_sweep_daily' ); // Points\Accrual::HOOK_SWEEP
+	as_unschedule_all_actions( 'akb_rewards_release_accrual_escrow' ); // Points\Accrual::HOOK_RELEASE_ESCROW
 	as_unschedule_all_actions( 'akb_rewards_send_review_invite' ); // Reviews\Invitations::HOOK
 	as_unschedule_all_actions( 'akb_rewards_order_email_retry' );  // Points\Emails::HOOK_RETRY_ORDER
 	as_unschedule_all_actions( 'akb_rewards_review_email_retry' ); // Points\Emails::HOOK_RETRY_REVIEW

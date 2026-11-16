@@ -40,7 +40,7 @@
 	// Eventos de WC que el theme necesita oír en vanilla y que ALGÚN fichero de
 	// WooCommerce dispara hoy en este sitio. Se re-emiten como `akb:<tipo>`
 	// (mismo nombre base, sin namespace jQuery).
-	var events = [
+	const events = [
 		'added_to_cart',
 		'removed_from_cart',
 		'wc_fragments_refreshed',
@@ -49,7 +49,7 @@
 
 	window.jQuery(document.body).on(events, function (e) {
 		// arguments[0] es el jQuery.Event; el resto son los datos del trigger.
-		var args = Array.prototype.slice.call(arguments, 1);
+		const args = Array.prototype.slice.call(arguments, 1);
 		document.body.dispatchEvent(
 			new CustomEvent('akb:' + e.type, { detail: args })
 		);

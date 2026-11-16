@@ -19,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
  * bounded, atomic expiry DELETE without relying on MySQL JSON functions.
  *
  * @since 1.96.0
+ * @api
+ * @psalm-suppress MissingOverrideAttribute
+ * @psalm-suppress MissingOverrideAttribute
  */
 final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 
@@ -30,7 +33,9 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 * @param string              $key    HMAC-derived option key.
 	 * @param array<string,mixed> $record Authoritative record.
 	 * @return bool Whether the row was inserted.
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function create_if_absent( string $key, array $record ): bool {
 		global $wpdb;
 
@@ -61,7 +66,9 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 * @param array<string,mixed> $expected    Exact expected record.
 	 * @param array<string,mixed> $replacement Replacement record.
 	 * @return bool Whether the compare-and-swap succeeded.
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function compare_and_swap( string $key, array $expected, array $replacement ): bool {
 		global $wpdb;
 
@@ -93,7 +100,9 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 *
 	 * @param string $key HMAC-derived option key.
 	 * @return array<string,mixed>|null
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function get( string $key ): ?array {
 		global $wpdb;
 
@@ -126,7 +135,9 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 	 * @param int $now   Current Unix timestamp.
 	 * @param int $limit Maximum rows to delete.
 	 * @return int Deleted row count.
+	 * @psalm-suppress MissingOverrideAttribute
 	 */
+	#[\Override]
 	public function cleanup_expired( int $now, int $limit ): int {
 		global $wpdb;
 
@@ -166,7 +177,7 @@ final class WpOptionsPudoMutationRepository implements PudoMutationRepository {
 			throw new \InvalidArgumentException( 'Authoritative PUDO state requires a valid expiry.' );
 		}
 
-		$json = json_encode(
+		$json = wp_json_encode(
 			$record,
 			JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION
 		);

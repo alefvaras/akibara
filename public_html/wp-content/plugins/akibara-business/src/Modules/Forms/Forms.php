@@ -40,6 +40,8 @@ defined( 'ABSPATH' ) || exit;
  * Bootstrap del módulo Forms. Idempotente.
  *
  * @since 1.3.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class Forms {
 

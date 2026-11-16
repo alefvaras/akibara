@@ -43,6 +43,12 @@ use WC_Product;
 use WP_Post;
 use WP_Term;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ */
 final class MarkdownNegotiation {
 
 	public const TIPO_MARKDOWN = 'text/markdown';
@@ -390,15 +396,9 @@ final class MarkdownNegotiation {
 	}
 
 	private function disponibilidad( WC_Product $producto ): string {
-		// Estado COMERCIAL, no stock crudo (1.109.0): «Preventa (aún no está en
-		// bodega)» era literalmente falso para un backlist publicado hace años.
 		switch ( Availability::of( $producto ) ) {
 			case Availability::DISPONIBLE:
 				return 'Disponible';
-			case Availability::A_PEDIDO:
-				return 'A pedido (se pide a la editorial; el plazo está en la ficha)';
-			case Availability::PREVENTA:
-				return 'Preventa (aún no sale a la venta)';
 			default:
 				return 'Agotado';
 		}

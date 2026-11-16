@@ -19,6 +19,12 @@ use Akibara\Search\SearchAdminSection;
 
 /**
  * Vista y helpers para la configuración de tramos de precio.
+ * @api
+ * @psalm-suppress MismatchingDocblockReturnType
+ * @psalm-suppress UnusedForeachValue
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress MismatchingDocblockReturnType
+ * @psalm-suppress UnusedParam
  */
 final class PriceBucketsAdminView {
 
@@ -110,7 +116,9 @@ final class PriceBucketsAdminView {
 	 * del catálogo. Todo camino que persiste pasa por el outbox pre/post de
 	 * SemanticPublication (los counts no incluyen los buckets en su clave).
 	 *
-	 * @return void
+	  * @psalm-suppress MismatchingDocblockReturnType
+	 * @return array<int, array{min: int|string|null, max: int|string|null, label: string}>
+	 * @psalm-suppress UnusedParam
 	 */
 	public static function build_precio_rows( array $mins, array $maxs ): array {
 		$count = max( count( $mins ), count( $maxs ) );

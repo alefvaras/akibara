@@ -41,6 +41,48 @@ final class AccountRewardsUxTest extends RewardsTestCase {
 		return (string) ob_get_clean();
 	}
 
+	/** @testdox La guía usa las condiciones vigentes y distingue la invitación de la reseña voluntaria. */
+	public function test_review_guide_uses_current_policy_without_creating_an_invitation(): void {
+		$options = array(
+			'akb_rewards_review_points' => 875,
+			'akb_rewards_review_every_n' => 3,
+			'akb_rewards_review_max_per_user' => 2,
+		);
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $options[ $key ] ?? $default );
+		$inserts = $this->wpdb->inserts;
+		$session = WC()->session->data;
+
+		$document = new \DOMDocument();
+		$previous_errors = libxml_use_internal_errors( true );
+		try {
+			self::assertTrue( $document->loadHTML( '<meta charset="UTF-8">' . $this->render() ) );
+		} finally {
+			libxml_clear_errors();
+			libxml_use_internal_errors( $previous_errors );
+		}
+		$xpath = new \DOMXPath( $document );
+		$guide = $xpath->query( '//section[@class="akb-rw-review-guide"]' )->item( 0 );
+		self::assertNotNull( $guide );
+		self::assertCount( 3, $xpath->query( './/ol/li', $guide ) );
+		$text = $guide->textContent;
+		self::assertStringContainsString( 'Si recibiste una invitación por correo', $text );
+		self::assertStringContainsString( 'foto opcional y no generan Puntos Akibara', $text );
+		self::assertStringContainsString( '875 Puntos Akibara', $text );
+		self::assertStringContainsString( 'por cada 3 reseñas', $text );
+		self::assertStringContainsString( 'Tope de 2 premios por cliente', $text );
+		self::assertSame( 'https://akibara.test/mi-cuenta/orders/', $xpath->query( './/a', $guide )->item( 0 )->getAttribute( 'href' ) );
+		self::assertStringNotContainsString( '500 Puntos Akibara', $text );
+		self::assertSame( $inserts, $this->wpdb->inserts, 'Abrir la guía no crea invitaciones ni movimientos de puntos.' );
+		self::assertSame( $session, WC()->session->data );
+	}
+
+	/** @testdox Sin premio vigente desaparece la guía para no ofrecer un carril apagado. */
+	public function test_review_guide_disappears_when_the_reward_lane_is_disabled(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'akb_rewards_review_points' === $key ? 0 : $default );
+
+		self::assertStringNotContainsString( 'akb-rw-review-guide', $this->render() );
+	}
+
 	/** @testdox Preview del servidor, mínimos y máximo no mutan saldo ni sesión. */
 	public function test_rendered_redemption_and_dated_expiry(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'akb_rewards_redeem_value' === $key ? 2 : $default );

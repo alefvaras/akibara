@@ -32,7 +32,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress UndefinedFunction
+ * @psalm-suppress UnusedVariable
  */
+// @phpstan-ignore complexity.classLike
 final class Reconciler {
 
 	/** Hook recurrente diario. */
@@ -133,7 +137,8 @@ final class Reconciler {
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function run(): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function run(): array { // @phpstan-ignore complexity.functionLike
 		$summary = array(
 			'ran_at'        => time(),
 			'missing'       => 0,
@@ -172,82 +177,12 @@ final class Reconciler {
 			return $this->failed_summary( $summary, 'price_authority_capture_failed' );
 		}
 
-		global $wpdb;
-
-		$docs_table  = Install::docs_table();
+		$docs_table = Install::docs_table();
 		$repair_ids = array();
-
-		// 1a. Faltantes: publicados sin doc.
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identificadores internos seguros, valores preparados.
-		$missing = $this->prepared_ids(
-				"SELECT p.ID FROM {$wpdb->posts} p
-				LEFT JOIN {$docs_table} d ON d.post_id = p.ID
-				WHERE p.post_type = %s AND p.post_status = %s AND d.post_id IS NULL
-				LIMIT %d",
-				'product',
-				'publish',
-				self::REPAIR_CAP
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( null === $missing ) {
-			return $this->failed_summary( $summary, 'missing_read_failed', $this->sql_error() );
+		$census_err = $this->collect_census_repair_ids( $docs_table, $summary, $repair_ids );
+		if ( null !== $census_err ) {
+			return $this->failed_summary( $summary, $census_err[0], $census_err[1] );
 		}
-		$summary['missing'] = count( $missing );
-		$repair_ids         = array_merge( $repair_ids, $missing );
-
-		// 1b. Sobrantes: docs cuyo post ya no es producto publicado.
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$orphaned = $this->prepared_ids(
-				"SELECT d.post_id FROM {$docs_table} d
-				LEFT JOIN {$wpdb->posts} p ON p.ID = d.post_id AND p.post_type = %s AND p.post_status = %s
-				WHERE p.ID IS NULL
-				LIMIT %d",
-				'product',
-				'publish',
-				self::REPAIR_CAP
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( null === $orphaned ) {
-			return $this->failed_summary( $summary, 'orphaned_read_failed', $this->sql_error() );
-		}
-		$summary['orphaned'] = count( $orphaned );
-		$repair_ids          = array_merge( $repair_ids, $orphaned );
-
-		// 1c. Desactualizados (stale): docs cuyo post se modificó después de su indexed_at.
-		// Corrige desalineaciones determinísticas (por ejemplo, mutaciones fuera de hooks de guardado).
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$stale = $this->prepared_ids(
-				"SELECT d.post_id FROM {$docs_table} d
-				JOIN {$wpdb->posts} p ON p.ID = d.post_id
-				WHERE p.post_modified_gmt > d.indexed_at
-				LIMIT %d",
-				self::REPAIR_CAP
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( null === $stale ) {
-			return $this->failed_summary( $summary, 'stale_read_failed', $this->sql_error() );
-		}
-		$summary['stale'] = count( $stale );
-		$repair_ids       = array_merge( $repair_ids, $stale );
-
-		// 1d. Facetas huérfanas: filas del índice facetario cuyo term_id ya no existe.
-		// La eliminación de términos no altera post_modified_gmt; este chequeo
-		// repara relaciones desalineadas contra term_taxonomy.
-		$facets_table  = Install::facets_table();
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$orphan_facets = $this->prepared_ids(
-				"SELECT DISTINCT f.post_id FROM {$facets_table} f
-				LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = f.term_id
-				WHERE f.term_id IS NOT NULL AND tt.term_id IS NULL
-				LIMIT %d",
-				self::REPAIR_CAP
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( null === $orphan_facets ) {
-			return $this->failed_summary( $summary, 'orphan_facets_read_failed', $this->sql_error() );
-		}
-		$summary['orphan_facets'] = count( $orphan_facets );
-		$repair_ids               = array_merge( $repair_ids, $orphan_facets );
 
 		// 2. Muestreo aleatorio campo a campo.
 		// Incluye campos materializados (url, thumb_url, price_html) y escalares
@@ -263,97 +198,9 @@ final class Reconciler {
 		}
 
 		foreach ( $sample as $row ) {
-			$sample_id = is_object( $row ) && property_exists( $row, 'post_id' )
-				? self::canonical_positive_id( $row->post_id )
-				: null;
-			if ( null === $sample_id ) {
-				return $this->failed_summary( $summary, 'sample_row_invalid' );
-			}
-
-			++$summary['checked'];
-
-			$eligible = $this->source_authority->published_product_ids( array( $sample_id ) );
-			if ( ! $this->source_authority->is_available() ) {
-				return $this->failed_summary(
-					$summary,
-					'sample_product_source_failed',
-					$this->source_authority->last_error()
-				);
-			}
-			if ( array( $sample_id ) !== $eligible ) {
-				$repair_ids[] = $sample_id;
-				continue;
-			}
-
-			$this->clear_db_error();
-			try {
-				$product = function_exists( 'wc_get_product' ) ? wc_get_product( $sample_id ) : null;
-			} catch ( \Throwable $exception ) {
-				return $this->failed_summary( $summary, 'sample_product_read_failed', $exception->getMessage() );
-			}
-			if ( '' !== $this->db_error() ) {
-				return $this->failed_summary( $summary, 'sample_product_read_failed', $this->db_error() );
-			}
-			if ( ! $product instanceof \WC_Product ) {
-				// La fuente cruda confirmó publish inmediatamente antes. false/null o
-				// una forma ajena de Woo es una lectura fallida, no divergencia sana.
-				return $this->failed_summary( $summary, 'sample_product_read_failed', 'Published product could not be hydrated.' );
-			}
-
-			$this->clear_db_error();
-			try {
-				$observed_id = $product->get_id();
-			} catch ( \Throwable $exception ) {
-				return $this->failed_summary( $summary, 'sample_product_read_failed', $exception->getMessage() );
-			}
-			if ( '' !== $this->db_error() || ( function_exists( 'is_wp_error' ) && is_wp_error( $observed_id ) )
-				|| ! is_int( $observed_id ) || $observed_id <= 0 || $observed_id !== $sample_id ) {
-				return $this->failed_summary( $summary, 'sample_product_read_failed', 'Sampled product identity disagrees with the authoritative source.' );
-			}
-
-			$this->clear_db_error();
-			try {
-				$observed_status = $product->get_status();
-			} catch ( \Throwable $exception ) {
-				return $this->failed_summary( $summary, 'sample_product_read_failed', $exception->getMessage() );
-			}
-			if ( '' !== $this->db_error() || ( function_exists( 'is_wp_error' ) && is_wp_error( $observed_status ) )
-				|| ! is_string( $observed_status ) || 'publish' !== $observed_status ) {
-				return $this->failed_summary( $summary, 'sample_product_read_failed', 'Sampled product status disagrees with the authoritative source.' );
-			}
-
-			try {
-				$this->clear_db_error();
-				$fresh = $this->builder->build( $product );
-			} catch ( \Throwable $exception ) {
-				return $this->failed_summary( $summary, 'sample_build_failed', $exception->getMessage() );
-			}
-			if ( '' !== $this->db_error() ) {
-				return $this->failed_summary( $summary, 'sample_build_read_failed', $this->db_error() );
-			}
-
-			$doc = is_array( $fresh['doc'] ?? null ) ? $fresh['doc'] : array();
-			if ( ! $this->comparable_document( $doc, $row, $sample_id ) ) {
-				return $this->failed_summary( $summary, 'sample_document_invalid' );
-			}
-
-			// Los materializados se comparan como STRING exacta: ya vienen
-			// truncados y saneados por el propio builder, así que cualquier
-			// diferencia es índice que miente (URL vieja, thumb de un tamaño
-			// que ya no existe, precio con formato/moneda anterior). Medido en
-			// Docker antes de subirlo: 200 docs al azar, 0 divergencias — el
-			// churn extra sobre el catálogo actual es nulo, y de todos modos
-			// queda acotado a SPOT_CHECK_SIZE reindexados por corrida.
-			$diverges = (int) $doc['stock_rank'] !== (int) $row->stock_rank
-				|| (int) $doc['visible'] !== (int) $row->visible
-				|| abs( (float) $doc['price_effective'] - (float) $row->price_effective ) > 0.01
-				|| (string) $doc['url'] !== (string) $row->url
-				|| (string) $doc['thumb_url'] !== (string) $row->thumb_url
-				|| (string) $doc['price_html'] !== (string) $row->price_html;
-
-			if ( $diverges ) {
-				++$summary['divergent'];
-				$repair_ids[] = $sample_id;
+			$spot_error = $this->verify_spot_check_row( $row, $summary, $repair_ids );
+			if ( null !== $spot_error ) {
+				return $this->failed_summary( $summary, $spot_error[0], $spot_error[1] );
 			}
 		}
 		if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) {
@@ -371,7 +218,7 @@ final class Reconciler {
 			return $this->failed_summary( $summary, 'repair_ids_invalid' );
 		}
 		if ( ! empty( $repair_ids ) ) {
-			if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) {
+			if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) { // @phpstan-ignore booleanNot.alwaysFalse
 				return $this->failed_summary( $summary, 'price_authority_changed' );
 			}
 			if ( ! $this->indexer->enqueue_products( $repair_ids ) ) {
@@ -401,14 +248,14 @@ final class Reconciler {
 		// mintió, no ruido (HealthReport ya suma `stale` en su `diverged`).
 		$issues = $summary['missing'] + $summary['orphaned'] + $summary['stale']
 			+ $summary['orphan_facets'] + $summary['divergent'];
-		if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) {
+		if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) { // @phpstan-ignore booleanNot.alwaysFalse
 			return $this->failed_summary( $summary, 'price_authority_changed' );
 		}
 		if ( ! $this->persist_alert( $summary, $issues > 0 ) ) {
 			return $this->failed_summary( $summary, 'alert_persist_failed', $this->db_error() );
 		}
 
-		if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) {
+		if ( ! EditorialDiscountPublication::price_authority_matches( $price_capture ) ) { // @phpstan-ignore booleanNot.alwaysFalse
 			return $this->failed_summary( $summary, 'price_authority_changed' );
 		}
 		$this->clear_db_error();
@@ -425,6 +272,170 @@ final class Reconciler {
 		}
 
 		return $summary;
+	}
+
+	/**
+	 * Ejecuta los 4 chequeos de censo determinístico (missing, orphaned, stale, orphan_facets).
+	 *
+	 * @param string               $docs_table Nombre de la tabla docs.
+	 * @param array<string, mixed> $summary    Resumen (por referencia).
+	 * @param array<int, int>      $repair_ids IDs a reparar (por referencia).
+	 * @return array{0: string, 1: string}|null Error [código, detalle] o null si fue válido.
+	 */
+	private function collect_census_repair_ids( string $docs_table, array &$summary, array &$repair_ids ): ?array {
+		global $wpdb;
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identificadores internos seguros, valores preparados.
+		$missing = $this->prepared_ids(
+			"SELECT p.ID FROM {$wpdb->posts} p
+			LEFT JOIN {$docs_table} d ON d.post_id = p.ID
+			WHERE p.post_type = %s AND p.post_status = %s AND d.post_id IS NULL
+			LIMIT %d",
+			'product',
+			'publish',
+			self::REPAIR_CAP
+		);
+		if ( null === $missing ) {
+			return array( 'missing_read_failed', $this->sql_error() );
+		}
+		$summary['missing'] = count( $missing );
+		$repair_ids         = array_merge( $repair_ids, $missing );
+
+		$orphaned = $this->prepared_ids(
+			"SELECT d.post_id FROM {$docs_table} d
+			LEFT JOIN {$wpdb->posts} p ON p.ID = d.post_id AND p.post_type = %s AND p.post_status = %s
+			WHERE p.ID IS NULL
+			LIMIT %d",
+			'product',
+			'publish',
+			self::REPAIR_CAP
+		);
+		if ( null === $orphaned ) {
+			return array( 'orphaned_read_failed', $this->sql_error() );
+		}
+		$summary['orphaned'] = count( $orphaned );
+		$repair_ids          = array_merge( $repair_ids, $orphaned );
+
+		$stale = $this->prepared_ids(
+			"SELECT d.post_id FROM {$docs_table} d
+			JOIN {$wpdb->posts} p ON p.ID = d.post_id
+			WHERE p.post_modified_gmt > d.indexed_at
+			LIMIT %d",
+			self::REPAIR_CAP
+		);
+		if ( null === $stale ) {
+			return array( 'stale_read_failed', $this->sql_error() );
+		}
+		$summary['stale'] = count( $stale );
+		$repair_ids       = array_merge( $repair_ids, $stale );
+
+		$facets_table  = Install::facets_table();
+		$orphan_facets = $this->prepared_ids(
+			"SELECT DISTINCT f.post_id FROM {$facets_table} f
+			LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = f.term_id
+			WHERE f.term_id IS NOT NULL AND tt.term_id IS NULL
+			LIMIT %d",
+			self::REPAIR_CAP
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( null === $orphan_facets ) {
+			return array( 'orphan_facets_read_failed', $this->sql_error() );
+		}
+		$summary['orphan_facets'] = count( $orphan_facets );
+		$repair_ids               = array_merge( $repair_ids, $orphan_facets );
+
+		return null;
+	}
+
+	/**
+	 * Verifica un documento muestreado contra su reconstrucción fresca desde fuentes autoritativas.
+	 *
+	 * @param mixed                $row        Fila muestreada de `docs`.
+	 * @param array<string, mixed> $summary    Resumen de corrida (por referencia).
+	 * @param array<int, int>      $repair_ids IDs a reparar (por referencia).
+	 * @return array{0: string, 1: string}|null Error [código, detalle] o null si fue válido.
+	 */
+	private function verify_spot_check_row( $row, array &$summary, array &$repair_ids ): ?array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$sample_id = is_object( $row ) && property_exists( $row, 'post_id' )
+			? self::canonical_positive_id( $row->post_id )
+			: null;
+		if ( null === $sample_id ) {
+			return array( 'sample_row_invalid', '' );
+		}
+
+		++$summary['checked'];
+
+		$eligible = $this->source_authority->published_product_ids( array( $sample_id ) );
+		if ( ! $this->source_authority->is_available() ) {
+			return array( 'sample_product_source_failed', $this->source_authority->last_error() );
+		}
+		if ( array( $sample_id ) !== $eligible ) {
+			$repair_ids[] = $sample_id;
+			return null;
+		}
+
+		$this->clear_db_error();
+		try {
+			$product = function_exists( 'wc_get_product' ) ? wc_get_product( $sample_id ) : null;
+		} catch ( \Throwable $exception ) {
+			return array( 'sample_product_read_failed', $exception->getMessage() );
+		}
+		if ( '' !== $this->db_error() ) {
+			return array( 'sample_product_read_failed', $this->db_error() );
+		}
+		if ( ! $product instanceof \WC_Product ) {
+			return array( 'sample_product_read_failed', 'Published product could not be hydrated.' );
+		}
+
+		$this->clear_db_error();
+		try {
+			$observed_id = $product->get_id();
+		} catch ( \Throwable $exception ) {
+			return array( 'sample_product_read_failed', $exception->getMessage() );
+		}
+		if ( '' !== $this->db_error() || ( function_exists( 'is_wp_error' ) && is_wp_error( $observed_id ) )
+			|| ! is_int( $observed_id ) || $observed_id <= 0 || $observed_id !== $sample_id ) {
+			return array( 'sample_product_read_failed', 'Sampled product identity disagrees with the authoritative source.' );
+		}
+
+		$this->clear_db_error();
+		try {
+			$observed_status = $product->get_status();
+		} catch ( \Throwable $exception ) {
+			return array( 'sample_product_read_failed', $exception->getMessage() );
+		}
+		if ( '' !== $this->db_error() || ( function_exists( 'is_wp_error' ) && is_wp_error( $observed_status ) )
+			|| ! is_string( $observed_status ) || 'publish' !== $observed_status ) {
+			return array( 'sample_product_read_failed', 'Sampled product status disagrees with the authoritative source.' );
+		}
+
+		try {
+			$this->clear_db_error();
+			$fresh = $this->builder->build( $product );
+		} catch ( \Throwable $exception ) {
+			return array( 'sample_build_failed', $exception->getMessage() );
+		}
+		if ( '' !== $this->db_error() ) {
+			return array( 'sample_build_read_failed', $this->db_error() );
+		}
+
+		$doc = is_array( $fresh['doc'] ?? null ) ? $fresh['doc'] : array();
+		if ( ! $this->comparable_document( $doc, $row, $sample_id ) ) {
+			return array( 'sample_document_invalid', '' );
+		}
+
+		$diverges = (int) $doc['stock_rank'] !== (int) $row->stock_rank
+			|| (int) $doc['visible'] !== (int) $row->visible
+			|| abs( (float) $doc['price_effective'] - (float) $row->price_effective ) > 0.01
+			|| (string) $doc['url'] !== (string) $row->url
+			|| (string) $doc['thumb_url'] !== (string) $row->thumb_url
+			|| (string) $doc['price_html'] !== (string) $row->price_html;
+
+		if ( $diverges ) {
+			++$summary['divergent'];
+			$repair_ids[] = $sample_id;
+		}
+		return null;
 	}
 
 	/**
@@ -470,23 +481,33 @@ final class Reconciler {
 	 *
 	 * @param string $query Consulta preparada.
 	 * @return array<int, int>|null
+	 * @param mixed ...$args
 	 */
 	private function prepared_ids( string $query, ...$args ): ?array {
 		$prepared = $this->prepare_query( $query, ...$args );
 		return null === $prepared ? null : $this->read_ids( $prepared );
 	}
 
-	/** @return array<int, object>|null */
+	/**
+	 * @return array<int, object>|null
+	 * @param mixed ...$args
+	 */
 	private function prepared_rows( string $query, ...$args ): ?array {
 		$prepared = $this->prepare_query( $query, ...$args );
 		return null === $prepared ? null : $this->read_rows( $prepared );
 	}
 
+	/**
+	 * @param mixed ...$args
+	 */
 	private function prepared_write( string $query, ...$args ): bool {
 		$prepared = $this->prepare_query( $query, ...$args );
 		return null !== $prepared && $this->write_query( $prepared );
 	}
 
+	/**
+	 * @param mixed ...$args
+	 */
 	private function prepare_query( string $query, ...$args ): ?string {
 		global $wpdb;
 

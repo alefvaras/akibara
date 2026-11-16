@@ -473,6 +473,132 @@ namespace Akibara\Business\Tests {
 			);
 		}
 
+		/** @testdox Old files never migrate an installation owned by a newer runtime. */
+		public function test_older_runtime_preserves_newer_installation_without_migrating_search_or_running_hooks(): void {
+			$newer = $this->future_version();
+			$this->set_options(
+				array(
+					self::VERSION_OPTION => $newer,
+					self::CONTRACT_OPTION => $this->adoption_version(),
+				)
+			);
+			$before = $this->db->option_values;
+
+			$this->sut->maybe_upgrade();
+			$this->sut->maybe_upgrade();
+
+			self::assertSame( $before, $this->db->option_values );
+			self::assertSame( array(), $this->db->mutations );
+			self::assertSame( array(), $this->actions );
+			self::assertSame( array(), RebuildJob::$scheduled );
+			self::assertSame( 0, $this->flushes );
+		}
+
+		/** @testdox Older runtime leaves even a malformed pending marker untouched when the installed version is newer. */
+		public function test_older_runtime_does_not_repair_the_newer_installation_pending_marker(): void {
+			$this->set_options(
+				array(
+					self::VERSION_OPTION => $this->future_version(),
+					self::PENDING_OPTION => 'newer-format-not-understood-by-this-runtime',
+				)
+			);
+			$before = $this->db->option_values;
+
+			$this->sut->maybe_upgrade();
+
+			self::assertSame( $before, $this->db->option_values );
+			self::assertSame( array(), $this->db->mutations );
+			self::assertSame( array(), $this->actions );
+		}
+
+		/**
+		 * @testdox Future pending work is preserved before Search reconciliation even while installed is still the previous version.
+		 * @dataProvider future_pending_provider
+		 */
+		public function test_older_runtime_preserves_future_pending_work_before_search_reconciliation( string $kind ): void {
+			$newer = $this->future_version();
+			$pending = 'legacy' === $kind
+				? $newer . '|1.95.2'
+				: $this->state( $kind, $newer, '1.95.2', 'future-owner', time() + 300 );
+			$this->set_options(
+				array(
+					self::VERSION_OPTION => '1.95.2',
+					self::PENDING_OPTION => $pending,
+					self::CONTRACT_OPTION => $this->adoption_version(),
+				)
+			);
+			$before = $this->db->option_values;
+
+			$this->sut->maybe_upgrade();
+
+			self::assertSame( $before, $this->db->option_values );
+			self::assertSame( array(), $this->db->mutations );
+			self::assertSame( array(), $this->actions );
+			self::assertSame( array(), RebuildJob::$scheduled );
+			self::assertSame( 0, $this->flushes );
+		}
+
+		/** @return array<string, array{string}> */
+		public static function future_pending_provider(): array {
+			return array(
+				'queued' => array( 'queued' ),
+				'running' => array( 'running' ),
+				'legacy' => array( 'legacy' ),
+			);
+		}
+
+		/** @testdox Direct lease recovery refuses to run an older runtime against a newer installed version. */
+		public function test_direct_resume_preserves_pending_work_after_file_only_rollback(): void {
+			$this->set_options(
+				array(
+					self::VERSION_OPTION => $this->future_version(),
+					self::PENDING_OPTION => $this->state( 'queued', AKIBARA_BUSINESS_VERSION, '1.95.2' ),
+				)
+			);
+			$before = $this->db->option_values;
+
+			self::assertFalse( $this->sut->upgrade_manager()->maybe_resume_upgrade_tasks( AKIBARA_BUSINESS_VERSION ) );
+			self::assertSame( $before, $this->db->option_values );
+			self::assertSame( array(), $this->db->mutations );
+			self::assertSame( array(), $this->actions );
+			self::assertSame( 0, $this->flushes );
+		}
+
+		/** @testdox A newer Search contract never moves backwards through a direct call or normal boot. */
+		public function test_search_contract_cannot_be_downgraded(): void {
+			$newer_contract = (string) ( (int) $this->contract_version() + 1 );
+			$this->set_options( array( self::CONTRACT_OPTION => $newer_contract ) );
+			$before = $this->db->option_values;
+
+			$this->sut->upgrade_manager()->maybe_upgrade_search_feed_contract();
+			$this->sut->maybe_upgrade();
+
+			self::assertSame( $before, $this->db->option_values );
+			self::assertSame( array(), $this->db->mutations );
+			self::assertSame( array(), RebuildJob::$scheduled );
+			self::assertSame( array(), $this->actions );
+		}
+
+		/** @testdox A competitor sealing a newer version between reads and CAS cannot make this runtime queue an older upgrade. */
+		public function test_newer_version_winning_during_queue_cas_stops_the_older_runtime(): void {
+			$this->set_options( array( self::VERSION_OPTION => '1.95.2' ) );
+			$newer = $this->future_version();
+			$this->db->before_query = static function ( UpgradeWpdbFake $db, array $call ) use ( $newer ): void {
+				if ( str_contains( $call['query'], 'LEFT JOIN' ) ) {
+					$db->option_values[ self::VERSION_OPTION ] = $newer;
+					$db->before_query = null;
+				}
+			};
+
+			$this->sut->maybe_upgrade();
+
+			self::assertSame( $newer, $this->db->option_values[ self::VERSION_OPTION ] );
+			self::assertSame( '', $this->db->option_values[ self::PENDING_OPTION ] );
+			self::assertSame( array(), $this->db->mutations );
+			self::assertSame( array(), $this->actions );
+			self::assertSame( 0, $this->flushes );
+		}
+
 		/** @testdox First Search contract adoption seeds baseline then schedules its pending jump once. */
 		public function test_first_search_contract_adoption_rebuilds_once(): void {
 			$this->set_options( array( self::VERSION_OPTION => AKIBARA_BUSINESS_VERSION ) );
@@ -592,6 +718,12 @@ namespace Akibara\Business\Tests {
 		/** Read the private production adoption baseline without duplicating it. */
 		private function adoption_version(): string {
 			return (string) ( new ReflectionClass( Plugin::class ) )->getConstant( 'SEARCH_FEED_CONTRACT_ADOPTION_VERSION' );
+		}
+
+		/** Version beyond the runtime under test, independent of the release number. */
+		private function future_version(): string {
+			$parts = explode( '.', AKIBARA_BUSINESS_VERSION );
+			return ( (int) $parts[0] + 1 ) . '.0.0';
 		}
 	}
 }

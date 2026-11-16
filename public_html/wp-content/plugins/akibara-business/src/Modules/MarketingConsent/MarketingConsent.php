@@ -31,6 +31,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class MarketingConsent {
 
@@ -193,7 +195,7 @@ final class MarketingConsent {
 
 		Log::warn(
 			'consentimiento',
-			'El pedido #' . (string) $order->get_id() . ' se procesó sin la prueba de consentimiento de ofertas y novedades. '
+			'El pedido #' . $order->get_id() . ' se procesó sin la prueba de consentimiento de ofertas y novedades. '
 			. 'Campo «' . $key . '» registrado en WooCommerce: ' . ( null === $this->field_definition( $key ) ? 'no' : 'sí' ) . '. '
 			. 'Si es «no», el proveedor cambió la clave de su casilla o dejó de registrarla; la clave se ajusta con el filtro akibara_marketing_consent_field_key.',
 			array( 'order_id' => $order->get_id() )

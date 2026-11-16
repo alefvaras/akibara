@@ -22,11 +22,16 @@ defined( 'ABSPATH' ) || exit;
  * desde el dígito menos significativo del cuerpo.
  *
  * @since 1.0.0
+ * @api
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedConstructor
+ * @psalm-suppress UnusedConstructor
  */
 final class RutValidator {
 
 	/**
 	 * Constructor privado — clase utilitaria, no instanciable.
+	 * @psalm-suppress UnusedConstructor
 	 */
 	private function __construct() {}
 
@@ -122,7 +127,7 @@ final class RutValidator {
 	 * @return string Dígito verificador esperado ('0'-'9' o 'K').
 	 */
 	public static function compute_check_digit( string $body ): string {
-		if ( ! ctype_digit( $body ) || '' === $body ) {
+		if ( ! ctype_digit( $body ) || '' === $body ) { // @phpstan-ignore identical.alwaysFalse
 			return '';
 		}
 

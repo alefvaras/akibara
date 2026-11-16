@@ -62,7 +62,7 @@ final class PanelPurgePolicyTest extends TestCase {
 	 */
 	public function test_only_uncached_surfaces_are_exempt(): void {
 		self::assertSame(
-			array( 'address', 'native_cart', 'free_shipping_progress', 'imagenes', 'velocidad', 'home_series', 'catalog_order' ),
+			array( 'free_shipping_progress', 'home_series' ),
 			array_keys( $this->exempt() ),
 			'La lista de exenciones es corta y explícita: ampliarla exige comprobar que la sección no toca HTML cacheado o que purga por su cuenta justo lo que cambia.'
 		);
@@ -125,12 +125,9 @@ final class PanelPurgePolicyTest extends TestCase {
 	/** @return array<string, array{0: string, 1: string}> */
 	public static function cachedSections(): array {
 		return array(
-			'preventa'      => array( 'preventa', 'Los banners de fecha estimada se imprimen en fichas y listados cacheados.' ),
 			'lista espera'  => array( 'back_in_stock', 'El formulario «Avísame» vive en fichas agotadas, que se cachean.' ),
 			'descuentos'    => array( 'taxonomy_discount', 'Mueve precios: afecta a todo el catálogo cacheado.' ),
-			'arma tu pack'  => array( 'series_bundles', 'Se renderiza en la ficha y en la landing de serie, ambas cacheadas.' ),
 			'anuncios'      => array( 'announcement', 'La barra se imprime en el HTML de todas las páginas.' ),
-			'branding'      => array( 'branding', 'Inyecta CSS en wp_head de todo el sitio.' ),
 			'textos'        => array( 'copys', 'Los textos alimentan fichas y listados cacheados.' ),
 		);
 	}
@@ -154,13 +151,13 @@ final class PanelPurgePolicyTest extends TestCase {
 	}
 
 	/**
-	 * Y guardar una de las tres exentas no toca el borde.
+	 * Y guardar una de las dos exentas no toca el borde.
 	 */
 	public function test_saving_an_exempt_section_does_not_purge(): void {
 		$disparados = array();
 
 		self::assertNull(
-			$this->run_handle_save( 'native_cart', $disparados ),
+			$this->run_handle_save( 'free_shipping_progress', $disparados ),
 			'Las secciones sin superficie cacheada no pueden vaciar el borde entero.'
 		);
 		self::assertSame( array(), $disparados );

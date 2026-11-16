@@ -157,13 +157,9 @@ final class EdgePurgeTest extends TestCase {
 		self::assertSame( array(), $this->llamadas );
 	}
 
-	/** @testdox Con el interruptor apagado no se purga nada. */
-	public function test_el_interruptor_manda(): void {
-		$this->options[ EdgePurge::ENABLED_OPTION ] = 'no';
-
-		EdgePurge::run( array( 'https://akibara.cl/producto-a/' ) );
-
-		self::assertSame( array(), $this->llamadas );
+	/** @testdox El servicio opera 100% por código incondicionalmente (Always-On). */
+	public function test_el_servicio_es_siempre_activo(): void {
+		self::assertTrue( EdgePurge::is_enabled() );
 	}
 
 	/**

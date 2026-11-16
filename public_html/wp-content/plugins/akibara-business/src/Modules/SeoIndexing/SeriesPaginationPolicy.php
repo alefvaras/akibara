@@ -24,6 +24,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Política de elegibilidad e indexación de una landing de serie.
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class SeriesPaginationPolicy {
 

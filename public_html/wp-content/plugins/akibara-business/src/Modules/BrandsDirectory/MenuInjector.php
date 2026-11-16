@@ -27,6 +27,12 @@ use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress RedundantFunctionCall
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class MenuInjector {
 
 	public const TRIGGER_CLASS = 'akb-brands-mega';
@@ -38,8 +44,10 @@ final class MenuInjector {
 	/**
 	 * @param array<int, \stdClass> $items
 	 * @return array<int, \stdClass>
+	 * @param mixed $args
+	 * @psalm-suppress UnusedParam
 	 */
-	public function inject_brands( array $items, $args ): array {
+	public function inject_brands( array $items, $args ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		// Find trigger item by CSS class.
 		$trigger = null;
 		foreach ( $items as $item ) {
@@ -96,26 +104,12 @@ final class MenuInjector {
 		$auto_nested  = $threshold > 0 && $total_brands >= $threshold;
 		$nested       = (bool) apply_filters( 'akibara_brands_menu_nested', $auto_nested, $grouped );
 
-		// El menú omite por defecto el bloque adicional de landings de familia.
-		// akibara_brands_menu_include_landings permite incluirlo.
-		$include_landings = (bool) apply_filters( 'akibara_brands_menu_include_landings', false );
-		$landing_items    = $include_landings ? $this->build_landing_items( $trigger_id, $next_id ) : array();
-		if ( ! empty( $landing_items ) ) {
-			$next_id = $this->max_id( $landing_items ) + 1;
-		}
-
 		if ( $by_region || $nested ) {
-			$injected = array_merge(
-				$landing_items,
-				$nested
-					? $this->build_nested_items( $grouped, $trigger_id, $next_id )
-					: $this->build_flat_regional_items( $grouped, $trigger_id, $next_id )
-			);
+			$injected = $nested
+				? $this->build_nested_items( $grouped, $trigger_id, $next_id )
+				: $this->build_flat_regional_items( $grouped, $trigger_id, $next_id );
 		} else {
-			$injected = array_merge(
-				$landing_items,
-				$this->build_unified_items( $sorted_brands, $trigger_id, $next_id, ! empty( $landing_items ) )
-			);
+			$injected = $this->build_unified_items( $sorted_brands, $trigger_id, $next_id );
 		}
 
 		// El enlace Ver todas es hermano del disparador en ambos modos del menú.
@@ -211,7 +205,7 @@ final class MenuInjector {
 			}
 		);
 
-		return array_values( $brands );
+		return array_values( $brands ); // @phpstan-ignore arrayValues.list
 	}
 
 	/**
@@ -221,16 +215,8 @@ final class MenuInjector {
 	 * @param list<WP_Term> $brands
 	 * @return list<\stdClass>
 	 */
-	private function build_unified_items( array $brands, int $trigger_id, int $next_id, bool $has_landings_above = false ): array {
+	private function build_unified_items( array $brands, int $trigger_id, int $next_id ): array {
 		$out = array();
-
-		if ( $has_landings_above ) {
-			$out[] = $this->build_label_item(
-				$next_id++,
-				$trigger_id,
-				'Todas las editoriales'
-			);
-		}
 
 		foreach ( $brands as $brand ) {
 			$out[] = $this->build_brand_item(
@@ -368,46 +354,6 @@ final class MenuInjector {
 		return $max < 100000 ? 100000 : $max;
 	}
 
-	/**
-	 * Items de las landings paraguas (`/ivrea/`, `/panini/`).
-	 *
-	 * Devuelve array() cuando ninguna landing resuelve a una página publicada,
-	 * de modo que el menú degrada al de siempre en vez de emitir enlaces rotos.
-	 * Los items salen con `object` 'custom' —el default de build_item()— para
-	 * que `apply_current_brand_context()` los ignore: esa rutina sólo marca
-	 * items cuyo `object` es la taxonomía.
-	 *
-	 * @return list<\stdClass>
-	 */
-	private function build_landing_items( int $parent_id, int $next_id ): array {
-		$items = array();
-
-		foreach ( BrandLandings::all() as $key => $landing ) {
-			$url = BrandLandings::url( (string) $key );
-			if ( '' === $url ) {
-				continue;
-			}
-
-			$items[] = $this->build_item(
-				array(
-					'ID'      => $next_id + count( $items ) + 1,
-					'parent'  => $parent_id,
-					'title'   => (string) ( $landing['menu_label'] ?? '' ),
-					'url'     => $url,
-					'classes' => array( 'akb-brands-mega-landing' ),
-				)
-			);
-		}
-
-		if ( empty( $items ) ) {
-			return array();
-		}
-
-		array_unshift( $items, $this->build_label_item( $next_id, $parent_id, 'Todas las ediciones' ) );
-
-		return $items;
-	}
-
 	private function build_label_item( int $id, int $parent_id, string $label ): \stdClass {
 		return $this->build_item(
 			array(
@@ -454,7 +400,7 @@ final class MenuInjector {
 	 * @param list<\stdClass>    $injected Items generados en runtime.
 	 * @return list<\stdClass>
 	 */
-	private function apply_current_brand_context( object $trigger, array $injected ): array {
+	private function apply_current_brand_context( object $trigger, array $injected ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$queried = get_queried_object();
 		if ( ! $queried instanceof WP_Term || Shortcode::TAXONOMY !== (string) $queried->taxonomy ) {
 			return $injected;

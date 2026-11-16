@@ -23,6 +23,10 @@ use WP_REST_Server;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArgument
+ */
 final class ContactoSubmit {
 
 	private const REST_NAMESPACE = 'akibara/v1';

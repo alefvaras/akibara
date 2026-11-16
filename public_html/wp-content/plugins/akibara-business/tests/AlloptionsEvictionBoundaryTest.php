@@ -3,8 +3,8 @@
  * INVARIANTE transversal: el plugin no evicta `alloptions`.
  *
  * Las cuatro escrituras directas sobre `wp_options` del árbol (los
- * compare-and-swap de LlmsManifest, SeriesSitemapLastmod, SeriesFacts y la
- * config BYP de SeriesBundles) purgaban `alloptions` junto a su propia clave.
+ * compare-and-swap de LlmsManifest, SeriesSitemapLastmod y SeriesFacts)
+ * purgaban `alloptions` junto a su propia clave.
  * Las cuatro options se escriben con autoload apagado, así que ese blob no
  * puede contenerlas: la purga obligaba a recomponer TODAS las options
  * autocargadas del sitio —en producción, contra un object cache persistente—
@@ -75,11 +75,10 @@ final class AlloptionsEvictionBoundaryTest extends TestCase {
 	 */
 	public function test_keeps_purging_the_negative_cache_marker(): void {
 		$claves = array(
-			'Plugin.php',
+			'Internal/UpgradeManager.php',
 			'Modules/LlmsManifest/LlmsManifest.php',
 			'Modules/SeoIndexing/SeriesSitemapLastmod.php',
 			'Modules/SeriesFacts/SeriesFacts.php',
-			'Modules/SeriesBundles/Settings.php',
 		);
 
 		foreach ( $claves as $relativa ) {

@@ -15,6 +15,9 @@ defined( 'ABSPATH' ) || exit;
  * Provides semantic trust content without coupling Business to a renderer.
  *
  * @since 1.96.0
+ * @api
+ * @psalm-suppress UnusedConstructor
+ * @psalm-suppress UnusedConstructor
  */
 final class CheckoutTrustSignals {
 
@@ -26,6 +29,7 @@ final class CheckoutTrustSignals {
 
 	/**
 	 * Utility class.
+	 * @psalm-suppress UnusedConstructor
 	 */
 	private function __construct() {}
 

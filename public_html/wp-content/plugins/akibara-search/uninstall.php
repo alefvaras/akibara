@@ -16,7 +16,7 @@
  *
  * Por eso este archivo SIEMPRE filtra por `akb_search_%`, nunca por `akb_%`.
  * Un `DELETE ... LIKE 'akb\_%'` acá borraría la configuración de Business
- * —lista de espera, favoritos, Arma tu Pack— en silencio, y el síntoma
+ * —lista de espera, favoritos, descuentos— en silencio, y el síntoma
  * aparecería mucho después como "la tienda se comporta raro".
  *
  * Lo mismo con las tablas: `wp_akb_search_*` son de este plugin;

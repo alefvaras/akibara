@@ -18,6 +18,9 @@ namespace Akibara\Business\Modules\Recommendations;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Recommendations {
 
 	public function register(): void {

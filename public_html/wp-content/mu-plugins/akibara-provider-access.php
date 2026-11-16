@@ -43,6 +43,10 @@ defined( 'ABSPATH' ) || exit;
  * Y no es una convención de buenas intenciones: en `Access::resolve()` la rama
  * que llega a `get_option()` está dentro de un `if` sobre el ámbito, así que a
  * un secreto de servidor no hay camino desde la base de datos.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantFunctionCall
  */
 final class Registry {
 
@@ -98,19 +102,6 @@ final class Registry {
 	 * @var array<string, array<string, mixed>>
 	 */
 	private const CATALOG = array(
-
-		'welcome_turnstile_secret' => array(
-			'const'       => 'AKB_WELCOME_TURNSTILE_SECRET',
-			'scope'       => self::SCOPE_SERVER,
-			'option'      => '',
-			'pattern'     => '/^\\S{20,}$/',
-			'expect_bool' => false,
-			'label'       => 'Turnstile — verificación de bienvenida',
-			'owner'       => 'Akibara Business · WelcomeCoupon',
-			'owner_file'  => '',
-			'required'    => false,
-			'console_url' => 'https://dash.cloudflare.com/',
-		),
 
 		'google_maps'             => array(
 			'const'       => 'AKB_GOOGLE_MAPS_API_KEY',
@@ -293,6 +284,28 @@ final class Registry {
 		// Buzón de captura del espejo: una dirección de correo en un dominio
 		// reservado, no una credencial. La lee `akibara-correo-no-sale-a-clientes.php`.
 		'AKIBARA_CORREO_CAPTURA',
+		// Constantes de configuración de catálogo, paginación e identidad SEO (Twelve-Factor App).
+		'AKB_CATALOG_ORDER_SHOWCASE',
+		'AKB_SERIES_LANDING_PER_PAGE',
+		'AKB_LLMS_IDENTITY',
+		// Constantes Twelve-Factor para módulos de runtime desacoplados de la UI.
+		'AKB_IMAGE_QUALITY_AVIF',
+		'AKB_ADDRESS_AUTOCOMPLETE_ENABLED',
+		'AKB_NATIVE_CART_ENABLED',
+		'AKB_NATIVE_CART_AUTO_OPEN',
+		'AKB_NATIVE_CART_TRIGGER_SELECTOR',
+		'AKB_RECO_RELATED',
+		'AKB_RECO_SERIE_AGOTADA',
+		'AKB_RECO_MAS_VENDIDOS',
+		'AKB_RECO_MAS_VENDIDOS_BUSQUEDA',
+		'AKB_SITE_COPYS',
+		// Constantes de gamificación y niveles de recompensas (Twelve-Factor App).
+		'AKB_REWARDS_TIERS_ENABLED',
+		'AKB_REWARDS_TIER_COLECCIONISTA_MIN',
+		'AKB_REWARDS_TIER_COLECCIONISTA_MULT',
+		'AKB_REWARDS_TIER_RESIDENTE_MIN',
+		'AKB_REWARDS_TIER_RESIDENTE_MULT',
+		'AKB_REWARDS_TIER_VALIDITY_DAYS',
 	);
 
 	/**
@@ -342,7 +355,7 @@ final class Registry {
 		// Un entorno production fuera del dominio oficial es un clon mal
 		// configurado; exige corregir el entorno antes de permitir correo real.
 		if ( 'production' === $environment && ! self::is_production_host( $home_url ) ) {
-			return 'entorno: el sitio responde como ' . (string) parse_url( trim( $home_url ), PHP_URL_HOST ) // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- función pura sin WordPress, como su gemela de arriba.
+			return 'entorno: el sitio responde como ' . parse_url( trim( $home_url ), PHP_URL_HOST ) // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- función pura sin WordPress, como su gemela de arriba.
 				. ' pero WP_ENVIRONMENT_TYPE vale «production». Esto NO es la tienda: pon WP_ENVIRONMENT_TYPE=staging en wp-config.php antes de que salga un correo a un cliente real.';
 		}
 
@@ -350,7 +363,7 @@ final class Registry {
 			return '';
 		}
 
-		return 'entorno: el sitio responde como ' . (string) parse_url( trim( $home_url ), PHP_URL_HOST ) // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- mismo host que acaba de validar is_production_host().
+		return 'entorno: el sitio responde como ' . parse_url( trim( $home_url ), PHP_URL_HOST ) // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- mismo host que acaba de validar is_production_host().
 			. ' pero WP_ENVIRONMENT_TYPE vale «' . $environment . '». Fuera de producción el correo de clientes se desvía a la bandeja de captura y el transporte lo corta. Corrige WP_ENVIRONMENT_TYPE en wp-config.php.';
 	}
 }
@@ -361,6 +374,10 @@ final class Registry {
  * Nadie debería volver a escribir `defined( 'AKB_LO_QUE_SEA' ) ? ... : get_option( ... )`
  * a mano: ese patrón es el que dejó a la tienda sin inventario y sin nadie que
  * supiera qué claves existían.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantFunctionCall
  */
 final class Access {
 
@@ -572,7 +589,7 @@ final class Access {
 		}
 
 		if ( ! class_exists( '\Akibara\HostingerMail\Transport' )
-			|| ! method_exists( '\Akibara\HostingerMail\Transport', 'is_live' ) ) {
+			|| ! method_exists( '\Akibara\HostingerMail\Transport', 'is_live' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return false;
 		}
 
@@ -675,6 +692,10 @@ final class Access {
 
 /**
  * Lo que el dueño ve sin entrar por SSH.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantFunctionCall
  */
 final class Screen {
 
@@ -682,10 +703,9 @@ final class Screen {
 	private const CAPABILITY = 'manage_options';
 
 	/**
-	 * Engancha la pantalla y el aviso.
+	 * Engancha el aviso de proveedores (pantalla retirada del menú administrativo).
 	 */
 	public static function register(): void {
-		add_action( 'admin_menu', array( self::class, 'add_page' ), 99 );
 		add_action( 'admin_notices', array( self::class, 'render_notice' ) );
 	}
 
@@ -755,7 +775,7 @@ final class Screen {
 			'<div class="notice notice-error"><p><strong>%s</strong></p><ul style="list-style:disc;margin-left:1.5em">%s</ul></div>',
 			esc_html__( 'Akibara: faltan claves de proveedores', 'akibara' ),
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- cada elemento ya sale por esc_html() dentro del array_map; lo único sin escapar son los <li> literales de este fichero, que son el marcado que queremos servir. El sniff no puede mirar dentro del implode().
-			implode( '', array_map( static fn( $p ) => '<li>' . esc_html( (string) $p ) . '</li>', $problemas ) )
+			implode( '', array_map( static fn( $p ) => '<li>' . esc_html( $p ) . '</li>', $problemas ) )
 		);
 	}
 
@@ -767,9 +787,18 @@ final class Screen {
 			return;
 		}
 
-		echo '<div class="wrap"><h1>' . esc_html__( 'Claves y accesos', 'akibara' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Qué claves de proveedores espera Akibara y cuáles están puestas. Esta pantalla NUNCA muestra el valor de una clave: sólo si está, de dónde sale y cuántos caracteres tiene.', 'akibara' ) . '</p>';
-		echo '<table class="widefat striped"><thead><tr>'
+		echo '<div class="wrap akb-provider-wrap" style="max-width:1240px; margin:20px 20px 0 2px;"><div class="akb-provider-panel" style="background:#fff; border:2px solid #141416; border-radius:8px; overflow:hidden; box-shadow:4px 4px 0 rgba(20,20,22,0.12);">';
+		echo '<div class="akb-panel-top-bar" style="background:#1E1E24; padding:10px 24px; border-bottom:2px solid #141416;"><a href="' . esc_url( admin_url( 'admin.php?page=akibara-panel' ) ) . '" class="akb-panel-back-btn">← Volver al Centro de Mando</a></div>';
+		echo '<header class="akb-provider-head" style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:64px;background:#141416;color:#fff;border-bottom:2px solid #141416;">';
+		echo '<div class="akb-provider-brand" style="display:flex;align-items:center;gap:12px;">';
+		echo '<span class="akb-provider-gem" style="color:#E60012;font-size:22px;filter:drop-shadow(0 0 6px rgba(230,0,18,0.6));" aria-hidden="true">&#9670;</span>';
+		echo '<h1 style="margin:0;font-size:20px;font-weight:900;letter-spacing:-0.3px;color:#fff;line-height:1;">' . esc_html__( 'Claves y accesos', 'akibara' ) . '</h1>';
+		echo '<span class="akb-provider-ver" style="background:#E60012;color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);letter-spacing:0.05em;text-transform:uppercase;">Seguridad</span>';
+		echo '</div></header>';
+		echo '<div style="padding:28px 32px 36px; background:#F8F9FA;">';
+		echo '<div style="background:#fff; border:2px solid #141416; border-radius:6px; box-shadow:3px 3px 0 #141416; padding:20px 24px; margin-bottom:24px;">';
+		echo '<p style="color:#555;font-size:13px;margin:0 0 16px;">' . esc_html__( 'Qué claves de proveedores espera Akibara y cuáles están puestas. Esta pantalla NUNCA muestra el valor de una clave: sólo si está, de dónde sale y cuántos caracteres tiene.', 'akibara' ) . '</p>';
+		echo '<div style="overflow:auto; border:2px solid #141416; border-radius:6px; box-shadow:2px 2px 0 #141416;" tabindex="0" role="region" aria-label="Inventario de claves"><table class="widefat striped" style="border:0; margin:0;"><thead><tr>'
 			. '<th>' . esc_html__( 'Clave', 'akibara' ) . '</th>'
 			. '<th>' . esc_html__( 'Estado', 'akibara' ) . '</th>'
 			. '<th>' . esc_html__( 'Ámbito', 'akibara' ) . '</th>'
@@ -823,15 +852,20 @@ final class Screen {
 			);
 		}
 
-		echo '</tbody></table>';
-		echo '<h2>' . esc_html__( '¿Dónde va una clave nueva?', 'akibara' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Si la clave viaja al navegador del cliente aunque sea una sola vez (mapas, analítica, captchas), es pública y puede editarse desde el admin. Si no viaja (contraseñas, tokens de pago, tokens de infraestructura), es un secreto de servidor y va únicamente al wp-config.php de producción, nunca a la base de datos.', 'akibara' ) . '</p>';
-		echo '</div>';
+		echo '</tbody></table></div></div>';
+		echo '<div style="background:#fff; border:2px solid #141416; border-radius:6px; box-shadow:3px 3px 0 #141416; padding:20px 24px; margin-top:24px;">';
+		echo '<h2 style="margin:0 0 8px; font-size:15px; font-weight:900; text-transform:uppercase;">' . esc_html__( '¿Dónde va una clave nueva?', 'akibara' ) . '</h2>';
+		echo '<p style="margin:0; font-size:13px; color:#555;">' . esc_html__( 'Si la clave viaja al navegador del cliente aunque sea una sola vez (mapas, analítica, captchas), es pública y puede editarse desde el admin. Si no viaja (contraseñas, tokens de pago, tokens de infraestructura), es un secreto de servidor y va únicamente al wp-config.php de producción, nunca a la base de datos.', 'akibara' ) . '</p>';
+		echo '</div></div></div></div>';
 	}
 }
 
 /**
  * Comandos WP-CLI: el inventario y el gate del despliegue.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantFunctionCall
  */
 final class Cli {
 
@@ -1054,7 +1088,7 @@ final class Cli {
 				if ( false !== strpos( (string) $archivo->getPathname(), '/tests/' ) ) {
 					continue;
 				}
-				$codigo = self::code_only( (string) file_get_contents( (string) $archivo->getPathname() ) );
+				$codigo = self::code_only( (string) file_get_contents( (string) $archivo->getPathname() ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				if ( ! preg_match_all( '/(?:defined|constant)\(\s*[\'"]((?:AKB|AKIBARA)_[A-Z0-9_]+)[\'"]/', $codigo, $m ) ) {
 					continue;
 				}

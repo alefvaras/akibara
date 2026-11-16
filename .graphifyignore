@@ -1,0 +1,85 @@
+# Akibara: artefactos locales y resultados generados (no son código fuente).
+/.playwright-cli/
+/.local-backups/
+/.local-release-candidates/
+/.local-reports/
+/output/
+/outputs/
+/scratchpad/
+/backups/
+/ops/backups/
+/database/
+/dist/
+/.firecrawl/
+/.graphify-work/
+/graphify-out/
+/.agents/
+/.claude/tasks/
+/tools/akibara-business/vendor/
+/ops/rankmath-redirections-ui-final.csv
+/ops/rankmath-redirections-ui-final.json
+/ops/rankmath-redirections-ui-delete.csv
+/ops/rankmath-redirections-ui-validation.json
+
+# WordPress: contenido mutable, cachés y artefactos de actualización.
+/public_html/wp-admin/
+/public_html/wp-includes/
+/public_html/wp-content/languages/
+/public_html/wp-content/uploads/
+/public_html/wp-content/cache/
+/public_html/wp-content/litespeed/
+/public_html/wp-content/upgrade/
+/public_html/wp-content/upgrade-temp-backup/
+/public_html/wp-content/ai1wm-backups/
+/public_html/wp-content/graphify-out/
+
+# Dependencias de terceros: el grafo modela nuestro código y sus contratos,
+# no copias completas de WordPress, WooCommerce ni plugins administrables.
+/public_html/wp-content/plugins/advanced-database-cleaner-premium/
+/public_html/wp-content/plugins/bluex-for-woocommerce/
+/public_html/wp-content/plugins/creame-whatsapp-me/
+/public_html/wp-content/plugins/customer-reviews-woocommerce/
+/public_html/wp-content/plugins/flowpaymentfl/
+/public_html/wp-content/plugins/google-listings-and-ads/
+/public_html/wp-content/plugins/litespeed-cache/
+/public_html/wp-content/plugins/login-as-user/
+/public_html/wp-content/plugins/login-with-google/
+/public_html/wp-content/plugins/microsoft-clarity/
+/public_html/wp-content/plugins/seo-by-rank-math/
+/public_html/wp-content/plugins/simple-points-and-rewards/
+/public_html/wp-content/plugins/woocommerce/
+/public_html/wp-content/plugins/woocommerce-mercadopago/
+/public_html/wp-content/themes/generatepress/
+/public_html/wp-content/mu-plugins/hostinger-auto-updates.php
+/public_html/wp-content/mu-plugins/hostinger-preview-domain.php
+
+# Residuos comunes que no deben contaminar el grafo.
+*.log
+*.bak
+*.backup
+*.tmp
+*.temp
+*.orig
+*.rej
+*~
+
+# Checkpoints locales de trabajo: llevan volcados SQL completos y ficheros
+# `*-ui-credentials.env` con usuario/contraseña/token de administrador — de
+# producción incluidos. El guard de sensibles de Graphify ya abortaba la
+# generación al toparse con ellos (2026-08-19); esta exclusión es la decisión
+# revisada que pide ese guard. Las credenciales las emiten los scripts de
+# `ops/akibara-ui-temp-admin.sh` y son de vida corta, pero ni ellas ni el
+# volcado tienen nada que hacer en el grafo.
+/.local-checkpoints/
+
+# Listas de precios de proveedor y de competencia. El .xlsx de Ivrea trae el
+# precio de COMPRA en USD preferencial y los CSV de competencia se arman con
+# lo que llega por correo: son datos comerciales confidenciales que no tienen
+# nada que hacer en un grafo de navegación de código. Graphify abortó al
+# toparse con ellos (2026-09-05, tras entrar el .xlsx el 2026-09-04); ésta es
+# la decisión revisada que pide ese guard, y no una omisión silenciosa.
+/ops/listas-editoriales/
+
+# Capturas de QA del espejo (PNG del panel y del storefront). Son evidencia de
+# una corrida, no código, y el grafo no indexa imágenes de pantalla.
+/_fotos-qa/

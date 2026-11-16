@@ -21,9 +21,14 @@ namespace Akibara\Business\Modules\ProductSchemaShopping;
 
 use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Utilities\SchemaGraph;
+use Akibara\Business\Utilities\StoreTime;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class ProductSchemaShopping {
 
 	private const DEFAULT_RETURN_DAYS = 10;
@@ -99,7 +104,7 @@ final class ProductSchemaShopping {
 	 * @param array<string,mixed> $data Nodos JSON-LD de Rank Math.
 	 * @return array<string,mixed>
 	 */
-	private function attach_policy_to_product_offers( array $data ): array {
+	private function attach_policy_to_product_offers( array $data ): array { // @phpstan-ignore complexity.functionLike
 		$policy = $this->build_merchant_return_policy();
 
 		foreach ( $data as &$node ) {
@@ -115,11 +120,11 @@ final class ProductSchemaShopping {
 			}
 
 			if ( isset( $offers['@type'] ) ) {
-				$offers = $this->fix_price_specification( $offers );
+				$offers = $this->sanitize_shipping_details( $this->fix_price_specification( $offers ) );
 			} else {
 				foreach ( $offers as &$each ) {
 					if ( is_array( $each ) ) {
-						$each = $this->fix_price_specification( $each );
+						$each = $this->sanitize_shipping_details( $this->fix_price_specification( $each ) );
 					}
 				}
 				unset( $each );
@@ -157,7 +162,7 @@ final class ProductSchemaShopping {
 	 * @return array<string,mixed>
 	 */
 	private function build_merchant_return_policy(): array {
-		$days = (int) apply_filters( 'akibara/schema_shopping/return_days', self::DEFAULT_RETURN_DAYS );
+		$days = (int) apply_filters( 'akibara/schema_shopping/return_days', self::DEFAULT_RETURN_DAYS ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 
 		return array(
 			'@type'                             => 'MerchantReturnPolicy',
@@ -195,14 +200,7 @@ final class ProductSchemaShopping {
 		// para no emitir una fecha vencida ni prometer un precio estable durante años.
 
 		if ( ! isset( $offer['priceValidUntil'] ) ) {
-			$offer['priceValidUntil'] = gmdate( 'Y-m-d', time() + ( 30 * DAY_IN_SECONDS ) );
-			// Una salida posterior a esa ventana fija el mínimo en la fecha de lanzamiento,
-			// para no declarar vencido el precio antes de que exista el tomo reservado.
-
-			$salida = $this->release_date_of_current_product();
-			if ( '' !== $salida && $salida > $offer['priceValidUntil'] ) {
-				$offer['priceValidUntil'] = $salida;
-			}
+			$offer['priceValidUntil'] = StoreTime::format( time() + ( 30 * DAY_IN_SECONDS ), 'Y-m-d' );
 		}
 
 		if ( ! isset( $offer['priceSpecification'] ) ) {
@@ -238,22 +236,33 @@ final class ProductSchemaShopping {
 	}
 
 	/**
-	 * `Y-m-d` de salida de la editorial del producto de la ficha en pantalla si
-	 * está en preventa con fecha explícita y válida; '' en cualquier otro caso
-	 * (sin producto, sin fecha, fecha inválida o ya salió). Misma fuente y
-	 * MISMA regla que `availabilityStarts` (`Availability::is_valid_release_date()`,
-	 * con su cota de años: un «2206» heredado no se publica como vencimiento).
-	 * Sólo se llega aquí desde la ficha (`is_product()`), así que el objeto
-	 * consultado es el propio producto.
+	 * Defensivo contra tarifas de envío cero inventadas en productos bajo el umbral de envío gratis.
+	 *
+	 * @param array<string,mixed> $offer Nodo Offer.
+	 * @return array<string,mixed>
 	 */
-	private function release_date_of_current_product(): string {
-		$product = wc_get_product( (int) get_queried_object_id() );
-		if ( ! $product instanceof \WC_Product || ! Availability::is_preventa( $product ) ) {
-			return '';
+	private function sanitize_shipping_details( array $offer ): array {
+		if ( ! isset( $offer['shippingDetails'] ) ) {
+			return $offer;
 		}
-		$salida = (string) get_post_meta( $product->get_id(), Availability::META_RELEASE_DATE, true );
 
-		return Availability::is_valid_release_date( $salida ) ? $salida : '';
+		$price = (float) ( $offer['price'] ?? 0 );
+		$free_shipping_threshold = (float) (int) get_option( 'akibara_fsp_carrier_threshold', 60000 );
+		if ( $free_shipping_threshold <= 0.0 ) {
+			$free_shipping_threshold = 60000.0;
+		}
+
+		if ( $price < $free_shipping_threshold ) {
+			$details = $offer['shippingDetails'];
+			if ( is_array( $details ) ) {
+				$rate_value = $details['shippingRate']['value'] ?? $details['shippingRate']['price'] ?? null;
+				if ( '0' === (string) $rate_value || 0.0 === (float) $rate_value ) {
+					unset( $offer['shippingDetails'] );
+				}
+			}
+		}
+
+		return $offer;
 	}
 
 	/**

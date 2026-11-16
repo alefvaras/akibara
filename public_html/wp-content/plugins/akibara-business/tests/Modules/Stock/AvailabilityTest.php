@@ -19,7 +19,6 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\Stock;
 
-use Akibara\Business\Modules\EstimatedDelivery\DateCalculator;
 use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Brain\Monkey;
@@ -59,20 +58,6 @@ final class AvailabilityTest extends TestCase {
 		};
 	}
 
-	private function stub_metas( string $eta_type, string $release = '' ): void {
-		Functions\when( 'get_post_meta' )->alias(
-			static function ( int $post_id, string $key, bool $single = true ) use ( $eta_type, $release ) {
-				unset( $post_id, $single );
-
-				if ( Availability::META_TYPE === $key ) {
-					return $eta_type;
-				}
-
-				return Availability::META_RELEASE_DATE === $key ? $release : '';
-			}
-		);
-	}
-
 	private function ahora(): int {
 		return ( new \DateTimeImmutable( self::HOY, new \DateTimeZone( self::TZ ) ) )->getTimestamp();
 	}
@@ -80,111 +65,23 @@ final class AvailabilityTest extends TestCase {
 	/* --- Estados derivados del stock crudo --- */
 
 	public function test_instock_es_disponible(): void {
-		$this->stub_metas( '' );
 		$this->assertSame( Availability::DISPONIBLE, Availability::of( $this->producto( StockStatus::IN_STOCK ), $this->ahora() ) );
 	}
 
 	public function test_outofstock_es_agotado(): void {
-		$this->stub_metas( '' );
 		$this->assertSame( Availability::AGOTADO, Availability::of( $this->producto( StockStatus::OUT_OF_STOCK ), $this->ahora() ) );
 	}
 
 	public function test_estado_desconocido_cae_a_agotado_fail_closed(): void {
-		$this->stub_metas( '' );
 		$this->assertSame( Availability::AGOTADO, Availability::of( $this->producto( 'loquesea' ), $this->ahora() ) );
-	}
-
-	/* --- Verdad 1: el default de lo reservable es A PEDIDO --- */
-
-	/**
-	 * Sin meta (NULL en prod), 'auto' y 'disabled' son todos A pedido: cargar
-	 * un tomo de backlist no requiere tocar el panel. También un tipo basura.
-	 *
-	 * @dataProvider tipos_que_no_son_preventa
-	 */
-	public function test_reservable_sin_lanzamiento_pendiente_es_a_pedido( string $eta_type ): void {
-		$this->stub_metas( $eta_type );
-		$producto = $this->producto( StockStatus::ON_BACKORDER );
-
-		$this->assertSame( Availability::A_PEDIDO, Availability::of( $producto, $this->ahora() ) );
-		$this->assertTrue( Availability::is_a_pedido( $producto, $this->ahora() ) );
-		$this->assertFalse( Availability::is_preventa( $producto, $this->ahora() ) );
-	}
-
-	/** @return array<string, array{string}> */
-	public function tipos_que_no_son_preventa(): array {
-		return array(
-			'sin meta (default absoluto)' => array( '' ),
-			'auto'                        => array( Availability::TYPE_AUTO ),
-			'disabled'                    => array( Availability::TYPE_DISABLED ),
-			'tipo basura'                 => array( 'garbage' ),
-		);
-	}
-
-	/* --- Verdad 2: preventa exige lanzamiento pendiente --- */
-
-	public function test_tba_es_preventa(): void {
-		$this->stub_metas( Availability::TYPE_TBA );
-		$this->assertSame( Availability::PREVENTA, Availability::of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
-	}
-
-	public function test_release_date_futura_es_preventa(): void {
-		$this->stub_metas( Availability::TYPE_RELEASE_DATE, '2026-10-15' );
-		$this->assertSame( Availability::PREVENTA, Availability::of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
-	}
-
-	/**
-	 * El día del lanzamiento sigue siendo preventa (degrada al día SIGUIENTE) —
-	 * la misma semántica de corte que DateCalculator::resolve_base_timestamp().
-	 */
-	public function test_release_date_hoy_sigue_siendo_preventa(): void {
-		$this->stub_metas( Availability::TYPE_RELEASE_DATE, '2026-08-29' );
-		$this->assertSame( Availability::PREVENTA, Availability::of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
-	}
-
-	/* --- Verdad 3: la preventa caduca sola --- */
-
-	public function test_release_date_pasada_degrada_a_a_pedido(): void {
-		$this->stub_metas( Availability::TYPE_RELEASE_DATE, '2026-08-28' );
-		$producto = $this->producto( StockStatus::ON_BACKORDER );
-
-		$this->assertSame( Availability::A_PEDIDO, Availability::of( $producto, $this->ahora() ) );
-		$this->assertFalse( Availability::is_preventa( $producto, $this->ahora() ) );
-	}
-
-	/**
-	 * La comparación es por día CALENDARIO en la zona de la tienda, no por
-	 * segundos: a las 23:00 CL del día del lanzamiento el server (UTC) ya está
-	 * en el día siguiente, y la preventa NO debe caducar 4 horas antes.
-	 */
-	public function test_la_degradacion_respeta_la_zona_horaria_de_la_tienda(): void {
-		$this->stub_metas( Availability::TYPE_RELEASE_DATE, '2026-08-29' );
-		$tarde_noche = ( new \DateTimeImmutable( '2026-08-29 23:30:00', new \DateTimeZone( self::TZ ) ) )->getTimestamp();
-
-		$this->assertSame(
-			Availability::PREVENTA,
-			Availability::of( $this->producto( StockStatus::ON_BACKORDER ), $tarde_noche )
-		);
-	}
-
-	public function test_release_date_corrupta_degrada_a_a_pedido(): void {
-		$this->stub_metas( Availability::TYPE_RELEASE_DATE, 'no-es-una-fecha' );
-		$this->assertSame( Availability::A_PEDIDO, Availability::of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
-	}
-
-	public function test_release_date_vacia_degrada_a_a_pedido(): void {
-		$this->stub_metas( Availability::TYPE_RELEASE_DATE, '' );
-		$this->assertSame( Availability::A_PEDIDO, Availability::of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
 	}
 
 	/* --- Vocabulario --- */
 
-	public function test_el_vocabulario_visible_cubre_los_cuatro_estados(): void {
+	public function test_el_vocabulario_visible_cubre_los_dos_estados(): void {
 		$this->assertSame(
 			array(
 				Availability::DISPONIBLE => 'Disponible',
-				Availability::A_PEDIDO   => 'A pedido',
-				Availability::PREVENTA   => 'Preventa',
 				Availability::AGOTADO    => 'Agotado',
 			),
 			Availability::LABELS
@@ -192,39 +89,17 @@ final class AvailabilityTest extends TestCase {
 	}
 
 	public function test_label_of_deriva_del_estado_resuelto(): void {
-		$this->stub_metas( Availability::TYPE_AUTO );
-		$this->assertSame( 'A pedido', Availability::label_of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
-
-		$this->stub_metas( Availability::TYPE_TBA );
-		$this->assertSame( 'Preventa', Availability::label_of( $this->producto( StockStatus::ON_BACKORDER ), $this->ahora() ) );
-	}
-
-	public function test_label_for_state_desconocido_cae_a_agotado(): void {
-		$this->assertSame( 'Agotado', Availability::label_for_state( 'inventado' ) );
-	}
-
-	/* --- Sincronía de contratos --- */
-
-	/**
-	 * DateCalculator referencia los meta keys canónicos de Availability. Si
-	 * alguien "des-unifica" las constantes, el estado comercial y el cálculo de
-	 * fechas leerían filas distintas y la degradación quedaría muda.
-	 */
-	public function test_date_calculator_comparte_los_meta_keys_canonicos(): void {
-		$this->assertSame( Availability::META_TYPE, DateCalculator::META_TYPE );
-		$this->assertSame( Availability::META_RELEASE_DATE, DateCalculator::META_RELEASE_DATE );
+		$this->assertSame( 'Disponible', Availability::label_of( $this->producto( StockStatus::IN_STOCK ), $this->ahora() ) );
+		$this->assertSame( 'Agotado', Availability::label_of( $this->producto( StockStatus::OUT_OF_STOCK ), $this->ahora() ) );
 	}
 
 	/* --- Candado de arquitectura --- */
 
 	/**
-	 * El predicado StockStatus::is_preventa() se RETIRÓ en 1.109.0: su nombre
-	 * mentía (onbackorder ≠ preventa; son dos estados comerciales). Quien
-	 * pregunte «¿reservable?» usa is_reservable(); quien necesite distinguir
-	 * usa Availability. Este candado impide que el nombre viejo reaparezca y
-	 * reviva la ambigüedad que costó separar.
+	 * Los predicados de preventa, reserva y a pedido fueron retirados bajo el modelo binario.
+	 * Este candado impide que reaparezcan.
 	 */
-	public function test_nadie_vuelve_a_usar_el_predicado_ambiguo_is_preventa_de_stock_status(): void {
+	public function test_nadie_vuelve_a_usar_predicados_deprecados_de_stock(): void {
 		$src = dirname( __DIR__, 3 ) . '/src';
 
 		$ofensores = array();
@@ -234,12 +109,16 @@ final class AvailabilityTest extends TestCase {
 				continue;
 			}
 			$contents = (string) file_get_contents( $file->getPathname() );
-			if ( false !== strpos( $contents, 'StockStatus::is_preventa(' ) ) {
+			if (
+				false !== strpos( $contents, 'is_preventa(' )
+				|| false !== strpos( $contents, 'is_a_pedido(' )
+				|| false !== strpos( $contents, 'is_reservable(' )
+			) {
 				$ofensores[] = $file->getPathname();
 			}
 		}
 
-		$this->assertSame( array(), $ofensores, 'StockStatus::is_preventa() fue retirado: usá is_reservable() o Availability::is_preventa().' );
+		$this->assertSame( array(), $ofensores, 'Los predicados de preventa/reserva fueron retirados.' );
 	}
 
 	/**
@@ -249,9 +128,8 @@ final class AvailabilityTest extends TestCase {
 	 * vendiéndose como «Preventa».
 	 *
 	 * El candado era ASIMÉTRICO hasta 2026-08-31: prohibía 'onbackorder' y dejaba
-	 * pasar 'instock', y esa mitad abierta tenía siete ofensores vivos, uno de
-	 * ellos (`TaxonomyDiscount\Settings::is_stock_eligible`) comparando con el
-	 * literal en una línea y con la constante en la siguiente. Los tres estados
+	 * pasar 'instock', y esa mitad abierta tenía varios ofensores vivos comparando
+	 * con el literal en una línea y con la constante en la siguiente. Los tres estados
 	 * son el mismo vocabulario y se vigilan igual.
 	 *
 	 * Se inspeccionan TOKENS (token_get_all), no el texto: los docblocks que
@@ -356,8 +234,8 @@ final class AvailabilityTest extends TestCase {
 	public static function proveedor_literales_de_stock(): array {
 		return array(
 			'instock'     => array( StockStatus::IN_STOCK, 'StockStatus::IN_STOCK' ),
-			'onbackorder' => array( StockStatus::ON_BACKORDER, 'StockStatus::ON_BACKORDER' ),
 			'outofstock'  => array( StockStatus::OUT_OF_STOCK, 'StockStatus::OUT_OF_STOCK' ),
+			'onbackorder' => array( StockStatus::ON_BACKORDER, 'StockStatus::ON_BACKORDER' ),
 		);
 	}
 }

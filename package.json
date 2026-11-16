@@ -6,10 +6,56 @@
   "scripts": {
     "build": "bash tools/build-runtime-assets.sh",
     "test": "bash tools/guardrail-ci.sh --full",
-    "setup:hooks": "bash tools/install-quality-hooks.sh"
+    "setup:hooks": "bash tools/install-quality-hooks.sh",
+    "sync:notebook": "node tools/sync-notebooklm.mjs",
+    "sync:notebooklm": "node tools/sync-notebooklm-sources.mjs",
+    "brain": "bash tools/brain.sh",
+    "brain:status": "bash tools/brain.sh status",
+    "brain:sync": "bash tools/brain.sh sync",
+    "brain:open": "bash tools/brain.sh open",
+    "audit:composer": "composer audit",
+    "audit:npm": "npm audit --audit-level=moderate",
+    "audit:phpcs": "./vendor/bin/phpcs",
+    "audit:phpstan": "./vendor/bin/phpstan analyse --memory-limit=1G",
+    "audit:rector": "./vendor/bin/rector process --dry-run",
+    "audit:psalm": "./vendor/bin/psalm --threads=1 --taint-analysis",
+    "audit:opengrep": "opengrep scan --taint-intrafile -f .semgrep/ public_html/wp-content/plugins/akibara-business public_html/wp-content/plugins/akibara-search public_html/wp-content/plugins/akibara-cart-checkout-blocks public_html/wp-content/plugins/akibara-rewards public_html/wp-content/themes/akibara-gp public_html/wp-content/mu-plugins",
+    "audit:eslint": "npx eslint .",
+    "audit:knip": "npx knip --reporter compact",
+    "audit:stylelint": "npx stylelint \"public_html/wp-content/plugins/akibara-*/**/*.css\" \"public_html/wp-content/themes/akibara-gp/**/*.css\"",
+    "audit:purgecss": "npx purgecss --config purgecss.config.js --rejected",
+    "audit:sql": "sqlfluff lint ops/ --dialect mysql",
+    "audit:all": "bash tools/guardrail-ci.sh --full",
+    "fix:all": "./vendor/bin/phpcbf && ./vendor/bin/rector process && npx eslint . --fix && npx knip --fix && npx stylelint \"public_html/wp-content/plugins/akibara-*/**/*.css\" \"public_html/wp-content/themes/akibara-gp/**/*.css\" --fix"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.1.1",
+    "@eslint/eslintrc": "^3.3.7",
+    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/parser": "^8.72.2",
+    "@woocommerce/eslint-plugin": "^2.2.0",
+    "@wordpress/stylelint-config": "^27.1.0",
     "esbuild": "0.28.2",
-    "happy-dom": "21.0.4"
+    "eslint": "^8.57.1",
+    "eslint-plugin-jest": "^29.17.0",
+    "eslint-plugin-jsdoc": "^48.11.0",
+    "eslint-plugin-no-unsanitized": "^4.0.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-security": "^4.2.1",
+    "eslint-plugin-testing-library": "^7.16.2",
+    "happy-dom": "21.0.4",
+    "knip": "^6.45.0",
+    "prettier": "^2.8.8",
+    "purgecss": "^9.1.0",
+    "purgecss-with-wordpress": "^9.1.0",
+    "stylelint": "^17.16.0",
+    "stylelint-scss": "^7.4.0",
+    "typescript": "^5.1.6"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.7"
+    }
   }
 }

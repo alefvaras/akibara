@@ -7,7 +7,7 @@
  *
  * El header listener (theme/main.js) actualiza el badge `[data-akb-wishlist-count]`.
  *
- * @package Akibara\Business
+ * @package
  */
 
 (function () {
@@ -17,15 +17,15 @@
 		return;
 	}
 
-	var cfg = window.akbWishlist;
+	const cfg = window.akbWishlist;
 
 	function emit(name, detail) {
-		document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+		document.dispatchEvent(new CustomEvent(name, { detail }));
 	}
 
 	// Live region propia (polite): sin ella el toggle es mudo para lectores de
 	// pantalla — el corazón solo cambia aria-pressed, que no todos anuncian.
-	var liveRegion = null;
+	let liveRegion = null;
 	function announce(text) {
 		if (!liveRegion) {
 			liveRegion = document.createElement('div');
@@ -41,8 +41,8 @@
 	// Usar la plantilla de aria-label con %s cuando el botón trae data-name; conservar el label
 	// genérico como fallback.
 	function ariaFor(btn, saved) {
-		var name = btn.getAttribute('data-name');
-		var tpl = saved ? cfg.labels.savedAriaNamed : cfg.labels.addAriaNamed;
+		const name = btn.getAttribute('data-name');
+		const tpl = saved ? cfg.labels.savedAriaNamed : cfg.labels.addAriaNamed;
 		if (name && tpl) {
 			return tpl.replace('%s', name);
 		}
@@ -50,11 +50,15 @@
 	}
 
 	function setButtonState(buttons, saved) {
+		const logged = Boolean(cfg.isLogged || cfg.isLoggedIn);
 		buttons.forEach(function (btn) {
 			btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
 			btn.setAttribute('aria-label', ariaFor(btn, saved));
 			btn.classList.toggle('is-saved', saved);
-			var label = btn.querySelector('.akb-wl-toggle__label');
+			if (logged && btn.hasAttribute('aria-haspopup')) {
+				btn.removeAttribute('aria-haspopup');
+			}
+			const label = btn.querySelector('.akb-wl-toggle__label');
 			if (label) {
 				label.textContent = saved ? cfg.labels.saved : cfg.labels.save;
 			}
@@ -81,40 +85,40 @@
 	// Guardar la intención del invitado y completarla al volver al producto. El muro de acceso
 	// propaga redirect_to al input redirect de ambos formularios y al filtro
 	// rtcamp.google_default_redirect del botón de Google.
-	var PENDING_KEY = 'akbWishlistPending';
+	const PENDING_KEY = 'akbWishlistPending';
 
 	function rememberIntent(productId) {
 		try {
 			window.sessionStorage.setItem(PENDING_KEY, JSON.stringify({
-				productId: productId,
+				productId,
 				at: Date.now()
 			}));
-		} catch (err) {
+		} catch (_err) {
 			// Almacenamiento bloqueado (modo privado, cookies de terceros): sin
 			// intención guardada el flujo degrada al de siempre, nunca falla.
 		}
 	}
 
 	function takeIntent() {
-		var raw = null;
+		let raw = null;
 		try {
 			raw = window.sessionStorage.getItem(PENDING_KEY);
 			window.sessionStorage.removeItem(PENDING_KEY);
-		} catch (err) {
+		} catch (_err) {
 			return 0;
 		}
 		if (!raw) {
 			return 0;
 		}
 		try {
-			var data = JSON.parse(raw);
+			const data = JSON.parse(raw);
 			// Media hora: pasado ese rato, completar un guardado que el cliente ya
 			// no recuerda haber pedido es una sorpresa, no una ayuda.
 			if (!data || !data.productId || (Date.now() - Number(data.at)) > 1800000) {
 				return 0;
 			}
 			return parseInt(data.productId, 10) || 0;
-		} catch (err) {
+		} catch (_err) {
 			return 0;
 		}
 	}
@@ -133,7 +137,7 @@
 	}
 
 	function loginHref() {
-		var redirect = encodeURIComponent(window.location.href);
+		const redirect = encodeURIComponent(window.location.href);
 		return cfg.loginUrl + (cfg.loginUrl.indexOf('?') >= 0 ? '&' : '?') + 'redirect_to=' + redirect;
 	}
 
@@ -147,12 +151,12 @@
 	// El aviso de GuestPrompt permite entrar conservando la intención o seguir mirando sin
 	// guardarla. Si no hay dialog nativo o el aviso está apagado, usar la navegación de acceso
 	// habitual.
-	var guestDialog = null;
-	var guestTrigger = null;
-	var guestProductId = 0;
+	let guestDialog = null;
+	let guestTrigger = null;
+	let guestProductId = 0;
 
 	function isOutsideBox(el, e) {
-		var r = el.getBoundingClientRect();
+		const r = el.getBoundingClientRect();
 		return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
 	}
 
@@ -168,7 +172,7 @@
 		if (!cfg.guestStyle || cfg.isLogged || !guestDialogSupported() || document.getElementById('akb-wishlist-guest-css')) {
 			return;
 		}
-		var link = document.createElement('link');
+		const link = document.createElement('link');
 		link.id = 'akb-wishlist-guest-css';
 		link.rel = 'stylesheet';
 		link.href = cfg.guestStyle;
@@ -179,7 +183,7 @@
 		if (guestDialog) {
 			return guestDialog;
 		}
-		var labels = cfg.labels || {};
+		const labels = cfg.labels || {};
 		guestDialog = document.createElement('dialog');
 		guestDialog.className = 'akb-wl-login';
 		guestDialog.setAttribute('aria-labelledby', 'akb-wl-login-title');
@@ -239,11 +243,11 @@
 			goToLogin(productId);
 			return;
 		}
-		var labels = cfg.labels || {};
-		var dialog = ensureGuestDialog();
-		var name = trigger ? trigger.getAttribute('data-name') : '';
-		var marker = labels.guestMarker || '{producto}';
-		var body = labels.guestBody || '';
+		const labels = cfg.labels || {};
+		const dialog = ensureGuestDialog();
+		const name = trigger ? trigger.getAttribute('data-name') : '';
+		const marker = labels.guestMarker || '{producto}';
+		let body = labels.guestBody || '';
 		// Marcador, no sprintf: el texto es del dueño y puede traer cualquier «%».
 		// Todo corazón lleva data-name (Button.php); sin él, el marcador se quita.
 		body = body.split(marker).join(name ? '«' + name + '»' : '').replace(/\s{2,}/g, ' ').trim();
@@ -258,11 +262,11 @@
 	}
 
 	function toggle(productId, cardToRemoveOnUnsave, isRetry, intent) {
-		var buttons = buttonsFor(productId);
-		var reintentando = false;
+		const buttons = buttonsFor(productId);
+		let reintentando = false;
 		lockButtons(buttons, true);
 
-		var body = new URLSearchParams();
+		const body = new URLSearchParams();
 		body.set('action', 'akb_wishlist_toggle');
 		body.set('nonce', cfg.nonce);
 		body.set('product_id', String(productId));
@@ -279,6 +283,9 @@
 			.then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, json: j }; }); })
 			.then(function (res) {
 				if (res.status === 401 && res.json && res.json.data && res.json.data.login_url) {
+					if (productId > 0) {
+						rememberIntent(productId);
+					}
 					window.location.href = res.json.data.login_url;
 					return;
 				}
@@ -286,7 +293,11 @@
 					// El botón sigue bloqueado hasta que termine el reintento: el
 					// `finally` de esta primera vuelta lo respeta.
 					reintentando = true;
-					toggle(productId, cardToRemoveOnUnsave, true);
+					if (intent) {
+						toggle(productId, cardToRemoveOnUnsave, true, intent);
+					} else {
+						toggle(productId, cardToRemoveOnUnsave, true);
+					}
 					return;
 				}
 				if (!res.ok || !res.json || !res.json.success) {
@@ -295,14 +306,22 @@
 					announceFailure(buttons);
 					return;
 				}
-				var data = res.json.data || {};
-				var added = data.state === 'added';
+				const data = res.json.data || {};
+				if (Array.isArray(data.saved_ids)) {
+					const remoteSet = {};
+					for (let rIdx = 0; rIdx < data.saved_ids.length; rIdx++) {
+						// eslint-disable-next-line security/detect-object-injection
+						remoteSet[data.saved_ids[rIdx]] = true;
+					}
+					saveSavedSet(remoteSet);
+				}
+				const added = data.state === 'added';
 				setButtonState(buttons, added);
 				announceResult(buttons, added);
 				updateLeadCount(typeof data.count === 'number' ? data.count : null);
 				emit('akb:wishlist:change', {
 					state: data.state,
-					productId: productId,
+					productId,
 					count: typeof data.count === 'number' ? data.count : null,
 				});
 				if (data.state === 'removed' && cardToRemoveOnUnsave) {
@@ -326,7 +345,7 @@
 	// Un toggle que no se pudo aplicar TIENE que decirlo: el estado del corazón
 	// no cambia, así que sin mensaje el gesto parece ignorado.
 	function announceFailure(buttons) {
-		var name = buttons.length ? buttons[0].getAttribute('data-name') : null;
+		const name = buttons.length ? buttons[0].getAttribute('data-name') : null;
 		announce(
 			name
 				? 'No pudimos guardar «' + name + '» en tus favoritos. Vuelve a intentarlo.'
@@ -335,8 +354,8 @@
 	}
 
 	function announceResult(buttons, added) {
-		var name = buttons.length ? buttons[0].getAttribute('data-name') : null;
-		var tpl = added ? cfg.labels.announceAdded : cfg.labels.announceRemoved;
+		const name = buttons.length ? buttons[0].getAttribute('data-name') : null;
+		const tpl = added ? cfg.labels.announceAdded : cfg.labels.announceRemoved;
 		if (name && tpl) {
 			announce(tpl.replace('%s', name));
 			return;
@@ -344,33 +363,70 @@
 		announce(added ? (cfg.labels.announceAddedGeneric || 'Guardado en favoritos') : (cfg.labels.announceRemovedGeneric || 'Quitado de favoritos'));
 	}
 
-	// Actualiza el lead "X productos guardados" en /mi-cuenta/favoritos/.
-	// Sin esto, el texto queda stale tras quitar un item (bug visual).
+	// Actualiza el lead "X productos guardados" en /mi-cuenta/favoritos/ sin
+	// destruir el aviso secundario `.akb-wl-grid__nota`, y sincroniza los
+	// contadores de las pestañas de filtrado rápido.
 	function updateLeadCount(count) {
 		if (count === null) {
 			return;
 		}
-		var lead = document.querySelector('.akb-wl-grid__lead');
-		if (!lead) {
-			return;
+		const text = count === 1 ? '1 producto guardado' : count + ' productos guardados';
+		const leadCount = document.querySelector('.akb-wl-grid__lead-count');
+		if (leadCount) {
+			leadCount.textContent = text;
+		} else {
+			const lead = document.querySelector('.akb-wl-grid__lead');
+			if (lead) {
+				const nota = lead.querySelector('.akb-wl-grid__nota');
+				lead.textContent = text;
+				if (nota) {
+					lead.appendChild(document.createTextNode(' '));
+					lead.appendChild(nota);
+				}
+			}
 		}
-		lead.textContent = count === 1 ? '1 producto guardado' : count + ' productos guardados';
+		const allTab = document.querySelector('.akb-wl-filter-tab[data-wl-filter="all"]');
+		if (allTab) {
+			allTab.textContent = 'Todos (' + count + ')';
+		}
+	}
+
+	function updateFilterTabCounts() {
+		const activeCards = document.querySelectorAll('.akb-wl-grid .product:not(.is-removing)');
+		let instockCount = 0;
+		let outofstockCount = 0;
+		activeCards.forEach(function (c) {
+			if (c.classList.contains('instock')) {
+				instockCount++;
+			} else {
+				outofstockCount++;
+			}
+		});
+		const instockTab = document.querySelector('.akb-wl-filter-tab[data-wl-filter="instock"]');
+		if (instockTab && instockTab.textContent.indexOf('(') !== -1) {
+			instockTab.textContent = '🟢 En Bodega · Entrega Inmediata (' + instockCount + ')';
+		}
+		const outTab = document.querySelector('.akb-wl-filter-tab[data-wl-filter="outofstock"]');
+		if (outTab && outTab.textContent.indexOf('(') !== -1) {
+			outTab.textContent = '🔴 Agotados (' + outofstockCount + ')';
+		}
 	}
 
 	// Animar fade-out y desplazamiento antes de retirar la tarjeta; recargar tras la última para
 	// mostrar el estado vacío. Si contiene el foco, moverlo antes al corazón siguiente, anterior o
 	// al lead, siguiendo restorePoint de native-cart.js.
 	function removeCardAnimated(card) {
-		var hadFocus = card.contains(document.activeElement);
+		const hadFocus = card.ownerDocument ? card.contains( card.ownerDocument.activeElement ) : false; // eslint-disable-line @wordpress/no-global-active-element
 		card.classList.add('is-removing');
-		var siblings = document.querySelectorAll('.akb-wl-grid .product:not(.is-removing)');
-		var remaining = siblings.length;
+		updateFilterTabCounts();
+		const siblings = document.querySelectorAll('.akb-wl-grid .product:not(.is-removing)');
+		const remaining = siblings.length;
 		if (hadFocus) {
-			var fallback = null;
+			let fallback = null;
 			if (remaining > 0) {
-				var cards = Array.prototype.slice.call(document.querySelectorAll('.akb-wl-grid .product'));
-				var idx = cards.indexOf(card);
-				var next = cards[idx + 1] || cards[idx - 1] || null;
+				const cards = Array.prototype.slice.call(document.querySelectorAll('.akb-wl-grid .product'));
+				const idx = cards.indexOf(card);
+				const next = cards[idx + 1] || cards[idx - 1] || null;
 				fallback = next ? next.querySelector('.akb-wl-toggle') : null;
 			}
 			if (!fallback) {
@@ -387,12 +443,14 @@
 			card.remove();
 			if (remaining === 0) {
 				window.location.reload();
+			} else {
+				applyActiveFilter();
 			}
 		}, 220); // matched con CSS transition duration
 	}
 
 	function onClick(e) {
-		var btn = e.target.closest('.akb-wl-toggle');
+		const btn = e.target.closest('.akb-wl-toggle');
 		if (!btn) {
 			return;
 		}
@@ -402,7 +460,7 @@
 			e.preventDefault();
 			return;
 		}
-		var productId = parseInt(btn.getAttribute('data-product-id'), 10);
+		const productId = parseInt(btn.getAttribute('data-product-id'), 10);
 		if (!productId) {
 			return;
 		}
@@ -416,7 +474,7 @@
 		// En /mi-cuenta/favoritos/ el botón corazón actúa como toggle "quitar":
 		// al cambiar a estado removed, sacamos la card del DOM para feedback
 		// instantáneo. La página recarga si queda vacía (para mostrar empty state).
-		var onWishlistPage = !!btn.closest('.akb-wl-grid');
+		const onWishlistPage = !!btn.closest('.akb-wl-grid');
 		toggle(productId, onWishlistPage ? btn.closest('.product') : null);
 	}
 
@@ -424,11 +482,11 @@
 		if (!cfg.isLogged) {
 			return;
 		}
-		var productId = takeIntent();
+		const productId = takeIntent();
 		if (!productId) {
 			return;
 		}
-		var buttons = buttonsFor(productId);
+		const buttons = buttonsFor(productId);
 		if (buttons.length && buttons[0].classList.contains('is-saved')) {
 			return;
 		}
@@ -436,10 +494,67 @@
 		toggle(productId, null, false, 'add');
 	}
 
-	var LS_KEY = 'akb_wl_ids';
+	const LS_KEY = 'akb_wl_ids';
+	let promotedFromCache = false;
+
+	function hasActiveSessionCookie() {
+		try {
+			const cookie = typeof document !== 'undefined' && typeof document.cookie === 'string' ? document.cookie : '';
+			return /(?:^|;\s*)(?:akb_owned_gen|wordpress_logged_in_[^=]+)=/.test(cookie);
+		} catch (_e) {
+			return false;
+		}
+	}
 
 	function isUserLoggedIn() {
-		return Boolean(cfg.isLogged || cfg.isLoggedIn);
+		if (cfg.isLogged || cfg.isLoggedIn) {
+			return true;
+		}
+		if (hasActiveSessionCookie()) {
+			cfg.isLogged = true;
+			cfg.isLoggedIn = true;
+			promotedFromCache = true;
+			return true;
+		}
+		return false;
+	}
+
+	function syncRemoteSavedIds(isRetry) {
+		if (!isUserLoggedIn() || typeof fetch !== 'function' || !cfg.ajaxUrl) {
+			return;
+		}
+		const body = new URLSearchParams();
+		body.set('action', 'akb_wishlist_toggle');
+		body.set('nonce', cfg.nonce || '');
+		body.set('product_id', '0');
+		body.set('intent', 'sync');
+
+		fetch(cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: body.toString(),
+		})
+			.then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, json: j }; }); })
+			.then(function (res) {
+				if (res.status === 403 && !isRetry && adoptNonce(res.json)) {
+					syncRemoteSavedIds(true);
+					return;
+				}
+				if (!res.ok || !res.json || !res.json.success || !res.json.data) {
+					return;
+				}
+				const ids = Array.isArray(res.json.data.saved_ids) ? res.json.data.saved_ids : [];
+				const set = {};
+				for (let i = 0; i < ids.length; i++) {
+					// eslint-disable-next-line security/detect-object-injection
+					set[ids[i]] = true;
+				}
+				saveSavedSet(set);
+				syncDomFromSavedSet();
+				resumePendingIntent();
+			})
+			.catch(function () {});
 	}
 
 	function getSavedSet() {
@@ -448,25 +563,26 @@
 				if (typeof window !== 'undefined' && window.localStorage) {
 					window.localStorage.removeItem(LS_KEY);
 				}
-			} catch (e) {}
+			} catch (_e) {}
 			return null;
 		}
 		try {
 			if (typeof window === 'undefined' || !window.localStorage) {
 				return null;
 			}
-			var raw = window.localStorage.getItem(LS_KEY);
+			const raw = window.localStorage.getItem(LS_KEY);
 			if (raw) {
-				var arr = JSON.parse(raw);
+				const arr = JSON.parse(raw);
 				if (Array.isArray(arr)) {
-					var set = {};
-					for (var i = 0; i < arr.length; i++) {
+					const set = {};
+					for (let i = 0; i < arr.length; i++) {
+						// eslint-disable-next-line security/detect-object-injection
 						set[arr[i]] = true;
 					}
 					return set;
 				}
 			}
-		} catch (e) {}
+		} catch (_e) {}
 		return null;
 	}
 
@@ -476,16 +592,16 @@
 				if (typeof window !== 'undefined' && window.localStorage) {
 					window.localStorage.removeItem(LS_KEY);
 				}
-			} catch (e) {}
+			} catch (_e) {}
 			return;
 		}
 		try {
 			if (typeof window === 'undefined' || !window.localStorage) {
 				return;
 			}
-			var arr = Object.keys(set).map(function (k) { return parseInt(k, 10); });
+			const arr = Object.keys(set).map(function (k) { return parseInt(k, 10); });
 			window.localStorage.setItem(LS_KEY, JSON.stringify(arr));
-		} catch (e) {}
+		} catch (_e) {}
 	}
 
 	function syncDomFromSavedSet() {
@@ -494,85 +610,104 @@
 				if (typeof window !== 'undefined' && window.localStorage) {
 					window.localStorage.removeItem(LS_KEY);
 				}
-			} catch (e) {}
+			} catch (_e) {}
 			return;
 		}
-		var set = getSavedSet();
+		const set = getSavedSet();
 		if (!set) {
 			return;
 		}
-		var allButtons = document.querySelectorAll('.akb-wl-toggle[data-product-id]');
+		const allButtons = document.querySelectorAll('.akb-wl-toggle[data-product-id]');
 		allButtons.forEach(function (btn) {
-			var pid = parseInt(btn.getAttribute('data-product-id'), 10);
+			const pid = parseInt(btn.getAttribute('data-product-id'), 10);
 			if (pid > 0) {
-				var saved = !!set[pid];
+				// eslint-disable-next-line security/detect-object-injection
+				const saved = !!set[pid];
 				setButtonState([btn], saved);
 			}
 		});
-		var count = Object.keys(set).length;
-		var badges = document.querySelectorAll('[data-akb-wishlist-count]');
+		const count = Object.keys(set).length;
+		const badges = document.querySelectorAll('[data-akb-wishlist-count]');
 		badges.forEach(function (badge) {
 			badge.setAttribute('data-akb-wishlist-count', String(count));
 			badge.textContent = String(count);
 		});
 	}
 
-	function onFilterTabClick(e) {
-		var tab = e.target.closest('.akb-wl-filter-tab');
-		if (!tab) {
-			return;
-		}
-		e.preventDefault();
-		var filter = tab.getAttribute('data-wl-filter') || 'all';
-		var tabs = document.querySelectorAll('.akb-wl-filter-tab');
-		tabs.forEach(function (t) { t.classList.toggle('is-active', t.getAttribute('data-wl-filter') === filter); });
+	function applyFilter(filter) {
+		const normalized = filter || 'all';
+		const tabs = document.querySelectorAll('.akb-wl-filter-tab');
+		tabs.forEach(function (t) {
+			const tabFilter = t.getAttribute('data-wl-filter') || 'all';
+			const isMatch = tabFilter === normalized || (normalized === 'outofstock' && tabFilter === 'other') || (normalized === 'other' && tabFilter === 'outofstock');
+			t.classList.toggle('is-active', isMatch);
+			t.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+		});
 
-		var cards = document.querySelectorAll('.akb-wl-grid .product');
-		var visibleCount = 0;
+		const cards = document.querySelectorAll('.akb-wl-grid .product:not(.is-removing)');
+		let visibleCount = 0;
 		cards.forEach(function (card) {
-			if (filter === 'all') {
+			if (normalized === 'all') {
 				card.style.display = '';
 				visibleCount++;
-			} else if (filter === 'instock') {
-				var match = card.classList.contains('instock');
+			} else if (normalized === 'instock') {
+				const match = card.classList.contains('instock');
 				card.style.display = match ? '' : 'none';
 				if (match) visibleCount++;
-			} else if (filter === 'other') {
-				var match = !card.classList.contains('instock');
-				card.style.display = match ? '' : 'none';
-				if (match) visibleCount++;
+			} else if (normalized === 'outofstock' || normalized === 'other') {
+				const matchOut = !card.classList.contains('instock');
+				card.style.display = matchOut ? '' : 'none';
+				if (matchOut) visibleCount++;
 			}
 		});
 
-		var emptyMsg = document.querySelector('.akb-wl-empty-filter');
+		const emptyMsg = document.querySelector('.akb-wl-empty-filter');
 		if (emptyMsg) {
 			emptyMsg.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
 		}
 	}
 
+	function applyActiveFilter() {
+		const activeTab = document.querySelector('.akb-wl-filter-tab.is-active');
+		const currentFilter = activeTab ? (activeTab.getAttribute('data-wl-filter') || 'all') : 'all';
+		applyFilter(currentFilter);
+	}
+
+	function onFilterTabClick(e) {
+		const tab = e.target.closest('.akb-wl-filter-tab, .akb-wl-btn-reset[data-wl-filter]');
+		if (!tab) {
+			return;
+		}
+		e.preventDefault();
+		const filter = tab.getAttribute('data-wl-filter') || 'all';
+		applyFilter(filter);
+	}
+
 	function start() {
-		if (isUserLoggedIn() && Array.isArray(cfg.savedIds)) {
-			var initialSet = {};
-			for (var s = 0; s < cfg.savedIds.length; s++) {
+		const logged = isUserLoggedIn();
+		if (logged && Array.isArray(cfg.savedIds) && (!promotedFromCache || cfg.savedIds.length > 0)) {
+			const initialSet = {};
+			for (let s = 0; s < cfg.savedIds.length; s++) {
+				// eslint-disable-next-line security/detect-object-injection
 				initialSet[cfg.savedIds[s]] = true;
 			}
 			saveSavedSet(initialSet);
-		} else if (!isUserLoggedIn()) {
+		} else if (!logged) {
 			try {
 				if (typeof window !== 'undefined' && window.localStorage) {
 					window.localStorage.removeItem(LS_KEY);
 				}
-			} catch (e) {}
+			} catch (_e) {}
 		}
 
 		document.addEventListener('click', onFilterTabClick);
 		document.addEventListener('click', onClick);
 		document.addEventListener('akb:wishlist:change', function (e) {
-			var detail = e.detail || {};
+			const detail = e.detail || {};
 			if (!isUserLoggedIn() || !detail.productId) {
 				return;
 			}
-			var set = getSavedSet() || {};
+			const set = getSavedSet() || {};
 			if (detail.state === 'added') {
 				set[detail.productId] = true;
 			} else if (detail.state === 'removed') {
@@ -582,13 +717,18 @@
 		});
 
 		document.addEventListener('akb:search:swapped', syncDomFromSavedSet);
+		document.addEventListener('akb:pjax', syncDomFromSavedSet);
 		if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
 			window.addEventListener('pageshow', syncDomFromSavedSet);
 		}
 
 		loadGuestStyle();
-		resumePendingIntent();
-		syncDomFromSavedSet();
+		if (promotedFromCache && !getSavedSet()) {
+			syncRemoteSavedIds(false);
+		} else {
+			resumePendingIntent();
+			syncDomFromSavedSet();
+		}
 	}
 
 	if (document.readyState === 'loading') {

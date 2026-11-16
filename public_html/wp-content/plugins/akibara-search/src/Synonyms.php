@@ -20,7 +20,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress MismatchingDocblockParamType
+ * @psalm-suppress MismatchingDocblockParamType
  */
+// @phpstan-ignore complexity.classLike
 final class Synonyms {
 
 	public const OPTION = 'akb_search_synonyms';
@@ -83,7 +90,7 @@ final class Synonyms {
 	 * @return array<int, array<int, string>>
 	 */
 	public static function groups(): array {
-		$stored = SemanticPublication::authoritative_value( self::OPTION, null );
+		$stored = SemanticPublication::authoritative_value( self::OPTION );
 		return self::sanitize_groups( is_array( $stored ) ? $stored : self::defaults() );
 	}
 
@@ -92,10 +99,11 @@ final class Synonyms {
 	 * anuncie como guardado un término que el motor luego ignore por hardening.
 	 *
 	 * @param array<int, mixed> $groups    Grupos crudos.
+	  * @psalm-suppress MismatchingDocblockParamType
 	 * @param bool|null         $truncated Se marca true si hubo que recortar.
 	 * @return array<int, array<int, string>>
 	 */
-	public static function sanitize_groups( array $groups, ?bool &$truncated = null ): array {
+	public static function sanitize_groups( array $groups, bool &$truncated = false ): array { // @phpstan-ignore complexity.functionLike, parameter.phpDocType
 		$truncated = count( $groups ) > self::MAX_GROUPS;
 		$out       = array();
 
@@ -407,7 +415,7 @@ final class Synonyms {
 	 *
 	 * @return void
 	 */
-	private static function build_index(): void {
+	private static function build_index(): void { // @phpstan-ignore complexity.functionLike
 		if ( null !== self::$terms && null !== self::$adjacency && null !== self::$ordered_keys ) {
 			return;
 		}

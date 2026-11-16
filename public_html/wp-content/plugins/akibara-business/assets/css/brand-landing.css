@@ -66,11 +66,13 @@
 }
 
 .akb-edition-switch__item:not([aria-current]) {
+
 	/* La otra edición es LA acción (la pregunta del dueño): borde rojo y flecha. */
 	border-color: var(--aki-red, #e60012);
 }
 
 .akb-edition-switch__item[aria-current="page"] {
+
 	/* Donde ya estás: la misma ficha «seleccionada» que usan los filtros de series. */
 	color: var(--aki-black, #121212);
 	background: var(--aki-white, #fff);
@@ -79,15 +81,17 @@
 }
 
 .akb-edition-switch__go {
-	color: var(--aki-red-bright, #ff0a1d);
+	color: var(--aki-red-text, #ff4756);
 	font-weight: var(--weight-bold, 700);
 }
 
 .akb-edition-switch__badge {
 	padding: 1px 6px;
-	border: 1px solid currentColor;
+	border: 1px solid currentcolor;
 	font-family: var(--font-heading);
 	font-size: var(--text-xs, 0.75rem);
+	font-weight: 400;
+	font-synthesis: none;
 	letter-spacing: 0.08em;
 }
 
@@ -113,6 +117,7 @@
 }
 
 @media (hover: hover) {
+
 	.akb-edition-switch__item:not([aria-current]):hover {
 		background: var(--aki-red, #e60012);
 		border-color: var(--aki-red, #e60012);
@@ -136,6 +141,7 @@
 }
 
 @media (max-width: 600px) {
+
 	.akb-edition-switch {
 		flex-direction: column;
 		align-items: stretch;
@@ -144,6 +150,7 @@
 
 	.akb-edition-switch__list {
 		display: grid;
+
 		/*
 		 * minmax(0,1fr) permite que el texto largo reduzca su columna sin alterar la igualdad de ancho
 		 * entre fichas.
@@ -152,6 +159,7 @@
 	}
 
 	.akb-edition-switch__item {
+
 		/* La ficha llena su celda (el enlace era inline-flex y medía por su
 		 * contenido: 176/149 px en celdas de 169) y baja el padding para que
 		 * «AR Argentina 855 productos» quepa en una línea. */
@@ -169,6 +177,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-edition-switch__item {
 		transition: none;
 	}

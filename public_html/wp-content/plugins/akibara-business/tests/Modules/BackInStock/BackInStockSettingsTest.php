@@ -71,26 +71,15 @@ final class BackInStockSettingsTest extends TestCase {
 
 		self::assertContains( BackInStock::OPTION_CAPTURE, $ids );
 		self::assertContains( BackInStock::OPTION_DISPATCH, $ids );
-		self::assertContains( BackInStock::OPTION_NOTIFY_BACKORDER, $ids );
 		self::assertSame( 'checkbox', $types[ BackInStock::OPTION_CAPTURE ] );
 		self::assertSame( 'checkbox', $types[ BackInStock::OPTION_DISPATCH ] );
-		self::assertSame( 'checkbox', $types[ BackInStock::OPTION_NOTIFY_BACKORDER ] );
 		self::assertSame( 'akb_bis_demand', $types['akb_bis_demand'] );
 		self::assertFalse( $settings[ array_search( 'akb_bis_demand', $ids, true ) ]['is_option'] );
 	}
 
-	public function test_notify_on_backorder_defaults_to_enabled_and_respects_no(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $key, $default = false ) => $default
-		);
-		self::assertTrue( BackInStock::notify_on_backorder_enabled() );
-		self::assertTrue( BackInStock::is_notifiable_status( 'onbackorder' ) );
-
-		Functions\when( 'get_option' )->alias(
-			static fn( string $key, $default = false ) => BackInStock::OPTION_NOTIFY_BACKORDER === $key ? 'no' : $default
-		);
-		self::assertFalse( BackInStock::notify_on_backorder_enabled() );
+	public function test_only_instock_is_notifiable_status(): void {
 		self::assertFalse( BackInStock::is_notifiable_status( 'onbackorder' ) );
+		self::assertFalse( BackInStock::is_notifiable_status( 'outofstock' ) );
 		self::assertTrue( BackInStock::is_notifiable_status( 'instock' ) );
 	}
 

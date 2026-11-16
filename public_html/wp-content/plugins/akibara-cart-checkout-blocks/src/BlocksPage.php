@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Resolves whether the current WooCommerce page uses the Cart or Checkout Block.
  *
  * @since 2.0.0
+ * @api
  */
 final class BlocksPage {
 

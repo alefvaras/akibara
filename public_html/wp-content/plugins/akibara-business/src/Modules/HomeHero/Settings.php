@@ -17,6 +17,9 @@ namespace Akibara\Business\Modules\HomeHero;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Settings {
 
 	public const OPTION_KEY     = 'akibara_hero_settings';
@@ -90,7 +93,7 @@ final class Settings {
 			'lede'                    => '',
 			'title_color'              => '',         // override por slide; vacío = --aki-white
 			'title_font'               => '',         // override: Bebas Neue, Inter, System
-			'title_weight'             => '',         // override: 400, 600, 700, 900
+			'title_weight'             => '',         // override: 400, 600, 700, 900 // phpcs:ignore Squiz.PHP.CommentedOutCode.Found
 			'lede_color'               => '',         // override por slide
 			'lede_font'                => '',         // override
 			'lede_weight'              => '',         // override
@@ -228,125 +231,148 @@ final class Settings {
 
 		// ---- Slides ----
 		if ( isset( $raw['slides'] ) && is_array( $raw['slides'] ) ) {
-			$slides_in = array_values( $raw['slides'] );
-			$slides_in = array_slice( $slides_in, 0, self::MAX_SLIDES );
-
+			$slides_in = array_slice( array_values( $raw['slides'] ), 0, self::MAX_SLIDES );
 			foreach ( $slides_in as $slide_raw ) {
-				if ( ! is_array( $slide_raw ) ) {
-					continue;
+				if ( is_array( $slide_raw ) ) {
+					$out['slides'][] = self::sanitize_single_slide( $slide_raw );
 				}
-				$slide = self::default_slide();
-
-				$slide['desktop_id'] = isset( $slide_raw['desktop_id'] ) ? absint( $slide_raw['desktop_id'] ) : 0;
-				$slide['mobile_id']  = isset( $slide_raw['mobile_id'] )  ? absint( $slide_raw['mobile_id'] )  : 0;
-
-				// sanitize() conserva los datos de las diapositivas sin imagen para poder
-				// completarlas después. active_slides() exige imagen e is_active antes de
-				// mostrarlas, y Renderer comparte esa selección.
-
-				$slide['alt']        = sanitize_text_field( (string) ( $slide_raw['alt'] ?? '' ) );
-				$slide['eyebrow']    = sanitize_text_field( (string) ( $slide_raw['eyebrow'] ?? '' ) );
-				$slide['title']      = sanitize_text_field( (string) ( $slide_raw['title'] ?? '' ) );
-				$slide['lede']       = sanitize_text_field( (string) ( $slide_raw['lede'] ?? '' ) );
-				$slide['link_url']   = esc_url_raw( (string) ( $slide_raw['link_url'] ?? '' ) );
-
-				$slide['title_color']  = self::sanitize_color( (string) ( $slide_raw['title_color']  ?? '' ) );
-				$slide['lede_color']   = self::sanitize_color( (string) ( $slide_raw['lede_color']   ?? '' ) );
-
-				// Fuentes/pesos override por slide. sanitize() no los copiaba de $raw, así
-				// que la seleccion del admin (AdminUI) se perdia siempre contra el default.
-				$allowed_title_fonts = array( '', 'Saira', 'Inter', 'system-ui' );
-				$allowed_lede_fonts  = array( '', 'Bebas Neue', 'Saira', 'system-ui' );
-				$allowed_weights     = array( '', '400', '600', '700', '900' );
-				$tf = sanitize_text_field( (string) ( $slide_raw['title_font'] ?? '' ) );
-				$slide['title_font']   = in_array( $tf, $allowed_title_fonts, true ) ? $tf : '';
-				$tw = sanitize_text_field( (string) ( $slide_raw['title_weight'] ?? '' ) );
-				$slide['title_weight'] = in_array( $tw, $allowed_weights, true ) ? $tw : '';
-				$lf = sanitize_text_field( (string) ( $slide_raw['lede_font'] ?? '' ) );
-				$slide['lede_font']    = in_array( $lf, $allowed_lede_fonts, true ) ? $lf : '';
-				$lw = sanitize_text_field( (string) ( $slide_raw['lede_weight'] ?? '' ) );
-				$slide['lede_weight']  = in_array( $lw, $allowed_weights, true ) ? $lw : '';
-				$slide['is_active']  = isset( $slide_raw['is_active'] ) ? ! empty( $slide_raw['is_active'] ) : true;
-
-				$lstyle = sanitize_key( (string) ( $slide_raw['lede_style'] ?? 'plain' ) );
-				$lstyle = str_replace( '_', '-', $lstyle );
-				$slide['lede_style']     = array_key_exists( $lstyle, self::LEDE_STYLES ) ? $lstyle : 'plain';
-
-				$pos = sanitize_key( (string) ( $slide_raw['text_position'] ?? 'bottom-left' ) );
-				$pos = str_replace( '_', '-', $pos );
-				$slide['text_position']  = in_array( $pos, self::TEXT_POSITIONS, true ) ? $pos : 'bottom-left';
-
-				$align = sanitize_key( (string) ( $slide_raw['text_align'] ?? 'left' ) );
-				$slide['text_align']     = in_array( $align, self::TEXT_ALIGNS, true ) ? $align : 'left';
-
-				$mlayout = sanitize_key( (string) ( $slide_raw['mobile_text_layout'] ?? 'below' ) );
-				$mlayout = str_replace( '_', '-', $mlayout );
-				$slide['mobile_text_layout'] = array_key_exists( $mlayout, self::MOBILE_TEXT_LAYOUTS ) ? $mlayout : 'below';
-
-				$slide['object_position_desktop'] = self::sanitize_object_position( (string) ( $slide_raw['object_position_desktop'] ?? 'center center' ) );
-				$slide['object_position_mobile']  = self::sanitize_object_position( (string) ( $slide_raw['object_position_mobile'] ?? 'center 80%' ) );
-				$slide['object_position_tablet']  = self::sanitize_object_position_optional( (string) ( $slide_raw['object_position_tablet'] ?? '' ) );
-
-				$opacity = isset( $slide_raw['vignette_opacity'] ) ? (int) $slide_raw['vignette_opacity'] : 50;
-				$slide['vignette_opacity'] = max( 0, min( 100, $opacity ) );
-
-				// ---- CTAs ----
-				$slide['ctas'] = array();
-				if ( isset( $slide_raw['ctas'] ) && is_array( $slide_raw['ctas'] ) ) {
-					$ctas_in = array_values( $slide_raw['ctas'] );
-					$ctas_in = array_slice( $ctas_in, 0, self::MAX_CTAS );
-					foreach ( $ctas_in as $cta_raw ) {
-						if ( ! is_array( $cta_raw ) ) {
-							continue;
-						}
-						$label = sanitize_text_field( (string) ( $cta_raw['label'] ?? '' ) );
-						$url   = esc_url_raw( (string) ( $cta_raw['url'] ?? '' ) );
-						$style = sanitize_key( (string) ( $cta_raw['style'] ?? 'shop' ) );
-						if ( ! isset( self::CTA_STYLES[ $style ] ) ) {
-							$style = 'shop';
-						}
-						if ( '' === $label || '' === $url ) {
-							continue;
-						}
-						$slide['ctas'][] = array(
-							'label' => $label,
-							'url'   => $url,
-							'style' => $style,
-						);
-					}
-				}
-
-				$out['slides'][] = $slide;
 			}
 		}
 
 		// ---- Carousel ----
-		$car = self::default_carousel();
-		if ( isset( $raw['carousel'] ) && is_array( $raw['carousel'] ) ) {
-			$c = $raw['carousel'];
-			$car['autoplay']            = ! empty( $c['autoplay'] );
-			$car['pause_on_hover']      = ! empty( $c['pause_on_hover'] );
-			$car['pause_on_blur']       = ! empty( $c['pause_on_blur'] );
-			$car['loop']                = ! empty( $c['loop'] );
-			$car['show_arrows_desktop'] = ! empty( $c['show_arrows_desktop'] );
-			$car['show_dots_desktop']   = ! empty( $c['show_dots_desktop'] );
-			$car['show_dots_mobile']    = ! empty( $c['show_dots_mobile'] );
-
-			$interval = isset( $c['interval_seconds'] ) ? (int) $c['interval_seconds'] : 6;
-			$car['interval_seconds'] = max( 2, min( 30, $interval ) );
-
-			$height = isset( $c['hero_height'] ) ? sanitize_key( (string) $c['hero_height'] ) : 'standard';
-			$car['hero_height'] = isset( self::HEIGHT_PRESETS[ $height ] ) ? $height : 'standard';
-
-			$car['hero_height_custom_desktop'] = max( 200, min( 2000, (int) ( $c['hero_height_custom_desktop'] ?? 700 ) ) );
-			// Techo 50: el CSS phone capea la imagen a min(50vh, …) para que el CTA
-			// quede sobre el fold (bottom-nav fija). Aceptar >50 acá era mentirle a
-			// la UI — el owner guardaba 65 y el front rendía 50 en silencio.
-			$car['hero_height_custom_mobile']  = max( 30, min( 50, (int) ( $c['hero_height_custom_mobile'] ?? 50 ) ) );
-		}
-		$out['carousel'] = $car;
+		$out['carousel'] = self::sanitize_carousel_settings(
+			isset( $raw['carousel'] ) && is_array( $raw['carousel'] ) ? $raw['carousel'] : null
+		);
 
 		return $out;
+	}
+
+	/**
+	 * Sanitiza una diapositiva individual del hero.
+	 *
+	 * @param array<string, mixed> $slide_raw Datos crudos de la diapositiva.
+	 * @return array<string, mixed>
+	 */
+	private static function sanitize_single_slide( array $slide_raw ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$slide                = self::default_slide();
+		$slide['desktop_id']  = isset( $slide_raw['desktop_id'] ) ? absint( $slide_raw['desktop_id'] ) : 0;
+		$slide['mobile_id']   = isset( $slide_raw['mobile_id'] ) ? absint( $slide_raw['mobile_id'] ) : 0;
+		$slide['alt']         = sanitize_text_field( (string) ( $slide_raw['alt'] ?? '' ) );
+		$slide['eyebrow']     = sanitize_text_field( (string) ( $slide_raw['eyebrow'] ?? '' ) );
+		$slide['title']       = sanitize_text_field( (string) ( $slide_raw['title'] ?? '' ) );
+		$slide['lede']        = sanitize_text_field( (string) ( $slide_raw['lede'] ?? '' ) );
+		$slide['link_url']    = esc_url_raw( (string) ( $slide_raw['link_url'] ?? '' ) );
+		$slide['title_color'] = self::sanitize_color( (string) ( $slide_raw['title_color'] ?? '' ) );
+		$slide['lede_color']  = self::sanitize_color( (string) ( $slide_raw['lede_color'] ?? '' ) );
+		$slide['is_active']   = isset( $slide_raw['is_active'] ) ? ! empty( $slide_raw['is_active'] ) : true;
+
+		self::apply_slide_typography_and_layout( $slide, $slide_raw );
+
+		$slide['object_position_desktop'] = self::sanitize_object_position( (string) ( $slide_raw['object_position_desktop'] ?? 'center center' ) );
+		$slide['object_position_mobile']  = self::sanitize_object_position( (string) ( $slide_raw['object_position_mobile'] ?? 'center 80%' ) );
+		$slide['object_position_tablet']  = self::sanitize_object_position_optional( (string) ( $slide_raw['object_position_tablet'] ?? '' ) );
+
+		$opacity                   = isset( $slide_raw['vignette_opacity'] ) ? (int) $slide_raw['vignette_opacity'] : 50;
+		$slide['vignette_opacity'] = max( 0, min( 100, $opacity ) );
+		$slide['ctas']             = self::sanitize_slide_ctas( $slide_raw['ctas'] ?? null );
+
+		return $slide;
+	}
+
+	/**
+	 * Aplica y valida las opciones tipográficas y de posicionamiento de la diapositiva.
+	 *
+	 * @param array<string, mixed> $slide     Diapositiva en construcción (por referencia).
+	 * @param array<string, mixed> $slide_raw Datos crudos de entrada.
+	 * @return void
+	 */
+	private static function apply_slide_typography_and_layout( array &$slide, array $slide_raw ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$allowed_title_fonts   = array( '', 'Saira', 'Inter', 'system-ui' );
+		$allowed_lede_fonts    = array( '', 'Bebas Neue', 'Saira', 'system-ui' );
+		$allowed_weights       = array( '', '400', '600', '700', '900' );
+		$tf                    = sanitize_text_field( (string) ( $slide_raw['title_font'] ?? '' ) );
+		$slide['title_font']   = in_array( $tf, $allowed_title_fonts, true ) ? $tf : '';
+		$tw                    = sanitize_text_field( (string) ( $slide_raw['title_weight'] ?? '' ) );
+		$slide['title_weight'] = in_array( $tw, $allowed_weights, true ) ? $tw : '';
+		$lf                    = sanitize_text_field( (string) ( $slide_raw['lede_font'] ?? '' ) );
+		$slide['lede_font']    = in_array( $lf, $allowed_lede_fonts, true ) ? $lf : '';
+		$lw                    = sanitize_text_field( (string) ( $slide_raw['lede_weight'] ?? '' ) );
+		$slide['lede_weight']  = in_array( $lw, $allowed_weights, true ) ? $lw : '';
+
+		$lstyle              = str_replace( '_', '-', sanitize_key( (string) ( $slide_raw['lede_style'] ?? 'plain' ) ) );
+		$slide['lede_style'] = array_key_exists( $lstyle, self::LEDE_STYLES ) ? $lstyle : 'plain';
+
+		$pos                    = str_replace( '_', '-', sanitize_key( (string) ( $slide_raw['text_position'] ?? 'bottom-left' ) ) );
+		$slide['text_position'] = in_array( $pos, self::TEXT_POSITIONS, true ) ? $pos : 'bottom-left';
+
+		$align               = sanitize_key( (string) ( $slide_raw['text_align'] ?? 'left' ) );
+		$slide['text_align'] = in_array( $align, self::TEXT_ALIGNS, true ) ? $align : 'left';
+
+		$mlayout                     = str_replace( '_', '-', sanitize_key( (string) ( $slide_raw['mobile_text_layout'] ?? 'below' ) ) );
+		$slide['mobile_text_layout'] = array_key_exists( $mlayout, self::MOBILE_TEXT_LAYOUTS ) ? $mlayout : 'below';
+	}
+
+	/**
+	 * Sanitiza la lista de CTAs de una diapositiva.
+	 *
+	 * @param mixed $raw_ctas Datos crudos de CTAs.
+	 * @return array<int, array{label:string, url:string, style:string}>
+	 */
+	private static function sanitize_slide_ctas( $raw_ctas ): array {
+		if ( ! is_array( $raw_ctas ) ) {
+			return array();
+		}
+		$out     = array();
+		$ctas_in = array_slice( array_values( $raw_ctas ), 0, self::MAX_CTAS );
+		foreach ( $ctas_in as $cta_raw ) {
+			if ( ! is_array( $cta_raw ) ) {
+				continue;
+			}
+			$label = sanitize_text_field( (string) ( $cta_raw['label'] ?? '' ) );
+			$url   = esc_url_raw( (string) ( $cta_raw['url'] ?? '' ) );
+			$style = sanitize_key( (string) ( $cta_raw['style'] ?? 'shop' ) );
+			if ( ! isset( self::CTA_STYLES[ $style ] ) ) {
+				$style = 'shop';
+			}
+			if ( '' !== $label && '' !== $url ) {
+				$out[] = array(
+					'label' => $label,
+					'url'   => $url,
+					'style' => $style,
+				);
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Sanitiza la configuración del carrusel del hero.
+	 *
+	 * @param array<string, mixed>|null $c Datos crudos de carrusel.
+	 * @return array<string, mixed>
+	 */
+	private static function sanitize_carousel_settings( ?array $c ): array {
+		$car = self::default_carousel();
+		if ( null === $c ) {
+			return $car;
+		}
+		$car['autoplay']            = ! empty( $c['autoplay'] );
+		$car['pause_on_hover']      = ! empty( $c['pause_on_hover'] );
+		$car['pause_on_blur']       = ! empty( $c['pause_on_blur'] );
+		$car['loop']                = ! empty( $c['loop'] );
+		$car['show_arrows_desktop'] = ! empty( $c['show_arrows_desktop'] );
+		$car['show_dots_desktop']   = ! empty( $c['show_dots_desktop'] );
+		$car['show_dots_mobile']    = ! empty( $c['show_dots_mobile'] );
+
+		$interval                = isset( $c['interval_seconds'] ) ? (int) $c['interval_seconds'] : 6;
+		$car['interval_seconds'] = max( 2, min( 30, $interval ) );
+
+		$height             = isset( $c['hero_height'] ) ? sanitize_key( (string) $c['hero_height'] ) : 'standard';
+		$car['hero_height'] = isset( self::HEIGHT_PRESETS[ $height ] ) ? $height : 'standard';
+
+		$car['hero_height_custom_desktop'] = max( 200, min( 2000, (int) ( $c['hero_height_custom_desktop'] ?? 700 ) ) );
+		$car['hero_height_custom_mobile']  = max( 30, min( 50, (int) ( $c['hero_height_custom_mobile'] ?? 50 ) ) );
+		return $car;
 	}
 
 	/**

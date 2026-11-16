@@ -12,7 +12,6 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Tests\Modules\TaxonomyDiscount;
 
 use Akibara\Business\Modules\LoopEnhancer\SaleDiscount;
-use Akibara\Business\Modules\SeriesBundles\VolumeTierResolver;
 use Akibara\Business\Modules\TaxonomyDiscount\TaxonomyDiscount;
 use Akibara\Business\Utilities\DiscountCeiling;
 use Brain\Monkey;
@@ -49,11 +48,10 @@ final class DiscountCeilingSettingsTest extends TestCase {
 	 */
 	public function test_ceiling_defaults_to_the_historic_literal(): void {
 		self::assertSame( 15, DiscountCeiling::pct() );
-		self::assertSame( 15, VolumeTierResolver::pct_max() );
 	}
 
 	/**
-	 * @testdox El tope guardado manda sobre los dos motores de descuento
+	 * @testdox El tope guardado manda sobre el motor de descuento
 	 */
 	public function test_a_saved_ceiling_reaches_both_engines(): void {
 		$this->guardar( DiscountCeiling::OPTION, '25' );
@@ -65,31 +63,6 @@ final class DiscountCeilingSettingsTest extends TestCase {
 		self::assertFalse(
 			has_filter( 'akibara_taxonomy_discount_max_pct' ),
 			'El filtro debe quedar libre para overrides de terceros: un provider con get_option() rompe los lectores autoritativos.'
-		);
-
-		// Motor 2 (Arma tu pack): un tramo al 25% deja de ser inválido.
-		self::assertSame( 25, VolumeTierResolver::pct_max() );
-		self::assertTrue(
-			( new VolumeTierResolver() )->normalize_tiers(
-				array( array( 'min' => 5, 'pct' => 25 ) )
-			)->is_ok()
-		);
-	}
-
-	/**
-	 * @testdox Bajar el tope invalida los tramos que lo superan y lo dice con el número nuevo
-	 */
-	public function test_lowering_the_ceiling_rejects_tiers_above_it(): void {
-		$this->guardar( DiscountCeiling::OPTION, '8' );
-
-		$resultado = ( new VolumeTierResolver() )->normalize_tiers(
-			array( array( 'min' => 5, 'pct' => 10 ) )
-		);
-
-		self::assertFalse( $resultado->is_ok() );
-		self::assertSame(
-			'El porcentaje de cada tramo debe ser un entero entre 0 y 8',
-			$resultado->message()
 		);
 	}
 

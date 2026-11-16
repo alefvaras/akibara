@@ -59,6 +59,12 @@ final class CampaignExpiryCronTest extends TestCase {
 				return true;
 			}
 		);
+		Functions\when( 'delete_transient' )->alias(
+			function ( string $key ): bool {
+				unset( $this->transients[ $key ] );
+				return true;
+			}
+		);
 		// El registro se captura por REFERENCIA: una arrow function lo copiaría
 		// por valor al crear la closure y las líneas escritas se perderían.
 		$registro = &$this->registro;

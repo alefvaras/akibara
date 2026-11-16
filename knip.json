@@ -1,0 +1,38 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "public_html/wp-content/plugins/akibara-*/assets/js/**/*.js",
+    "public_html/wp-content/themes/akibara-*/assets/js/**/*.js"
+  ],
+  "project": [
+    "public_html/wp-content/plugins/akibara-*/assets/js/**/*.js",
+    "public_html/wp-content/themes/akibara-*/assets/js/**/*.js"
+  ],
+  "ignore": [
+    "**/vendor/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "tools/**",
+    "public_html/wp-content/plugins/woocommerce/**",
+    "public_html/wp-content/plugins/litespeed-cache/**"
+  ],
+  "ignoreDependencies": [
+    "@woocommerce/*",
+    "@wordpress/*",
+    "jquery",
+    "react",
+    "playwright",
+    "@playwright/*"
+  ],
+  "ignoreBinaries": [
+    "composer",
+    "opengrep",
+    "sqlfluff",
+    "bash",
+    "node"
+  ],
+  "rules": {
+    "devDependencies": "off"
+  }
+}

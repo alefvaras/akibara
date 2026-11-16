@@ -221,21 +221,6 @@ final class ContactoLogTest extends TestCase {
 	}
 
 	/**
-	 * @testdox La bitácora vieja se reparte en filas en vez de perderse.
-	 */
-	public function test_the_legacy_single_option_is_migrated(): void {
-		$this->options['akb_contacto_log'] = array(
-			array( 'id' => 'viejo-1', 'time' => 10, 'nombre' => 'Ana', 'email' => 'a@b.cl', 'mensaje' => 'Antiguo', 'mailed' => false ),
-		);
-
-		$entradas = ContactoLog::all();
-
-		self::assertSame( array( 'Antiguo' ), array_column( $entradas, 'mensaje' ) );
-		self::assertArrayNotHasKey( 'akb_contacto_log', $this->options, 'La option vieja se retira tras repartirse.' );
-		self::assertArrayHasKey( ContactoLog::OPTION_PREFIX . 'viejo-1', $this->options );
-	}
-
-	/**
 	 * @testdox Cada mensaje vive en su propia fila y ninguna se autocarga.
 	 */
 	public function test_each_message_is_its_own_non_autoloaded_row(): void {

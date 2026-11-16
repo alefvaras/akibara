@@ -1,0 +1,865 @@
+{
+  "schema_version": 2,
+  "contract": "akibara-search-production-release",
+  "release_id": "akibara-search-0.1.14",
+  "seal_state": "sealed",
+  "sealed_at_utc": "2026-08-07T18:10:00Z",
+  "promotion_sequence": [
+    "docker-local-paired",
+    "production-ui-paired"
+  ],
+  "exclusive_targets": [
+    "public_html/wp-content/plugins/akibara-business",
+    "public_html/wp-content/plugins/akibara-search"
+  ],
+  "change_summary": {
+    "scope": "P0 — protocolo durable de indexación y recuperación de Akibara Search",
+    "highlights": [
+      "outbox durable y fencing de escrituras live",
+      "rebuild reanudable y cobertura exacta antes del swap",
+      "gracia de migración de 300 segundos preservada ante señales funcionales coalescidas",
+      "recuperación fail-closed ante topología o estado ambiguos",
+      "compatibilidad exacta con Business 1.99.16 y rollback pareado a Business 1.99.10",
+      "QA HTTP, MariaDB y reconciliación conectados a restores Docker aislados sin tocar WordPress ni la DB principal",
+      "fase 2 Theme 2.1.70 enlazada por contrato con handoff MCP exclusivo, cierre integrado y Graphify bloqueado hasta verify-close"
+    ]
+  },
+  "components": {
+    "search": {
+      "kind": "plugin",
+      "slug": "akibara-search",
+      "source_root": "public_html/wp-content/plugins/akibara-search",
+      "packager": "tools/akibara-releases/package-runtime.sh",
+      "packager_sha256": "ff8e90a40d12af20f235213fce6297217ae02d05759c52182331e74db07b5483",
+      "preimage": {
+        "version": "0.1.12",
+        "archive": "dist/akibara-search-0.1.12.zip",
+        "archive_sha256": "f895860899137189f997f75e0e1ca5b0d3939ca76d290ad4e6a078c30230a702",
+        "inventory": "dist/akibara-search-0.1.12.files.sha256",
+        "inventory_sha256": "71b4193c9156cbe8c5b6e4e85ad194c4923ee3f3e376cc2c34037e91025f86ef",
+        "runtime_files": 45
+      },
+      "remote_baseline": {
+        "version": "0.1.12",
+        "inventory_sha256": "71b4193c9156cbe8c5b6e4e85ad194c4923ee3f3e376cc2c34037e91025f86ef",
+        "runtime_files": 45
+      },
+      "candidate": {
+        "version": "0.1.14",
+        "archive": "dist/akibara-search-0.1.14.zip",
+        "archive_sha256": "a1e20d0a7e08a38523592d7790debe5ea4b6bfb33d135c83b2f36c312b7a1797",
+        "inventory": "dist/akibara-search-0.1.14.files.sha256",
+        "inventory_sha256": "36ca529ec90b5545ff4994e07bcb54b90f3aab895647b495b0555c280d2c7695",
+        "runtime_files": 50
+      },
+      "modified_runtime_files": [
+        "akibara-search/akibara-search.php",
+        "akibara-search/frontend/facets-render.php",
+        "akibara-search/src/Cli.php",
+        "akibara-search/src/DocumentBuilder.php",
+        "akibara-search/src/FacetQueryIntegration.php",
+        "akibara-search/src/FacetRegistry.php",
+        "akibara-search/src/FacetService.php",
+        "akibara-search/src/Fuzzy.php",
+        "akibara-search/src/HealthReport.php",
+        "akibara-search/src/Indexer.php",
+        "akibara-search/src/Install.php",
+        "akibara-search/src/Novedad.php",
+        "akibara-search/src/PopularQueries.php",
+        "akibara-search/src/PriceBuckets.php",
+        "akibara-search/src/ProductPresenter.php",
+        "akibara-search/src/QueryEngine.php",
+        "akibara-search/src/RebuildJob.php",
+        "akibara-search/src/Reconciler.php",
+        "akibara-search/src/Search.php",
+        "akibara-search/src/SearchAdminSection.php",
+        "akibara-search/src/StockLabels.php",
+        "akibara-search/src/Stopwords.php",
+        "akibara-search/src/SuggestController.php",
+        "akibara-search/src/Support/RateLimit.php",
+        "akibara-search/src/Support/RestCache.php",
+        "akibara-search/src/Synonyms.php",
+        "akibara-search/uninstall.php"
+      ],
+      "added_runtime_files": [
+        "akibara-search/src/EditorialDiscountPublication.php",
+        "akibara-search/src/ProductSourceAuthority.php",
+        "akibara-search/src/SemanticPublication.php",
+        "akibara-search/src/WorkRepository.php",
+        "akibara-search/src/WriteFence.php"
+      ],
+      "removed_runtime_files": [],
+      "source_inputs": [
+        {
+          "path": "akibara-search/akibara-search.php",
+          "sha256": "d0b5cb4851e343834fbf5e595954628144898493690c98be47e2323fddceb19e"
+        },
+        {
+          "path": "akibara-search/frontend/facets-render.php",
+          "sha256": "3c7ac89ba357b33aabad8617ad0553604ff4a6299e1ffa9a82855964ac051913"
+        },
+        {
+          "path": "akibara-search/src/Cli.php",
+          "sha256": "07c11e4f3225953de4a7deda478a68070715c7f2b5f7ba479b7a699126617363"
+        },
+        {
+          "path": "akibara-search/src/DocumentBuilder.php",
+          "sha256": "a6a6edcd7c53256728c5ddeeba74816723fa4e1e87b3a2eb0a2de49785a75651"
+        },
+        {
+          "path": "akibara-search/src/EditorialDiscountPublication.php",
+          "sha256": "2f725afc7fbf3e98e1c92c45b680dc30a2d6d00469cb26074c9b454f9e47a2ba"
+        },
+        {
+          "path": "akibara-search/src/FacetQueryIntegration.php",
+          "sha256": "a2da4714acc46e68c70e2ccd64864427fd035d1988e57902db095195f47700dc"
+        },
+        {
+          "path": "akibara-search/src/FacetRegistry.php",
+          "sha256": "808a46f5dc428d6b01e6dbbf382eb021c052336d5bace6d345990d44a13d5c31"
+        },
+        {
+          "path": "akibara-search/src/FacetService.php",
+          "sha256": "adf4295b6fbacd8f8e800bcc35ebf557e0ad5d39ed0199ccb38e8b9f21a5025d"
+        },
+        {
+          "path": "akibara-search/src/Fuzzy.php",
+          "sha256": "2aa5427afa661f5052bbf498c6fcb36978e8e00fd909fb0075164071d604eecb"
+        },
+        {
+          "path": "akibara-search/src/HealthReport.php",
+          "sha256": "407803ea4f53244f0654c50f76f59b9086d74a85b56d621af5f8e6363ca4a23e"
+        },
+        {
+          "path": "akibara-search/src/Indexer.php",
+          "sha256": "232ff50cdb305a601a0efeaf1f103677c87cc0e6a84affaa973e43a303629eb6"
+        },
+        {
+          "path": "akibara-search/src/Install.php",
+          "sha256": "5709d9652e7271694ad42855248180474c7263f8d7329d5b6a136c1fea56c4bf"
+        },
+        {
+          "path": "akibara-search/src/Novedad.php",
+          "sha256": "317e8d6bf8397d514ce8676441fc73955971fd10047734b68805f8c89a3b7ab9"
+        },
+        {
+          "path": "akibara-search/src/PopularQueries.php",
+          "sha256": "f2b8329c0f3503fe0cf8d07b1db5abdae4938ce450e5b2408d5942901160d381"
+        },
+        {
+          "path": "akibara-search/src/PriceBuckets.php",
+          "sha256": "2e7750feb16cabeb653b3a1d69d3b9fc8f1063a94b42880d6845ab17628d0654"
+        },
+        {
+          "path": "akibara-search/src/ProductPresenter.php",
+          "sha256": "a59020e9f92927f2bd28882af8d7a4284d825a2aadc6cca717c6364090d93fdd"
+        },
+        {
+          "path": "akibara-search/src/ProductSourceAuthority.php",
+          "sha256": "740b36e444c8adb51e4fce8fb9f35d70759a730e889db52842abb0cdf7fba640"
+        },
+        {
+          "path": "akibara-search/src/QueryEngine.php",
+          "sha256": "784cc25b9f774ec5c8cdcd05156f62f92b778edbb79adae14a582a1c46956214"
+        },
+        {
+          "path": "akibara-search/src/RebuildJob.php",
+          "sha256": "c988083e5f10d787d47e8c637fa6ec3904642651caf83ca84685adf3a8f15947"
+        },
+        {
+          "path": "akibara-search/src/Reconciler.php",
+          "sha256": "2fbbd56a0b328155ba946fc48d9b3868bb3bb55c58150d55a3760846d1f8c50b"
+        },
+        {
+          "path": "akibara-search/src/Search.php",
+          "sha256": "0d88707d4b522bf04c219d024d6696eacbb727f415649b2276344f2c7701f808"
+        },
+        {
+          "path": "akibara-search/src/SearchAdminSection.php",
+          "sha256": "a9314a652b65404bed5a78f96c8518a9d4d30a83961643557b82ee19985680b7"
+        },
+        {
+          "path": "akibara-search/src/SemanticPublication.php",
+          "sha256": "c97af98a7111bf1c76912d55b303f84a824f76dd2612663d4923ffe3a932d35b"
+        },
+        {
+          "path": "akibara-search/src/StockLabels.php",
+          "sha256": "d00911bfd1bcc2b5b514b54b65054b51fb8a833dc37b6b2ab3f5a69a6e072796"
+        },
+        {
+          "path": "akibara-search/src/Stopwords.php",
+          "sha256": "58f88866440537ae968e819daab9e186620cc1befed454f4514fe1ce7227757e"
+        },
+        {
+          "path": "akibara-search/src/SuggestController.php",
+          "sha256": "b1ddf658b79b9593448d950671119ec6bc187e7f3841bf541995b922e90172d5"
+        },
+        {
+          "path": "akibara-search/src/Support/RateLimit.php",
+          "sha256": "ede24760cd9e5e70eb018427be4c16996f2cbc8da6cc988d76460b3592b39939"
+        },
+        {
+          "path": "akibara-search/src/Support/RestCache.php",
+          "sha256": "f0f520cf3bcd6ec2fff9baf5bdd6f38722712a7c8cedd9a3d086706e4426ebb0"
+        },
+        {
+          "path": "akibara-search/src/Synonyms.php",
+          "sha256": "bf315e641101eeedcf1644ee64a0ace48f54e596bca1c1953a7a8065ab5cc101"
+        },
+        {
+          "path": "akibara-search/src/WorkRepository.php",
+          "sha256": "c18a37314379de6e3810646d1095a9c1c7385d16042b91039616ca688b8872ed"
+        },
+        {
+          "path": "akibara-search/src/WriteFence.php",
+          "sha256": "d366850cc9dccb6dd09367d9caf1e181a98580efc624bf815bdfc1a01669f4c8"
+        },
+        {
+          "path": "akibara-search/uninstall.php",
+          "sha256": "4c050b05cd970da394b43d8c907304524e94dd23836b3d11974288d5d2837f7c"
+        }
+      ]
+    }
+  },
+  "paired_release": {
+    "required": true,
+    "business_contract": "ops/contracts/akibara-business-1.99.16.json",
+    "business_contract_sha256": "5fae910be216b6e707f37354f6701163afd15addbdf513d0184f744e8003efe0",
+    "candidate": {
+      "business_version": "1.99.16",
+      "search_version": "0.1.14"
+    },
+    "rollback": {
+      "business_version": "1.99.10",
+      "search_version": "0.1.12"
+    },
+    "compatibility_policy": "exact-pair-only",
+    "search_must_be_inactive_during_component_switch": true,
+    "production_transition": {
+      "transport": "wordpress-plugin-ui-with-official-plugin-deploy",
+      "forward": [
+        "deactivate-search-in-wordpress-ui",
+        "deploy-business-1.99.16",
+        "deploy-search-0.1.14-while-inactive",
+        "verify-both-versions-while-search-inactive",
+        "activate-search-in-wordpress-ui"
+      ],
+      "rollback": [
+        "deactivate-search-in-wordpress-ui",
+        "deploy-business-1.99.10",
+        "deploy-search-0.1.12-while-inactive",
+        "verify-both-versions-while-search-inactive",
+        "activate-search-in-wordpress-ui"
+      ],
+      "mixed_midpoints": {
+        "rollback_after_business_deploy": {
+          "business_version": "1.99.10",
+          "search_version": "0.1.14",
+          "search_active": false
+        },
+        "forward_after_business_deploy": {
+          "business_version": "1.99.16",
+          "search_version": "0.1.12",
+          "search_active": false
+        }
+      }
+    }
+  },
+  "integrated_theme_binding": {
+    "required": true,
+    "theme_contract_path": "ops/contracts/akibara-gp-2.1.70.json",
+    "theme_contract_sha256": "181229311dbd5863b4fdf4345461d2e3e0d8a04723e37cf108f0b2a29bf0ba59",
+    "theme_release_id": "akibara-gp-2.1.70",
+    "theme_version": "2.1.70",
+    "theme_archive_sha256": "69c10a7c7842e0f76f91350f76733da957a53d5dc8560342cc37e5a3ccf7e69c",
+    "theme_inventory_sha256": "5efeda6f76c556be5fb209fb922ab74565cb34389f7ae5649348c300bdb3142b",
+    "theme_checksum_sidecar_sha256": "a69a2a1f805746671964f2e507581785f57f26f67c952163ff6d1d114ef78041",
+    "theme_runtime_files": 103,
+    "theme_rollback_version": "2.1.69",
+    "theme_rollback_archive_sha256": "dfbfd1717b5f9e4e6c126ff59cabe10c4d410563819515f9334631ecb63b641b",
+    "theme_rollback_inventory_sha256": "f58dd384851468a6993783ca8da7b59ba7349906f556957d14ea40d4ca448eb2",
+    "theme_rollback_checksum_sidecar_sha256": "17d8ea032896f31bf21603f035473195fb55708914c841524a59c3dba1b6858f",
+    "theme_rollback_runtime_files": 103,
+    "candidate_overlay_required": true,
+    "http_smoke_active_theme_required": true,
+    "node_tests_per_pass": 31,
+    "phpunit_tests_per_pass": 18,
+    "phpunit_assertions_per_pass": 52,
+    "required_passes": 2
+  },
+  "integrated_ai_audit": {
+    "required": true,
+    "schema_version": 3,
+    "engine_path": "tools/akibara-ai-discoverability-audit.mjs",
+    "engine_sha256": "72bdd1d5484146f7e817cf822cc626a80be3819224c76080f6b04b45a8983cf5",
+    "test_path": "tools/test-ai-discoverability-audit.mjs",
+    "test_sha256": "34e2583940bda366cfcc2287e57ac009da72cae0564b7088607936a5d513babc",
+    "wrapper_path": "tools/akibara-ai-discoverability-audit.sh",
+    "wrapper_sha256": "bc0d5a283576a7b35021ab0340137b52b8e63c8add021be9b2bf34851798affa",
+    "policy_path": "tools/lib/ai-discoverability-policy.mjs",
+    "policy_sha256": "f550ab4be251c35221909eb0c5e0524b4e426d61deabf8a34fac164fff798338",
+    "runbook_path": "ops/akibara-ai-discoverability-audit-runbook.md",
+    "runbook_sha256": "b6caa9490cf31f1ae7cfd7bcc912ba5c3ee3c49583d401438afde624081a64a0",
+    "node_image": "node@sha256:1b2479dd35a99687d6638f5976fd235e26c5b37e8122f786fcd5fe231d63de5b",
+    "base_url": "https://akibara.cl/",
+    "fetch_scope": "docker-internal-only",
+    "redirect_policy": "manual_fail_closed",
+    "network_internal": true,
+    "published_ports": 0,
+    "external_network_allowed": false,
+    "required_per_fresh_restore": true,
+    "required_passes": 2
+  },
+  "production_invariants": {
+    "protected_components": [
+      {
+        "kind": "plugin",
+        "slug": "akibara-cart-checkout-blocks"
+      },
+      {
+        "kind": "plugin",
+        "slug": "bluex-for-woocommerce"
+      },
+      {
+        "kind": "theme",
+        "slug": "akibara-gp"
+      }
+    ],
+    "runtime_outside_pair_must_remain_byte_identical": true,
+    "commerce_fingerprint_must_remain_identical": true,
+    "search_derived_data_fingerprint_may_change_after_verified_rebuild": true,
+    "search_protected_persistent_surfaces_must_match_phase_contract_exactly": true,
+    "search_derived_price_pair_phase_transition_must_match_exactly": true,
+    "search_durable_convergence_must_pass": true,
+    "remote_backups_allowed": false,
+    "rollback_artifacts_location": "local-only",
+    "graphify_during_release_allowed": false,
+    "production_domain": "akibara.cl",
+    "deployment": {
+      "transport": "mcp__hostinger_hosting__hosting_deployWordpressPlugin",
+      "activation_transport": "wordpress-plugin-ui",
+      "search_inactive_at_every_mixed_version_midpoint": true,
+      "candidate_and_rollback_use_same_transport": true,
+      "components": {
+        "business": {
+          "slug": "akibara-business",
+          "candidate_version": "1.99.16",
+          "rollback_version": "1.99.10"
+        },
+        "search": {
+          "slug": "akibara-search",
+          "candidate_version": "0.1.14",
+          "rollback_version": "0.1.12"
+        }
+      },
+      "receipt_policy": {
+        "confirmed_success_profile": null,
+        "allowed_ack_loss_result": {
+          "Err": "tool call error: tool call failed for `hostinger-hosting/hosting_deployWordpressPlugin`\n\nCaused by:\n    timed out awaiting tools/call after 120s"
+        },
+        "accept_only_with_exact_postconditions": [
+          "wordpress-ui-search-inactive-midpoint",
+          "wordpress-active-pair-versions",
+          "business-runtime-inventory",
+          "search-runtime-inventory",
+          "complete-witness-bundle"
+        ]
+      }
+    },
+    "litespeed_cache": {
+      "required": true,
+      "transport": "wordpress-litespeed-cache-ui",
+      "action": "purge-all",
+      "persisted_ui_evidence_required": true,
+      "self_asserted_receipt_allowed": false
+    },
+    "hostinger_cache": {
+      "required": true,
+      "transport": "mcp__hostinger_hosting__hosting_clearWebsiteCacheV1",
+      "receipt_policy": {
+        "exact_result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"message\":\"Request accepted\"}"
+            }
+          ]
+        }
+      }
+    },
+    "live_cache_purge_order": [
+      "litespeed-ui",
+      "hostinger-mcp",
+      "cloudflare-mcp"
+    ],
+    "cloudflare": {
+      "zone_name": "akibara.cl",
+      "zone_id": "b298201b3a38d017bc8413d9fd7414cd",
+      "account_id_source": "private_config:CLOUDFLARE_ACCOUNT_ID",
+      "binding_preflight_required": true,
+      "purge_required": true,
+      "transport": "mcp__cloudflare__execute",
+      "request": {
+        "method": "POST",
+        "path": "/zones/b298201b3a38d017bc8413d9fd7414cd/purge_cache",
+        "body": {
+          "purge_everything": true
+        }
+      }
+    },
+    "local_gate_max_age_seconds": 1800,
+    "production_preflight_max_age_seconds": 900,
+    "witness_max_age_seconds": 1800,
+    "evidence": {
+      "raw_capture_sha256_required": true,
+      "production_baseline_exact_pair_inventories_required": true,
+      "production_candidate_exact_pair_inventories_required": true,
+      "wordpress_ui_required": true,
+      "authenticated_admin_status_required": true,
+      "remote_cleanup_listings_required": [
+        "public_html",
+        "public_html/wp-content/plugins"
+      ],
+      "self_asserted_boolean_receipts_allowed": false
+    },
+    "recovery_rollback": {
+      "compose_file": "compose.yaml",
+      "compose_file_sha256": "eb9dc54caf50b5f9268e2be5a3e26aba6b6fba2da0ac5703f6868d07608ee40d",
+      "packager_library": "tools/akibara-releases/package-search-0.1.14-production.sh",
+      "packager_library_sha256": "2ab113e21465ecc7efe06166ba019b8eb2c912d937bd57e0204d75a4f69cd67a",
+      "rail": "tools/akibara-releases/search-0.1.14-recovery-cycle.sh",
+    "rail_sha256": "b88b7cd4e6b9e40dfcabdc17b61835f4751e220e06630fea218e94c99a01622b",
+      "reviewed_recovery_php": "tools/akibara-releases/search-0.1.14-recovery-proof.php",
+      "reviewed_recovery_php_sha256": "bf8a03253271d4449fc8a75683aa50bba8c7838029a3cebfa7f0ba69e6bf5854",
+      "http_smoke": {
+        "script": "tools/akibara-releases/search-0.1.14-http-smoke.php",
+        "script_sha256": "ff6307fc3f9c07a9a26a8e06896a935844c867e4de9eb7f0aaa069130a4a93ca",
+        "receipt_schema": "akibara-search-http-smoke-v1",
+        "network_internal": true,
+        "published_ports": 0,
+        "host_header": "localhost:8080",
+        "follow_redirects": false,
+        "required_per_fresh_restore": true,
+        "protected_surfaces_byte_identical": true
+      },
+      "integrated_mariadb": {
+        "script": "public_html/wp-content/plugins/akibara-search/tests/live-write-ledger-integration.php",
+        "script_sha256": "96a4e4c46d33ea8ee564eaa5690373fefdcb748ed4b7d4e314ee636266cc6e84",
+        "modes": [
+          "baseline",
+          "candidate"
+        ],
+        "required_per_fresh_restore": true,
+        "provider_active_required": true,
+        "reconciler_zero_divergence_required": true
+      },
+      "protected_fingerprint_sql": "tools/akibara-releases/search-0.1.14-protected-fingerprint.sql",
+      "protected_fingerprint_sql_sha256": "3cc4f7dfbc4ffd26f5d7af06a86d058ee67cee86db794aa82f34242c3c93bd07",
+      "check_table_validator": "tools/akibara-releases/search-0.1.14-check-table.awk",
+      "check_table_validator_sha256": "6ba00886510d44eccf0d924cadc157e9b8130ad371b98b7574126e725e3143a3",
+      "test": "bash tools/akibara-releases/test-search-0.1.14-recovery-cycle.sh",
+      "test_script": "tools/akibara-releases/test-search-0.1.14-recovery-cycle.sh",
+    "test_sha256": "c200d95f04f6dbda2ed6c03f7de83ee5754edc13eac182ff37d558d54935abc1",
+      "runbook": "ops/akibara-search-0.1.14-recovery-runbook.md",
+    "runbook_sha256": "1c2672b3234935ab14c7574df3160f4e5668076e467e753627857084406543fc",
+      "fresh_restore_cycles": 2,
+      "sequence": [
+        "0.1.14+1.99.16-recover-and-converge",
+        "deactivate-search-before-rollback",
+        "0.1.14+1.99.10-rollback-mixed-midpoint-search-inactive",
+        "0.1.12+1.99.10-rollback-and-converge",
+        "deactivate-search-before-forward",
+        "0.1.12+1.99.16-forward-mixed-midpoint-search-inactive",
+        "0.1.14+1.99.16-forward-and-converge"
+      ],
+      "preimage": {
+        "run_id": "8dde2d65-6029-4062-89cf-7fdd5af90c77",
+        "raw_state_sha256": "b243ddb58271e4dac334ff5df18ca863b352b6119721f3d562c547897838fb0d",
+        "protocol": 2,
+        "phase": "BLOCKED",
+        "error": "legacy_or_unreadable_state",
+        "topology": "ready_swap",
+        "source_table_count": 91,
+        "write_lock": "akb-search:54399a31d020081ea10e6377f582136fba8c19cfd087f035ffe5b",
+        "install_lock": "akb_search_install_60f82fb2a124572b9c0a8cc17f5632b4"
+      },
+      "images": {
+        "mariadb": "mariadb@sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7",
+        "wp_cli": "wordpress@sha256:909702ad806b574fafa50894808205724a2a78dc5a3e193c09c85f86322d89eb",
+        "apache": "wordpress@sha256:b65f6fb4d8b669974d4e8d6f204bc5a11d67f4877473ba5ee97af0efd39e3d19",
+        "node": "node@sha256:1b2479dd35a99687d6638f5976fd235e26c5b37e8122f786fcd5fe231d63de5b"
+      },
+      "backup": {
+        "location": "local-only",
+        "remote_allowed": false,
+        "umask": "077",
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "compression": "gzip -n -9",
+        "atomic_partial_rename": true,
+        "gzip_test_required": true,
+        "compressed_and_decompressed_sha256_required": true,
+        "dump_flags": [
+          "--single-transaction",
+          "--quick",
+          "--skip-lock-tables",
+          "--skip-comments",
+          "--hex-blob",
+          "--default-character-set=utf8mb4",
+          "--routines",
+          "--events",
+          "--triggers",
+          "--order-by-primary",
+          "--databases akibara"
+        ]
+      },
+      "restore": {
+        "network_internal": true,
+        "published_ports": 0,
+        "database_tmpfs": "4g",
+        "boot_environment": [
+          "MARIADB_ROOT_PASSWORD"
+        ],
+        "boot_database_creation_allowed": false,
+        "limited_wordpress_user_after_restore": true,
+        "canonical_redump_byte_identical": true,
+        "check_table_required": true,
+        "show_create_and_exact_counts_required": true,
+        "information_schema_table_rows_allowed": false
+      },
+      "local_external_indexing": {
+        "environment": "local",
+        "network_external_dependency_allowed": false,
+        "guard": "public_html/wp-content/mu-plugins/akibara-local-external-indexing-guard.php",
+        "guard_sha256": "a7cb1a6888ad730b9aa8a0baf3bae9747fb03d70e6adefc5e339e743111b3180",
+        "isolated_test": "tools/test-local-external-indexing-guard.php",
+        "isolated_test_sha256": "8470f6090a29b5daa55ef1e69f7f3b81885054c647f3a2a2f87064a27bd554ce",
+        "rank_math_indexnow_log_must_remain_byte_identical": true
+      },
+      "recovery": {
+        "expected_topology": "ready_swap",
+        "live_shadow_set_equality_required": true,
+        "docs_ignored_equality_column": "indexed_at",
+        "drop_api": "Akibara\\Search\\Install::drop_shadow_tables([$fence,'assert_owned'])",
+        "delete_only_options": [
+          "akb_search_rebuild_state",
+          "akb_search_pending_rebuild",
+          "akb_search_rebuild_ids",
+          "akb_search_rebuild_live_writes"
+        ],
+        "ddl_transactional": false,
+        "rollback_source": "fresh-local-backup-restore",
+        "post_install_db_version": "1.7.0",
+        "post_install_schema_seal": "1.7.0-exact-1",
+        "post_install_topology": "clean_pre",
+        "real_grace_seconds": 300
+      },
+      "scheduler": {
+        "allowed_hooks": [
+          "akb_search_rebuild_batch",
+          "akb_search_pump_live"
+        ],
+        "execution": "wp action-scheduler action run <validated-pending-ids>",
+        "wp_cron_allowed": false,
+        "group_drain_allowed": false,
+        "explicit_rebuild_cli_allowed": false,
+        "reconciler_fallback_allowed": false,
+        "active_state_without_pending_batch": "fail-closed",
+        "action_scheduler_runtime": {
+          "version": "3.9.3",
+          "store_class": "ActionScheduler_DBStore"
+        },
+        "normal_runtime_tick_allowed": true,
+        "max_normal_runtime_ticks": 4,
+        "runtime_tick_requires_durable_progress": true,
+        "pending_barrier_from_validated_envelope": true,
+        "terminal_state_retry_allowed": false,
+        "batch_identity_binding": [
+          "state.run_id",
+          "action.args[0]",
+          "action.args[1]=baseline|repair",
+          "group=akibara-search",
+          "status=pending"
+        ],
+        "rollback_legacy_batch_identity_binding": [
+          "search_version=0.1.12-only",
+          "state.run_id-present",
+          "action.args={offset:int>=0}",
+          "action.args.offset=state.offset",
+          "group=akibara-search",
+          "status=pending",
+          "claim_id=0",
+          "extended_args=null"
+        ],
+        "live_pump_identity_binding": [
+          "action.hook=akb_search_pump_live",
+          "action.args=[]|{barrier:editorial_discount}",
+          "group=akibara-search",
+          "status=pending",
+          "claim_id=0",
+          "priority=10",
+          "extended_args=null",
+          "schedule=async|single-nonrecurring",
+          "scheduled_date_gmt<=validated_wait",
+          "work.available_at<=validated_wait",
+          "post.status=complete",
+          "post.claim_id=0",
+          "post.attempts=pre+1",
+          "post.state/pending=absent",
+          "post.work.delta=1..25-exact"
+        ],
+        "live_args_schedule_pairs": [
+          "[]=>async-null",
+          "{barrier:editorial_discount}=>single-simple"
+        ],
+        "live_requires_state_pending_absent": true,
+        "live_progress_required": true,
+        "live_progress_max_rows_per_action": 25,
+        "live_residual_pumps": "validated-explicit-noop-drain",
+        "max_live_pump_actions": 128,
+        "max_rounds": 64,
+        "max_action_ids": 512
+      },
+      "protected_surfaces_phase_exact": true,
+      "protected_surfaces": [
+        "wp_akb_search_qlog full rows",
+        "wp_postmeta:_akb_onbackorder_at",
+        "wp_postmeta:_akb_first_instock_at",
+        "curated Search options excluding only the separately gated derived price pair, with option_id/presence/value/autoload",
+        "akb_search_audit_log with option_id/presence/value/autoload",
+        "editorial source options with option_id/presence/value/autoload",
+        "rank_math_indexnow_log with option_id/presence/value/autoload",
+        "wp_termmeta:_akb_taxonomy_discount_pct",
+        "wp_woocommerce_attribute_taxonomies full rows"
+      ],
+      "derived_price_pair_transition": {
+        "protected_fingerprint_excluded": true,
+        "options": [
+          "akb_search_precio_buckets",
+          "akb_search_precio_mode"
+        ],
+        "normalization_source": "Akibara\\Search\\PriceBuckets::maybe_refresh_auto(false)",
+      "preimage": {
+        "buckets_sha256": "bbf68fbe0a982bd89e4bc0d1c2e011779029484e88f6a0d926b8f8b8fd4fb7c3",
+        "buckets_autoload": "off",
+        "mode": "absent-auto-semantics",
+        "snapshot_sha256": "0df1d76c5d89f28087d4595fa4e64117ce526c39a97ccba23de7581cc9a719fc"
+      },
+      "normalized": {
+        "buckets_sha256": "bbf68fbe0a982bd89e4bc0d1c2e011779029484e88f6a0d926b8f8b8fd4fb7c3",
+        "buckets_autoload": "no",
+        "mode": "auto",
+        "mode_autoload": "no",
+        "snapshot_sha256": "2c75951b6f1df45cd8e2eb7fd5e0ffae9fc8586df4b160406fbb6ee903825a05"
+      },
+        "preimage_checkpoints": [
+          "source-before-dump",
+          "source-after-dump",
+          "source-final",
+          "restored",
+          "after-recovery"
+        ],
+        "normalized_checkpoints": [
+          "first-v2",
+          "rollback-boot",
+          "rollback-v1",
+          "forward-migration",
+          "forward-v2",
+          "before-http",
+          "after-http",
+          "after-integrated-mariadb"
+        ],
+	        "v2_stored_equals_index_derivation": true,
+	        "rollback_v1_must_preserve_normalized_pair": true
+	      },
+      "business_search_feed_contract_transition": {
+        "remains_in_protected_fingerprint": true,
+        "option": "akibara_business_search_feed_contract_version",
+        "option_id": 1320696,
+        "expected_row_count": 1,
+        "contract_source": "ops/contracts/akibara-business-1.99.16.json#search_feed_contract",
+	        "candidate": {
+	          "business_version": "1.99.16",
+	          "value": "2",
+	          "autoload": "off",
+          "full_snapshot_sha256": "2663d2144a094779535360d489a1f868f67d386a6a0d86e415637cd37472315a"
+	        },
+	        "rollback": {
+	          "business_version": "1.99.10",
+	          "value": "1",
+	          "autoload": "off",
+          "full_snapshot_sha256": "5197e7307fcfe75676c76f26b6ef3bc3f9e7339975594216c2879c716f080c5c"
+        },
+        "candidate_row": "OPTION\tH616B69626172615F627573696E6573735F7365617263685F666565645F636F6E74726163745F76657273696F6E\t1320696\tPRESENT\tH32\tH6F6666",
+        "rollback_row": "OPTION\tH616B69626172615F627573696E6573735F7365617263685F666565645F636F6E74726163745F76657273696F6E\t1320696\tPRESENT\tH31\tH6F6666",
+        "rollback_snapshot_derivation": "single-exact-row-substitution",
+        "single_row_substitution_required": true,
+        "preserved_columns": [
+          "option_name",
+          "option_id",
+          "presence",
+          "autoload"
+        ],
+        "changed_column": "option_value",
+	        "source_checkpoints": [
+	          "source-before-dump",
+	          "source-after-dump",
+	          "source-final"
+	        ],
+	        "candidate_cycle_checkpoints": [
+	          "restored",
+	          "after-recovery",
+	          "first-v2",
+          "forward-before-activation",
+	          "forward-migration",
+	          "forward-v2",
+	          "before-http",
+	          "after-http",
+	          "after-integrated-mariadb"
+	        ],
+	        "rollback_cycle_checkpoints": [
+          "rollback-after-business-switch",
+          "rollback-before-activation",
+          "rollback-v1"
+        ],
+        "transition_exact_before_search_activation": true,
+        "search_inactive_at_artifact_midpoints": true,
+        "forward_restores_candidate_exactly": true
+	      },
+      "immutable_release_binding": {
+        "initial_snapshot_required": true,
+        "contracts_evidence_and_fourteen_artifacts_included": true,
+        "check_before_and_after_each_cycle": true,
+        "revalidate_contracts_after_cycles": true,
+        "revalidate_contracts_after_source_freeze": true,
+        "revalidate_contracts_before_final_receipt": true,
+        "revalidate_contracts_after_final_sidecar": true,
+        "final_receipt_must_bind_snapshot_sha256": true,
+        "sidecar_rename_is_completion_marker": true,
+        "incomplete_final_receipt_removed_on_failure": true
+      },
+      "rollback_forward_convergence": true,
+      "paired_component_switch": {
+        "search_inactive_required": true,
+        "deactivate_command": "wp plugin deactivate akibara-search",
+        "activate_command": "wp plugin activate akibara-search",
+        "midpoint_versions_must_be_verified_before_activation": true,
+        "rollback_mixed_midpoint": {
+          "business_version": "1.99.10",
+          "search_version": "0.1.14",
+          "search_active": false
+        },
+        "rollback_ready_pair": {
+          "business_version": "1.99.10",
+          "search_version": "0.1.12",
+          "search_active": false
+        },
+        "forward_mixed_midpoint": {
+          "business_version": "1.99.16",
+          "search_version": "0.1.12",
+          "search_active": false
+        },
+        "forward_ready_pair": {
+          "business_version": "1.99.16",
+          "search_version": "0.1.14",
+          "search_active": false
+        }
+      },
+      "rollback_gate": {
+        "search_version": "0.1.12",
+        "business_version": "1.99.10",
+        "db_version": "1.6.0",
+        "topology": "clean_pre",
+        "state_absent": true,
+        "pending_absent": true,
+        "docs_ids_equal_eligible_ids": true,
+        "coverage_tolerance_allowed": false
+      },
+      "forward_gate": {
+        "search_version": "0.1.14",
+        "business_version": "1.99.16",
+        "db_version": "1.7.0",
+        "schema_seal": "1.7.0-exact-1",
+        "topology": "clean_pre",
+        "state_absent": true,
+        "pending_absent": true,
+        "work_pending_leased_blocked": 0,
+        "work_error": "",
+        "work_acked_equals_eligible": true,
+        "docs_ids_equal_eligible_ids": true,
+        "generation_purge_semantic_editorial_receipts_consistent": true,
+        "final_rebuild_receipt": {
+          "role": "historical",
+          "exact_shape": true,
+          "target_binding": "akb-search-<run_id>-<semantic_fingerprint>",
+          "history_exact_copy_required": true,
+          "immutable_editorial_run_receipt_required": true,
+          "current_live_generation_must_supersede": true
+        }
+      }
+    }
+  },
+  "quality_gates": {
+    "package_release": "bash tools/akibara-releases/test-search-0.1.14-production-release.sh",
+    "business_package_release": "bash tools/akibara-releases/test-business-1.99.16-production-release.sh",
+    "search_component_package": "bash tools/akibara-releases/package-search-0.1.14-production.sh --verify-only",
+    "business_component_package": "bash tools/akibara-releases/package-business-1.99.16-production.sh --verify-only",
+    "search_phpunit": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-search/phpunit.xml.dist",
+    "business_phpunit": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-business/phpunit.xml.dist",
+    "paired_phpunit": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-search-business/phpunit.xml.dist",
+    "node_contracts": "node --test public_html/wp-content/plugins/akibara-search/tests/*.test.js && node --test public_html/wp-content/themes/akibara-gp/tests/shop-toolbar-layout.test.js",
+    "theme_contract": "bash tools/akibara-releases/test-theme-2.1.70-production-release.sh",
+    "theme_package": "bash tools/akibara-releases/package-runtime.sh theme --verify-only",
+    "theme_node": "node --test public_html/wp-content/themes/akibara-gp/tests/*.test.js",
+    "theme_phpunit": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-gp/phpunit.xml.dist",
+    "ai_audit_unit": "node tools/test-ai-discoverability-audit.mjs",
+    "ai_audit_integrated": "node tools/akibara-ai-discoverability-audit.mjs --base-url https://akibara.cl/ --fetch-base-url docker-internal",
+    "promotion_contract": "bash ops/test-akibara-search-0.1.14-production-promotion.sh",
+    "recovery_rollback": "bash tools/akibara-releases/test-search-0.1.14-recovery-cycle.sh",
+    "required_passes": 2
+  },
+  "seal_requirements": {
+    "candidate_artifact_hashes": true,
+    "candidate_inventory_hashes": true,
+    "candidate_runtime_file_counts": true,
+    "runtime_delta_arrays": true,
+    "source_inputs": true,
+    "paired_release_definition": true,
+    "recovery_code_hashes": true,
+    "pinned_recovery_images": true
+  },
+  "promotion_requirements": {
+    "contracts_sealed": true,
+    "paired_contract_sha256_match": true,
+    "local_gate_receipt": {
+      "schema_version": 3,
+      "kind": "akibara-business-search-paired-local-gate-receipt",
+      "max_age_seconds": 1800,
+      "sidecar_required": true,
+      "file_mode": "0600"
+    },
+    "recovery_receipt": {
+      "schema": "akibara-search-recovery-cycle-v2",
+      "result": "PASS",
+      "fresh_restore_cycles": 2,
+      "http_smoke_cycles": 2,
+      "integrated_mariadb_cycles": 2,
+      "sidecar_required": true,
+      "file_mode": "0600"
+    },
+    "production_preflight_verified_receipt_required": true,
+    "paired_handoff": {
+      "schema_version": 3,
+      "kind": "akibara-business-search-paired-mcp-handoff",
+      "exact_pair_only": true,
+      "search_inactive_at_mixed_midpoints": true
+    },
+    "cache_order": [
+      "litespeed-ui",
+      "hostinger-mcp",
+      "cloudflare-mcp"
+    ],
+    "candidate_or_rollback_verified_receipt_required": true,
+    "graphify_after_verified_promotion_only": true
+  }
+}

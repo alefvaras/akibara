@@ -28,7 +28,7 @@ final class VendorPudoContractTest extends TestCase {
 	 * public get_geolocation/get_pricing methods used by Akibara's provider.
 	 * The vendor presentation script remains dequeued on the Blocks checkout.
 	 */
-	private const REVIEWED_VENDOR_VERSION = '3.3.2';
+	private const REVIEWED_VENDOR_VERSION = '3.4.1';
 
 	/**
 	 * Returns the vendor plugin directory, or skips when it is not installed.
@@ -118,8 +118,8 @@ final class VendorPudoContractTest extends TestCase {
 		$ours   = file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/pudo-blocks.js' );
 
 		self::assertIsString( $ours );
-		self::assertStringContainsString(
-			"var WIDGET_ORIGIN = 'https://widget-pudo.blue.cl';",
+		self::assertMatchesRegularExpression(
+			"/(?:var|let|const) WIDGET_ORIGIN = 'https:\/\/widget-pudo\.blue\.cl';/",
 			$ours,
 			'pudo-blocks.js pins the widget origin; it must stay the production one BlueX ships.'
 		);

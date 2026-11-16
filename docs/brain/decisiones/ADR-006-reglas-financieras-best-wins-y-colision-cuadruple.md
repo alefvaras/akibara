@@ -1,7 +1,12 @@
 # ADR-006: Reglas Financieras de Anti-Apilamiento (Best-Wins), Puntos Akibara y Pack
 
-- **Estado:** Aceptado y Certificado en Producción
-- **Fecha:** 2026-11-04
+- **Estado:** Aceptado (Evolucionado en ADR-010 y ADR-012)
+- **Fecha:** 2026-11-04 (Actualizado: 2026-11-06)
+
+> [!NOTE] Nota de Vigencia y Evolución (ADR-010 & ADR-012)
+> 1. La promoción «Arma tu Pack» (`BundleCouponEngine` / `SeriesBundles` / BYP) fue completamente **erradicada** en [ADR-010](ADR-010-erradicacion-preventa-a-pedido-packs-y-ediciones-pais.md) para simplificar el modelo comercial bajo inventario 100% físico.
+> 2. El umbral de Envío Gratuito fue actualizado de \$40.000 CLP a **\$60.000 CLP** en [ADR-012](ADR-012-optimizaciones-financieras-carencia-rewards-y-batch-atc.md).
+> 3. Los principios financieros de incompatibilidad entre Cupones vs Puntos (`Redemption`) y la acumulación de puntos exclusivamente sobre dinero neto pagado se mantienen plenamente vigentes e inmutables.
 - **Contexto:**
   Akibara combina múltiples incentivos comerciales:
   1. Descuento automático por volumen "Arma tu Pack" (10% en 5 tomos de la misma serie).

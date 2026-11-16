@@ -101,7 +101,28 @@ function montar( respuestas, almacenPrevio, config ) {
 			removeAttribute( k ) { delete this.atributos[ k ]; },
 			getAttribute( k ) { return k in this.atributos ? this.atributos[ k ] : null; },
 			hijos: [],
-			appendChild( hijo ) { this.hijos.push( hijo ); },
+			parentNode: null,
+			get firstChild() { return this.hijos[ 0 ] || null; },
+			appendChild( hijo ) {
+				if ( hijo && hijo.parentNode && typeof hijo.parentNode.removeChild === 'function' ) {
+					hijo.parentNode.removeChild( hijo );
+				}
+				this.hijos.push( hijo );
+				if ( hijo ) hijo.parentNode = this;
+				if ( hijo && hijo.innerHTML ) {
+					this._html = ( this._html || '' ) + hijo.innerHTML;
+				}
+				return hijo;
+			},
+			removeChild( hijo ) {
+				const i = this.hijos.indexOf( hijo );
+				if ( i > -1 ) this.hijos.splice( i, 1 );
+				if ( hijo ) hijo.parentNode = null;
+				if ( ! this.hijos.length ) this._html = '';
+				return hijo;
+			},
+			get innerHTML() { return this._html || ''; },
+			set innerHTML( v ) { this._html = String( v ); },
 			querySelectorAll() { return []; },
 			closest() { return null; },
 			addEventListener( tipo, fn ) { oyentes.set( tipo, ( oyentes.get( tipo ) || [] ).concat( fn ) ); },
@@ -114,17 +135,34 @@ function montar( respuestas, almacenPrevio, config ) {
 	const input = nodo( { value: '', closest: () => form } );
 	const panel = nodo();
 
+	const doc = {
+		readyState: 'complete',
+		activeElement: input,
+		addEventListener() {},
+		createElement: () => panel,
+		querySelectorAll: () => [ input ],
+	};
+	doc.documentElement = doc;
+	doc.ownerDocument = doc;
+	input.ownerDocument = doc;
+	form.ownerDocument = doc;
+	panel.ownerDocument = doc;
+
 	const sandbox = {
 		AbortController,
+		DOMParser: function () {
+			return {
+				parseFromString( html ) {
+					const child = nodo( { innerHTML: html } );
+					const body = nodo();
+					body.appendChild( child );
+					return { body };
+				},
+			};
+		},
 		Event,
 		console,
-		document: {
-			readyState: 'complete',
-			activeElement: input,
-			addEventListener() {},
-			createElement: () => panel,
-			querySelectorAll: () => [ input ],
-		},
+		document: doc,
 		localStorage: {
 			datos: {},
 			getItem( k ) { return k in this.datos ? this.datos[ k ] : null; },
@@ -408,7 +446,10 @@ test( '«Ver los N» apunta a lo que de verdad se buscó, no a la editorial solt
 	// tiene que preferir `relaxed.kept` a la query cruda, igual que ya prefiere
 	// `corrected.fix`. Sin esto, «Ver los 31 resultados» llevaba a la búsqueda
 	// con la editorial equivocada, o sea, a una página vacía.
-	assert.match( fuente, /searchUrl\(\s*corrected \? corrected\.fix : \(\s*relaxed && relaxed\.kept \? relaxed\.kept : q\s*\)\s*\)/ );
+	assert.match(
+		fuente,
+		/(?:searchUrl\(\s*corrected \? corrected\.fix : \(\s*relaxed && relaxed\.kept \? relaxed\.kept : q\s*\)\s*\)|fallbackTerm\s*=\s*relaxed && relaxed\.kept \? relaxed\.kept : q;\s*const moreUrl\s*=\s*searchUrl\(\s*corrected \? corrected\.fix : fallbackTerm\s*\))/
+	);
 } );
 
 test( 'el énfasis del aviso lo decide el servidor, no el bundle', async () => {
@@ -799,33 +840,31 @@ test( 'REV-S-S-2o-1: Enter sobre un Reciente de consulta lo sigue escribiendo en
 	assert.deepEqual( asignadas, [] );
 } );
 
-test( 'separa resultados en «En Bodega · Entrega Inmediata» y «Disponibles a Pedido»', async () => {
+test( 'las sugerencias de producto muestran sólo portada, título y precio y enlazan directo a la ficha sin badges ni modales', async () => {
 	const mixto = {
 		items: [
-			{ id: 101, title: 'Tomo Disponible', url: '/p/disp', thumb: '/d.jpg', price_html: '$1', badge: 'Disponible', badge_tone: 'ok', availability: 'instock' },
-			{ id: 102, title: 'Tomo a Pedido', url: '/p/ped', thumb: '/p.jpg', price_html: '$1', badge: 'A pedido', badge_tone: 'order', availability: 'a_pedido' },
-			{ id: 103, title: 'Tomo Agotado', url: '/p/out', thumb: '/o.jpg', price_html: '', badge: 'Agotado', badge_tone: 'out', availability: 'outofstock' }
+			{ id: 101, title: 'Tomo Disponible', url: '/p/disp', thumb: '/d.jpg', price_html: '$10.900', badge: 'Disponible', badge_tone: 'ok', availability: 'instock' },
+			{ id: 103, title: 'Tomo Agotado', url: '/p/out', thumb: '/o.jpg', price_html: '$10.900', badge: 'Agotado', badge_tone: 'out', availability: 'outofstock' }
 		],
-		total: 3
+		total: 2
 	};
 	const app = montar( [ mixto ] );
 	app.escribir( 'tomo' );
 	await tick();
 
-	assert.match( app.panel.innerHTML, /En Bodega · Entrega Inmediata/, 'muestra cabecera de bodega' );
-	assert.match( app.panel.innerHTML, /Disponibles a Pedido/, 'muestra cabecera de a pedido' );
-	assert.match( app.panel.innerHTML, /data-akb-encargo="1"/, 'marca el item de encargo' );
-	assert.match( app.panel.innerHTML, /akb-suggest-reservar-tag/, 'incluye tag reservar para tomos con precio' );
-	assert.match( app.panel.innerHTML, /akb-suggest-encargo-tag/, 'incluye tag solicitar para tomos agotados' );
-	assert.match( app.panel.innerHTML, /Solicitar a Pedido »/, 'incluye pie homologado a pedido' );
+	assert.match( app.panel.innerHTML, /href="\/p\/disp"/ );
+	assert.match( app.panel.innerHTML, /href="\/p\/out"/ );
+	assert.match( app.panel.innerHTML, /\$10\.900/ );
+	assert.doesNotMatch( app.panel.innerHTML, /En Bodega|Disponibles a Pedido|akb-suggest-subhead/, 'sin subencabezados de stock en el buscador' );
+	assert.doesNotMatch( app.panel.innerHTML, /akb-badge-ok|akb-badge-out|akb-suggest-encargo-tag|akb-suggest-reservar-tag/, 'sin badges de stock ni etiquetas de encargo/reserva' );
+	assert.doesNotMatch( app.panel.innerHTML, /akb-suggest-request-banner|Solicitar a Pedido/, 'sin banner de encargo' );
 } );
 
-test( 'el estado vacío ofrece botón para solicitar el tomo a pedido', async () => {
+test( 'el estado vacío muestra el aviso inerte sin botones ni modales de encargo', async () => {
 	const app = montar( [ { items: [], total: 0 } ] );
 	app.escribir( 'inuyasha' );
 	await tick();
 
 	assert.match( app.panel.innerHTML, /class="akb-suggest-empty" role="status"/ );
-	assert.match( app.panel.innerHTML, /data-akb-request-q="inuyasha"/, 'ofrece botón con la query para solicitar a pedido' );
-	assert.match( app.panel.innerHTML, /Solicitar «<strong>inuyasha<\/strong>» a pedido/ );
+	assert.doesNotMatch( app.panel.innerHTML, /akb-suggest-request-btn|data-akb-request-q|Solicitar/ );
 } );

@@ -7,7 +7,7 @@
  * `FacetRegistry::DISPONIBILIDAD_LABELS` (status → label de la faceta). Esta
  * clase los colapsa en un solo lugar y los enchufa al MISMO punto de override
  * que expone `Stock\StockStatus::label()` de akibara-business: el filtro
- * `akb_stock_status_label`. Así el vocabulario Disponible/Preventa/Agotado tiene
+ * `akb_stock_status_label`. Así el vocabulario Disponible/Agotado tiene
  * un único override para todo el sitio (tienda + buscador).
  *
  * SELF-CONTAINED a propósito (independencia del plugin extraído en v1.60.0): el
@@ -41,6 +41,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class StockLabels {
 
@@ -56,40 +58,11 @@ final class StockLabels {
 	 */
 	private const DEFAULT_LABELS = array(
 		'instock'     => 'Disponible',
-		// «A pedido» y no «Preventa» (1.109.0 de business): `onbackorder` agrupa
-		// dos estados comerciales y el default del grupo es el pedido a editorial
-		// (la realidad de TODO el catálogo al separarse). La palabra «Preventa»
-		// la resuelve por producto `availability()`, vía el filtro
-		// `akb_search_availability_value` que engancha business cuando detecta
-		// un lanzamiento pendiente. Este mapa NUNCA dice «Preventa» por sí solo.
-		'onbackorder' => 'A pedido',
 		'outofstock'  => 'Agotado',
-	);
-
-	/**
-	 * Estado de stock → tono del badge = sufijo de la clase CSS `.akb-badge-{tone}`
-	 * (definida en search-suggest.css y consumida por search-suggest.js). Es
-	 * presentación estable: NO se toca al unificar el vocabulario.
-	 *
-	 * @var array<string, string>
-	 */
-	/**
-	 * Palabra por defecto de los estados COMERCIALES que no son un
-	 * `_stock_status` de WooCommerce.
-	 *
-	 * Hoy sólo «preventa», que es la mitad de `onbackorder` que `availability()`
-	 * separa. Vive aparte de `DEFAULT_LABELS` para que el mapa de stock crudo
-	 * siga siendo exactamente el de WooCommerce.
-	 *
-	 * @var array<string, string>
-	 */
-	private const ESTADOS_COMERCIALES = array(
-		'preventa' => 'Preventa',
 	);
 
 	private const STATUS_TONE = array(
 		'instock'     => 'ok',
-		'onbackorder' => 'order',
 		'outofstock'  => 'out',
 	);
 
@@ -98,24 +71,17 @@ final class StockLabels {
 	 *
 	 * Fail-closed: un `$status` desconocido cae a la palabra de 'outofstock'
 	 * ('Agotado') ANTES de aplicar el filtro, igual que `StockStatus::label()`.
-	 * El filtro `akb_stock_status_label` es el único override del vocabulario;
-	 * recibe la palabra ya resuelta y el status crudo (mismo contrato que
-	 * business, para que un único hook gobierne tienda + buscador).
 	 *
 	 * @since 0.1.0
 	 *
-	 * @param string $status Uno de instock|onbackorder|outofstock (otro → fail-closed).
+	 * @param string $status Uno de instock|outofstock (otro → fail-closed).
 	 * @return string Palabra visible del estado.
 	 */
 	public static function label( string $status ): string {
-		$default = self::DEFAULT_LABELS[ $status ]
-			?? ( self::ESTADOS_COMERCIALES[ $status ] ?? self::DEFAULT_LABELS['outofstock'] );
+		$default = self::DEFAULT_LABELS[ $status ] ?? self::DEFAULT_LABELS['outofstock'];
 
 		/**
-		 * Filtra la palabra visible de un estado de stock. Mismo hook que
-		 * `Akibara\Business\Modules\Stock\StockStatus::label()`: un único punto
-		 * de override del vocabulario Disponible/Preventa/Agotado para todo el
-		 * sitio. El buscador aporta su propio default local (self-contained).
+		 * Filtra la palabra visible de un estado de stock.
 		 *
 		 * @since 0.1.0
 		 *
@@ -132,68 +98,23 @@ final class StockLabels {
 	}
 
 	/**
-	 * Estado COMERCIAL de un producto: parte `onbackorder` en `a_pedido` |
-	 * `preventa` por el MISMO contrato que ya usaba la faceta, y devuelve la
-	 * palabra y el tono del badge.
-	 *
-	 * Es el ÚNICO resolvedor, consumido por las DOS superficies del buscador
-	 * (la faceta que materializa DocumentBuilder y el badge del autocomplete
-	 * que pinta ProductPresenter). Antes el badge se resolvía por `stock_rank`
-	 * y nunca podía decir «Preventa»: el desplegable rotulaba «A pedido» un
-	 * tomo que la faceta del mismo índice ya sabía que era preventa.
-	 *
-	 * Fail-safe: cualquier retorno del filtro que no sea exactamente
-	 * `'preventa'` degrada a `a_pedido`, que es el default real del catálogo.
-	 * Self-contained: sin business enganchado, todo reservable es `a_pedido`.
+	 * Estado COMERCIAL de un producto (disponible o agotado).
 	 *
 	 * @since 0.1.45
 	 *
-	 * @param string $status  Uno de instock|onbackorder|outofstock (otro → fail-closed a outofstock).
-	 * @param int    $post_id Producto, para que business decida por ficha.
+	 * @param string $status  Uno de instock|outofstock (otro → fail-closed a outofstock).
+	 * @param int    $post_id Producto.
 	 * @return array{value: string, label: string, tone: string}
 	 */
 	public static function availability( string $status, int $post_id ): array {
+		unset( $post_id );
 		$known = isset( self::DEFAULT_LABELS[ $status ] ) ? $status : 'outofstock';
 		$tone  = self::STATUS_TONE[ $known ];
 
-		if ( 'onbackorder' !== $known ) {
-			return array(
-				'value' => $known,
-				'label' => self::label( $known ),
-				'tone'  => $tone,
-			);
-		}
-
-		/**
-		 * Filtra el estado comercial de un producto reservable. business devuelve
-		 * `'preventa'` cuando el tomo tiene un lanzamiento pendiente
-		 * (`Availability::is_preventa`); cualquier otra cosa es «a pedido».
-		 *
-		 * El proveedor vive en akibara-business (SearchAvailabilityBridge); si se
-		 * cambia el momento en que se invoca, hay que tocar también su docblock.
-		 *
-		 * @since 0.1.36 Nace con la separación a pedido/preventa (DocumentBuilder lo aplicaba en la faceta).
-		 * @since 0.1.45 Se resuelve aquí, y también en el autocomplete vivo.
-		 * @param string $value   Default `'a_pedido'`.
-		 * @param int    $post_id Producto.
-		 */
-		$resolved = apply_filters( 'akb_search_availability_value', 'a_pedido', $post_id );
-
-		if ( 'preventa' !== $resolved ) {
-			return array( 'value' => 'a_pedido', 'label' => self::label( $known ), 'tone' => $tone );
-		}
-
-		// La palabra de «preventa» pasa por el MISMO hook del vocabulario, con
-		// el estado comercial como segundo argumento. Era el único literal que
-		// quedaba: el dueño renombraba «Preventa» en Textos, la tienda obedecía
-		// y el badge del buscador seguía diciendo lo de antes. Sin business
-		// enganchado —o con una versión que no conozca este estado— el filtro
-		// devuelve este mismo default, así que los dos rieles pueden ir por
-		// separado sin romperse (0.1.67).
 		return array(
-			'value' => 'preventa',
-			'label' => self::label( 'preventa' ),
-			'tone'  => 'pre',
+			'value' => $known,
+			'label' => self::label( $known ),
+			'tone'  => $tone,
 		);
 	}
 }

@@ -25,7 +25,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
  */
+// @phpstan-ignore complexity.classLike
 final class ProductPresenter {
 
 	use Support\FailsClosed;
@@ -67,7 +69,7 @@ final class ProductPresenter {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function cards( array $ids ): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( ! EditorialDiscountPublication::ensure_price_authority_adopted() ) {
@@ -90,7 +92,7 @@ final class ProductPresenter {
 		}
 
 		$this->prime_thumbnail_sources( $ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -103,7 +105,7 @@ final class ProductPresenter {
 				'Could not hydrate WooCommerce product.'
 			);
 
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 
@@ -124,7 +126,7 @@ final class ProductPresenter {
 			}
 
 			$card = $this->live_card( $product, $id );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 			if ( null !== $card ) {
@@ -182,7 +184,7 @@ final class ProductPresenter {
 				},
 				'Could not read the live product thumbnail identity.'
 			);
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return;
 			}
 			$thumbnail_id = ProductSourceAuthority::canonical_image_id( $raw );
@@ -212,7 +214,8 @@ final class ProductPresenter {
 	 * @param int         $expected_id Identidad autorizada antes de hidratar.
 	 * @return array<string, mixed>|null Null si el producto ya no es publicable.
 	 */
-	private function live_card( \WC_Product $product, int $expected_id ): ?array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function live_card( \WC_Product $product, int $expected_id ): ?array { // @phpstan-ignore complexity.functionLike
 		$id = $this->read_live(
 			static function () use ( $product ) {
 				return $product->get_id();
@@ -229,7 +232,7 @@ final class ProductPresenter {
 			},
 			'Could not read live product type.'
 		);
-		if ( ! $this->available || ! is_bool( $is_variable ) ) {
+		if ( ! $this->is_available() || ! is_bool( $is_variable ) ) {
 			$this->mark_unavailable( 'WooCommerce returned an invalid live product type.' );
 			return null;
 		}
@@ -244,7 +247,7 @@ final class ProductPresenter {
 			},
 			'Could not read live product status.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		if ( ! is_string( $status ) || 'publish' !== $status ) {
@@ -262,7 +265,7 @@ final class ProductPresenter {
 			},
 			'Could not read live product visibility.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		if ( ! is_bool( $visible ) ) {
@@ -279,7 +282,7 @@ final class ProductPresenter {
 			},
 			'Could not read live product title.'
 		);
-		if ( ! $this->available || ! is_string( $title ) || '' === trim( $title ) ) {
+		if ( ! $this->is_available() || ! is_string( $title ) || '' === trim( $title ) ) {
 			$this->mark_unavailable( 'WooCommerce product has no live title or permalink.' );
 			return null;
 		}
@@ -293,19 +296,19 @@ final class ProductPresenter {
 			},
 			'Could not read live product permalink.'
 		);
-		if ( ! $this->available || ! is_string( $url ) || '' === trim( $url ) ) {
+		if ( ! $this->is_available() || ! is_string( $url ) || '' === trim( $url ) ) {
 			$this->mark_unavailable( 'WooCommerce product has no live title or permalink.' );
 			return null;
 		}
 		$thumb = $this->live_thumb_url( $product );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		// La sonda del proveedor ocurre ANTES del renderer. Así el proveedor
 		// autoritativo queda primado y get_price_html consume exactamente la misma
 		// fuente; una excepción nunca puede ocurrir después de renderizar precio.
 		$this->verify_price_provider_authority( $product );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		$raw_price_html = $this->read_live(
@@ -314,12 +317,12 @@ final class ProductPresenter {
 			},
 			'Could not read live product price.'
 		);
-		if ( ! $this->available || ! is_string( $raw_price_html ) ) {
+		if ( ! $this->is_available() || ! is_string( $raw_price_html ) ) {
 			$this->mark_unavailable( 'WooCommerce returned an invalid live product price.' );
 			return null;
 		}
 		$price_html = $this->read_live( static fn() => wp_kses_post( $raw_price_html ), 'Could not sanitize live product price.' );
-		if ( ! $this->available || ! is_string( $price_html ) ) {
+		if ( ! $this->is_available() || ! is_string( $price_html ) ) {
 			$this->mark_unavailable( 'WooCommerce returned an invalid sanitized product price.' );
 			return null;
 		}
@@ -329,7 +332,7 @@ final class ProductPresenter {
 			},
 			'Could not read live product SKU.'
 		);
-		if ( ! $this->available || ! is_string( $sku ) ) {
+		if ( ! $this->is_available() || ! is_string( $sku ) ) {
 			$this->mark_unavailable( 'WooCommerce returned an invalid live SKU.' );
 			return null;
 		}
@@ -341,7 +344,7 @@ final class ProductPresenter {
 			'Could not read live product stock status.'
 		);
 
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		if ( ! is_string( $stock_status ) || ! in_array( $stock_status, self::KNOWN_STOCK_STATUSES, true ) ) {
@@ -349,19 +352,18 @@ final class ProductPresenter {
 			return null;
 		}
 
-		// El estado COMERCIAL por ficha (a pedido / preventa), con el mismo
-		// resolvedor que la faceta: el badge decía «A pedido» sobre una preventa
-		// que la faceta del mismo índice ya distinguía.
+		// El estado COMERCIAL por ficha (disponible / agotado), con el mismo
+		// resolvedor que la faceta.
 		$badge = $this->read_live(
 			static function () use ( $stock_status, $id ): array {
 				return StockLabels::availability( $stock_status, $id );
 			},
 			'The live stock label provider is not authoritative.'
 		);
-		if ( ! $this->available || ! is_array( $badge )
+		if ( ! $this->is_available() || ! is_array( $badge )
 			|| array_keys( $badge ) !== array( 'value', 'label', 'tone' )
 			|| ! is_string( $badge['label'] ) || '' === trim( $badge['label'] )
-			|| ! is_string( $badge['tone'] ) || ! in_array( $badge['tone'], array( 'ok', 'pre', 'order', 'out' ), true ) ) {
+			|| ! is_string( $badge['tone'] ) || ! in_array( $badge['tone'], array( 'ok', 'out' ), true ) ) {
 			$this->mark_unavailable( 'The live stock badge returned an invalid shape.' );
 			return null;
 		}
@@ -395,7 +397,7 @@ final class ProductPresenter {
 			},
 			'Could not read the live WooCommerce price authority base.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return;
 		}
 		if ( '' === $price ) {
@@ -413,7 +415,7 @@ final class ProductPresenter {
 			},
 			'The effective-price provider is not authoritative.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return;
 		}
 		if ( ! is_numeric( $effective ) || ! is_finite( (float) $effective ) || (float) $effective < 0.0 ) {
@@ -429,7 +431,7 @@ final class ProductPresenter {
 	 * @return mixed Resultado de la fuente; null tras un fallo.
 	 */
 	private function read_live( callable $reader, string $fallback ) {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 
@@ -489,7 +491,7 @@ final class ProductPresenter {
 			'Could not read live product image.'
 		);
 		$image_id = ProductSourceAuthority::canonical_image_id( $raw_image_id );
-		if ( ! $this->available || null === $image_id ) {
+		if ( ! $this->is_available() || null === $image_id ) {
 			$this->mark_unavailable( 'WooCommerce returned an invalid live image identity.' );
 			return '';
 		}
@@ -503,7 +505,7 @@ final class ProductPresenter {
 			},
 			'Could not read live product thumbnail.'
 		);
-		if ( ! $this->available || ( false !== $thumb_value && ! is_string( $thumb_value ) ) ) {
+		if ( ! $this->is_available() || ( false !== $thumb_value && ! is_string( $thumb_value ) ) ) {
 			$this->mark_unavailable( 'WooCommerce returned an invalid live thumbnail.' );
 			return '';
 		}

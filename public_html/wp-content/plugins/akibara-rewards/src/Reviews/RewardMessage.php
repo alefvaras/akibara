@@ -13,6 +13,9 @@ use Akibara\Rewards\Support\Options;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class RewardMessage {
 
 	/** Importe de la oferta o de los puntos efectivamente acreditados. */
@@ -47,7 +50,7 @@ final class RewardMessage {
 		}
 		$max = Options::review_max_per_user();
 		if ( $max > 0 ) {
-			$parts[] = sprintf( 'Tope de %s premios por cliente.', number_format_i18n( $max ) );
+			$parts[] = sprintf( 'Tope de %s premios por cliente cada 30 días.', number_format_i18n( $max ) );
 		}
 		$parts[] = 'Necesitas una cuenta con el correo de tu compra. Si aún no tienes cuenta, el premio queda pendiente hasta que la crees y verifiques el correo.';
 		return implode( ' ', $parts );

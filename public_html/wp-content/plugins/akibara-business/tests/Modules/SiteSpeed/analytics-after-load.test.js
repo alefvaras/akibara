@@ -1,7 +1,7 @@
 'use strict';
 
 /*
- * Cargador de GA4 y Clarity después de la carga (PM-2).
+ * Cargador de GA4 después de la carga (PM-2).
  *
  * La propiedad que importa: ninguna etiqueta se descarga mientras la página
  * carga, y cada una se descarga UNA vez, al quedar libre tras `load` o al primer
@@ -31,7 +31,7 @@ function entorno( { readyState = 'interactive', idle = true } = {} ) {
 	}
 	const nodos = [
 		placeholder( 'https://www.googletagmanager.com/gtag/js?id=G-X' ),
-		placeholder( 'https://www.clarity.ms/tag/abc?ref=wordpress' ),
+		placeholder( 'https://www.google-analytics.com/analytics.js' ),
 	];
 
 	const head = { appendChild: ( s ) => insertados.push( s ) };
@@ -106,7 +106,7 @@ test( 'tras load, al quedar libre, descarga las dos etiquetas una sola vez', () 
 	env.colaIdle[ 0 ].fn();
 	assert.deepEqual( env.insertados.map( ( s ) => s.src ), [
 		'https://www.googletagmanager.com/gtag/js?id=G-X',
-		'https://www.clarity.ms/tag/abc?ref=wordpress',
+		'https://www.google-analytics.com/analytics.js',
 	] );
 	assert.ok( env.insertados.every( ( s ) => true === s.async && '1' === s.attrs[ 'data-no-optimize' ] ) );
 	for ( const tipo of [ 'pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel' ] ) {

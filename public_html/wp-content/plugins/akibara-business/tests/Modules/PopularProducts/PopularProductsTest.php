@@ -67,17 +67,17 @@ final class PopularProductsTest extends TestCase {
 	}
 
 	/**
-	 * @testdox La consulta incluye los «A pedido»: son comprables, no decoración.
+	 * @testdox La consulta incluye solo los productos en stock físico.
 	 */
-	public function test_incluye_los_productos_a_pedido(): void {
+	public function test_incluye_los_productos_en_stock(): void {
 		$meta_query = PopularProducts::query_args( 4 )['meta_query'][0];
 
 		self::assertSame( '_stock_status', $meta_query['key'] );
-		self::assertSame( 'IN', $meta_query['compare'] );
+		self::assertSame( '=', $meta_query['compare'] );
 		self::assertSame(
-			array( StockStatus::IN_STOCK, StockStatus::ON_BACKORDER ),
+			StockStatus::IN_STOCK,
 			$meta_query['value'],
-			'Sólo `outofstock` queda fuera: es el único que no se puede comprar.'
+			'Sólo productos con existencias físicas en bodega.'
 		);
 	}
 

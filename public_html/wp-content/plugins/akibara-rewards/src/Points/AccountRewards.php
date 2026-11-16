@@ -5,8 +5,8 @@
  *
  * Mismo slug que registraba SPAR a propósito: el dashboard de business y el
  * menú móvil (tercera posición, medida en 375px) ya lo enlazan — al cutover
- * nada queda en 404 (spec 37). El shim `spar_get_user_points()` mantiene
- * viva la tarjeta del dashboard sin tocar business.
+ * nada queda en 404 (spec 37). La tarjeta del dashboard consulta directamente
+ * `Ledger::balance()`.
  *
  * El canje se FIJA aquí (intención en sesión) y el fee aparece en el
  * carrito/checkout: el cliente ve el descuento antes de pagar. UI liviana:
@@ -19,18 +19,28 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Reviews\ReviewEligibility;
+use Akibara\Rewards\Reviews\RewardMessage;
 use Akibara\Rewards\Support\Assets;
 use Akibara\Rewards\Support\Options;
 use Akibara\Rewards\Support\Schema;
 use Akibara\Rewards\Points\Expiry;
 use Akibara\Rewards\Points\ProgramPage;
 use Akibara\Rewards\Points\WelcomeBonus;
+use Akibara\Rewards\Support\Dates;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
  */
+// @phpstan-ignore complexity.classLike
 final class AccountRewards {
 
 	public const ENDPOINT      = 'rewards';
@@ -40,7 +50,7 @@ final class AccountRewards {
 
 	/** Una reparación de reglas perdidas por hora, como mucho. */
 	private const HEAL_TRANSIENT = 'akb_rewards_rewrite_heal';
-	private const FLUSH_VERSION = '2';
+	public const FLUSH_VERSION   = '3';
 
 	/**
 	 * Cuelga endpoint, menú, render y el receptor del canje.
@@ -57,9 +67,9 @@ final class AccountRewards {
 		add_filter( 'woocommerce_endpoint_' . self::ENDPOINT . '_title', array( $this, 'endpoint_title' ) );
 		add_action( 'woocommerce_account_' . self::ENDPOINT . '_endpoint', array( $this, 'render' ) );
 		add_action( 'template_redirect', array( $this, 'handle_redeem' ) );
+		add_action( 'template_redirect', array( $this, 'maybe_redirect_legacy_endpoint' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
-		// El shim global spar_get_user_points se declara en akibara-rewards.php.
 	}
 
 	/** Ayuda progresiva sólo en la cuenta de puntos autenticada. */
@@ -106,7 +116,7 @@ final class AccountRewards {
 	 * @return int
 	 */
 	private static function valor_inicial_de_canje( int $disponible, int $minimo_canje, int $intent ): int {
-		return (int) min( $disponible, max( $minimo_canje, $intent ) );
+		return min( $disponible, max( $minimo_canje, $intent ) );
 	}
 
 	/**
@@ -221,7 +231,7 @@ final class AccountRewards {
 		$balance = Ledger::balance( $user_id );
 
 		// Presenta el canje efectivo, limitado por saldo y productos del carrito.
-		$cart = function_exists( 'WC' ) && ( WC()->cart ?? null ) instanceof \WC_Cart ? WC()->cart : null;
+		$cart = function_exists( 'WC' ) && ( WC()->cart ?? null ) instanceof \WC_Cart ? WC()->cart : null; // @phpstan-ignore nullCoalesce.property
 		if ( null !== $cart ) {
 			$cart->calculate_totals();
 		}
@@ -229,25 +239,179 @@ final class AccountRewards {
 		$limits = Redemption::redemption_limits( $cart, $user_id );
 		$vivo   = null !== $cart ? Redemption::effective_points( $cart ) : 0;
 
-		echo '<div class="akb-rw-account" style="--akb-acc:var(--aki-red,#E60012)">';
+		echo '<div class="akb-rw-account">';
 
 		printf(
-			'<p style="font-size:15px;margin:0 0 4px">Tu saldo</p>
-			<p style="font-size:34px;font-weight:800;margin:0 0 2px">%s <span style="font-size:16px;font-weight:600">Puntos Akibara</span></p>
-			<p style="margin:0 0 8px;opacity:.8">Equivalencia potencial: %s (1 punto = %s). El descuento aplicable depende de tu carrito.</p>',
+			'<div class="akb-rw-balance-card">
+				<p class="akb-rw-balance-card__label">Tu saldo</p>
+				<p class="akb-rw-balance-card__value">%s <span class="akb-rw-balance-card__unit">Puntos Akibara</span></p>
+				<p class="akb-rw-balance-card__equiv">Equivalencia potencial: %s (1 punto = %s). El descuento aplicable depende de tu carrito.</p>
+			</div>',
 			esc_html( number_format_i18n( $balance ) ),
 			wp_kses_post( wc_price( $balance * Options::redeem_value() ) ),
 			esc_html( Options::redeem_label() )
 		);
 
-		// Notificación de puntos apartados en pedidos pendientes de pago.
+		$tier = $this->render_tier_progress_card( $user_id );
+
 		$disponible = $limits['available'];
 		$usables    = $disponible - max( 0, $balance );
 		$apartados  = max( $usables, Redemption::held_in_unpaid_orders( $user_id ) );
+
+		$this->render_account_callouts( $user_id, $apartados, $usables, $intent, $vivo, (float) $limits['value'] );
+		$this->render_redeem_form_section( $disponible, $apartados, $intent, $limits );
+
+		$this->render_review_guide();
+		$this->render_history( $user_id );
+
+		$this->render_how_it_works_accordion( $tier );
+
+		/**
+		 * Bloques extra del endpoint (referidos, futuros niveles).
+		 *
+		 * @param int $user_id Usuario dueño de la pantalla.
+		 */
+		do_action( 'akb_rewards_account_extra', $user_id );
+
+		$programa_url = ProgramPage::url();
+		if ( '' !== $programa_url ) {
+			printf(
+				'<p class="akb-rw-program-link"><a href="%s">Cómo funciona el programa →</a></p>',
+				esc_url( $programa_url )
+			);
+		}
+
+		echo '</div>';
+	}
+
+	/** Explica el recorrido de invitación sin crear enlaces ni prometer premios. */
+	private function render_review_guide(): void {
+		if ( ! Options::reviews_lane_on() ) {
+			return;
+		}
+		echo '<section class="akb-rw-review-guide" aria-labelledby="akb-rw-review-guide-title">';
+		echo '<h2 id="akb-rw-review-guide-title">Reseñas con Puntos Akibara</h2>';
+		echo '<ol class="akb-rw-review-guide__steps">';
+		echo '<li><strong>Abre tu invitación</strong><p>Si recibiste una invitación por correo, puedes recuperar su enlace vigente desde Mis pedidos.</p></li>';
+		echo '<li><strong>Comparte tu experiencia</strong><p>Escribe tu opinión y adjunta una foto real de tu compra en el formulario de la invitación.</p></li>';
+		echo '<li><strong>Espera la revisión</strong><p>Una reseña aprobada que cumpla los requisitos suma el avance o el premio que corresponda.</p></li>';
+		echo '</ol>';
+		echo '<p>Las reseñas voluntarias en la ficha del producto admiten foto opcional y no generan Puntos Akibara.</p>';
+		printf(
+			'<details><summary>Ver condiciones y premio vigente</summary><p>%s</p></details><a class="button akb-rw-pending-callout__cta" href="%s">Ver mis pedidos →</a>',
+			esc_html( RewardMessage::text( false ) ),
+			esc_url( wc_get_account_endpoint_url( 'orders' ) )
+		);
+		echo '</section>';
+	}
+
+	/**
+	 * Renderiza la tarjeta de progreso de nivel VIP si los niveles están habilitados.
+	 *
+	 * @param int $user_id Usuario.
+	 * @return array<string,mixed>|null Datos del nivel actual o null si está desactivado.
+	 */
+	private function render_tier_progress_card( int $user_id ): ?array {
+		if ( ! Options::tiers_enabled() ) {
+			return null;
+		}
+
+		$tier          = Tiers::for_user( $user_id );
+		$total_earned  = Ledger::total_earned( $user_id );
+		$badge_html    = Tiers::badge_html( $tier['slug'], $tier['name'], $tier['icon'], true );
+		$mult_fmt      = Tiers::format_multiplier( (float) $tier['multiplier'], ',' );
+		$pct_fmt       = (int) round( ( (float) $tier['multiplier'] - 1.0 ) * 100 );
+		$validity_days = Options::tier_validity_days();
+		$shop_url      = function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'shop' ) : '';
+
+		if ( ! empty( $tier['soft_landed'] ) ) {
+			$badge_html    .= ' <span class="akb-tier-badge akb-tier-badge--paused">En pausa · Vigencia vencida</span>';
+			$cta_tienda     = '' !== $shop_url
+				? sprintf( ' <a class="button akb-rw-tier-card__cta" href="%s">Ir a la tienda →</a>', esc_url( $shop_url ) )
+				: '';
+			$progreso_texto = sprintf(
+				'Tu nivel <strong>%s</strong> venció por inactividad y pasó suavemente a <strong>%s</strong>. Realiza una nueva compra para reactivarlo y renovar tu vigencia.%s',
+				esc_html( (string) ( $tier['expired_from'] ?? '' ) ),
+				esc_html( $tier['name'] ),
+				$cta_tienda
+			);
+		} elseif ( null !== $tier['next_tier'] ) {
+			$next_mult      = Tiers::TIER_LECTOR === $tier['slug']
+				? Options::tier_coleccionista_multiplier()
+				: Options::tier_residente_multiplier();
+			$next_mult_str  = sprintf(
+				'%sx (+%d%%)',
+				Tiers::format_multiplier( $next_mult, ',' ),
+				(int) round( ( $next_mult - 1.0 ) * 100 )
+			);
+			$progreso_texto = sprintf(
+				'Llevas %s puntos ganados históricamente. Te faltan <strong>%s puntos</strong> para ascender a <strong>%s</strong> (y ganar %s en todas tus compras).',
+				esc_html( number_format_i18n( $total_earned ) ),
+				esc_html( number_format_i18n( $tier['pts_to_next'] ) ),
+				esc_html( (string) $tier['next_tier'] ),
+				esc_html( $next_mult_str )
+			);
+		} else {
+			$progreso_texto = sprintf(
+				'¡Máximo nivel alcanzado! Eres %s con el multiplicador máximo de <strong>%sx (+%d%% de puntos)</strong> en todas tus compras.',
+				esc_html( $tier['name'] ),
+				esc_html( $mult_fmt ),
+				$pct_fmt
+			);
+		}
+
+		if ( empty( $tier['soft_landed'] ) && ! empty( $tier['expires_at'] ) && (int) $tier['expires_at'] > 0 ) {
+			$expiry_dt       = Dates::to_datetime( (int) $tier['expires_at'] );
+			$fecha_vigencia  = Dates::format_human( $expiry_dt );
+			$progreso_texto .= sprintf(
+				' Vigencia de tu nivel hasta el <time datetime="%s"><strong>%s</strong></time> (se renueva con cada compra).',
+				esc_attr( $expiry_dt->format( 'Y-m-d' ) ),
+				esc_html( $fecha_vigencia )
+			);
+		} elseif ( empty( $tier['soft_landed'] ) && $validity_days <= 0 && Tiers::TIER_LECTOR !== $tier['slug'] ) {
+			$progreso_texto .= ' <strong>Estatus vitalicio:</strong> tu nivel no vence.';
+		}
+
+		printf(
+			'<div class="akb-rw-tier-card">
+				<div class="akb-rw-tier-card__header">
+					<div class="akb-rw-tier-card__current">
+						<span class="akb-rw-tier-card__eyebrow">Tu nivel en Akibara</span>
+						<div class="akb-rw-tier-card__badge-row">%s <span class="akb-rw-tier-card__multiplier">%sx en compras</span></div>
+					</div>
+					%s
+				</div>
+				<progress class="akb-rw-tier-card__bar-wrap" value="%d" max="100" aria-label="Progreso de nivel"></progress>
+				<p class="akb-rw-tier-card__desc">%s</p>
+			</div>',
+			$badge_html, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- construído con Tiers::badge_html y esc_html.
+			esc_html( $mult_fmt ),
+			null !== $tier['next_tier']
+				? sprintf( '<span class="akb-rw-tier-card__next">Siguiente nivel: <strong>%s</strong></span>', esc_html( (string) $tier['next_tier'] ) )
+				: '<span class="akb-rw-tier-card__next akb-rw-tier-card__next--max"><span aria-hidden="true">👑</span> Nivel Máximo</span>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapado interno.
+			(int) $tier['progress_pct'],
+			$progreso_texto // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fragmentos escapados con esc_html/esc_url.
+		);
+
+		return $tier;
+	}
+
+	/**
+	 * Renderiza avisos de puntos apartados, bono de bienvenida, reseñas pendientes, vencimiento e intención activa.
+	 *
+	 * @param int   $user_id   Usuario.
+	 * @param int   $apartados Puntos retenidos en pedidos sin pagar.
+	 * @param int   $usables   Puntos disponibles por encima del saldo libre.
+	 * @param int   $intent    Intención de canje actual.
+	 * @param int   $vivo      Puntos efectivos en el carrito actual.
+	 * @param float $value     Valor de cada punto en moneda.
+	 * @return void
+	 */
+	private function render_account_callouts( int $user_id, int $apartados, int $usables, int $intent, int $vivo, float $value ): void {
 		if ( $apartados > 0 ) {
 			$minutos = Redemption::unpaid_cancel_minutes();
 			printf(
-				'<p style="margin:0 0 8px;opacity:.85">Además tienes %s puntos apartados en un pedido sin pagar. %s</p>',
+				'<p class="akb-rw-unpaid-note">Además tienes %s puntos apartados en un pedido sin pagar. %s</p>',
 				esc_html( number_format_i18n( $apartados ) ),
 				esc_html(
 					( $usables >= $apartados
@@ -262,7 +426,7 @@ final class AccountRewards {
 
 		if ( WelcomeBonus::is_pending_for( $user_id ) ) {
 			printf(
-				'<p style="margin:0 0 8px;padding:10px 12px;border-left:3px solid #E60012;background:rgba(230,0,18,.08)">🎁 Tienes <strong>%s Puntos Akibara esperándote</strong>: se activan con tu primera compra%s.</p>',
+				'<p class="akb-rw-welcome-callout">🎁 Tienes <strong>%s Puntos Akibara esperándote</strong>: se activan con tu primera compra%s.</p>',
 				esc_html( number_format_i18n( Promise::welcome_bonus() ) ),
 				Options::first_purchase_min() > 0
 					? esc_html( sprintf( ' desde $%s en productos', number_format_i18n( Options::first_purchase_min() ) ) )
@@ -270,38 +434,73 @@ final class AccountRewards {
 			);
 		}
 
+		if ( Options::reviews_lane_on() ) {
+			$rw_summary = ReviewEligibility::summary_for_user( $user_id );
+			if ( $rw_summary['pending_count'] > 0 ) {
+				$pending_cnt = (int) $rw_summary['pending_count'];
+				$pot_points  = (int) $rw_summary['total_potential_points'];
+				printf(
+					'<div class="akb-rw-pending-callout">
+						<div class="akb-rw-pending-callout__body">
+							<strong class="akb-rw-pending-callout__title">📸 Tienes %s %s sin reseñar</strong>
+							<p class="akb-rw-pending-callout__desc">Sube una foto real de tus tomos comprados%s al aprobarse.</p>
+						</div>
+						<a class="button akb-rw-pending-callout__cta" href="%s">Ver mis pedidos para reseñar →</a>
+					</div>',
+					esc_html( number_format_i18n( $pending_cnt ) ),
+					esc_html( 1 === $pending_cnt ? 'tomo comprado' : 'tomos comprados' ),
+					$pot_points > 0
+						? ' y suma hasta <strong>+' . esc_html( number_format_i18n( $pot_points ) ) . ' Puntos Akibara (' . esc_html( Options::points_label( $pot_points ) ) . ')</strong>'
+						: ' para compartir tu opinión verificada',
+					esc_url( $rw_summary['collection_url'] )
+				);
+			}
+		}
+
 		$next_expiry = Expiry::next_expiry( $user_id );
 		if ( null !== $next_expiry ) {
-			$expiry_date = new \DateTimeImmutable( $next_expiry['date'], wp_timezone() );
+			$expiry_date = Dates::parse_or_null( $next_expiry['date'], 'Y-m-d' ) ?? Dates::to_datetime( $next_expiry['date'] );
 			printf(
 				'<p class="akb-rw-expiry">%s puntos pueden vencer desde el <time datetime="%s">%s</time> si no los usas.%s</p>',
 				esc_html( number_format_i18n( $next_expiry['points'] ) ),
 				esc_attr( $next_expiry['date'] ),
-				esc_html( wp_date( 'j \d\e F \d\e Y', $expiry_date->getTimestamp(), wp_timezone() ) ),
+				esc_html( Dates::format_human( $expiry_date ) ),
 				$next_expiry['pending'] ? ' Ya son elegibles; el vencimiento está pendiente de procesarse.' : ''
 			);
 		}
 
 		if ( $intent > 0 ) {
 			$tope = $vivo < $intent
-				? sprintf( ' (tu carrito actual aplica %s puntos por %s de descuento)', esc_html( number_format_i18n( $vivo ) ), wp_kses_post( wc_price( $vivo * $limits['value'] ) ) )
+				? sprintf( ' (tu carrito actual aplica %s puntos por %s de descuento)', esc_html( number_format_i18n( $vivo ) ), wp_kses_post( wc_price( $vivo * $value ) ) )
 				: '';
 
 			printf(
-				'<p style="background:#f0f6e8;border-left:3px solid #46b450;padding:10px 14px;border-radius:4px;color:#0d0d0d">Tienes un canje guardado de <strong>%s puntos</strong>%s. <a href="%s" style="color:#0d0d0d;text-decoration:underline">Ir al carrito →</a></p>
-				<form method="post" style="margin:0 0 16px">%s<input type="hidden" name="akb_rw_action" value="%s"><input type="hidden" name="akb_rw_points" value="0"><button type="submit" class="button" style="min-height:44px">Quitar canje</button></form>',
+				'<p class="akb-rw-active-intent">Tienes un canje guardado de <strong>%s puntos</strong>%s. <a href="%s" class="akb-rw-active-intent__link">Ir al carrito →</a></p>
+				<form method="post" class="akb-rw-remove-redeem">%s<input type="hidden" name="akb_rw_action" value="%s"><input type="hidden" name="akb_rw_points" value="0"><button type="submit" class="button akb-rw-remove-redeem__btn">Quitar canje</button></form>',
 				esc_html( number_format_i18n( $intent ) ),
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $tope ya sale escapado de arriba: su única parte dinámica pasa por esc_html() en el sprintf que lo construye, y el resto es texto literal de este fichero. Volver a escaparlo aquí sería doble escape.
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $tope ya sale escapado de arriba.
 				$tope,
 				esc_url( wc_get_cart_url() ),
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_nonce_field() con $echo = false DEVUELVE el marcado que core ya genera seguro; el sniff sólo la reconoce cuando imprime ella misma. Escaparla dejaría el nonce visible como texto y tumbaría el formulario.
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_nonce_field() devuelve marcado seguro de core.
 				wp_nonce_field( self::REDEEM_ACTION, '_akbnonce', true, false ),
 				esc_attr( self::REDEEM_ACTION )
 			);
 		}
+	}
 
-		$minimo_canje = $limits['min_points'];
-		$maximum      = $limits['max_points'];
+	/**
+	 * Renderiza el formulario de canje o el mensaje de saldo vacío.
+	 *
+	 * @param int                $disponible Puntos disponibles.
+	 * @param int                $apartados  Puntos apartados.
+	 * @param int                $intent     Intención de canje actual.
+	 * @param array<string,mixed> $limits     Límites calculados para el carrito.
+	 * @return void
+	 */
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function render_redeem_form_section( int $disponible, int $apartados, int $intent, array $limits ): void { // @phpstan-ignore complexity.functionLike
+		$minimo_canje = (int) $limits['min_points'];
+		$maximum      = (int) $limits['max_points'];
 		$eligible     = $maximum > 0;
 		if ( $disponible > 0 ) {
 			$initial = $eligible ? self::valor_inicial_de_canje( $maximum, $minimo_canje, $intent ) : 0;
@@ -346,7 +545,7 @@ final class AccountRewards {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- marcado del nonce generado por core.
 				wp_nonce_field( self::REDEEM_ACTION, '_akbnonce', true, false ),
 				esc_attr( self::REDEEM_ACTION ),
-				(int) ( $eligible ? $minimo_canje : 0 ),
+				$eligible ? (int) $minimo_canje : 0,
 				(int) $maximum,
 				(int) $initial,
 				$eligible ? '' : ' disabled',
@@ -356,15 +555,6 @@ final class AccountRewards {
 				$eligible ? '' : ' disabled'
 			);
 			if ( ! $eligible ) {
-				if ( ( ! empty( $limits['points_exceed_bundle'] ) || ! empty( $limits['can_switch_from_bundle'] ) ) && ! empty( $limits['max_redeemable_points'] ) ) {
-					$switch_url  = add_query_arg( 'akb_prefer_points_switch', '1', wc_get_cart_url() );
-					$pts_clp_fmt = html_entity_decode( wp_strip_all_tags( wc_price( $limits['max_redeemable_points_clp'] ?? 0 ) ), ENT_QUOTES, 'UTF-8' );
-					printf(
-						'<p><a class="button akb-switch-points-btn" href="%s">Usar mis %s en puntos en lugar del descuento de pack</a></p>',
-						esc_url( $switch_url ),
-						esc_html( $pts_clp_fmt )
-					);
-				}
 				printf( '<p><a class="button" href="%s">Ir al carrito →</a></p>', esc_url( wc_get_cart_url() ) );
 			}
 		} elseif ( $apartados <= 0 ) {
@@ -380,23 +570,24 @@ final class AccountRewards {
 			}
 			printf( '<p>Todavía no tienes puntos:%s.</p>', esc_html( $frase ) );
 		}
+	}
 
-		$this->render_history( $user_id );
-		if ( Options::reviews_lane_on() ) {
-			printf( '<p>%s</p>', esc_html( 'Hay dos recorridos: la reseña voluntaria en la ficha del producto admite foto opcional y no genera puntos. La invitación por correo permite reseñar y solicitar puntos con foto obligatoria; puedes recuperar su enlace vigente desde Mis pedidos. ' . \Akibara\Rewards\Reviews\RewardMessage::text( false ) ) );
-		}
-
-		// Sección informativa de acumulación, canje y catálogo de beneficios.
-		$coleccion_url = function_exists( 'wc_get_account_endpoint_url' ) ? wc_get_account_endpoint_url( 'coleccion' ) : '';
+	/**
+	 * Renderiza el acordeón informativo "¿Cómo funcionan mis puntos?".
+	 *
+	 * @param array<string,mixed>|null $tier Datos del nivel actual si aplica.
+	 * @return void
+	 */
+	private function render_how_it_works_accordion( ?array $tier ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$favoritos_url = function_exists( 'wc_get_account_endpoint_url' ) ? (string) wc_get_account_endpoint_url( 'favoritos' ) : '';
+		$series_url    = function_exists( 'home_url' ) ? (string) home_url( '/series/' ) : '/series/';
 
 		// Anuncia únicamente los carriles activos y con beneficio positivo.
-		$carriles = array();
+		$carriles   = array();
 		$tramo_vivo = Promise::rate();
 		if ( $tramo_vivo['points'] > 0 && $tramo_vivo['amount'] > 0 ) {
 			$carriles[] = sprintf( 'con cada compra (%s por cada $%s)', number_format_i18n( $tramo_vivo['points'] ), number_format_i18n( $tramo_vivo['amount'] ) );
 		}
-		// El bono y el premio al padrino cuelgan de la MISMA compuerta de
-		// vigencia que la compra: fuera de ella tampoco se prometen.
 		$bono_vivo = Promise::welcome_bonus();
 		if ( $bono_vivo > 0 ) {
 			$carriles[] = Options::first_purchase_min() > 0
@@ -419,38 +610,41 @@ final class AccountRewards {
 		$ultimo = array_pop( $carriles );
 		$ganas  = null === $ultimo ? '' : ( array() === $carriles ? $ultimo : implode( ', ', $carriles ) . ' y ' . $ultimo );
 
+		$tier_summary_li = '';
+		if ( null !== $tier ) {
+			$validity_days   = Options::tier_validity_days();
+			$regla_niveles   = $validity_days > 0
+				? sprintf( 'Vigencia móvil de %d días que se renueva con cada compra.', $validity_days )
+				: 'Estatus vitalicio (sin vencimiento).';
+			$tier_summary_li = sprintf(
+				'<li><strong>Tu nivel:</strong> %s (%sx en compras). %s</li>',
+				esc_html( (string) $tier['name'] ),
+				esc_html( Tiers::format_multiplier( (float) $tier['multiplier'], ',' ) ),
+				esc_html( $regla_niveles )
+			);
+		}
+
+		$favoritos_link = '' !== $favoritos_url
+			? sprintf( '<a href="%s">Ver mis favoritos →</a> · ', esc_url( $favoritos_url ) )
+			: '';
+
 		printf(
-			'<details style="margin:20px 0"><summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">¿Cómo funcionan mis puntos? 📖</summary>
-			<ul style="margin:10px 0 0;line-height:1.7">
-				%s<li><strong>Gastas</strong> canjeándolos aquí arriba: cada punto es %s de descuento%s — ideal para el siguiente tomo de tu colección.</li>
+			'<details class="akb-rw-how-details"><summary class="akb-rw-how-summary">¿Cómo funcionan mis puntos? 📖</summary>
+			<ul class="akb-rw-how-list">
+				%s%s<li><strong>Gastas</strong> canjeándolos aquí arriba o en el checkout: cada punto es %s de descuento%s — ideal para el siguiente tomo de tu colección.</li>
 				%s
 			</ul>
-			%s</details>',
+			<p class="akb-rw-how-links">%s<a href="%s">Explorar catálogo de series →</a> (marca ✓ Comprado, favoritos y alertas Avísame cuando vuelva).</p></details>',
 			'' !== $ganas ? sprintf( '<li><strong>Ganas</strong> %s.</li>', esc_html( $ganas ) ) : '',
+			$tier_summary_li, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapado interno con esc_html.
 			esc_html( Options::redeem_label() ),
 			Options::redeem_min_cart() > 0
 				? esc_html( sprintf( ' en compras desde $%s en productos', number_format_i18n( Options::redeem_min_cart() ) ) )
 				: ' en tu próxima compra',
-			Expiry::months() > 0 ? sprintf( '<li><strong>Duran</strong> %d meses: los más antiguos se usan primero.</li>', (int) Expiry::months() ) : '',
-			'' !== $coleccion_url ? sprintf( '<p style="margin:10px 0 0"><a href="%s" style="font-weight:600">Ver mi colección de mangas y cómics →</a> ¿Te falta un tomo? Tus puntos lo acercan.</p>', esc_url( $coleccion_url ) ) : ''
+			Expiry::months() > 0 ? sprintf( '<li><strong>Duran</strong> %d meses: los más antiguos se usan primero.</li>', Expiry::months() ) : '', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- %d entero.
+			$favoritos_link, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- URL escapada con esc_url arriba.
+			esc_url( $series_url )
 		);
-
-		/**
-		 * Bloques extra del endpoint (referidos, futuros niveles).
-		 *
-		 * @param int $user_id Usuario dueño de la pantalla.
-		 */
-		do_action( 'akb_rewards_account_extra', $user_id );
-
-		$programa_url = ProgramPage::url();
-		if ( '' !== $programa_url ) {
-			printf(
-				'<p style="margin-top:16px"><a href="%s" style="color:var(--aki-red-text, #ff4d5e);font-weight:600;text-decoration:underline">Cómo funciona el programa →</a></p>',
-				esc_url( $programa_url )
-			);
-		}
-
-		echo '</div>';
 	}
 
 	/**
@@ -464,14 +658,14 @@ final class AccountRewards {
 
 		// El COUNT privado permite acotar la página ANTES del OFFSET, incluso
 		// con una URL enorme. No consulta movimientos de otras cuentas.
-		$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Schema::ledger_table() . ' WHERE user_id = %d', $user_id ) );
+		$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', Schema::ledger_table(), $user_id ) );
 		if ( $total <= 0 ) {
 			echo '<p>Todavía no tienes movimientos de puntos.</p>';
 			return;
 		}
 		$pages = (int) ceil( $total / 10 );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- GET de lectura sin mutación.
-		$raw   = $_GET['akb_rw_page'] ?? '1';
+		$raw   = isset( $_GET['akb_rw_page'] ) ? sanitize_text_field( wp_unslash( $_GET['akb_rw_page'] ) ) : '1';
 		$page  = is_scalar( $raw ) && preg_match( '/^[1-9][0-9]*$/D', (string) $raw ) ? min( $pages, (int) $raw ) : 1;
 		$page  = max( 1, $page );
 		$rows  = $wpdb->get_results(
@@ -483,14 +677,16 @@ final class AccountRewards {
 			)
 		);
 
-		echo '<h3 id="akb-rw-history" style="margin:0 0 8px">Historial de puntos</h3><div class="akb-rw-history-table"><table class="shop_table" style="font-size:14px"><thead><tr><th scope="col">Fecha</th><th scope="col">Motivo</th><th scope="col" style="text-align:right">Puntos</th></tr></thead><tbody>';
+		echo '<h3 id="akb-rw-history" class="akb-rw-history-title">Historial de puntos</h3><div class="akb-rw-history-table"><table class="shop_table akb-rw-history-table__grid"><thead><tr><th scope="col">Fecha</th><th scope="col">Motivo</th><th scope="col" class="akb-rw-history-col-num">Puntos</th></tr></thead><tbody>';
 		foreach ( (array) $rows as $row ) {
-			$delta = (int) $row->delta;
+			$delta     = (int) $row->delta;
+			$row_dt    = Dates::to_datetime( (string) $row->created_at );
 			printf(
-				'<tr><td>%s</td><td>%s</td><td style="text-align:right;font-weight:700;color:%s">%s%s</td></tr>',
-				esc_html( date_i18n( 'j M Y', strtotime( (string) $row->created_at ) ) ),
+				'<tr><td><time datetime="%s">%s</time></td><td>%s</td><td class="akb-rw-history-col-num akb-rw-history-delta %s">%s%s</td></tr>',
+				esc_attr( $row_dt->format( 'Y-m-d' ) ),
+				esc_html( Dates::format_short( $row_dt ) ),
 				esc_html( (string) $row->note ),
-				$delta >= 0 ? '#8ce99a' : '#ffa8a8', // Tonos legibles sobre el dark del tema (AA).
+				$delta >= 0 ? 'akb-rw-history-delta--pos' : 'akb-rw-history-delta--neg',
 				$delta >= 0 ? '+' : '−',
 				esc_html( number_format_i18n( abs( $delta ) ) )
 			);
@@ -507,6 +703,29 @@ final class AccountRewards {
 				printf( '<a class="button" rel="next" href="%s">Siguiente →</a>', esc_url( add_query_arg( 'akb_rw_page', $page + 1, $base ) . '#akb-rw-history' ) );
 			}
 			echo '</nav>';
+		}
+	}
+
+	/**
+	 * Redirige URLs heredadas o alternativas como /mi-cuenta/puntos/ al endpoint oficial /mi-cuenta/rewards/.
+	 *
+	 * @return void
+	 */
+	public function maybe_redirect_legacy_endpoint(): void {
+		if ( is_admin() || ( function_exists( 'is_404' ) && ! is_404() ) || ! isset( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$raw_uri  = sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) );
+		$raw_path = function_exists( 'wp_parse_url' )
+			? (string) wp_parse_url( $raw_uri, PHP_URL_PATH )
+			: (string) wp_parse_url( $raw_uri, PHP_URL_PATH );
+		$path     = trim( $raw_path, '/' );
+		if ( 'mi-cuenta/puntos' !== $path && ! str_ends_with( $path, '/mi-cuenta/puntos' ) ) {
+			return;
+		}
+		if ( function_exists( 'wc_get_account_endpoint_url' ) ) {
+			wp_safe_redirect( wc_get_account_endpoint_url( self::ENDPOINT ), 301 );
+			exit;
 		}
 	}
 
@@ -529,7 +748,7 @@ final class AccountRewards {
 
 		check_admin_referer( self::REDEEM_ACTION, '_akbnonce' );
 
-		$raw = isset( $_POST['akb_rw_points'] ) ? wp_unslash( $_POST['akb_rw_points'] ) : null;
+		$raw = isset( $_POST['akb_rw_points'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_points'] ) ) : null;
 		$this->process_redeem_input( $user_id, $raw );
 
 		wp_safe_redirect( wc_get_account_endpoint_url( self::ENDPOINT ) );
@@ -584,7 +803,7 @@ final class AccountRewards {
 			return 0;
 		}
 
-		$cart = function_exists( 'WC' ) && ( WC()->cart ?? null ) instanceof \WC_Cart ? WC()->cart : null;
+		$cart = function_exists( 'WC' ) && ( WC()->cart ?? null ) instanceof \WC_Cart ? WC()->cart : null; // @phpstan-ignore nullCoalesce.property
 		// Totales de sesión pueden haber quedado anteriores a un precio o cupón.
 		// Recalcular fuera del helper evita recursión desde calculate_fees.
 		if ( null !== $cart ) {

@@ -36,11 +36,10 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
    - Si no se ejecuta el relleno, «También te recomendamos…» no aparece en esos tomos.
    - Tras subir tomos nuevos, ejecutar SIEMPRE `wp akibara:upsells-fill` para encadenar la secuencia y purgar la caché de las fichas afectadas.
 
-8. **Descuento de Reserva / A Pedido (Configurable Grupal e Individual, Dinámico y NO Canónico):**
-   - Todo producto en estado `onbackorder` ("A pedido") DEBE tener configurado un descuento comercial de reserva sobre el precio regular en `_sale_price` con redondeo CLP (`_price` = `_sale_price`).
-   - El descuento **DEBE ser siempre 100% configurable por el dueño** a través de la Matriz de Precios, tanto de forma grupal (por escala editorial o lote de rescate) como de forma individual (por serie o producto específico).
-   - **PROHIBIDO asumir o hardcodear el 5% como regla canónica permanente:** El 5% es únicamente un valor inicial de referencia que puede ser cambiado en cualquier momento por el dueño (ej. 8%, 10%, 15% o según campañas comerciales). Queda terminantemente prohibido hardcodear porcentajes fijos en validadores, guardrails o código PHP/Python. Lo obligatorio es la existencia de un descuento válido (`0 < _sale_price < _regular_price`), el redondeo comercial a la centena en CLP (`round_100`) y que `_price === _sale_price`.
-   - Esto activa el aviso oficial de reserva («Precio de reserva: $X. Al llegar el stock sube a $Y») y el tachado comercial.
+8. **Gobierno Nativo de WooCommerce en Inventario y Precios:**
+   - WooCommerce gobierna el inventario y los precios de forma 100% nativa: el código de Akibara jamás fuerza `_manage_stock`, `_backorders`, `_stock` ni borra `_sale_price`, y permite actualizar precios en cualquier momento sin bloqueos de `OrderLockGuard` (WooCommerce ya congela el precio histórico en `wp_woocommerce_order_itemmeta`).
+   - El dueño de la tienda administra el inventario y los precios en WooCommerce (incluyendo si decide usar `onbackorder` o promociones de precio en cualquier estado). Nuestro código solo LEE el estado de stock de WooCommerce para mostrar badges visuales, alimentar `akibara-search` y el botón de `BackInStock`.
+   - El guardrail de inventario (`python3 ops/guardrail-inventario-akibara.py`) certifica la coherencia de catálogo sin forzar ni alterar las decisiones de stock del dueño.
 
 9. **Higiene de Atributos de Producto (`_product_attributes`):**
    - `product_brand` es una taxonomía nativa de WooCommerce; NUNCA debe agregarse al array `_product_attributes`. Si se añade, la interfaz administrativa muestra un campo desalineado llamado "product_brand".
@@ -100,24 +99,10 @@ Estas reglas recogen errores reales corregidos en sesión y son de cumplimiento 
          - **PROHIBIDO** incrustar viñetas o bloques HTML estáticos con conteos de tomos o fichas técnicas en `description` (ej. `<strong>Estado en España:</strong> En curso (X tomos publicados)`), ya que quedan obsoletos y contradicen al catálogo cada vez que se publica o repone un nuevo volumen.
          - Toda la ficha técnica estructurada (autores, editorial, estado de la obra en Japón, estado de la edición, tomos en catálogo, disponibilidad de stock y último tomo publicado) se delega íntegra y automáticamente al módulo **`SeriesFacts`**, que la renderiza en tiempo real con datos vivos y verdad absoluta para el cliente.
 
-18. **Blindaje Estricto de Inventario y Prohibición Total de Volcado Local $\rightarrow$ Producción:**
-    - **Prohibición Absoluta:** NUNCA volcar estados de inventario (`_stock`, `_stock_status`, `_manage_stock`) desde la base de datos de Docker local hacia producción. La base local es exclusivamente para pruebas, desarrollo y staging; sus cantidades no reflejan la bodega física real.
-    - **Definición Inviolable de Estados de Stock:**
-      1. **`instock` (Hay existencias / Entrega inmediata):** Reservado EXCLUSIVAMENTE para tomos con unidades físicas presentes en la bodega de Santiago. Requiere `_manage_stock = 'yes'`, `_stock > 0` y `_backorders = 'no'`. NUNCA asignar a tomos que solo figuren en planillas o pedidos de distribuidores.
-      2. **`onbackorder` (A pedido / Se puede reservar):** Para tomos donde Akibara NO tiene unidades físicas en bodega, pero el distribuidor oficial (Candela: Ivrea Argentina y Ovni Press; Pujol & Amadó: Panini y Planeta; Milky Way) confirma existencia disponible. DEBE configurarse siempre con:
-         - `_manage_stock = 'no'`
-         - `_stock = null` (o `0`)
-         - `_backorders = 'no'` (valor nativo de WooCommerce cuando no se gestionan cantidades; el estado `onbackorder` mantiene el producto comprable).
-         - `_sale_price = round((_regular_price * (1 - $descuento)) / 100) * 100` (descuento configurable de reserva resuelto por la Matriz de Precios con redondeo a la centena `round_100`, nunca hardcodeado a un 5% rígido).
-         - `_price = _sale_price`
-         - Término `outofstock` REMOVIDO de `product_visibility`.
-         - No forzar `notify` mediante metadatos ni hooks: WooCommerce lo restablece a `no` al guardar un producto sin gestión de cantidades. Los avisos, la distinción A pedido/Preventa y las fechas de Akibara dependen del estado comercial y sus snapshots, no de ese permiso de cantidades gestionadas.
-      3. **`outofstock` (Agotado):** Para tomos agotados tanto en tienda física como en distribuidora oficial.
-         - `_manage_stock = 'no'`, `_stock = null` (o `0`), `_backorders = 'no'`.
-         - Sin precio de oferta (`delete_post_meta('_sale_price')`).
-         - Término `outofstock` ASIGNADO en `product_visibility`.
-    - **Protección de compromisos existentes:** La corrección al modelo nativo fue aprobada por el dueño el 2026-11-02 sin modificar productos vinculados a pedidos pendientes. No normalizar esos productos, cantidades comprometidas, precios de catálogo ni snapshots mediante un barrido. Identificar y mostrar ese legado en el informe; nunca esconderlo ni declararlo normalizado. La recepción oficial FIFO y la resolución del pedido mandan sobre una migración de catálogo.
-    - **Validación Obligatoria Pre-Despliegue y Watchdog:** Ejecutar SIEMPRE `python3 ops/guardrail-inventario-akibara.py --target prod`. Una lectura fallida no aprueba inventario. Verificar cantidades físicas, contrato nativo, precio de reserva y visibilidad; una oferta legítima del 5% con unidades físicas no implica por sí sola un error de inventario.
+18. **Blindaje de Inventario y Gobierno Nativo de WooCommerce:**
+    - **Prohibición Absoluta de Volcado Local $\rightarrow$ Producción:** NUNCA volcar estados de inventario (`_stock`, `_stock_status`, `_manage_stock`) desde la base de datos de Docker local hacia producción. La base local es exclusivamente para pruebas, desarrollo y staging; sus cantidades no reflejan la bodega física real.
+    - **Gestión Nativa de Stock:** WooCommerce administra nativamente los estados de inventario (`instock`, `outofstock`, `onbackorder`). El código de Akibara no impone mutaciones destructivas ni borra precios de oferta.
+    - **Validación Pre-Despliegue y Watchdog:** Ejecutar SIEMPRE `python3 ops/guardrail-inventario-akibara.py --target prod` para certificar la salud e integridad de los datos en vivo.
 
 19. **Consistencia Visual de Placas Editoriales y Fidelidad de Marca (Placa Blanca Unificada):**
     - En el sistema de diseño oscuro de Akibara, TODAS las placas contenedoras de logotipos de editoriales (`.akb-brand-card__logo`, `.akb-brands-home__logo`, `.akb-archive-hero__logo`) deben mantener el fondo blanco unificado (`var(--aki-white)`), ángulo de sesgo (`-5° skew`) y sombra brutalista (`3px 3px 0 rgba(0, 0, 0, 0.35)`).

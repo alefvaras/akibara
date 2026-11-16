@@ -40,19 +40,8 @@ final class InvitacionDisparadorTest extends RewardsTestCase {
 	/** @var array<string,mixed> */
 	private array $opciones = array();
 
-	/**
-	 * Veredicto de la compuerta de preventa de akibara-business. La suite
-	 * carga la clase real (autoload de business): se gobierna por su filtro
-	 * público, igual que la gobernaría otro plugin.
-	 */
-	private bool $permitir = true;
-
 	protected function setUp(): void {
 		parent::setUp();
-
-		Filters\expectApplied( 'akb_order_preventa_can_request_review' )
-			->zeroOrMoreTimes()
-			->andReturnUsing( fn(): bool => $this->permitir );
 
 		$this->invitations = new Invitations();
 		$this->wc          = $this->install_fake_wc();
@@ -123,30 +112,12 @@ final class InvitacionDisparadorTest extends RewardsTestCase {
 		$this->assertNotSame( '', (string) $order->get_meta( Invitations::META_SENT ), 'Tres días después el pedido ya está completado, y la invitación sale igual.' );
 	}
 
-	/** @testdox Una preventa se invita al completarse aunque el disparador sea «Listo para enviar». */
-	public function test_la_preventa_se_invita_al_completarse(): void {
-		$this->opciones['akb_rewards_invite_status'] = 'shipping-progress';
-		$this->permitir                              = false;
-		$order                                       = $this->pedido( 100, 'shipping-progress' );
-
-		$this->invitations->on_status_changed( 100, 'processing', 'shipping-progress' );
-		$this->assertSame( array(), $this->scheduled, 'La preventa espera su entrega.' );
-
-		$this->permitir = true;
-		$order->status  = 'completed';
-		$this->invitations->on_status_changed( 100, 'shipping-progress', 'completed' );
-		$this->assertCount( 1, $this->scheduled, 'Entregada, se invita.' );
-
-		$this->invitations->send_invite( 100 );
-		$this->assertNotSame( '', (string) $order->get_meta( Invitations::META_SENT ) );
-	}
-
 	/** @testdox Un pedido que llega a Completado sin pasar por el disparador también se invita. */
 	public function test_un_pedido_que_salta_el_disparador_se_invita_al_completarse(): void {
-		$this->opciones['akb_rewards_invite_status'] = 'shipping-progress';
+		$this->opciones['akb_rewards_invite_status'] = 'processing';
 		$this->pedido( 100, 'completed' );
 
-		$this->invitations->on_status_changed( 100, 'processing', 'completed' );
+		$this->invitations->on_status_changed( 100, 'pending', 'completed' );
 
 		$this->assertCount( 1, $this->scheduled );
 	}

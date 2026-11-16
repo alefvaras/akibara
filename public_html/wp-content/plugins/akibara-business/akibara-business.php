@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Akibara Business
  * Plugin URI:        https://akibara.cl
- * Description:       Lógica de negocio Chile-específica para akibara.cl: validación RUT, fechas estimadas de llegada para preventas, identificación de pedidos con preventa, visibilidad cliente (email + mi-cuenta), directorio de editoriales, barra de anuncios y panel admin consolidado. Theme-agnostic.
- * Version:           1.120.26
+ * Description:       Lógica de negocio Chile-específica para akibara.cl: validación RUT, catálogo de mangas y cómics, visibilidad cliente (email + mi-cuenta), directorio de editoriales, barra de anuncios y panel admin consolidado. Theme-agnostic.
+ * Version:           1.122.0
  * Requires at least: 6.8
  * Requires PHP:      8.1
  * WC requires at least: 10.0
@@ -16,7 +16,6 @@
  *
  * La tienda es monolingüe es-CL por política del dueño. Este plugin no carga
  * un dominio de traducción; los textos propios se escapan directamente.
- * I18nPolicyTest mantiene este contrato.
  *
  * @package Akibara\Business
  */
@@ -29,7 +28,7 @@ defined( 'ABSPATH' ) || exit;
 // Constants.
 // ---------------------------------------------------------------------------
 
-define( 'AKIBARA_BUSINESS_VERSION', '1.120.26' );
+define( 'AKIBARA_BUSINESS_VERSION', '1.122.0' );
 define( 'AKIBARA_BUSINESS_FILE', __FILE__ );
 define( 'AKIBARA_BUSINESS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AKIBARA_BUSINESS_URL', plugin_dir_url( __FILE__ ) );
@@ -58,18 +57,6 @@ add_action(
 		}
 	}
 );
-
-// ---------------------------------------------------------------------------
-// Etiqueta de Google Ads de Google for WooCommerce.
-// ---------------------------------------------------------------------------
-
-// Ese plugin decide si imprime su etiqueta al registrar sus servicios, en
-// `plugins_loaded:20` (GoogleListingsAndAdsPlugin::register). El arranque de
-// éste corre en la MISMA prioridad, y a igual prioridad manda el orden de carga
-// de los plugins: engancharse ahí sería una apuesta. Por eso la clase se carga a
-// mano y se engancha en la 0 (ver `GoogleAdsTag`).
-require_once AKIBARA_BUSINESS_DIR . 'src/Modules/SiteSpeed/GoogleAdsTag.php';
-add_action( 'plugins_loaded', array( \Akibara\Business\Modules\SiteSpeed\GoogleAdsTag::class, 'register_early' ), 0 );
 
 // ---------------------------------------------------------------------------
 // Bootstrap.
@@ -189,14 +176,13 @@ add_action( 'admin_notices', 'akibara_business_aviso_tablas_fallidas' );
 // ---------------------------------------------------------------------------
 // Contrato del buscador: las funciones puente VIVEN en el plugin
 // `akibara-search` (dueño del subsistema). Se movieron ahí en el switch para
-// que el theme dependa del plugin, no de business. Son DIEZ, declaradas en
+// que el theme dependa del plugin, no de business. Son NUEVE, declaradas en
 // `akibara-search.php`: `akibara_search_facets_active`, `_facets_fail_open`,
 // `_facets_view`, `_facets_context`, `_suggest_active`, `_correction`,
-// `_relaxed_notice`, `_empty_suggestions`, `_demand_gaps` y `_title_requests`.
+// `_relaxed_notice`, `_empty_suggestions` y `_demand_gaps`.
 //
-// De esas diez, business consume DOS: `akibara_search_demand_gaps()` y
-// `akibara_search_title_requests()`, tras un `function_exists()`, para el
-// ranking de demanda y pedidos por encargo del Centro de Mando
+// De esas nueve, business consume `akibara_search_demand_gaps()`, tras un
+// `function_exists()`, para el ranking de demanda del Centro de Mando
 // (`Modules/AdminDashboard/AdminDashboard.php`). Las demás las consumen el
 // frontend del propio buscador y el theme.
 // ---------------------------------------------------------------------------
@@ -276,16 +262,6 @@ register_activation_hook(
 		}
 		// Plugin::cleanup_orphan_options() retira akb_wishlist_flushed durante el
 		// upgrade. El flush de reglas se centraliza en run_upgrade_tasks().
-
-		// EstimatedDelivery refactor pa_pais 1.14.0: inicializa term-meta de
-		// lead times en cada término pa_pais (argentina, espana, ...) desde
-		// options legacy o DEFAULT_LEAD_TIMES. Idempotente — re-activación no
-		// sobrescribe valores existentes.
-		if ( ! class_exists( '\\Akibara\\Business\\Modules\\EstimatedDelivery\\Migration' ) ) {
-			require_once AKIBARA_BUSINESS_DIR . 'src/Modules/EstimatedDelivery/Settings.php';
-			require_once AKIBARA_BUSINESS_DIR . 'src/Modules/EstimatedDelivery/Migration.php';
-		}
-		\Akibara\Business\Modules\EstimatedDelivery\Migration::on_activation();
 	}
 );
 
@@ -318,7 +294,7 @@ register_deactivation_hook(
 //
 // El shortcode [products] de WC no tiene attribute para filtrar por stock_status.
 // Aplicamos meta_query solo al shortcode del home con orderby=date para excluir
-// onbackorder + outofstock. Quirúrgico — no afecta otras secciones del home ni
+// outofstock. Quirúrgico — no afecta otras secciones del home ni
 // archives.
 //
 add_filter(
@@ -331,7 +307,6 @@ add_filter(
 			return $args;
 		}
 		// El filtro instock sólo corresponde a Recién llegados, sin category.
-		// Las vitrinas reservables usan onbackorder y no deben recibirlo.
 		if ( ! empty( $atts['category'] ?? '' ) ) {
 			return $args;
 		}
@@ -395,7 +370,7 @@ add_filter(
 		$out = array();
 		foreach ( $priority as $key ) {
 			if ( 'title' === $key || isset( $options[ $key ] ) ) {
-				$out[ $key ] = $labels[ $key ] ?? $options[ $key ];
+				$out[ $key ] = $labels[ $key ] ?? $options[ $key ]; // @phpstan-ignore nullCoalesce.offset
 			}
 		}
 		foreach ( $options as $key => $label ) {
@@ -421,7 +396,7 @@ add_filter(
 		if ( 'title' === $orderby_value ) {
 			$args['orderby']  = 'title';
 			$args['order']    = 'ASC';
-			$args['meta_key'] = '';
+			$args['meta_key'] = ''; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 		}
 		return $args;
 	}
@@ -437,7 +412,7 @@ add_filter(
 // SQL ni migraciones históricas dentro del plugin.
 add_filter(
 	'wp_insert_post_data',
-	static function ( array $data, array $postarr ): array {
+	static function ( array $data, array $postarr ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ( $data['post_type'] ?? '' ) !== 'product' ) {
 			return $data;
 		}

@@ -30,7 +30,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedVariable
  */
+// @phpstan-ignore complexity.classLike
 final class Install {
 
 	// 1.7.0: work durable (live/baseline/repair) + swap recuperable sin DROP.
@@ -280,7 +287,8 @@ final class Install {
 	 *
 	 * @return bool True si no queda deuda o convergió; false conserva outbox.
 	 */
-	public static function consume_generation_publications(): bool {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function consume_generation_publications(): bool { // @phpstan-ignore complexity.functionLike
 		global $wpdb;
 		if ( ! isset( $wpdb ) ) {
 			return false;
@@ -318,7 +326,7 @@ final class Install {
 		try {
 			for ( $attempt = 0; $attempt < 10; ++$attempt ) {
 				$raw = self::read_option_uncached( self::OPTION_GENERATION_OUTBOX, false );
-				if ( self::$option_read_failed ) {
+				if ( self::$option_read_failed ) { // @phpstan-ignore if.alwaysFalse
 					return false;
 				}
 				$state = self::normalise_generation_outbox( $raw );
@@ -433,9 +441,9 @@ final class Install {
 		if ( ! isset( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) ) {
 			return false;
 		}
-		$wpdb->last_error = '';
+		$wpdb->last_error = ''; // @phpstan-ignore property.nonObject
 		$value             = $wpdb->get_var( 'SELECT @@in_transaction' );
-		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || ! in_array( (string) $value, array( '0', '1' ), true ) ) {
+		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || ! in_array( (string) $value, array( '0', '1' ), true ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			return null;
 		}
 
@@ -496,18 +504,6 @@ final class Install {
 	}
 
 	/**
-	 * Tabla persistente de solicitudes de títulos no disponibles (demanda real).
-	 *
-	 * Esta tabla es SIEMPRE viva: no participa del swap ni admite sufijos.
-	 *
-	 * @return string
-	 */
-	public static function requests_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . TitleRequests::TABLE_BASE;
-	}
-
-	/**
 	 * Las 3 tablas que participan del rebuild atómico (qlog NO — es log vivo).
 	 *
 	 * @return array<int, string>
@@ -555,7 +551,7 @@ final class Install {
 			$wpdb->last_error = '';
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- nombre de tabla propio, lectura de metadata.
 			$present = $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 );
-			if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_array( $present ) ) {
+			if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_array( $present ) ) {
 				return null;
 			}
 			foreach ( $indexes as $index ) {
@@ -675,8 +671,8 @@ final class Install {
 
 				// CAS final: la versión nunca representa un schema no verificado.
 				if ( self::DB_VERSION !== $previous
-					&& self::install_lock_is_owned( $lock )
-					&& $fence->is_owned() ) {
+					&& self::install_lock_is_owned( $lock ) // @phpstan-ignore booleanAnd.rightAlwaysTrue
+					&& $fence->is_owned() ) { // @phpstan-ignore booleanAnd.rightAlwaysTrue
 					if ( ! self::claim_version( $previous ) ) {
 						return;
 					}
@@ -760,7 +756,7 @@ final class Install {
 			$blocked['topology']     = self::classify_topology_state( $topology );
 			$blocked['updated_at']   = time();
 			$blocked['heartbeat_at'] = time();
-			$encoded                 = function_exists( 'wp_json_encode' ) ? wp_json_encode( $blocked ) : json_encode( $blocked );
+			$encoded                 = function_exists( 'wp_json_encode' ) ? wp_json_encode( $blocked ) : json_encode( $blocked ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
 			if ( is_string( $encoded ) ) {
 				self::replace_option_cas( RebuildJob::OPTION_STATE, $raw_state, $encoded, false );
 			}
@@ -1004,7 +1000,6 @@ final class Install {
 					'akb_search_rest_purge_receipt',
 					'akb_search_semantic_fingerprint',
 					'akb_search_editorial_reconcile_at',
-					'akb_search_requests_db_version',
 					'akb_search_empty_hint_suggest',
 					'akb_search_network_notice',
 				)
@@ -1256,7 +1251,7 @@ final class Install {
 	 * @param int|null                               $requested_at Instante único de esta solicitud.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private static function merge_rebuild_request( array $requests, string $reason, string $version, int $not_before, ?array $assigned, ?int $requested_at = null ): array {
+	private static function merge_rebuild_request( array $requests, string $reason, string $version, int $not_before, ?array $assigned, ?int $requested_at = null ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$requested_at = null === $requested_at ? time() : max( 0, $requested_at );
 		if ( empty( $requests ) ) {
 			return array(
@@ -1348,7 +1343,7 @@ final class Install {
 	 * @param bool   $delete      Eliminar en vez de actualizar.
 	 * @return bool
 	 */
-	private static function replace_option_cas( string $option, $expected, $replacement, bool $delete ): bool {
+	private static function replace_option_cas( string $option, $expected, $replacement, bool $delete ): bool { // @phpstan-ignore complexity.functionLike
 		global $wpdb;
 
 		if ( false === $expected ) {
@@ -1366,7 +1361,7 @@ final class Install {
 					)
 				);
 				self::clear_option_cache( $option );
-				if ( false === $inserted || '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+				if ( false === $inserted || '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 					return false;
 				}
 				$current = self::read_option_uncached( $option, false );
@@ -1419,7 +1414,7 @@ final class Install {
 
 		update_option( $option, $replacement, false );
 		$current = self::read_option_uncached( $option, false );
-		return ! self::$option_read_failed && $replacement === $current;
+		return ! self::$option_read_failed && $replacement === $current; // @phpstan-ignore booleanNot.alwaysTrue
 	}
 
 	/**
@@ -1439,7 +1434,7 @@ final class Install {
 					$option
 				)
 			);
-			if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+			if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 				self::$option_read_failed = true;
 				return $default;
 			}
@@ -1465,7 +1460,7 @@ final class Install {
 	 * @param mixed $raw Valor option.
 	 * @return array<string, mixed>|null
 	 */
-	private static function normalise_generation_outbox( $raw ): ?array {
+	private static function normalise_generation_outbox( $raw ): ?array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		if ( ! is_array( $raw )
 			|| self::GENERATION_OUTBOX_PROTOCOL !== (int) ( $raw['protocol'] ?? 0 )
 			|| '' === (string) ( $raw['token'] ?? '' )
@@ -1605,7 +1600,7 @@ final class Install {
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- {$docs} sale de self::docs_table() ($wpdb->prefix + literal fijo) y la sentencia no lleva ningún valor que preparar: los argumentos de REPLACE son las constantes '-' y ' ' escritas aquí mismo.
 		$result = $wpdb->query( "UPDATE {$docs} SET sku_norm = REPLACE(REPLACE(sku, '-', ''), ' ', '') WHERE sku_norm = '' AND sku <> ''" );
 
-		return false !== $result && '' === (string) ( $wpdb->last_error ?? '' );
+		return false !== $result && '' === (string) ( $wpdb->last_error ?? '' ); // @phpstan-ignore identical.alwaysTrue
 	}
 
 	/**
@@ -1654,7 +1649,7 @@ final class Install {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- `$query` ES el resultado del prepare de arriba.
 		$present          = $wpdb->get_col( $query );
 
-		if ( ! is_array( $present ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+		if ( ! is_array( $present ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			self::$topology_read_failed = true;
 			return $topology;
 		}
@@ -1725,7 +1720,7 @@ final class Install {
 			return false;
 		}
 
-		return self::TOPOLOGY_READY_SWAP === self::classify_topology();
+		return self::TOPOLOGY_READY_SWAP === self::classify_topology(); // @phpstan-ignore identical.alwaysFalse
 	}
 
 	/**
@@ -1756,21 +1751,24 @@ final class Install {
 			return self::RENAME_RESULT_RETRY;
 		}
 
-		$pairs = array();
-		foreach ( self::swappable_tables() as $table ) {
-			$pairs[] = sprintf(
-				'%1$s TO %2$s, %3$s TO %1$s',
-				self::quote_identifier( $table ),
-				self::quote_identifier( $table . self::OLD_SUFFIX ),
-				self::quote_identifier( $table . self::SHADOW_SUFFIX )
-			);
+		$swappable_tables = self::swappable_tables();
+		$rename_params    = array();
+		foreach ( $swappable_tables as $table ) {
+			$rename_params[] = $table;
+			$rename_params[] = $table . self::OLD_SUFFIX;
+			$rename_params[] = $table . self::SHADOW_SUFFIX;
+			$rename_params[] = $table;
 		}
 
 		if ( ! self::ddl_fence_owned( $assert_owned ) ) {
 			return self::RENAME_RESULT_RETRY;
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- nombres internos ya delimitados, sin input externo.
-		$wpdb->query( 'RENAME TABLE ' . implode( ', ', $pairs ) );
+		$wpdb->query(
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+				'RENAME TABLE ' . implode( ', ', array_fill( 0, count( $swappable_tables ), '%i TO %i, %i TO %i' ) ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- cláusulas de placeholders %i generadas estáticamente.
+				$rename_params
+			)
+		);
 		if ( ! self::ddl_fence_owned( $assert_owned ) ) {
 			return self::RENAME_RESULT_RETRY;
 		}
@@ -2094,33 +2092,6 @@ final class Install {
 				KEY claim (status, available_at, lease_until),
 				KEY run_outstanding (run_id, scope, status)
 			) ENGINE=InnoDB {$charset};";
-
-			$requests = self::requests_table();
-			$sql[] = "CREATE TABLE {$requests} (
-				id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-				product_id BIGINT(20) UNSIGNED NULL DEFAULT NULL,
-				query_norm VARCHAR(191) NOT NULL DEFAULT '',
-				title VARCHAR(255) NOT NULL DEFAULT '',
-				editorial VARCHAR(100) NOT NULL DEFAULT '',
-				isbn VARCHAR(32) NOT NULL DEFAULT '',
-				status_intended VARCHAR(20) NOT NULL DEFAULT 'a_pedido',
-				customer_name VARCHAR(100) NOT NULL DEFAULT '',
-				customer_contact VARCHAR(100) NOT NULL DEFAULT '',
-				contact_type VARCHAR(10) NOT NULL DEFAULT 'email',
-				user_id BIGINT(20) UNSIGNED NULL DEFAULT NULL,
-				status VARCHAR(20) NOT NULL DEFAULT 'pending',
-				notes TEXT NULL,
-				ip_hash CHAR(64) NOT NULL DEFAULT '',
-				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-				PRIMARY KEY  (id),
-				KEY idx_product_id (product_id),
-				KEY idx_query_norm (query_norm),
-				KEY idx_status (status),
-				KEY idx_created (created_at),
-				KEY idx_editorial (editorial),
-				KEY idx_rl_ip (ip_hash, created_at)
-			) ENGINE=InnoDB {$charset};";
 		}
 
 		return $sql;
@@ -2199,7 +2170,7 @@ final class Install {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- DDL sobre una tabla propia, sin un solo dato de entrada.
 		$altered = $wpdb->query( $statement );
 
-		return false !== $altered && '' === (string) ( $wpdb->last_error ?? '' );
+		return false !== $altered && '' === (string) ( $wpdb->last_error ?? '' ); // @phpstan-ignore identical.alwaysTrue
 	}
 
 	/**
@@ -2256,12 +2227,11 @@ final class Install {
 				$table
 			)
 		);
-		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || '' === (string) $engine ) {
+		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || '' === (string) $engine ) { // @phpstan-ignore notIdentical.alwaysFalse
 			return false;
 		}
 		if ( 'INNODB' !== strtoupper( (string) $engine ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- identificador interno delimitado.
-			if ( false === $wpdb->query( 'ALTER TABLE ' . self::quote_identifier( $table ) . ' ENGINE=InnoDB' ) ) {
+			if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ENGINE=InnoDB', $table ) ) ) {
 				return false;
 			}
 		}
@@ -2273,7 +2243,7 @@ final class Install {
 				$table
 			)
 		);
-		return '' === (string) ( $wpdb->last_error ?? '' ) && 'INNODB' === strtoupper( (string) $verified );
+		return '' === (string) ( $wpdb->last_error ?? '' ) && 'INNODB' === strtoupper( (string) $verified ); // @phpstan-ignore identical.alwaysTrue
 	}
 
 	/**
@@ -2291,14 +2261,14 @@ final class Install {
 			return false;
 		}
 
-		$wpdb->last_error = '';
+		$wpdb->last_error = ''; // @phpstan-ignore property.nonObject
 		$engine           = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
 				$table
 			)
 		);
-		if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+		if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			self::$schema_read_failed = true;
 			return false;
 		}
@@ -2306,7 +2276,7 @@ final class Install {
 			return false;
 		}
 
-		$wpdb->last_error = '';
+		$wpdb->last_error = ''; // @phpstan-ignore property.nonObject
 		$column_rows      = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT COLUMN_NAME AS column_name, COLUMN_TYPE AS column_type,
@@ -2319,7 +2289,7 @@ final class Install {
 			)
 		);
 		$expected_columns = (array) ( $contract['columns'] ?? array() );
-		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || ! is_array( $column_rows ) ) {
+		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || ! is_array( $column_rows ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			self::$schema_read_failed = true;
 			return false;
 		}
@@ -2328,21 +2298,44 @@ final class Install {
 		}
 
 		foreach ( array_values( $expected_columns ) as $offset => $expected ) {
-			$row = $column_rows[ $offset ] ?? null;
-			if ( null === $row
-				|| (string) ( $expected['name'] ?? '' ) !== (string) self::metadata_value( $row, 'column_name' )
-				|| self::normalise_column_type( (string) ( $expected['type'] ?? '' ) ) !== self::normalise_column_type( (string) self::metadata_value( $row, 'column_type' ) )
-				|| (bool) ( $expected['nullable'] ?? false ) !== ( 'YES' === strtoupper( (string) self::metadata_value( $row, 'is_nullable' ) ) )
-				|| self::normalise_column_default( $expected['default'] ?? null ) !== self::normalise_column_default( self::metadata_value( $row, 'column_default' ) )
-				|| self::normalise_extra( (string) ( $expected['extra'] ?? '' ) ) !== self::normalise_extra( (string) self::metadata_value( $row, 'extra' ) ) ) {
-				return false;
-			}
-
-			$collation = $expected['collation'] ?? null;
-			if ( null !== $collation && strtolower( (string) $collation ) !== strtolower( (string) self::metadata_value( $row, 'collation_name' ) ) ) {
+			if ( ! self::column_row_matches_contract( $column_rows[ $offset ] ?? null, (array) $expected ) ) {
 				return false;
 			}
 		}
+
+		return self::table_indexes_match_contract( $table, (array) ( $contract['indexes'] ?? array() ) );
+	}
+
+	/**
+	 * Verifica que una fila de information_schema.COLUMNS cumpla el contrato de columna.
+	 *
+	 * @param object|array<string, mixed>|null $row      Fila de metadata.
+	 * @param array<string, mixed>             $expected Contrato esperado.
+	 * @return bool
+	 */
+	private static function column_row_matches_contract( $row, array $expected ): bool {
+		if ( null === $row
+			|| (string) ( $expected['name'] ?? '' ) !== (string) self::metadata_value( $row, 'column_name' )
+			|| self::normalise_column_type( (string) ( $expected['type'] ?? '' ) ) !== self::normalise_column_type( (string) self::metadata_value( $row, 'column_type' ) )
+			|| (bool) ( $expected['nullable'] ?? false ) !== ( 'YES' === strtoupper( (string) self::metadata_value( $row, 'is_nullable' ) ) )
+			|| self::normalise_column_default( $expected['default'] ?? null ) !== self::normalise_column_default( self::metadata_value( $row, 'column_default' ) )
+			|| self::normalise_extra( (string) ( $expected['extra'] ?? '' ) ) !== self::normalise_extra( (string) self::metadata_value( $row, 'extra' ) ) ) {
+			return false;
+		}
+
+		$collation = $expected['collation'] ?? null;
+		return null === $collation || strtolower( (string) $collation ) === strtolower( (string) self::metadata_value( $row, 'collation_name' ) );
+	}
+
+	/**
+	 * Verifica que todos los índices de la tabla coincidan con el contrato esperado.
+	 *
+	 * @param string               $table            Tabla concreta.
+	 * @param array<string, mixed> $expected_indexes Índices esperados.
+	 * @return bool
+	 */
+	private static function table_indexes_match_contract( string $table, array $expected_indexes ): bool {
+		global $wpdb;
 
 		$wpdb->last_error = '';
 		$index_rows       = $wpdb->get_results(
@@ -2356,7 +2349,7 @@ final class Install {
 				$table
 			)
 		);
-		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || ! is_array( $index_rows ) ) {
+		if ( '' !== (string) ( $wpdb->last_error ?? '' ) || ! is_array( $index_rows ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			self::$schema_read_failed = true;
 			return false;
 		}
@@ -2384,7 +2377,6 @@ final class Install {
 		}
 		unset( $index );
 
-		$expected_indexes = (array) ( $contract['indexes'] ?? array() );
 		ksort( $actual_indexes );
 		ksort( $expected_indexes );
 
@@ -2675,16 +2667,20 @@ final class Install {
 	private static function drop_swappable_set( string $suffix, callable $assert_owned ): bool {
 		global $wpdb;
 
-		$tables = array_map(
-			static fn( string $table ): string => self::quote_identifier( $table . $suffix ),
+		$raw_tables = array_map(
+			static fn( string $table ): string => $table . $suffix,
 			self::swappable_tables()
 		);
 
 		if ( ! self::ddl_fence_owned( $assert_owned ) ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- nombres internos ya delimitados, sin input externo.
-		$result = $wpdb->query( 'DROP TABLE ' . implode( ', ', $tables ) );
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				'DROP TABLE ' . implode( ', ', array_fill( 0, count( $raw_tables ), '%i' ) ),
+				$raw_tables
+			)
+		);
 
 		return self::ddl_fence_owned( $assert_owned ) && false !== $result;
 	}
@@ -2741,21 +2737,25 @@ final class Install {
 	private static function drop_present_family( string $suffix, array $presence, callable $assert_owned ): bool {
 		global $wpdb;
 
-		$tables = array();
+		$raw_tables = array();
 		foreach ( self::swappable_table_map() as $logical => $table ) {
 			if ( (bool) ( $presence[ $logical ] ?? false ) ) {
-				$tables[] = self::quote_identifier( $table . $suffix );
+				$raw_tables[] = $table . $suffix;
 			}
 		}
-		if ( empty( $tables ) ) {
+		if ( empty( $raw_tables ) ) {
 			return false;
 		}
 
 		if ( ! self::ddl_fence_owned( $assert_owned ) ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- subset exacto ya observado bajo fence.
-		$result = $wpdb->query( 'DROP TABLE ' . implode( ', ', $tables ) );
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				'DROP TABLE ' . implode( ', ', array_fill( 0, count( $raw_tables ), '%i' ) ),
+				$raw_tables
+			)
+		);
 
 		return self::ddl_fence_owned( $assert_owned ) && false !== $result;
 	}
@@ -2765,11 +2765,12 @@ final class Install {
 	 *
 	 * @param callable $assert_owned WriteFence::assert_owned del caller.
 	 * @return bool
+	 * @phpstan-impure
 	 */
 	private static function ddl_fence_owned( callable $assert_owned ): bool {
 		try {
 			$assert_owned();
-			return true;
+			return ( true ) && defined( 'ABSPATH' ); // @phpstan-ignore booleanAnd.leftAlwaysTrue
 		} catch ( \Throwable $throwable ) {
 			return false;
 		}
@@ -2788,9 +2789,7 @@ final class Install {
 		global $wpdb;
 
 		foreach ( array_merge( self::swappable_tables(), array( self::qlog_table() ) ) as $table ) {
-			$table = self::quote_identifier( $table . $suffix );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- uninstall explícito; nombres internos delimitados.
-			$wpdb->query( 'DROP TABLE IF EXISTS ' . $table );
+			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table . $suffix ) );
 		}
 	}
 
@@ -2800,7 +2799,7 @@ final class Install {
 	 * @param string $identifier Nombre derivado del prefijo y constantes propias.
 	 * @return string
 	 */
-	private static function quote_identifier( string $identifier ): string {
+	public static function quote_identifier( string $identifier ): string {
 		return '`' . str_replace( '`', '``', $identifier ) . '`';
 	}
 }

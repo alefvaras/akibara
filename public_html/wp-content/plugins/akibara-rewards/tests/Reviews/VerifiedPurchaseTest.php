@@ -22,14 +22,14 @@ final class VerifiedPurchaseTest extends RewardsTestCase {
 	/** @return \WC_Order Pedido realmente pagado de la cuenta 42. */
 	private function paid_order(): \WC_Order {
 		$order = $this->make_order( 700, 42, 10000.0, 0.0 );
-		$order->status = 'shipping-progress';
+		$order->status = 'completed';
 		$order->billing_email = 'cliente@example.com';
 		$order->date_paid = new \WC_DateTime( '2026-10-01 10:00:00' );
 		$order->items['line_item'][0]->product_id = 777;
 		return $order;
 	}
 
-	/** @testdox Listo para enviar con pago real acredita una vez aunque Woo dejara verified=0. */
+	/** @testdox Pedido completado con pago real acredita una vez aunque Woo dejara verified=0. */
 	public function test_paid_shipping_order_repairs_verification_and_pays_once(): void {
 		$order = $this->paid_order();
 		Functions\when( 'wc_get_order' )->justReturn( $order );
@@ -143,8 +143,6 @@ final class VerifiedPurchaseTest extends RewardsTestCase {
 		$order->date_paid = null;
 		$this->assertFalse( VerifiedPurchase::order_confirms( $order, 777, 'cliente@example.com', 42 ) );
 		$order->date_paid = new \WC_DateTime( '2026-10-01' );
-		Functions\when( 'get_option' )->alias( static fn( string $key, $default = false ) => 'akb_rewards_invite_pickup_status' === $key ? 'courier-dispatched' : $default );
-		$this->assertTrue( VerifiedPurchase::order_confirms( $order, 777, 'cliente@example.com', 42 ) );
 		Functions\when( 'get_option' )->alias( static fn( string $key, $default = false ) => $default );
 		$order->update_meta_data( \Akibara\Rewards\Reviews\Invitations::META_TRIGGER, 'courier-dispatched' );
 		$this->assertTrue( VerifiedPurchase::order_confirms( $order, 777, 'cliente@example.com', 42 ) );

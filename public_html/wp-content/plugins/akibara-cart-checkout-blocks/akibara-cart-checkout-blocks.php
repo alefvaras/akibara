@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Akibara Cart and Checkout Blocks
  * Description:       Dedicated WooCommerce Cart and Checkout Blocks adapter for Akibara Business.
- * Version:           2.2.34
+ * Version:           2.2.37
  * Requires at least: 6.8
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce, akibara-business
@@ -19,7 +19,7 @@ namespace Akibara\CartCheckoutBlocks;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AKIBARA_CART_CHECKOUT_BLOCKS_VERSION', '2.2.34' );
+define( 'AKIBARA_CART_CHECKOUT_BLOCKS_VERSION', '2.2.37' );
 define( 'AKIBARA_CART_CHECKOUT_BLOCKS_FILE', __FILE__ );
 define( 'AKIBARA_CART_CHECKOUT_BLOCKS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AKIBARA_CART_CHECKOUT_BLOCKS_URL', plugin_dir_url( __FILE__ ) );

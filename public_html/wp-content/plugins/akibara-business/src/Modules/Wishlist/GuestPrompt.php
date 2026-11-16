@@ -33,6 +33,9 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class GuestPrompt {
 
 	/** `yes` muestra el aviso; cualquier otra cosa (o la fila ausente) lleva directo al acceso, como siempre. */

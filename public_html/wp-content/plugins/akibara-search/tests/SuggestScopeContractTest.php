@@ -43,7 +43,7 @@ final class SuggestScopeContractTest extends TestCase {
 		$source = $this->source();
 		$start  = strpos( $source, 'public function handle_suggest' );
 		self::assertNotFalse( $start, 'handle_suggest() debe existir.' );
-		$end = strpos( $source, "\n\tprivate function", (int) $start );
+		$end = strpos( $source, "\n\tprivate function write_suggest_microcache", (int) $start );
 		if ( false === $end ) {
 			$end = strlen( $source );
 		}

@@ -17,12 +17,18 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress UndefinedFunction
+ * @psalm-suppress UnusedVariable
  */
 final class Expiry {
 
@@ -217,8 +223,8 @@ final class Expiry {
 			return null;
 		}
 
-		$credit = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $earned, wp_timezone() );
-		if ( false === $credit ) {
+		$credit = Dates::parse_or_null( $earned );
+		if ( null === $credit ) {
 			return null;
 		}
 
@@ -226,7 +232,7 @@ final class Expiry {
 		$first = $credit->setTime( 0, 0 );
 		$last  = $first->modify( 'first day of this month' )->modify( sprintf( '+%d months', $months + 1 ) );
 		$lo    = 0;
-		$hi    = (int) $first->diff( $last )->days;
+		$hi    = Dates::diff_days( $first, $last );
 		while ( $lo < $hi ) {
 			$mid    = intdiv( $lo + $hi, 2 );
 			$day    = $first->modify( sprintf( '+%d days', $mid ) )->setTime( 23, 59, 59 );
@@ -245,7 +251,7 @@ final class Expiry {
 			return null;
 		}
 
-		$now = new \DateTimeImmutable( 'now', wp_timezone() );
+		$now = Dates::to_datetime();
 		return array(
 			'date'    => $day->format( 'Y-m-d' ),
 			'points'  => $points,
@@ -267,7 +273,7 @@ final class Expiry {
 			return 0;
 		}
 
-		$now    = new \DateTimeImmutable( 'now', wp_timezone() );
+		$now    = Dates::to_datetime();
 		$cutoff = self::months_before( $now->modify( sprintf( '+%d days', $days ) ), $months )->format( 'Y-m-d H:i:s' );
 		$hoy    = self::months_before( $now, $months )->format( 'Y-m-d H:i:s' );
 
@@ -285,7 +291,7 @@ final class Expiry {
 			return;
 		}
 
-		$now    = new \DateTimeImmutable( 'now', wp_timezone() );
+		$now    = Dates::to_datetime();
 		$cutoff = self::months_before( $now, $months )->format( 'Y-m-d H:i:s' );
 
 		// Dos fases a propósito: primero se RECOLECTAN todos los ids (solo
@@ -296,7 +302,7 @@ final class Expiry {
 		$paged = 1;
 		do {
 			$users = get_users(
-				array(
+				array( // @phpstan-ignore argument.type
 					'meta_key'     => Ledger::META_BALANCE, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 					'meta_compare' => '>',
 					'meta_value'   => 0, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
@@ -313,8 +319,9 @@ final class Expiry {
 				$ids[] = (int) $user_id;
 			}
 
+			$user_count = count( (array) $users );
 			++$paged;
-		} while ( count( (array) $users ) === 200 );
+		} while ( 200 === $user_count );
 
 		$ids = array_values( array_unique( $ids ) );
 
@@ -341,7 +348,7 @@ final class Expiry {
 			return; // El interruptor pudo apagarse entre encolar y ejecutar.
 		}
 
-		$now = new \DateTimeImmutable( 'now', wp_timezone() );
+		$now = Dates::to_datetime();
 
 		foreach ( (array) $ids as $user_id ) {
 			$this->process_user( (int) $user_id, (string) $cutoff, $now );

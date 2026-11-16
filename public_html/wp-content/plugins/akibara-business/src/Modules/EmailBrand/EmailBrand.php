@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.112.1
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class EmailBrand {
 
@@ -103,7 +105,7 @@ final class EmailBrand {
 	 * @return string
 	 */
 	public function add_button_exception( $css ): string {
-		return (string) $css . "\n"
+		return $css . "\n"
 			. ".akb-email-btn, a.akb-email-btn {\n"
 			. "\tcolor: #ffffff !important;\n"
 			. "\t-webkit-text-fill-color: #ffffff !important;\n"
@@ -238,11 +240,6 @@ final class EmailBrand {
 			: (string) $order->get_checkout_order_received_url();
 
 		return 0 === strpos( $url, 'http' ) ? $url : '';
-	}
-
-	public static function saludo( WC_Order $order ): string {
-		$nombre = trim( (string) $order->get_billing_first_name() );
-		return '' !== $nombre ? sprintf( 'Hola %s,', $nombre ) : 'Hola,';
 	}
 
 	public static function plano( string $html ): string {

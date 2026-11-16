@@ -32,6 +32,13 @@ final class PudoIntegrationTest extends TestCase {
 		\Brain\Monkey\setUp();
 		\Brain\Monkey\Functions\when( 'get_transient' )->justReturn( false );
 		\Brain\Monkey\Functions\when( 'set_transient' )->justReturn( true );
+		\Brain\Monkey\Functions\when( 'WC' )->alias(
+			static function(): ?object {
+				$woocommerce = $GLOBALS['akibara_test_woocommerce'] ?? null;
+
+				return is_object( $woocommerce ) ? $woocommerce : null;
+			}
+		);
 		$registro = &$this->registro;
 		\Brain\Monkey\Functions\when( 'wc_get_logger' )->justReturn(
 			new class( $registro ) {

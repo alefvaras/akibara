@@ -59,7 +59,7 @@ if ( function_exists( 'get_template_part' ) ) {
 					<span class="akb-brands-home__logo" aria-hidden="true">
 						<?php
 						if ( function_exists( 'akibara_gp_render_publisher_logo' ) ) {
-							echo akibara_gp_render_publisher_logo( $akb_slug );
+							echo wp_kses( akibara_gp_render_publisher_logo( $akb_slug ), akibara_gp_allowed_svg_html() );
 						} elseif ( ! empty( $akb_brand['img'] ) ) {
 							printf(
 								'<img src="%s" alt="" width="%d" height="%d" decoding="async">',

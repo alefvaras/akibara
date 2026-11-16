@@ -80,6 +80,9 @@ final class LabelInNameTest extends TestCase {
 		);
 		$more_url   = 'https://example.test/editoriales/';
 		$more_label = 'Ver todas';
+		self::assertNotEmpty( $brands );
+		self::assertNotEmpty( $more_url );
+		self::assertNotEmpty( $more_label );
 
 		Functions\when( 'get_stylesheet_directory' )->justReturn( $theme_root );
 		Functions\when( 'get_stylesheet_directory_uri' )->justReturn( 'https://example.test/theme' );

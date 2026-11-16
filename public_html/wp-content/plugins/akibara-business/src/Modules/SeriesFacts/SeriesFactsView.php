@@ -13,8 +13,8 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\SeriesFacts;
 
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
 use Akibara\Business\Modules\Stock\StockStatus;
+use Akibara\Business\Utilities\StoreTime;
 use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
@@ -23,6 +23,8 @@ defined( 'ABSPATH' ) || exit;
  * Renderizador de vistas de SeriesFacts.
  *
  * @since 1.120.4
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class SeriesFactsView {
 
@@ -271,8 +273,7 @@ final class SeriesFactsView {
 	 */
 	public static function stock_rows( array $facts ): array {
 		$counts = array(
-			StockStatus::IN_STOCK     => (int) ( $facts['instock'] ?? 0 ),
-			StockStatus::ON_BACKORDER => (int) ( $facts['preventa'] ?? 0 ),
+			StockStatus::IN_STOCK => (int) ( $facts['instock'] ?? 0 ),
 		);
 		$agotados = (int) ( $facts['agotados'] ?? 0 );
 		if ( $agotados > 0 ) {
@@ -330,7 +331,7 @@ final class SeriesFactsView {
 		$max = (float) $facts['price_max'];
 
 		$value = ( $min < $max && function_exists( 'wc_format_price_range' ) )
-			? wc_format_price_range( $min, $max )
+			? wc_format_price_range( (string) $min, (string) $max )
 			: wc_price( $min );
 
 		return array(
@@ -423,7 +424,7 @@ final class SeriesFactsView {
 		$year  = (int) substr( $iso, 0, 4 );
 		$month = (int) substr( $iso, 5, 2 );
 		$day   = (int) substr( $iso, 8, 2 );
-		$name  = PedidoPolicy::mes( $month );
+		$name  = StoreTime::mes( $month );
 		if ( '' === $name ) {
 			return;
 		}

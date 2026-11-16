@@ -1,0 +1,12 @@
+# WP-CLI config — skip heavy plugins in CLI to reduce boot time
+# These plugins are frontend/SEO-only and not needed for CLI operations.
+skip-plugins:
+  - ai-engine
+  - mcp-adapter
+  - royal-mcp
+  - woocommerce-google-analytics-integration
+  - hostinger
+
+
+apache_modules:
+  - mod_rewrite

@@ -27,11 +27,11 @@ final class InvitationRescheduleTest extends RewardsTestCase {
 		$this->sut = new InvitationReschedule( $this->queue );
 		$this->order = new \WC_Order();
 		$this->order->id = 901;
-		$this->order->status = 'shipping-progress';
+		$this->order->status = 'completed';
 		$this->order->date_paid = new \WC_DateTime( 'now' );
-		$this->order->meta = array( Invitations::META_TRIGGER => 'shipping-progress', Invitations::META_SCHEDULED => ( new \DateTimeImmutable( '-1 day', new \DateTimeZone( 'America/Santiago' ) ) )->format( 'Y-m-d H:i:s' ) );
+		$this->order->meta = array( Invitations::META_TRIGGER => 'completed', Invitations::META_SCHEDULED => ( new \DateTimeImmutable( '-1 day', new \DateTimeZone( 'America/Santiago' ) ) )->format( 'Y-m-d H:i:s' ) );
 		$this->queue->add( 1, 901, time() + 8 * DAY_IN_SECONDS );
-		$this->options = array( 'akb_rewards_invite_status' => 'shipping-progress', 'akb_rewards_invite_delay_days' => 6, 'akb_rewards_invite_pickup_status' => 'completed', 'akb_rewards_invite_pickup_delay_days' => 2 );
+		$this->options = array( 'akb_rewards_invite_status' => 'completed', 'akb_rewards_invite_delay_days' => 6 );
 		Functions\when( 'get_option' )->alias( fn( string $key, $default = false ) => $this->options[ $key ] ?? $default );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wc_get_order' )->alias( fn( int $id ) => 901 === $id ? $this->order : false );
@@ -47,10 +47,37 @@ final class InvitationRescheduleTest extends RewardsTestCase {
 
 	/** @testdox The hidden preview page uses a hook that WordPress can authorize. */
 	public function test_hidden_page_uses_a_resolvable_admin_hook(): void {
-		Functions\expect( 'add_submenu_page' )->once()->with( '', 'Reprogramar invitaciones', 'Reprogramar invitaciones', 'manage_woocommerce', InvitationReschedule::SLUG, array( $this->sut, 'render' ) );
-		Functions\expect( 'remove_submenu_page' )->never();
-		$this->sut->add_page();
-		$this->addToAssertionCount( 1 );
+		$previous_hooks = $GLOBALS['admin_page_hooks'] ?? null;
+		$GLOBALS['admin_page_hooks'] = array();
+		try {
+			Functions\expect( 'add_submenu_page' )->once()->with( '', 'Reprogramar invitaciones', 'Reprogramar invitaciones', 'manage_woocommerce', InvitationReschedule::SLUG, array( $this->sut, 'render' ) );
+			Functions\expect( 'remove_submenu_page' )->never();
+			$this->sut->add_page();
+			$this->addToAssertionCount( 1 );
+		} finally {
+			if ( null === $previous_hooks ) {
+				unset( $GLOBALS['admin_page_hooks'] );
+			} else {
+				$GLOBALS['admin_page_hooks'] = $previous_hooks;
+			}
+		}
+	}
+
+	/** @testdox When the Akibara panel is registered, the hidden preview page attaches under akibara-panel so the parent menu stays highlighted. */
+	public function test_hidden_page_attaches_to_akibara_panel_when_available(): void {
+		$previous_hooks = $GLOBALS['admin_page_hooks'] ?? null;
+		$GLOBALS['admin_page_hooks'] = array( 'akibara-panel' => 'toplevel_page_akibara-panel' );
+		try {
+			Functions\expect( 'add_submenu_page' )->once()->with( 'akibara-panel', 'Reprogramar invitaciones', 'Reprogramar invitaciones', 'manage_woocommerce', InvitationReschedule::SLUG, array( $this->sut, 'render' ) );
+			$this->sut->add_page();
+			$this->addToAssertionCount( 1 );
+		} finally {
+			if ( null === $previous_hooks ) {
+				unset( $GLOBALS['admin_page_hooks'] );
+			} else {
+				$GLOBALS['admin_page_hooks'] = $previous_hooks;
+			}
+		}
 	}
 
 	/** @testdox Preview is read-only and applying keeps the exact proposed date and original dispatch evidence. */
@@ -94,10 +121,10 @@ final class InvitationRescheduleTest extends RewardsTestCase {
 	/** @testdox A changed order, schedule or policy invalidates the preview without touching the original. */
 	public function test_apply_revalidates_the_preview(): void {
 		$plan = $this->sut->preview();
-		$this->order->status = 'completed';
+		$this->order->status = 'cancelled';
 		$this->assertSame( 1, $this->sut->apply( $plan )['skipped'] );
 		$this->assertSame( 'pending', $this->queue->status[1] );
-		$this->order->status = 'shipping-progress';
+		$this->order->status = 'completed';
 		$this->queue->add( 1, 901, time() + 9 * DAY_IN_SECONDS );
 		$this->assertSame( 1, $this->sut->apply( $plan )['skipped'] );
 		$this->options['akb_rewards_invite_delay_days'] = 7;
@@ -125,13 +152,14 @@ final class InvitationRescheduleTest extends RewardsTestCase {
 		$this->assertTrue( $this->queue->released );
 	}
 
-	/** @testdox Pickup uses its own delay and elapsed dates become an explicit future preview time. */
+	/** @testdox El cambio de plazo y fechas vencidas se aplican sobre la ruta configurada. */
 	public function test_pickup_and_past_due_dates(): void {
 		$this->order->status = 'completed';
 		$this->order->meta[ Invitations::META_TRIGGER ] = 'completed';
+		$this->options['akb_rewards_invite_delay_days'] = 2;
 		$base = new \DateTimeImmutable( $this->order->meta[ Invitations::META_SCHEDULED ], new \DateTimeZone( 'America/Santiago' ) );
 		$this->assertSame( $base->getTimestamp() + 2 * DAY_IN_SECONDS, $this->sut->preview()['rows'][0]['new_due'] );
-		$this->options['akb_rewards_invite_pickup_delay_days'] = 0;
+		$this->options['akb_rewards_invite_delay_days'] = 0;
 		$plan = $this->sut->preview();
 		$this->assertSame( $plan['created'] + 5 * MINUTE_IN_SECONDS, $plan['rows'][0]['new_due'] );
 		$plan['created'] -= 11 * MINUTE_IN_SECONDS;

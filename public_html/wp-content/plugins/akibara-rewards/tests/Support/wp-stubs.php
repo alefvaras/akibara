@@ -694,3 +694,16 @@ if ( ! class_exists( 'WP_REST_Response' ) ) {
 		}
 	}
 }
+
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	/**
+	 * Stub de wp_parse_url para el entorno de pruebas.
+	 *
+	 * @param string $url       URL.
+	 * @param int    $component Componente.
+	 * @return mixed
+	 */
+	function wp_parse_url( string $url, int $component = -1 ) {
+		return parse_url( $url, $component );
+	}
+}

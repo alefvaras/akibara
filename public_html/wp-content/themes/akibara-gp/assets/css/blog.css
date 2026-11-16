@@ -28,6 +28,7 @@
 /* ─── Index wrap ───────────────────────────────────────────────── */
 .akb-blog {
     color: var(--aki-white);
+    overflow-x: clip;
 }
 
 .akb-blog__wrap {
@@ -143,11 +144,12 @@
 }
 
 @media (hover: hover) {
+
     .akb-blog-card:hover,
     .akb-blog-card:focus-within {
         border-color: var(--aki-red-bright);
         transform: translate(-6px, -6px);
-        box-shadow: 8px 8px 0px var(--aki-black);
+        box-shadow: 8px 8px 0 var(--aki-black);
     }
 
     .akb-blog-card:hover::after,
@@ -199,6 +201,7 @@
 }
 
 @media (hover: hover) {
+
     .akb-blog-card:hover .akb-blog-card__media::after {
         transform: scaleX(1);
     }
@@ -209,6 +212,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .akb-blog-card__media::after {
         transition: none;
     }
@@ -231,6 +235,7 @@
 }
 
 @media (hover: hover) {
+
     .akb-blog-card:hover .akb-blog-card__img {
         transform: scale(1.05);
     }
@@ -254,11 +259,12 @@
 }
 
 .akb-blog-card__meta time {
+
     /* Native time tag, neutral color */
 }
 
 .akb-blog-card__cat {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     font-weight: var(--weight-semibold);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -268,6 +274,7 @@
 .akb-blog-card__title {
     margin: 0;
     font-family: var(--font-heading);
+
     /* Bebas Neue: caja alta y compensación de tracking. */
     font-size: var(--text-xl);
     font-weight: 400;
@@ -283,7 +290,7 @@
 
 .akb-blog-card__title a:hover,
 .akb-blog-card__title a:focus-visible {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
 }
 
 .akb-blog-card__excerpt {
@@ -319,6 +326,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+
     /* 2.75rem = 44px: mínimo táctil WCAG 2.5.8/iOS (medido 42px con 2.5rem). */
     min-width: 2.75rem;
     height: 2.75rem;
@@ -394,7 +402,7 @@
 
 .akb-post__crumb a:hover,
 .akb-post__crumb a:focus-visible {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
 }
 
 .akb-post__crumb span {
@@ -438,7 +446,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #141418;
+    background: var(--aki-surface-2);
 }
 
 .akb-post__img {
@@ -516,7 +524,7 @@
 }
 
 .akb-post__content a {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
@@ -525,7 +533,7 @@
 .akb-post__content a:hover,
 .akb-post__content a:focus-visible {
     color: var(--aki-white);
-    text-decoration-color: var(--aki-red-bright);
+    text-decoration-color: var(--aki-red-text);
 }
 
 /* CTA-boton terminal en posts (clase .aki-btn en el contenido): sin esto caia al
@@ -541,6 +549,7 @@
     background: var(--aki-red);
     color: var(--aki-white);
     font-family: var(--font-heading);
+
     /* Bebas Neue estándar: peso nominal 400 y desactivación de síntesis artificial. */
     font-weight: 400;
     font-synthesis: none;
@@ -550,6 +559,7 @@
     border-radius: 0;
     transition: background var(--transition-fast, 150ms), transform var(--transition-fast, 150ms);
 }
+
 .akb-post__content .aki-btn:hover,
 .akb-post__content .aki-btn:focus-visible,
 .akb-post__cta .aki-btn:hover,
@@ -649,6 +659,7 @@
 
 .akb-post__content .akb-guide-series__cta {
     margin-top: var(--space-1, 4px);
+
     /* El contenido va a line-height 1.7: un texto del dueño que parta en dos
      * líneas dejaba el botón con 50 px de aire entre renglones. */
     padding-block: var(--space-2);
@@ -656,6 +667,7 @@
 }
 
 @media (min-width: 600px) {
+
     .akb-post__content .akb-guide-series {
         grid-template-columns: 112px minmax(0, 1fr);
         gap: var(--space-5);
@@ -672,6 +684,7 @@
     border-left: 4px solid var(--aki-red-bright);
     text-align: center;
 }
+
 .akb-post__cta-text {
     margin: 0 0 var(--space-4, 16px);
     color: var(--aki-white);
@@ -708,7 +721,7 @@
 .akb-post__content code {
     background: var(--aki-surface-2);
     padding: 0.15em 0.4em;
-    border-radius: 0px;
+    border-radius: 0;
     font-size: 0.9em;
     color: var(--aki-red-text);
 }
@@ -764,7 +777,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     font-weight: var(--weight-semibold);
     text-decoration: none;
 }
@@ -802,7 +815,7 @@
     color: var(--aki-white);
     background: var(--aki-surface-2);
     transform: translateY(-4px);
-    box-shadow: 6px 6px 0px var(--aki-black);
+    box-shadow: 6px 6px 0 var(--aki-black);
 }
 
 /* Navegación por teclado: aplica anillo de foco estándar (--aki-focus-ring) independiente del hover. */
@@ -871,7 +884,7 @@
 .akb-post__comments .logged-in-as a,
 .akb-post__comments .comment-notes a,
 .akb-post__comments .must-log-in a {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
@@ -891,10 +904,11 @@
     width: 100%;
     padding: var(--space-3);
     background: var(--aki-surface-2);
-    border: 1px solid var(--aki-border);
+    border: 1px solid var(--aki-input-border);
     border-radius: var(--radius-sm, 6px);
     color: var(--aki-white);
     font-family: inherit;
+
     /* 16 px exactos para prevenir zoom automático no deseado en iOS Safari al enfocar. */
     font-size: 16px;
     transition: border-color var(--transition-fast),
@@ -909,6 +923,10 @@
     border-color: var(--aki-white);
     background: var(--aki-black);
     box-shadow: var(--aki-focus-ring);
+}
+
+.akb-post__comments .comment-form :is(textarea, input[type="text"], input[type="email"], input[type="url"]):user-invalid {
+    border-color: var(--aki-red-text);
 }
 
 .akb-post__comments .comment-form textarea {
@@ -929,7 +947,7 @@
  * retirar el placeholder de GeneratePress, que era donde vivía. Rojo de marca
  * para que se lea como marca y no como parte del nombre del campo. */
 .akb-post__comments .comment-form .akb-required {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     margin-left: 2px;
 }
 
@@ -947,6 +965,7 @@
     width: 24px;
     height: 24px;
     margin: 0 var(--space-2) 0 0;
+    accent-color: var(--aki-red);
 }
 
 /* "Publicar comentario" — botón brand rojo, sin gris WP default. */
@@ -958,8 +977,8 @@
     justify-content: center;
     min-height: var(--touch-target-min);
     padding: var(--space-2) var(--space-5);
-    background: var(--aki-red);
-    color: var(--aki-white);
+    background: var(--aki-buy-bg);
+    color: var(--aki-buy-fg);
     border: 0;
     border-radius: var(--radius-md);
     font-family: var(--font-heading);
@@ -974,7 +993,7 @@
 .akb-post__comments .comment-form input[type="submit"]:hover,
 .akb-post__comments .comment-form button[type="submit"]:hover,
 .akb-post__comments .form-submit .submit:hover {
-    background: var(--aki-red-hover);
+    background: var(--aki-buy-bg-hover);
 }
 
 /* Lista de comentarios existentes — tipografía + spacing. */
@@ -1002,7 +1021,7 @@
 }
 
 .akb-post__comments .comment-list .reply a {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     text-decoration: none;
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
@@ -1010,12 +1029,17 @@
 
 /* ─── Mobile (≤ 768px) ───────────────────────────────────────── */
 @media (max-width: 768px) {
+
     .akb-blog__wrap {
         padding: var(--space-6) var(--space-3) var(--space-10);
     }
 
     .akb-blog__grid {
         gap: var(--space-4);
+    }
+
+    .akb-blog-card::after {
+        right: 0;
     }
 
     .akb-post__article {
@@ -1058,6 +1082,7 @@
 }
 
 @media (max-width: 768px) {
+
     .site-main.akb-blog .akb-blog__hero,
     .site-main.akb-blog .akb-blog__wrap {
         padding-left: var(--space-4, 1rem);
@@ -1072,6 +1097,7 @@
     gap: var(--space-4);
     margin: var(--space-6) 0;
 }
+
 .aki-stat {
     display: flex;
     flex-direction: column;
@@ -1083,14 +1109,16 @@
     padding: var(--space-4);
     text-align: center;
 }
+
 .aki-stat-num {
     font-family: var(--font-heading);
     font-size: var(--text-2xl);
     font-weight: 400; /* Bebas Neue estándar: peso nominal 400 */
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     line-height: 1;
     margin-bottom: var(--space-2);
 }
+
 .aki-stat-label {
     font-size: var(--text-sm);
     color: var(--aki-gray-300);
@@ -1107,6 +1135,7 @@
     margin: var(--space-6) 0;
     font-size: var(--text-sm);
 }
+
 #rank-math-toc > h2 {
     margin: 0 0 var(--space-4);
     font-family: var(--font-heading);
@@ -1114,44 +1143,54 @@
     font-weight: 400; /* Bebas Neue estándar: peso nominal 400 */
     color: var(--aki-white);
 }
+
 #rank-math-toc nav > ul {
     margin: 0;
     padding-left: var(--space-4);
 }
+
 #rank-math-toc ul {
     list-style: none;
     color: var(--aki-gray-400);
 }
+
 #rank-math-toc li {
     margin-bottom: var(--space-2);
 }
+
 #rank-math-toc li:last-child {
     margin-bottom: 0;
 }
+
 #rank-math-toc ul ul {
     margin-top: var(--space-2);
     padding-left: var(--space-4);
 }
+
 #rank-math-toc a {
     color: var(--aki-gray-300);
     text-decoration: none;
     transition: color var(--transition-fast);
+
     /* Objetivo táctil y legibilidad accesible en elementos del índice. */
     display: inline-block;
     padding: 6px 0;
     line-height: 1.4;
 }
+
 /* El plugin fija el tamaño en el <li> (id + tag = 1,0,1); (1,0,2) lo supera. */
 #rank-math-toc li a,
 #rank-math-toc ul ul li a {
     font-size: 0.875rem; /* 14 px */
 }
+
 #rank-math-toc a:hover,
 #rank-math-toc a:focus-visible {
     color: var(--aki-white);
     text-decoration: underline;
-    text-decoration-color: var(--aki-red-bright);
+    text-decoration-color: var(--aki-red-text);
 }
+
 /* Sección activa (scroll-spy de page-toc.js setea aria-current="true"). Sin esta
    regla el aria-current no tiene efecto visual. Blanco+bold = AA-safe sobre dark y
    distinto del gris base; el matiz rojo lo aporta el text-decoration. */
@@ -1159,21 +1198,24 @@
     color: var(--aki-white);
     font-weight: var(--weight-bold, 700);
     text-decoration: underline;
-    text-decoration-color: var(--aki-red-bright);
+    text-decoration-color: var(--aki-red-text);
 }
 
 .akb-post__content :is(h2, h3)[id] {
+
     /* Margen de desplazamiento coordinado con la cabecera fija y el scroll-spy de page-toc.js. */
     scroll-margin-top: 16px;
 }
 
 @media (min-width: 769px) {
+
     .akb-post__content :is(h2, h3)[id] {
         scroll-margin-top: 42px;
     }
 }
 
 @media (max-width: 600px) {
+
     #rank-math-toc {
         padding: var(--space-4);
     }
@@ -1226,6 +1268,7 @@
 
 .akb-post__content .aki-card-grid {
     display: grid;
+
     /* `min(260px, 100%)` y no `260px` a secas: con el mínimo fijo, una columna
      * de 260px desborda cualquier contenedor más estrecho y saca scroll
      * horizontal al documento. Medido a 280px de ancho: 18px de desborde. */
@@ -1298,6 +1341,7 @@
 }
 
 @media (max-width: 600px) {
+
     .akb-post__content .aki-card,
     .akb-post__content .aki-highlight {
         padding: var(--space-4, 16px);
@@ -1333,11 +1377,12 @@
 .akb-search-bridge__cta {
     display: inline-flex;
     align-items: center;
+
     /* 44px: mínimo táctil, igual que el resto de controles del tema. */
     min-height: 44px;
     padding: 0 var(--space-4);
-    background: var(--aki-red);
-    color: var(--aki-white);
+    background: var(--aki-buy-bg);
+    color: var(--aki-buy-fg);
     font-weight: var(--weight-semibold);
     font-size: var(--text-sm);
     text-decoration: none;
@@ -1346,7 +1391,7 @@
 
 .akb-search-bridge__cta:hover,
 .akb-search-bridge__cta:focus-visible {
-    background: var(--aki-red-bright);
-    color: var(--aki-white);
+    background: var(--aki-buy-bg-hover);
+    color: var(--aki-buy-fg);
 }
 

@@ -24,6 +24,9 @@ defined( 'ABSPATH' ) || exit;
  * the narrow code-only exception: it owns the public grammar used by the
  * Akibara search plugin and WooCommerce filters without creating redirects or
  * writing Rank Math options.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class FilteredUrlsPolicy {
 

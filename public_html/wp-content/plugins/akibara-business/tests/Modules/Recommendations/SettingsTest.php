@@ -68,6 +68,23 @@ final class SettingsTest extends TestCase {
 	}
 
 	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 * @testdox Las constantes Twelve-Factor AKB_RECO_* gobiernan sobre las options.
+	 */
+	public function test_constantes_twelve_factor_gobiernan(): void {
+		define( 'AKB_RECO_RELATED', 'comprables' );
+		define( 'AKB_RECO_SERIE_AGOTADA', 'completar' );
+		define( 'AKB_RECO_MAS_VENDIDOS', 'tal_cual' );
+		define( 'AKB_RECO_MAS_VENDIDOS_BUSQUEDA', false );
+
+		self::assertSame( Settings::RELATED_COMPRABLES, Settings::current( Settings::OPTION_RELATED ) );
+		self::assertSame( Settings::AGOTADA_COMPLETAR, Settings::current( Settings::OPTION_SERIE_AGOTADA ) );
+		self::assertSame( Settings::MAS_VENDIDOS_TAL_CUAL, Settings::current( Settings::OPTION_MAS_VENDIDOS ) );
+		self::assertFalse( Settings::mas_vendidos_en_busqueda() );
+	}
+
+	/**
 	 * @testdox El guardado escribe lo enviado si es válido y, si no, deja lo vigente.
 	 */
 	public function test_guardado_no_mas_permisivo_que_la_lectura(): void {
@@ -203,11 +220,9 @@ final class SettingsTest extends TestCase {
 	}
 
 	/**
-	 * QA integral 2026-09-24 (QA-PANEL-8): los tres ajustes quedaban al final de
-	 * la herramienta de relleno sin título propio. El título se pinta al final del
-	 * encabezado de la pestaña, justo encima del formulario.
+	 * Los ajustes de recomendaciones fueron desacoplados de la UI administrativa.
 	 *
-	 * @testdox Los ajustes llevan su propio título, pintado tras la herramienta de relleno y antes del formulario.
+	 * @testdox Los ajustes de recomendaciones no se registran en el panel administrativo y render_heading conserva el marcado canónico.
 	 */
 	public function test_los_ajustes_llevan_titulo_propio(): void {
 		ob_start();
@@ -215,10 +230,10 @@ final class SettingsTest extends TestCase {
 		self::assertSame( '<h3 class="akb-reco-settings-heading">Qué le recomienda la tienda al cliente</h3>', (string) ob_get_clean() );
 
 		$plugin = (string) file_get_contents( dirname( __DIR__, 3 ) . '/src/Plugin.php' );
-		self::assertMatchesRegularExpression(
-			'/RecommendationSettings::PANEL_TAB_ID,\s*\'Recomendaciones\',\s*array\( RecommendationSettings::class, \'get_settings\' \),\s*static function \(\) use \( \$upsells_autofill \): void \{\s*\$upsells_autofill->render_admin_section\(\);\s*RecommendationSettings::render_heading\(\);/',
+		self::assertDoesNotMatchRegularExpression(
+			'/RecommendationSettings::PANEL_TAB_ID,\s*\'Recomendaciones\'/',
 			$plugin,
-			'El encabezado de la pestaña termina con el título de los ajustes.'
+			'La pestaña de recomendaciones fue retirada de la UI del panel.'
 		);
 	}
 }

@@ -47,6 +47,11 @@ final class CatalogOrderVitrinaTest extends TestCase {
 				return count( $this->single );
 			}
 		);
+		Functions\when( 'as_unschedule_all_actions' )->alias(
+			function ( string $hook ): void {
+				unset( $this->single[ $hook ] );
+			}
+		);
 		Functions\when( 'update_option' )->alias(
 			static function ( string $option, $value ): bool {
 				$GLOBALS['akibara_test_options'][ $option ] = $value;
@@ -109,7 +114,7 @@ final class CatalogOrderVitrinaTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Sin fila, la vitrina es «disponibles primero», por decisión del dueño
+	 * @testdox Sin constante ni configuración especial, la vitrina es «disponibles primero» por código
 	 */
 	public function test_default_is_the_owners_decision(): void {
 		self::assertSame( 'disponibles_primero', CatalogOrder::DEFAULT_SHOWCASE );
@@ -117,102 +122,23 @@ final class CatalogOrderVitrinaTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Una fila con basura cae a la del dueño en vez de dejar la tienda sin orden
+	 * @testdox Si se define la constante en wp-config.php, prevalece sobre el default
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
-	public function test_garbage_in_the_row_falls_back_to_the_default(): void {
-		$GLOBALS['akibara_test_options'][ CatalogOrder::OPTION_SHOWCASE ] = 'lo-que-sea';
-		self::assertSame( 'disponibles_primero', CatalogOrder::current_showcase() );
-
-		$GLOBALS['akibara_test_options'][ CatalogOrder::OPTION_SHOWCASE ] = 'intercalado';
+	public function test_constant_override_takes_precedence(): void {
+		define( 'AKB_CATALOG_ORDER_SHOWCASE', 'intercalado' );
 		self::assertSame( 'intercalado', CatalogOrder::current_showcase() );
 	}
 
 	/**
-	 * @testdox Ida y vuelta: todo lo que el guardado escribe lo acepta el lector
-	 * @dataProvider valoresQueNoSonVitrina
-	 *
-	 * @param mixed $valor Valor enviado.
+	 * @testdox Si la constante tiene un valor inválido, cae de forma segura al default canónico
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
-	public function test_save_is_never_more_permissive_than_the_reader( $valor ): void {
-		$GLOBALS['akibara_test_options'][ CatalogOrder::OPTION_SHOWCASE ] = 'intercalado';
-
-		$guardado = CatalogOrder::sanitize_showcase_for_save( $valor );
-
-		self::assertNotNull( CatalogOrder::parse_showcase( $guardado ) );
-		self::assertSame( 'intercalado', $guardado, 'Lo inválido conserva la vitrina vigente; no la cambia a escondidas.' );
-	}
-
-	/**
-	 * @testdox Un envío fabricado con otra vitrina rechaza la pestaña entera y lo dice
-	 */
-	public function test_validation_rejects_a_forged_value(): void {
-		$_POST[ CatalogOrder::OPTION_SHOWCASE ] = 'todo-a-pedido';
-		$errores = CatalogOrder::validate_save( array(), CatalogOrder::PANEL_TAB_ID );
-
-		self::assertCount( 1, $errores );
-		self::assertStringContainsString( 'No se guardó nada', $errores[0] );
-
-		$_POST[ CatalogOrder::OPTION_SHOWCASE ] = 'intercalado';
-		self::assertSame( array(), CatalogOrder::validate_save( array(), CatalogOrder::PANEL_TAB_ID ) );
-
-		$_POST[ CatalogOrder::OPTION_SHOWCASE ] = 'todo-a-pedido';
-		self::assertSame( array(), CatalogOrder::validate_save( array(), 'otra_pestana' ), 'Sólo juzga su pestaña.' );
-	}
-
-	/**
-	 * @testdox El formulario ofrece exactamente las dos vitrinas que el lector acepta
-	 */
-	public function test_the_form_offers_only_valid_showcases(): void {
-		$campos = array_values(
-			array_filter(
-				( new CatalogOrder() )->get_settings(),
-				static fn( array $campo ): bool => CatalogOrder::OPTION_SHOWCASE === ( $campo['id'] ?? '' )
-			)
-		);
-
-		self::assertCount( 1, $campos );
-		self::assertSame( 'radio', $campos[0]['type'] );
-		self::assertSame( CatalogOrder::DEFAULT_SHOWCASE, $campos[0]['default'] );
-		self::assertFalse( $campos[0]['autoload'], 'Sólo la lee el recálculo: no tiene por qué cargarse en cada página.' );
-		self::assertSame( array( 'disponibles_primero', 'intercalado' ), array_keys( $campos[0]['options'] ) );
-	}
-
-	/**
-	 * @testdox El formulario no lleva copy que el panel nunca pinta
-	 *
-	 * B1-R2: el panel borra el título de la primera sección de ajustes para no
-	 * repetir el suyo, así que «Qué ve primero el cliente» nunca se veía y su
-	 * explicación quedaba pegada al bloque «Recálculo». El encabezado lo pinta
-	 * ahora `render_admin_section()` (CatalogOrderPanelTest lo fija).
-	 */
-	public function test_the_form_carries_no_invisible_copy(): void {
-		$titulos = array_values(
-			array_filter(
-				( new CatalogOrder() )->get_settings(),
-				static fn( array $campo ): bool => 'title' === ( $campo['type'] ?? '' )
-			)
-		);
-
-		self::assertCount( 1, $titulos );
-		self::assertSame( '', $titulos[0]['title'] );
-		self::assertArrayNotHasKey( 'desc', $titulos[0] );
-	}
-
-	/**
-	 * @testdox Cambiar la vitrina encola el recálculo al momento, en el alta y en los cambios de la fila
-	 */
-	public function test_changing_the_showcase_queues_the_recompute_now(): void {
-		$modulo = new CatalogOrder();
-		$modulo->register();
-
-		self::assertNotFalse( has_action( 'add_option_' . CatalogOrder::OPTION_SHOWCASE, array( $modulo, 'on_showcase_changed' ) ) );
-		self::assertNotFalse( has_action( 'update_option_' . CatalogOrder::OPTION_SHOWCASE, array( $modulo, 'on_showcase_changed' ) ) );
-
-		$antes = time();
-		$modulo->on_showcase_changed();
-
-		self::assertArrayHasKey( 'akibara_catalog_order_recompute', $this->single );
-		self::assertLessThanOrEqual( $antes + 1, $this->single['akibara_catalog_order_recompute'], 'Sin el debounce de las ráfagas de importación.' );
+	public function test_invalid_constant_falls_back_safely_to_default(): void {
+		define( 'AKB_CATALOG_ORDER_SHOWCASE', 'invalido-xyz' );
+		self::assertSame( 'disponibles_primero', CatalogOrder::current_showcase() );
 	}
 
 	/**
@@ -315,10 +241,12 @@ final class CatalogOrderVitrinaTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Interruptor en «intercalado»: el orden de siempre, con la novedad «a pedido» arriba
+	 * @testdox Constante en «intercalado»: el orden de siempre, con la novedad «a pedido» arriba
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_recompute_interleaved(): void {
-		$GLOBALS['akibara_test_options'][ CatalogOrder::OPTION_SHOWCASE ] = 'intercalado';
+		define( 'AKB_CATALOG_ORDER_SHOWCASE', 'intercalado' );
 
 		[ , $escrito ] = $this->recalcular();
 
@@ -419,7 +347,25 @@ final class VitrinaWpdbDouble {
 	 * @param mixed  ...$args Valores.
 	 */
 	public function prepare( string $query, ...$args ): string {
-		return vsprintf( $query, $args );
+		$converted = str_replace( '%i', '%s', $query );
+		return vsprintf( $converted, $args );
+	}
+
+	/**
+	 * @param string $table
+	 * @param array<string, mixed> $data
+	 * @param array<string, mixed> $where
+	 * @param array<int, string>|null $format
+	 * @param array<int, string>|null $where_format
+	 * @return int|false
+	 */
+	public function update( $table, $data, $where, $format = null, $where_format = null ) {
+		unset( $table, $format, $where_format );
+		if ( isset( $where['ID'], $data['menu_order'] ) ) {
+			$this->escrito[ (int) $where['ID'] ] = (int) $data['menu_order'];
+			return 1;
+		}
+		return 0;
 	}
 
 	/**

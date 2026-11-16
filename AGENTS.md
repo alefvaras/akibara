@@ -1,8 +1,8 @@
-# Reglas operativas de Akibara
-
 - **Regla de Oro (Proactividad total e inmediata ante cualquier error descubierto):**
   *«Si encuentras cualquier error que es de otro flujo diferente al tuyo que te solicite igual debes solucionarlo»* (orden del dueño, 2026-10-26).
   Si durante cualquier tarea o auditoría se detecta una falla, residuo, inconsistencia o defecto en cualquier parte del sistema (sea de backend, base de datos, frontend, SEO, caché, higiene de archivos o sincronización), NO ignorarlo ni limitarse a reportarlo: **solucionarlo de inmediato**, primero en el espejo local y luego en producción, verificando el resultado antes de cerrar el trabajo.
+- **PROHIBICIÓN INVIOLABLE DEL DUEÑO (Candado Criptográfico e Inmutable DevSecOps, 2026-11-10):**
+  Queda **estrictamente prohibido** a cualquier agente modificar, rebajar niveles, apagar reglas, añadir exclusiones, generar archivos `*-baseline*`, ejecutar `chflags nouchg` / `chmod` o alterar el sello criptográfico (`tools/verify-devsecops-seal.py`) de las herramientas de análisis estático y seguridad (`phpstan.neon.dist`, `psalm.xml`, `phpcs.xml.dist`, `.eslintrc.js`, `.eslintignore`, `.stylelintrc.json`, `.sqlfluff`, `.sqlfluffignore`, `.semgrep/wordpress-security.yml`, `.semgrepignore`, `rector.php`, `knip.json`, `purgecss.config.js`, `package.json`, `tools/guardrail-ci.sh`, `ops/akibara-deploy-runtime.sh`). Los errores se corrigen en el código fuente, NUNCA tocando la configuración de los analizadores.
 - **Orquestación de modelos (Jerarquía de supervisión: Astra → Argon → Flash 3.8):**
   Delegar tareas comunes, barridos mecánicos y cruces de datos al modelo rápido realmente disponible (Flash). Para decisiones complejas de arquitectura, concurrencia, rendimiento y despliegue, usar la jerarquía oficial ordenada por el dueño:
   1. **Astra** con razonamiento alto como supervisor primario.
@@ -22,9 +22,22 @@
 - Antes de usar Chrome o construir automatización manual, intentar primero el MCP que ya esté disponible.
 - Si no existe un MCP adecuado, conectar o instalar primero el MCP oficial. Si el MCP oficial no cubre la operación, usar una API o CLI oficial; usar Chrome únicamente para la parte que realmente exija interfaz.
 
-### Conectores permanentes: Google Search Console, Microsoft Clarity, Rank Math y Cloudflare
+### Conectores permanentes: Google Search Console, Rank Math y Cloudflare
 
-- Mantener disponibles como conectores permanentes de Akibara los MCP de Google Search Console, Microsoft Clarity, Rank Math y Cloudflare.
+- Mantener disponibles como conectores permanentes de Akibara los MCP de Google Search Console, Rank Math y Cloudflare.
+
+## Protocolo de Arranque de Sesión y Sincronización Continua (Segundo Cerebro, Memanto & NotebookLM)
+
+Todo agente (Antigravity, OpenAI Codex, Claude Code, Gemini CLI) al iniciar y durante cualquier sesión DEBE cumplir las siguientes 4 reglas:
+1. **Arranque con Memoria (Memanto):** Al iniciar, ejecutar obligatoriamente `memanto recall --recent` para absorber el contexto más reciente, decisiones tomadas (ej. gobierno nativo de WooCommerce en inventario y precios) y preferencias aprendidas.
+2. **Bóveda de Obsidian:** La base de conocimiento y decisiones vive en `docs/brain/` y se proyecta como Bóveda oficial de Obsidian en Google Drive:
+   `~/Library/CloudStorage/GoogleDrive-ale.fvaras@gmail.com/Mi unidad/Akibara-Knowledge-Base/` (acceso directo mediante el symlink `~/Akibara`).
+3. **Regla Obligatoria de Sincronización Continua (`npm run sync:notebook`):**
+   - Todos los agentes (Codex, Claude, Gemini, Antigravity) **tienen la capacidad y la obligación ineludible de ejecutar por terminal `npm run sync:notebook`** tras modificar código, contratos, reglas o documentación, y al término de cada despliegue a producción.
+   - Este comando audita guardrails, extrae el grafo AST de Graphify, regenera `MANIFEST.json`, sincroniza la Bóveda de Obsidian en Google Drive y **sincroniza automáticamente de forma directa todas las fuentes modificadas y volúmenes de código con el cuaderno "akibara" en NotebookLM (`notebooklm`)**, impidiendo que ningún modelo trabaje con datos desactualizados.
+   - **Regla Estricta de Partición de Fuentes para NotebookLM (< 380.000 palabras):** Para prevenir el error `FAILED` por límite de contexto de Google NotebookLM (techo de 500.000 palabras), los volúmenes de código se compilan particionados en 7 archivos (`01A_BUSINESS_MODULES`, `01B_BUSINESS_CORE_Y_SOPORTE`, `01C_BUSINESS_TESTS_MODULES`, `02A_REWARDS_SEARCH_SRC`, `02B_REWARDS_SEARCH_TESTS`, `03A_TEMA_AKIBARA_GP`, `03B_BLOQUES_Y_MU_PLUGINS`), garantizando que ningún archivo supere jamás las 380.000 palabras.
+4. **Persistencia de Decisiones en Memanto:** Si durante la sesión se toma una decisión de negocio, se corrige un error de arquitectura o se aprende una regla crítica, el agente DEBE guardarla en Memanto antes de cerrar:
+   `memanto remember --type <decision|fact|learning|instruction> --source <nombre_agente> --tags <tags> "<contenido>"`
 
 ### Credenciales privadas y reinicio controlado
 
@@ -119,6 +132,17 @@ Lo que esa autorización **no** exime:
 - **Prohibido armar mocks ad-hoc de `window`/`document`:** No reinventar implementaciones caseras con `EventTarget` y `vm` en cada test.
 - **Uso obligatorio de `tools/testing/dom-harness.js`:** Toda prueba de componentes cliente (steppers, carritos, popups, autocompletado, filtros) debe utilizar el arnés headless oficial (`createDOM`) para ejecutar el código real sobre el árbol DOM virtual y medir comportamiento, eventos y atributos antes de llegar a Playwright.
 
+### Certificación QA Adversarial Obligatoria (Estándar Inviolable en Producción)
+
+- **Mandato Universal:** Toda entrega, refactorización o despliegue a producción DEBE someterse y aprobar obligatoriamente la **CERTIFICACIÓN QA ADVERSARIAL** en vivo mediante Playwright (`tools/qa-playwright-full-suite.mjs`). Ninguna tarea se da por cerrada si no cuenta con la certificación adversarial 100% verde en local Y después en producción.
+- **Alcance Auditado en Vivo:**
+  1. **Directorio y Hub de Series (`/series/`):** Búsqueda reactiva por autor sin llamadas extra, filtrado por facetas, nuevo placeholder (`"Escribe la serie, autor o edición"`) y atributos `data-akb-serie-id`.
+  2. **Landings de Serie (`/serie/<slug>/`):** Salto por ancla `#ficha-de-la-serie`, resolución matemática estricta de `ultimo_tomo` (ej. 110 sobre 99) y orden numérico ascendente de agotados.
+  3. **Fichas PDP y Stock:** Botón `Añadir al carrito` en disponibles, componente `Avísame cuando vuelva` en agotados y erradicación total de textos de preventas/encargos.
+  4. **Geometría Móvil y CWV:** Cero desbordamiento horizontal (`scrollWidth <= clientWidth` en iPhone 375px) y área táctil de controles interactivos $\ge 44\text{ px}$.
+  5. **SEO y Schemas:** URLs canónicas exactas, meta robots indexables y grafos JSON-LD íntegros.
+- **Ejecución Integrada en Deploy:** El script de despliegue (`ops/akibara-deploy-runtime.sh`) ejecuta automáticamente la suite adversarial tras purgar cachés. Si la suite detecta cualquier anomalía, el pipeline aborta y exige solución inmediata bajo la Regla de Oro.
+
 
 ## Célula de IT Autónoma (Fábrica de Agentes con Skills Específicas)
 
@@ -136,7 +160,8 @@ Toda sesión (nueva o existente) debe operar bajo la división de roles de la c�
 
 3. **`it-ux-frontend` (Diseño Visual, CRO & UX):**
    - **Modelo:** Flash.
-   - **Skills obligatorias:** `ui-ux-pro-max`, `akibara-ux-publicidad-identidad`.
+   - **Skills obligatorias:** `modern-web-guidance`, `ui-ux-pro-max`, `akibara-ux-publicidad-identidad`.
+   - **Soporte de navegadores:** Baseline Widely Available + mejora progresiva con `@supports` sin dependencias externas en runtime.
    - **Harness obligatorio:** `tools/testing/dom-harness.js`.
    - **Misión:** Filosofía de marca Akibara («Tu rincón de Akihabara en Chile»), diseño brutalista refinado, accesibilidad WCAG y validación en DOM headless de todo componente interactivo.
 

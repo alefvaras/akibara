@@ -1,0 +1,4 @@
+isbn,precio,tienda
+# Una fila por tomo. isbn = el ISBN-13 (mismo SKU que usamos). precio = en CLP, sin puntos.
+# tienda = de donde salio el dato. Si dos tiendas tienen el mismo ISBN, se usa la mas barata.
+9791388450167,10490,damemimanga

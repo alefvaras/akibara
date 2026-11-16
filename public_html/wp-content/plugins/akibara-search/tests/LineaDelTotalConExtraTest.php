@@ -120,7 +120,7 @@ final class LineaDelTotalConExtraTest extends TestCase {
 	 */
 	public function test_el_anuncio_lee_solo_el_total(): void {
 		self::assertMatchesRegularExpression(
-			"/var count = document\.querySelector\( '\.akb-result-count__total' \) \|\|\s*document\.querySelector\( '\.akb-result-count' \);/",
+			"/(?:var|let|const) count = document\.querySelector\( '\.akb-result-count__total' \) \|\|\s*document\.querySelector\( '\.akb-result-count' \);/",
 			$this->fuente( 'assets/js/akb-search.js' )
 		);
 		self::assertStringContainsString(

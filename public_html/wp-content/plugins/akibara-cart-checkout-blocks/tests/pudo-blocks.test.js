@@ -491,10 +491,10 @@ test('implements modal accessibility, timeout recovery and avoids vendor DOM scr
 	assert.ok(script.includes('iframe:not([tabindex="-1"])'));
 	assert.match(script, /document\.addEventListener\('focusin', keepFocusInDialog, true\)/);
 	assert.match(script, /isolateDocumentBehindModal\(modalRef\.current\)/);
-	assert.match(script, /var enqueueCartUpdateOperation = createSerializedQueue\(\)/);
+	assert.match(script, /(?:var|let|const) enqueueCartUpdateOperation = createSerializedQueue\(\)/);
 	assert.match(script, /await monitorTimeout/);
 	assert.doesNotMatch(script, /await withTimeout/);
-	assert.match(script, /var dismissible = canDismissOperation\(props\.saving, props\.timedOut\)/);
+	assert.match(script, /(?:var|let|const) dismissible = canDismissOperation\(props\.saving, props\.timedOut\)/);
 	assert.match(script, /event\.target === event\.currentTarget && dismissible/);
 	assert.match(script, /if \(dismissible\) \{\s*props\.onClose\(\)/);
 	assert.match(script, /disabled: !dismissible/);
@@ -624,7 +624,7 @@ test('paints exactly one focus ring and keeps the scope line', () => {
 	// restricción no queda nada que anunciar por ahí, así que el estado se eliminó:
 	// un prop que jamás puede tener contenido es código muerto, no una extensión.
 	assert.doesNotMatch(script, /setNotice|props\.notice|akb-pudo-dialog__notice/);
-	assert.match(script, /var interactionBlocked = props\.loading \|\| props\.saving \|\| Boolean\(props\.error\)/);
+	assert.match(script, /(?:var|let|const) interactionBlocked = props\.loading \|\| props\.saving \|\| Boolean\(props\.error\)/);
 	assert.match(script, /className: 'akb-pudo-dialog__scope'/);
 
 	// The dialog takes programmatic focus so no control shows a keyboard ring on a

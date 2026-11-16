@@ -72,7 +72,8 @@ test('el tab «Buscar» enfoca el campo sin forzar un layout antes', () => {
 
 test('la barra de progreso avanza con transform y su primera lectura va al cuadro siguiente', () => {
 	// Hasta la primera declaración del bloque del menú (FLYOUT_ITEMS, T5-R1).
-	const progreso = main.slice(main.indexOf("getElementById('aki-scroll-progress')"), main.indexOf('var FLYOUT_ITEMS'));
+	const flyoutIdx = main.search(/(?:var|let|const) FLYOUT_ITEMS/);
+	const progreso = main.slice(main.indexOf("getElementById('aki-scroll-progress')"), flyoutIdx);
 	assert.match(progreso, /progress\.style\.transform = 'scaleX\(' \+ ratio \+ '\)'/);
 	assert.doesNotMatch(progreso, /progress\.style\.width/, 'animar el ancho obliga a un layout por cuadro de scroll');
 	assert.doesNotMatch(progreso, /\n\t\tupdateProgress\(\);/, 'síncrono al arrancar forzaba el primer layout completo (34-47 ms con CPU x4)');

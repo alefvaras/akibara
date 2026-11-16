@@ -15,7 +15,9 @@ defined( 'ABSPATH' ) || exit;
 
 // ─── SHOP LOOP TITLE ────────────────────────────────────────────────────────
 
+/** @psalm-suppress HookNotFound */
 remove_action( 'woocommerce_shop_loop_item_title', 'woocommerce_template_loop_product_title', 10 );
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_shop_loop_item_title', 'akb_template_loop_product_title', 10 );
 
 /**
@@ -26,6 +28,7 @@ add_action( 'woocommerce_shop_loop_item_title', 'akb_template_loop_product_title
  *
  * Los estilos CSS apuntan a la clase `.woocommerce-loop-product__title` sin
  * acoplarse al tag HTML específico.
+ * @psalm-suppress HookNotFound
  */
 function akb_loop_title_level(): string {
 	// Secciones con h2 intermedio: portada, relacionados, cross-sell y página 1 de series.
@@ -38,6 +41,9 @@ function akb_loop_title_level(): string {
 	return $bajo_seccion_h2 ? 'h3' : 'h2';
 }
 
+/**
+ * @psalm-suppress HookNotFound
+ */
 function akb_template_loop_product_title(): void {
 	global $product;
 	$nivel = akb_loop_title_level();
@@ -88,6 +94,7 @@ function akb_template_loop_product_title(): void {
  * @param string $vol    Número de tomo tal como lo escribe el título.
  * @param string $suffix Sufijo entre paréntesis que iba detrás del número, si lo había.
  * @return string HTML escapado.
+ * @psalm-suppress HookNotFound
  */
 function akb_loop_title_parts( string $name, string $vol, string $suffix = '' ): string {
 	// El marcador se retira ANTES de volver a pegar el sufijo: en «One Piece nº
@@ -101,6 +108,9 @@ function akb_loop_title_parts( string $name, string $vol, string $suffix = '' ):
 	return '<span class="akb-title-name">' . esc_html( $name ) . '</span> <span class="akb-vol">' . esc_html( $vol ) . '</span>';
 }
 
+/**
+ * @psalm-suppress HookNotFound
+ */
 function akb_loop_title_markup( string $title ): string {
 	// Variantes con sufijo entre paréntesis («Demon Slayer 23 (Edición Especial)» o «One Piece #01 (3 en 1)»).
 	if ( preg_match( '/^(.*\S)\s*(?:[Nn]\.?[º°]|#)\s*(\d+)\s*(\([^()]*\))\s*$/u', $title, $m ) ) {
@@ -120,9 +130,14 @@ function akb_loop_title_markup( string $title ): string {
 
 // ─── SINGLE PRODUCT TITLE ───────────────────────────────────────────────────
 
+/** @psalm-suppress HookNotFound */
 remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_title', 5 );
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_single_product_summary', 'akb_template_single_title', 5 );
 
+/**
+ * @psalm-suppress HookNotFound
+ */
 function akb_template_single_title(): void {
 	global $product;
 	$raw_title = (string) get_the_title();
@@ -150,6 +165,7 @@ function akb_template_single_title(): void {
  *
  * @param string $item_name Nombre HTML o plano del ítem.
  * @return string HTML con .akb-title-name y .akb-vol.
+ * @psalm-suppress HookNotFound
  */
 function akb_format_item_title_with_volume( string $item_name ): string {
 	if ( preg_match( '/^(<a\b[^>]*>)(.*)(<\/a>)$/isu', $item_name, $m ) ) {
@@ -160,6 +176,7 @@ function akb_format_item_title_with_volume( string $item_name ): string {
 	return akb_loop_title_markup( $raw_title );
 }
 
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'woocommerce_cart_item_name',
 	static function ( string $item_name ): string {
@@ -168,6 +185,7 @@ add_filter(
 	20
 );
 
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'woocommerce_order_item_name',
 	static function ( string $item_name ): string {

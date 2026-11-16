@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
  */
 final class OrderStorage {
 
@@ -34,7 +35,7 @@ final class OrderStorage {
 	 * @return bool
 	 */
 	public static function uses_hpos(): bool {
-		if ( ! class_exists( OrderUtil::class ) || ! method_exists( OrderUtil::class, 'custom_orders_table_usage_is_enabled' ) ) {
+		if ( ! class_exists( OrderUtil::class ) || ! method_exists( OrderUtil::class, 'custom_orders_table_usage_is_enabled' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return false;
 		}
 

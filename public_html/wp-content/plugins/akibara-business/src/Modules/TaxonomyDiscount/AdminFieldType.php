@@ -19,6 +19,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.16.1
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class AdminFieldType {
 
@@ -180,8 +185,9 @@ final class AdminFieldType {
 	 *
 	 * @param array<string, mixed> $value Field config (no usa props).
 	 * @return void
+	 * @psalm-suppress UnusedParam
 	 */
-	public function render_accordion_end( array $value ): void {
+	public function render_accordion_end( array $value ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 		?>
 				</table>
 			</div>

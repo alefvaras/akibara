@@ -181,12 +181,6 @@ final class LandingPageSizeTest extends TestCase {
 		self::assertSame( 20, Monkey\Filters\has( 'loop_shop_per_page', array( $this->sut, 'handle_loop_shop_per_page' ) ) );
 		self::assertSame( 10, Monkey\Filters\has( 'pre_handle_404', array( $this->sut, 'handle_pre_handle_404' ) ) );
 		self::assertSame( 1, Monkey\Actions\has( 'template_redirect', array( $this->sut, 'handle_template_redirect' ) ) );
-		self::assertNotFalse(
-			Monkey\Filters\has( 'woocommerce_admin_settings_sanitize_option_' . LandingPageSize::OPTION, array( LandingPageSize::class, 'sanitize_for_save' ) )
-		);
-		self::assertNotFalse( Monkey\Actions\has( 'add_option_' . LandingPageSize::OPTION, array( $this->sut, 'handle_option_added' ) ) );
-		self::assertNotFalse( Monkey\Actions\has( 'update_option_' . LandingPageSize::OPTION, array( $this->sut, 'handle_option_updated' ) ) );
-		self::assertNotFalse( Monkey\Actions\has( 'delete_option', array( $this->sut, 'handle_option_deleting' ) ) );
 	}
 
 	/** Etiquetas que se mandaron a purgar a LiteSpeed. @return list<string> */
@@ -209,15 +203,10 @@ final class LandingPageSizeTest extends TestCase {
 	}
 
 	/**
-	 * Revisión B3-R3: el campo vive en Vitrina, que no purga al guardar, y el
-	 * recálculo que sí purga sólo corre si cambia el orden. Sin esto, al pasar de
-	 * 48 a 60 la página 1 cacheada terminaba en el 48 y la 2 nueva empezaba en el
-	 * 61 hasta que LiteSpeed caducara (4 h).
-	 *
-	 * @testdox Should purge every series landing, in LiteSpeed and at the edge, when the painted page size changes.
+	 * @testdox Should purge every series landing in LiteSpeed and at the edge when purge_landings is called.
 	 */
-	public function test_purges_every_series_landing_when_the_size_changes(): void {
-		$this->sut->handle_option_updated( '48', '60' );
+	public function test_purge_landings_annotates_litespeed_and_edge(): void {
+		$this->sut->purge_landings();
 
 		self::assertSame( array( 'T.900', 'T.901', 'T.902' ), $this->purged_tags() );
 		self::assertSame(
@@ -226,60 +215,9 @@ final class LandingPageSizeTest extends TestCase {
 				'https://akibara.cl/serie/one-piece/',
 				'https://akibara.cl/serie/serie-vacia/',
 			),
-			$this->edge_urls(),
-			'El borde purga por prefijo: la URL de la serie cubre también sus páginas 2+.'
+			$this->edge_urls()
 		);
 		self::assertNotContains( 'litespeed_purge_all', array_column( $this->acciones, 0 ), 'Nunca el sitio entero.' );
-	}
-
-	/**
-	 * @testdox Should purge when the row is created with a new size or deleted back to the factory size.
-	 */
-	public function test_purges_when_the_row_is_created_or_deleted(): void {
-		$this->sut->handle_option_added( LandingPageSize::OPTION, '36' );
-		self::assertCount( 3, $this->purged_tags(), 'Crear la fila con 36 cambia el 48 de fábrica.' );
-
-		$this->acciones                           = array();
-		$this->options[ LandingPageSize::OPTION ] = '60';
-		$this->sut->handle_option_deleting( LandingPageSize::OPTION );
-		self::assertCount( 3, $this->purged_tags(), 'Borrarla devuelve el 48 de fábrica.' );
-
-		$this->acciones = array();
-		$this->sut->handle_option_deleting( 'otra_option' );
-		self::assertSame( array(), $this->purged_tags() );
-	}
-
-	/**
-	 * @testdox Should not purge when the painted page size stays the same.
-	 * @dataProvider unchanged_sizes
-	 *
-	 * @param mixed $before Valor anterior.
-	 * @param mixed $after  Valor nuevo.
-	 */
-	public function test_does_not_purge_when_the_painted_size_stays( $before, $after ): void {
-		$this->sut->handle_option_updated( $before, $after );
-
-		self::assertSame( array(), $this->purged_tags() );
-		self::assertSame( array(), $this->edge_urls() );
-	}
-
-	/** @return array<string, array{0:mixed,1:mixed}> */
-	public static function unchanged_sizes(): array {
-		return array(
-			'mismo número con espacios'     => array( '48', ' 48 ' ),
-			'basura escrita por WP-CLI'     => array( '48', 'abc' ),
-			'fuera de rango → de fábrica'   => array( '500', '48' ),
-			'de fábrica a de fábrica'       => array( '', '48' ),
-		);
-	}
-
-	/**
-	 * @testdox Should not purge when the row is created with the factory size.
-	 */
-	public function test_does_not_purge_when_created_with_the_factory_size(): void {
-		$this->sut->handle_option_added( LandingPageSize::OPTION, '48' );
-
-		self::assertSame( array(), $this->purged_tags() );
 	}
 
 	/**
@@ -287,6 +225,7 @@ final class LandingPageSizeTest extends TestCase {
 	 */
 	public function test_series_landing_defaults_to_48(): void {
 		self::assertSame( 48, $this->sut->handle_loop_shop_per_page( 24 ) );
+		self::assertSame( 48, LandingPageSize::per_page() );
 	}
 
 	/**
@@ -302,76 +241,37 @@ final class LandingPageSizeTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Should use the page size the owner saved in the panel.
+	 * @testdox If AKB_SERIES_LANDING_PER_PAGE is defined, it takes precedence over the code default.
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
-	public function test_uses_the_saved_page_size(): void {
-		$this->options[ LandingPageSize::OPTION ] = '60';
-
-		self::assertSame( 60, $this->sut->handle_loop_shop_per_page( 24 ) );
+	public function test_constant_override_takes_precedence(): void {
+		define( 'AKB_SERIES_LANDING_PER_PAGE', 60 );
+		self::assertSame( 60, LandingPageSize::per_page() );
 	}
 
 	/**
-	 * El lector no es más permisivo que el guardado: una fila escrita por WP-CLI
-	 * o importada fuera del rango cae al de fábrica, igual que el panel la
-	 * habría rechazado.
-	 *
-	 * @testdox Should fall back to the factory size when the stored row is out of range or unreadable.
-	 * @dataProvider invalid_values
-	 *
-	 * @param mixed $raw Valor guardado.
+	 * @testdox If AKB_SERIES_LANDING_PER_PAGE is out of bounds, it falls back safely to 48.
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
-	public function test_reader_falls_back_on_invalid_rows( $raw ): void {
-		$this->options[ LandingPageSize::OPTION ] = $raw;
-
-		self::assertSame( LandingPageSize::DEFAULT_PER_PAGE, LandingPageSize::per_page() );
+	public function test_invalid_constant_falls_back_safely_to_default(): void {
+		define( 'AKB_SERIES_LANDING_PER_PAGE', 999 );
+		self::assertSame( 48, LandingPageSize::per_page() );
 	}
 
 	/**
-	 * @testdox Should reject in the panel exactly what the reader would ignore.
-	 * @dataProvider invalid_values
-	 *
-	 * @param mixed $raw Valor enviado.
+	 * @testdox parse() accepts integers and numeric strings between MIN (12) and MAX (120).
 	 */
-	public function test_panel_rejects_what_the_reader_ignores( $raw ): void {
-		self::assertNull( LandingPageSize::sanitize_for_save( $raw, array(), $raw ) );
-	}
+	public function test_parse_accepts_valid_range_and_rejects_invalid(): void {
+		self::assertSame( 12, LandingPageSize::parse( 12 ) );
+		self::assertSame( 48, LandingPageSize::parse( '48' ) );
+		self::assertSame( 120, LandingPageSize::parse( '120' ) );
 
-	/** @return array<string, array{0:mixed}> */
-	public static function invalid_values(): array {
-		return array(
-			'demasiado grande' => array( '500' ),
-			'demasiado chico'  => array( '6' ),
-			'cero'             => array( '0' ),
-			'negativo'         => array( '-48' ),
-			'decimal'          => array( '48.5' ),
-			'texto'            => array( 'cuarenta' ),
-			'vacío'            => array( '' ),
-			'array'            => array( array( 48 ) ),
-		);
-	}
-
-	/**
-	 * @testdox Should save a valid size as the normalized integer string.
-	 */
-	public function test_panel_saves_a_valid_size(): void {
-		self::assertSame( '36', LandingPageSize::sanitize_for_save( ' 36 ', array(), ' 36 ' ) );
-		self::assertSame( '120', LandingPageSize::sanitize_for_save( '120', array(), '120' ) );
-		self::assertSame( '12', LandingPageSize::sanitize_for_save( '12', array(), '12' ) );
-	}
-
-	/**
-	 * @testdox Should name the rejected field with its real reason, not the search engine one.
-	 */
-	public function test_reports_the_rejected_value_with_its_reason(): void {
-		$_POST[ LandingPageSize::OPTION ] = '500';
-
-		self::assertSame( array( LandingPageSize::OPTION ), $this->sut->report_rejected_value( array(), 'catalog_order' ) );
-		self::assertSame( array(), $this->sut->report_rejected_value( array(), 'copys' ), 'Sólo en la pestaña Vitrina.' );
-		self::assertStringContainsString( 'entre 12 y 120', $this->sut->rejected_value_reason( 'buscador', LandingPageSize::OPTION, 'catalog_order' ) );
-		self::assertSame( 'buscador', $this->sut->rejected_value_reason( 'buscador', 'otra_option', 'catalog_order' ) );
-
-		$_POST[ LandingPageSize::OPTION ] = '48';
-		self::assertSame( array(), $this->sut->report_rejected_value( array(), 'catalog_order' ) );
+		self::assertNull( LandingPageSize::parse( 11 ) );
+		self::assertNull( LandingPageSize::parse( 121 ) );
+		self::assertNull( LandingPageSize::parse( 'invalido' ) );
+		self::assertNull( LandingPageSize::parse( null ) );
 	}
 
 	/**

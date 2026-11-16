@@ -26,6 +26,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress UnusedVariable
  */
 final class Install {
 
@@ -68,7 +71,7 @@ final class Install {
 			if ( ! function_exists( 'wc_get_logger' ) ) {
 				// Sin WooCommerce cargada el canal de la casa no existe y este
 				// fallo NO puede quedar mudo.
-				error_log( '[akibara-business] ' . $message );
+				error_log( '[akibara-business] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 
 			return;

@@ -90,4 +90,9 @@ final class TextTest extends TestCase {
 
 		self::assertSame( array(), $copias );
 	}
+
+	/** @testdox one_line_option devuelve fallback ante valor inexistente */
+	public function test_one_line_option_devuelve_fallback_por_defecto(): void {
+		self::assertSame( 'Fallback de prueba', Text::one_line_option( 'akb_copy_inexistente_xyz_test', 'Fallback de prueba' ) );
+	}
 }

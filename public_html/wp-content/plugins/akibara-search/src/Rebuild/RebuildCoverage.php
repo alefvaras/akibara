@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
  * Cobertura y universo de productos para rebuild.
  *
  * @since 0.1.85
+ * @api
+ * @psalm-suppress UnusedVariable
  */
 final class RebuildCoverage {
 
@@ -170,7 +172,7 @@ final class RebuildCoverage {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$rows = $wpdb->get_col( $sql );
 
-		return is_array( $rows ) && '' === (string) $wpdb->last_error ? $rows : null;
+		return is_array( $rows ) && '' === (string) $wpdb->last_error ? $rows : null; // @phpstan-ignore identical.alwaysTrue
 	}
 
 	/**

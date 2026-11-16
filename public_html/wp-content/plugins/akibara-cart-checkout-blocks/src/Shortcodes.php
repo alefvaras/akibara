@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Provides the title and empty-cart template used by the Cart page.
  *
  * @since 2.0.0
+ * @api
  */
 final class Shortcodes {
 

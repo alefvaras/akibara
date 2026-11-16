@@ -14,8 +14,7 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\SeriesFollow;
 
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\SeriesFollow\CutoffPhrase;
 use Akibara\Business\Modules\SeriesFollow\DigestQueue;
 use Akibara\Business\Modules\SeriesFollow\DigestRunner;
@@ -23,7 +22,6 @@ use Akibara\Business\Modules\SeriesFollow\FollowerFinder;
 use Akibara\Business\Modules\SeriesFollow\FollowRegistry;
 use Akibara\Business\Modules\SeriesFollow\SeriesFollow;
 use Akibara\Business\Modules\SeriesFollow\SeriesFollowEmail;
-use Akibara\Business\Tests\Support\SeriesFollowFixedEta;
 use Akibara\Business\Tests\Support\SeriesFollowFollowersWpdb;
 use Akibara\Business\Tests\Support\SeriesFollowQueueWpdb;
 use Brain\Monkey;
@@ -129,7 +127,9 @@ final class DigestTest extends TestCase {
 		Functions\when( 'update_meta_cache' )->justReturn( array() );
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
-		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn ( int $id, string $key = '', bool $single = false ): string => '_stock_status' === $key ? 'instock' : ''
+		);
 		Functions\when( 'get_the_title' )->justReturn( '' );
 		Functions\when( 'get_the_terms' )->justReturn( array() );
 		Functions\when( 'has_term' )->justReturn( false );
@@ -286,14 +286,20 @@ final class DigestTest extends TestCase {
 	}
 
 	private function cutoff(): CutoffPhrase {
-		// El fallo se inyecta desde el proveedor de ETA y no desde un doble de
-		// `CutoffPhrase`: ahí es donde reventaría de verdad (una lectura de
-		// term-meta caída dentro del cálculo), y el camino que recorre la
-		// excepción hasta el `try` del runner es exactamente el de producción.
-		return new CutoffPhrase(
-			new SeriesFollowFixedEta( null, $this->error_al_armar ),
-			new PedidoPolicy()
-		);
+		if ( null !== $this->error_al_armar ) {
+			return new class( $this->error_al_armar ) extends CutoffPhrase {
+				private string $msg;
+				public function __construct( string $msg ) {
+					parent::__construct();
+					$this->msg = $msg;
+				}
+				public function for_product( \WC_Product $product ): string {
+					throw new \RuntimeException( $this->msg );
+				}
+			};
+		}
+
+		return new CutoffPhrase();
 	}
 
 	private function queue(): DigestQueue {
@@ -1058,7 +1064,9 @@ final class DigestTest extends TestCase {
 			'status'     => 'wc-completed',
 			'qty'        => 1,
 		);
-		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn ( int $id, string $key = '', bool $single = false ): string => '_stock_status' === $key ? 'instock' : ''
+		);
 		Functions\when( 'get_the_terms' )->alias(
 			static fn () => array(
 				(object) array(
@@ -1080,5 +1088,42 @@ final class DigestTest extends TestCase {
 		self::assertTrue( $bloque['is_gap'] );
 		self::assertSame( 'disponible', $bloque['availability_state'] );
 		self::assertStringContainsString( '24 a 48 h', $bloque['timeframe_copy'] );
+	}
+
+	/**
+	 * @testdox Un tomo cubierto por BackInStock (suscrito o notificado) se descarta del digest para evitar doble correo.
+	 */
+	public function test_tomo_cubierto_por_back_in_stock_se_descarta_del_digest(): void {
+		$this->encolar( 10, 5107, self::TERM_ONE_PIECE, 107 );
+
+		global $wpdb;
+		$orig_wpdb = $wpdb ?? null;
+		$bis_db    = new class() {
+			public string $prefix = 'wp_';
+
+			public function prepare( string $query, ...$args ): string {
+				return $query;
+			}
+
+			public function get_col( string $query ): array {
+				return array( 5107 );
+			}
+		};
+		$wpdb      = $bis_db;
+
+		try {
+			$this->runner()->run();
+
+			self::assertSame( array(), $this->email->enviados, 'No debe enviar correo de SeriesFollow para un tomo que ya cubre BIS.' );
+			$filas = array_values( $this->queue_db->table );
+			self::assertNotEmpty( $filas );
+			self::assertSame(
+				DigestQueue::STATUS_DROPPED,
+				$filas[0]['status'],
+				'La fila debe quedar en estado dropped.'
+			);
+		} finally {
+			$wpdb = $orig_wpdb;
+		}
 	}
 }

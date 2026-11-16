@@ -7,25 +7,25 @@
 ( function () {
 	'use strict';
 
-	var CFG = window.AKB_SEARCH || {};
-	var REST = ( CFG.rest || '/wp-json/akibara/v1/search/' ).replace( /\/?$/, '/' );
-	var MIN = CFG.minChars || 2;
-	var DEBOUNCE = CFG.debounce || 220;
+	const CFG = window.AKB_SEARCH || {};
+	const REST = ( CFG.rest || '/wp-json/akibara/v1/search/' ).replace( /\/?$/, '/' );
+	const MIN = CFG.minChars || 2;
+	const DEBOUNCE = CFG.debounce || 220;
 	// Pista de «sin resultados»: la edita el dueño en Buscador → Ajustes y llega
 	// por wp_localize_script. NO se escribe acá: producción sirve el bundle
 	// minificado, así que un literal en este archivo obliga a regenerar el `.min`
 	// y desplegar para cambiar una frase.
-	var EMPTY_HINT = typeof CFG.emptyHint === 'string' ? CFG.emptyHint : 'Prueba con el nombre de la serie.';
+	const EMPTY_HINT = typeof CFG.emptyHint === 'string' ? CFG.emptyHint : 'Prueba con el nombre de la serie.';
 	// Historial unificado con envelope {v:3, items}. La migración absorbe y elimina los tres
 	// stores anteriores después de persistir el nuevo.
-	var HISTORY_KEY = 'akb_search_history_v3';
-	var OLD_KEYS = [ 'akibara_search_history_v2', 'akb_search_history', 'akb-search-recent-v1' ];
-	var HISTORY_MAX = 10;
-	var HISTORY_MAX_AGE = 1000 * 60 * 60 * 24 * 45; // 45 días, como el v2.
-	var PANEL_SEQ = 0; // ids únicos: Date.now() colisionaba con 2 inputs en el mismo ms.
-	var POP = null; // Populares resueltos (array) — UNA fetch por pageload.
-	var POPQ = null; // …y su promesa memoizada (compartida entre inputs).
-	var LOADING_DELAY = 150; // umbral corto antes de mostrar "Buscando…" — evita flicker en respuestas rápidas.
+	const HISTORY_KEY = 'akb_search_history_v3';
+	const OLD_KEYS = [ 'akibara_search_history_v2', 'akb_search_history', 'akb-search-recent-v1' ];
+	const HISTORY_MAX = 10;
+	const HISTORY_MAX_AGE = 1000 * 60 * 60 * 24 * 45; // 45 días, como el v2.
+	let PANEL_SEQ = 0; // ids únicos: Date.now() colisionaba con 2 inputs en el mismo ms.
+	let POP = null; // Populares resueltos (array) — UNA fetch por pageload.
+	let POPQ = null; // …y su promesa memoizada (compartida entre inputs).
+	const LOADING_DELAY = 150; // umbral corto antes de mostrar "Buscando…" — evita flicker en respuestas rápidas.
 
 	/*
 	 * Compartir entre inputs la memo de /suggest, igual que POPQ, para reutilizar consultas
@@ -33,12 +33,12 @@
 	 * navegador no puede reutilizarlas por sí solo. Aplicar un TTL explícito de 60s: el panel
 	 * contiene precios y disponibilidad que no deben quedar en caché indefinida.
 	 */
-	var SUGGEST_MEMO = new Map(); // clave → { ts, data }; el orden de Map es el LRU.
-	var SUGGEST_MEMO_MAX = 50;
-	var SUGGEST_MEMO_TTL = 60000;
+	const SUGGEST_MEMO = new Map(); // clave → { ts, data }; el orden de Map es el LRU.
+	const SUGGEST_MEMO_MAX = 50;
+	const SUGGEST_MEMO_TTL = 60000;
 
 	function memoGet( key ) {
-		var hit = SUGGEST_MEMO.get( key );
+		const hit = SUGGEST_MEMO.get( key );
 		if ( ! hit ) {
 			return null;
 		}
@@ -58,7 +58,7 @@
 			return; // sólo se memoiza el camino de éxito; un 429/500 no se guarda.
 		}
 		SUGGEST_MEMO.delete( key );
-		SUGGEST_MEMO.set( key, { ts: Date.now(), data: data } );
+		SUGGEST_MEMO.set( key, { ts: Date.now(), data } );
 		while ( SUGGEST_MEMO.size > SUGGEST_MEMO_MAX ) {
 			SUGGEST_MEMO.delete( SUGGEST_MEMO.keys().next().value );
 		}
@@ -70,11 +70,11 @@
 	 * 429 ni 503 ajenos sin ese código. La implementación se duplica en akb-search.js porque ambos
 	 * bundles se cargan de forma independiente.
 	 */
-	var RETRY_BASE = 1000;
-	var RETRY_MAX = 3;
+	const RETRY_BASE = 1000;
+	const RETRY_MAX = 3;
 
 	function abortado() {
-		var e = new Error( 'aborted' );
+		const e = new Error( 'aborted' );
 		e.name = 'AbortError';
 		return e;
 	}
@@ -90,8 +90,8 @@
 	}
 
 	function demoraReintento( r, intento ) {
-		var ra = r && r.headers && 'function' === typeof r.headers.get ? parseInt( r.headers.get( 'Retry-After' ), 10 ) : NaN;
-		var base = ra >= 1 && ra <= 4 ? ra * 1000 : RETRY_BASE;
+		const ra = r && r.headers && 'function' === typeof r.headers.get ? parseInt( r.headers.get( 'Retry-After' ), 10 ) : NaN;
+		const base = ra >= 1 && ra <= 4 ? ra * 1000 : RETRY_BASE;
 		return base * Math.pow( 2, intento );
 	}
 
@@ -102,7 +102,7 @@
 				reject( abortado() );
 				return;
 			}
-			var id = window.setTimeout( function () {
+			const id = window.setTimeout( function () {
 				if ( signal ) {
 					signal.removeEventListener( 'abort', alAbortar );
 				}
@@ -125,7 +125,7 @@
 	 * pintar resultados obsoletos. Un abort real del controller sí rechaza.
 	 */
 	function fetchReintentando( url, opciones, seguir, alReintentar ) {
-		var signal = opciones && opciones.signal;
+		const signal = opciones && opciones.signal;
 		function intento( n ) {
 			return fetch( url, opciones ).then( function ( r ) {
 				if ( r.ok || n >= RETRY_MAX ) {
@@ -164,7 +164,7 @@
 		// impedir que axe compruebe el id de aria-controls aunque el listbox exista oculto.
 		input.setAttribute( 'aria-expanded', 'false' );
 
-		var panel = document.createElement( 'div' );
+		const panel = document.createElement( 'div' );
 		panel.className = 'akb-suggest-panel';
 		panel.setAttribute( 'role', 'listbox' );
 		// Un listbox sin nombre accesible se anuncia como «lista» a secas, y en el
@@ -175,13 +175,13 @@
 		panel.hidden = true;
 		input.setAttribute( 'aria-controls', panel.id );
 
-		var wrap = input.closest( 'form' ) || input.parentNode;
+		const wrap = input.closest( 'form' ) || input.parentNode;
 		wrap.style.position = wrap.style.position || 'relative';
 		wrap.appendChild( panel );
 
 		// `zeroGen`: generación del estado vacío. Cada close() la sube, y una
 		// respuesta de Populares pedida antes ya no pinta (ver close()).
-		var state = { items: [], active: -1, controller: null, timer: 0, loadingTimer: 0, lastQuery: '', zeroGen: 0 };
+		const state = { items: [], active: -1, controller: null, timer: 0, loadingTimer: 0, lastQuery: '', zeroGen: 0 };
 
 		/**
 		 * Cerrar la lista y cancelar debounce, fetch y lupa para que una respuesta tardía no vuelva a
@@ -221,9 +221,18 @@
 			input.removeAttribute( 'aria-activedescendant' );
 		}
 
-		/** Pinta y abre el panel. */
+		/**
+		 * Pinta y abre el panel.
+		 * @param {*} html
+		 */
 		function open( html ) {
-			panel.innerHTML = html;
+			const doc = new DOMParser().parseFromString( html || '', 'text/html' );
+			while ( panel.firstChild ) {
+				panel.removeChild( panel.firstChild );
+			}
+			while ( doc.body.firstChild ) {
+				panel.appendChild( doc.body.firstChild );
+			}
 			panel.hidden = false;
 			input.setAttribute( 'aria-expanded', 'true' );
 		}
@@ -250,17 +259,18 @@
 		 * URL de la página de resultados completa para `q` — el action del form
 		 * dueño (ya resuelve tienda o archivo de término; el contexto viaja en
 		 * la propia URL). Sin form no hay destino: el footer no se pinta.
+		 * @param {*} q
 		 */
 		function searchUrl( q ) {
-			var f = input.closest( 'form' );
+			const f = input.closest( 'form' );
 			if ( ! f || ! f.action ) {
 				return '';
 			}
 			try {
-				var u = new URL( f.action, window.location.origin );
+				const u = new URL( f.action, window.location.origin );
 				u.searchParams.set( '_buscar', q );
 				return u.href;
-			} catch ( e ) {
+			} catch ( _e ) {
 				return '';
 			}
 		}
@@ -271,14 +281,14 @@
 		 * que el `total` del footer calce con la página destino.
 		 */
 		function ctxParams() {
-			var f = input.closest( 'form' );
-			var cf = f && f.getAttribute( 'data-akb-ctx-facet' );
-			var cv = f && f.getAttribute( 'data-akb-ctx-value' );
+			const f = input.closest( 'form' );
+			const cf = f && f.getAttribute( 'data-akb-ctx-facet' );
+			const cv = f && f.getAttribute( 'data-akb-ctx-value' );
 			return cf && cv ? '&' + encodeURIComponent( cf ) + '=' + encodeURIComponent( cv ) : '';
 		}
 
 		function highlight( text, q ) {
-			var i = text.toLowerCase().indexOf( q.toLowerCase() );
+			const i = text.toLowerCase().indexOf( q.toLowerCase() );
 			if ( i < 0 ) {
 				return escapeHtml( text );
 			}
@@ -292,6 +302,8 @@
 		 * enlace a su landing. No reutilizar la plantilla de producto sin portada/precio. Todas las
 		 * options pertenecen al mismo listbox; los títulos de grupo son presentation y quedan fuera
 		 * del recorrido.
+		 * @param {*} it
+		 * @param {*} idx
 		 */
 		function serieOpt( it, idx ) {
 			return '<a class="akb-suggest-item akb-suggest-serie" role="option" aria-selected="false" id="' +
@@ -314,24 +326,7 @@
 		function render( items, q, total, corrected, series, relaxed ) {
 			panel.removeAttribute( 'aria-busy' );
 			series = series || [];
-
-			// Clasificación comercial: bodega inmediata vs disponibles para encargo/reserva
-			var bodegaItems = [];
-			var encargoItems = [];
-			( items || [] ).forEach( function ( it ) {
-				var isBodega = it.availability === 'instock' || ( ! it.availability && ( ! it.badge_tone || it.badge_tone === 'ok' ) );
-				if ( isBodega ) {
-					bodegaItems.push( it );
-				} else {
-					it.isEncargo = true;
-					// Si está agotado o sin precio comercial, abre el modal de solicitud sin pago.
-					// Si es preventa o a pedido con precio, navega a la ficha para compra/reserva pagada.
-					it.isRequestable = it.availability === 'outofstock' || it.badge_tone === 'out' || ! it.price_html;
-					encargoItems.push( it );
-				}
-			} );
-			// Orden en el panel: bodega primero, encargo después
-			items = bodegaItems.concat( encargoItems );
+			items = items || [];
 
 			// Los índices del recorrido con flechas se leen del ORDEN DEL DOM
 			// (setActive usa querySelectorAll): state.items tiene que ir en el
@@ -350,15 +345,13 @@
 				// `if ( ! n )` y Enter envía el formulario a la tienda, donde la
 				// corrección laxa sí aplica.
 				open( '<div class="akb-suggest-empty" role="status">Sin resultados para «' +
-					escapeHtml( q ) + '». ' + escapeHtml( EMPTY_HINT ) + '</div>' +
-					'<div class="akb-suggest-empty-cta"><button type="button" class="akb-suggest-request-btn" data-akb-request-q="' +
-					escapeHtml( q ) + '">📋 Solicitar «<strong>' + escapeHtml( q ) + '</strong>» a pedido</button></div>' );
+					escapeHtml( q ) + '». ' + escapeHtml( EMPTY_HINT ) + '</div>' );
 				return;
 			}
 			// La corrección fuzzy es un nodo no interactivo con role=status y sin data-idx: queda fuera de
 			// state.items y del recorrido de flechas. Mostrar consulta cruda y corrección completa, igual
 			// que el catálogo, sólo si existen items.
-			var html = corrected
+			let html = corrected
 				? '<div class="akb-suggest-correction" role="status">Sin resultados para «' +
 					escapeHtml( corrected.typo ) + '». Mostrando lo más parecido a «<strong>' +
 					escapeHtml( corrected.fix ) + '</strong>».</div>'
@@ -389,35 +382,14 @@
 			}
 
 			html += items.map( function ( it, i ) {
-				var idx = series.length + i;
-				var subhead = '';
-				if ( i === 0 && bodegaItems.length > 0 ) {
-					subhead = '<div class="akb-suggest-subhead akb-subhead--bodega" role="presentation"><span class="akb-subhead-dot akb-dot--ok"></span> En Bodega · Entrega Inmediata</div>';
-				} else if ( i === bodegaItems.length && encargoItems.length > 0 ) {
-					subhead = '<div class="akb-suggest-subhead akb-subhead--encargo" role="presentation"><span class="akb-subhead-dot akb-dot--encargo"></span> Disponibles a Pedido</div>';
-				}
-				var isEnc = !! it.isEncargo;
-				var isReq = !! it.isRequestable;
-				var tagHtml = '';
-				if ( isReq ) {
-					tagHtml = ' <span class="akb-suggest-encargo-tag">Solicitar</span>';
-				} else if ( isEnc ) {
-					tagHtml = ' <span class="akb-suggest-reservar-tag">Reservar →</span>';
-				}
-				return subhead + '<a class="akb-suggest-item' + ( isEnc ? ' akb-suggest-item--encargo' : '' ) + '" role="option" aria-selected="false" id="' + panel.id + '-' + idx +
-					'" href="' + escapeHtml( it.url ) + '" data-idx="' + idx + '"' + ( isEnc ? ' data-akb-encargo="1"' : '' ) + ( isReq ? ' data-akb-requestable="1"' : '' ) + '>' +
+				const idx = series.length + i;
+				return '<a class="akb-suggest-item" role="option" aria-selected="false" id="' + panel.id + '-' + idx +
+					'" href="' + escapeHtml( it.url ) + '" data-idx="' + idx + '">' +
 					'<img class="akb-suggest-thumb" src="' + escapeHtml( it.thumb ) + '" alt="" loading="lazy" width="40" height="40">' +
 					'<span class="akb-suggest-body">' +
 					'<span class="akb-suggest-title">' + ( it.title_html || highlight( it.title, q ) ) + '</span>' +
-					'<span class="akb-suggest-meta">' + it.price_html +
-					' <span class="akb-suggest-badge akb-badge-' + escapeHtml( it.badge_tone ) + '">' +
-					escapeHtml( it.badge ) + '</span>' +
-					tagHtml + '</span></span></a>';
+					'<span class="akb-suggest-meta">' + it.price_html + '</span></span></a>';
 			} ).join( '' );
-
-			if ( encargoItems.length > 0 || ( bodegaItems.length > 0 && total <= items.length ) ) {
-				html += '<div class="akb-suggest-request-banner" role="presentation"><button type="button" class="akb-suggest-request-trigger" data-akb-request-term="' + escapeHtml( q ) + '">¿Buscas otro tomo o edición? <strong>Solicitar a Pedido »</strong></button></div>';
-			}
 
 			// Añadir «Ver los N resultados» como rama propia fuera de la plantilla de producto. Comparte
 			// .akb-suggest-item y entra en state.items como {url} para conservar foco, flechas y
@@ -425,9 +397,10 @@
 			if ( total > items.length ) {
 				// Con corrección, «Ver los N» lleva a la query CORREGIDA (los
 				// N resultados son de «fix», no del typo) [spec v5 D4].
-				var moreUrl = searchUrl( corrected ? corrected.fix : ( relaxed && relaxed.kept ? relaxed.kept : q ) );
+				const fallbackTerm = relaxed && relaxed.kept ? relaxed.kept : q;
+				const moreUrl = searchUrl( corrected ? corrected.fix : fallbackTerm );
 				if ( moreUrl ) {
-					var moreIdx = series.length + items.length;
+					const moreIdx = series.length + items.length;
 					html += '<a class="akb-suggest-item akb-suggest-more" role="option" aria-selected="false" id="' +
 						panel.id + '-' + moreIdx + '" data-idx="' + moreIdx + '" href="' + escapeHtml( moreUrl ) + '">Ver los ' +
 						new Intl.NumberFormat( 'es-CL' ).format( total ) + ' resultados</a>';
@@ -440,7 +413,7 @@
 		// Solo pintar con el input ENFOCADO: una respuesta tardía re-abría el
 		// panel ya cerrado por focusout. El mousedown preserva el foco en clicks.
 		function inputFocused() {
-			return document.activeElement === input;
+			return document.documentElement.ownerDocument.activeElement === input;
 		}
 
 		// Activación CENTRAL (click Y Enter — paridad teclado/mouse: Enter pulsa
@@ -466,7 +439,7 @@
 				it.re.ts = Date.now();
 				writeHistory( [ it.re ].concat( readHistory() ) );
 			} else {
-				var q = input.value.trim();
+				const q = input.value.trim();
 				track( q );
 				if ( it.thumb ) {
 					// Persistir entradas enriquecidas del historial.
@@ -478,11 +451,19 @@
 			}
 		}
 
-		/** Option del vacío-enfocado. `pfx` = contexto para AT (accname). */
+		/**
+		 * Option del vacío-enfocado. `pfx` = contexto para AT (accname).
+		 * @param {*} idx
+		 * @param {*} pfx
+		 * @param {*} label
+		 * @param {*} href
+		 * @param {*} img
+		 * @param {*} cls
+		 */
 		function zeroOpt( idx, pfx, label, href, img, cls ) {
-			var inner = ( img ? '<img class="akb-suggest-thumb" src="' + escapeHtml( img ) + '" alt="" width="40" height="40">' : '' ) +
+			const inner = ( img ? '<img class="akb-suggest-thumb" src="' + escapeHtml( img ) + '" alt="" width="40" height="40">' : '' ) +
 				( pfx ? '<span class="akb-sr-only">' + pfx + ': </span>' : '' ) + escapeHtml( label );
-			var attrs = ' class="akb-suggest-item ' + ( cls || 'akb-suggest-zero' ) + '" role="option" aria-selected="false" id="' +
+			const attrs = ' class="akb-suggest-item ' + ( cls || 'akb-suggest-zero' ) + '" role="option" aria-selected="false" id="' +
 				panel.id + '-' + idx + '" data-idx="' + idx + '"';
 			return href
 				? '<a' + attrs + ' href="' + escapeHtml( href ) + '">' + inner + '</a>'
@@ -492,21 +473,21 @@
 		// Vacío-enfocado: Recientes + Populares. Heads role=presentation; todos
 		// los interactivos = role=option planos del MISMO listbox (APG).
 		function renderZero() {
-			var rec = readHistory().slice( 0, 5 );
-			var pop = ( POP || [] ).slice( 0, 5 );
+			const rec = readHistory().slice( 0, 5 );
+			const pop = ( POP || [] ).slice( 0, 5 );
 			if ( ! rec.length && ! pop.length ) {
 				if ( ! panel.hidden ) { ocultar(); }
 				return;
 			}
-			var items = [];
-			var html = '';
+			const items = [];
+			let html = '';
 			function head( t ) {
 				return '<div class="akb-suggest-head" role="presentation">' + t + '</div>';
 			}
 			if ( rec.length ) {
 				html += head( 'Recientes' );
 				rec.forEach( function ( en ) {
-					var p = en.type === 'product' && en.url;
+					const p = en.type === 'product' && en.url;
 					items.push( p ? { url: en.url, re: en } : { fill: en.query } );
 					html += zeroOpt( items.length - 1, 'Reciente', en.label, p ? en.url : '', p ? en.image : '' );
 				} );
@@ -537,7 +518,7 @@
 		// que la lista se haya cerrado entretanto (ver close()).
 		function zeroConPopulares() {
 			maybeZero();
-			var gen = state.zeroGen;
+			const gen = state.zeroGen;
 			loadPopular( function () {
 				if ( gen === state.zeroGen ) {
 					maybeZero();
@@ -565,8 +546,8 @@
 
 			// La clave incluye el contexto del archive: la misma consulta dentro de
 			// /categoria-producto/manga/ y en /tienda/ son respuestas distintas.
-			var memoKey = q + '\n' + ctxParams();
-			var memoHit = memoGet( memoKey );
+			const memoKey = q + '\n' + ctxParams();
+			const memoHit = memoGet( memoKey );
 			if ( null !== memoHit ) {
 				fx( false ); // el fetch recién abortado dejó la lupa girando.
 				if ( inputFocused() && input.value.trim() === q ) {
@@ -576,7 +557,7 @@
 			}
 
 			state.controller = new AbortController();
-			var signal = state.controller.signal;
+			const signal = state.controller.signal;
 			fx( true );
 
 			state.loadingTimer = window.setTimeout( function () {
@@ -588,7 +569,7 @@
 			fetchReintentando(
 				REST + 'suggest?q=' + encodeURIComponent( q ) + ctxParams(),
 				{
-					signal: signal,
+					signal,
 					headers: { Accept: 'application/json' },
 					credentials: 'same-origin'
 				},
@@ -639,32 +620,39 @@
 		 * Registrar sólo búsquedas asentadas por clic, Enter en sugerencia o submit del formulario. No
 		 * registrar cada respuesta de debounce, que representa prefijos parciales. El servidor deriva
 		 * hits por su cuenta porque el valor del cliente es falsificable.
+		 * @param {*} q
+		 * @param {*} source
 		 */
 		function track( q, source ) {
 			try {
-				var payload = new Blob(
-					[ JSON.stringify( { q: q, source: source || 'suggest' } ) ],
+				const payload = new Blob(
+					[ JSON.stringify( { q, source: source || 'suggest' } ) ],
 					{ type: 'application/json' }
 				);
 				if ( navigator.sendBeacon ) {
 					navigator.sendBeacon( REST + 'track', payload );
 				}
-			} catch ( e ) { /* best-effort */ }
+			} catch ( _e ) { /* best-effort */ }
 			pushHistory( q );
 		}
 
 		function setActive( idx ) {
 			// Sincronizar aria-selected de cada role=option con la clase visual y aria-activedescendant.
 			// Si idx<0, retirar aria-activedescendant para no referir una option inexistente.
-			var opts = panel.querySelectorAll( '.akb-suggest-item' );
+			const opts = panel.querySelectorAll( '.akb-suggest-item' );
 			opts.forEach( function ( o ) {
 				o.classList.remove( 'is-active' );
 				o.setAttribute( 'aria-selected', 'false' );
 			} );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( idx >= 0 && opts[ idx ] ) {
+				// eslint-disable-next-line security/detect-object-injection
 				opts[ idx ].classList.add( 'is-active' );
+				// eslint-disable-next-line security/detect-object-injection
 				opts[ idx ].setAttribute( 'aria-selected', 'true' );
+				// eslint-disable-next-line security/detect-object-injection
 				input.setAttribute( 'aria-activedescendant', opts[ idx ].id );
+				// eslint-disable-next-line security/detect-object-injection
 				opts[ idx ].scrollIntoView( { block: 'nearest' } );
 			} else {
 				input.removeAttribute( 'aria-activedescendant' );
@@ -687,7 +675,7 @@
 		}
 
 		input.addEventListener( 'input', function () {
-			var q = input.value.trim();
+			const q = input.value.trim();
 			if ( q === state.lastQuery ) {
 				return;
 			}
@@ -707,7 +695,7 @@
 
 		// Focus: texto re-busca; vacío → zero-state.
 		input.addEventListener( 'focus', function () {
-			var q = input.value.trim();
+			const q = input.value.trim();
 			if ( q.length >= MIN ) {
 				state.lastQuery = q;
 				fetchSuggest( q );
@@ -725,7 +713,7 @@
 				}
 				return;
 			}
-			var n = state.items.length;
+			const n = state.items.length;
 			// Escape ANTES del guard de vacío: cerrar debe funcionar también con
 			// el panel en «Buscando…»/error, que no tienen options navegables.
 			if ( e.key === 'Escape' ) {
@@ -750,7 +738,7 @@
 				// Enter PULSA la opción activa, que sigue el camino del clic: el
 				// <a> navega solo y el Reciente se guarda en un único sitio
 				// (el manejador de clic del panel, más abajo).
-				var opcion = panel.querySelectorAll( '.akb-suggest-item' )[ state.active ];
+				const opcion = panel.querySelectorAll( '.akb-suggest-item' )[ state.active ];
 				if ( opcion ) {
 					opcion.click();
 				}
@@ -783,243 +771,24 @@
 		// este clic: se entera de la salida por la Navigation API, y sin ella
 		// un fallo suyo no navega solo (ver vigilarSalida() en akb-search.js).
 		panel.addEventListener( 'click', function ( e ) {
-			var reqBtn = null;
-			if ( e.target && e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf( 'akb-suggest-request' ) !== -1 ) {
-				reqBtn = e.target;
-			} else if ( e.target && e.target.closest ) {
-				var cand = e.target.closest( '.akb-suggest-request-btn, .akb-suggest-request-trigger' );
-				if ( cand && cand.className && typeof cand.className === 'string' && cand.className.indexOf( 'akb-suggest-request' ) !== -1 ) {
-					reqBtn = cand;
-				}
-			}
-			if ( reqBtn ) {
-				e.stopPropagation();
-				if ( e.preventDefault ) { e.preventDefault(); }
-				var term = ( reqBtn.getAttribute && ( reqBtn.getAttribute( 'data-akb-request-q' ) || reqBtn.getAttribute( 'data-akb-request-term' ) ) ) || input.value.trim();
-				close();
-				openRequestModal( { title: term, status_intended: 'general' } );
-				return;
-			}
-
 			e.stopPropagation();
-			var el = e.target && e.target.closest && e.target.closest( '.akb-suggest-item' );
-			var it = el && state.items[ Number( el.getAttribute( 'data-idx' ) ) ];
+			const el = e.target && e.target.closest && e.target.closest( '.akb-suggest-item' );
+			const it = el && state.items[ Number( el.getAttribute( 'data-idx' ) ) ];
 			if ( it ) {
-				// Solo intercepta con modal sin pago si es explícitamente solicitante (agotado o sin precio).
-				// Si es preventa o a pedido con precio, activate(it) navega a la ficha de producto para comprar.
-				if ( it.isRequestable === true ) {
-					if ( e.preventDefault ) { e.preventDefault(); }
-					track( input.value.trim() );
-					close();
-					openRequestModal( it );
-					return;
-				}
 				activate( it );
 			}
 		} );
-		var ownerForm = input.closest( 'form' );
+		const ownerForm = input.closest( 'form' );
 		if ( ownerForm ) {
 			// source:'search' = pool de Populares (queries completas al buscar).
 			ownerForm.addEventListener( 'submit', function () {
 				cancelPending();
-				var q = input.value.trim();
+				const q = input.value.trim();
 				if ( q.length >= MIN ) {
 					track( q, 'search' );
 				}
 			} );
 		}
-	}
-
-	var requestModalEl = null;
-
-	function closeRequestModal() {
-		if ( requestModalEl ) {
-			requestModalEl.hidden = true;
-			requestModalEl.classList.remove( 'is-open' );
-			if ( document.body && document.body.classList ) {
-				document.body.classList.remove( 'akb-modal-open' );
-			}
-		}
-	}
-
-	function getRequestModal() {
-		if ( requestModalEl && document.body && document.body.contains( requestModalEl ) ) {
-			return requestModalEl;
-		}
-		var m = document.createElement( 'div' );
-		m.id = 'akb-request-modal';
-		m.className = 'akb-modal-overlay';
-		m.hidden = true;
-		m.setAttribute( 'role', 'dialog' );
-		m.setAttribute( 'aria-modal', 'true' );
-		m.setAttribute( 'aria-labelledby', 'akb-req-modal-title' );
-		m.addEventListener( 'click', function ( e ) {
-			if ( e.target === m || e.target.closest( '.akb-modal-close' ) ) {
-				closeRequestModal();
-			}
-		} );
-		document.addEventListener( 'keydown', function ( e ) {
-			if ( e.key === 'Escape' && ! m.hidden ) {
-				closeRequestModal();
-			}
-		} );
-		if ( document.body ) {
-			document.body.appendChild( m );
-		}
-		requestModalEl = m;
-		return m;
-	}
-
-	function openRequestModal( it ) {
-		var m = getRequestModal();
-		if ( ! m || typeof m.querySelector !== 'function' ) {
-			return;
-		}
-		var title = typeof it === 'string' ? it : ( ( it && it.title ) || '' );
-		title = title.replace( /<[^>]*>/g, '' ).trim();
-		var status = ( it && it.availability ) || ( ( it && it.badge_tone === 'pre' ) ? 'a_pedido' : ( ( it && it.badge_tone === 'out' ) ? 'agotado' : 'general' ) );
-		var q = ( it && it.query ) || title;
-		var productId = ( it && it.id ) ? Number( it.id ) : 0;
-
-		var badgeText = 'Solicitud a Pedido';
-		var badgeClass = 'akb-req-pill--encargo';
-		var helpText = 'Traemos este título directamente con la editorial o distribuidor. Te avisaremos apenas llegue a bodega en Santiago.';
-
-		if ( 'a_pedido' === status ) {
-			badgeText = 'Disponible a Pedido (~15-20 días hábiles)';
-			badgeClass = 'akb-req-pill--pedido';
-			helpText = 'Título disponible en catálogo editorial. Tiempo estimado: 15 a 20 días hábiles. Te avisamos apenas ingrese a bodega.';
-		} else if ( 'agotado' === status ) {
-			badgeText = 'Aviso de Reposición / Reedición';
-			badgeClass = 'akb-req-pill--agotado';
-			helpText = 'Este título se encuentra agotado o sin stock inmediato. Déjanos tu aviso y te notificaremos con prioridad ante una reedición o nuevo lote.';
-		} else if ( 'preventa' === status ) {
-			badgeText = 'Preventa Oficial';
-			badgeClass = 'akb-req-pill--preventa';
-			helpText = 'Próximo lanzamiento oficial. Registra tu solicitud y te informaremos la fecha de arribo y precio garantizado.';
-		}
-
-		m.innerHTML = '<div class="akb-modal-dialog" role="document">' +
-			'<button type="button" class="akb-modal-close" aria-label="Cerrar ventana">✕</button>' +
-			'<div class="akb-modal-header">' +
-				'<span class="akb-modal-badge ' + badgeClass + '">' + escapeHtml( badgeText ) + '</span>' +
-				'<h2 id="akb-req-modal-title" class="akb-modal-title">Solicitud de Tomo a Pedido</h2>' +
-				'<p class="akb-modal-intro">' + escapeHtml( helpText ) + '</p>' +
-			'</div>' +
-			'<form class="akb-modal-form" id="akb-request-form">' +
-				'<input type="text" name="akb_hp_url" style="display:none!important;" tabindex="-1" autocomplete="off">' +
-				'<input type="hidden" name="product_id" value="' + ( productId > 0 ? productId : '' ) + '">' +
-				'<input type="hidden" name="status_intended" value="' + escapeHtml( status ) + '">' +
-				'<input type="hidden" name="query_norm" value="' + escapeHtml( q ) + '">' +
-				'<div class="akb-field-group">' +
-					'<label for="akb-req-title">Título solicitado <span class="akb-req-star">*</span></label>' +
-					'<input type="text" id="akb-req-title" name="title" required value="' + escapeHtml( title ) + '" placeholder="Ej: InuYasha Kanzenban 01">' +
-				'</div>' +
-				'<div class="akb-field-group">' +
-					'<label for="akb-req-editorial">Editorial / Versión <span class="akb-opt">(opcional)</span></label>' +
-					'<input type="text" id="akb-req-editorial" name="editorial" placeholder="Ej: Ivrea, Panini, Planeta, etc.">' +
-				'</div>' +
-				'<div class="akb-field-row">' +
-					'<div class="akb-field-group">' +
-						'<label for="akb-req-name">Tu Nombre <span class="akb-req-star">*</span></label>' +
-						'<input type="text" id="akb-req-name" name="customer_name" required placeholder="Ej: Camilo Vega">' +
-					'</div>' +
-					'<div class="akb-field-group">' +
-						'<label for="akb-req-contact">WhatsApp o Correo <span class="akb-req-star">*</span></label>' +
-						'<input type="text" id="akb-req-contact" name="customer_contact" required placeholder="+56 9 1234 5678 o tu@correo.cl">' +
-					'</div>' +
-				'</div>' +
-				'<div class="akb-modal-actions">' +
-					'<button type="submit" class="akb-modal-btn-submit" id="akb-req-submit-btn">' +
-						'<span>Confirmar Solicitud</span>' +
-					'</button>' +
-				'</div>' +
-				'<p class="akb-modal-disclaimer">🔒 Sin cobro por adelantado. Cero spam: tus datos sólo se usan para informarte el estado de tu solicitud a pedido.</p>' +
-			'</form>' +
-		'</div>';
-
-		m.hidden = false;
-		m.classList.add( 'is-open' );
-		if ( document.body && document.body.classList ) {
-			document.body.classList.add( 'akb-modal-open' );
-		}
-
-		var form = m.querySelector( '#akb-request-form' );
-		var nameInput = m.querySelector( '#akb-req-name' );
-		var titleInput = m.querySelector( '#akb-req-title' );
-		if ( title && nameInput ) {
-			nameInput.focus();
-		} else if ( titleInput ) {
-			titleInput.focus();
-		}
-
-		form.addEventListener( 'submit', function ( ev ) {
-			ev.preventDefault();
-			var submitBtn = form.querySelector( '#akb-req-submit-btn' );
-			var productIdVal = form.querySelector( '[name="product_id"]' ) ? form.querySelector( '[name="product_id"]' ).value.trim() : '';
-			var titleVal = form.querySelector( '[name="title"]' ) ? form.querySelector( '[name="title"]' ).value.trim() : '';
-			var editorialVal = form.querySelector( '[name="editorial"]' ) ? form.querySelector( '[name="editorial"]' ).value.trim() : '';
-			var nameVal = form.querySelector( '[name="customer_name"]' ) ? form.querySelector( '[name="customer_name"]' ).value.trim() : '';
-			var contactVal = form.querySelector( '[name="customer_contact"]' ) ? form.querySelector( '[name="customer_contact"]' ).value.trim() : '';
-			var statusVal = form.querySelector( '[name="status_intended"]' ) ? form.querySelector( '[name="status_intended"]' ).value.trim() : 'general';
-			var queryVal = form.querySelector( '[name="query_norm"]' ) ? form.querySelector( '[name="query_norm"]' ).value.trim() : '';
-			var hpVal = form.querySelector( '[name="akb_hp_url"]' ) ? form.querySelector( '[name="akb_hp_url"]' ).value : '';
-
-			var payload = {
-				product_id: productIdVal ? Number( productIdVal ) : null,
-				title: titleVal,
-				editorial: editorialVal,
-				customer_name: nameVal,
-				name: nameVal,
-				customer_contact: contactVal,
-				contact: contactVal,
-				status_intended: statusVal,
-				query_norm: queryVal,
-				query: queryVal,
-				akb_hp_url: hpVal
-			};
-			if ( ! payload.title || ! payload.customer_name || ! payload.customer_contact ) {
-				return;
-			}
-			submitBtn.disabled = true;
-			submitBtn.innerHTML = '<span>Enviando solicitud…</span>';
-
-			fetch( REST + 'request', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-				credentials: 'same-origin',
-				body: JSON.stringify( payload )
-			} )
-			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) {
-				if ( res && res.success ) {
-					m.querySelector( '.akb-modal-dialog' ).innerHTML = '<button type="button" class="akb-modal-close" aria-label="Cerrar">✕</button>' +
-						'<div class="akb-modal-success">' +
-							'<div class="akb-success-icon" aria-hidden="true">✓</div>' +
-							'<h3 class="akb-success-title">¡Solicitud recibida con éxito!</h3>' +
-							'<p class="akb-success-desc">Anotamos tu solicitud a pedido para <strong>' + escapeHtml( payload.title ) + '</strong>. Nuestro equipo verificará el tomo con la editorial y te contactaremos a <strong>' + escapeHtml( payload.customer_contact ) + '</strong> apenas tengamos confirmación.</p>' +
-							'<button type="button" class="akb-modal-btn-submit akb-modal-close-trigger">Entendido</button>' +
-						'</div>';
-					var closeBtn = m.querySelector( '.akb-modal-close-trigger' );
-					if ( closeBtn ) {
-						closeBtn.addEventListener( 'click', closeRequestModal );
-					}
-					var closeX = m.querySelector( '.akb-modal-close' );
-					if ( closeX ) {
-						closeX.addEventListener( 'click', closeRequestModal );
-					}
-				} else {
-					submitBtn.disabled = false;
-					submitBtn.innerHTML = '<span>Reintentar envío</span>';
-					alert( ( res && res.message ) || 'No se pudo guardar la solicitud. Por favor intenta nuevamente.' );
-				}
-			} )
-			.catch( function () {
-				submitBtn.disabled = false;
-				submitBtn.innerHTML = '<span>Reintentar envío</span>';
-				alert( 'Error de conexión. Por favor intenta nuevamente.' );
-			} );
-		} );
 	}
 
 	function normTerm( s ) {
@@ -1029,30 +798,33 @@
 	// Filtrar al escribir el historial: RUT, celular +56 9, email/URL, número de pedido y
 	// secuencias de al menos siete dígitos no deben persistirse ni mostrarse como recientes.
 	function looksPrivate( s ) {
-		var v = normTerm( s );
+		const v = normTerm( s );
 		return /https?:|www\.|@/i.test( v ) ||
 			/\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/u.test( v ) ||
-			/(?:\+?56)?\s*9[\s\-.]?\d{4}[\s\-.]?\d{4}/u.test( v ) ||
+			/\b9[\s\-.]?\d{4}[\s\-.]?\d{4}\b/u.test( v ) ||
 			/\b(?:pedido|orden|order|compra)\s*#?\s*\d+/iu.test( v ) ||
 			v.replace( /\D+/g, '' ).length >= 7;
 	}
 
-	/** Normaliza/valida una entrada (v2 o nueva). null = descartada. */
+	/**
+	 * Normaliza/valida una entrada (v2 o nueva). null = descartada.
+	 * @param {*} e
+	 */
 	function cleanEntry( e ) {
 		if ( ! e || typeof e !== 'object' ) { return null; }
-		var type = e.type === 'product' ? 'product' : 'query';
-		var label = normTerm( e.label || e.query );
-		var query = normTerm( e.query || label );
-		var ts = Number( e.ts ) || Date.now();
+		const type = e.type === 'product' ? 'product' : 'query';
+		const label = normTerm( e.label || e.query );
+		const query = normTerm( e.query || label );
+		const ts = Number( e.ts ) || Date.now();
 		if ( label.length < 2 || label.length > 90 || query.length < 2 || query.length > 90 ) { return null; }
 		if ( looksPrivate( label ) || looksPrivate( query ) ) { return null; }
 		if ( Date.now() - ts > HISTORY_MAX_AGE ) { return null; }
-		var c = { type: type, label: label, query: query, ts: ts };
+		const c = { type, label, query, ts };
 		if ( type === 'product' ) {
-			var url = String( e.url || '' );
+			const url = String( e.url || '' );
 			if ( ! url || /^(?:javascript|data):/i.test( url ) ) { return null; }
 			c.url = url;
-			var img = String( e.image || '' );
+			const img = String( e.image || '' );
 			if ( img && ! /^(?:javascript|data):/i.test( img ) ) { c.image = img; }
 		}
 		return c;
@@ -1060,7 +832,7 @@
 
 	function readHistory() {
 		try {
-			var env = JSON.parse( localStorage.getItem( HISTORY_KEY ) || 'null' );
+			const env = JSON.parse( localStorage.getItem( HISTORY_KEY ) || 'null' );
 			if ( ! env || env.v !== 3 || ! Array.isArray( env.items ) ) { return []; }
 			// El TTL/privacidad se aplican TAMBIÉN en lectura: cleanEntry solo
 			// corría en writeHistory(), así que una sesión que solo navega (sin
@@ -1069,23 +841,28 @@
 			// alimenta a writeHistory() en activate()/pushHistory(), el purgado
 			// se materializa en disco en la primera escritura posterior.
 			return env.items.map( cleanEntry ).filter( Boolean );
-		} catch ( e ) { return []; }
+		} catch ( _e ) { return []; }
 	}
 
-	/** Sanea, dedupea (type|url|query), ordena ts desc, capa y persiste. */
+	/**
+	 * Sanea, dedupea (type|url|query), ordena ts desc, capa y persiste.
+	 * @param {*} items
+	 */
 	function writeHistory( items ) {
 		try {
-			var seen = {};
-			var clean = ( items || [] ).map( cleanEntry ).filter( function ( c ) {
+			const seen = {};
+			const clean = ( items || [] ).map( cleanEntry ).filter( function ( c ) {
 				if ( ! c ) { return false; }
-				var k = ( c.type + '|' + ( c.url || c.query ) ).toLowerCase();
+				const k = ( c.type + '|' + ( c.url || c.query ) ).toLowerCase();
+				// eslint-disable-next-line security/detect-object-injection
 				if ( seen[ k ] ) { return false; }
+				// eslint-disable-next-line security/detect-object-injection
 				seen[ k ] = 1;
 				return true;
 			} );
 			clean.sort( function ( a, b ) { return b.ts - a.ts; } );
 			localStorage.setItem( HISTORY_KEY, JSON.stringify( { v: 3, items: clean.slice( 0, HISTORY_MAX ) } ) );
-		} catch ( e ) { /* localStorage puede fallar (modo privado) */ }
+		} catch ( _e ) { /* localStorage puede fallar (modo privado) */ }
 	}
 
 	// Migración idempotente a v3: leer todas las OLD_KEYS antes de borrar, admitir strings u
@@ -1095,9 +872,9 @@
 	function migrateHistory() {
 		try {
 			if ( localStorage.getItem( HISTORY_KEY ) ) { return; }
-			var items = [];
+			const items = [];
 			OLD_KEYS.forEach( function ( key ) {
-				var stored = JSON.parse( localStorage.getItem( key ) || '[]' );
+				const stored = JSON.parse( localStorage.getItem( key ) || '[]' );
 				if ( ! Array.isArray( stored ) ) { return; }
 				stored.forEach( function ( entry ) {
 					items.push(
@@ -1111,16 +888,17 @@
 			if ( localStorage.getItem( HISTORY_KEY ) ) {
 				OLD_KEYS.forEach( function ( k ) { localStorage.removeItem( k ); } );
 			}
-		} catch ( e ) { /* corrupto/privado: el próximo write crea v3 limpio */ }
+		} catch ( _e ) { /* corrupto/privado: el próximo write crea v3 limpio */ }
 	}
 
 	function pushHistory( q ) {
-		var entry = { type: 'query', label: q, query: q, ts: Date.now() };
+		const entry = { type: 'query', label: q, query: q, ts: Date.now() };
 		writeHistory( [ entry ].concat( readHistory() ) );
 	}
 
 	function escapeHtml( s ) {
 		return String( s ).replace( /[&<>"']/g, function ( c ) {
+			// eslint-disable-next-line security/detect-object-injection
 			return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ c ];
 		} );
 	}

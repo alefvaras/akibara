@@ -23,6 +23,10 @@ use Akibara\Business\Modules\SiteSpeed\EdgePurge;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArgument
+ */
 final class BatchGuard {
 
 	/**

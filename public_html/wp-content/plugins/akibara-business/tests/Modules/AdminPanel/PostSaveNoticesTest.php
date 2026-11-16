@@ -172,11 +172,11 @@ final class PostSaveNoticesTest extends TestCase {
 				array(),
 				false,
 				true,
-				'Esta calidad se aplica a las imágenes que subas de ahora en adelante; las ya subidas no cambian hasta que uses «Recomprimir».'
+				'Esta calidad se aplica a las copias que WordPress genere para las imágenes AVIF nuevas que subas desde ahora.'
 			)
 		);
 
-		self::assertStringContainsString( 'Recomprimir', $texto );
+		self::assertStringContainsString( 'AVIF', $texto );
 		self::assertStringNotContainsString( 'carrito y checkout', $texto );
 	}
 

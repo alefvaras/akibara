@@ -14,20 +14,21 @@
 		return;
 	}
 
-	var el = wp.element.createElement;
-	var useState = wp.element.useState;
-	var useSelect = wp.data.useSelect;
-	var registerPlugin = wp.plugins.registerPlugin;
-	var ExperimentalDiscountsMeta = wc.blocksCheckout.ExperimentalDiscountsMeta;
-	var ExperimentalOrderMeta = wc.blocksCheckout.ExperimentalOrderMeta;
-	var extensionCartUpdate = wc.blocksCheckout.extensionCartUpdate;
+	const el = wp.element.createElement;
+	const useState = wp.element.useState;
+	const useSelect = wp.data.useSelect;
+	const registerPlugin = wp.plugins.registerPlugin;
+	const ExperimentalDiscountsMeta = wc.blocksCheckout.ExperimentalDiscountsMeta;
+	const ExperimentalOrderMeta = wc.blocksCheckout.ExperimentalOrderMeta;
+	const extensionCartUpdate = wc.blocksCheckout.extensionCartUpdate;
 
-	var NS = 'akibara-rewards';
+	const NS = 'akibara-rewards';
 
 	function useRewardsData() {
 		return useSelect( function ( select ) {
-			var store = select( 'wc/store/cart' );
-			var cart = store && store.getCartData ? store.getCartData() : null;
+			const store = select( 'wc/store/cart' );
+			const cart = store && store.getCartData ? store.getCartData() : null;
+			// eslint-disable-next-line security/detect-object-injection
 			return ( cart && cart.extensions && cart.extensions[ NS ] ) || null;
 		}, [] );
 	}
@@ -35,13 +36,13 @@
 	function fmt( n ) {
 		try {
 			return new Intl.NumberFormat( 'es-CL' ).format( n );
-		} catch ( e ) {
+		} catch ( _e ) {
 			return String( n );
 		}
 	}
 
 	/** Un solo marco para todas las caras de la caja (eran tres copias del literal). */
-	var ESTILO_CAJA = { border: '1px solid #333333', background: 'rgba(255,255,255,.03)', borderRadius: '0', padding: '12px 14px', margin: '8px 0' };
+	const ESTILO_CAJA = { border: '1px solid #333333', background: 'rgba(255,255,255,.03)', borderRadius: '0', padding: '12px 14px', margin: '8px 0' };
 
 	/**
 	 * Puntos en pesos, con el MISMO cambio con que se canjean.
@@ -49,6 +50,8 @@
 	 * Decir «500 puntos» obliga al cliente a hacer una cuenta que no tiene por
 	 * qué saber hacer; decir «= $500» se entiende de una lectura. El cambio
 	 * viaja desde el panel (`redeem_value`): nunca se escribe aquí.
+	 * @param {*} data
+	 * @param {*} puntos
 	 */
 	function enPesos( data, puntos ) {
 		return '$' + fmt( puntos * ( data && data.redeem_value > 0 ? data.redeem_value : 1 ) );
@@ -65,6 +68,7 @@
 	 * El número sale del servidor (`earn_now`, la misma función que acredita) y
 	 * baja solo al aplicar un canje: no se ganan puntos sobre lo pagado con
 	 * puntos.
+	 * @param {*} data
 	 */
 	function lineaGana( data ) {
 		if ( ! data || ! ( data.earn_now > 0 ) ) {
@@ -75,27 +79,28 @@
 			'p',
 			{ className: 'akb-rw-gana', style: { margin: '8px 0 0', fontSize: '13px' } },
 			'⭐ Este pedido suma ' + fmt( data.earn_now ) + ' puntos = ' + enPesos( data, data.earn_now )
-				+ ' para tus próximas compras.'
+				+ ' para tus próximas compras.',
+			data.tier_notice ? el( 'span', { className: 'akb-rw-tier-progress', style: { display: 'block' } }, data.tier_notice ) : null
 		);
 	}
 
 	/** Canje explícito del carrito actual; el servidor resuelve todos los límites. */
 	function CajaDeCanje() {
-		var data = useRewardsData();
-		var estado = useState( '' );
-		var valor = estado[ 0 ];
-		var setValor = estado[ 1 ];
-		var ocupado = useState( false );
-		var enviando = ocupado[ 0 ];
-		var setEnviando = ocupado[ 1 ];
-		var avisoEstado = useState( '' );
-		var aviso = avisoEstado[ 0 ];
-		var setAviso = avisoEstado[ 1 ];
+		const data = useRewardsData();
+		const estado = useState( '' );
+		const valor = estado[ 0 ];
+		const setValor = estado[ 1 ];
+		const ocupado = useState( false );
+		const enviando = ocupado[ 0 ];
+		const setEnviando = ocupado[ 1 ];
+		const avisoEstado = useState( '' );
+		const aviso = avisoEstado[ 0 ];
+		const setAviso = avisoEstado[ 1 ];
 		if ( ! data || ! data.logged_in ) {
 			return null;
 		}
 
-		var aplicar = function ( puntos ) {
+		const aplicar = function ( puntos ) {
 			setEnviando( true );
 			setAviso( '' );
 			return extensionCartUpdate( { namespace: NS, data: { points: puntos } } )
@@ -103,55 +108,52 @@
 					setAviso( error && error.message ? error.message : 'No pudimos confirmar el canje. Revisa el carrito e inténtalo de nuevo.' );
 				} ).finally( function () { setEnviando( false ); } );
 		};
-		var botonQuitar = function () {
+		const botonQuitar = function () {
 			return el( 'button', {
 				type: 'button', disabled: enviando,
 				style: { textDecoration: 'underline', minHeight: '44px', background: 'none', border: 0, cursor: 'pointer', padding: 0, font: 'inherit', color: 'inherit', display: 'inline-flex', alignItems: 'center' },
-				onClick: function () { return aplicar( 0 ); },
+				onClick () { return aplicar( 0 ); },
 			}, 'Quitar canje' );
 		};
 
 		// 0 es un máximo no aplicable. Nunca significa «usar todo el saldo».
-		var min = Math.max( 1, data.min || 1 );
-		var techo = Math.max( 0, parseInt( data.max, 10 ) || 0 );
-		var efectivo = Math.max( 0, parseInt( data.effective, 10 ) || 0 );
-		var vigente = data.intent > 0 ? el( 'p', { style: { margin: '8px 0 0', fontSize: '13px' } },
+		const min = Math.max( 1, data.min || 1 );
+		const techo = Math.max( 0, parseInt( data.max, 10 ) || 0 );
+		const efectivo = Math.max( 0, parseInt( data.effective, 10 ) || 0 );
+		const vigente = data.intent > 0 ? el( 'p', { style: { margin: '8px 0 0', fontSize: '13px' } },
 			efectivo > 0
 				? 'Canje aplicado: ' + fmt( efectivo ) + ' puntos = ' + enPesos( data, efectivo ) + '. '
 				: 'Tu canje guardado de ' + fmt( data.intent ) + ' puntos no se aplica en este carrito. ',
 			botonQuitar()
 		) : null;
-		var avisoVisible = el( 'p', {
-			role: 'status', 'aria-live': 'polite',
-			style: aviso ? { margin: '8px 0 0', fontSize: '13px', fontWeight: 600 } : { margin: 0 },
-		}, aviso );
 		if ( techo < min ) {
 			if ( data.balance <= 0 && ! ( data.intent > 0 ) ) {
 				return lineaGana( data ) ? el( 'div', { className: 'akb-rw-checkout-box', style: ESTILO_CAJA },
 					el( 'p', { style: { margin: '0 0 6px', fontWeight: 600 } }, '⭐ Tus Puntos Akibara' ), lineaGana( data ) ) : null;
 			}
-			var switchPts = Math.max( 0, parseInt( data.switch_points, 10 ) || 0 );
-			var botonSwitch = switchPts > 0 ? el( 'div', { style: { marginTop: '8px' } },
-				el( 'button', {
-					type: 'button',
-					className: 'wc-block-components-button wp-element-button akb-switch-points-btn',
-					disabled: enviando,
-					style: { display: 'block', width: '100%', minHeight: '44px', padding: '10px 14px', whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center', boxSizing: 'border-box' },
-					onClick: function () { return aplicar( switchPts ); },
-				}, enviando ? 'Aplicando…' : 'Usar mis ' + enPesos( data, switchPts ) + ' en puntos en lugar del descuento de pack' )
-			) : null;
+			const avisoUnder = el( 'p', {
+				role: 'status', 'aria-live': 'polite',
+				style: aviso ? { margin: '8px 0 0', fontSize: '13px', fontWeight: 600 } : { margin: 0 },
+			}, aviso );
 			return el( 'div', { className: 'akb-rw-checkout-box', style: ESTILO_CAJA },
 				el( 'p', { style: { margin: '0 0 6px', fontWeight: 600 } }, '⭐ Tus Puntos Akibara' ),
 				el( 'p', { style: { margin: 0, fontSize: '13px' } },
 					'Tienes ' + fmt( data.balance ) + ' puntos. ' + ( data.unavailable || ( data.missing > 0 ? 'Te faltan $' + fmt( data.missing ) + ' en productos para poder canjear.' : 'No hay un canje disponible en este carrito.' ) ) ),
-				botonSwitch, vigente, avisoVisible, lineaGana( data ) );
+				vigente, avisoUnder, lineaGana( data ) );
 		}
 
-		var puntos = Number( valor );
-		var valido = valor !== '' && Number.isSafeInteger( puntos ) && puntos >= min && puntos <= techo;
-		var preview = valido ? fmt( puntos ) + ' puntos: ' + enPesos( data, puntos ) + ' de descuento en este carrito.'
-			: valor === '' ? 'Elige cuántos puntos quieres usar; el canje requiere tu confirmación.'
-				: 'Ingresa un número entero entre ' + fmt( min ) + ' y ' + fmt( techo ) + ' puntos.';
+		const avisoVisible = el( 'p', {
+			role: 'status', 'aria-live': 'polite',
+			style: aviso ? { margin: '8px 0 0', fontSize: '13px', fontWeight: 600 } : { margin: 0 },
+		}, aviso );
+		const puntos = Number( valor );
+		const valido = valor !== '' && Number.isSafeInteger( puntos ) && puntos >= min && puntos <= techo;
+		let preview = 'Ingresa un número entero entre ' + fmt( min ) + ' y ' + fmt( techo ) + ' puntos.';
+		if ( valido ) {
+			preview = fmt( puntos ) + ' puntos: ' + enPesos( data, puntos ) + ' de descuento en este carrito.';
+		} else if ( valor === '' ) {
+			preview = 'Elige cuántos puntos quieres usar; el canje requiere tu confirmación.';
+		}
 		return el( 'div', { className: 'akb-rw-checkout-box', style: ESTILO_CAJA },
 			el( 'p', { style: { margin: '0 0 6px', fontWeight: 600 } }, '⭐ Tus Puntos Akibara' ),
 			el( 'p', { style: { margin: '0 0 8px', fontSize: '13px' } },
@@ -161,24 +163,24 @@
 			el( 'div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' } },
 				el( 'label', { htmlFor: 'akb-rw-canje', className: 'screen-reader-text' }, 'Puntos a canjear' ),
 				el( 'input', {
-					id: 'akb-rw-canje', type: 'number', min: min, max: techo, step: 1, value: valor,
+					id: 'akb-rw-canje', type: 'number', min, max: techo, step: 1, value: valor,
 					'aria-describedby': 'akb-rw-cart-preview', placeholder: String( min ),
 					style: { width: '7em', minHeight: '44px' },
-					onChange: function ( ev ) { setValor( ev.target.value ); setAviso( '' ); },
+					onChange ( ev ) { setValor( ev.target.value ); setAviso( '' ); },
 				} ),
 				el( 'button', {
 					type: 'button', className: 'wc-block-components-button wp-element-button', disabled: enviando,
 					style: { minHeight: '44px' },
-					onClick: function () {
+					onClick () {
 						setValor( String( techo ) ); setAviso( '' );
-						var input = document.getElementById( 'akb-rw-canje' );
+						const input = document.getElementById( 'akb-rw-canje' );
 						if ( input ) { input.focus(); }
 					},
 				}, 'Usar el máximo disponible' ),
 				el( 'button', {
 					type: 'button', className: 'wc-block-components-button wp-element-button',
 					style: { minHeight: '44px' }, disabled: enviando || ! valido,
-					onClick: function () { if ( valido ) { return aplicar( puntos ); } },
+					onClick () { if ( valido ) { return aplicar( puntos ); } },
 				}, enviando ? 'Aplicando…' : 'Confirmar canje' )
 			),
 			el( 'p', { id: 'akb-rw-cart-preview', role: 'status', 'aria-live': 'polite', style: { margin: '8px 0 0', fontSize: '13px' } }, preview ),
@@ -186,23 +188,23 @@
 	}
 
 	/* El botón activa la casilla nativa de crear cuenta, la centra y le da foco. El clic sobre el input conserva el onChange y la validación de React; si aún no existe, no actúa. */
-	var CASILLA_CUENTA = '.wc-block-checkout__create-account';
-	var resalte = 0;
-	var ultimaAccion = 0;
+	const CASILLA_CUENTA = '.wc-block-checkout__create-account';
+	let resalte = 0;
+	let ultimaAccion = 0;
 
 	/* CTA sólido dentro del panel de puntos. box-sizing incluye el padding en el ancho del 100 % para mantenerlo dentro de la caja. */
-	var ESTILO_BOTON = { display: 'block', boxSizing: 'border-box', width: '100%', minHeight: '44px', margin: '14px 0 2px', padding: '11px 14px', border: 0, borderRadius: '0', background: '#E60012', color: '#ffffff', fontFamily: 'inherit', fontSize: '15px', fontWeight: 700, lineHeight: 1.3, textAlign: 'center', textTransform: 'none', letterSpacing: 'normal', cursor: 'pointer' };
-	var ESTILO_ENLACE = { display: 'inline-block', minHeight: '44px', margin: '2px 0 0', padding: 0, border: 0, background: 'transparent', color: 'inherit', fontFamily: 'inherit', fontSize: '13px', fontWeight: 400, textDecoration: 'underline', textTransform: 'none', letterSpacing: 'normal', cursor: 'pointer' };
+	const ESTILO_BOTON = { display: 'block', boxSizing: 'border-box', width: '100%', minHeight: '44px', margin: '14px 0 2px', padding: '11px 14px', border: 0, borderRadius: '0', background: '#E60012', color: '#ffffff', fontFamily: 'inherit', fontSize: '15px', fontWeight: 700, lineHeight: 1.3, textAlign: 'center', textTransform: 'none', letterSpacing: 'normal', cursor: 'pointer' };
+	const ESTILO_ENLACE = { display: 'inline-block', minHeight: '44px', margin: '2px 0 0', padding: 0, border: 0, background: 'transparent', color: 'inherit', fontFamily: 'inherit', fontSize: '13px', fontWeight: 400, textDecoration: 'underline', textTransform: 'none', letterSpacing: 'normal', cursor: 'pointer' };
 
 	function llevarACasillaDeCuenta( quiere ) {
-		var caja = document.querySelector( CASILLA_CUENTA );
-		var input = caja && caja.querySelector( 'input[type="checkbox"]' );
+		const caja = document.querySelector( CASILLA_CUENTA );
+		const input = caja && caja.querySelector( 'input[type="checkbox"]' );
 		if ( ! input ) {
 			return;
 		}
 		// Un doble toque no puede marcar y desmarcar: tras el primero el botón
 		// pasa a «Prefiero comprar sin cuenta» y el segundo caería sobre él.
-		var ahora = Date.now();
+		const ahora = Date.now();
 		if ( ahora - ultimaAccion < 700 ) {
 			return;
 		}
@@ -210,7 +212,7 @@
 		if ( input.checked !== quiere ) {
 			input.click();
 		}
-		var quieto = !! ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches );
+		const quieto = !! ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches );
 		caja.scrollIntoView( { behavior: quieto ? 'auto' : 'smooth', block: 'center' } );
 		input.focus( { preventScroll: true } );
 
@@ -225,20 +227,26 @@
 		}, 2400 );
 	}
 
-	/** Ajuste público del checkout de WooCommerce (wcSettings). */
+	/**
+	 * Ajuste público del checkout de WooCommerce (wcSettings).
+	 * @param {*} clave
+	 */
 	function ajusteDeWoo( clave ) {
 		try {
 			return !! ( wc.wcSettings && wc.wcSettings.getSetting( clave, false ) );
-		} catch ( e ) {
+		} catch ( _e ) {
 			return false;
 		}
 	}
 
-	/** Gancho crea-cuenta para INVITADOS: beneficios concretos, config viva. */
+	/**
+	 * Gancho crea-cuenta para INVITADOS: beneficios concretos, config viva.
+	 * @param {*} props
+	 */
 	function GanchoCreaCuenta( props ) {
-		var data = useRewardsData();
-		var marcada = useSelect( function ( select ) {
-			var checkout = select( 'wc/store/checkout' );
+		const data = useRewardsData();
+		const marcada = useSelect( function ( select ) {
+			const checkout = select( 'wc/store/checkout' );
 			return !! ( checkout && checkout.getShouldCreateAccount && checkout.getShouldCreateAccount() );
 		}, [] );
 
@@ -246,7 +254,7 @@
 			return null;
 		}
 
-		var lineas = [ '📦 Sigue tu envío Blue Express desde Mi cuenta' ];
+		const lineas = [ '📦 Sigue tu envío Blue Express desde Mi cuenta' ];
 		if ( data.welcome_bonus > 0 ) {
 			lineas.push(
 				'🎁 ' + fmt( data.welcome_bonus ) + ' puntos de bienvenida = ' + enPesos( data, data.welcome_bonus )
@@ -277,14 +285,14 @@
 		// El bloque Carrito también monta este gancho (mismo `scope`), pero la
 		// casilla sólo existe en el checkout, y allí sólo si WooCommerce admite
 		// invitados Y registro: fuera de eso no hay botón que ofrecer.
-		var enCheckout = ! props || ! props.context || 'woocommerce/checkout' === props.context;
-		var conCasilla = enCheckout && ajusteDeWoo( 'checkoutAllowsGuest' ) && ajusteDeWoo( 'checkoutAllowsSignup' );
-		var titulo = 'Con una cuenta en Akibara te llevas más:';
+		const enCheckout = ! props || ! props.context || 'woocommerce/checkout' === props.context;
+		const conCasilla = enCheckout && ajusteDeWoo( 'checkoutAllowsGuest' ) && ajusteDeWoo( 'checkoutAllowsSignup' );
+		let titulo = 'Con una cuenta en Akibara te llevas más:';
 		if ( conCasilla ) {
 			titulo = marcada ? '✓ Crearemos tu cuenta con este pedido' : 'Crea tu cuenta y llévate más:';
 		}
 
-		var hijos = [
+		const hijos = [
 			el( 'p', { key: 'titulo', style: { margin: '0 0 6px', fontWeight: 600 } }, titulo ),
 			el(
 				'ul',
@@ -314,7 +322,7 @@
 						type: 'button',
 						className: 'akb-rw-guest-hook__action',
 						style: marcada ? ESTILO_ENLACE : ESTILO_BOTON,
-						onClick: function () {
+						onClick () {
 							llevarACasillaDeCuenta( ! marcada );
 						},
 					},
@@ -351,7 +359,7 @@
 
 	/** Aviso discreto si el cliente viene con recomendación de un amigo */
 	function AvisoReferido() {
-		var data = useRewardsData();
+		const data = useRewardsData();
 		if ( ! data || ! data.referrer_name ) {
 			return null;
 		}
@@ -379,7 +387,7 @@
 
 	registerPlugin( 'akb-rewards-checkout', {
 		scope: 'woocommerce-checkout',
-		render: function () {
+		render () {
 			return el(
 				wp.element.Fragment,
 				null,

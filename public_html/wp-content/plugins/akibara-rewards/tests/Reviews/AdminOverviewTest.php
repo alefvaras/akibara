@@ -106,8 +106,8 @@ final class AdminOverviewTest extends RewardsTestCase {
 		);
 		$html = $this->render();
 		$this->assertStringContainsString( 'Enviada al transporte', $html );
-		$this->assertStringContainsString( 'Alta en cola: 2026-10-01 10:00:00', $html );
-		$this->assertStringContainsString( 'Enviada: 2026-10-03 10:00:00', $html );
+		$this->assertStringContainsString( 'Alta en cola: 01/10/2026 10:00', $html );
+		$this->assertStringContainsString( 'Enviada: 03/10/2026 10:00', $html );
 		$this->assertStringContainsString( $order->get_edit_order_url(), $html );
 		$this->assertStringNotContainsString( 'private@example.test', $html );
 		$this->assertStringNotContainsString( 'never-expose-this-token', $html );
@@ -140,8 +140,7 @@ final class AdminOverviewTest extends RewardsTestCase {
 		$this->assertStringContainsString( '500 puntos cada 3 reseñas', $html );
 		$this->assertStringContainsString( 'Hasta 5 premios vigentes', $html );
 		$this->assertStringContainsString( 'La invitación por correo es para solicitar puntos y exige una foto real', $html );
-		$this->assertStringContainsString( 'Las nuevas reseñas voluntarias de la ficha admiten foto opcional y no generan puntos, aunque lleven foto', $html );
-		$this->assertStringContainsString( 'Las reseñas anteriores conservan su política vigente', $html );
+		$this->assertStringContainsString( 'Los compradores verificados también pueden solicitar puntos subiendo una foto real desde la ficha del tomo o desde Mi Colección. Las reseñas sin foto se publican como opinión voluntaria y no generan puntos.', $html );
 		$this->assertStringNotContainsString( 'el cliente elige si solicita puntos', $html );
 		Filters\expectApplied( 'akb_rewards_reviews_engine_on' )->andReturn( false );
 		$html = $this->render();
@@ -169,6 +168,36 @@ final class AdminOverviewTest extends RewardsTestCase {
 			$this->assertStringContainsString( 'id="akb-rewards-section-' . $anchor . '"', $html );
 		}
 		$this->assertStringContainsString( 'Guardar ajustes conserva las fechas de la cola y no invita retroactivamente', $html );
+	}
+
+	/** @testdox El panel muestra el avance de tomos reseñados por pedido y, sin motivo guardado, el estado vigente. */
+	public function test_order_progress_and_default_reason(): void {
+		Functions\when( 'get_post_status' )->justReturn( 'publish' );
+		$orderSent                = new \WC_Order();
+		$orderSent->id            = 444;
+		$orderSent->customer_id   = 42;
+		$orderSent->billing_email = 'cliente@example.test';
+		$orderSent->items['line_item'] = array(
+			new \WC_Order_Item_Fake( 777, 'Tomo 1' ),
+			new \WC_Order_Item_Fake( 778, 'Tomo 2' ),
+		);
+		$orderSent->meta = array(
+			Invitations::META_SENT => '2026-10-03 10:00:00',
+		);
+
+		$orderStale                = new \WC_Order();
+		$orderStale->id            = 445;
+		$orderStale->customer_id   = 42;
+		$orderStale->billing_email = 'cliente@example.test';
+		$orderStale->date_paid     = new \WC_DateTime( '2026-10-01 10:00:00' );
+		$orderStale->meta          = array();
+
+		$this->wpdb->col_answers['comment_post_ID'] = array( '777' );
+		Functions\when( 'wc_get_orders' )->justReturn( array( $orderSent, $orderStale ) );
+
+		$html = $this->render();
+		$this->assertStringContainsString( '1 de 2 tomos reseñados', $html );
+		$this->assertStringContainsString( 'Esperando despacho al transportista o entrega directa.', $html );
 	}
 
 	/** Capture the overview markup. */

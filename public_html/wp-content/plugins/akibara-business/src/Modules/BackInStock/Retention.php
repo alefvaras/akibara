@@ -18,6 +18,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.89.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class Retention {
 

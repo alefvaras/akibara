@@ -24,10 +24,10 @@ assert.equal( labelSelect2Search( root( [ conPlaceholder ], {} ) ), 1 );
 assert.equal( conPlaceholder.attrs[ 'aria-label' ], 'Seleccionar categorías…' );
 
 // Sin placeholder: el label del <select> al que pertenece el contenedor.
-const select = { tagName: 'SELECT', id: 'akb_series_bundles_exclude_cats' };
+const select = { tagName: 'SELECT', id: 'akb_admin_select2_cats' };
 const contenedor = { previousElementSibling: select };
 const sinPlaceholder = input( {}, contenedor );
-const r = root( [ sinPlaceholder ], { 'label[for="akb_series_bundles_exclude_cats"]': { textContent: '  Categorías excluidas ' } } );
+const r = root( [ sinPlaceholder ], { 'label[for="akb_admin_select2_cats"]': { textContent: '  Categorías excluidas ' } } );
 assert.equal( labelSelect2Search( r ), 1 );
 assert.equal( sinPlaceholder.attrs[ 'aria-label' ], 'Categorías excluidas' );
 

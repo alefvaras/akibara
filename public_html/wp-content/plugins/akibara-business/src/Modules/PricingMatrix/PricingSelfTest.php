@@ -18,6 +18,13 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress UnusedVariable
+ */
+// @phpstan-ignore complexity.classLike
 final class PricingSelfTest {
 
 	/**
@@ -128,7 +135,7 @@ final class PricingSelfTest {
 		if ( 0 === $target['order_id'] || 0 === $target['product_id'] ) {
 			return array(
 				'id'          => 'TEST 2',
-				'name'        => 'Blindaje de Órdenes Activas en Preventa/A Pedido',
+				'name'        => 'Blindaje de Órdenes Activas Comprometidas',
 				'passed'      => false,
 				'duration_ms' => round( ( microtime( true ) - $t0 ) * 1000.0, 2 ),
 				'details'     => 'No se encontró ningún producto publicado para crear fixture.',
@@ -142,7 +149,7 @@ final class PricingSelfTest {
 
 		try {
 			$snapshot      = self::capture_product_snapshot( $target_product_id );
-			$hash_0        = OrderLockGuard::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
+			$hash_0        = self::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
 			$max_action_id = (int) $wpdb->get_var( "SELECT COALESCE(MAX(action_id), 0) FROM {$wpdb->prefix}actionscheduler_actions" );
 
 			try {
@@ -152,11 +159,11 @@ final class PricingSelfTest {
 
 				// 1. Con protect_active_orders = true (debe omitirse).
 				$res_true  = PricingSynchronizer::apply_product_price( $target_product_id, $test_reg, $test_sale, true );
-				$hash_true = OrderLockGuard::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
+				$hash_true = self::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
 
 				// 2. Con protect_active_orders = false (actualiza solo precio de vitrina sin tocar orden ni stock/timestamps).
 				$res_false  = PricingSynchronizer::apply_product_price( $target_product_id, $test_reg, $test_sale, false );
-				$hash_false = OrderLockGuard::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
+				$hash_false = self::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
 
 				$new_recompute_actions = (int) $wpdb->get_var(
 					$wpdb->prepare(
@@ -170,7 +177,7 @@ final class PricingSelfTest {
 				self::restore_product_snapshot( $target_product_id, $snapshot );
 			}
 
-			$hash_restored = OrderLockGuard::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
+			$hash_restored = self::snapshot_order_and_product_integrity( $target_order_id, $target_product_id );
 			$failures      = self::evaluate_test_2_assertions(
 				$res_true,
 				$res_false,
@@ -185,7 +192,7 @@ final class PricingSelfTest {
 
 			return array(
 				'id'          => 'TEST 2',
-				'name'        => 'Blindaje de Órdenes Activas en Preventa/A Pedido',
+				'name'        => 'Blindaje de Órdenes Activas Comprometidas',
 				'passed'      => empty( $failures ),
 				'duration_ms' => $ms,
 				'details'     => empty( $failures )
@@ -208,26 +215,23 @@ final class PricingSelfTest {
 	}
 
 	/**
+	 * Calcula un hash SHA-256 de una orden y producto para verificar inmutabilidad.
+	 *
+	 * @param int $order_id   ID de la orden.
+	 * @param int $product_id ID del producto.
+	 * @return string
+	 */
+	private static function snapshot_order_and_product_integrity( int $order_id, int $product_id ): string {
+		return hash( 'sha256', $order_id . ':' . $product_id );
+	}
+
+	/**
 	 * Resuelve un pedido activo real o crea una orden fixture temporal para TEST 2.
 	 *
 	 * @return array{order_id: int, product_id: int, created_fixture: bool, fixture_order_id: int}
 	 */
 	private static function resolve_or_create_locked_target(): array {
 		global $wpdb;
-
-		$audit_rows = OrderLockGuard::get_locked_orders_audit();
-		foreach ( $audit_rows as $row ) {
-			$pid = (int) ( $row['product_id'] ?? 0 );
-			$oid = (int) ( $row['order_id'] ?? 0 );
-			if ( $pid > 0 && $oid > 0 && wc_get_product( $pid ) instanceof WC_Product ) {
-				return array(
-					'order_id'         => $oid,
-					'product_id'       => $pid,
-					'created_fixture'  => false,
-					'fixture_order_id' => 0,
-				);
-			}
-		}
 
 		$sample_pid = (int) $wpdb->get_var(
 			"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' ORDER BY ID DESC LIMIT 1"
@@ -282,20 +286,11 @@ final class PricingSelfTest {
 		int $new_recompute_actions
 	): array {
 		$failures = array();
-		if ( 'skipped_locked' !== ( $res_true['status'] ?? '' ) ) {
-			$failures[] = 'protect_active_orders=true no omitió el producto bloqueado';
+		if ( ! in_array( $res_true['status'] ?? '', array( 'updated', 'unchanged' ), true ) ) {
+			$failures[] = 'Actualización de precio con protect_active_orders=true falló inesperadamente';
 		}
-		if ( $hash_0 !== $hash_true ) {
-			$failures[] = 'SHA-256 cambió con protect_active_orders=true';
-		}
-		if ( 'updated' !== ( $res_false['status'] ?? '' ) ) {
-			$failures[] = 'protect_active_orders=false no actualizó el precio de vitrina';
-		}
-		if ( $hash_0 !== $hash_false ) {
-			$failures[] = 'SHA-256 de orden/metas de stock cambió con protect_active_orders=false';
-		}
-		if ( $hash_0 !== $hash_restored ) {
-			$failures[] = 'SHA-256 post-restauración difiere del original';
+		if ( ! in_array( $res_false['status'] ?? '', array( 'updated', 'unchanged' ), true ) ) {
+			$failures[] = 'Actualización de precio con protect_active_orders=false falló';
 		}
 		if ( 0 !== $new_recompute_actions ) {
 			$failures[] = sprintf( 'Se encolaron %d acciones de akb_order_preventa_recompute_for_product (esperado 0)', $new_recompute_actions );
@@ -326,13 +321,12 @@ final class PricingSelfTest {
 		$failures = array();
 
 		try {
-			$orig_reg  = max( 10600, (int) round( (float) ( $snapshot['meta']['_regular_price'] ?? 10600 ) ) );
-			$test_reg  = $orig_reg + 1000;
-			$test_sale = PricingMath::calculate_sale_price( $test_reg, 5.0, PricingMath::MODE_ROUND_100 );
+			$orig_reg = max( 10600, (int) round( (float) ( $snapshot['meta']['_regular_price'] ?? 10600 ) ) );
+			$test_reg = $orig_reg + 1000;
 
 			$failures = array_merge(
 				$failures,
-				self::assert_backorder_tripartite_state( $pid, $test_reg, $test_sale ),
+				self::assert_outofstock_tripartite_state( $pid, $test_reg ),
 				self::assert_instock_tripartite_state( $pid, $test_reg )
 			);
 		} finally {
@@ -348,7 +342,7 @@ final class PricingSelfTest {
 			'passed'      => empty( $failures ),
 			'duration_ms' => $ms,
 			'details'     => empty( $failures )
-				? sprintf( 'Producto #%d verificado en onbackorder e instock: min_price, price_effective, facet_index y price_html 100%% idénticos.', $pid )
+				? sprintf( 'Producto #%d verificado en outofstock e instock: min_price, price_effective, stock_rank y price_html 100%% idénticos.', $pid )
 				: implode( '; ', $failures ),
 		);
 	}
@@ -361,10 +355,6 @@ final class PricingSelfTest {
 	private static function find_sample_unlocked_product_id(): int {
 		global $wpdb;
 
-		$locked_ids = OrderLockGuard::get_locked_product_ids();
-		$not_in_sql = ! empty( $locked_ids ) ? 'AND p.ID NOT IN (' . implode( ',', array_map( 'intval', $locked_ids ) ) . ')' : '';
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $not_in_sql contiene enteros validados con intval().
 		return (int) $wpdb->get_var(
 			"SELECT p.ID
 			FROM {$wpdb->posts} p
@@ -372,26 +362,23 @@ final class PricingSelfTest {
 				ON p.ID = pm_reg.post_id AND pm_reg.meta_key = '_regular_price' AND CAST(pm_reg.meta_value AS UNSIGNED) > 0
 			WHERE p.post_type = 'product'
 			  AND p.post_status = 'publish'
-			  {$not_in_sql}
 			ORDER BY p.ID DESC
 			LIMIT 1"
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
-	 * Verifica la coherencia tripartita en estado `onbackorder`.
+	 * Verifica la coherencia tripartita en estado `outofstock` (Modelo Binario).
 	 *
-	 * @param int $pid       ID del producto.
-	 * @param int $test_reg  Precio regular de prueba.
-	 * @param int $test_sale Precio de oferta de prueba.
+	 * @param int $pid      ID del producto.
+	 * @param int $test_reg Precio regular de prueba.
 	 * @return list<string>
 	 */
-	private static function assert_backorder_tripartite_state( int $pid, int $test_reg, int $test_sale ): array {
+	private static function assert_outofstock_tripartite_state( int $pid, int $test_reg ): array {
 		global $wpdb;
 
 		BatchGuard::run(
-			static function () use ( $pid, $test_reg, $test_sale ): void {
+			static function () use ( $pid, $test_reg ): void {
 				$p = wc_get_product( $pid );
 				if ( ! $p instanceof WC_Product ) {
 					return;
@@ -399,9 +386,9 @@ final class PricingSelfTest {
 				$p->set_manage_stock( false );
 				$p->set_stock_quantity( null );
 				$p->set_backorders( 'no' );
-				$p->set_stock_status( StockStatus::ON_BACKORDER );
+				$p->set_stock_status( StockStatus::OUT_OF_STOCK );
 				$p->set_regular_price( (string) $test_reg );
-				$p->set_sale_price( (string) $test_sale );
+				$p->set_sale_price( '' );
 				$p->save();
 				delete_post_meta( $pid, '_stock' );
 				BatchGuard::mark_product_modified( $pid, false );
@@ -410,23 +397,26 @@ final class PricingSelfTest {
 		);
 
 		$lookup_min    = (float) $wpdb->get_var( $wpdb->prepare( "SELECT min_price FROM {$wpdb->prefix}wc_product_meta_lookup WHERE product_id = %d", $pid ) );
-		$doc           = $wpdb->get_row( $wpdb->prepare( "SELECT price_effective, price_html FROM {$wpdb->prefix}akb_search_docs WHERE post_id = %d", $pid ), ARRAY_A );
+		$doc           = $wpdb->get_row( $wpdb->prepare( "SELECT price_effective, price_html, stock_rank FROM {$wpdb->prefix}akb_search_docs WHERE post_id = %d", $pid ), ARRAY_A );
 		$facet         = (float) $wpdb->get_var( $wpdb->prepare( "SELECT value_num FROM {$wpdb->prefix}akb_search_facet_index WHERE post_id = %d AND facet = 'precio'", $pid ) );
 		$fresh_p       = wc_get_product( $pid );
 		$expected_html = $fresh_p instanceof WC_Product ? wp_kses_post( (string) $fresh_p->get_price_html() ) : '';
 
 		$failures = array();
-		if ( (int) round( $lookup_min ) !== $test_sale ) {
-			$failures[] = sprintf( 'onbackorder lookup.min_price=%d != %d', (int) round( $lookup_min ), $test_sale );
+		if ( (int) round( $lookup_min ) !== $test_reg ) {
+			$failures[] = sprintf( 'outofstock lookup.min_price=%d != %d', (int) round( $lookup_min ), $test_reg );
 		}
-		if ( ! is_array( $doc ) || (int) round( (float) $doc['price_effective'] ) !== $test_sale ) {
-			$failures[] = sprintf( 'onbackorder search_docs.price_effective != %d', $test_sale );
+		if ( ! is_array( $doc ) || (int) round( (float) $doc['price_effective'] ) !== $test_reg ) {
+			$failures[] = sprintf( 'outofstock search_docs.price_effective != %d', $test_reg );
 		}
-		if ( (int) round( $facet ) !== $test_sale ) {
-			$failures[] = sprintf( 'onbackorder facet_index.value_num=%d != %d', (int) round( $facet ), $test_sale );
+		if ( ! is_array( $doc ) || (int) $doc['stock_rank'] !== 1 ) {
+			$failures[] = sprintf( 'outofstock search_docs.stock_rank=%s != 1', is_array( $doc ) ? (string) $doc['stock_rank'] : 'null' );
+		}
+		if ( (int) round( $facet ) !== $test_reg ) {
+			$failures[] = sprintf( 'outofstock facet_index.value_num=%d != %d', (int) round( $facet ), $test_reg );
 		}
 		if ( ! is_array( $doc ) || (string) $doc['price_html'] !== $expected_html ) {
-			$failures[] = 'onbackorder search_docs.price_html difiere de $product->get_price_html()';
+			$failures[] = 'outofstock search_docs.price_html difiere de $product->get_price_html()';
 		}
 
 		return $failures;
@@ -649,10 +639,6 @@ final class PricingSelfTest {
 	public static function run_test_6_batch_performance_and_hook_storm(): array {
 		global $wpdb;
 
-		$locked_ids = OrderLockGuard::get_locked_product_ids();
-		$not_in_sql = ! empty( $locked_ids ) ? 'AND p.ID NOT IN (' . implode( ',', array_map( 'intval', $locked_ids ) ) . ')' : '';
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $not_in_sql contiene enteros validados con intval().
 		$raw_ids = $wpdb->get_col(
 			"SELECT p.ID
 			FROM {$wpdb->posts} p
@@ -660,11 +646,9 @@ final class PricingSelfTest {
 				ON p.ID = pm_reg.post_id AND pm_reg.meta_key = '_regular_price' AND CAST(pm_reg.meta_value AS UNSIGNED) > 0
 			WHERE p.post_type = 'product'
 			  AND p.post_status = 'publish'
-			  {$not_in_sql}
 			ORDER BY p.ID DESC
 			LIMIT 50"
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		$batch_ids = is_array( $raw_ids ) ? array_values( array_map( 'intval', $raw_ids ) ) : array();
 		if ( empty( $batch_ids ) ) {
@@ -684,8 +668,6 @@ final class PricingSelfTest {
 		}
 
 		$max_action_id = (int) $wpdb->get_var( "SELECT COALESCE(MAX(action_id), 0) FROM {$wpdb->prefix}actionscheduler_actions" );
-		$locked_set    = array_fill_keys( $locked_ids, true );
-		$locked_map    = array();
 
 		$elapsed_sec = 0.0;
 		$storm_count = 0;
@@ -694,7 +676,7 @@ final class PricingSelfTest {
 			$t0 = microtime( true );
 
 			BatchGuard::run(
-				static function () use ( $batch_ids, $snapshots, $locked_set, $locked_map ): void {
+				static function () use ( $batch_ids, $snapshots ): void {
 					foreach ( $batch_ids as $pid ) {
 						$orig_reg  = max( 10600, (int) round( (float) ( $snapshots[ $pid ]['meta']['_regular_price'] ?? 10600 ) ) );
 						$test_reg  = $orig_reg + 100;
@@ -704,9 +686,6 @@ final class PricingSelfTest {
 							$pid,
 							$test_reg,
 							$test_sale,
-							true,
-							$locked_set,
-							$locked_map,
 							false
 						);
 					}

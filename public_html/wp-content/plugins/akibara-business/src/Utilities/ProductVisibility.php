@@ -22,6 +22,9 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class ProductVisibility {
 
 	/**

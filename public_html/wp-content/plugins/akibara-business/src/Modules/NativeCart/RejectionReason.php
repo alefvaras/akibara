@@ -25,6 +25,9 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class RejectionReason {
 
 	/** El carrito ya tiene todo lo que se puede comprar de este tomo: no cabe ni una unidad más. */

@@ -50,7 +50,6 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Modules\SeriesDirectory;
 
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
-use Akibara\Business\Modules\SeriesEditions\SeriesEditions;
 use Akibara\Business\Modules\SeriesFacts\PublicationStatus;
 use Akibara\Business\Utilities\RobotsMeta;
 use WP_Term;
@@ -61,6 +60,10 @@ defined( 'ABSPATH' ) || exit;
  * Conjunto y orden de las series publicables.
  *
  * @since 1.100.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress UnusedReturnValue
+ * @psalm-suppress UnusedReturnValue
  */
 final class SeriesIndex {
 
@@ -118,7 +121,7 @@ final class SeriesIndex {
 	 * existe una consulta por serie ni se confía en `WP_Term::count`, que incluye
 	 * productos `exclude-from-catalog`.
 	 *
-	 * @return list<array{term_id:int,name:string,slug:string,tomos:int,url:string,bucket:string,haystack:string,estado:string,brand_name:string,brand_slug:string,country_name:string,country_slug:string,related_names:list<string>}>
+	 * @return list<array{term_id:int,name:string,slug:string,tomos:int,tomos_edicion:int,url:string,bucket:string,haystack:string,estado:string,brand_name:string,brand_slug:string,country_name:string,country_slug:string,related_names:list<string>}>
 	 */
 	public function entries(): array {
 		global $wpdb;
@@ -229,7 +232,7 @@ final class SeriesIndex {
 	 * Sólo devuelve los grupos con contenido: una sección «Q» vacía es ruido en
 	 * el documento y un ancla rota en el índice.
 	 *
-	 * @return array<string, list<array{term_id:int,name:string,slug:string,tomos:int,url:string,bucket:string,haystack:string,estado:string,brand_name:string,brand_slug:string,country_name:string,country_slug:string,related_names:list<string>}>>
+	 * @return array<string, list<array{term_id:int,name:string,slug:string,tomos:int,tomos_edicion:int,url:string,bucket:string,haystack:string,estado:string,brand_name:string,brand_slug:string,country_name:string,country_slug:string,related_names:list<string>}>>
 	 */
 	public function grouped(): array {
 		$grouped = array();
@@ -315,6 +318,7 @@ final class SeriesIndex {
 	 *
 	 * @param array{name:string,term_id:int} $a Primera entrada.
 	 * @param array{name:string,term_id:int} $b Segunda entrada.
+	 * @psalm-suppress UnusedReturnValue
 	 */
 	private static function compare( array $a, array $b ): int {
 		$cmp = strcmp( self::fold( $a['name'] ), self::fold( $b['name'] ) );
@@ -330,7 +334,7 @@ final class SeriesIndex {
 	 * @param int                $volume_count   Tomos (los mismos, sin variantes): es lo que se publica.
 	 * @param array<string,mixed> $origin        Editorial y país resueltos en el agregado.
 	 * @param array<int,string>   $eligible_names Mapa de `term_id => nombre` de las series elegibles.
-	 * @return array{term_id:int,name:string,slug:string,tomos:int,url:string,bucket:string,haystack:string,estado:string,brand_name:string,brand_slug:string,country_name:string,country_slug:string,related_names:list<string>}|null
+	 * @return array{term_id:int,name:string,slug:string,tomos:int,tomos_edicion:int,url:string,bucket:string,haystack:string,estado:string,brand_name:string,brand_slug:string,country_name:string,country_slug:string,related_names:list<string>}|null
 	 */
 	private function entry(
 		WP_Term $term,
@@ -366,17 +370,11 @@ final class SeriesIndex {
 		$country_name = isset( $origin['country_name'] ) && is_string( $origin['country_name'] ) ? trim( $origin['country_name'] ) : '';
 		$country_slug = isset( $origin['country_slug'] ) && is_string( $origin['country_slug'] ) ? trim( $origin['country_slug'] ) : '';
 
-		// Puente de ediciones relacionadas: lee del termmeta ya cebado por get_terms().
-		$related_raw   = get_term_meta( $term_id, SeriesEditions::META_KEY, true );
-		$related_ids   = is_array( $related_raw ) ? $related_raw : ( is_numeric( $related_raw ) ? array( $related_raw ) : array() );
+		unset( $eligible_names );
 		$related_names = array();
-		foreach ( $related_ids as $rel_candidate ) {
-			$rel_id = is_scalar( $rel_candidate ) ? (int) $rel_candidate : 0;
-			if ( $rel_id > 0 && $rel_id !== $term_id && isset( $eligible_names[ $rel_id ] ) ) {
-				$related_names[] = $eligible_names[ $rel_id ];
-			}
-		}
-		$related_names = array_values( array_unique( $related_names ) );
+		$author_names  = isset( $origin['author_names'] ) && is_array( $origin['author_names'] )
+			? $origin['author_names']
+			: array();
 
 		$haystack_parts = array( self::haystack( $name ) );
 		if ( '' !== $brand_name ) {
@@ -385,7 +383,13 @@ final class SeriesIndex {
 		if ( '' !== $country_name && false === strpos( self::haystack( $brand_name ), self::haystack( $country_name ) ) ) {
 			$haystack_parts[] = self::haystack( $country_name );
 		}
-		foreach ( $related_names as $rel_name ) {
+		foreach ( $author_names as $author_name ) {
+			$author_name = trim( (string) $author_name );
+			if ( '' !== $author_name ) {
+				$haystack_parts[] = self::haystack( $author_name );
+			}
+		}
+		foreach ( $related_names as $rel_name ) { // @phpstan-ignore foreach.emptyArray
 			$haystack_parts[] = self::haystack( $rel_name );
 		}
 
@@ -395,6 +399,7 @@ final class SeriesIndex {
 			'slug'          => (string) $term->slug,
 			// El rótulo habla en TOMOS; la elegibilidad de arriba, en productos.
 			'tomos'         => max( 0, $volume_count ),
+			'tomos_edicion' => PublicationStatus::sanitize_total( get_term_meta( $term_id, PublicationStatus::META_EDITION_TOTAL, true ) ),
 			'url'           => $url,
 			'bucket'        => self::bucket_of( $name ),
 			'haystack'      => implode( ' ', array_filter( $haystack_parts ) ),

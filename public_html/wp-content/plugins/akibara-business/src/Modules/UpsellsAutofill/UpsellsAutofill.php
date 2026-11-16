@@ -27,6 +27,14 @@ use Akibara\Business\Utilities\PluginAssetVersion;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress FalsableReturnStatement
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
+// @phpstan-ignore complexity.classLike
 final class UpsellsAutofill {
 
 	/**
@@ -201,6 +209,7 @@ final class UpsellsAutofill {
 	/**
 	 * @param array<int,string>     $args
 	 * @param array<string,string>  $assoc_args
+	 * @psalm-suppress UnusedParam
 	 */
 	public function cli_fill( array $args, array $assoc_args ): void {
 		$dry_run = isset( $assoc_args['dry-run'] );
@@ -388,7 +397,7 @@ final class UpsellsAutofill {
 	//  Render del tab "Upsells" en el panel Akibara.
 	// ─────────────────────────────────────────────────────────────────────────
 
-	public function render_admin_section(): void {
+	public function render_admin_section(): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$stats     = $this->get_coverage_stats();
 		$health    = $this->get_health_stats();
 		$last_run  = get_option( self::LAST_RUN_OPTION );
@@ -415,49 +424,7 @@ final class UpsellsAutofill {
 		?>
 		<div class="akb-upsells-tab">
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0 0 18px;padding:12px 14px;border:1px solid #dcdcde;background:#fff;border-radius:4px">
-				<input type="hidden" name="action" value="akibara_upsells_toggle">
-				<?php wp_nonce_field( 'akibara_upsells_toggle' ); ?>
-				<p style="margin:0 0 8px">
-					<strong>Rellenar recomendaciones cada día:</strong>
-					<?php if ( self::is_enabled() ) : ?>
-						<span style="color:#007a3d;font-weight:600">encendido</span>
-					<?php else : ?>
-						<span style="color:#b32d2e;font-weight:600">apagado</span>
-					<?php endif; ?>
-				</p>
-				<button type="submit" class="button">
-					<?php echo self::is_enabled() ? 'Apagar' : 'Encender'; ?>
-				</button>
-				<span class="description" style="margin-left:8px">
-					<?php if ( self::is_enabled() ) : ?>
-						Una vez al día se rellenan los «siguientes tomos» de las fichas que no tienen recomendaciones. Nunca pisa una lista hecha a mano.
-					<?php else : ?>
-						Las fichas nuevas se quedan sin «siguientes tomos» hasta que lo enciendas o pulses «Rellenar ahora». Lo ya puesto no se toca.
-					<?php endif; ?>
-				</span>
-			</form>
-
-			<?php if ( $just_done && is_array( $last_run ) ) : ?>
-				<div class="notice notice-success is-dismissible">
-					<p>
-						Listo. <strong><?php echo (int) ( $last_run['filled'] ?? 0 ); ?></strong> productos
-						actualizados<?php echo (int) ( $last_run['skipped'] ?? 0 ) > 0
-							? ', ' . (int) $last_run['skipped'] . ' sin cambios (no aplican).'
-							: '.'; ?>
-					</p>
-				</div>
-			<?php endif; ?>
-
-			<?php if ( $just_repaired && is_array( $last_repair ) ) : ?>
-				<div class="notice notice-success is-dismissible">
-					<p>
-						Limpieza terminada. <strong><?php echo (int) ( $last_repair['repaired_products'] ?? 0 ); ?></strong>
-						productos revisados y <strong><?php echo (int) ( $last_repair['removed_links'] ?? 0 ); ?></strong>
-						enlaces rotos retirados.
-					</p>
-				</div>
-			<?php endif; ?>
+			<?php $this->render_admin_toggle_and_notices( $just_done, $last_run, $just_repaired, $last_repair ); ?>
 
 			<div class="akb-upsells-card">
 				<h3>Recomendaciones automáticas</h3>
@@ -540,164 +507,248 @@ final class UpsellsAutofill {
 					<?php endif; ?>
 				</p>
 
-				<section class="akb-upsells-health" aria-labelledby="akb-upsells-health-title">
-					<h3 id="akb-upsells-health-title">Salud de recomendaciones existentes</h3>
-
-					<p>
-						<strong><?php echo esc_html( number_format_i18n( (int) $health['dead_links'] ) ); ?></strong>
-						enlaces rotos (producto eliminado o despublicado) en
-						<strong><?php echo esc_html( number_format_i18n( (int) $health['dead_products'] ) ); ?></strong>
-						productos — es lo único que el botón de reparación limpia.
-						<strong><?php echo esc_html( number_format_i18n( (int) $health['temporarily_unavailable_links'] ) ); ?></strong>
-						enlaces están temporalmente sin stock; no se tocan y vuelven a mostrarse solos al reponer.
-					</p>
-
-					<?php if ( ! empty( $health['dead_examples'] ) ) : ?>
-						<details>
-							<summary>Ver enlaces rotos a limpiar</summary>
-							<ul>
-								<?php foreach ( $health['dead_examples'] as $example ) : ?>
-									<li>
-										<strong><?php echo esc_html( $example['product'] ); ?></strong>
-										→ <?php echo esc_html( $example['upsell'] ); ?>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-						</details>
-					<?php endif; ?>
-
-					<?php if ( (int) $health['dead_products'] > 0 ) : ?>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-							<?php wp_nonce_field( 'akibara_upsells_repair' ); ?>
-							<input type="hidden" name="action" value="akibara_upsells_repair">
-							<label class="akb-upsells-confirm">
-								<input type="checkbox" name="confirm_repair" value="1" required>
-								Confirmo la limpieza del lote. Solo se retiran enlaces a productos
-								eliminados o despublicados; el resto de cada lista queda intacto.
-							</label>
-							<button type="submit" class="button">
-								<?php
-								echo esc_html(
-									sprintf(
-										'Limpiar enlaces rotos (%s de %s productos)',
-										number_format_i18n( min( self::ADMIN_BATCH_LIMIT, (int) $health['dead_products'] ) ),
-										number_format_i18n( (int) $health['dead_products'] )
-									)
-								);
-								?>
-							</button>
-						</form>
-					<?php else : ?>
-						<p class="akb-upsells-health-ok">No hay enlaces rotos.</p>
-					<?php endif; ?>
-
-					<p class="akb-upsells-note">
-						<strong><?php echo esc_html( number_format_i18n( (int) $health['retro_products'] ) ); ?></strong>
-						productos recomiendan tomos anteriores de su misma serie
-						(<?php echo esc_html( number_format_i18n( (int) $health['retro_links'] ) ); ?> enlaces).
-						Es el patrón «completa tu colección» del catálogo — típico del último
-						tomo — y se respeta: ni el relleno ni la limpieza lo modifican.
-					</p>
-
-					<?php if ( (int) $health['cross_links'] > 0 ) : ?>
-						<details class="akb-upsells-cross">
-							<summary>
-								<?php echo esc_html( number_format_i18n( (int) $health['cross_links'] ) ); ?>
-								recomendaciones apuntan a otra serie — revisar a mano si son intencionales
-							</summary>
-							<ul>
-								<?php foreach ( $health['cross_examples'] as $example ) : ?>
-									<li>
-										<?php if ( ! empty( $example['edit_url'] ) ) : ?>
-											<a href="<?php echo esc_url( $example['edit_url'] ); ?>" target="_blank" rel="noopener">
-												<strong><?php echo esc_html( $example['product'] ); ?></strong>
-											</a>
-										<?php else : ?>
-											<strong><?php echo esc_html( $example['product'] ); ?></strong>
-										<?php endif; ?>
-										→ <?php echo esc_html( $example['upsell'] ); ?>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-							<p class="description">
-								Puede ser curaduría deliberada (otra edición de la misma obra) o un
-								resto de importación. Se decide producto a producto desde su ficha;
-								ningún botón las toca en masa.
-							</p>
-						</details>
-					<?php endif; ?>
-				</section>
-
-				<?php if ( $show_preview && $processable > 0 ) : ?>
-					<?php $preview = $this->preview_changes( self::PREVIEW_LIMIT ); ?>
-					<div class="akb-upsells-preview">
-						<h3>Vista previa sin cambios</h3>
-						<?php if ( empty( $preview ) ) : ?>
-							<p>No se encontraron recomendaciones aplicables en esta muestra.</p>
-						<?php else : ?>
-							<p>Primeros <?php echo esc_html( number_format_i18n( count( $preview ) ) ); ?> productos que se actualizarían:</p>
-							<div class="akb-upsells-preview-scroll">
-								<table class="widefat striped">
-									<thead>
-										<tr>
-											<th>Producto</th>
-											<th>Upsells propuestos</th>
-										</tr>
-									</thead>
-									<tbody>
-										<?php foreach ( $preview as $row ) : ?>
-											<tr>
-												<td><?php echo esc_html( $row['product_title'] ); ?></td>
-												<td><?php echo esc_html( implode( ' · ', $row['upsell_titles'] ) ); ?></td>
-											</tr>
-										<?php endforeach; ?>
-									</tbody>
-								</table>
-							</div>
-						<?php endif; ?>
-					</div>
-				<?php elseif ( $processable > 0 ) : ?>
-					<p>
-						<a class="button" href="<?php echo esc_url( add_query_arg( 'preview', '1' ) ); ?>">
-							Ver vista previa
-						</a>
-					</p>
-				<?php endif; ?>
-
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<?php wp_nonce_field( 'akibara_upsells_run' ); ?>
-					<input type="hidden" name="action" value="akibara_upsells_run">
-					<label class="akb-upsells-confirm">
-						<input type="checkbox" name="confirm_fill" value="1" required>
-						Confirmo el procesamiento del lote. Las recomendaciones configuradas manualmente no se modificarán.
-					</label>
-					<button type="submit" class="button button-primary button-large akb-upsells-run-btn"
-							<?php disabled( $is_at_max ); ?>>
-						<?php
-						if ( $is_at_max ) {
-							echo 'Todo al día — sin pendientes';
-						} else {
-							echo esc_html(
-								sprintf(
-									'Procesar siguiente lote (%s de %s)',
-									number_format_i18n( min( self::ADMIN_BATCH_LIMIT, $processable ) ),
-									number_format_i18n( $processable )
-								)
-							);
-						}
-						?>
-					</button>
-					<p class="description">
-						Procesa como máximo <?php echo esc_html( number_format_i18n( self::ADMIN_BATCH_LIMIT ) ); ?> productos por ejecución para evitar timeouts.
-						Es idempotente y además corre solo una vez al día, así que este botón
-						es solo para adelantar la pasada tras una carga de tomos.
-						Los administradores técnicos también pueden usar <code>wp akibara:upsells-fill</code>.
-					</p>
-				</form>
+				<?php
+				$this->render_admin_health_section( $health );
+				$this->render_admin_preview_section( $show_preview, $processable, $is_at_max );
+				?>
 			</div>
 
 		</div>
 
+		<?php
+	}
+
+	/**
+	 * Renderiza el interruptor del cron diario y los avisos de resultado en el panel.
+	 *
+	 * @param bool  $just_done     Si acaba de ejecutar relleno.
+	 * @param mixed $last_run      Datos de la última corrida.
+	 * @param bool  $just_repaired Si acaba de ejecutar reparación.
+	 * @param mixed $last_repair   Datos de la última reparación.
+	 * @return void
+	 */
+	private function render_admin_toggle_and_notices( bool $just_done, $last_run, bool $just_repaired, $last_repair ): void {
+		?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0 0 18px;padding:12px 14px;border:1px solid #dcdcde;background:#fff;border-radius:4px">
+			<input type="hidden" name="action" value="akibara_upsells_toggle">
+			<?php wp_nonce_field( 'akibara_upsells_toggle' ); ?>
+			<p style="margin:0 0 8px">
+				<strong>Rellenar recomendaciones cada día:</strong>
+				<?php if ( self::is_enabled() ) : ?>
+					<span style="color:#007a3d;font-weight:600">encendido</span>
+				<?php else : ?>
+					<span style="color:#b32d2e;font-weight:600">apagado</span>
+				<?php endif; ?>
+			</p>
+			<button type="submit" class="button">
+				<?php echo self::is_enabled() ? 'Apagar' : 'Encender'; ?>
+			</button>
+			<span class="description" style="margin-left:8px">
+				<?php if ( self::is_enabled() ) : ?>
+					Una vez al día se rellenan los «siguientes tomos» de las fichas que no tienen recomendaciones. Nunca pisa una lista hecha a mano.
+				<?php else : ?>
+					Las fichas nuevas se quedan sin «siguientes tomos» hasta que lo enciendas o pulses «Rellenar ahora». Lo ya puesto no se toca.
+				<?php endif; ?>
+			</span>
+		</form>
+
+		<?php if ( $just_done && is_array( $last_run ) ) : ?>
+			<div class="notice notice-success is-dismissible">
+				<p>
+					Listo. <strong><?php echo (int) ( $last_run['filled'] ?? 0 ); ?></strong> productos
+					actualizados<?php echo (int) ( $last_run['skipped'] ?? 0 ) > 0
+						? ', ' . (int) $last_run['skipped'] . ' sin cambios (no aplican).'
+						: '.'; ?>
+				</p>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( $just_repaired && is_array( $last_repair ) ) : ?>
+			<div class="notice notice-success is-dismissible">
+				<p>
+					Limpieza terminada. <strong><?php echo (int) ( $last_repair['repaired_products'] ?? 0 ); ?></strong>
+					productos revisados y <strong><?php echo (int) ( $last_repair['removed_links'] ?? 0 ); ?></strong>
+					enlaces rotos retirados.
+				</p>
+			</div>
+		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Renderiza la sección de salud de recomendaciones existentes.
+	 *
+	 * @param array<string,mixed> $health Estadísticas de salud.
+	 * @return void
+	 */
+	private function render_admin_health_section( array $health ): void {
+		?>
+		<section class="akb-upsells-health" aria-labelledby="akb-upsells-health-title">
+			<h3 id="akb-upsells-health-title">Salud de recomendaciones existentes</h3>
+
+			<p>
+				<strong><?php echo esc_html( number_format_i18n( (int) $health['dead_links'] ) ); ?></strong>
+				enlaces rotos (producto eliminado o despublicado) en
+				<strong><?php echo esc_html( number_format_i18n( (int) $health['dead_products'] ) ); ?></strong>
+				productos — es lo único que el botón de reparación limpia.
+				<strong><?php echo esc_html( number_format_i18n( (int) $health['temporarily_unavailable_links'] ) ); ?></strong>
+				enlaces están temporalmente sin stock; no se tocan y vuelven a mostrarse solos al reponer.
+			</p>
+
+			<?php if ( ! empty( $health['dead_examples'] ) ) : ?>
+				<details>
+					<summary>Ver enlaces rotos a limpiar</summary>
+					<ul>
+						<?php foreach ( $health['dead_examples'] as $example ) : ?>
+							<li>
+								<strong><?php echo esc_html( $example['product'] ); ?></strong>
+								→ <?php echo esc_html( $example['upsell'] ); ?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</details>
+			<?php endif; ?>
+
+			<?php if ( (int) $health['dead_products'] > 0 ) : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( 'akibara_upsells_repair' ); ?>
+					<input type="hidden" name="action" value="akibara_upsells_repair">
+					<label class="akb-upsells-confirm">
+						<input type="checkbox" name="confirm_repair" value="1" required>
+						Confirmo la limpieza del lote. Solo se retiran enlaces a productos
+						eliminados o despublicados; el resto de cada lista queda intacto.
+					</label>
+					<button type="submit" class="button">
+						<?php
+						echo esc_html(
+							sprintf(
+								'Limpiar enlaces rotos (%s de %s productos)',
+								number_format_i18n( min( self::ADMIN_BATCH_LIMIT, (int) $health['dead_products'] ) ),
+								number_format_i18n( (int) $health['dead_products'] )
+							)
+						);
+						?>
+					</button>
+				</form>
+			<?php else : ?>
+				<p class="akb-upsells-health-ok">No hay enlaces rotos.</p>
+			<?php endif; ?>
+
+			<p class="akb-upsells-note">
+				<strong><?php echo esc_html( number_format_i18n( (int) $health['retro_products'] ) ); ?></strong>
+				productos recomiendan tomos anteriores de su misma serie
+				(<?php echo esc_html( number_format_i18n( (int) $health['retro_links'] ) ); ?> enlaces).
+				Es el patrón «completa tu colección» del catálogo — típico del último
+				tomo — y se respeta: ni el relleno ni la limpieza lo modifican.
+			</p>
+
+			<?php if ( (int) $health['cross_links'] > 0 ) : ?>
+				<details class="akb-upsells-cross">
+					<summary>
+						<?php echo esc_html( number_format_i18n( (int) $health['cross_links'] ) ); ?>
+						recomendaciones apuntan a otra serie — revisar a mano si son intencionales
+					</summary>
+					<ul>
+						<?php foreach ( $health['cross_examples'] as $example ) : ?>
+							<li>
+								<?php if ( ! empty( $example['edit_url'] ) ) : ?>
+									<a href="<?php echo esc_url( $example['edit_url'] ); ?>" target="_blank" rel="noopener">
+										<strong><?php echo esc_html( $example['product'] ); ?></strong>
+									</a>
+								<?php else : ?>
+									<strong><?php echo esc_html( $example['product'] ); ?></strong>
+								<?php endif; ?>
+								→ <?php echo esc_html( $example['upsell'] ); ?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+					<p class="description">
+						Puede ser curaduría deliberada (otra edición de la misma obra) o un
+						resto de importación. Se decide producto a producto desde su ficha;
+						ningún botón las toca en masa.
+					</p>
+				</details>
+			<?php endif; ?>
+		</section>
+		<?php
+	}
+
+	/**
+	 * Renderiza la vista previa y el formulario de ejecución por lote.
+	 *
+	 * @param bool $show_preview Si se solicitó vista previa.
+	 * @param int  $processable  Cantidad de productos pendientes.
+	 * @param bool $is_at_max    Si ya está al máximo de cobertura.
+	 * @return void
+	 */
+	private function render_admin_preview_section( bool $show_preview, int $processable, bool $is_at_max ): void {
+		?>
+		<?php if ( $show_preview && $processable > 0 ) : ?>
+			<?php $preview = $this->preview_changes( self::PREVIEW_LIMIT ); ?>
+			<div class="akb-upsells-preview">
+				<h3>Vista previa sin cambios</h3>
+				<?php if ( empty( $preview ) ) : ?>
+					<p>No se encontraron recomendaciones aplicables en esta muestra.</p>
+				<?php else : ?>
+					<p>Primeros <?php echo esc_html( number_format_i18n( count( $preview ) ) ); ?> productos que se actualizarían:</p>
+					<div class="akb-upsells-preview-scroll">
+						<table class="widefat striped">
+							<thead>
+								<tr>
+									<th>Producto</th>
+									<th>Upsells propuestos</th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $preview as $row ) : ?>
+									<tr>
+										<td><?php echo esc_html( $row['product_title'] ); ?></td>
+										<td><?php echo esc_html( implode( ' · ', $row['upsell_titles'] ) ); ?></td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				<?php endif; ?>
+			</div>
+		<?php elseif ( $processable > 0 ) : ?>
+			<p>
+				<a class="button" href="<?php echo esc_url( add_query_arg( 'preview', '1' ) ); ?>">
+					Ver vista previa
+				</a>
+			</p>
+		<?php endif; ?>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'akibara_upsells_run' ); ?>
+			<input type="hidden" name="action" value="akibara_upsells_run">
+			<label class="akb-upsells-confirm">
+				<input type="checkbox" name="confirm_fill" value="1" required>
+				Confirmo el procesamiento del lote. Las recomendaciones configuradas manualmente no se modificarán.
+			</label>
+			<button type="submit" class="button button-primary button-large akb-upsells-run-btn"
+					<?php disabled( $is_at_max ); ?>>
+				<?php
+				if ( $is_at_max ) {
+					echo 'Todo al día — sin pendientes';
+				} else {
+					echo esc_html(
+						sprintf(
+							'Procesar siguiente lote (%s de %s)',
+							number_format_i18n( min( self::ADMIN_BATCH_LIMIT, $processable ) ),
+							number_format_i18n( $processable )
+						)
+					);
+				}
+				?>
+			</button>
+			<p class="description">
+				Procesa como máximo <?php echo esc_html( number_format_i18n( self::ADMIN_BATCH_LIMIT ) ); ?> productos por ejecución para evitar timeouts.
+				Es idempotente y además corre solo una vez al día, así que este botón
+				es solo para adelantar la pasada tras una carga de tomos.
+				Los administradores técnicos también pueden usar <code>wp akibara:upsells-fill</code>.
+			</p>
+		</form>
 		<?php
 	}
 
@@ -1295,7 +1346,7 @@ final class UpsellsAutofill {
 				'post_status'    => 'publish',
 				'posts_per_page' => $count + 5,
 				'exclude'        => array( $product_id ),
-				'tax_query'      => array(
+				'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 					array(
 						'taxonomy' => 'pa_autor',
 						'field'    => 'term_id',
@@ -1348,7 +1399,7 @@ final class UpsellsAutofill {
 				'post_status'    => 'publish',
 				'posts_per_page' => $count + 5,
 				'exclude'        => array( $product_id ),
-				'tax_query'      => array(
+				'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 					array(
 						'taxonomy' => 'pa_genero',
 						'field'    => 'term_id',

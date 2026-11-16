@@ -15,6 +15,10 @@ defined( 'ABSPATH' ) || exit;
  * Contains narrowly scoped compatibility workarounds around Woo Blocks.
  *
  * @since 2.0.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCondition
  */
 final class RuntimeCompatibility {
 
@@ -330,7 +334,7 @@ final class RuntimeCompatibility {
 		}
 
 		$needs_review = $flow_fixed || $mercado_pago_stale || ! $flow_installed || ! $mercado_pago_installed
-			|| ( $mercado_pago_installed && 0 === $mercado_pago_observed && null !== $mercado_pago_changed_at );
+			|| ( $mercado_pago_installed && 0 === $mercado_pago_observed && null !== $mercado_pago_changed_at ); // @phpstan-ignore booleanAnd.leftAlwaysTrue
 
 		$description = '';
 		foreach ( $lines as $line ) {
@@ -383,7 +387,7 @@ final class RuntimeCompatibility {
 			}
 
 			foreach ( $files as $file ) {
-				$source = file_get_contents( $file );
+				$source = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				if ( ! is_string( $source ) ) {
 					continue;
 				}

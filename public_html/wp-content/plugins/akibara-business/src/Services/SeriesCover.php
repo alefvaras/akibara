@@ -22,6 +22,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.114.18 Extraído de HomeSeriesDestacadas para compartirlo con las landings de editorial.
+ * @api
  */
 final class SeriesCover {
 
@@ -132,10 +133,10 @@ final class SeriesCover {
 			'no_found_rows'          => true,
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
-			'tax_query'              => array_values( $tax_query ),
+			'tax_query'              => array_values( $tax_query ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 		);
 		if ( $solo_stock ) {
-			$args['meta_query'] = array(
+			$args['meta_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				array(
 					'key'     => '_stock_status',
 					'value'   => StockStatus::IN_STOCK,

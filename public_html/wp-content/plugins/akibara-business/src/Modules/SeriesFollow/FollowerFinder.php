@@ -2,9 +2,7 @@
 /**
  * FollowerFinder — la consulta INVERSA: de una serie a sus compradores.
  *
- * `SeriesBundles\CustomerCollection` responde «qué tiene este cliente». Sus
- * docblocks citaban una `SeriesAvailability\SeriesCustomerFinder` para la
- * dirección contraria, pero esa clase NUNCA existió en el árbol. Esta es.
+ * `AccountCollection\CustomerCollection` responde «qué tiene este cliente».
  *
  * Se calca de `CustomerCollection::query_owned_product_ids()`: las mismas
  * tablas de WC Analytics, el mismo colapso de refunds por `parent_id`, los
@@ -30,12 +28,13 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\SeriesFollow;
 
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
  */
 final class FollowerFinder {
 

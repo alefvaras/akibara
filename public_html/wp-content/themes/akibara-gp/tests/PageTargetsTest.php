@@ -135,7 +135,7 @@ final class PageTargetsTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Se cubren las diez páginas estáticas que usan pages.css.
+	 * @testdox Se cubren las once páginas estáticas que usan pages.css.
 	 */
 	public function test_content_page_set_is_complete(): void {
 		self::assertSame(
@@ -154,6 +154,7 @@ final class PageTargetsTest extends TestCase {
 				'devoluciones',
 				'terminos-y-condiciones',
 				'politica-de-privacidad',
+				'programa-referidos',
 			),
 			AKIBARA_GP_CONTENT_PAGES
 		);

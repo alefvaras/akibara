@@ -5,7 +5,7 @@
  *
  * POR QUÉ. Desde search 0.1.65 la ficha de producto vive en la caché de LiteSpeed
  * hasta la medianoche de la tienda (antes, una hora). La ficha muestra datos de
- * OTROS productos: los tomos de su serie («Arma tu pack», la navegación de la
+ * OTROS productos: los tomos de su serie (la navegación de la
  * serie) y las tarjetas de relacionados, que WooCommerce elige por categoría o
  * etiqueta y pueden ser de otra serie. Sin esto, que se agote uno de ellos dejaba
  * la ficha ofreciéndolo como disponible hasta la noche.
@@ -27,7 +27,7 @@
  *   (`wc_scheduled_sales()` guarda con `set_price()`). Fuera del formulario
  *   LiteSpeed no purga la ficha propia, así que también se purga aquí.
  * - La cantidad purga al CRUZAR el umbral de escasez (1) en cualquier sentido:
- *   «Arma tu pack» (`BuilderWidget`) cuenta tomos de copia única con
+ *   la navegación y los badges de escasez muestran aviso con
  *   `stock_qty === 1`, así que reponer un tomo de 1 a 5 deja el aviso de
  *   escasez tan obsoleto como agotarlo. El paso a agotado lo trae aparte
  *   `stock_status` (: antes sólo se purgaba al BAJAR a 1,
@@ -50,6 +50,10 @@ use Akibara\Business\Utilities\ProductVisibility;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class SeriesCacheTags {
 
 	/** Etiqueta por serie (LiteSpeed le antepone el prefijo del sitio). */
@@ -172,7 +176,7 @@ final class SeriesCacheTags {
 	/**
 	 * Compara la cantidad ya persistida contra la pendiente: true si exactamente
 	 * una de las dos es escasa (≤1) y la otra no — es decir, si la reposición o
-	 * la venta mueve al producto a través del umbral que usa «Arma tu pack».
+	 * la venta mueve al producto a través del umbral de escasez (última unidad).
 	 *
 	 * @param mixed $nueva Cantidad pendiente de guardar (`$cambios['stock_quantity']`).
 	 */
@@ -184,9 +188,8 @@ final class SeriesCacheTags {
 	}
 
 	/**
-	 * La ÚNICA definición de «escasa» de esta clase: la misma que usa «Arma tu
-	 * pack» para su aviso de copia única. Sin cantidad (stock sin gestionar) no
-	 * es escasa.
+	 * Definición de «escasa» de esta clase: aviso de última unidad. Sin cantidad
+	 * (stock sin gestionar) no es escasa.
 	 *
 	 * @param mixed $cantidad Cantidad, o null/'' si el stock no se gestiona.
 	 */
@@ -320,7 +323,7 @@ final class SeriesCacheTags {
 		}
 		$ids = array();
 		foreach ( $terms as $term ) {
-			if ( is_object( $term ) && isset( $term->term_taxonomy_id ) && (int) $term->term_taxonomy_id > 0 ) {
+			if ( is_object( $term ) && isset( $term->term_taxonomy_id ) && (int) $term->term_taxonomy_id > 0 ) { // @phpstan-ignore isset.property
 				$ids[ (int) $term->term_taxonomy_id ] = (int) $term->term_taxonomy_id;
 			}
 		}

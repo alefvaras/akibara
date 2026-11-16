@@ -24,6 +24,10 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class RejectionCopy {
 
 	/** Texto cuando el carrito ya tiene todas las unidades que se pueden comprar. */

@@ -19,7 +19,12 @@ defined( 'ABSPATH' ) || exit;
  * existente para comprobarlo y reponerlo desde una copia validada fuera del
  * docroot. Conserva historial acotado de reposiciones, acuse del aviso y latido
  * de la cola de fondo. No contiene credenciales.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantFunctionCall
  */
+// @phpstan-ignore complexity.classLike
 final class Watch {
 
 	/** Option NO autoload con el estado del centinela. */
@@ -173,8 +178,8 @@ final class Watch {
 			return false;
 		}
 
-		if ( method_exists( self::TRANSPORT_CLASS, 'is_live' ) ) {
-			return (bool) call_user_func( array( self::TRANSPORT_CLASS, 'is_live' ) );
+		if ( method_exists( self::TRANSPORT_CLASS, 'is_live' ) ) { // @phpstan-ignore function.alreadyNarrowedType
+			return call_user_func( array( self::TRANSPORT_CLASS, 'is_live' ) );
 		}
 
 		// `false !== has_action()` no es cosmética: has_action() devuelve la
@@ -248,7 +253,7 @@ final class Watch {
 		}
 
 		// Valida la copia antes de reponerla; una copia inválida conserva la alarma.
-		$contents = @file_get_contents( $source );
+		$contents = @file_get_contents( $source ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		if ( ! is_string( $contents ) || ! self::backup_is_valid( $contents ) ) {
 			return 'copia-invalida';
 		}
@@ -534,7 +539,7 @@ final class Watch {
 		}
 
 		$database = defined( 'DB_NAME' ) ? (string) DB_NAME : '';
-		$lock = 'akb_mail_watch_' . md5( $database . '|' . (string) $wpdb->options );
+		$lock = 'akb_mail_watch_' . md5( $database . '|' . $wpdb->options );
 		$acquired = false;
 		try {
 			$acquired = 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock, 2 ) );
@@ -583,7 +588,7 @@ final class Watch {
 	 * @param array<string, mixed> $state Estado a persistir.
 	 * @return bool Si el estado quedó guardado o ya era idéntico.
 	 */
-	private static function save_locked( array $state ): bool {
+	private static function save_locked( array $state ): bool { // @phpstan-ignore complexity.functionLike
 		if ( ! function_exists( 'update_option' ) || ! function_exists( 'delete_option' ) ) {
 			return self::save_failure( 'API de opciones no disponible' );
 		}

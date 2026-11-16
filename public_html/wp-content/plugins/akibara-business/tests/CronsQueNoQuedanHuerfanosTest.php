@@ -545,8 +545,8 @@ final class CronsQueNoQuedanHuerfanosTest extends TestCase {
 			}
 		}
 
-		// Lo que la copia a mano de la desactivación se dejaba, por su nombre.
-		foreach ( array( 'akb-image-recompress', 'akb-cache-warm', 'akibara-business' ) as $grupo ) {
+		// Lo que la copia a mano de la desactivación se dejaba, por su nombre (activos y retirados).
+		foreach ( array( 'akb-cache-warm', 'akibara-business' ) as $grupo ) {
 			self::assertContains( array( '', array(), $grupo ), $this->cola, "Desactivar dejaba vivo el grupo «{$grupo}»." );
 		}
 		foreach ( array( 'akibara_business_image_recompress', 'akibara_business_image_recompress_purge', 'akibara_business_cache_warm', 'akibara_edge_purge_run' ) as $hook ) {
@@ -643,5 +643,67 @@ final class CronsQueNoQuedanHuerfanosTest extends TestCase {
 				"{$nombre} vuelve a llevar su propia copia de la lista: es como divergieron la primera vez."
 			);
 		}
+	}
+
+	/**
+	 * `as_unschedule_all_actions()` sólo cancela acciones `pending`; los registros
+	 * históricos `failed`, `canceled` o `complete` de un hook ya retirado deben
+	 * barrerse en `unschedule_retired()` para no dejar falsas alarmas ni huérfanos.
+	 *
+	 * @testdox `OwnCrons::unschedule_retired()` barre hooks retirados de WP-Cron, AS y limpia su historial en tablas de Action Scheduler.
+	 */
+	public function test_unschedule_retired_limpia_historial_de_action_scheduler(): void {
+		$prev_wpdb = $GLOBALS['wpdb'] ?? null;
+
+		$wpdb = new class() {
+			public string $prefix = 'wp_';
+			/** @var array<int, string> */
+			public array $queries = array();
+
+			public function prepare( string $query, ...$args ): string {
+				foreach ( $args as $arg ) {
+					$pos = strpos( $query, '%s' );
+					if ( false !== $pos ) {
+						$query = substr_replace( $query, "'" . addslashes( (string) $arg ) . "'", $pos, 2 );
+					}
+				}
+				return $query;
+			}
+
+			public function get_var( string $query ): ?string {
+				if ( false !== strpos( $query, 'wp_actionscheduler_actions' ) ) {
+					return 'wp_actionscheduler_actions';
+				}
+				if ( false !== strpos( $query, 'wp_actionscheduler_logs' ) ) {
+					return 'wp_actionscheduler_logs';
+				}
+				return null;
+			}
+
+			public function query( string $query ): int {
+				$this->queries[] = $query;
+				return 1;
+			}
+		};
+
+		$GLOBALS['wpdb'] = $wpdb;
+		try {
+			OwnCrons::unschedule_retired();
+		} finally {
+			if ( null === $prev_wpdb ) {
+				unset( $GLOBALS['wpdb'] );
+			} else {
+				$GLOBALS['wpdb'] = $prev_wpdb;
+			}
+		}
+
+		$retired = array_keys( OwnCrons::RETIRED );
+		self::assertSame( $retired, $this->retirados );
+		self::assertCount( count( $retired ), $this->cola );
+		self::assertCount( 2, $wpdb->queries );
+		self::assertStringContainsString( 'DELETE l FROM `wp_actionscheduler_logs`', $wpdb->queries[0] );
+		self::assertStringContainsString( 'akibara_business_image_recompress_purge', $wpdb->queries[0] );
+		self::assertStringContainsString( 'DELETE FROM `wp_actionscheduler_actions` WHERE hook IN', $wpdb->queries[1] );
+		self::assertStringContainsString( 'akibara_business_image_recompress_purge', $wpdb->queries[1] );
 	}
 }

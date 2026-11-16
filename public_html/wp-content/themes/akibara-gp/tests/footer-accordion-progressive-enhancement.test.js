@@ -104,7 +104,10 @@ test( 'el cursor "clicable" y el glyph +/- tampoco se prometen sin la clase de J
 });
 
 test( 'main.js sólo marca el footer como "acordeón vivo" tras cablear los listeners de click', () => {
-	const posQuery = mainJs.indexOf( "var footerEl = doc.querySelector('.site-footer');" );
+	let posQuery = mainJs.indexOf( "const footerEl = doc.querySelector('.site-footer');" );
+	if ( posQuery === -1 ) {
+		posQuery = mainJs.indexOf( "var footerEl = doc.querySelector('.site-footer');" );
+	}
 	const posListeners = mainJs.indexOf( 'footerToggles.forEach(function (btn) {\n\t\tbtn.addEventListener' );
 	const posMarca = mainJs.indexOf( "footerEl.classList.add('js-footer-accordion');" );
 	const posSync = mainJs.indexOf( 'syncFooterAccordionMode();' );

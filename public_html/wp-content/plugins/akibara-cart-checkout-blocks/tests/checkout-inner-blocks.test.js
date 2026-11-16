@@ -67,7 +67,7 @@ test('editor registers both semantic blocks and allows Google only inside Checko
 
 	assert.deepEqual(
 		blockTypes.map(({ metadata }) => metadata.name),
-		['akibara/checkout-preventa-summary', 'akibara/checkout-trust-signals']
+		['akibara/checkout-trust-signals']
 	);
 	blockTypes.forEach(({ metadata }) => {
 		assert.equal(metadata.supports.multiple, false);
@@ -85,7 +85,6 @@ test('editor registers both semantic blocks and allows Google only inside Checko
 		[
 			'core/paragraph',
 			'google-login/login-button',
-			'akibara/checkout-preventa-summary',
 			'akibara/checkout-trust-signals'
 		]
 	);
@@ -99,7 +98,7 @@ test('editor registers both semantic blocks and allows Google only inside Checko
 	);
 });
 
-test('frontend registers preventa and trust blocks and fails closed on stale data', () => {
+test('frontend registers trust blocks and fails closed on stale data', () => {
 	const registrations = [];
 	const wp = { element: { createElement } };
 	const wc = {
@@ -113,55 +112,27 @@ test('frontend registers preventa and trust blocks and fails closed on stale dat
 	vm.runInNewContext(frontendScript, { isFinite, window: { wp, wc } });
 	assert.deepEqual(
 		registrations.map(({ metadata }) => metadata.name),
-		['akibara/checkout-preventa-summary', 'akibara/checkout-trust-signals']
+		['akibara/checkout-trust-signals']
 	);
-
-	const stale = registrations[0].component({
-		extensions: {
-			akibara_cart_checkout_blocks: {
-				schema_version: 1,
-				preventa: { count: 1 }
-			}
-		}
-	});
-	assert.equal(stale, null);
 
 	const data = {
 		schema_version: 2,
-		preventa: {
-			count: 1,
-			summary_label: 'Tu pedido incluye preventa',
-			summary_value: '27 jul – 2 ago',
-			has_tba: false,
-			explanation: 'Se despacha completo.'
-		},
 		trust_signals: [
 			{ id: 'shipping', label: 'Envíos según cobertura' },
 			{ id: 'installments', label: '3 cuotas sin interés' },
 			{ id: 'support', label: 'Atención personalizada' }
 		]
 	};
-	const preventa = registrations[0].component({
-		extensions: { akibara_cart_checkout_blocks: data }
-	});
-	const trust = registrations[1].component({
+	const trust = registrations[0].component({
 		extensions: { akibara_cart_checkout_blocks: data }
 	});
 
-	assert.match(textContent(preventa), /27 jul – 2 ago/);
-	assert.equal(preventa.props.role, undefined);
-	assert.equal(preventa.props['aria-live'], undefined);
 	assert.match(textContent(trust), /Atención personalizada/);
 	assert.match(textContent(trust), /Envíos según cobertura/);
 	assert.doesNotMatch(textContent(trust), /todo Chile|nacional/i);
-	// Desde 2.2.17 el bloque devuelve un contenedor con la lista y el aviso de
-	// colección; sin `window.akbCheckoutInnerBlocks` la segunda mitad es null y
-	// la lista sigue teniendo sus 3 señales (antes se afirmaba sobre el `<ul>`).
 	assert.equal(trust.type, 'div');
 	assert.equal(trust.props.className, 'akb-checkout-trust-wrap');
 	const [box, notice] = trust.props.children;
-	// La lista va dentro de su propia caja: el contenedor de consultas que
-	// decide la rejilla por el ancho real y lleva los márgenes del checkout.
 	assert.equal(box.type, 'div');
 	assert.equal(box.props.className, 'akb-blocks-trust-box akb-checkout-trust');
 	const list = box.props.children;
@@ -193,7 +164,7 @@ function loadFrontend() {
 	return {
 		sandbox,
 		registrations,
-		trustSignals: registrations[1].component
+		trustSignals: registrations[0].component
 	};
 }
 
@@ -232,7 +203,7 @@ test('trust block paints the collection notice below the signals when PHP inline
 	// bloque de señales, no registra uno nuevo (la página 9083 no se edita).
 	assert.deepEqual(
 		registrations.map(({ metadata }) => metadata.name),
-		['akibara/checkout-preventa-summary', 'akibara/checkout-trust-signals']
+		['akibara/checkout-trust-signals']
 	);
 });
 

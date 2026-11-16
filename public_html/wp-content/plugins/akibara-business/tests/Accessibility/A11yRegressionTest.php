@@ -37,19 +37,18 @@ final class A11yRegressionTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Should keep the stock badge still: its clipped pulse was never visible.
+	 * @testdox Should keep the stock badge retired and free of animations.
 	 */
 	public function test_stock_badge_does_not_animate(): void {
 		// El CSS vive en el asset desde D11 (antes era <style> inline en el PHP).
 		// Sin comentarios: la nota que explica la retirada nombra el pulso.
 		$css = (string) preg_replace( '#/\*.*?\*/#s', '', $this->source( 'assets/css/pdp-enhancer.css' ) );
 
-		// El badge lleva clip-path, que recorta cualquier sombra hacia fuera: un
-		// pulso de box-shadow no se ve y sólo cuesta fotogramas (revisión B5-R5).
-		self::assertMatchesRegularExpression( '/\.akb-badge-panel--preventa \{[^}]*clip-path:/', $css );
-		self::assertDoesNotMatchRegularExpression( '/\.akb-badge-panel(--preventa)? \{[^}]*animation/', $css );
-		// DS-9: el panel verde del tomo disponible se retiró con su CSS.
-		self::assertDoesNotMatchRegularExpression( '/\.akb-badge-panel[\s{:.]/', $css );
+		// Tanto el panel verde disponible (DS-9) como el de preventa/a pedido (ADR-010)
+		// y el comparador de ediciones fueron erradicados junto con su CSS.
+		self::assertDoesNotMatchRegularExpression( '/\.akb-badge-panel(--preventa)?[\s{:.]/', $css );
+		self::assertStringNotContainsString( 'akb-pdp-other-editions', $css );
+		self::assertStringNotContainsString( 'akb-edition-field--reading', $css );
 		self::assertStringNotContainsString( 'akb-pulse', $css );
 	}
 
@@ -103,7 +102,7 @@ final class A11yRegressionTest extends TestCase {
 		// El resultado del toggle se anuncia (aria-pressed solo no basta).
 		self::assertStringContainsString( "liveRegion.setAttribute('aria-live', 'polite')", $js );
 		// En favoritos el foco se reubica ANTES de sacar la card del DOM.
-		self::assertStringContainsString( 'var hadFocus = card.contains(document.activeElement)', $js );
+		self::assertMatchesRegularExpression( '/(?:var|let|const) hadFocus = [^;]*\.contains\(\s*[^)]*activeElement\s*\)/', $js );
 	}
 
 	/**
@@ -120,7 +119,7 @@ final class A11yRegressionTest extends TestCase {
 		// (revisión REV-X1-2-D1). El comportamiento lo ejerce
 		// tests/Modules/NativeCart/native-cart-accessible-triggers.test.js.
 		self::assertStringContainsString( "if (event.key === 'Escape')", $js );
-		self::assertStringContainsString( 'var returnTarget = focusReturnTarget();', $js );
+		self::assertMatchesRegularExpression( '/(?:var|let|const) returnTarget = focusReturnTarget\(\);/', $js );
 		self::assertStringContainsString( 'return lastFocused;', $js );
 		self::assertStringContainsString( 'trapFocus(event)', $js );
 	}
@@ -141,11 +140,9 @@ final class A11yRegressionTest extends TestCase {
 	 * @testdox Should give a role to the containers that carry an ARIA name.
 	 */
 	public function test_named_containers_have_a_role(): void {
-		$loop    = $this->source( 'src/Modules/LoopEnhancer/LoopEnhancer.php' );
-		$builder = $this->source( 'templates/series-bundles/builder-widget.php' );
+		$loop = $this->source( 'src/Modules/LoopEnhancer/LoopEnhancer.php' );
 
 		self::assertStringContainsString( 'class="akb-badge-single" role="group" aria-label=', $loop );
-		self::assertStringContainsString( 'role="region"', $builder );
 	}
 
 	/**

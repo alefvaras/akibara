@@ -46,10 +46,12 @@ final class VigilanteDeStockTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		StockWatcher::reset_stagger();
 		$this->encolado  = array();
 		$this->esperando = array();
 
 		Functions\when( 'as_has_scheduled_action' )->justReturn( false );
+		Functions\when( 'as_get_scheduled_actions' )->justReturn( array() );
 		Functions\when( 'as_enqueue_async_action' )->alias(
 			function ( string $hook, array $args = array(), string $grupo = '' ): int {
 				$this->encolado[] = array( $hook, $args, $grupo );
@@ -59,6 +61,7 @@ final class VigilanteDeStockTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		StockWatcher::reset_stagger();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -116,31 +119,14 @@ final class VigilanteDeStockTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Un tomo agotado que pasa a reservable (A pedido / Preventa) encola el aviso por defecto.
+	 * @testdox Pasar a onbackorder no encola el aviso: solo instock avisa.
 	 */
-	public function test_encola_cuando_pasa_a_reservable_con_el_ajuste_encendido(): void {
+	public function test_no_encola_cuando_pasa_a_onbackorder(): void {
 		$this->esperando = array( 700 => 3 );
 
 		$this->vigilante()->on_stock_status_change( 700, 'onbackorder' );
 
-		self::assertCount( 1, $this->encolado );
-		self::assertSame( StockWatcher::ASYNC_HOOK, $this->encolado[0][0] );
-		self::assertSame( array( 'product_id' => 700 ), $this->encolado[0][1] );
-		self::assertSame( StockWatcher::AS_GROUP, $this->encolado[0][2] );
-	}
-
-	/**
-	 * @testdox Si el dueño apaga el aviso en reservables, pasar a onbackorder no encola nada.
-	 */
-	public function test_no_encola_cuando_pasa_a_reservable_si_el_ajuste_esta_apagado(): void {
-		$this->esperando = array( 700 => 3 );
-		Functions\when( 'get_option' )->alias(
-			static fn( string $key, $default = false ) => 'akb_bis_notify_on_backorder' === $key ? 'no' : $default
-		);
-
-		$this->vigilante()->on_stock_status_change( 700, 'onbackorder' );
-
-		self::assertSame( array(), $this->encolado );
+		self::assertCount( 0, $this->encolado );
 	}
 
 	/**

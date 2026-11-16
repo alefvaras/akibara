@@ -27,6 +27,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
  */
 final class Subscriber {
 
@@ -119,12 +120,12 @@ final class Subscriber {
 			(int) ( $row['id'] ?? 0 ),
 			(int) ( $row['product_id'] ?? 0 ),
 			(string) ( $row['email'] ?? '' ),
-			isset( $row['user_id'] ) && '' !== (string) $row['user_id'] && null !== $row['user_id'] ? (int) $row['user_id'] : null,
+			isset( $row['user_id'] ) && '' !== (string) $row['user_id'] && null !== $row['user_id'] ? (int) $row['user_id'] : null, // @phpstan-ignore notIdentical.alwaysTrue
 			(string) ( $row['token'] ?? '' ),
 			(string) ( $row['status'] ?? self::STATUS_SUBSCRIBED ),
 			(int) ( $row['notify_attempts'] ?? 0 ),
 			(string) ( $row['created_at'] ?? '' ),
-			isset( $row['notified_at'] ) && '' !== (string) $row['notified_at'] && null !== $row['notified_at'] ? (string) $row['notified_at'] : null
+			isset( $row['notified_at'] ) && '' !== (string) $row['notified_at'] && null !== $row['notified_at'] ? (string) $row['notified_at'] : null // @phpstan-ignore notIdentical.alwaysTrue
 		);
 	}
 

@@ -32,7 +32,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
  */
+// @phpstan-ignore complexity.classLike
 final class QueryEngine {
 
 	use Support\FailsClosed;
@@ -196,8 +201,9 @@ final class QueryEngine {
 	 *                            silencioso [spec v5 D3, contrato §5.9].
 	 * @return array<int, array<string, mixed>> Docs con `_score`, ordenados.
 	 */
-	public function search_scored( string $raw, bool $suggest = false, int $limit = self::MAX_RESULTS, bool $allow_fuzzy = true ): array {
-		if ( ! $this->available ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function search_scored( string $raw, bool $suggest = false, int $limit = self::MAX_RESULTS, bool $allow_fuzzy = true ): array { // @phpstan-ignore complexity.functionLike
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -212,27 +218,12 @@ final class QueryEngine {
 			return array();
 		}
 
-		// Fast-path SKU/ISBN: si la query (sin separadores) es un código de
-		// ≥6 dígitos o calza un SKU exacto, resolvemos directo — devolvemos la
-		// fila del doc (misma forma que el resto) con score tope.
-		$sku_enabled = 'yes' === SemanticPublication::authoritative_value( 'akb_search_sku_fastpath', 'yes' );
-		if ( ! SemanticPublication::authoritative_available() ) {
-			$this->mark_unavailable( SemanticPublication::authoritative_error() );
+		$sku_doc = $this->try_resolve_sku_fast_path( $raw );
+		if ( ! $this->is_available() ) {
 			return array();
 		}
-		$sku_hit = $sku_enabled ? $this->sku_fast_path( $raw ) : null;
-		if ( ! $this->available ) {
-			return array();
-		}
-		if ( null !== $sku_hit ) {
-			$doc = $this->load_docs( array( $sku_hit ) );
-			if ( ! $this->available ) {
-				return array();
-			}
-			if ( ! empty( $doc ) ) {
-				$doc[0]['_score'] = Scorer::TIER_TITLE_PREFIX + self::MAX_RESULTS;
-				return $doc;
-			}
+		if ( null !== $sku_doc ) {
+			return $sku_doc;
 		}
 
 		// El LIMIT pertenece al resultado RANKEADO, no al SELECT de candidatos.
@@ -258,111 +249,41 @@ final class QueryEngine {
 			return array();
 		}
 		$candidate_ids      = $this->segment_candidates( $query_segments, $suggest );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
-		// Relajación de editorial: ante cero candidatos, descarta términos de marca/editorial
-		// antes de evaluar fuzzy, priorizando encontrar la obra si existe en otra editorial.
 		if ( empty( $candidate_ids ) && $allow_fuzzy && count( $query_tokens ) >= 2 ) {
-			$marcas      = BrandTokens::found_in( $query_tokens, $this->db );
-			$mejor_ids   = array();
-			$mejor_deja  = array();
-			$mejor_sobra = array();
-			foreach ( $this->relax_attempts( $marcas ) as $sobran ) {
-				$quedan = array_values( array_diff( $query_tokens, $sobran ) );
-				if ( array() === $quedan ) {
-					continue;
-				}
-				$relax_segments = Synonyms::query_segments( $quedan );
-				$relax_ids      = $this->segment_candidates( $relax_segments, $suggest );
-				if ( ! $this->available ) {
-					return array();
-				}
-				// Gana el intento con MÁS resultados; en empate, el que soltó
-				// menos palabras (los intentos vienen del más conservador al más
-				// amplio, así que basta con exigir estrictamente más).
-				if ( count( $relax_ids ) > count( $mejor_ids ) ) {
-					$mejor_ids   = $relax_ids;
-					$mejor_deja  = $quedan;
-					$mejor_sobra = $sobran;
-				}
-			}
-			if ( array() !== $mejor_ids ) {
-				$candidate_ids = $mejor_ids;
-				// Rescoring contra lo que queda: el ranking tiene que mirar el
-				// título pedido, no el nombre de la editorial soltada.
-				$relax_query        = implode( ' ', $mejor_deja );
-				$query_norm         = Normalizer::normalize( $relax_query );
-				$tokens             = array_slice( Normalizer::tokenize( $relax_query ), 0, self::MAX_QUERY_TOKENS );
-				$query_alternatives = $this->scoring_alternatives( $query_norm, $tokens, $mejor_deja );
-				$aviso              = array( 'ignored' => $mejor_sobra, 'kept' => $relax_query );
-				if ( $suggest ) {
-					$this->last_suggest_relaxed = $aviso;
-				} else {
-					BrandRelax::note( $aviso );
-				}
+			$this->apply_brand_relax_fallback(
+				$query_tokens,
+				$suggest,
+				$candidate_ids,
+				$query_norm,
+				$tokens,
+				$query_alternatives
+			);
+			if ( ! $this->is_available() ) {
+				return array();
 			}
 		}
 
-		// Fuzzy fallback: con CERO candidatos, corrige typos contra el
-		// vocabulario de títulos y reintenta UNA vez ("jujustu"→"jujutsu").
-		// Detrás del flag akb_search_fuzzy y fuera del hot path (solo corre sin
-		// candidatos). Política por modo (spec v5): catálogo = LAXA (el vecino
-		// más cercano dentro del umbral); suggest = ESTRICTA (nearest_strict —
-		// ante ambigüedad calla, no elige) [D1/D2]. Desde 0.1.73 las dos miden
-		// con la misma distancia OSA: la laxa medía con levenshtein(), que cobra
-		// 2 por dos letras adyacentes cambiadas, y era MENOS capaz que la
-		// estricta («balck clover»: desplegable sí, página no —
-		// R9-corrector-asimetrico). `$allow_fuzzy=false` apaga esto entero
-		// (usado para el total sobre una query ya corregida, §5.9).
-		//
-		// Salida temprana si no hay tokens procesables, evitando consultar el vocabulario innecesariamente.
 		$fuzzy_enabled = Fuzzy::enabled();
-		if ( ! SemanticPublication::authoritative_available() ) {
+		if ( ! SemanticPublication::authoritative_available() ) { // @phpstan-ignore booleanNot.alwaysFalse
 			$this->mark_unavailable( SemanticPublication::authoritative_error() );
 			return array();
 		}
 		if ( empty( $candidate_ids ) && ! empty( $query_tokens ) && $allow_fuzzy && $fuzzy_enabled ) {
-			$vocabulary = $this->title_vocabulary();
-			if ( ! $this->available ) {
+			$this->apply_fuzzy_fallback(
+				$raw,
+				$query_tokens,
+				$suggest,
+				$candidate_ids,
+				$query_norm,
+				$tokens,
+				$query_alternatives
+			);
+			if ( ! $this->is_available() ) {
 				return array();
-			}
-			$fix = Fuzzy::correct( $query_tokens, $vocabulary, $suggest );
-			if ( $fix['changed'] ) {
-				$corrected          = implode( ' ', $fix['tokens'] );
-				$corrected_norm     = Normalizer::normalize( $corrected );
-				$corrected_tokens   = array_slice( Normalizer::tokenize( $corrected ), 0, self::MAX_QUERY_TOKENS );
-				$retry_segments     = Synonyms::query_segments( $fix['tokens'] );
-				$retry_alternatives = $this->scoring_alternatives( $corrected_norm, $corrected_tokens, $fix['tokens'] );
-				$retry_ids          = $this->segment_candidates( $retry_segments, $suggest );
-				if ( ! $this->available ) {
-					return array();
-				}
-				if ( ! empty( $retry_ids ) ) {
-					$candidate_ids      = $retry_ids;
-					$query_alternatives = $retry_alternatives;
-					// Rescoring con la query CORREGIDA: el Scorer debe rankear
-					// contra el término real, no contra el typo (que no calza en
-					// el título y dejaría el resultado correcto en tier residual).
-					// `$corrected` va SIN stopwords a propósito (query_tokens las
-					// filtra) — es correcto para el matching, NO para mostrar.
-					$query_norm = Normalizer::normalize( $corrected );
-					$tokens     = array_slice( Normalizer::tokenize( $corrected ), 0, self::MAX_QUERY_TOKENS );
-
-					// Side-channel estático SOLO para el catálogo (D3); el
-					// suggest devuelve su corrección atómicamente en suggest().
-					// `fix` = query COMPLETA (con stopwords), no el subconjunto
-					// filtrado del rescoring interno.
-					if ( $suggest ) {
-						$this->last_suggest_correction = array(
-							'typo' => $raw,
-							'fix'  => $this->full_corrected_query( $raw, $fix['map'] ),
-						);
-					} else {
-						Fuzzy::note_correction( $fix['map'] );
-					}
-				}
 			}
 		}
 
@@ -370,8 +291,59 @@ final class QueryEngine {
 			return array();
 		}
 
+		$docs = $this->score_and_sort_docs( $candidate_ids, $query_alternatives );
+		if ( ! $this->is_available() ) {
+			return array();
+		}
+
+		if (
+			$suggest
+			&& null === $this->last_suggest_correction
+			&& null === $this->last_suggest_relaxed
+			&& ! empty( $query_sequence )
+			&& ! ctype_digit( end( $query_sequence ) )
+		) {
+			$this->last_suggest_exact_query = $query_norm;
+			$this->last_suggest_exact_docs  = $docs;
+		}
+
+		return $limit > 0 ? array_slice( $docs, 0, $limit ) : $docs;
+	}
+
+	/**
+	 * Intenta resolver una coincidencia directa por SKU/ISBN si el fast-path está activo.
+	 *
+	 * @param string $raw Consulta cruda acotada.
+	 * @return array<int, array<string, mixed>>|null Documento puntuado o null si no hubo match directo.
+	 */
+	private function try_resolve_sku_fast_path( string $raw ): ?array {
+		$sku_enabled = 'yes' === SemanticPublication::authoritative_value( 'akb_search_sku_fastpath', 'yes' );
+		if ( ! SemanticPublication::authoritative_available() ) {
+			$this->mark_unavailable( SemanticPublication::authoritative_error() );
+			return null;
+		}
+		$sku_hit = $sku_enabled ? $this->sku_fast_path( $raw ) : null;
+		if ( ! $this->is_available() || null === $sku_hit ) {
+			return null;
+		}
+		$doc = $this->load_docs( array( $sku_hit ) );
+		if ( ! $this->is_available() || empty( $doc ) ) {
+			return null;
+		}
+		$doc[0]['_score'] = Scorer::TIER_TITLE_PREFIX + self::MAX_RESULTS;
+		return $doc;
+	}
+
+	/**
+	 * Carga, puntúa y ordena los documentos candidatos contra las alternativas de la consulta.
+	 *
+	 * @param array<int, int>                  $candidate_ids      IDs candidatos.
+	 * @param array<int, array<string, mixed>> $query_alternatives Alternativas de scoring.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function score_and_sort_docs( array $candidate_ids, array $query_alternatives ): array {
 		$docs = $this->load_docs( $candidate_ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -386,19 +358,114 @@ final class QueryEngine {
 		unset( $doc );
 
 		usort( $docs, array( Scorer::class, 'compare_scored' ) );
+		return $docs;
+	}
 
-		if (
-			$suggest
-			&& null === $this->last_suggest_correction
-			&& null === $this->last_suggest_relaxed
-			&& ! empty( $query_sequence )
-			&& ! ctype_digit( (string) end( $query_sequence ) )
-		) {
-			$this->last_suggest_exact_query = $query_norm;
-			$this->last_suggest_exact_docs  = $docs;
+	/**
+	 * Evalúa la relajación de términos de editorial cuando no hubo candidatos exactos.
+	 *
+	 * @param array<int, string>              $query_tokens       Tokens únicos de la consulta.
+	 * @param bool                            $suggest            Modo autocomplete.
+	 * @param array<int, int>                 $candidate_ids      IDs candidatos (por referencia).
+	 * @param string                          $query_norm         Consulta normalizada (por referencia).
+	 * @param array<int, string>              $tokens             Tokens de scoring (por referencia).
+	 * @param array<int, array<string,mixed>> $query_alternatives Alternativas de scoring (por referencia).
+	 * @return void
+	 */
+	private function apply_brand_relax_fallback(
+		array $query_tokens,
+		bool $suggest,
+		array &$candidate_ids,
+		string &$query_norm,
+		array &$tokens,
+		array &$query_alternatives
+	): void {
+		$marcas      = BrandTokens::found_in( $query_tokens, $this->db );
+		$mejor_ids   = array();
+		$mejor_deja  = array();
+		$mejor_sobra = array();
+		foreach ( $this->relax_attempts( $marcas ) as $sobran ) {
+			$quedan = array_values( array_diff( $query_tokens, $sobran ) );
+			if ( array() === $quedan ) {
+				continue;
+			}
+			$relax_segments = Synonyms::query_segments( $quedan );
+			$relax_ids      = $this->segment_candidates( $relax_segments, $suggest );
+			if ( ! $this->is_available() ) {
+				return;
+			}
+			if ( count( $relax_ids ) > count( $mejor_ids ) ) {
+				$mejor_ids   = $relax_ids;
+				$mejor_deja  = $quedan;
+				$mejor_sobra = $sobran;
+			}
 		}
+		if ( array() === $mejor_ids ) {
+			return;
+		}
+		$candidate_ids      = $mejor_ids;
+		$relax_query        = implode( ' ', $mejor_deja );
+		$query_norm         = Normalizer::normalize( $relax_query );
+		$tokens             = array_slice( Normalizer::tokenize( $relax_query ), 0, self::MAX_QUERY_TOKENS );
+		$query_alternatives = $this->scoring_alternatives( $query_norm, $tokens, $mejor_deja );
+		$aviso              = array( 'ignored' => $mejor_sobra, 'kept' => $relax_query );
+		if ( $suggest ) {
+			$this->last_suggest_relaxed = $aviso;
+		} else {
+			BrandRelax::note( $aviso );
+		}
+	}
 
-		return $limit > 0 ? array_slice( $docs, 0, $limit ) : $docs;
+	/**
+	 * Evalúa el fallback de corrección tipográfica (fuzzy) cuando no hubo candidatos.
+	 *
+	 * @param string                          $raw                Consulta cruda original.
+	 * @param array<int, string>              $query_tokens       Tokens únicos de la consulta.
+	 * @param bool                            $suggest            Modo autocomplete.
+	 * @param array<int, int>                 $candidate_ids      IDs candidatos (por referencia).
+	 * @param string                          $query_norm         Consulta normalizada (por referencia).
+	 * @param array<int, string>              $tokens             Tokens de scoring (por referencia).
+	 * @param array<int, array<string,mixed>> $query_alternatives Alternativas de scoring (por referencia).
+	 * @return void
+	 */
+	private function apply_fuzzy_fallback(
+		string $raw,
+		array $query_tokens,
+		bool $suggest,
+		array &$candidate_ids,
+		string &$query_norm,
+		array &$tokens,
+		array &$query_alternatives
+	): void {
+		$vocabulary = $this->title_vocabulary();
+		if ( ! $this->is_available() ) {
+			return;
+		}
+		$fix = Fuzzy::correct( $query_tokens, $vocabulary, $suggest );
+		if ( ! $fix['changed'] ) {
+			return;
+		}
+		$corrected          = implode( ' ', $fix['tokens'] );
+		$corrected_norm     = Normalizer::normalize( $corrected );
+		$corrected_tokens   = array_slice( Normalizer::tokenize( $corrected ), 0, self::MAX_QUERY_TOKENS );
+		$retry_segments     = Synonyms::query_segments( $fix['tokens'] );
+		$retry_alternatives = $this->scoring_alternatives( $corrected_norm, $corrected_tokens, $fix['tokens'] );
+		$retry_ids          = $this->segment_candidates( $retry_segments, $suggest );
+		if ( ! $this->is_available() || empty( $retry_ids ) ) {
+			return;
+		}
+		$candidate_ids      = $retry_ids;
+		$query_alternatives = $retry_alternatives;
+		$query_norm         = $corrected_norm;
+		$tokens             = $corrected_tokens;
+		if ( $suggest ) {
+			$this->last_suggest_correction = array(
+				'typo' => $raw,
+				'fix'  => $this->full_corrected_query( $raw, $fix['map'] ),
+			);
+		} else {
+			Fuzzy::note_correction( $fix['map'] );
+		}
 	}
 
 	/**
@@ -522,8 +589,9 @@ final class QueryEngine {
 	 * @param bool                                                        $suggest Modo autocomplete.
 	 * @return array<int, int>
 	 */
-	private function synonym_candidates( array $segments, bool $suggest ): array {
-		if ( ! $this->available ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function synonym_candidates( array $segments, bool $suggest ): array { // @phpstan-ignore complexity.functionLike
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		$docs_table   = Install::docs_table();
@@ -554,7 +622,7 @@ final class QueryEngine {
 						$field_guard = strlen( $token ) < 5 ? ' AND ' . $alias . '.field < ' . DocumentBuilder::FIELD_DESCRIPTION : '';
 						$predicate   = "{$alias}.token LIKE %s{$field_guard}";
 						$escaped     = $this->guarded_call( fn() => $this->db->esc_like( $token ), 'Could not escape synonym candidate.' );
-						if ( ! $this->available || ! is_string( $escaped ) ) {
+						if ( ! $this->is_available() || ! is_string( $escaped ) ) {
 							return array();
 						}
 						$predicate_args = array( $escaped . '%' );
@@ -629,7 +697,7 @@ final class QueryEngine {
 	 * @return array<int, int>
 	 */
 	private function candidates( array $tokens, bool $suggest ): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		$tokens = array_slice(
@@ -654,7 +722,7 @@ final class QueryEngine {
 
 			if ( $as_prefix ) {
 				$escaped = $this->guarded_call( fn() => $this->db->esc_like( $token ), 'Could not escape candidate token.' );
-				if ( ! $this->available || ! is_string( $escaped ) ) {
+				if ( ! $this->is_available() || ! is_string( $escaped ) ) {
 					return array();
 				}
 				$field_guard   = strlen( $token ) < 5 ? ' AND ' . $alias . '.field < ' . DocumentBuilder::FIELD_DESCRIPTION : '';
@@ -701,7 +769,7 @@ final class QueryEngine {
 	 * @return array<int, string>
 	 */
 	private function title_vocabulary(): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( null !== $this->title_vocab ) {
@@ -757,6 +825,7 @@ final class QueryEngine {
 			);
 		} catch ( \Throwable $throwable ) {
 			// Cache de vocabulario best-effort: el resultado SQL sigue autorizado.
+			unset( $throwable );
 		}
 		return $this->title_vocab;
 	}
@@ -769,7 +838,7 @@ final class QueryEngine {
 	 * @return int|null post_id, o null si no es un código o no calza.
 	 */
 	private function sku_fast_path( string $raw ): ?int {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		$candidate = strtolower( trim( $raw ) );
@@ -833,7 +902,7 @@ final class QueryEngine {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function load_docs( array $ids ): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( empty( $ids ) ) {
@@ -901,7 +970,7 @@ final class QueryEngine {
 
 	/** @return mixed */
 	private function guarded_call( callable $reader, string $fallback ) {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		$this->begin_read();

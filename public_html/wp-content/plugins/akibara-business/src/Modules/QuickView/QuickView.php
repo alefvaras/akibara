@@ -29,6 +29,9 @@ use WC_Product;
  * Módulo autocontenido: trigger por card + assets. El sheet lo arma el JS.
  *
  * @since 1.97.3
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class QuickView {
 

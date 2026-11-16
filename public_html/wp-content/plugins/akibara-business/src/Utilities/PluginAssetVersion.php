@@ -37,6 +37,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Resuelve la versión de cache-bust de un asset del propio plugin.
+ * @api
  */
 final class PluginAssetVersion {
 

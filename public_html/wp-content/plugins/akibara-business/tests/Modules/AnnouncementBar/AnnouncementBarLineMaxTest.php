@@ -26,6 +26,8 @@ final class AnnouncementBarLineMaxTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		Functions\when( 'get_option' )->justReturn( '' );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Santiago' ) );
 	}
 
 	protected function tearDown(): void {

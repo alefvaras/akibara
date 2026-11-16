@@ -5,11 +5,6 @@
  * Diseño sellado (00-DISENO §Flujo de invitación):
  *   - Dos rutas configurables: despacho y entrega directa o retiro.
  *     La primera agenda UN solo job de Action Scheduler por pedido.
- *   - Compuerta de preventa/a-pedido de business
- *     (CompletionPolicy::can_complete): un pedido con preventa no
- *     invita hasta que todos sus productos están listos; si se revierte, se
- *     desagenda. Esto REEMPLAZA al OrderPreventaAdapter (manifiesto de baja,
- *     ítem C) — requisito previo cumplido aquí.
  *   - Token por pedido en {prefix}akb_rewards_review_forms: caducidad
  *     configurable (30 días), un solo uso, re-invitación posible tras
  *     reversa (tokens históricos quedan auditablemente en la tabla).
@@ -27,6 +22,7 @@ namespace Akibara\Rewards\Reviews;
 use Akibara\Rewards\Support\Options;
 
 use Akibara\Rewards\Points\Emails;
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Log;
 use Akibara\Rewards\Support\OrderStates;
 use Akibara\Rewards\Support\Schema;
@@ -35,6 +31,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
  */
 final class Invitations {
 
@@ -78,22 +77,12 @@ final class Invitations {
 	 * @return int
 	 */
 	public static function delay_days(): int {
-		return max( 0, (int) get_option( 'akb_rewards_invite_delay_days', 3 ) );
-	}
-
-	/** Estado alternativo para una entrega directa o retiro. */
-	public static function pickup_status(): string {
-		return sanitize_key( (string) get_option( 'akb_rewards_invite_pickup_status', 'completed' ) );
-	}
-
-	/** Días corridos de la ruta de entrega directa; hereda el plazo existente. */
-	public static function pickup_delay_days(): int {
-		return max( 0, (int) get_option( 'akb_rewards_invite_pickup_delay_days', self::delay_days() ) );
+		return max( 0, (int) get_option( 'akb_rewards_invite_delay_days', 7 ) );
 	}
 
 	/** Una ruta configurada, independiente de la empresa de transporte. */
 	public static function is_trigger( string $status ): bool {
-		return in_array( $status, array( self::trigger_status(), self::pickup_status() ), true );
+		return $status === self::trigger_status() || OrderStates::is_at_or_after( $status, self::trigger_status() );
 	}
 
 	/**
@@ -110,14 +99,6 @@ final class Invitations {
 		if ( in_array( $status, array( 'pending', 'on-hold', 'checkout-draft' ), true ) || ! $order->get_date_paid() ) {
 			return 'Esperando confirmación del pago.';
 		}
-		if ( class_exists( '\\Akibara\\Business\\Modules\\OrderPreventa\\CompletionPolicy' ) ) {
-			// La disponibilidad sigue perteneciendo a business. Sólo la reseña
-			// admite aquí despacho O retiro; no altera cómo se completa un pedido.
-			$ready = \Akibara\Business\Modules\OrderPreventa\CompletionPolicy::can_complete( $order );
-			if ( ! $ready || ! apply_filters( 'akb_order_preventa_can_request_review', $ready, $order ) ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- contrato público de business.
-				return 'Esperando productos a pedido o preventa disponibles para entregar.';
-			}
-		}
 		return '';
 	}
 
@@ -126,7 +107,7 @@ final class Invitations {
 		$status  = (string) $order->get_status();
 		$trigger = (string) $order->get_meta( self::META_TRIGGER );
 		return '' !== $trigger
-			? ( OrderStates::is_at_or_after( $status, $trigger ) || $status === self::pickup_status() )
+			? OrderStates::is_at_or_after( $status, $trigger )
 			: self::is_trigger( $status );
 	}
 
@@ -147,7 +128,9 @@ final class Invitations {
 	public function register(): void {
 		add_action( 'woocommerce_order_status_changed', array( $this, 'on_status_changed' ), 20, 3 );
 		add_action( self::HOOK, array( $this, 'send_invite' ) );
-		add_action( 'woocommerce_admin_order_data_after_order_details', array( new AdminOverview(), 'render_order' ) );
+		if ( is_admin() ) {
+			add_action( 'woocommerce_admin_order_data_after_order_details', array( new AdminOverview(), 'render_order' ) );
+		}
 	}
 
 	/**
@@ -197,7 +180,7 @@ final class Invitations {
 			return; // Un solo job por pedido.
 		}
 
-		$days = $new_status === self::trigger_status() ? self::delay_days() : self::pickup_delay_days();
+		$days = self::delay_days();
 		$due  = time() + $days * DAY_IN_SECONDS;
 		$job  = as_schedule_single_action(
 			$due,
@@ -213,7 +196,7 @@ final class Invitations {
 		}
 		$order->update_meta_data( self::META_DUE, $due );
 		$order->update_meta_data( self::META_REASON, '' );
-		$order->update_meta_data( self::META_SCHEDULED, current_time( 'mysql' ) );
+		$order->update_meta_data( self::META_SCHEDULED, Dates::now_db() );
 		// Guarda la ruta elegida para respetar la cola si cambian los ajustes.
 		$order->update_meta_data( self::META_TRIGGER, $new_status );
 		$order->save_meta_data();
@@ -278,7 +261,7 @@ final class Invitations {
 		$sent = $this->deliver( $order, $to, $token );
 
 		if ( $sent ) {
-			$order->update_meta_data( self::META_SENT, current_time( 'mysql' ) );
+			$order->update_meta_data( self::META_SENT, Dates::now_db() );
 			$order->save_meta_data();
 			return;
 		}

@@ -57,18 +57,3 @@ test('canje efectivo usa el valor configurable; quitar sigue enviando cero', asy
     await f.button('Quitar canje').props.onClick();
     assert.deepEqual(f.calls, [0]);
 });
-
-test('switch_points ofrece botón nativo de 1 clic para conmutar de pack a puntos cuando convienen más', async () => {
-    const f = fixture({
-        balance: 4000,
-        max: 0,
-        switch_points: 2000,
-        redeem_value: 1,
-        unavailable: '💡 Tienes $2.000 en Puntos Akibara disponibles (superan los -$1.500 de tu descuento de pack actual).'
-    });
-    const btn = f.button('Usar mis $2.000 en puntos en lugar del descuento de pack');
-    assert.ok(btn, 'debe renderizar el botón de conmutación pack -> puntos');
-    assert.equal(btn.props.disabled, false);
-    await btn.props.onClick();
-    assert.deepEqual(f.calls, [2000]);
-});

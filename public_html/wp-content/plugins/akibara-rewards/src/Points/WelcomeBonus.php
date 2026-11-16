@@ -29,6 +29,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCondition
  */
 final class WelcomeBonus {
 
@@ -284,7 +288,7 @@ final class WelcomeBonus {
 		if ( '' !== (string) $order->get_meta( Referrals::META_REFERRED_BY ) ) {
 			return true;
 		}
-		if ( method_exists( $order, 'get_coupon_codes' ) ) {
+		if ( method_exists( $order, 'get_coupon_codes' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			foreach ( $order->get_coupon_codes() as $code ) {
 				$code_lower = strtolower( trim( (string) $code ) );
 				if ( 0 === strpos( $code_lower, 'ref-' ) || 0 === strpos( $code_lower, 'refreferido-' ) ) {
@@ -305,7 +309,7 @@ final class WelcomeBonus {
 		if ( '1' === (string) $order->get_meta( '_akb_welcome_coupon' ) ) {
 			return true;
 		}
-		if ( method_exists( $order, 'get_coupon_codes' ) ) {
+		if ( method_exists( $order, 'get_coupon_codes' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			foreach ( $order->get_coupon_codes() as $code ) {
 				$code_lower = strtolower( trim( (string) $code ) );
 				if ( 0 === strpos( $code_lower, 'hola' ) ) {

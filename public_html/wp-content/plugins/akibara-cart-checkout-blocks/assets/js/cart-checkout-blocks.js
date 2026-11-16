@@ -1,8 +1,8 @@
 (function (wp, wc) {
 	'use strict';
 
-	var config = window.akbCartCheckoutBlocks || {};
-	var namespace = config.namespace || 'akibara_cart_checkout_blocks';
+	const config = window.akbCartCheckoutBlocks || {};
+	const namespace = config.namespace || 'akibara_cart_checkout_blocks';
 
 	function getCartCount(cart) {
 		if (!cart || typeof cart !== 'object') {
@@ -21,7 +21,7 @@
 		}
 
 		return cart.items.reduce(function (total, item) {
-			var quantity = item && typeof item.quantity === 'number' ? item.quantity : 0;
+			const quantity = item && typeof item.quantity === 'number' ? item.quantity : 0;
 			return total + (isFinite(quantity) && quantity > 0 ? quantity : 0);
 		}, 0);
 	}
@@ -31,44 +31,33 @@
 			return null;
 		}
 
-		var selector = wp.data.select('wc/store/cart');
+		const selector = wp.data.select('wc/store/cart');
 		return selector && typeof selector.getCartData === 'function'
 			? selector.getCartData()
 			: null;
 	}
 
 	function rawExtensionFromMap(extensions) {
+		// eslint-disable-next-line security/detect-object-injection
 		return extensions && extensions[namespace] && typeof extensions[namespace] === 'object'
+			// eslint-disable-next-line security/detect-object-injection
 			? extensions[namespace]
 			: {};
 	}
 
 	function structuredExtensionFromMap(extensions) {
-		var extension = rawExtensionFromMap(extensions);
+		const extension = rawExtensionFromMap(extensions);
 		return Number(extension.schema_version) === 2 ? extension : null;
 	}
 
-	function getAuthoritativeCartExtension(cart) {
-		if (!cart || !cart.extensions || !Object.prototype.hasOwnProperty.call(cart.extensions, namespace)) {
-			return null;
-		}
-
-		return structuredExtensionFromMap(cart.extensions);
-	}
-
-	/** Los filtros coupons, showApplyCouponNotice y showRemoveCouponNotice reciben extensions vacío desde applyCheckoutFilter. Su fuente es el snapshot del data store. structuredExtensionFromMap exige StoreApiIntegration::SCHEMA_VERSION: cualquier cambio de versión debe actualizar a los consumidores. */
-	function filterExtension() {
-		return getAuthoritativeCartExtension(getCartData());
-	}
-
 	function syncCartBadges(cart) {
-		var count = getCartCount(cart);
+		const count = getCartCount(cart);
 		if (count === null) {
 			return;
 		}
 
 		document.querySelectorAll('.akb-cart-trigger').forEach(function (trigger) {
-			var value = String(count);
+			const value = String(count);
 			if (trigger.getAttribute('data-akb-cart-count') !== value) {
 				trigger.setAttribute('data-akb-cart-count', value);
 			}
@@ -76,7 +65,7 @@
 	}
 
 	function syncCartState() {
-		var cart = getCartData();
+		const cart = getCartData();
 		syncCartBadges(cart);
 	}
 
@@ -95,11 +84,10 @@
 		return;
 	}
 
-	var createElement = wp.element.createElement;
-	var Fragment = wp.element.Fragment || 'div';
-	var ExperimentalDiscountsMeta = wc.blocksCheckout.ExperimentalDiscountsMeta;
-	var ExperimentalOrderMeta = wc.blocksCheckout.ExperimentalOrderMeta;
-	var registerCheckoutFilters = wc.blocksCheckout.registerCheckoutFilters;
+	const createElement = wp.element.createElement;
+	const Fragment = wp.element.Fragment || 'div';
+	const ExperimentalOrderMeta = wc.blocksCheckout.ExperimentalOrderMeta;
+	const registerCheckoutFilters = wc.blocksCheckout.registerCheckoutFilters;
 
 	function getExtension(props) {
 		if (props && props.extensions) {
@@ -111,64 +99,17 @@
 		return null;
 	}
 
-	function renderBundleNotices(extension) {
-		var notices = extension && extension.bundle && Array.isArray(extension.bundle.notices)
-			? extension.bundle.notices
-			: [];
-
-		if (!notices.length) {
-			return null;
-		}
-
-		return createElement(
-			'div',
-			{
-				className: 'akb-blocks-bundle-notices',
-				role: 'status',
-				'aria-live': 'polite',
-				'aria-atomic': 'true'
-			},
-			notices.map(function (notice, index) {
-				var tone = notice && notice.tone === 'warning' ? 'warning' : 'info';
-				var title = notice && typeof notice.title === 'string' ? notice.title : '';
-				var message = notice && typeof notice.message === 'string' ? notice.message : '';
-				var badge = notice && typeof notice.badge === 'string' ? notice.badge : '';
-
-				if (!title && !message) {
-					return null;
-				}
-
-				return createElement(
-					'section',
-					{
-						key: String((notice && notice.id) || index),
-						className: 'akb-blocks-bundle-notice akb-blocks-bundle-notice--' + tone
-					},
-					badge
-						? createElement('span', { className: 'akb-blocks-bundle-notice__badge' }, badge)
-						: null,
-					createElement(
-						'div',
-						{ className: 'akb-blocks-bundle-notice__content' },
-						title ? createElement('strong', null, title) : null,
-						message ? createElement('p', null, message) : null
-					)
-				);
-			}).filter(Boolean)
-		);
-	}
-
 	function renderFreeShipping(extension, context) {
-		var freeShipping = extension && extension.free_shipping;
+		const freeShipping = extension && extension.free_shipping;
 		if (!freeShipping || typeof freeShipping !== 'object') {
 			return null;
 		}
 
-		var isCheckout = context === 'woocommerce/checkout';
-		var visible = isCheckout
+		const isCheckout = context === 'woocommerce/checkout';
+		const visible = isCheckout
 			? freeShipping.visible_on_checkout
 			: freeShipping.visible_on_cart;
-		var state = freeShipping.state;
+		const state = freeShipping.state;
 
 		if (
 			!visible
@@ -178,8 +119,8 @@
 			return null;
 		}
 
-		var progress = Math.max(0, Math.min(100, Number(freeShipping.progress_percent) || 0));
-		var className = [
+		const progress = Math.max(0, Math.min(100, Number(freeShipping.progress_percent) || 0));
+		const className = [
 			'akb-blocks-free-shipping',
 			'akb-blocks-free-shipping--' + state,
 			freeShipping.almost_there ? 'akb-blocks-free-shipping--almost' : ''
@@ -187,14 +128,12 @@
 
 		return createElement(
 			'section',
-			{ className: className },
+			{ className },
 			createElement(
 				'div',
-				{ className: 'akb-blocks-free-shipping__copy' },
-				createElement('strong', null, String(freeShipping.title || 'Envío')),
-				freeShipping.message
-					? createElement('span', null, String(freeShipping.message))
-					: null
+				{ className: 'akb-blocks-free-shipping__content' },
+				createElement('strong', null, String(freeShipping.title || '')),
+				createElement('p', null, String(freeShipping.message || ''))
 			),
 			state === 'progress'
 				? createElement(
@@ -202,13 +141,12 @@
 					{
 						className: 'akb-blocks-free-shipping__track',
 						role: 'progressbar',
-						'aria-label': String(freeShipping.title || 'Progreso para envío gratis'),
+						'aria-valuenow': progress,
 						'aria-valuemin': 0,
-						'aria-valuemax': 100,
-						'aria-valuenow': Math.round(progress)
+						'aria-valuemax': 100
 					},
 					createElement('span', {
-						className: 'akb-blocks-free-shipping__value',
+						className: 'akb-blocks-free-shipping__bar',
 						style: { width: progress + '%' }
 					})
 				)
@@ -216,47 +154,45 @@
 		);
 	}
 
-	/**
-	 * Junta todas las tarifas visibles del carrito. El data store entrega los
-	 * paquetes en `shippingRates` (camelCase) pero cada paquete conserva su
-	 * forma del Store API (`shipping_rates`, snake_case); se aceptan ambas
-	 * grafías a ambos niveles para no depender de esa asimetría.
-	 */
-	function collectShippingRates(cart) {
-		var packages = cart && (cart.shippingRates || cart.shipping_rates);
-		if (!Array.isArray(packages)) {
-			return [];
+	function isPickupRate(rate) {
+		if (!rate || typeof rate !== 'object') {
+			return false;
 		}
 
-		return packages.reduce(function (rates, pkg) {
-			var packageRates = pkg && (pkg.shipping_rates || pkg.shippingRates);
-			return Array.isArray(packageRates) ? rates.concat(packageRates) : rates;
-		}, []);
+		const methodId = String(rate.method_id || rate.methodId || '');
+		const rateId = String(rate.rate_id || rate.rateId || '');
+
+		return methodId === 'local_pickup'
+			|| methodId === 'pickup_location'
+			|| methodId.indexOf('pickup') !== -1
+			|| rateId.indexOf('local_pickup') !== -1
+			|| rateId.indexOf('pickup_location') !== -1;
 	}
 
-	/**
-	 * Paridad con el `akibara_gp_shipping_address_hint()` del carrito clásico
-	 * (retirado del tema cuando /carrito/ pasó a bloques): si TODAS las
-	 * tarifas visibles son retiro, el cliente probablemente no ha ingresado
-	 * dirección y puede creer que no existe despacho a regiones. Solo carrito:
-	 * en el checkout los campos de dirección están a la vista. A diferencia
-	 * del original, la condición se reevalúa en vivo — al aparecer una tarifa
-	 * de despacho el aviso se retira sin recargar.
-	 */
 	function renderShippingHint(context, cart) {
-		var hint = typeof config.shippingHint === 'string' ? config.shippingHint.trim() : '';
-		if (!hint || context === 'woocommerce/checkout') {
+		if (context !== 'woocommerce/cart') {
 			return null;
 		}
 
-		var rates = collectShippingRates(cart || getCartData());
-		if (!rates.length) {
+		const hint = typeof config.shippingHint === 'string'
+			? config.shippingHint.trim()
+			: '';
+		if (!hint) {
 			return null;
 		}
 
-		var pickupOnly = rates.every(function (rate) {
-			var methodId = rate && (rate.method_id || rate.methodId);
-			return methodId === 'local_pickup' || methodId === 'pickup_location';
+		const packages = cart && (cart.shippingRates || cart.shipping_rates);
+		if (!Array.isArray(packages) || !packages.length) {
+			return null;
+		}
+
+		const pickupOnly = packages.every(function (pkg) {
+			const rates = pkg && (pkg.shipping_rates || pkg.shippingRates);
+			if (!Array.isArray(rates) || !rates.length) {
+				return false;
+			}
+
+			return rates.every(isPickupRate);
 		});
 
 		return pickupOnly
@@ -268,42 +204,14 @@
 			: null;
 	}
 
-	function renderPreventaSummary(extension) {
-		var preventa = extension && extension.preventa;
-		var count = Number(preventa && preventa.count);
-		if (!preventa || !isFinite(count) || count <= 0) {
-			return null;
-		}
-
-		return createElement(
-			'section',
-			{
-				className: 'akb-order-preventa-blocks-notice'
-					+ (preventa.has_tba ? ' akb-order-preventa-blocks-notice--tba' : '')
-			},
-			createElement(
-				'p',
-				{ className: 'akb-order-preventa-blocks-heading' },
-				createElement('strong', null, String(preventa.summary_label || 'Tu pedido incluye preventas')),
-				createElement('span', null, String(preventa.summary_value || 'Te avisamos en cuanto tengamos fechas'))
-			),
-			preventa.explanation
-				? createElement(
-					'p',
-					{ className: 'akb-order-preventa-blocks-copy' },
-					String(preventa.explanation)
-				)
-				: null
-		);
-	}
-
 	function trustIcon(id) {
-		var paths = {
+		const paths = {
 			shipping: 'M3 6h11v9H3zM14 9h4l3 3v3h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
 			installments: 'M3 5h18v14H3zM3 9h18M7 15h4',
 			support: 'M5 13v-2a7 7 0 0 1 14 0v2M5 13H3v5h4v-5zm14 0h2v5h-4v-5zM17 18c0 2-2 3-5 3'
 		};
-		var path = paths[id] || paths.support;
+		// eslint-disable-next-line security/detect-object-injection
+		const path = paths[id] || paths.support;
 
 		return createElement(
 			'svg',
@@ -325,34 +233,31 @@
 	}
 
 	function renderTrustSignals(extension) {
-		var signals = extension && Array.isArray(extension.trust_signals)
+		const signals = extension && Array.isArray(extension.trust_signals)
 			? extension.trust_signals
 			: [];
 		if (!signals.length) {
 			return null;
 		}
 
-		// La caja es el contenedor de consultas: la rejilla de los sellos
-		// depende del ancho de la barra lateral, no de la ventana (ver la hoja).
 		return createElement(
 			'div',
 			{ className: 'akb-blocks-trust-box' },
 			createElement(
 				'ul',
-				{
-					className: 'akb-blocks-trust',
-					'aria-label': 'Beneficios de comprar en Akibara'
-				},
-				signals.map(function (signal, index) {
-					if (!signal || !signal.label) {
+				{ className: 'akb-blocks-trust' },
+				signals.map(function (signal) {
+					const label = String((signal && signal.label) || '');
+					if (!label) {
 						return null;
 					}
+					const id = String((signal && signal.id) || 'support');
 
 					return createElement(
 						'li',
-						{ key: String(signal.id || index), className: 'akb-blocks-trust__item' },
-						trustIcon(String(signal.id || signal.icon || 'support')),
-						createElement('span', null, String(signal.label))
+						{ key: id, className: 'akb-blocks-trust__item' },
+						trustIcon(id),
+						createElement('span', { className: 'akb-blocks-trust__label' }, label)
 					);
 				}).filter(Boolean)
 			)
@@ -360,16 +265,12 @@
 	}
 
 	function CartCheckoutMeta(props) {
-		// El aviso de despacho NO exige la extensión de akibara-business: lee
-		// tarifas nativas del Store API y debe sobrevivir a un payload ausente.
-		var extension = getExtension(props);
-		var context = props && props.context;
-		var isCheckout = context === 'woocommerce/checkout';
-		var children = [
-			renderBundleNotices(extension),
+		const extension = getExtension(props);
+		const context = props && props.context;
+		const isCheckout = context === 'woocommerce/checkout';
+		const children = [
 			renderFreeShipping(extension, context),
 			renderShippingHint(context, props && props.cart),
-			isCheckout ? null : renderPreventaSummary(extension),
 			isCheckout ? null : renderTrustSignals(extension)
 		].filter(Boolean);
 
@@ -378,116 +279,29 @@
 			: null;
 	}
 
-	function isBundleCoupon(couponCodeValue, extension) {
-		var prefix = extension
-			&& extension.bundle
-			&& typeof extension.bundle.coupon_prefix === 'string'
-			? extension.bundle.coupon_prefix
-			: '';
-
-		return Boolean(prefix)
-			&& typeof couponCodeValue === 'string'
-			&& couponCodeValue.indexOf(prefix) === 0;
-	}
-
-	function couponCode(coupon) {
-		return String(coupon && (coupon.code || coupon.label) || '');
-	}
-
-	function BundleDiscountMeta(props) {
-		var extension = getExtension(props);
-		if (!extension) {
-			return null;
-		}
-
-		var cart = props && props.cart || {};
-		// Los fillProps de ExperimentalDiscountsMeta son el resto de
-		// `useStoreCart()`, que expone `cartCoupons` (nadie entrega `coupons`, la
-		// forma del Store API). Se miraba la segunda, así que el rótulo «Pack
-		// {serie} · Aplicado automáticamente» no se pintaba nunca.
-		var coupons = Array.isArray(cart.cartCoupons) ? cart.cartCoupons : [];
-		var bundleCoupons = coupons.filter(function (coupon) {
-			return isBundleCoupon(couponCode(coupon), extension);
-		});
-		if (!bundleCoupons.length) {
-			return null;
-		}
-
-		var labels = extension.bundle && extension.bundle.coupon_labels || {};
-		// El rótulo llega por el payload del Store API (`generic_coupon_label`).
-		// El eslabón intermedio `config.genericCouponLabel` no lo escribía
-		// nadie: el inline de Assets emite una sola clave, `namespace`.
-		var genericLabel = extension.bundle && extension.bundle.generic_coupon_label
-			|| 'Descuento de pack';
-
-		return createElement(
-			'div',
-			{ className: 'akb-blocks-auto-discounts' },
-				bundleCoupons.map(function (coupon) {
-					var code = couponCode(coupon);
-
-					return createElement(
-						'div',
-					{ key: code, className: 'akb-blocks-auto-discount' },
-					createElement(
-						'span',
-						{ className: 'akb-blocks-auto-discount__label' },
-							String(labels[code] || genericLabel),
-							createElement('small', null, 'Aplicado automáticamente')
-						)
-					);
-				})
-			);
-	}
-
 	if (typeof registerCheckoutFilters === 'function') {
 		registerCheckoutFilters('akibara-cart-checkout-blocks', {
-			cartItemClass: function (defaultValue, extensions) {
-				var extension = rawExtensionFromMap(extensions);
-				var status = extension.stock_status;
-				if (['instock', 'onbackorder', 'outofstock'].indexOf(status) === -1) {
+			cartItemClass (defaultValue, extensions) {
+				const extension = rawExtensionFromMap(extensions);
+				const status = extension.stock_status;
+				if (['instock', 'outofstock'].indexOf(status) === -1) {
 					return defaultValue;
 				}
 
-				return [defaultValue, 'akb-stock--' + status, extension.reservation_price_label ? 'akb-price--reservation' : ''].filter(Boolean).join(' ');
-			},
-			cartItemPrice: function (defaultValue, extensions) {
-				var extension = rawExtensionFromMap(extensions);
-				return extension.reservation_price_label
-					? extension.reservation_price_label + ': <price/>'
-					: defaultValue;
-			},
-				coupons: function (coupons) {
-					var extension = filterExtension();
-					if (!extension) {
-						return coupons;
-					}
-
-					return coupons.filter(function (coupon) {
-						return !isBundleCoupon(couponCode(coupon), extension);
-					});
-				},
-				showApplyCouponNotice: function (defaultValue, extensions, args) {
-					var extension = filterExtension();
-					return extension && args && isBundleCoupon(args.couponCode, extension) ? false : defaultValue;
-				},
-				showRemoveCouponNotice: function (defaultValue, extensions, args) {
-					var extension = filterExtension();
-					return extension && args && isBundleCoupon(args.couponCode, extension) ? false : defaultValue;
-				}
+				return [defaultValue, 'akb-stock--' + status].filter(Boolean).join(' ');
+			}
 		});
 	}
 
 	if (
 		typeof ExperimentalOrderMeta !== 'function'
-		|| typeof ExperimentalDiscountsMeta !== 'function'
 		|| typeof wp.plugins.registerPlugin !== 'function'
 	) {
 		return;
 	}
 
 	wp.plugins.registerPlugin('akibara-cart-checkout-blocks', {
-		render: function () {
+		render () {
 			return createElement(
 				Fragment,
 				null,
@@ -495,11 +309,6 @@
 					ExperimentalOrderMeta,
 					null,
 					createElement(CartCheckoutMeta, null)
-				),
-				createElement(
-					ExperimentalDiscountsMeta,
-					null,
-					createElement(BundleDiscountMeta, null)
 				)
 			);
 		},

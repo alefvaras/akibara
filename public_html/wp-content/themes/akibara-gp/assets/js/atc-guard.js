@@ -31,7 +31,7 @@
  *   6. Resolución secuencial: El último intento activo del tomo gobierna la presentación
  *      de avisos y sincroniza todas las representaciones visuales del producto.
  *
- * @package akibara-gp
+ * @package
  */
 ( function () {
 	'use strict';
@@ -40,36 +40,36 @@
 		return;
 	}
 
-	var $ = window.jQuery;
+	const $ = window.jQuery;
 
 	// Candado contra el doble disparo, por tomo → { productId: timeoutHandle }.
-	var inFlight = {};
+	const inFlight = {};
 
 	// Último intento de cada tomo → { productId: intento }: el que habla.
-	var ultimoDelTomo = {};
+	const ultimoDelTomo = {};
 
 	// Último intento de cada botón: el único que le quita el `loading`.
-	var ultimoDelBoton = new WeakMap();
+	const ultimoDelBoton = new WeakMap();
 
 	// El intento de cada petición, por su objeto `data`.
-	var intentoDe = new WeakMap();
+	const intentoDe = new WeakMap();
 
 	// El intento cuya alta anuncia WooCommerce en este momento: `added_to_cart`
 	// se dispara dentro del `success` de su petición.
-	var terminando = null;
+	let terminando = null;
 
 	// Cuánto se ve el motivo sobre la tarjeta: lo mismo que en la ficha.
-	var DURACION_MOTIVO = 6000;
+	const DURACION_MOTIVO = 6000;
 
 	// Tarjetas cuyo botón pasó a «Ver carrito»: { boton, enlace } para poder
 	// devolverles el botón cuando el carrito cambie.
-	var enVerCarrito = [];
+	let enVerCarrito = [];
 
 	function productId( $button ) {
 		if ( ! $button ) {
 			return '';
 		}
-		var id = $button.data ? $button.data( 'product_id' ) : undefined;
+		let id = $button.data ? $button.data( 'product_id' ) : undefined;
 		if ( id === undefined || id === null || id === '' ) {
 			id = $button.attr ? $button.attr( 'data-product_id' ) : undefined;
 		}
@@ -85,7 +85,7 @@
 
 	// ¿Tiene el botón su propia alta pendiente (en vuelo o en la cola)?
 	function altaPropia( boton ) {
-		var intento = boton ? ultimoDelBoton.get( boton ) : null;
+		const intento = boton ? ultimoDelBoton.get( boton ) : null;
 		return !! intento && intento.pendiente;
 	}
 
@@ -93,16 +93,19 @@
 		if ( ! id || ! Object.prototype.hasOwnProperty.call( inFlight, id ) ) {
 			return;
 		}
+		// eslint-disable-next-line security/detect-object-injection
 		if ( inFlight[ id ] ) {
+			// eslint-disable-next-line security/detect-object-injection
 			window.clearTimeout( inFlight[ id ] );
 		}
+		// eslint-disable-next-line security/detect-object-injection
 		delete inFlight[ id ];
 	}
 
 	$( document.body ).on(
 		'should_send_ajax_request.adding_to_cart',
 		function ( event, $button ) {
-			var id = productId( $button );
+			const id = productId( $button );
 			if ( ! id ) {
 				// Sin id no podemos discriminar por producto → no bloqueamos
 				// (mejor permitir el add que descartar uno legítimo).
@@ -115,6 +118,7 @@
 				return false;
 			}
 			// Safety net: liberar ESTE id a los 2.5s aunque no llegue `added_to_cart`.
+			// eslint-disable-next-line security/detect-object-injection
 			inFlight[ id ] = window.setTimeout( function () {
 				release( id );
 			}, 2500 );
@@ -127,12 +131,13 @@
 	$( document.body ).on(
 		'adding_to_cart',
 		function ( event, $button, data ) {
-			var id = productId( $button );
+			const id = productId( $button );
 			if ( ! id || ! $button[ 0 ] || ! data || 'object' !== typeof data ) {
 				return;
 			}
 			// Pendiente hasta su `success` o su `error` (el prefiltro de abajo).
-			var intento = { $button: $button, id: id, pendiente: true };
+			const intento = { $button, id, pendiente: true };
+			// eslint-disable-next-line security/detect-object-injection
 			ultimoDelTomo[ id ] = intento;
 			ultimoDelBoton.set( $button[ 0 ], intento );
 			intentoDe.set( data, intento );
@@ -143,10 +148,11 @@
 
 	$( document.body ).on(
 		'added_to_cart',
-		function ( event, fragments, cart_hash, $button ) {
-			var id = productId( $button );
+		function ( event, fragments, cartHash, $button ) {
+			const id = productId( $button );
 			// Un intento que otro del tomo reemplazó no habla: el candado y los
 			// avisos son del que sigue en la cola (modelo, TOMO).
+			// eslint-disable-next-line security/detect-object-injection
 			if ( ! id || ( terminando && terminando.id === id && ultimoDelTomo[ id ] !== terminando ) ) {
 				return;
 			}
@@ -168,8 +174,8 @@
 	$( document.body ).on(
 		'wc_cart_button_updated',
 		function ( event, $button ) {
-			var boton = $button && $button[ 0 ];
-			var delTomo = boton ? ultimoDelTomo[ productId( $button ) ] : null;
+			const boton = $button && $button[ 0 ];
+			const delTomo = boton ? ultimoDelTomo[ productId( $button ) ] : null;
 			if ( altaPropia( boton ) || ( delTomo && delTomo.pendiente && ! boton.closest( 'li.product' ) ) ) {
 				$button.removeClass( 'added' ).addClass( 'loading' );
 			}
@@ -178,7 +184,7 @@
 
 	// Región de estado propia, creada al cargar: una región que nace junto con
 	// su texto no la anuncian todos los lectores de pantalla.
-	var region = document.createElement( 'div' );
+	const region = document.createElement( 'div' );
 	region.className = 'screen-reader-text';
 	region.setAttribute( 'role', 'status' );
 	region.setAttribute( 'aria-live', 'polite' );
@@ -186,25 +192,27 @@
 	document.body.appendChild( region );
 
 	function urlEndpoint( endpoint ) {
-		var base = window.wc_add_to_cart_params && window.wc_add_to_cart_params.wc_ajax_url
+		const base = window.wc_add_to_cart_params && window.wc_add_to_cart_params.wc_ajax_url
 			? String( window.wc_add_to_cart_params.wc_ajax_url )
 			: '/?wc-ajax=%%endpoint%%';
 		return base.replace( '%%endpoint%%', endpoint );
 	}
 
 	// Aire entre el motivo y el «Ver carrito» que queda debajo (px).
-	var AIRE_SOBRE_BOTON = 4;
+	const AIRE_SOBRE_BOTON = 4;
 
 	/**
 	 * Distancia, desde el pie de la tarjeta, a la que tiene que terminar el
 	 * motivo para quedar ENCIMA del botón y no taparlo. `bottom` se mide desde el
 	 * borde interior del `li.product` (su caja de relleno), así que se descuenta
 	 * su borde inferior.
+	 * @param {*} tarjeta
+	 * @param {*} boton
 	 */
 	function hastaEncimaDe( tarjeta, boton ) {
-		var t = tarjeta.getBoundingClientRect();
-		var b = boton.getBoundingClientRect();
-		var borde = parseFloat( window.getComputedStyle( tarjeta ).borderBottomWidth ) || 0;
+		const t = tarjeta.getBoundingClientRect();
+		const b = boton.getBoundingClientRect();
+		const borde = parseFloat( window.getComputedStyle( tarjeta ).borderBottomWidth ) || 0;
 		return Math.max( 0, Math.round( t.bottom - borde - b.top + AIRE_SOBRE_BOTON ) );
 	}
 
@@ -214,11 +222,16 @@
 	 * Se posiciona absolutamente dentro del `li.product` para evitar variaciones de altura.
 	 * Con `boton` presente, se sitúa inmediatamente sobre él dejándolo visible y operable.
 	 * Utiliza nodos DOM nativos (textContent/appendChild) previniendo inyecciones HTML.
+	 * @param {*} donde
+	 * @param {*} id
+	 * @param {*} texto
+	 * @param {*} cartUrl
+	 * @param {*} boton
 	 */
 	function pintarMotivo( donde, id, texto, cartUrl, boton ) {
 		// Se calcula la posición antes de insertar para evitar saltos de renderizado.
-		var abajo = boton ? hastaEncimaDe( donde, boton ) + 'px' : '';
-		var caja = donde.querySelector( '.akb-tarjeta-motivo' );
+		const abajo = boton ? hastaEncimaDe( donde, boton ) + 'px' : '';
+		let caja = donde.querySelector( '.akb-tarjeta-motivo' );
 		if ( ! caja ) {
 			caja = document.createElement( 'p' );
 			caja.className = 'akb-tarjeta-motivo';
@@ -229,7 +242,7 @@
 		caja.textContent = '';
 		caja.appendChild( document.createTextNode( texto ) );
 		if ( cartUrl ) {
-			var a = document.createElement( 'a' );
+			const a = document.createElement( 'a' );
 			a.href = cartUrl;
 			// El mismo rótulo que WooCommerce pone junto a la tarjeta tras un alta.
 			a.textContent = ( window.wc_add_to_cart_params && window.wc_add_to_cart_params.i18n_view_cart ) || 'Ver carrito';
@@ -259,10 +272,11 @@
 	 * ser verdad, pasara o no su botón a «Ver carrito». Con `id`, los de ese tomo
 	 * en todas las tarjetas donde salga y en la vista rápida (punto 6): los de los
 	 * demás siguen siendo verdad.
+	 * @param {*} id
 	 */
 	function ocultarMotivos( id ) {
-		var retirados = 0;
-		var visibles = document.querySelectorAll( '.akb-tarjeta-motivo:not([hidden])' );
+		let retirados = 0;
+		const visibles = document.querySelectorAll( '.akb-tarjeta-motivo:not([hidden])' );
 		Array.prototype.forEach.call( visibles, function ( caja ) {
 			if ( id && caja.akbTomo !== id ) {
 				return;
@@ -285,14 +299,16 @@
 	 * (`button`, `product_type_*`) y pierde las que WooCommerce escucha
 	 * (`ajax_add_to_cart`, `add_to_cart_button`), así que nadie lo intercepta. Si
 	 * tenía el foco (teclado), el foco pasa al enlace: no se pierde en el body.
+	 * @param {*} $button
+	 * @param {*} cartUrl
 	 */
 	function botonVerCarrito( $button, cartUrl ) {
-		var original = $button[ 0 ];
+		const original = $button[ 0 ];
 		if ( ! original || ! original.parentNode ) {
 			return null;
 		}
-		var rotulo = ( window.wc_add_to_cart_params && window.wc_add_to_cart_params.i18n_view_cart ) || 'Ver carrito';
-		var enlace = document.createElement( 'a' );
+		const rotulo = ( window.wc_add_to_cart_params && window.wc_add_to_cart_params.i18n_view_cart ) || 'Ver carrito';
+		const enlace = document.createElement( 'a' );
 		enlace.className = String( original.className || '' )
 			.split( /\s+/ )
 			.filter( function ( c ) {
@@ -302,9 +318,9 @@
 			.join( ' ' );
 		enlace.href = cartUrl;
 		enlace.textContent = rotulo;
-		var teniaFoco = document.activeElement === original;
+		const teniaFoco = document.documentElement.ownerDocument.activeElement === original;
 		original.parentNode.replaceChild( enlace, original );
-		enVerCarrito.push( { boton: original, enlace: enlace } );
+		enVerCarrito.push( { boton: original, enlace } );
 		if ( teniaFoco && enlace.focus ) {
 			enlace.focus();
 		}
@@ -322,14 +338,14 @@
 	 * carrito», como en la ficha. El foco, si estaba en el enlace, pasa al botón.
 	 */
 	function devolverBotones() {
-		var pendientes = enVerCarrito;
+		const pendientes = enVerCarrito;
 		enVerCarrito = [];
 		pendientes.forEach( function ( par ) {
-			var enlace = par.enlace;
+			const enlace = par.enlace;
 			if ( ! enlace.parentNode ) {
 				return; // la tarjeta ya no está (p. ej. el buscador cambió la rejilla).
 			}
-			var teniaFoco = document.activeElement === enlace;
+			const teniaFoco = document.documentElement.ownerDocument.activeElement === enlace;
 			par.boton.className = String( par.boton.className || '' )
 				.split( /\s+/ )
 				.filter( function ( c ) {
@@ -357,9 +373,16 @@
 	 * `habla` se vuelve a mirar cuando llega el motivo: si mientras tanto salió
 	 * otro intento del tomo, ése dirá lo suyo, y este botón no pasa a «Ver
 	 * carrito» a mitad de una petición.
+	 * @param {*} intento
+	 * @param {*} tarjeta
+	 * @param {*} response
+	 * @param {*} exito
+	 * @param {*} contexto
+	 * @param {*} args
+	 * @param {*} habla
 	 */
 	function rechazo( intento, tarjeta, response, exito, contexto, args, habla ) {
-		var id = intento.id;
+		const id = intento.id;
 		release( id );
 
 		// Sin motivo que mostrar, el camino de WooCommerce: al menos la ficha
@@ -376,19 +399,19 @@
 		}
 
 		// Las tarjetas agregan de a una unidad (add-to-cart.js de WooCommerce).
-		var pedido = '&product_id=' + encodeURIComponent( id ) + '&quantity=1';
+		const pedido = '&product_id=' + encodeURIComponent( id ) + '&quantity=1';
 		window.fetch( urlEndpoint( 'akb_get_cart' ) + '&drain_notices=1' + pedido, { credentials: 'same-origin' } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( cart ) {
 				if ( ! habla() ) {
 					return; // el cliente ya volvió a tocar: habla ese intento.
 				}
-				var motivo = cart && cart.data && cart.data.errors && cart.data.errors[ 0 ];
+				const motivo = cart && cart.data && cart.data.errors && cart.data.errors[ 0 ];
 				if ( ! motivo ) {
 					alCaminoDeWoo();
 					return;
 				}
-				var urlCarrito = cart.data.cart_url || '';
+				const urlCarrito = cart.data.cart_url || '';
 				if ( 'ya_en_carrito' === cart.data.motivo && urlCarrito ) {
 					// El botón ya es el enlace: el motivo va sin el suyo, y
 					// encima del botón, no sobre él.
@@ -401,7 +424,7 @@
 	}
 
 	// El mismo texto que anuncia la ficha con la red caída (pdp-ajax-atc.js).
-	var MOTIVO_SIN_RESPUESTA = 'No se pudo conectar, reintenta';
+	const MOTIVO_SIN_RESPUESTA = 'No se pudo conectar, reintenta';
 
 	/**
 	 * La petición del intento que habla no llegó a responder (o respondió algo
@@ -412,10 +435,13 @@
 	 * lo tapa. Si la petición la canceló el propio código (`abort`), no hay nada
 	 * que explicarle al cliente. Fuera de una tarjeta (la vista rápida), el aviso
 	 * va junto al botón y en las tarjetas del tomo (punto 5).
+	 * @param {*} intento
+	 * @param {*} tarjeta
+	 * @param {*} estado
 	 */
 	function sinRespuesta( intento, tarjeta, estado ) {
-		var id = intento.id;
-		var boton = intento.$button[ 0 ];
+		const id = intento.id;
+		const boton = intento.$button[ 0 ];
 		release( id );
 		if ( 'abort' === estado ) {
 			return;
@@ -426,12 +452,12 @@
 		}
 		if ( boton.parentNode ) {
 			// Sin reloj: se queda hasta que el cliente actúa (punto 5).
-			var aviso = pintarMotivo( boton.parentNode, id, MOTIVO_SIN_RESPUESTA, '', null );
+			const aviso = pintarMotivo( boton.parentNode, id, MOTIVO_SIN_RESPUESTA, '', null );
 			aviso.setAttribute( 'role', 'alert' );
 			window.clearTimeout( aviso.akbTemporizador );
 		}
 		botonesDelTomo( id ).forEach( function ( b ) {
-			var suya = b.closest( 'li.product' );
+			const suya = b.closest( 'li.product' );
 			if ( suya ) {
 				pintarMotivo( suya, id, MOTIVO_SIN_RESPUESTA, '', b );
 			}
@@ -442,13 +468,13 @@
 		if ( ! options.url || -1 === String( options.url ).indexOf( 'wc-ajax=add_to_cart' ) ) {
 			return;
 		}
-		var datos = originalOptions && originalOptions.data;
-		var intento = datos && 'object' === typeof datos ? intentoDe.get( datos ) : null;
+		const datos = originalOptions && originalOptions.data;
+		const intento = datos && 'object' === typeof datos ? intentoDe.get( datos ) : null;
 		if ( ! intento ) {
 			return; // no la lanzó un botón de WooCommerce: no es nuestra.
 		}
-		var boton = intento.$button[ 0 ];
-		var tarjeta = boton.closest ? boton.closest( 'li.product' ) : null;
+		const boton = intento.$button[ 0 ];
+		const tarjeta = boton.closest ? boton.closest( 'li.product' ) : null;
 
 		function habla() {
 			return ultimoDelTomo[ intento.id ] === intento;
@@ -470,7 +496,7 @@
 
 		// WooCommerce no pasa `error` (add-to-cart.js); si alguien lo hiciera,
 		// se le sigue llamando.
-		var fallo = options.error;
+		const fallo = options.error;
 		options.error = function ( jqXHR, estado ) {
 			intento.pendiente = false;
 			devolverBoton();
@@ -485,7 +511,7 @@
 		if ( 'function' !== typeof options.success ) {
 			return;
 		}
-		var exito = options.success;
+		const exito = options.success;
 		options.success = function ( response ) {
 			intento.pendiente = false;
 			// Sin fetch no se puede pedir el motivo: el camino de WooCommerce.

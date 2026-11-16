@@ -15,11 +15,15 @@ defined( 'ABSPATH' ) || exit;
  * Canonical parser shared by first-party checkout domain and adapters.
  *
  * @since 1.95.0
+ * @api
+ * @psalm-suppress UnusedConstructor
+ * @psalm-suppress UnusedConstructor
  */
 final class ChileanPhone {
 
 	/**
 	 * Utility class.
+	 * @psalm-suppress UnusedConstructor
 	 */
 	private function __construct() {}
 

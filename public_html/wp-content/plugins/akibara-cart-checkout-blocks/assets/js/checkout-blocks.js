@@ -1,8 +1,8 @@
 (function (wp) {
 	'use strict';
 
-	var legacyAddressStorageKey = 'akb_checkout_blocks_address';
-	var accessibilityQueued = false;
+	const legacyAddressStorageKey = 'akb_checkout_blocks_address';
+	let accessibilityQueued = false;
 
 	function purgeAddressStorage(storage) {
 		if (!storage) {
@@ -11,7 +11,7 @@
 
 		try {
 			storage.removeItem(legacyAddressStorageKey);
-		} catch (error) {
+		} catch (_error) {
 			// Browser storage is optional and must never block checkout.
 		}
 	}
@@ -19,19 +19,19 @@
 	function purgeLegacyAddressCaches() {
 		try {
 			purgeAddressStorage(window.localStorage);
-		} catch (error) {
+		} catch (_error) {
 			// Access to browser storage may be disabled.
 		}
 
 		try {
 			purgeAddressStorage(window.sessionStorage);
-		} catch (error) {
+		} catch (_error) {
 			// Access to browser storage may be disabled.
 		}
 	}
 
 	function enhancePaymentAccessibility() {
-		var walletButton = document.getElementById('mp-wallet-button');
+		const walletButton = document.getElementById('mp-wallet-button');
 		if (walletButton && !walletButton.getAttribute('aria-label')) {
 			walletButton.setAttribute('aria-label', 'Pagar con Mercado Pago');
 		}
@@ -40,14 +40,15 @@
 			image.setAttribute('alt', '');
 		});
 
-		var frameTitles = {
+		const frameTitles = {
 			cardNumber: 'Número de tarjeta',
 			expirationDate: 'Fecha de vencimiento',
 			securityCode: 'Código de seguridad'
 		};
 		Object.keys(frameTitles).forEach(function (name) {
-			var frame = document.querySelector('iframe[name="' + name + '"]');
+			const frame = document.querySelector('iframe[name="' + name + '"]');
 			if (frame && !frame.title) {
+				// eslint-disable-next-line security/detect-object-injection
 				frame.title = frameTitles[name];
 			}
 		});

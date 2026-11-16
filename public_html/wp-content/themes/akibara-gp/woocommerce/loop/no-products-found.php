@@ -6,7 +6,7 @@
  * Reemplaza el banner amarillo "no se han encontrado productos" + nada más por:
  *   - Heading "NO ENCONTRAMOS LO QUE BUSCAS"
  *   - Subtitle con sugerencia
- *   - Chips de categorías más buscadas (Manga, Cómics, Preventas, Shonen, Seinen, Shojo)
+ *   - Chips de categorías más buscadas (Manga, Cómics, Shonen, Seinen, Shojo, Manhwa)
  *   - Cross-sell con 4 productos populares
  *   - Hint final con link a /contacto/ para títulos no listados
  *
@@ -111,6 +111,6 @@ if ( is_array( $akb_terms ) ) {
 	<p class="akb-empty__hint">
 		¿No encuentras un título específico?
 		<a href="<?php echo esc_url( $akb_contact_url ); ?>">Escríbenos</a>
-		y lo traemos por ti.
+		y resolvemos tus dudas sobre el catálogo.
 	</p>
 </section>

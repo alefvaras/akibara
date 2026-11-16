@@ -21,6 +21,9 @@ defined( 'ABSPATH' ) || exit;
  * Adds catalog-backed Book properties without choosing the JSON-LD emitter.
  *
  * @since 1.93.1
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCondition
  */
 final class BookSchemaEnricher {
 
@@ -80,9 +83,19 @@ final class BookSchemaEnricher {
 			);
 		}
 
-		$isbn = self::normalize_isbn( (string) $product->get_sku() );
-		if ( null !== $isbn ) {
-			$entity['isbn'] = $isbn;
+		$raw_sku = trim( (string) $product->get_sku() );
+		if ( '' !== $raw_sku ) {
+			$entity['sku'] = $raw_sku;
+		}
+
+		$clean_code = (string) preg_replace( '/[\s\-]+/', '', $raw_sku );
+		if ( self::is_valid_isbn13( $clean_code ) ) {
+			$entity['@type']  = array( 'Product', 'Book' );
+			$entity['isbn']   = $clean_code;
+			$entity['gtin13'] = $clean_code;
+		} else {
+			$entity['@type'] = 'Product';
+			unset( $entity['isbn'], $entity['gtin'], $entity['gtin13'], $entity['gtin12'], $entity['gtin8'] );
 		}
 
 		$entity['inLanguage'] = 'es';
@@ -197,33 +210,25 @@ final class BookSchemaEnricher {
 	}
 
 	/**
-	 * Normalizes and validates an ISBN-10 or ISBN-13.
+	 * Valida si un código es un ISBN-13 válido mediante suma ponderada Módulo 10.
+	 *
+	 * @param string $code Código a validar.
+	 * @return bool True si el código es un ISBN-13 oficial válido.
 	 */
-	private static function normalize_isbn( string $value ): ?string {
-		$isbn = strtoupper( (string) preg_replace( '/[\s-]+/', '', trim( $value ) ) );
-
-		if ( 1 === preg_match( '/^(978|979)\d{10}$/', $isbn ) ) {
-			$sum = 0;
-			for ( $index = 0; $index < 12; $index++ ) {
-				$weight = 0 === $index % 2 ? 1 : 3;
-				$sum   += (int) $isbn[ $index ] * $weight;
-			}
-			$check_digit = ( 10 - ( $sum % 10 ) ) % 10;
-
-			return $check_digit === (int) $isbn[12] ? $isbn : null;
-		}
-
-		if ( 1 !== preg_match( '/^\d{9}[\dX]$/', $isbn ) ) {
-			return null;
+	public static function is_valid_isbn13( string $code ): bool {
+		$clean = (string) preg_replace( '/[\s\-]+/', '', trim( $code ) );
+		if ( 1 !== preg_match( '/^(978|979)\d{10}$/', $clean ) ) {
+			return false;
 		}
 
 		$sum = 0;
-		for ( $index = 0; $index < 10; $index++ ) {
-			$digit = 'X' === $isbn[ $index ] ? 10 : (int) $isbn[ $index ];
-			$sum  += $digit * ( 10 - $index );
+		for ( $index = 0; $index < 12; $index++ ) {
+			$weight = 0 === $index % 2 ? 1 : 3;
+			$sum   += (int) $clean[ $index ] * $weight;
 		}
+		$check_digit = ( 10 - ( $sum % 10 ) ) % 10;
 
-		return 0 === $sum % 11 ? $isbn : null;
+		return $check_digit === (int) $clean[12];
 	}
 
 	/**

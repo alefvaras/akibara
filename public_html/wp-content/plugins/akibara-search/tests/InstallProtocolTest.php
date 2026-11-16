@@ -81,12 +81,29 @@ final class InstallProtocolWpdb {
 			$args = $args[0];
 		}
 
+		$parts = explode( '%i', $query );
+		if ( count( $parts ) > 1 ) {
+			$rebuilt = $parts[0];
+			$i = 0;
+			for ( $j = 1; $j < count( $parts ); $j++ ) {
+				$val = $args[ $i ] ?? '';
+				$rebuilt .= '`' . str_replace( '`', '``', (string) $val ) . '`' . $parts[ $j ];
+				$i++;
+			}
+			$args = array_slice( $args, $i );
+			$query = $rebuilt;
+		}
+
+		if ( empty( $args ) ) {
+			return $query;
+		}
+
 		$escaped = array_map(
 			static fn( $value ): string => "'" . str_replace( "'", "''", (string) $value ) . "'",
 			$args
 		);
 
-		return vsprintf( str_replace( '%s', '%s', $query ), $escaped );
+		return vsprintf( $query, $escaped );
 	}
 
 	/**
@@ -489,11 +506,6 @@ final class InstallProtocolTest extends TestCase {
 	 * @testdox El sello físico de work exige engine, columnas e índices exactos.
 	 */
 	public function test_work_schema_verifier_checks_real_index_contract(): void {
-		$column_names = array(
-			'id', 'scope', 'run_id', 'product_id', 'wanted_seq', 'acked_seq',
-			'outcome', 'status', 'available_at', 'lease_token', 'lease_seq',
-			'lease_until', 'attempts', 'last_error', 'created_at', 'updated_at',
-		);
 		$columns      = $this->column_rows( 'work' );
 		$indexes      = $this->index_rows();
 

@@ -1,0 +1,7 @@
+[sqlfluff]
+dialect = mysql
+exclude_rules = ambiguous.column_count
+
+[sqlfluff:indentation]
+tab_space_size = 4
+indent_unit = tab

@@ -30,6 +30,7 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Log;
 use Akibara\Rewards\Support\Schema;
 
@@ -37,11 +38,30 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress UnusedVariable
  */
 final class Ledger {
 
 	public const META_BALANCE      = '_akb_rewards_points';
 	public const META_TOTAL_EARNED = '_akb_rewards_total_earned';
+
+	public const ACTION_ORDER                = 'order';
+	public const ACTION_WELCOME_BONUS        = 'welcome_bonus';
+	public const ACTION_REDEMPTION           = 'redemption';
+	public const ACTION_REDEMPTION_SHORT     = 'redemption_short';
+	public const ACTION_REDEMPTION_ADJUST    = 'redemption_adjust';
+	public const ACTION_REDEMPTION_RECAPTURE = 'redemption_recapture';
+	public const ACTION_REDEEM_REFUND        = 'redeem_refund';
+	public const ACTION_ORDER_REVERSAL       = 'order_reversal';
+	public const ACTION_ORDER_REFUND         = 'order_refund';
+	public const ACTION_ADMIN                = 'admin';
+	public const ACTION_EXPIRY               = 'expiry';
+	public const ACTION_BIRTHDAY             = 'birthday';
+	public const ACTION_REFERRAL             = 'referral';
+	public const ACTION_REFERRAL_REVERSAL    = 'referral_reversal';
+	public const ACTION_REVIEW               = 'review';
+	public const ACTION_REVIEW_PHOTO         = 'review_photo';
 
 	private const LOCK_TIMEOUT = 3;
 
@@ -329,10 +349,28 @@ final class Ledger {
 	 * @param string $ref_type        Tipo de referencia agrupada.
 	 * @param string $credit_action   Acción del crédito.
 	 * @param string $reversal_action Acción de su reversa.
+	 * @param int    $within_days     Ventana móvil en días (0 = histórico completo).
 	 * @return int
 	 */
-	public static function count_live_credits( int $user_id, string $ref_type, string $credit_action, string $reversal_action ): int {
+	public static function count_live_credits( int $user_id, string $ref_type, string $credit_action, string $reversal_action, int $within_days = 0 ): int {
 		global $wpdb;
+
+		if ( $within_days > 0 ) {
+			$now_dt = Dates::parse_or_null( Dates::now_db() ) ?? Dates::to_datetime();
+			$cutoff = $now_dt->modify( sprintf( '-%d days', $within_days ) )->format( Dates::MYSQL_DATETIME_FORMAT );
+
+			return (int) $wpdb->get_var(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- nombre de tabla propio (Schema::ledger_table()); los datos van por sus placeholders.
+					'SELECT COUNT(*) FROM ( SELECT ref_id FROM ' . Schema::ledger_table() . ' WHERE user_id = %d AND ref_type = %s AND action IN (%s,%s) GROUP BY ref_id HAVING SUM(delta) > 0 AND MAX(created_at) >= %s ) AS vigentes',
+					$user_id,
+					$ref_type,
+					$credit_action,
+					$reversal_action,
+					$cutoff
+				)
+			);
+		}
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -414,7 +452,7 @@ final class Ledger {
 			'ref_type'      => substr( $ref_type, 0, 20 ),
 			'ref_id'        => $ref_id,
 			'note'          => substr( $note, 0, 255 ),
-			'created_at'    => current_time( 'mysql' ),
+			'created_at'    => Dates::now_db(),
 		);
 		$fmt = array( '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s' );
 
@@ -426,6 +464,10 @@ final class Ledger {
 		$inserted = $wpdb->insert( Schema::ledger_table(), $row, $fmt );
 
 		if ( false === $inserted ) {
+			if ( null !== $event_key && self::event_exists( $event_key ) ) {
+				// Carrera de idempotencia: el registro ya fue asentado por otra conexión.
+				return self::balance_locked( $user_id );
+			}
 			Log::error( sprintf( 'INSERT del ledger falló para user %d: %s', $user_id, (string) $wpdb->last_error ) );
 			return null;
 		}

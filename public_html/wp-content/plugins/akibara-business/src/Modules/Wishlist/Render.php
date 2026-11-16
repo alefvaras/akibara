@@ -18,6 +18,9 @@ namespace Akibara\Business\Modules\Wishlist;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Render {
 
 	/**
@@ -39,7 +42,7 @@ final class Render {
 			return $this->empty_state_html();
 		}
 
-		$current_page = max( 1, isset( $_GET['wl_page'] ) ? absint( $_GET['wl_page'] ) : 1 );
+		$current_page = max( 1, isset( $_GET['wl_page'] ) ? absint( $_GET['wl_page'] ) : 1 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$total_pages  = max( 1, (int) ceil( $total / self::MAX_ITEMS_RENDERED ) );
 		if ( $current_page > $total_pages ) {
 			$current_page = $total_pages;
@@ -55,7 +58,7 @@ final class Render {
 	}
 
 	private function empty_state_html(): string {
-		$shop_url = method_exists( '\\Akibara\\Business\\Services\\NavigationLinks', 'shop_url' )
+		$shop_url = method_exists( '\\Akibara\\Business\\Services\\NavigationLinks', 'shop_url' ) // @phpstan-ignore function.alreadyNarrowedType
 			? \Akibara\Business\Services\NavigationLinks::shop_url()
 			: home_url( '/tienda/' );
 
@@ -110,7 +113,7 @@ final class Render {
 			'posts_per_page'      => self::MAX_ITEMS_RENDERED,
 			'no_found_rows'       => true,
 			'ignore_sticky_posts' => true,
-			'tax_query'           => array(
+			'tax_query'           => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 				array(
 					'taxonomy' => 'product_visibility',
 					'field'    => 'name',
@@ -133,52 +136,65 @@ final class Render {
 		$pintados = (int) $query->post_count;
 		$aviso    = self::aviso_grilla( $total, count( $product_ids ), $pintados );
 
+		$instock_count    = 0;
+		$outofstock_count = 0;
+		$grid_items_html  = '';
+		if ( $query->have_posts() ) {
+			ob_start();
+			/**
+			 * `content-product.php` (WC core) YA abre su propio `<li class="product...">`,
+			 * por eso NO envolvemos en `<li>` propio acá (eso causaba doble `<li>` y
+			 * cards "fantasma" vacíos en el grid).
+			 *
+			 * El botón corazón inyectado por Button.php en
+			 * `woocommerce_after_shop_loop_item_title` actúa como toggle: en este
+			 * contexto un click lo quita de favoritos. No agregamos un botón
+			 * "Quitar" extra para evitar duplicación UX.
+			 */
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				$loop_product = function_exists( 'wc_get_product' ) ? wc_get_product( get_the_ID() ) : null;
+				if ( $loop_product instanceof \WC_Product && $loop_product->is_in_stock() ) {
+					++$instock_count;
+				} else {
+					++$outofstock_count;
+				}
+				wc_get_template_part( 'content', 'product' );
+			}
+			wp_reset_postdata();
+			$grid_items_html = (string) ob_get_clean();
+		}
+
 		ob_start();
 		?>
 		<div class="woocommerce akb-wl-grid-wrap">
 			<p class="akb-wl-grid__lead">
-				<?php
+				<span class="akb-wl-grid__lead-count"><?php
 				echo esc_html(
 					1 === $total
 						? '1 producto guardado'
 						: sprintf( '%d productos guardados', $total )
 				);
-				?>
+				?></span>
 				<?php if ( '' !== $aviso ) : ?>
 					<span class="akb-wl-grid__nota"><?php echo esc_html( $aviso ); ?></span>
 				<?php endif; ?>
 			</p>
 
 			<nav class="akb-wl-filters" aria-label="Filtrar favoritos">
-				<button type="button" class="akb-wl-filter-tab is-active" data-wl-filter="all">Todos (<?php echo esc_html( (string) $total ); ?>)</button>
-				<button type="button" class="akb-wl-filter-tab" data-wl-filter="instock">🟢 En Bodega · Entrega Inmediata</button>
-				<button type="button" class="akb-wl-filter-tab" data-wl-filter="other">📦 Preventas y Agotados</button>
+				<button type="button" class="akb-wl-filter-tab is-active" data-wl-filter="all" aria-pressed="true">Todos (<?php echo esc_html( (string) $total ); ?>)</button>
+				<button type="button" class="akb-wl-filter-tab" data-wl-filter="instock" aria-pressed="false">🟢 En Bodega · Entrega Inmediata (<?php echo esc_html( (string) $instock_count ); ?>)</button>
+				<button type="button" class="akb-wl-filter-tab" data-wl-filter="outofstock" aria-pressed="false">🔴 Agotados (<?php echo esc_html( (string) $outofstock_count ); ?>)</button>
 			</nav>
 
-			<div class="akb-wl-empty-filter" style="display:none;padding:32px 16px;text-align:center;background:var(--aki-surface-2,#1a1a1a);border:1px solid var(--aki-border,#2a2a2e);margin:16px 0 24px">
-				<p style="margin:0 0 12px;font-size:1rem;color:var(--aki-gray-300,#b0b0b0)">No tienes favoritos en esta categoría.</p>
-				<button type="button" class="akb-wl-filter-tab akb-wl-btn-reset" data-wl-filter="all" style="background:var(--aki-buy-bg,#CC0010);color:#fff;border:none;padding:8px 18px;font-weight:700;cursor:pointer">Ver todos los favoritos</button>
+			<div class="akb-wl-empty-filter" style="display:none">
+				<p class="akb-wl-empty-filter__text">No tienes favoritos en esta categoría.</p>
+				<button type="button" class="akb-wl-btn-reset" data-wl-filter="all">Ver todos los favoritos</button>
 			</div>
 
-			<?php if ( $query->have_posts() ) : ?>
+			<?php if ( '' !== $grid_items_html ) : ?>
 				<ul class="products columns-3 akb-wl-grid">
-					<?php
-					/**
-					 * `content-product.php` (WC core) YA abre su propio `<li class="product...">`,
-					 * por eso NO envolvemos en `<li>` propio acá (eso causaba doble `<li>` y
-					 * cards "fantasma" vacíos en el grid).
-					 *
-					 * El botón corazón inyectado por Button.php en
-					 * `woocommerce_after_shop_loop_item_title` actúa como toggle: en este
-					 * contexto un click lo quita de favoritos. No agregamos un botón
-					 * "Quitar" extra para evitar duplicación UX.
-					 */
-					while ( $query->have_posts() ) :
-						$query->the_post();
-						wc_get_template_part( 'content', 'product' );
-					endwhile;
-					wp_reset_postdata();
-					?>
+					<?php echo $grid_items_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffer generado por wc_get_template_part( 'content', 'product' ). ?>
 				</ul>
 
 				<?php if ( $total_pages > 1 ) : ?>

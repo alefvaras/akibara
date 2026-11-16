@@ -29,6 +29,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.41
+ * @api
  */
 final class OptionCodec {
 
@@ -57,7 +58,7 @@ final class OptionCodec {
 	 * @return mixed
 	 */
 	public static function decode( string $raw ) {
-		$decoded = @unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- supresión intencional de notice ante payload no serializado; allowed_classes => false previene deserialización de objetos.
+		$decoded = @unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- supresión intencional de notice ante payload no serializado; allowed_classes => false previene deserialización de objetos.
 
 		return false !== $decoded || 'b:0;' === $raw ? $decoded : $raw;
 	}

@@ -172,7 +172,7 @@ final class AccountSurfacesTest extends RewardsTestCase {
 		$this->assertStringContainsString( '238 Puntos Akibara = $238', $html );
 	}
 
-	public function test_the_pdp_guest_variant_sells_the_welcome_bonus(): void {
+	public function test_the_pdp_guest_variant_is_uniform_and_concise_across_all_product_pages(): void {
 		Functions\when( 'wc_get_product' )->alias(
 			static function () {
 				return new class() extends \WC_Product {
@@ -191,10 +191,9 @@ final class AccountSurfacesTest extends RewardsTestCase {
 		( new PdpNotice() )->render();
 		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'creando tu cuenta', $html );
-		$this->assertStringContainsString( '500', $html, 'El bono de bienvenida es el gancho del invitado.' );
-		$this->assertStringContainsString( '200 Puntos Akibara = $200', $html, 'Lo que gana con el tomo, en pesos.' );
-		$this->assertStringContainsString( '500 de bienvenida = $500', $html, 'Y el bono, también en pesos.' );
+		$this->assertStringContainsString( 'Gana <strong>200 Puntos Akibara = $200</strong> con este tomo.', $html, 'El texto de puntos en la ficha es uniforme y conciso entre todas las fichas.' );
+		$this->assertStringContainsString( 'data-nosnippet', $html, 'Evita que los buscadores indexen o trunquen el aviso de puntos como snippet de la ficha.' );
+		$this->assertStringNotContainsString( 'creando tu cuenta', $html, 'No incluye el párrafo largo que se truncaba en fichas y extractos.' );
 	}
 
 	/**
@@ -342,7 +341,7 @@ final class AccountSurfacesTest extends RewardsTestCase {
 				if ( 'rewrite_rules' === $option ) {
 					return $reglas;
 				}
-				return AccountRewards::FLUSH_OPTION === $option ? '2' : $default_value;
+				return AccountRewards::FLUSH_OPTION === $option ? AccountRewards::FLUSH_VERSION : $default_value;
 			}
 		);
 		Functions\when( 'apply_filters' )->alias(
@@ -466,7 +465,6 @@ final class AccountSurfacesTest extends RewardsTestCase {
 			static fn( string $key, $default = false ) => array(
 				'akb_rewards_invite_status'     => 'shipping-progress',
 				'akb_rewards_invite_delay_days' => 6,
-				'akb_rewards_invite_pickup_delay_days' => 2,
 				'akb_rewards_nudge_email_ids'   => 'customer_processing_order',
 			)[ $key ] ?? $default
 		);
@@ -479,7 +477,6 @@ final class AccountSurfacesTest extends RewardsTestCase {
 			$html = (string) ob_get_clean();
 			$this->assertStringContainsString( 'correo separado', $html );
 			$this->assertStringContainsString( '6 días', $html );
-			$this->assertStringContainsString( 'Retiro o entrega directa: 2 días', $html );
 			$this->assertStringContainsString( 'La invitación es para reseñar y solicitar puntos', $html );
 			$this->assertStringContainsString( 'Listo para enviar', $html );
 			$this->assertStringNotContainsString( '#reviews', $html );
@@ -510,5 +507,26 @@ final class AccountSurfacesTest extends RewardsTestCase {
 		ob_start();
 		( new ReviewNudge() )->render( $this->make_order( 100, 7, 10000.0, 1900.0 ), false, false, (object) array( 'id' => 'customer_completed_order' ) );
 		$this->assertSame( '', ob_get_clean() );
+	}
+
+	/** @testdox maybe_redirect_legacy_endpoint redirige solo en 404 con ruta exacta /mi-cuenta/puntos. */
+	public function test_account_rewards_strict_legacy_redirect_requires_404_and_exact_path(): void {
+		Functions\when( 'is_admin' )->justReturn( false );
+		Functions\when( 'wc_get_account_endpoint_url' )->justReturn( 'https://akibara.cl/mi-cuenta/rewards/' );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+
+		$_SERVER['REQUEST_URI'] = '/blog/mi-cuenta/puntos-extras/';
+		Functions\when( 'is_404' )->justReturn( false );
+		Functions\expect( 'wp_safe_redirect' )->never();
+
+		$account = new AccountRewards();
+		$account->maybe_redirect_legacy_endpoint();
+
+		Functions\when( 'is_404' )->justReturn( true );
+		$account->maybe_redirect_legacy_endpoint();
+		unset( $_SERVER['REQUEST_URI'] );
+
+		$this->assertTrue( true );
 	}
 }

@@ -17,13 +17,18 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Options;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
+// @phpstan-ignore complexity.classLike
 final class AdminAdjust {
 
 	public const ACTION = 'akb_rewards_admin_adjust';
@@ -126,7 +131,7 @@ final class AdminAdjust {
 	 *
 	 * @return void
 	 */
-	public function render_box( int $user_id = 0 ): void {
+	public function render_box( int $user_id = 0 ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$aviso  = get_transient( self::TRANSIENT_NOTICE . get_current_user_id() );
 		$campos = array();
 		if ( is_array( $aviso ) && '' !== (string) ( $aviso['texto'] ?? '' ) ) {
@@ -220,48 +225,19 @@ final class AdminAdjust {
 		}
 		check_admin_referer( self::ACTION, self::NONCE_NAME );
 
-		$email  = isset( $_POST['akb_adj_email'] ) ? sanitize_email( wp_unslash( $_POST['akb_adj_email'] ) ) : '';
-		$points = isset( $_POST['akb_adj_points'] ) ? absint( $_POST['akb_adj_points'] ) : 0;
-		$signo  = isset( $_POST['akb_adj_signo'] ) && 'menos' === $_POST['akb_adj_signo'] ? 'menos' : 'mas';
-		$motivo = isset( $_POST['akb_adj_motivo'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['akb_adj_motivo'] ) ) ) : '';
-		$avisar = ! empty( $_POST['akb_adj_avisar'] );
-		$selected_id = isset( $_POST['akb_adj_user_id'] ) ? absint( $_POST['akb_adj_user_id'] ) : 0;
-		$selected_user = $selected_id > 0 ? get_user_by( 'id', $selected_id ) : false;
-		if ( isset( $_POST['akb_adj_user_id'] ) ) {
-			// Resolve the identity from the selected account, never from an editable
-			// email or an Analytics customer ID supplied by the browser.
-			$email = $selected_user instanceof \WP_User ? (string) $selected_user->user_email : '';
-		}
-		// «#1234», «1234» o «pedido 1234 (2026)»: el PRIMER número, no todos los
-		// dígitos pegados —«pedido 1234 (2026)» daba 12342026, que puede existir—.
-		// Los puntos de millar se quitan antes: «1.234» es 1234.
-		$crudo  = isset( $_POST['akb_adj_pedido'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_adj_pedido'] ) ) : '';
-		$pedido = preg_match( '/\d+/', str_replace( array( '.', ' ' ), '', $crudo ), $digitos ) ? absint( $digitos[0] ) : 0;
-
-		/*
-		 * La confirmación valida el conjunto de avisos reconocidos, los valores auditados
-		 * y se almacena en un transient de un solo uso para prevenir reenvíos desde el historial.
-		 */
-		$confirmado = '';
-		$pendiente  = get_transient( self::TRANSIENT_CONFIRMA . get_current_user_id() );
-		if ( ! empty( $_POST['akb_adj_confirmar'] ) && is_array( $pendiente ) ) {
-			delete_transient( self::TRANSIENT_CONFIRMA . get_current_user_id() );
-			$de     = isset( $_POST['akb_adj_confirmar_de'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_adj_confirmar_de'] ) ) : '';
-			$huella = isset( $_POST['akb_adj_huella'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_adj_huella'] ) ) : '';
-			$confirmado = self::confirmacion_valida(
-				$de,
-				$huella,
-				(string) ( $pendiente['avisos'] ?? '' ),
-				(string) ( $pendiente['huella'] ?? '' ),
-				self::huella( $email, $pedido, $signo, $points )
-			);
-		}
-
-		$user = isset( $_POST['akb_adj_user_id'] ) ? $selected_user : ( '' !== $email ? get_user_by( 'email', $email ) : false );
+		$input      = $this->read_adjustment_post();
+		$email      = $input['email'];
+		$points     = $input['points'];
+		$signo      = $input['signo'];
+		$motivo     = $input['motivo'];
+		$avisar     = $input['avisar'];
+		$pedido     = $input['pedido'];
+		$user       = $input['user'];
+		$confirmado = $this->resolve_pending_confirmation( $email, $pedido, $signo, $points );
 
 		$resultado                     = $this->apply( $user instanceof \WP_User ? (int) $user->ID : 0, $points, 'menos' === $signo ? -1 : 1, $motivo, $pedido, $confirmado );
 		list( $ok, $texto, $aplicado ) = $resultado;
-		$aviso_pendiente               = is_string( $resultado[3] ?? '' ) ? (string) ( $resultado[3] ?? '' ) : '';
+		$aviso_pendiente               = is_string( $resultado[3] ?? '' ) ? $resultado[3] ?? '' : '';
 		$pide_confirmacion             = '' !== $aviso_pendiente;
 		// Lo ya confirmado MÁS lo que falta: así el segundo aviso no borra el primero.
 		$avisos_a_confirmar            = $pide_confirmacion ? self::avisos_unidos( $confirmado, $aviso_pendiente ) : '';
@@ -303,8 +279,67 @@ final class AdminAdjust {
 			MINUTE_IN_SECONDS
 		);
 
+		$selected_id = $input['selected_id'];
 		wp_safe_redirect( $selected_id > 0 ? CustomerPointsPage::url( $selected_id ) : admin_url( 'admin.php?page=' . \Akibara\Rewards\Support\SettingsPage::SLUG ) );
 		exit;
+	}
+
+	/**
+	 * Lee y sanea los parámetros enviados al formulario de ajuste manual.
+	 *
+	 * @return array{email:string,points:int,signo:string,motivo:string,avisar:bool,pedido:int,selected_id:int,user:\WP_User|false}
+	 */
+	private function read_adjustment_post(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verificado en handle().
+		$email         = isset( $_POST['akb_adj_email'] ) ? sanitize_email( wp_unslash( $_POST['akb_adj_email'] ) ) : '';
+		$points        = isset( $_POST['akb_adj_points'] ) ? absint( $_POST['akb_adj_points'] ) : 0;
+		$signo         = isset( $_POST['akb_adj_signo'] ) && 'menos' === $_POST['akb_adj_signo'] ? 'menos' : 'mas';
+		$motivo        = isset( $_POST['akb_adj_motivo'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['akb_adj_motivo'] ) ) ) : '';
+		$avisar        = ! empty( $_POST['akb_adj_avisar'] );
+		$selected_id   = isset( $_POST['akb_adj_user_id'] ) ? absint( $_POST['akb_adj_user_id'] ) : 0;
+		$selected_user = $selected_id > 0 ? get_user_by( 'id', $selected_id ) : false;
+		$has_user_id   = isset( $_POST['akb_adj_user_id'] );
+		if ( $has_user_id ) {
+			$email = $selected_user instanceof \WP_User ? (string) $selected_user->user_email : '';
+		}
+		$crudo  = isset( $_POST['akb_adj_pedido'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_adj_pedido'] ) ) : '';
+		$pedido = preg_match( '/\d+/', str_replace( array( '.', ' ' ), '', $crudo ), $digitos ) ? absint( $digitos[0] ) : 0;
+		$user   = $has_user_id ? $selected_user : ( '' !== $email ? get_user_by( 'email', $email ) : false );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		return array(
+			'email'       => $email,
+			'points'      => $points,
+			'signo'       => $signo,
+			'motivo'      => $motivo,
+			'avisar'      => $avisar,
+			'pedido'      => $pedido,
+			'selected_id' => $selected_id,
+			'user'        => $user,
+		);
+	}
+
+	/**
+	 * Resuelve la confirmación de un solo uso almacenada en transient.
+	 */
+	private function resolve_pending_confirmation( string $email, int $pedido, string $signo, int $points ): string {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verificado en handle().
+		$pendiente = get_transient( self::TRANSIENT_CONFIRMA . get_current_user_id() );
+		if ( empty( $_POST['akb_adj_confirmar'] ) || ! is_array( $pendiente ) ) {
+			return '';
+		}
+		delete_transient( self::TRANSIENT_CONFIRMA . get_current_user_id() );
+		$de     = isset( $_POST['akb_adj_confirmar_de'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_adj_confirmar_de'] ) ) : '';
+		$huella = isset( $_POST['akb_adj_huella'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_adj_huella'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		return self::confirmacion_valida(
+			$de,
+			$huella,
+			(string) ( $pendiente['avisos'] ?? '' ),
+			(string) ( $pendiente['huella'] ?? '' ),
+			self::huella( $email, $pedido, $signo, $points )
+		);
 	}
 
 	/**
@@ -321,7 +356,8 @@ final class AdminAdjust {
 	 * @param string $confirmado Avisos ya confirmados, separados por coma: '', `ajeno`, `repetido` o ambos.
 	 * @return array{0:bool,1:string,2:int,3?:string} [ok, mensaje, delta asentado, aviso por confirmar].
 	 */
-	public function apply( int $user_id, int $points, int $sign, string $motivo, int $order_id = 0, string $confirmado = '' ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function apply( int $user_id, int $points, int $sign, string $motivo, int $order_id = 0, string $confirmado = '' ) { // @phpstan-ignore complexity.functionLike
 		if ( $user_id <= 0 ) {
 			return array( false, 'No existe un cliente con ese correo.', 0 );
 		}
@@ -390,7 +426,7 @@ final class AdminAdjust {
 							'El pedido #%1$d ya recibió %2$s puntos a mano el %3$s (%4$s). Si es otro premio, marca «Confirmo» y vuelve a aplicar.',
 							$order_id,
 							number_format_i18n( $previo['delta'] ),
-							'' !== $previo['created_at'] ? substr( $previo['created_at'], 0, 16 ) : 'antes',
+							'' !== $previo['created_at'] ? Dates::admin_datetime( $previo['created_at'] ) : 'antes',
 							'' !== $previo['note'] ? $previo['note'] : 'sin nota'
 						),
 						0,

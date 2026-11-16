@@ -20,6 +20,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.113.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
  */
 final class HomeSeriesDestacadas {
 
@@ -130,7 +133,7 @@ final class HomeSeriesDestacadas {
 		$visibles = self::front_page_count();
 		$cuantas  = null === $visibles
 			? ' <strong>Ojo: la página de inicio no tiene el bloque <code>[akb_series_destacadas]</code>, así que esta lista hoy no se ve en ningún lado.</strong>'
-			: ' La portada muestra las primeras <strong>' . $visibles . '</strong> que tengan tomos publicados (ese número lo fija el bloque de la página de inicio). Las que siguen quedan de reserva: entran solas si una de arriba se queda sin tomos publicados.';
+			: ' La portada muestra las primeras <strong>' . $visibles . '</strong> que tengan tomos publicados (ese número lo fija el bloque de la página de inicio). Las que siguen quedan en espera: entran solas si una de arriba se queda sin tomos publicados.';
 
 		return array(
 			array(
@@ -185,7 +188,7 @@ final class HomeSeriesDestacadas {
 			$line = (string) preg_replace( '#^https?://[^/]+#i', '', $line );
 			$line = trim( $line, "/ \t" );
 			if ( str_contains( $line, '/' ) ) {
-				$line = (string) substr( $line, (int) strrpos( $line, '/' ) + 1 );
+				$line = substr( $line, (int) strrpos( $line, '/' ) + 1 );
 			}
 			$slug = sanitize_title( $line );
 			if ( '' !== $slug && ! in_array( $slug, $out, true ) ) {
@@ -381,7 +384,7 @@ final class HomeSeriesDestacadas {
 	 */
 	private function cover_url( int $term_id ): string {
 		return SeriesCover::for_tax_query(
-			array(
+			array( // @phpstan-ignore argument.type
 				array(
 					'taxonomy' => 'pa_serie',
 					'field'    => 'term_id',

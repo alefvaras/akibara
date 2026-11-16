@@ -291,4 +291,52 @@ final class RateLimitClientIpTest extends TestCase {
 		self::assertFalse( RateLimit::per_minute( 'cache-publish-race', 3 ) );
 		self::assertTrue( RateLimit::per_minute( 'cache-publish-race', 3 ) );
 	}
+
+	/**
+	 * @testdox Un usuario autenticado dispone del tope ampliado (60/hora) con clave basada en su user_id.
+	 */
+	public function test_authenticated_user_has_higher_bis_limit_and_user_key(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.10';
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_using_ext_object_cache' )->justReturn( true );
+
+		$cache = array();
+		Functions\when( 'wp_cache_get' )->alias(
+			static function ( string $key, string $group ) use ( &$cache ) {
+				return $cache[ $group . '|' . $key ] ?? false;
+			}
+		);
+		Functions\when( 'wp_cache_incr' )->alias(
+			static function ( string $key, int $offset, string $group ) use ( &$cache ): int {
+				$cache_key           = $group . '|' . $key;
+				$cache[ $cache_key ] = (int) ( $cache[ $cache_key ] ?? 0 ) + $offset;
+				return (int) $cache[ $cache_key ];
+			}
+		);
+		Functions\when( 'wp_cache_add' )->alias(
+			static function ( string $key, $value, string $group, int $ttl ) use ( &$cache ): bool {
+				unset( $ttl );
+				$cache_key = $group . '|' . $key;
+				if ( array_key_exists( $cache_key, $cache ) ) {
+					return false;
+				}
+				$cache[ $cache_key ] = $value;
+				return true;
+			}
+		);
+
+		// 1. Visitante anónimo (user_id = 0): límite 12/hora
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		for ( $i = 1; $i <= 12; $i++ ) {
+			self::assertFalse( RateLimit::exceeded( 'bis' ), "Envío {$i} de anónimo debe permitirse." );
+		}
+		self::assertTrue( RateLimit::exceeded( 'bis' ), 'Envío 13 de anónimo debe exceder 12/h.' );
+
+		// 2. Coleccionista autenticado (user_id = 42): clave independiente y límite 60/hora
+		Functions\when( 'get_current_user_id' )->justReturn( 42 );
+		for ( $i = 1; $i <= 60; $i++ ) {
+			self::assertFalse( RateLimit::exceeded( 'bis' ), "Envío {$i} de autenticado debe permitirse." );
+		}
+		self::assertTrue( RateLimit::exceeded( 'bis' ), 'Envío 61 de autenticado debe exceder 60/h.' );
+	}
 }

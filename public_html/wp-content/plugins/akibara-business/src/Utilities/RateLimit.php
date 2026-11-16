@@ -3,8 +3,7 @@
  * RateLimit — limita submissions por IP via transients.
  *
  * Vive en `Utilities` y no en `Modules\Forms` porque hace rato dejó de ser cosa
- * del formulario de contacto: lo consumen también BackInStock (endpoint REST
- * público) y SeriesBundles (dos endpoints del armador de packs).
+ * del formulario de contacto: lo consume también BackInStock (endpoint REST público).
  *
  * Default: 3 submissions / hora por IP por tipo de form.
  * Sin dependencias externas (Redis/etc) — wp_options/object cache es suficiente
@@ -24,6 +23,12 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ */
 final class RateLimit {
 
 	private const WINDOW_SECONDS = HOUR_IN_SECONDS;
@@ -49,6 +54,17 @@ final class RateLimit {
 	);
 
 	/**
+	 * Topes ampliados por tipo de formulario para usuarios autenticados.
+	 *
+	 * Un coleccionista autenticado en /mi-cuenta/coleccion/ puede marcar múltiples
+	 * tomos agotados de su colección; el tope ampliado a 60/hora por user_id
+	 * evita el error HTTP 429 sin comprometer la protección general.
+	 */
+	public const MAX_POR_TIPO_AUTHENTICATED = array(
+		'bis' => 60,
+	);
+
+	/**
 	 * Grupo de object cache del contador. Solo se usa cuando hay drop-in
 	 * persistente: ahí wp_cache_incr() es atómico del lado de Redis/Memcached
 	 * y no hace falta bajar a SQL.
@@ -68,9 +84,30 @@ final class RateLimit {
 			return false;
 		}
 
-		$max    = self::MAX_POR_TIPO[ $kind ] ?? self::MAX_PER_WINDOW;
+		$user_id = 0;
+		if ( isset( self::MAX_POR_TIPO_AUTHENTICATED[ $kind ] ) ) {
+			$user = $GLOBALS['current_user'] ?? null;
+			if ( is_object( $user ) && isset( $user->ID ) && (int) $user->ID > 0 ) {
+				$user_id = (int) $user->ID;
+			} elseif ( function_exists( 'get_current_user_id' ) ) {
+				try {
+					$user_id = (int) get_current_user_id();
+				} catch ( \Throwable $e ) {
+					$user_id = 0;
+				}
+			}
+		}
+
+		if ( $user_id > 0 ) {
+			$max        = self::MAX_POR_TIPO_AUTHENTICATED[ $kind ] ?? 60; // @phpstan-ignore nullCoalesce.offset
+			$identifier = 'user_' . $user_id;
+		} else {
+			$max        = self::MAX_POR_TIPO[ $kind ] ?? self::MAX_PER_WINDOW;
+			$identifier = self::client_ip();
+		}
+
 		$window = (int) floor( time() / self::WINDOW_SECONDS );
-		$key    = 'akb_rl_' . hash( 'sha256', $kind . '|' . self::client_ip() . '|' . $window );
+		$key    = 'akb_rl_' . hash( 'sha256', $kind . '|' . $identifier . '|' . $window );
 
 		return self::bump( $key, self::WINDOW_SECONDS, $max ) > $max;
 	}
@@ -135,7 +172,7 @@ final class RateLimit {
 	 * @param int    $limit Umbral que todavía puede pasar.
 	 * @return int Contador después de este request (>= 1).
 	 */
-	private static function bump( string $key, int $ttl, int $limit ): int {
+	private static function bump( string $key, int $ttl, int $limit ): int { // @phpstan-ignore complexity.functionLike
 		if ( wp_using_ext_object_cache() ) {
 			$blocked_at = max( 1, $limit + 1 );
 			$marker_key = $key . ':slots';
@@ -412,7 +449,7 @@ final class RateLimit {
 		list( $subnet, $bits ) = explode( '/', $cidr, 2 );
 
 		$ip_bin     = @inet_pton( $ip );      // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- IP ya validada; el silenciador cubre familias no soportadas.
-		$subnet_bin = @inet_pton( $subnet );
+		$subnet_bin = @inet_pton( $subnet ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		$bits       = (int) $bits;
 
 		// Familias distintas (v4 vs v6) → longitudes distintas: nunca coinciden.

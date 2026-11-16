@@ -15,6 +15,7 @@
  */
 
 :root {
+
     /* UI dark-first (fondo #0A0A0A, theme-color oscuro): le decimos al UA que
      * pinte los controles nativos en dark — scrollbars, <select>, inputs de
      * fecha, autofill y spinners — para que no salgan en claro sobre el fondo. */
@@ -26,6 +27,7 @@
     --aki-red-bright:    var(--wp--preset--color--primary-bright);
     --aki-red-dark:      var(--wp--preset--color--primary-dark);
     --aki-red-readable:  var(--wp--preset--color--primary-readable);
+
     /* Rojo para TEXTO chico sobre superficies elevadas: red-bright (#FF0A1D) da
      * 4.74:1 sobre la superficie real de card (#121212) pero cae a 4.03:1 sobre
      * surface-3 (#222) — falla AA justo en los contenedores más claros. Este
@@ -35,12 +37,10 @@
      * — ya hubo comments con ratios falsos por medir contra el token equivocado. */
     --aki-red-text:      var(--wp--preset--color--primary-text);
     --aki-yellow:        var(--wp--preset--color--accent);
-    --aki-yellow-bright: var(--wp--preset--color--accent-bright);
-    --aki-yellow-dark:   var(--wp--preset--color--accent-dark);
-    --aki-accent:        var(--wp--preset--color--accent);
 
     /* ─── Status ───────────────────────────────────────────────── */
     --aki-success: var(--wp--preset--color--success);
+
     /* Ramp de verdes derivado de --aki-success (single source of truth:
      * cambiar success en theme.json propaga a todo el ramp). bright = texto/
      * íconos sobre dark; deep = bordes de notificación y confirmación. */
@@ -48,19 +48,18 @@
     --aki-green-deep:   color-mix(in srgb, var(--aki-success) 60%, var(--aki-black));
     --aki-warning: var(--wp--preset--color--warning);
     --aki-error:   var(--wp--preset--color--error);
-    --aki-info:    var(--wp--preset--color--info);
 
     /* ─── Surfaces / neutral ───────────────────────────────────── */
     --aki-black:        var(--wp--preset--color--black);
     --aki-surface:      var(--wp--preset--color--surface);
-    /* surface-1: token configurable por el owner (ThemeCustomizer del plugin
-     * lo re-inyecta en :root más abajo en el head). Fallback aquí para que
-     * la elevación exista aunque el plugin esté inactivo. */
+
+    /* surface-1: elevación base sobre el background (#111111 vía theme.json). */
     --aki-surface-1:    var(--aki-surface);
     --aki-surface-2:    var(--wp--preset--color--surface-2);
     --aki-surface-3:    var(--wp--preset--color--surface-3);
     --aki-border:       var(--wp--preset--color--border);
     --aki-border-light: var(--wp--preset--color--border-light);
+
     /* Borde de campos de formulario en reposo. --aki-border (#2A2A2E) sobre los
        surfaces oscuros da ~1.3:1 (los inputs vacíos se ven como huecos, falla
        WCAG 1.4.11 que pide ≥3:1 para límites de UI). #707070 da 3.52:1 sobre
@@ -75,11 +74,9 @@
     --aki-gray-500:     var(--wp--preset--color--gray-500);
     --aki-gray-600:     var(--wp--preset--color--gray-600);
     --aki-gray-700:     var(--wp--preset--color--gray-700);
-    --aki-gray-800:     var(--wp--preset--color--gray-800);
     --aki-gray-900:     var(--wp--preset--color--gray-900);
 
     --aki-text-muted: var(--aki-gray-400);
-    --aki-muted:      var(--aki-gray-400);
     --aki-light:      var(--aki-gray-200);
 
     /* ─── Typography aliases ───────────────────────────────────── */
@@ -87,7 +84,7 @@
     --font-display: var(--font-heading);
     --font-body:    var(--wp--preset--font-family--body);
     --font-sans:    var(--font-body);
-    --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-mono:    'JetBrains Mono', ui-monospace, sfmono-regular, menlo, monaco, consolas, monospace;
 
     --weight-normal:   400;
     --weight-medium:   500;
@@ -100,6 +97,7 @@
     --text-base: var(--wp--preset--font-size--base);
     --text-lg:   var(--wp--preset--font-size--lg);
     --text-xl:   var(--wp--preset--font-size--xl);
+
     /* WP sanitiza slugs con transición dígito→letra agregando guión:
      * theme.json "2xl" → CSS var --wp--preset--font-size--2-xl. */
     --text-2xl:  var(--wp--preset--font-size--2-xl);
@@ -148,7 +146,6 @@
 
     /* ─── Texturas Manga Físico / Ben-Day Screentones (網点) ────────── */
     --aki-screentone: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 8px 8px;
-    --aki-screentone-dense: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px) 0 0 / 6px 6px;
     --aki-screentone-red: radial-gradient(circle, rgba(230, 0, 18, 0.15) 1.2px, transparent 1.2px) 0 0 / 8px 8px;
 
     --transition-fast:   var(--wp--custom--transition--fast);
@@ -165,6 +162,7 @@
     --z-overlay:  var(--wp--custom--z--overlay);
     --z-modal:    var(--wp--custom--z--modal);
     --z-toast:    var(--wp--custom--z--toast);
+
     /* Capas con nombre por encima de la escala de z-index.
      * Jerarquía estricta: sticky (200) < modal/drawer (400) < chat flotante (9000)
      * < barra de lectura (9999) < carrito lateral (10400) < enlace saltar al contenido
@@ -202,30 +200,31 @@
     --aki-status-ok:       var(--aki-green-bright);
     --aki-status-warn:     var(--aki-warning);
     --aki-status-alert:    var(--aki-red-text);
-    --aki-status-preorder: var(--aki-red-bright);
     --aki-status-out-bg:   var(--aki-gray-700);
     --aki-status-out-fg:   var(--aki-gray-200);
-}
 
-/* ─── Franja inferior fija (móvil, ≤1024px) ───────────────────────
- * Tokens de dimensionamiento para las barras inferiores fijadas
- * (bottom navigation y barra sticky de compra). */
-:root {
+    /* ─── Franja inferior fija (móvil, ≤1024px) y barra de anuncios ───
+     * Tokens de dimensionamiento para las barras inferiores fijadas
+     * (bottom navigation y barra sticky de compra) y reserva de announcement bar. */
     --bottom-nav-height:    var(--wp--custom--layout--bottom-nav-height, 66px);
     --buy-bar-height:       var(--wp--custom--layout--buy-bar-height, 68px);
     --franja-inferior-peor: calc(var(--bottom-nav-height) + var(--buy-bar-height));
+    --akb-ann-bar-h:        0;
 }
 
 /* Altura de cabecera en escritorio (>= 1025px) para compensación de anclas y scroll-margin. */
 @media (min-width: 1025px) {
+
     :root {
         --header-height: 130px;
     }
 }
 
 /* ─── Reduced motion override (WCAG 2.3.3) ─────────────────────── */
+
 /* Global cascade: disable ALL transitions, animations, and scroll-behavior */
 @media (prefers-reduced-motion: reduce) {
+
     :root {
         --transition-fast:   0ms;
         --transition-base:   0ms;
@@ -280,6 +279,7 @@
 }
 
 /* ─── Base focus ring (WCAG 2.4.13) ────────────────────────────── */
+
 /* Persona-style double shadow: yellow ring + black outer ring */
 a:focus-visible,
 button:focus-visible,
@@ -310,6 +310,7 @@ textarea:focus-visible,
  * Se excluye #main mediante :where() para evitar recuadros perimetrales
  * involuntarios al activar el salto al contenido. */
 @media (forced-colors: active) {
+
     :focus-visible:where(:not(#main)) {
         outline: 2px solid Highlight !important;
         outline-offset: 2px;

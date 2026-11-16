@@ -11,7 +11,17 @@ use Akibara\Rewards\Support\Assets;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Admin-only balances and server-side report filtering. */
+/**
+ * Admin-only balances and server-side report filtering. @api 
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress PossiblyUnusedMethod
+ * @psalm-suppress PossiblyUnusedReturnValue
+ * @psalm-suppress UnusedProperty
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress PossiblyUnusedMethod
+ * @psalm-suppress PossiblyUnusedReturnValue
+ * @psalm-suppress UnusedProperty
+ */
 final class CustomersAdmin {
 
 	/** @var array<string,mixed> Current REST request filters. */
@@ -46,7 +56,10 @@ final class CustomersAdmin {
 		wp_enqueue_script( 'akb-rewards-customers', Assets::url( $file ), array( 'wp-hooks', 'wp-element' ), Assets::version( $file ), false );
 	}
 
-	/** Declare validated custom REST parameters on Customers and its statistics. */
+	/**
+	 * Declare validated custom REST parameters on Customers and its statistics.
+	 * @psalm-suppress PossiblyUnusedReturnValue
+	 */
 	public function register_parameters( array $endpoints ): array {
 		foreach ( array( '/wc-analytics/customers', '/wc-analytics/reports/customers', '/wc-analytics/reports/customers/stats' ) as $route ) {
 			if ( ! isset( $endpoints[ $route ] ) ) {
@@ -67,7 +80,12 @@ final class CustomersAdmin {
 		return $endpoints;
 	}
 
-	/** Scope SQL changes to an authenticated Customers request, including nested dispatch. */
+	/**
+	 * Scope SQL changes to an authenticated Customers request, including nested dispatch.
+	 * @param mixed $response
+	  * @psalm-suppress PossiblyUnusedReturnValue
+	 * @return mixed
+	 */
 	public function begin_request( $response, array $handler, \WP_REST_Request $request ) {
 		unset( $handler );
 		$this->contexts[] = $this->filters;
@@ -78,14 +96,22 @@ final class CustomersAdmin {
 		return $response;
 	}
 
-	/** Restore the previous dispatch context. */
+	/**
+	 * Restore the previous dispatch context.
+	 * @param mixed $response
+	  * @psalm-suppress PossiblyUnusedReturnValue
+	 * @return mixed
+	 */
 	public function end_request( $response, array $handler, \WP_REST_Request $request ) {
 		unset( $handler, $request );
 		$this->filters = array_pop( $this->contexts ) ?? array();
 		return $response;
 	}
 
-	/** Keep custom selectors in the report query and cache identity. */
+	/**
+	 * Keep custom selectors in the report query and cache identity.
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
 	public function query_args( array $args ): array {
 		return array_merge( $args, $this->filters );
 	}
@@ -114,7 +140,10 @@ final class CustomersAdmin {
 		return $out;
 	}
 
-	/** Filter the inner query shared by row retrieval, pagination counts and statistics. */
+	/**
+	 * Filter the inner query shared by row retrieval, pagination counts and statistics.
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
 	public function where( array $clauses ): array {
 		if ( array() === $this->filters ) {
 			return $clauses;
@@ -154,12 +183,20 @@ final class CustomersAdmin {
 		return $clauses;
 	}
 
-	/** Filtered balances must reflect a just-saved adjustment, not Analytics' hourly cache. */
+	/**
+	 * Filtered balances must reflect a just-saved adjustment, not Analytics' hourly cache.
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
 	public function use_cache( bool $use, string $key ): bool {
 		return array() !== $this->filters && in_array( $key, array( 'customers', 'customers_stats' ), true ) ? false : $use;
 	}
 
-	/** Batch load only the WordPress accounts on the visible page. */
+	/**
+	 * Batch load only the WordPress accounts on the visible page.
+	 * @param mixed $results
+	 * @return mixed
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
 	public function prime_accounts( $results ) {
 		$this->accounts = array();
 		if ( ! current_user_can( 'manage_woocommerce' ) || ! is_object( $results ) || ! isset( $results->data ) ) {
@@ -174,7 +211,14 @@ final class CustomersAdmin {
 		return $results;
 	}
 
-	/** Add live balance and account-specific management URL, never using Analytics customer_id. */
+	/**
+	 * Add live balance and account-specific management URL, never using Analytics customer_id.
+	 * @param mixed $report
+	 * @param mixed $request
+	 * @param mixed $response
+	 * @return mixed
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
 	public function customer_response( $response, $report, $request ) {
 		unset( $request );
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {

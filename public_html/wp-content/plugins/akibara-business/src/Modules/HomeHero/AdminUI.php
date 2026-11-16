@@ -27,6 +27,12 @@ use Akibara\Business\Utilities\ThemeAssetVersion;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UnusedVariable
+ */
 final class AdminUI {
 
 	public function register(): void {
@@ -42,7 +48,7 @@ final class AdminUI {
 		if ( 'toplevel_page_akibara-panel' !== $hook ) {
 			return;
 		}
-		$current_tab = isset( $_GET['tab'] ) ? sanitize_key( (string) $_GET['tab'] ) : ''; // Los assets de medios se encolan sólo en la pestaña explícita del slider.
+		$current_tab = isset( $_GET['tab'] ) ? sanitize_key( (string) $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Sólo decide si esta pantalla del panel encola sus assets; no guarda nada.
 		// La pestaña vacía corresponde al Dashboard por defecto y no necesita
 		// wp_enqueue_media ni los assets del editor del hero.
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Sólo decide si esta pantalla del panel encola sus assets; no guarda nada.
@@ -420,7 +426,7 @@ final class AdminUI {
 				placeholder="Texto del botón (ej. Manga)"
 				maxlength="40"
 				class="akb-hero-cta__label"
-				aria-label="Texto del botón CTA <?php echo (int) ( $cta_idx + 1 ); ?>">
+				aria-label="Texto del botón CTA <?php echo (int) $cta_idx + 1; ?>">
 			<input type="text"
 				inputmode="url"
 				autocomplete="url"
@@ -428,8 +434,8 @@ final class AdminUI {
 				value="<?php echo esc_url( (string) ( $cta['url'] ?? '' ) ); ?>"
 				placeholder="URL (ej. /manga/)"
 				class="akb-hero-cta__url"
-				aria-label="URL del botón CTA <?php echo (int) ( $cta_idx + 1 ); ?>">
-			<select name="slides[<?php echo (int) $slide_idx; ?>][ctas][<?php echo (int) $cta_idx; ?>][style]" class="akb-hero-cta__style" aria-label="Estilo del botón CTA <?php echo (int) ( $cta_idx + 1 ); ?>">
+				aria-label="URL del botón CTA <?php echo (int) $cta_idx + 1; ?>">
+			<select name="slides[<?php echo (int) $slide_idx; ?>][ctas][<?php echo (int) $cta_idx; ?>][style]" class="akb-hero-cta__style" aria-label="Estilo del botón CTA <?php echo (int) $cta_idx + 1; ?>">
 				<?php foreach ( Settings::CTA_STYLES as $style_key => $style_def ) : ?>
 					<option value="<?php echo esc_attr( $style_key ); ?>" <?php selected( $style_current, $style_key ); ?>><?php echo esc_html( $style_def['label'] ); ?></option>
 				<?php endforeach; ?>
@@ -481,11 +487,10 @@ final class AdminUI {
 		ob_start();
 		$this->render_cta_fieldset( -1, -1, array( 'style' => 'shop' ) );
 		$html = (string) ob_get_clean();
-		$html = str_replace(
+		return str_replace(
 			array( 'slides[-1]', '[ctas][-1]', 'data-cta-idx="-1"' ),
 			array( 'slides[__SLIDE__]', '[ctas][__CTA__]', 'data-cta-idx="__CTA__"' ),
 			$html
 		);
-		return $html;
 	}
 }

@@ -16,7 +16,6 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Tests\Modules\AnnouncementBar;
 
 use Akibara\Business\Modules\AnnouncementBar\AnnouncementBar;
-use Akibara\Business\Modules\TaxonomyDiscount\Settings;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -39,15 +38,54 @@ final class AnnouncementBarPromoWindowTest extends TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Santiago' ) );
+		Functions\when( 'taxonomy_exists' )->alias( static fn( string $tax ): bool => 'product_brand' === $tax );
+		Functions\when( 'get_terms' )->justReturn( array() );
+		Functions\when( 'get_term_meta' )->justReturn( '' );
+		Functions\when( 'get_term_link' )->justReturn( 'https://akibara.cl/marca/ivrea-argentina/' );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_parse_url' )->alias( static fn( string $url, int $component = -1 ) => parse_url( $url, $component ) );
+
+		$GLOBALS['wpdb'] = new class {
+			public string $term_taxonomy = 'wp_term_taxonomy';
+			public string $prefix        = 'wp_';
+			public string $last_error    = '';
+			public function prepare( string $sql, ...$args ): string {
+				return $sql;
+			}
+			public function get_results( string $sql ): array {
+				return array();
+			}
+			public function get_var( string $sql ) {
+				return 0;
+			}
+		};
 
 		$this->reset_discount_memo();
 	}
 
 	protected function tearDown(): void {
 		$this->reset_discount_memo();
-		unset( $GLOBALS['akibara_test_options'] );
+		unset( $GLOBALS['akibara_test_options'], $GLOBALS['wpdb'] );
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	private function seed_active_rule(): void {
+		$prop = new ReflectionProperty( \Akibara\Business\Modules\DiscountCopy\DiscountCopy::class, 'rule_memo' );
+		$prop->setAccessible( true );
+		$prop->setValue(
+			null,
+			array(
+				'v'           => 2,
+				'pct'         => 10,
+				'term_name'   => 'Ivrea Argentina',
+				'term_id'     => 230,
+				'taxonomy'    => 'product_brand',
+				'term_path'   => '/marca/ivrea-argentina/',
+				'rules_count' => 1,
+			)
+		);
 	}
 
 	private function reset_discount_memo(): void {
@@ -86,11 +124,14 @@ final class AnnouncementBarPromoWindowTest extends TestCase {
 	 * que leer antes de que se acabe.
 	 */
 	public function test_la_promo_vigente_se_pinta_antes_que_los_fijos(): void {
+		$this->seed_active_rule();
 		$bar = $this->bar(
 			array(
-				'akibara_announcement_promo_text' => 'Solo este finde: 10% en Ivrea',
-				'akibara_announcement_promo_from' => '2026-09-05',
-				'akibara_announcement_promo_to'   => '2026-09-07',
+				'akibara_announcement_promo_text'    => 'Solo este finde: 10% en Ivrea',
+				'akibara_taxonomy_discount_enabled'  => 'yes',
+				'akibara_taxonomy_discount_from'     => '2026-09-05',
+				'akibara_taxonomy_discount_to'       => '2026-09-07',
+				'akibara_taxonomy_discount_apply_to' => 'all',
 			)
 		);
 
@@ -103,11 +144,14 @@ final class AnnouncementBarPromoWindowTest extends TestCase {
 
 	/** @dataProvider ventanas */
 	public function test_la_ventana_es_inclusiva_en_los_dos_extremos( string $from, string $to, bool $visible ): void {
+		$this->seed_active_rule();
 		$bar = $this->bar(
 			array(
-				'akibara_announcement_promo_text' => 'Promo',
-				'akibara_announcement_promo_from' => $from,
-				'akibara_announcement_promo_to'   => $to,
+				'akibara_announcement_promo_text'    => 'Promo',
+				'akibara_taxonomy_discount_enabled'  => 'yes',
+				'akibara_taxonomy_discount_from'     => $from,
+				'akibara_taxonomy_discount_to'       => $to,
+				'akibara_taxonomy_discount_apply_to' => 'all',
 			)
 		);
 
@@ -128,15 +172,17 @@ final class AnnouncementBarPromoWindowTest extends TestCase {
 	}
 
 	/**
-	 * Un texto vacío no se muestra aunque las fechas cubran hoy: vaciar el campo
-	 * es la forma de apagar el carril sin perder las fechas.
+	 * Un texto vacío no se muestra aunque la campaña esté vigente.
 	 */
 	public function test_texto_vacio_apaga_el_carril_aunque_la_ventana_cubra_hoy(): void {
+		$this->seed_active_rule();
 		$bar = $this->bar(
 			array(
-				'akibara_announcement_promo_text' => "   \n  ",
-				'akibara_announcement_promo_from' => '2026-09-01',
-				'akibara_announcement_promo_to'   => '2026-09-30',
+				'akibara_announcement_promo_text'    => "   \n  ",
+				'akibara_taxonomy_discount_enabled'  => 'yes',
+				'akibara_taxonomy_discount_from'     => '2026-09-01',
+				'akibara_taxonomy_discount_to'       => '2026-09-30',
+				'akibara_taxonomy_discount_apply_to' => 'all',
 			)
 		);
 
@@ -148,45 +194,39 @@ final class AnnouncementBarPromoWindowTest extends TestCase {
 	}
 
 	/**
-	 * Atado al descuento, las fechas propias NO deciden: manda la campaña. Acá
-	 * están puestas a un rango que cubre hoy justamente para probar que se
-	 * ignoran.
+	 * Sin campaña vigente en Akibara → Descuentos (aunque quedaran residuos legados),
+	 * el carril promocional NO se muestra: única fuente de verdad.
 	 */
 	public function test_atado_al_descuento_manda_la_campana_y_no_las_fechas_propias(): void {
+		$this->reset_discount_memo();
 		$bar = $this->bar(
 			array(
 				'akibara_announcement_promo_text'            => 'Solo este finde: [akb_descuento_pct] en [akb_descuento_editorial]',
 				'akibara_announcement_promo_from'            => '2026-01-01',
 				'akibara_announcement_promo_to'              => '2026-12-31',
-				'akibara_announcement_promo_follow_discount' => 'yes',
-				Settings::OPTION_ENABLED                     => 'no',
+				'akibara_announcement_promo_follow_discount' => 'no',
+				'akibara_taxonomy_discount_enabled'          => 'no',
 			)
 		);
 
-		self::assertFalse( $bar->promo_active(), 'Sin campaña vigente el mensaje no puede verse.' );
+		self::assertFalse( $bar->promo_active(), 'Sin campaña vigente en Descuentos el mensaje no puede verse.' );
 		self::assertSame(
 			array( 'Envío a todo Chile', 'Retiro en Metro San Miguel' ),
 			$this->messages_of( $bar )
 		);
 	}
 
-	/** Con la campaña encendida, el mismo texto aparece y con los números vivos. */
+	/** Con la campaña encendida en Descuentos, el texto hereda vigencia, números y enlace. */
 	public function test_atado_al_descuento_hereda_la_vigencia_y_los_numeros(): void {
-		Functions\when( 'get_transient' )->justReturn(
-			array(
-				'pct'       => 10,
-				'term_name' => 'Ivrea Argentina',
-			)
-		);
-		$this->reset_discount_memo();
+		$this->seed_active_rule();
 
 		$bar = $this->bar(
 			array(
-				'akibara_announcement_promo_text'            => 'Solo este finde: [akb_descuento_pct] en [akb_descuento_editorial]',
-				'akibara_announcement_promo_follow_discount' => 'yes',
-				Settings::OPTION_ENABLED                     => 'yes',
-				Settings::OPTION_FROM                        => '2026-09-05',
-				Settings::OPTION_TO                          => '2026-09-07',
+				'akibara_announcement_promo_text'    => 'Solo este finde: [akb_descuento_pct] en [akb_descuento_editorial]',
+				'akibara_taxonomy_discount_enabled'  => 'yes',
+				'akibara_taxonomy_discount_from'     => '2026-09-01',
+				'akibara_taxonomy_discount_to'       => '2026-09-30',
+				'akibara_taxonomy_discount_apply_to' => 'all',
 			)
 		);
 
@@ -202,30 +242,23 @@ final class AnnouncementBarPromoWindowTest extends TestCase {
 	}
 
 	/**
-	 * El lunes siguiente: el descuento venció y el mensaje se retira solo, sin
-	 * que nadie entre al panel. Es el caso entero por el que existe este carril.
+	 * El lunes siguiente: el descuento venció o quedó sin reglas > 0% y el mensaje
+	 * se retira solo, sin que nadie entre al panel.
 	 */
 	public function test_al_vencer_la_campana_el_mensaje_se_retira_solo(): void {
-		Functions\when( 'get_transient' )->justReturn(
-			array(
-				'pct'       => 10,
-				'term_name' => 'Ivrea Argentina',
-			)
-		);
-		Functions\when( 'current_time' )->justReturn( '2026-09-08' );
 		$this->reset_discount_memo();
 
 		$bar = $this->bar(
 			array(
-				'akibara_announcement_promo_text'            => 'Solo este finde: [akb_descuento_pct] en [akb_descuento_editorial]',
-				'akibara_announcement_promo_follow_discount' => 'yes',
-				Settings::OPTION_ENABLED                     => 'yes',
-				Settings::OPTION_FROM                        => '2026-09-05',
-				Settings::OPTION_TO                          => '2026-09-07',
+				'akibara_announcement_promo_text'    => 'Solo este finde: [akb_descuento_pct] en [akb_descuento_editorial]',
+				'akibara_taxonomy_discount_enabled'  => 'yes',
+				'akibara_taxonomy_discount_from'     => '2026-09-01',
+				'akibara_taxonomy_discount_to'       => '2026-09-30',
+				'akibara_taxonomy_discount_apply_to' => 'all',
 			)
 		);
 
-		self::assertFalse( $bar->promo_active() );
+		self::assertFalse( $bar->promo_active(), 'Con ventana activa pero 0 reglas elegibles, tampoco promete un descuento falso.' );
 		self::assertSame(
 			array( 'Envío a todo Chile', 'Retiro en Metro San Miguel' ),
 			$this->messages_of( $bar )

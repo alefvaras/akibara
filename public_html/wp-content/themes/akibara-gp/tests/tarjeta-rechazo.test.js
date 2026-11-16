@@ -83,6 +83,7 @@ function entorno( { respuestaCarrito, fetchFalla = false } = {} ) {
 		activeElement: null,
 		createElement: ( t ) => {
 			const n = nodo( t );
+			n.ownerDocument = document;
 			// El «Ver carrito» ocupa el sitio del botón de agregar.
 			if ( 'a' === t ) {
 				n.rect = { top: 404, bottom: 448, left: 215, right: 376, width: 161, height: 44 };
@@ -105,6 +106,9 @@ function entorno( { respuestaCarrito, fetchFalla = false } = {} ) {
 		},
 		dispatchEvent: ( ev ) => { eventos.push( ev.type ); return true; },
 	};
+	document.documentElement = document;
+	document.ownerDocument = document;
+	body.ownerDocument = document;
 
 	/** Una tarjeta de la rejilla. Geometría medida en el espejo (/serie/dan-da-dan/, 390 px): borde de 2 px y el botón de 44 px al pie, 10 px sobre el borde interior. */
 	function crearTarjeta() {

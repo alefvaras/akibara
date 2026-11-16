@@ -19,15 +19,13 @@ final class OrderStatesTest extends RewardsTestCase {
 	/** @testdox El estado de referencia y todos los pagados posteriores cuentan. */
 	public function test_el_estado_y_los_posteriores(): void {
 		self::assertTrue( OrderStates::is_at_or_after( 'processing', 'processing' ) );
-		self::assertTrue( OrderStates::is_at_or_after( 'shipping-progress', 'processing' ) );
 		self::assertTrue( OrderStates::is_at_or_after( 'completed', 'processing' ) );
-		self::assertTrue( OrderStates::is_at_or_after( 'completed', 'shipping-progress' ) );
+		self::assertTrue( OrderStates::is_at_or_after( 'completed', 'completed' ) );
 	}
 
 	/** @testdox Un estado anterior no adelanta la acreditación. */
 	public function test_los_anteriores_no(): void {
-		self::assertFalse( OrderStates::is_at_or_after( 'processing', 'shipping-progress' ) );
-		self::assertFalse( OrderStates::is_at_or_after( 'shipping-progress', 'completed' ) );
+		self::assertFalse( OrderStates::is_at_or_after( 'processing', 'completed' ) );
 	}
 
 	/** @testdox Fuera de los estados pagados no hay orden: sólo coincide él mismo. */

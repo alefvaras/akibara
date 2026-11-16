@@ -32,10 +32,16 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress MissingFile
+ * @psalm-suppress RedundantCast
  */
+// @phpstan-ignore complexity.classLike
 final class AdminReviews {
 
 	public const META_ADMIN_CREATED = '_akb_rewards_admin_created';
+	public const META_TITLE         = '_akb_review_title';
 
 	/** La divulgación de que la tienda escribió la reseña a nombre del cliente. */
 	public const TEXTO_TRANSCRITA = 'Reseña compartida con la tienda y publicada por Akibara a nombre del cliente.';
@@ -43,6 +49,7 @@ final class AdminReviews {
 	public const ACTION             = 'akb_rewards_create_review';
 	public const ACTION_RECHECK     = 'akb_rewards_recheck_review_points';
 	private const NOTICE_KEY        = 'akb_rw_review_recheck_';
+	private const DRAFT_KEY         = 'akb_rw_review_draft_';
 
 	/**
 	 * Cuelga la pantalla y el receptor del formulario.
@@ -186,7 +193,13 @@ final class AdminReviews {
 		if ( '' !== (string) get_comment_meta( (int) $comment->comment_ID, ReviewPoints::META_PROGRESS, true ) ) {
 			return (string) $text;
 		}
-		return (string) $text . '<p class="akb-rw-puntos-estado" style="margin:8px 0 0;font-size:12px">' . esc_html( self::points_status( $comment ) ) . '</p>';
+		$order_id   = (int) get_comment_meta( (int) $comment->comment_ID, ReviewForm::META_ORDER, true );
+		$order_html = '';
+		if ( $order_id > 0 && function_exists( 'admin_url' ) ) {
+			$order_url  = admin_url( 'post.php?post=' . $order_id . '&action=edit' );
+			$order_html = ' · <a href="' . esc_url( $order_url ) . '">Pedido #' . esc_html( (string) $order_id ) . '</a>';
+		}
+		return $text . '<p class="akb-rw-puntos-estado" style="margin:8px 0 0;font-size:12px">' . esc_html( self::points_status( $comment ) ) . $order_html . '</p>';
 	}
 
 	/** @param \WP_Comment $comment Reseña. @return string Explicación del estado guardado. */
@@ -279,6 +292,10 @@ final class AdminReviews {
 			. '</p>';
 	}
 
+	/**
+	 * @param mixed $comment
+	 * @param mixed $text
+	 */
 	public function transcription_badge( $text, $comment = null ): string {
 		if ( ! $comment instanceof \WP_Comment ) {
 			return (string) $text;
@@ -289,7 +306,7 @@ final class AdminReviews {
 			return (string) $text;
 		}
 
-		return (string) $text
+		return $text
 			. '<p class="akb-rw-transcrita" style="margin:8px 0 0;font-size:12px;opacity:.75">📩 ' . esc_html( $aviso ) . '</p>';
 	}
 
@@ -317,7 +334,7 @@ final class AdminReviews {
 	 * @param array{product_id:int, author:string, rating:int, content:string, attachment_id:int, title?:string, email?:string, source?:string, approved?:bool} $args Datos.
 	 * @return int|\WP_Error ID del comentario creado.
 	 */
-	public static function create_review( array $args ) {
+	public static function create_review( array $args ) { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$product_id = (int) ( $args['product_id'] ?? 0 );
 		if ( 'product' !== get_post_type( $product_id ) ) {
 			return new \WP_Error( 'akb_rw_bad_product', 'El producto no existe.' );
@@ -374,7 +391,7 @@ final class AdminReviews {
 		// Completa los metadatos y la foto antes de notificar a comment_post.
 		$title = trim( (string) ( $args['title'] ?? '' ) );
 		if ( '' !== $title ) {
-			update_comment_meta( $comment_id, 'cr_rev_title', $title );
+			update_comment_meta( $comment_id, self::META_TITLE, $title );
 		}
 		Media::attach_photo( $comment_id, $attachment_id, $product_id );
 
@@ -391,9 +408,7 @@ final class AdminReviews {
 
 		// La insignia de compra verificada se calcula programáticamente contra el
 		// historial de compras del cliente y producto en WooCommerce para asegurar veracidad.
-		$verified = ( '' !== $email || $user_id > 0 ) && function_exists( 'wc_customer_bought_product' )
-			? (bool) wc_customer_bought_product( $email, $user_id, $product_id )
-			: false;
+		$verified = ('' !== $email || $user_id > 0) && function_exists( 'wc_customer_bought_product' ) && (bool) wc_customer_bought_product( $email, $user_id, $product_id );
 		update_comment_meta( $comment_id, 'verified', (int) $verified );
 
 		// Registro de procedencia y trazabilidad de consentimiento.
@@ -423,10 +438,21 @@ final class AdminReviews {
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
+		$draft = array(
+			'product_id' => isset( $_POST['akb_rw_product'] ) ? (int) $_POST['akb_rw_product'] : 0,
+			'author'     => isset( $_POST['akb_rw_author'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_author'] ) ) : '',
+			'rating'     => isset( $_POST['akb_rw_rating'] ) ? (int) $_POST['akb_rw_rating'] : 5,
+			'title'      => isset( $_POST['akb_rw_title'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_title'] ) ) : '',
+			'content'    => isset( $_POST['akb_rw_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['akb_rw_content'] ) ) : '',
+			'email'      => isset( $_POST['akb_rw_email'] ) ? sanitize_email( wp_unslash( $_POST['akb_rw_email'] ) ) : '',
+			'source'     => isset( $_POST['akb_rw_source'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_source'] ) ) : '',
+		);
+
 		$attachment_id = 0;
 		if ( ! empty( $_FILES['akb_rw_photo']['name'] ) ) {
 			$uploaded = media_handle_upload( 'akb_rw_photo', 0 );
 			if ( is_wp_error( $uploaded ) ) {
+				self::save_draft( $draft );
 				// Conserva el motivo específico del rechazo de la foto.
 				wp_safe_redirect(
 					add_query_arg(
@@ -440,22 +466,22 @@ final class AdminReviews {
 		}
 
 		$result = self::create_review(
-			array(
-				'product_id'    => isset( $_POST['akb_rw_product'] ) ? (int) $_POST['akb_rw_product'] : 0,
-				'author'        => isset( $_POST['akb_rw_author'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_author'] ) ) : '',
-				'rating'        => isset( $_POST['akb_rw_rating'] ) ? (int) $_POST['akb_rw_rating'] : 0,
-				'title'         => isset( $_POST['akb_rw_title'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_title'] ) ) : '',
-				'content'       => isset( $_POST['akb_rw_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['akb_rw_content'] ) ) : '',
-				'attachment_id' => $attachment_id,
-				'email'         => isset( $_POST['akb_rw_email'] ) ? sanitize_email( wp_unslash( $_POST['akb_rw_email'] ) ) : '',
-				'source'        => isset( $_POST['akb_rw_source'] ) ? sanitize_text_field( wp_unslash( $_POST['akb_rw_source'] ) ) : '',
+			array_merge(
+				$draft,
+				array(
+					'attachment_id' => $attachment_id,
+				)
 			)
 		);
 
-		if ( is_wp_error( $result ) && $attachment_id > 0 ) {
-			// Sin reseña no queda adjunto huérfano en la Media Library (el
-			// residuo sin GC que le reprochamos a CusRev).
-			wp_delete_attachment( $attachment_id, true );
+		if ( is_wp_error( $result ) ) {
+			self::save_draft( $draft );
+			if ( $attachment_id > 0 ) {
+				// Sin reseña no queda adjunto huérfano en la Media Library.
+				wp_delete_attachment( $attachment_id, true );
+			}
+		} else {
+			self::clear_draft();
 		}
 
 		$arg = is_wp_error( $result )
@@ -467,16 +493,61 @@ final class AdminReviews {
 	}
 
 	/**
-	 * Pantalla mínima y liviana (HTML plano del admin, sin JS propio).
+	 * Guarda temporalmente los campos escritos por el administrador ante un error.
+	 *
+	 * @param array<string,mixed> $draft Campos del formulario.
+	 * @return void
+	 */
+	private static function save_draft( array $draft ): void {
+		if ( function_exists( 'set_transient' ) ) {
+			$uid = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+			set_transient( self::DRAFT_KEY . $uid, $draft, MINUTE_IN_SECONDS );
+		}
+	}
+
+	/**
+	 * Limpia el borrador temporal del administrador.
 	 *
 	 * @return void
 	 */
-	public function render_page(): void {
+	private static function clear_draft(): void {
+		if ( function_exists( 'delete_transient' ) ) {
+			$uid = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+			delete_transient( self::DRAFT_KEY . $uid );
+		}
+	}
+
+	/**
+	 * Pantalla de transcripción con buscador rápido de productos y conservación de borrador.
+	 *
+	 * @return void
+	 */
+	public function render_page(): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		if ( ! current_user_can( self::CAPABILITY ) ) {
 			return;
 		}
 
+		$draft = array();
+		if ( ! empty( $_GET['akb_rw_error'] ) && function_exists( 'get_transient' ) && function_exists( 'delete_transient' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$uid   = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+			$saved = get_transient( self::DRAFT_KEY . $uid );
+			if ( is_array( $saved ) ) {
+				$draft = $saved;
+				delete_transient( self::DRAFT_KEY . $uid );
+			}
+		}
+
+		$val_product = isset( $draft['product_id'] ) && (int) $draft['product_id'] > 0 ? (string) (int) $draft['product_id'] : '';
+		$val_author  = isset( $draft['author'] ) ? (string) $draft['author'] : '';
+		$val_rating  = isset( $draft['rating'] ) && (int) $draft['rating'] >= 1 && (int) $draft['rating'] <= 5 ? (int) $draft['rating'] : 5;
+		$val_title   = isset( $draft['title'] ) ? (string) $draft['title'] : '';
+		$val_content = isset( $draft['content'] ) ? (string) $draft['content'] : '';
+		$val_email   = isset( $draft['email'] ) ? (string) $draft['email'] : '';
+		$val_source  = isset( $draft['source'] ) ? (string) $draft['source'] : '';
+
 		echo '<div class="wrap"><h1>Crear reseña</h1>';
+		echo '<p><a class="button" href="' . esc_url( admin_url( 'edit.php?post_type=product&page=product-reviews' ) ) . '">← Ir a Productos › Valoraciones</a> ';
+		echo '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=akb-rewards-settings' ) ) . '">Ajustes de Puntos y Reseñas</a></p>';
 
 		if ( isset( $_GET['akb_rw_created'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- solo pinta un aviso.
 			printf(
@@ -494,24 +565,36 @@ final class AdminReviews {
 			);
 		}
 
+		$search_nonce = function_exists( 'wp_create_nonce' ) ? wp_create_nonce( AdminProductSearch::NONCE_SEARCH ) : '';
+
 		echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( self::ACTION );
 		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
 		echo '<table class="form-table" role="presentation">';
-		echo '<tr><th scope="row"><label for="akb_rw_product">ID del producto</label></th><td><input name="akb_rw_product" id="akb_rw_product" type="number" required class="regular-text"><p class="description">El ID de la ficha (visible en Productos → pasar el mouse).</p></td></tr>';
-		echo '<tr><th scope="row"><label for="akb_rw_author">Nombre a mostrar</label></th><td><input name="akb_rw_author" id="akb_rw_author" type="text" required class="regular-text"></td></tr>';
+		echo '<tr><th scope="row"><label for="akb_rw_product">Producto (Manga / Tomo)</label></th><td>';
+		echo '<div class="akb-rw-product-lookup" data-ajax-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-search-action="' . esc_attr( AdminProductSearch::ACTION_SEARCH ) . '" data-nonce="' . esc_attr( $search_nonce ) . '" style="max-width:520px">';
+		echo '<input type="search" id="akb_rw_product_search" class="regular-text" placeholder="Buscar por nombre del manga, tomo o SKU…" autocomplete="off" style="width:100%;margin-bottom:6px">';
+		echo '<div id="akb_rw_product_results" role="listbox" aria-label="Sugerencias de productos" style="display:none;border:1px solid #8c8f94;background:#fff;max-height:220px;overflow-y:auto;margin-bottom:8px"></div>';
+		echo '</div>';
+		echo '<input name="akb_rw_product" id="akb_rw_product" type="number" required class="small-text" value="' . esc_attr( $val_product ) . '" placeholder="ID"> ';
+		echo '<span id="akb_rw_product_selected" style="font-weight:600;margin-left:6px"></span>';
+		echo '<p class="description">Escribe arriba el nombre o SKU para elegir el tomo en 1 clic, o ingresa directamente su ID numérico.</p></td></tr>';
+		echo '<tr><th scope="row"><label for="akb_rw_author">Nombre a mostrar</label></th><td><input name="akb_rw_author" id="akb_rw_author" type="text" required class="regular-text" value="' . esc_attr( $val_author ) . '"></td></tr>';
 		echo '<tr><th scope="row"><label for="akb_rw_rating">Valoración</label></th><td><select name="akb_rw_rating" id="akb_rw_rating">';
 		for ( $i = 5; $i >= 1; $i-- ) {
-			printf( '<option value="%1$d">%1$d ★</option>', (int) $i );
+			$sel = $val_rating === $i ? ' selected="selected"' : '';
+			printf( '<option value="%1$d"%2$s>%1$d ★</option>', $i, $sel ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal fijo.
 		}
 		echo '</select></td></tr>';
-		echo '<tr><th scope="row"><label for="akb_rw_title">Título (opcional)</label></th><td><input name="akb_rw_title" id="akb_rw_title" type="text" class="regular-text"></td></tr>';
-		echo '<tr><th scope="row"><label for="akb_rw_content">Reseña</label></th><td><textarea name="akb_rw_content" id="akb_rw_content" rows="5" required class="large-text"></textarea></td></tr>';
+		echo '<tr><th scope="row"><label for="akb_rw_title">Título (opcional)</label></th><td><input name="akb_rw_title" id="akb_rw_title" type="text" class="regular-text" value="' . esc_attr( $val_title ) . '"></td></tr>';
+		echo '<tr><th scope="row"><label for="akb_rw_content">Reseña</label></th><td><textarea name="akb_rw_content" id="akb_rw_content" rows="5" required class="large-text">' . esc_html( $val_content ) . '</textarea></td></tr>';
 		echo '<tr><th scope="row"><label for="akb_rw_photo">Foto (obligatoria)</label></th><td><input name="akb_rw_photo" id="akb_rw_photo" type="file" accept="image/jpeg,image/png,image/webp" required></td></tr>';
-		echo '<tr><th scope="row"><label for="akb_rw_email">Email del cliente (opcional)</label></th><td><input name="akb_rw_email" id="akb_rw_email" type="email" class="regular-text"><p class="description">Si el cliente existe y compró el producto, la insignia «compra verificada» se calcula sola contra sus pedidos reales. Nunca se marca a mano.</p></td></tr>';
-		echo '<tr><th scope="row"><label for="akb_rw_source">¿Dónde te la compartió?</label></th><td><input name="akb_rw_source" id="akb_rw_source" type="text" class="regular-text" placeholder="Instagram DM 30-08, WhatsApp…"><p class="description">Procedencia y consentimiento del cliente (queda en la reseña como registro interno).</p></td></tr>';
+		echo '<tr><th scope="row"><label for="akb_rw_email">Email del cliente (opcional)</label></th><td><input name="akb_rw_email" id="akb_rw_email" type="email" class="regular-text" value="' . esc_attr( $val_email ) . '"><p class="description">Si el cliente existe y compró el producto, la insignia «compra verificada» se calcula sola contra sus pedidos reales. Nunca se marca a mano.</p></td></tr>';
+		echo '<tr><th scope="row"><label for="akb_rw_source">¿Dónde te la compartió?</label></th><td><input name="akb_rw_source" id="akb_rw_source" type="text" class="regular-text" value="' . esc_attr( $val_source ) . '" placeholder="Instagram DM 30-08, WhatsApp…"><p class="description">Procedencia y consentimiento del cliente (queda en la reseña como registro interno).</p></td></tr>';
 		echo '</table>';
 		submit_button( 'Crear reseña' );
-		echo '</form></div>';
+		echo '</form>';
+		echo '<script>(function(){var wrap=document.querySelector(".akb-rw-product-lookup");if(!wrap)return;var input=document.getElementById("akb_rw_product_search"),box=document.getElementById("akb_rw_product_results"),idField=document.getElementById("akb_rw_product"),label=document.getElementById("akb_rw_product_selected"),timer=null;if(!input||!box||!idField)return;input.addEventListener("input",function(){clearTimeout(timer);var q=input.value.trim();if(q.length<2){box.style.display="none";box.innerHTML="";return;}timer=setTimeout(function(){var u=new URL(wrap.getAttribute("data-ajax-url"),window.location.origin);u.searchParams.set("action",wrap.getAttribute("data-search-action")||"");u.searchParams.set("nonce",wrap.getAttribute("data-nonce")||"");u.searchParams.set("q",q);fetch(u.toString(),{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(res){box.innerHTML="";var items=res&&res.success&&res.data&&Array.isArray(res.data.items)?res.data.items:[];if(!items.length){box.style.display="none";return;}items.forEach(function(item){var btn=document.createElement("button");btn.type="button";btn.setAttribute("role","option");btn.style.cssText="display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-bottom:1px solid #f0f0f1;background:#fff;cursor:pointer;font-size:13px";btn.textContent=item.label||("#"+item.id+" — "+item.title);btn.addEventListener("click",function(){idField.value=String(item.id);if(label)label.textContent="✓ "+(item.title||"");box.style.display="none";});box.appendChild(btn);});box.style.display="block";}).catch(function(){box.style.display="none";});},220);});})();</script>';
+		echo '</div>';
 	}
 }

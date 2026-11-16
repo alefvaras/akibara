@@ -1,9 +1,9 @@
-/* Akibara: GA4 y Clarity después de la carga (AnalyticsAfterLoad.php). */
+/* Akibara: GA4 después de la carga (AnalyticsAfterLoad.php). */
 (function (w, d) {
 	'use strict';
 
-	var ESCUCHAS = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel'];
-	var hecho = false;
+	const ESCUCHAS = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel'];
+	let hecho = false;
 
 	function cargar() {
 		if (hecho) {
@@ -13,14 +13,16 @@
 		ESCUCHAS.forEach(function (tipo) {
 			w.removeEventListener(tipo, cargar, true);
 		});
-		var nodos = d.querySelectorAll('script[data-akb-after-load]');
-		for (var i = 0; i < nodos.length; i++) {
-			var url = nodos[i].getAttribute('data-akb-after-load');
+		const nodos = d.querySelectorAll('script[data-akb-after-load]');
+		for (let i = 0; i < nodos.length; i++) {
+			// eslint-disable-next-line security/detect-object-injection
+			const url = nodos[i].getAttribute('data-akb-after-load');
+			// eslint-disable-next-line security/detect-object-injection
 			nodos[i].removeAttribute('data-akb-after-load');
 			if (!url) {
 				continue;
 			}
-			var s = d.createElement('script');
+			const s = d.createElement('script');
 			s.async = true;
 			s.src = url;
 			s.setAttribute('data-no-optimize', '1');

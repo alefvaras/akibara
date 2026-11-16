@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<ruleset name="Akibara-DevSecOps">
+	<description>Stack integral de buenas prácticas, seguridad y WooCommerce para Akibara.</description>
+
+	<!-- Archivos first-party del proyecto -->
+	<file>public_html/wp-content/plugins/akibara-business</file>
+	<file>public_html/wp-content/plugins/akibara-search</file>
+	<file>public_html/wp-content/plugins/akibara-rewards</file>
+	<file>public_html/wp-content/plugins/akibara-cart-checkout-blocks</file>
+	<file>public_html/wp-content/themes/akibara-gp</file>
+	<file>public_html/wp-content/mu-plugins</file>
+
+	<!-- Exclusiones estrictas -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/build/*</exclude-pattern>
+	<exclude-pattern>*/dist/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+	<exclude-pattern>*.min.js</exclude-pattern>
+	<exclude-pattern>*.min.css</exclude-pattern>
+	<exclude-pattern>*/mu-plugins/hostinger-*.php</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Ruleset WooCommerce y PHPCompatibilityWP -->
+	<rule ref="WooCommerce-Core">
+		<!-- Permitir short arrays [] estándar de PHP moderno -->
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+		<!-- Permitir nombres de archivo PSR-4 (StudlyCaps) en vez de class-*.php -->
+		<exclude name="WordPress.Files.FileName"/>
+		<!-- Excluir reglas de comentarios y docblocks cosméticos -->
+		<exclude name="Squiz.Commenting"/>
+		<exclude name="Generic.Commenting"/>
+		<exclude name="WooCommerce.Commenting"/>
+		<!-- Excluir prefijos globales que chocan con akb/akibara -->
+		<exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
+		<exclude name="WordPress.NamingConventions.ValidVariableName"/>
+		<!-- Excluir estilo cosmético de Yoda conditions (antipatrón en PHP moderno) -->
+		<exclude name="WordPress.PHP.YodaConditions"/>
+		<!-- Excluir formateo cosmético de espacios, indentación y etiquetas PHP inline -->
+		<exclude name="Generic.WhiteSpace"/>
+		<exclude name="WordPress.WhiteSpace"/>
+		<exclude name="Universal.WhiteSpace"/>
+		<exclude name="PEAR.Functions.FunctionCallSignature"/>
+		<exclude name="Generic.Functions.FunctionCallArgumentSpacing"/>
+		<exclude name="Squiz.Functions.MultiLineFunctionDeclaration"/>
+		<exclude name="PSR2.Classes.ClassDeclaration"/>
+		<exclude name="PSR2.Classes.PropertyDeclaration"/>
+		<exclude name="PSR2.Methods.FunctionClosingBrace"/>
+		<exclude name="PSR2.ControlStructures.SwitchDeclaration"/>
+		<exclude name="PSR2.Files.EndFileNewline"/>
+		<exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+		<exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+		<exclude name="WordPress.Arrays.ArrayIndentation"/>
+		<exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+		<exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
+		<exclude name="Universal.Operators.DisallowShortTernary"/>
+		<exclude name="Squiz.PHP.EmbeddedPhp"/>
+		<exclude name="Squiz.PHP.DisallowMultipleAssignments"/>
+		<exclude name="Squiz.ControlStructures.ControlSignature"/>
+		<exclude name="Squiz.Strings.DoubleQuoteUsage"/>
+		<exclude name="Squiz.WhiteSpace.SuperfluousWhitespace"/>
+		<exclude name="Generic.Files.OneObjectStructurePerFile"/>
+		<exclude name="Universal.Files.SeparateFunctionsFromOO"/>
+		<exclude name="Universal.CodeAnalysis.NoEchoSprintf"/>
+		<exclude name="WordPress.WP.I18n"/>
+		<exclude name="WordPress.WP.EnqueuedResources"/>
+	</rule>
+
+	<!--
+		Blindaje Permanente contra Código Espagueti (Guardrails Inviolables):
+		Detecta métodos con complejidad ciclomática excesiva, anidamiento profundo,
+		parámetros de función no utilizados y declaraciones vacías.
+	-->
+	<rule ref="Generic.Metrics.CyclomaticComplexity">
+		<properties>
+			<property name="complexity" value="15"/>
+			<property name="absoluteComplexity" value="25"/>
+		</properties>
+	</rule>
+	<rule ref="Generic.Metrics.NestingLevel">
+		<properties>
+			<property name="nestingLevel" value="5"/>
+			<property name="absoluteNestingLevel" value="8"/>
+		</properties>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter"/>
+	<rule ref="Generic.CodeAnalysis.EmptyStatement"/>
+	<rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+
+	<config name="testVersion" value="8.1-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- Capabilities admitidas en WooCommerce -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="manage_woocommerce"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Prefijos reconocidos para evitar falsos positivos -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="akibara"/>
+				<element value="akb"/>
+				<element value="akb_"/>
+				<element value="akb_rewards"/>
+				<element value="akb_search"/>
+				<element value="Akibara"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

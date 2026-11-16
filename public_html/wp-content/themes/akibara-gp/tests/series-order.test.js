@@ -67,7 +67,11 @@ test('"Novedades primero" (menu_order) sobrevive en el select', () => {
 		seriesOrderPhp,
 		/if \( isset\( \$options\['menu_order'\] \) \|\| ! akibara_gp_is_series_archive\(\) \) \{\s*return \$options;/
 	);
-	// Vuelve a la cabecera del array, que es el orden que arma akibara-business.
+	// Queda inmediatamente después de 'title' («Número de tomo»), que encabeza el selector.
+	assert.match(
+		seriesOrderPhp,
+		/'title'\s*=> \$title_label,\s*'menu_order' => \$labels\['menu_order'\],/
+	);
 	assert.match(
 		seriesOrderPhp,
 		/return array\( 'menu_order' => \$labels\['menu_order'\] \) \+ \$options;/

@@ -11,6 +11,7 @@ body {
     color: var(--aki-gray-200);
     background: var(--aki-black);
     line-height: 1.6;
+    overflow-x: clip;
 }
 
 /* ─── Global OS/Browser Overrides (100% Brand Immersion) ──────── */
@@ -18,28 +19,35 @@ body {
     background: var(--aki-red);
     color: var(--aki-white);
 }
+
 ::-moz-selection {
     background: var(--aki-red);
     color: var(--aki-white);
 }
 
-/* Brutalist / Persona 5 dark mode scrollbars */
-::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
-}
-::-webkit-scrollbar-track {
-    background: var(--aki-black);
-    border-left: 2px solid var(--aki-surface-2); /* Separador sutil, no rojo */
-}
-::-webkit-scrollbar-thumb {
-    background: var(--aki-surface-2);
-    border: 2px solid var(--aki-black);
-    border-radius: 0; /* Brutalista: Cero bordes redondeados */
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--aki-red);
-    border: 2px solid var(--aki-black);
+/* Brutalist / Persona 5 dark mode scrollbars (fallback legacy solo si falta scrollbar-color) */
+@supports not (scrollbar-color: auto) {
+
+    ::-webkit-scrollbar {
+        width: 14px;
+        height: 14px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--scrollbar-track, var(--aki-black));
+        border-left: 2px solid var(--aki-surface-2); /* Separador sutil, no rojo */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb, var(--aki-gray-400));
+        border: 2px solid var(--scrollbar-track, var(--aki-black));
+        border-radius: 0; /* Brutalista: Cero bordes redondeados */
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--aki-red);
+        border: 2px solid var(--scrollbar-track, var(--aki-black));
+    }
 }
 
 /* GP wrappers heredan el dark bg para que no haya islas blancas
@@ -68,6 +76,7 @@ body {
  * productos, tablas de carrito, formularios.
  * Specificity matched con GP (0,0,2,1) — gana por orden de carga. */
 @media (max-width: 768px) {
+
     .separate-containers .inside-article,
     .separate-containers .comments-area,
     .separate-containers .page-header {
@@ -92,6 +101,7 @@ body {
  * ancestor del .inside-article), por eso va sin espacio en el
  * selector — ambas clases en el mismo elemento. */
 @media (max-width: 768px) {
+
     body.post-type-archive-product .inside-article,
     body.tax-product_cat .inside-article,
     body.tax-product_brand .inside-article,
@@ -102,6 +112,7 @@ body {
     body.tax-product_tag .inside-article {
         padding: 0;
     }
+
     /* `#main-content` es el wrapper outer (un <div>, ver header.php),
      * distinto del `<main id="main">` interno. GP lo pinta con padding
      * 16px lateral en mobile; usar el ID gana specificity sobre la regla
@@ -191,6 +202,7 @@ svg {
 input[type="radio"],
 input[type="checkbox"] {
     accent-color: var(--aki-red);
+
     /* ~20px: el default del UA (~13px) era un tap target chico para checks
      * obligatorios (terminos del checkout, "recuerdame"). Las facetas propias
      * usan inputs nativos, así que este tamaño aplica también a sus checks. */
@@ -209,6 +221,7 @@ textarea,
 select {
     background: var(--aki-surface-1);
     color: var(--aki-white);
+
     /* Borde ≥3:1 sobre el fondo oscuro: sin esto el input vacío se lee como
        hueco (WCAG 1.4.11). El foco da borde blanco + el anillo amarillo. */
     border: 2px solid var(--aki-input-border);
@@ -241,6 +254,7 @@ textarea:focus,
 select:focus {
     border-color: var(--aki-white);
     outline: none;
+
     /* Enfoque accesible sin translate para prevenir desplazamientos durante el foco. */
     box-shadow: var(--aki-focus-ring);
 }
@@ -301,6 +315,7 @@ input[type="reset"],
 input[type="submit"], 
 .wc-block-grid__product-add-to-cart.wp-block-button .wp-block-button__link,
 .single_add_to_cart_button {
+
 	/* Herencia tipográfica explícita en controles para mantener consistencia de fuentes. */
 	font-family: inherit;
 	transition: transform var(--wp--custom--transition--base), box-shadow var(--wp--custom--transition--base), background-color var(--wp--custom--transition--base) !important;
@@ -311,6 +326,7 @@ input[type="submit"],
    tocar fuera — los !important de estos bloques le ganan al reset táctil de
    loop.css, dejando botón escalado / card levantada pegados tras cada tap. */
 @media (hover: hover) {
+
 	.button:hover,
 	input[type="button"]:hover,
 	input[type="reset"]:hover,
@@ -337,6 +353,7 @@ input[type="submit"],
 }
 
 @media (hover: hover) {
+
 	.wc-block-grid__product:hover {
 		border-color: var(--aki-white);
 		transform: translate(-6px, -6px);
@@ -345,6 +362,7 @@ input[type="submit"],
 }
 
 /* ─── Persona 5 Styling Overrides ─────────────── */
+
 /* Angular cutouts for buttons */
 .button,
 .wp-block-button__link,
@@ -355,6 +373,7 @@ button[type="submit"] {
     transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.15s linear;
     text-transform: uppercase;
     font-family: var(--font-heading);
+
     /* Bebas solo existe en 400: el 700 que hereda de WC core se sintetizaba
        (faux bold = trazo engordado por el browser, contadores tapados).
        Jerarquía por tamaño/letter-spacing, nunca por peso falso. */
@@ -393,13 +412,14 @@ h1, h2, h3, h4, h5, h6 {
    :hover de este archivo: este es el ganador REAL del transform del CTA (orden +
    especificidad 0,2,1) y sin gate el botón queda escalado/rotado tras cada tap. */
 @media (hover: hover) {
+
     .button:hover,
     .wp-block-button__link:hover,
     .wc-block-components-button:hover,
     a.button:hover,
     button[type="submit"]:hover {
         transform: scale(1.05) rotate(-2deg);
-        box-shadow: 6px 6px 0px var(--aki-black);
+        box-shadow: 6px 6px 0 var(--aki-black);
         color: var(--aki-white);
         text-decoration: none !important;
     }
@@ -418,7 +438,7 @@ h1, h2, h3, h4, h5, h6 {
 h1, h2, h3 {
     text-transform: uppercase;
     transform: skewX(-5deg);
-    text-shadow: 3px 3px 0px var(--aki-black);
+    text-shadow: 3px 3px 0 var(--aki-black);
 }
 
 .button:active, 
@@ -430,11 +450,12 @@ input[type="button"]:active,
 input[type="reset"]:active,
 input[type="submit"]:active {
     transform: translate(2px, 2px) scale(0.98);
-    box-shadow: 1px 1px 0px var(--aki-black);
+    box-shadow: 1px 1px 0 var(--aki-black);
     transition: transform 50ms ease, box-shadow 50ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .button,
     button,
     input[type="button"],
@@ -568,11 +589,19 @@ body.error404 .akb-404::before {
  * distinto, y tiene su propia regla de reduced-motion.
  */
 html {
+    overflow-x: clip;
+    interpolate-size: allow-keywords;
+    --scrollbar-thumb: var(--aki-gray-400);
+    --scrollbar-track: var(--aki-black);
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
     scroll-padding-top: calc(var(--header-height, 70px) + var(--space-2, 8px));
 }
 
 @media (max-width: 1024px) {
+
     html {
+
         /* Reserva inferior reactiva medida dinámicamente por franja-inferior.js
            mediante ResizeObserver (--akb-franja-inferior). El fallback cubre
            el caso estático con ambas barras apiladas más safe-area-inset. */

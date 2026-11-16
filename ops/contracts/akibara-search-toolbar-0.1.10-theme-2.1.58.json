@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-search-toolbar-production-hotfix",
+  "release_id": "akibara-search-0.1.10_theme-production-2.1.58",
+  "promotion_sequence": [
+    "docker-local",
+    "production"
+  ],
+  "components": {
+    "search": {
+      "kind": "plugin",
+      "slug": "akibara-search",
+      "source_root": "public_html/wp-content/plugins/akibara-search",
+      "preimage": {
+        "version": "0.1.9",
+        "archive": "dist/akibara-search-0.1.9.zip",
+        "archive_sha256": "3a84142efacf26db9bcc129b814590d0906444b54486bdfe0e74658948ec6f9d",
+        "inventory": "dist/akibara-search-0.1.9.files.sha256",
+        "inventory_sha256": "e9aec56be3653964debb5ec6a8b6bb46f4a7300694765e71e538364d38c4cc35",
+        "runtime_files": 45
+      },
+      "candidate": {
+        "version": "0.1.10",
+        "archive": "dist/akibara-search-0.1.10.zip",
+        "archive_sha256": "743427901baec4009fc5152c5647d30fe97103443fb84f99ee2cf7b02b20d30a",
+        "inventory": "dist/akibara-search-0.1.10.files.sha256",
+        "inventory_sha256": "5cf6932913fd4ba134efb7af7068c114afcdfef45c734510c67a7e9cab79ad51",
+        "runtime_files": 45
+      },
+      "source_inputs": [
+        {
+          "path": "akibara-search.php",
+          "sha256": "5c35ee1b5c0260367728cff086f0205bf0f784e5d6454508002def9adf6f01d1"
+        },
+        {
+          "path": "assets/js/akb-search.js",
+          "sha256": "878a4302fffe091f64581fb837f533a626cd0b291b08878f48562c15047763d9"
+        },
+        {
+          "path": "assets/js/akb-search.min.js",
+          "sha256": "a98fdaa192df5bf26b06d87de1ed3e9b7a1b23ec9a074b03665506a8409084cb"
+        }
+      ],
+      "allowed_runtime_changes": [
+        "akibara-search/akibara-search.php",
+        "akibara-search/assets/js/akb-search.js",
+        "akibara-search/assets/js/akb-search.min.js"
+      ],
+      "added_runtime_files": [],
+      "removed_runtime_files": [],
+      "modified_runtime_files": [
+        "akibara-search/akibara-search.php",
+        "akibara-search/assets/js/akb-search.js",
+        "akibara-search/assets/js/akb-search.min.js"
+      ]
+    },
+    "theme": {
+      "kind": "theme",
+      "slug": "akibara-gp",
+      "source_root": "public_html/wp-content/themes/akibara-gp",
+      "preimage": {
+        "version": "2.1.58",
+        "archive": "dist/akibara-gp-2.1.58.zip",
+        "archive_sha256": "64c3710c1afef80b8378e1bbed7706563d014768fcb0e2e82f2d80ec7d9e72b6",
+        "inventory": "dist/akibara-gp-2.1.58.files.sha256",
+        "inventory_sha256": "bcf95523865421fa4a45e95da166713190ffe5bbd5fa740075d5d9b13efa640f",
+        "runtime_files": 102
+      },
+      "candidate": {
+        "version": "2.1.58",
+        "archive": "dist/akibara-gp-2.1.58.zip",
+        "archive_sha256": "64c3710c1afef80b8378e1bbed7706563d014768fcb0e2e82f2d80ec7d9e72b6",
+        "inventory": "dist/akibara-gp-2.1.58.files.sha256",
+        "inventory_sha256": "bcf95523865421fa4a45e95da166713190ffe5bbd5fa740075d5d9b13efa640f",
+        "runtime_files": 102
+      },
+      "source_inputs": [],
+      "allowed_runtime_changes": [],
+      "added_runtime_files": [],
+      "removed_runtime_files": [],
+      "modified_runtime_files": []
+    }
+  },
+  "production_invariants": {
+    "business": {
+      "slug": "akibara-business",
+      "version": "1.98.2",
+      "archive_sha256": "4e41d3bb0c38eec40dc77f4e90790a610e368a971793e09ea5425a522a3678d7",
+      "inventory_sha256": "635c76ae4c6c899d85df68634fe9eb2a13765f2136f1d8c5e68211fb424327cb",
+      "runtime_files": 217
+    },
+    "blocks": {
+      "slug": "akibara-cart-checkout-blocks",
+      "version": "2.1.6",
+      "archive_sha256": "90a48a3574ff08ca31222968f141b7b825332c0277bc823821e23144fdab1abc",
+      "inventory_sha256": "66c54355dba9d3075a24987afef02260df65bf998b5f89b8a84d153b07609a77",
+      "runtime_files": 22
+    },
+    "bluex": {
+      "slug": "bluex-for-woocommerce",
+      "version": "3.2.2",
+      "must_remain_byte_identical": true
+    },
+    "rank_math_active": true,
+    "remote_backups_allowed": false,
+    "graphify_during_release_allowed": false
+  }
+}

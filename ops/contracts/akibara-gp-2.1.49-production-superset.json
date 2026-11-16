@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-gp-production-superset",
+  "qa_theme": {
+    "version": "2.1.48",
+    "archive_sha256": "9c32129a59733aa9ec264681b385ac843d5f3db13c6d51c1fa4db77567210940",
+    "files": 95
+  },
+  "production_preimage": {
+    "version": "2.1.44",
+    "snapshot": ".local-backups/theme-superset/20260726T064000Z/source/akibara-gp-prod-2.1.44.tar.gz",
+    "snapshot_sha256": "d08c1cdbf3f5f71d4f2ea53f46e4e1f27e5194c2fdbbd6fec7c39abb911f9260",
+    "normal_files": 102,
+    "normal_tree_sha256": "13a3fb4f96376ce8a0dd7a9db6677123ea6d201a98eba8b8b2d8da2bf27950fe",
+    "appledouble_snapshot": ".local-backups/theme-superset/20260726T064000Z/source/akibara-gp-prod-2.1.44-appledouble.tar.gz",
+    "appledouble_snapshot_sha256": "2f740d4a4c465212405a3ed16118596ae990cd4d0dcb6bbc66b5a04cf6d7bff6",
+    "appledouble_files": [
+      {
+        "path": "assets/css/._blog.css",
+        "sha256": "da8d0fa110241629b572d99362a42da22931c42d5eef5e61d5984a12b124bcd0"
+      },
+      {
+        "path": "assets/css/._pages.css",
+        "sha256": "da8d0fa110241629b572d99362a42da22931c42d5eef5e61d5984a12b124bcd0"
+      },
+      {
+        "path": "assets/js/._page-toc.js",
+        "sha256": "da8d0fa110241629b572d99362a42da22931c42d5eef5e61d5984a12b124bcd0"
+      },
+      {
+        "path": "inc/._blog.php",
+        "sha256": "da8d0fa110241629b572d99362a42da22931c42d5eef5e61d5984a12b124bcd0"
+      },
+      {
+        "path": "inc/._enqueue.php",
+        "sha256": "da8d0fa110241629b572d99362a42da22931c42d5eef5e61d5984a12b124bcd0"
+      }
+    ],
+    "appledouble_tree_sha256": "eba4636ee1739671829f94eee7db8870298d402af6a607364069a1eb6966f781"
+  },
+  "production_candidate": {
+    "version": "2.1.49",
+    "source": ".local-backups/theme-superset/20260726T064000Z/candidate/akibara-gp",
+    "files": 102,
+    "preserved_files": 91,
+    "changed_files": 11,
+    "normal_tree_sha256": "1dd54fadba5f71d40eb87d5679285ec7b356053a182c3b056b7d4dd5546491c5"
+  },
+  "allowed_changes": [
+    {
+      "path": "assets/css/critical.css",
+      "mode": "qa_exact",
+      "preimage_sha256": "d6062a8ac21c48322a8a0de8403c855fc75eb5df1d3b6e950442eebeb20dfe81",
+      "candidate_sha256": "30bfe5b922bf1fc21054197a74a0b39b494e7e4a39ffd02ed6be946b5686becb"
+    },
+    {
+      "path": "assets/css/empty-states.css",
+      "mode": "qa_exact",
+      "preimage_sha256": "8f60b96194daf390c58f5d36acf68384d1f8ebffa8725266e6d10ccd4b2ffebd",
+      "candidate_sha256": "e4a7585e66ec081218b7ba3cb6316e8a7175450883c64921faaf1cb86ad94b7f"
+    },
+    {
+      "path": "assets/css/header.css",
+      "mode": "qa_exact",
+      "preimage_sha256": "02c840d78481f999f2ecd50a89a28dea05240163f0a8b4bc808d35cae4ea147d",
+      "candidate_sha256": "c4a64d649bd641e7bb353fba4c13a84b2da22d579d7e9927a1833401ff3320ff"
+    },
+    {
+      "path": "assets/css/loop.css",
+      "mode": "qa_exact",
+      "preimage_sha256": "a7f1992a8f24d57da87c7f4824b9b6e8bf20bf491e10517c72c4027b3c36abf9",
+      "candidate_sha256": "64c2ba78ad6f9a0cb981f87691fd173a0651598b954601d169f11a4eabe1b84c"
+    },
+    {
+      "path": "assets/css/woocommerce.css",
+      "mode": "qa_exact",
+      "preimage_sha256": "059f9c76f256a492bb4f8de436843a85a1824eb26198d66ce52d5a459e59cae0",
+      "candidate_sha256": "c1cb9325f7727a85fbba181bed1462c5f8bb913f3c3a00d86e19cef6dddbd75a"
+    },
+    {
+      "path": "assets/js/archive-intro.js",
+      "mode": "qa_exact",
+      "preimage_sha256": "716f1f023d2d2268468813f46e56dc286c395e536ad74e282b60b4f0cad07489",
+      "candidate_sha256": "7363a7e0ea447aa391dea67bcbd7b8211771c6d0b994368695c125132fd13cad"
+    },
+    {
+      "path": "assets/js/main.js",
+      "mode": "qa_exact",
+      "preimage_sha256": "e38758bae1d2296bca608d12f89c3abbbe7cb9f4f8fae2effa252a57f43813cf",
+      "candidate_sha256": "f3f4efa84eaad44fa082cfcc8aab55a257a79757deb935aca05f17f331b2d64c"
+    },
+    {
+      "path": "functions.php",
+      "mode": "reviewed_merge",
+      "preimage_sha256": "676c6ac69d623a2eb37590d7181bf1f1aa543a766cf55eec303692d98f4b8eb9",
+      "candidate_sha256": "751fd4e739335cd61dfaa0533be6103584799e181c4743f81d9df01dc63c6361"
+    },
+    {
+      "path": "inc/woocommerce.php",
+      "mode": "reviewed_merge",
+      "preimage_sha256": "28a373776ddabded3a66103de053bc9213fe8f023df048724ad252f5f844843e",
+      "candidate_sha256": "828df93108fda0e82125868e8683ed57b55b33e867721375905b9fd05ed4f837"
+    },
+    {
+      "path": "style.css",
+      "mode": "reviewed_merge",
+      "preimage_sha256": "abf2398f53fb9e780d035e5c34148a16a487aefa60cb832fd7c1eb3fc3cbb924",
+      "candidate_sha256": "d61e44b6fde49d2ad0bfd6b30ca7129145f20bddec1fa68ad863f1117aa0399f"
+    },
+    {
+      "path": "woocommerce/cart/cart-empty.php",
+      "mode": "reviewed_merge",
+      "preimage_sha256": "6b7916859d5bfec3282117fec418c741d1b46c7a265260c2c0a9f250bdab8f68",
+      "candidate_sha256": "663e2ddcb710da9b9a44c7af069c0ef0a91b32fb3db7293e5770506c8e1e34a5"
+    }
+  ],
+  "required_production_only_files": [
+    {
+      "path": "assets/images/embalaje/caja-abierta.webp",
+      "sha256": "24424360220011b4baca70872db243325986111e494b81bb263a7cde83a4d019"
+    },
+    {
+      "path": "assets/images/embalaje/caja-burbujas.webp",
+      "sha256": "3644c52f771ac7a4a25e0e2daea861165c9c6d5b1bcdb88c4300c909f530e67d"
+    },
+    {
+      "path": "assets/images/embalaje/caja-cerrada.webp",
+      "sha256": "34b213bffa83999a65a02d003f59689f1d8c14bbed2ead7447590835a8ee2f6e"
+    },
+    {
+      "path": "assets/images/embalaje/manga_sleeve_real.webp",
+      "sha256": "b753ccd4eda01cf8860460420afd28485af0cbc2b05b9678c92fb17127d64d18"
+    },
+    {
+      "path": "assets/img/akibara-logo.svg",
+      "sha256": "6107e0bd7d5c2e521c6c8ceeb381bb53a47a0195666630ec650829288d298fa0"
+    },
+    {
+      "path": "assets/img/logo-akibara-2x.webp",
+      "sha256": "b62a558712d94254e523cb94fe60daf1eed87fb8fea1e5491d72389ddfaaa458"
+    },
+    {
+      "path": "inc/seo-filtered-urls.php",
+      "sha256": "3e7e50bf3b357304a2314d1bc9ff8cdfbf0ce6fe14428b86db221f591b2ddc2a"
+    }
+  ]
+}

@@ -18,6 +18,8 @@
  * @var string           $timeframe_copy     Plazo claro de despacho o llegada si se pide hoy.
  * @var string           $cta_label          Texto del botón ('Comprar ahora'|'Pedir ahora'|'Reservar preventa').
  * @var string           $footnote_copy      Nota al pie según el estado.
+ * @var bool             $is_registered      Si el suscriptor tiene cuenta en la tienda.
+ * @var string           $collection_url     URL de /mi-cuenta/coleccion/.
  * @var string           $unsubscribe_url    Baja one-click por token.
  * @var string           $email_heading      Heading configurable.
  * @var string           $additional_content Contenido opcional del admin.
@@ -25,8 +27,6 @@
  * @var bool             $plain_text
  * @var \WC_Email        $email
  */
-
-use Akibara\Business\Modules\Stock\Availability;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,22 +37,10 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <p>
 	<?php
-	if ( Availability::PREVENTA === ( $availability_state ?? '' ) ) {
-		printf(
-			'%s ya se puede reservar en preventa. Pediste que te avisáramos cuando se habilitara — este es tu aviso.',
-			'<strong>' . esc_html( $product_name ) . '</strong>'
-		);
-	} elseif ( Availability::A_PEDIDO === ( $availability_state ?? '' ) ) {
-		printf(
-			'%s ya se puede encargar a pedido. Pediste que te avisáramos cuando volviera a habilitarse — este es tu aviso.',
-			'<strong>' . esc_html( $product_name ) . '</strong>'
-		);
-	} else {
-		printf(
-			'%s está de vuelta en stock. Pediste que te avisáramos — este es tu aviso.',
-			'<strong>' . esc_html( $product_name ) . '</strong>'
-		);
-	}
+	printf(
+		'%s está de vuelta en stock. Pediste que te avisáramos — este es tu aviso.',
+		'<strong>' . esc_html( $product_name ) . '</strong>'
+	);
 	?>
 </p>
 
@@ -71,7 +59,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 			</p>
 			<?php if ( '' !== ( $availability_label ?? '' ) ) : ?>
 				<p style="margin:0 0 8px 0;font-size:13px;line-height:1.45;color:#4a4a4a;">
-					<span style="display:inline-block;padding:2px 8px;border-radius:0;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;<?php echo Availability::DISPONIBLE === ( $availability_state ?? '' ) ? 'background-color:#eef8ee;color:#006505;' : 'background-color:#fef6e6;color:#8a5300;'; ?>"><?php echo esc_html( $availability_label ); ?></span>
+					<span style="display:inline-block;padding:2px 8px;border-radius:0;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;background-color:#eef8ee;color:#006505;"><?php echo esc_html( $availability_label ); ?></span>
 					<?php if ( '' !== ( $timeframe_copy ?? '' ) ) : ?>
 						<span> — <?php echo esc_html( $timeframe_copy ); ?></span>
 					<?php endif; ?>
@@ -96,6 +84,12 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 <p style="color:#6b6b6b;font-size:13px;">
 	<?php echo esc_html( '' !== ( $footnote_copy ?? '' ) ? $footnote_copy : 'El stock puede ser limitado: la mayoría de nuestros tomos tienen pocas unidades por edición.' ); ?>
 </p>
+
+<?php if ( ! empty( $is_registered ) && ! empty( $collection_url ) ) : ?>
+<p style="color:#6b6b6b;font-size:13px;">
+	<a href="<?php echo esc_url( $collection_url ); ?>">Ir a Mi Cuenta</a>
+</p>
+<?php endif; ?>
 
 <?php
 if ( '' !== $additional_content ) {

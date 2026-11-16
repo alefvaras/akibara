@@ -1,0 +1,16 @@
+[
+  { "n": 1,  "slug": "serie-1", "nombre": "Sigue esta serie (1 serie)", "id": "2ykUdJ8h2CZ9WJ77I0Aeld" },
+  { "n": 2,  "slug": "serie-n", "nombre": "Sigue esta serie (+2 series mas)", "id": "2X10TkH7n2VqiKgdjrsBJI" },
+  { "n": 3,  "slug": "bis", "nombre": "Vuelta al stock (BIS)", "id": "4vBhkv6q30fAemJFiU9AkC" },
+  { "n": 4,  "slug": "invitacion", "nombre": "Invitacion a resenar (token)", "id": "3Te3OPCV7NRV7TDK1xGApR" },
+  { "n": 5,  "slug": "premio-resena", "nombre": "Premio de resena (+500)", "id": "7FQm94QUXPGCpjWS4lVUVz" },
+  { "n": 6,  "slug": "cumpleanos", "nombre": "Cumpleanos (+1.000)", "id": "1L9Bg09pCaCL6TvcujFPuR" },
+  { "n": 8,  "slug": "vencimiento", "nombre": "Aviso de vencimiento", "id": "31AtVfwRdnHqzCLkfh871N" },
+  { "n": 9,  "slug": "preventa-t7", "nombre": "Recordatorio preventa T-7", "id": "5dkNglvfiMZqKb1wz8Kt8K" },
+  { "n": 10, "slug": "preventa-ready", "nombre": "Tu preventa ya llego", "id": "6t11fJPc3xOlDPiI4Q5OIO" },
+  { "n": 11, "slug": "compra-processing", "nombre": "Pedido recibido (Woo core)", "id": "2UQoTW6DeJTyWNgW5kLOh6" },
+  { "n": 111, "slug": "compra-encamino", "nombre": "Pedido en camino (Woo core)", "id": "650R7sY4kYHequ01XAoJrU" },
+  { "n": 112, "slug": "compra-puntos", "nombre": "Puntos por el pedido", "id": "6bH6gP3qeSTGugMZdMZvFW" },
+  { "n": 7,  "slug": "cuenta-nueva", "nombre": "Cuenta nueva (registro)", "id": "6yIv1eXGeKu62dJVrOu53d" },
+  { "n": 12, "slug": "reset-pass", "nombre": "Restablecer contrasena", "id": "5IYlVcqTaY08u5fTeHfY7m" }
+]

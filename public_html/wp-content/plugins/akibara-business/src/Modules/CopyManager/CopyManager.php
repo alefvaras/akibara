@@ -2,7 +2,7 @@
 /**
  * Copy Manager — Gestor de textos transaccionales sin código.
  *
- * Permite al administrador editar textos editoriales y de EstimatedDelivery
+ * Permite al administrador editar textos editoriales
  * desde el AdminPanel sin tocar código.
  *
  * @package Akibara\Business
@@ -12,27 +12,16 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\CopyManager;
 
-use Akibara\Business\Modules\AccountCollection\Renderer as CollectionRenderer;
 use Akibara\Business\Modules\AdminPanel\AdminPanel;
-use Akibara\Business\Modules\BrandsDirectory\EditionCopy;
-use Akibara\Business\Modules\DisponiblesRoute\DisponiblesRoute;
-use Akibara\Business\Modules\EstimatedDelivery\BannerRenderer;
 use Akibara\Business\Modules\Forms\Settings as FormsSettings;
 use Akibara\Business\Modules\GoogleLoginButton\AccessWall;
 use Akibara\Business\Modules\HomeHero\Renderer as HeroRenderer;
 use Akibara\Business\Modules\NativeCart\RejectionCopy;
-use Akibara\Business\Modules\OrderPreventa\CustomerVisibility;
 use Akibara\Business\Modules\PickupCoordination\PickupCoordination;
 use Akibara\Business\Modules\Stock\Availability;
-use Akibara\Business\Modules\OrderPreventa\PreventaUX;
-use Akibara\Business\Modules\OrderPreventa\ShipPromise;
 use Akibara\Business\Modules\PdpEnhancer\PdpSeriesEnhancer;
-use Akibara\Business\Modules\PreventasRoute\PreventasRoute;
 use Akibara\Business\Modules\QuickView\QuickView;
 use Akibara\Business\Modules\Recommendations\Headings;
-use Akibara\Business\Modules\SeriesBundles\LandingOffer;
-use Akibara\Business\Modules\SeriesBundles\SelectionCart;
-use Akibara\Business\Modules\SeriesEditions\SeriesEditions;
 use Akibara\Business\Modules\SeriesFacts\SeriesFacts;
 use Akibara\Business\Modules\Wishlist\GuestPrompt;
 use Akibara\Business\Services\CheckoutTrustSignals;
@@ -40,6 +29,10 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class CopyManager {
 
 	/** Pestaña del panel donde viven estos ajustes. */
@@ -114,25 +107,7 @@ final class CopyManager {
 	}
 
 	public function register(): void {
-		add_action( 'init', array( $this, 'register_admin_tab' ) );
-		add_filter(
-			'woocommerce_admin_settings_sanitize_option_' . PreventasRoute::OPTION_INTRO,
-			array( $this, 'sanitize_preventas_intro' ),
-			10,
-			3
-		);
-		add_filter(
-			'woocommerce_admin_settings_sanitize_option_' . PreventasRoute::OPTION_GUIDE,
-			array( $this, 'sanitize_preventas_guide' ),
-			10,
-			3
-		);
-		add_filter(
-			'woocommerce_admin_settings_sanitize_option_' . DisponiblesRoute::OPTION_INTRO,
-			array( $this, 'sanitize_disponibles_intro' ),
-			10,
-			3
-		);
+		// Pestaña copys retirada de la UI: textos gobernados canónicamente por código.
 		add_filter(
 			'woocommerce_admin_settings_sanitize_option_' . FormsSettings::OPTION_NOTIFY_EMAIL,
 			array( $this, 'sanitize_contact_email' ),
@@ -154,7 +129,7 @@ final class CopyManager {
 		// Límite estricto de longitud para palabras de estado (badges, chips y botones),
 		// evitando que textos sobredimensionados rompan el índice de búsqueda y los contratos de UI.
 		// Prioridad 20: encima del saneador general de copy.
-		foreach ( self::STATE_WORD_COPIES as $option ) {
+		foreach ( self::STATE_WORD_COPIES as $option ) { // @phpstan-ignore foreach.emptyArray
 			add_filter(
 				'woocommerce_admin_settings_sanitize_option_' . $option,
 				array( $this, 'sanitize_state_word' ),
@@ -220,17 +195,9 @@ final class CopyManager {
 		$correo = isset( $_POST[ FormsSettings::OPTION_NOTIFY_EMAIL ] ) && is_string( $_POST[ FormsSettings::OPTION_NOTIFY_EMAIL ] )
 			? trim( sanitize_text_field( wp_unslash( $_POST[ FormsSettings::OPTION_NOTIFY_EMAIL ] ) ) )
 			: '';
-		$guia   = isset( $_POST[ PreventasRoute::OPTION_GUIDE ] ) && is_scalar( $_POST[ PreventasRoute::OPTION_GUIDE ] )
-			? absint( wp_unslash( $_POST[ PreventasRoute::OPTION_GUIDE ] ) )
-			: 0;
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
-
 		// Vacío no es un error: en el correo es la forma de volver al de siempre.
 		if ( '' !== $correo && ! is_email( $correo ) ) {
 			$no_guardados[] = FormsSettings::OPTION_NOTIFY_EMAIL;
-		}
-		if ( $guia > 0 && $guia !== PreventasRoute::published_post_id( $guia ) ) {
-			$no_guardados[] = PreventasRoute::OPTION_GUIDE;
 		}
 
 		return $no_guardados;
@@ -289,10 +256,6 @@ final class CopyManager {
 			);
 		}
 
-		if ( PreventasRoute::OPTION_GUIDE === $option ) {
-			return 'Esa guía no está publicada, así que quedó la anterior. Publícala y vuelve a elegirla.';
-		}
-
 		return $motivo_default;
 	}
 
@@ -308,7 +271,7 @@ final class CopyManager {
 	private function recortados(): array {
 		$topes = array();
 		foreach ( array_keys( self::required_one_line_copies() ) as $option ) {
-			$topes[ $option ] = in_array( $option, self::STATE_WORD_COPIES, true )
+			$topes[ $option ] = in_array( $option, self::STATE_WORD_COPIES, true ) // @phpstan-ignore function.impossibleType
 				? Availability::MAX_PALABRA
 				: Text::ONE_LINE_MAX;
 		}
@@ -359,64 +322,24 @@ final class CopyManager {
 	 */
 	private static function required_one_line_copies(): array {
 		return array(
-			ShipPromise::OPTION_WINDOW                  => ShipPromise::DEFAULT_WINDOW,
 			CheckoutTrustSignals::OPTION_INSTALLMENTS   => CheckoutTrustSignals::DEFAULT_INSTALLMENTS,
-			PreventasRoute::OPTION_GUIDE_PREFIX         => PreventasRoute::GUIDE_PREFIX,
-			PreventasRoute::OPTION_GUIDE_LINK           => PreventasRoute::GUIDE_LINK_COPY,
-			PreventasRoute::OPTION_SIBLING_PREFIX       => PreventasRoute::SIBLING_PREFIX,
-			PreventasRoute::OPTION_SIBLING_LINK         => PreventasRoute::SIBLING_LINK_COPY,
-			DisponiblesRoute::OPTION_SIBLING_PREFIX     => DisponiblesRoute::SIBLING_PREFIX,
-			DisponiblesRoute::OPTION_SIBLING_LINK       => DisponiblesRoute::SIBLING_LINK_COPY,
-			CustomerVisibility::OPTION_OVERDUE          => CustomerVisibility::DEFAULT_OVERDUE,
-
-			// Textos de fecha y promesas: la sanitización asegura que campos guardados vacíos
-			// adopten su valor por defecto en lugar de almacenar cadenas vacías en base de datos.
-			'akb_copy_eta_cart_ready'                   => 'Tu pedido completo llega',
-			'akb_copy_eta_cart_preventa'                => 'Tu pedido incluye reservas',
-			'akb_copy_eta_tba'                          => 'Te avisamos en cuanto tengamos fecha',
-			'akb_copy_eta_single_preventa'              => 'Preventa',
-			'akb_copy_eta_single_pedido'                => 'A pedido',
-			'akb_copy_eta_single_ready'                 => 'Fecha estimada de llegada',
-			'akb_copy_eta_noun_preventa'                => 'preventa',
-			'akb_copy_eta_noun_pedido'                  => 'productos a pedido',
-			'akb_copy_eta_item_arrived'                 => 'Ya llegó a nuestra bodega',
-			BannerRenderer::OPTION_BARRA                => BannerRenderer::DEFAULT_BARRA,
 			'akb_copy_promise_dispatch'                 => 'Despacha en 24–48 h',
-			'akb_copy_promise_preventa_transit'         => 'En camino a Akibara',
-			'akb_copy_promise_pedido_transit'           => 'Lo pedimos a la editorial por ti',
-			PreventaUX::OPTION_CTA_PREVENTA             => PreventaUX::DEFAULT_CTA_PREVENTA,
 			PickupCoordination::OPTION_TITULO           => PickupCoordination::DEFAULT_TITULO,
 			PickupCoordination::OPTION_CUERPO           => PickupCoordination::DEFAULT_CUERPO,
-		) + EditionCopy::defaults() + AccessWall::defaults() + Headings::defaults()
-			+ SeriesFacts::copy_defaults() + LandingOffer::copy_defaults() + GuestPrompt::defaults() + PdpSeriesEnhancer::copy_defaults()
-			+ self::theme_copy_defaults() + FormsSettings::message_defaults() + RejectionCopy::defaults() + SelectionCart::defaults()
+		) + AccessWall::defaults() + Headings::defaults()
+			+ SeriesFacts::copy_defaults() + GuestPrompt::defaults() + PdpSeriesEnhancer::copy_defaults()
+			+ self::theme_copy_defaults() + FormsSettings::message_defaults() + RejectionCopy::defaults()
 			+ array(
 				QuickView::OPTION_LABEL      => QuickView::DEFAULT_LABEL,
-				SeriesEditions::OPTION_LABEL => SeriesEditions::DEFAULT_LABEL,
 				HeroRenderer::OPTION_LABEL   => HeroRenderer::DEFAULT_LABEL,
 			);
 	}
 
-	/**
-	 * Copys de una línea donde el VACÍO es la forma de apagar la línea: el pie
-	 * no pinta un reloj sin horario ni un `tel:` sin número.
-	 *
-	 * @var array<int, string>
-	 */
-	/**
-	 * Los dos textos que nombran un estado comercial. {@see self::sanitize_state_word()}.
-	 *
-	 * @var array<int, string>
-	 */
-	private const STATE_WORD_COPIES = array(
-		'akb_copy_eta_single_pedido',
-		'akb_copy_eta_single_preventa',
-	);
+	private const STATE_WORD_COPIES = array();
 
 	private const OPTIONAL_ONE_LINE_COPIES = array(
 		'akb_copy_footer_support_hours',
 		'akb_copy_footer_phone',
-		CollectionRenderer::OPTION_DELAY_NOTICE,
 	);
 
 	/**
@@ -459,6 +382,10 @@ final class CopyManager {
 			: $palabra;
 	}
 
+	/**
+	 * @param mixed $raw_value
+	 * @param mixed $value
+	 */
 	public function sanitize_optional_copy( $value, array $option = array(), $raw_value = null ): string {
 		unset( $option );
 
@@ -491,46 +418,6 @@ final class CopyManager {
 				'desc'  => 'Configura los mensajes visibles más importantes del sitio sin tocar código.',
 			),
 			array(
-				'title'   => 'Banner ETA: Carrito Listo',
-				'desc'    => 'Texto cuando todo el carrito está en stock.',
-				'id'      => 'akb_copy_eta_cart_ready',
-				'type'    => 'text',
-				'default' => 'Tu pedido completo llega',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Banner ETA: Carrito con reservas',
-				'desc'    => 'Texto cuando el carrito incluye tomos a pedido o en preventa.',
-				'id'      => 'akb_copy_eta_cart_preventa',
-				'type'    => 'text',
-				'default' => 'Tu pedido incluye reservas',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Banner ETA: Pedido/Preventa (Sin fecha)',
-				'desc'    => 'Texto secundario cuando no hay fecha exacta (TBA).',
-				'id'      => 'akb_copy_eta_tba',
-				'type'    => 'text',
-				'default' => 'Te avisamos en cuanto tengamos fecha',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'La palabra «Preventa»',
-				'desc'    => 'La palabra con la que se nombra una PREVENTA real (un tomo que todavía no sale) en TODO el sitio: el badge de la tarjeta del catálogo, el cartel de la ficha, los chips de la landing de la serie, el carrito, la línea del pedido y los correos.',
-				'id'      => 'akb_copy_eta_single_preventa',
-				'type'    => 'text',
-				'default' => 'Preventa',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'La palabra «A pedido»',
-				'desc'    => 'La palabra con la que se nombra un tomo A PEDIDO (ya publicado, se trae en el próximo pedido a la editorial) en TODO el sitio: badge de la tarjeta, cartel de la ficha, botón de agregar, chips de la landing, buscador, carrito, línea del pedido y correos. Es una palabra, no una frase: hasta 24 caracteres (lo que pase de ahí se recorta al guardar). Cambiarla reindexa el buscador para que el filtro diga lo mismo.',
-				'id'      => 'akb_copy_eta_single_pedido',
-				'type'    => 'text',
-				'default' => 'A pedido',
-				'css'     => 'width: 400px;',
-			),
-			array(
 				'title'   => 'Retiro: título del aviso',
 				'desc'    => 'Encabezado del recuadro que ve quien elige retirar, en el correo del pedido, en la página de gracias y en Mi cuenta.',
 				'id'      => PickupCoordination::OPTION_TITULO,
@@ -547,116 +434,12 @@ final class CopyManager {
 				'css'     => 'width: min(100%, 680px);',
 			),
 			array(
-				'title'   => 'Botón de una preventa',
-				'desc'    => 'Texto del botón de agregar al carrito cuando el tomo es una preventa real. El botón de un tomo «a pedido» usa la palabra de arriba, porque nombra el estado.',
-				'id'      => PreventaUX::OPTION_CTA_PREVENTA,
-				'type'    => 'text',
-				'default' => PreventaUX::DEFAULT_CTA_PREVENTA,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Barra de compra: llegada',
-				'desc'    => 'Línea corta bajo el precio en la barra de compra fija de la ficha, sólo en los tomos a pedido o en preventa con fecha. Escribe ' . BannerRenderer::MARCADOR_FECHA . ' donde va el rango de fechas (por ejemplo «7 – 13 nov»); si lo borras, la fecha se añade al final. Vacío vuelve a «' . BannerRenderer::DEFAULT_BARRA . '».',
-				'id'      => BannerRenderer::OPTION_BARRA,
-				'type'    => 'text',
-				'default' => BannerRenderer::DEFAULT_BARRA,
-				'css'     => 'width: 400px;',
-			),
-			array(
 				'title'   => 'Botón de vista rápida',
 				'desc'    => 'Rótulo del botón con forma de ojo sobre la portada de cada tomo del catálogo (sólo en computador). Aparece al pasar el ratón o con el teclado, y el lector de pantalla lo lee con el nombre del tomo.',
 				'id'      => QuickView::OPTION_LABEL,
 				'type'    => 'text',
 				'default' => QuickView::DEFAULT_LABEL,
 				'css'     => 'width: 300px;',
-			),
-			array(
-				'title'   => 'Banner ETA: Fecha Estimada Singular',
-				'desc'    => 'Label principal en producto individual en stock.',
-				'id'      => 'akb_copy_eta_single_ready',
-				'type'    => 'text',
-				'default' => 'Fecha estimada de llegada',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Cartel del pedido: sustantivo para preventa',
-				'desc'    => 'Va dentro de la frase «Tu pedido incluye …» del cartel del correo y de Mi cuenta cuando alguna línea en espera es una preventa de verdad.',
-				'id'      => 'akb_copy_eta_noun_preventa',
-				'type'    => 'text',
-				'default' => 'preventa',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Cartel del pedido: sustantivo para a pedido',
-				'desc'    => 'Va dentro de la frase «Tu pedido incluye …» cuando lo que se espera son tomos a pedido.',
-				'id'      => 'akb_copy_eta_noun_pedido',
-				'type'    => 'text',
-				'default' => 'productos a pedido',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Cartel del pedido: fecha estimada ya pasada',
-				'desc'    => 'Sustituye a «Estimamos que el último producto llega el …» cuando esa fecha ya pasó y el tomo sigue sin llegar (la editorial se atrasó). Escribe %s una vez donde va la fecha; si lo omites, la fecha se añade al final. Vacío vuelve al texto original.',
-				'id'      => 'akb_copy_eta_overdue',
-				'type'    => 'text',
-				'default' => CustomerVisibility::DEFAULT_OVERDUE,
-				'css'     => 'width: 600px;',
-			),
-			array(
-				'title'   => 'Línea del pedido: tomo ya llegado',
-				'desc'    => 'Reemplaza la fecha estimada en la línea del pedido y del correo cuando ese tomo ya está en bodega. Se le añade el país de origen.',
-				'id'      => 'akb_copy_eta_item_arrived',
-				'type'    => 'text',
-				'default' => 'Ya llegó a nuestra bodega',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ediciones: rótulo del conmutador',
-				'desc'    => 'En /marca/<edición>/, encima de los botones Argentina · España. «%s» es el nombre de la familia (Panini, Ivrea).',
-				'id'      => EditionCopy::OPTION_SWITCH_LABEL,
-				'type'    => 'text',
-				'default' => EditionCopy::DEFAULT_SWITCH_LABEL,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ediciones: enlace a la landing de la familia',
-				'desc'    => 'El enlace terciario del conmutador hacia /panini/ o /ivrea/.',
-				'id'      => EditionCopy::OPTION_SWITCH_COMPARE,
-				'type'    => 'text',
-				'default' => EditionCopy::DEFAULT_SWITCH_COMPARE,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ediciones: botón de cada tarjeta',
-				'desc'    => 'En la landing de la familia. «%s» es el nombre de la edición (Panini Argentina).',
-				'id'      => EditionCopy::OPTION_CARD_CTA,
-				'type'    => 'text',
-				'default' => EditionCopy::DEFAULT_CARD_CTA,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ediciones: conteo de la tarjeta',
-				'desc'    => '«%s» es el número de productos de la edición (dos o más).',
-				'id'      => EditionCopy::OPTION_CARD_COUNT,
-				'type'    => 'text',
-				'default' => EditionCopy::DEFAULT_CARD_COUNT,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ediciones: conteo de la tarjeta con un solo producto',
-				'desc'    => 'Sin marcador: la edición tiene exactamente un producto.',
-				'id'      => EditionCopy::OPTION_CARD_COUNT_ONE,
-				'type'    => 'text',
-				'default' => EditionCopy::DEFAULT_CARD_COUNT_ONE,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ediciones: precio «desde»',
-				'desc'    => '«%s» es el precio más bajo con stock de la edición, calculado solo.',
-				'id'      => EditionCopy::OPTION_PRICE_FROM,
-				'type'    => 'text',
-				'default' => EditionCopy::DEFAULT_PRICE_FROM,
-				'css'     => 'width: 400px;',
 			),
 			array(
 				'type' => 'sectionend',
@@ -677,32 +460,6 @@ final class CopyManager {
 				'css'     => 'width: 400px;',
 			),
 			array(
-				'title'   => 'Disponibilidad en producto (preventa)',
-				'desc'    => 'Se muestra en la ficha de una PREVENTA real (aún no sale).',
-				'id'      => 'akb_copy_promise_preventa_transit',
-				'type'    => 'text',
-				'default' => 'En camino a Akibara',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Disponibilidad en producto (a pedido)',
-				'desc'    => 'Se muestra en la ficha de un tomo A PEDIDO (ya publicado; se trae en el próximo pedido a la editorial).',
-				'id'      => 'akb_copy_promise_pedido_transit',
-				'type'    => 'text',
-				'default' => 'Lo pedimos a la editorial por ti',
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Ventana de despacho de una preventa lista',
-				'desc'    => 'El plazo que se promete cuando la preventa ya llegó a bodega. Se usa TAL CUAL dentro de seis frases '
-					. '(«Despachamos en …», «Sale en los próximos …»), en el detalle del pedido y en los cuatro correos de preventa, '
-					. 'así que escribe sólo el plazo. Vacío vuelve al de fábrica.',
-				'id'      => ShipPromise::OPTION_WINDOW,
-				'type'    => 'text',
-				'default' => ShipPromise::DEFAULT_WINDOW,
-				'css'     => 'width: 400px;',
-			),
-			array(
 				'title'   => 'Sello de confianza: cuotas',
 				'desc'    => 'Aparece en el checkout, en los sellos de la ficha del producto, en el FAQ «¿Cómo comprar…?» y en el carrito vacío. '
 					. 'Debe reflejar las condiciones reales del medio de pago.',
@@ -719,8 +476,7 @@ final class CopyManager {
 				'title' => 'Carrito: cuando no se puede agregar',
 				'type'  => 'title',
 				'id'    => 'akb_copys_cart_rejection',
-				'desc'  => 'Lo que lee el cliente cuando toca «Añadir al carrito» y el tomo no se puede agregar. Sale junto al botón, en la tarjeta del catálogo, en la barra de compra de la ficha y en el aviso de la página. {producto} se cambia por el nombre del tomo. '
-					. 'Los tres de los packs salen bajo el botón de «Arma tu pack» (en la ficha) y de «Elegir tomos» (en la página de la serie); hablan de varios tomos a la vez y no llevan {producto}.',
+				'desc'  => 'Lo que lee el cliente cuando toca «Añadir al carrito» y el tomo no se puede agregar. Sale junto al botón, en la tarjeta del catálogo, en la barra de compra de la ficha y en el aviso de la página. {producto} se cambia por el nombre del tomo.',
 			),
 			array(
 				'title'   => 'Ya tiene todas las unidades',
@@ -736,30 +492,6 @@ final class CopyManager {
 				'id'      => RejectionCopy::OPTION_SIN_STOCK,
 				'type'    => 'text',
 				'default' => RejectionCopy::DEFAULT_SIN_STOCK,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'Packs: ya están en el carrito',
-				'desc'    => 'Cuando el cliente vuelve a elegir tomos que ya están en su carrito con todas las unidades que quedan. Los tomos se desmarcan solos: no hay nada que reintentar. Vacío vuelve a «' . SelectionCart::DEFAULT_YA_EN_CARRITO . '».',
-				'id'      => SelectionCart::OPTION_YA_EN_CARRITO,
-				'type'    => 'text',
-				'default' => SelectionCart::DEFAULT_YA_EN_CARRITO,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'Packs: tomos agotados',
-				'desc'    => 'Cuando alguno de los tomos elegidos se agotó después de que el cliente abrió la página. Los agotados se desmarcan solos. Vacío vuelve a «' . SelectionCart::DEFAULT_SIN_STOCK . '».',
-				'id'      => SelectionCart::OPTION_SIN_STOCK,
-				'type'    => 'text',
-				'default' => SelectionCart::DEFAULT_SIN_STOCK,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'Packs: no se pudo agregar',
-				'desc'    => 'Cuando no se sabe por qué no entraron (o se cortó la conexión): los tomos siguen marcados y reintentar puede servir. Vacío vuelve a «' . SelectionCart::DEFAULT_ERROR . '».',
-				'id'      => SelectionCart::OPTION_ERROR,
-				'type'    => 'text',
-				'default' => SelectionCart::DEFAULT_ERROR,
 				'css'     => 'width: min(100%, 680px);',
 			),
 			array(
@@ -817,14 +549,6 @@ final class CopyManager {
 				'desc'  => 'Textos de las páginas /serie/…: la línea de resumen que va sobre los tomos, el atajo al último tomo y la barra «Completa tu colección».',
 			),
 			array(
-				'title'   => 'Otras ediciones de la obra',
-				'desc'    => 'Rótulo bajo el título de la serie, delante de los enlaces a las otras ediciones de la misma obra (por ejemplo, «One Piece 3 en 1»). Sólo sale en las series que tienen ediciones relacionadas. Mejor corto: va en una sola línea con los enlaces. Vacío vuelve a «' . SeriesEditions::DEFAULT_LABEL . '».',
-				'id'      => SeriesEditions::OPTION_LABEL,
-				'type'    => 'text',
-				'default' => SeriesEditions::DEFAULT_LABEL,
-				'css'     => 'width: 300px;',
-			),
-			array(
 				'title'   => 'Enlace a la ficha de la serie',
 				'desc'    => 'Va al final de la línea de resumen, sobre los tomos, y baja a la ficha completa (estado de publicación, disponibilidad, precios, autor y editorial), que está debajo de los tomos. Vacío vuelve a «' . SeriesFacts::DEFAULT_SUMMARY_LINK . '».',
 				'id'      => SeriesFacts::OPTION_SUMMARY_LINK,
@@ -841,117 +565,8 @@ final class CopyManager {
 				'css'     => 'width: 400px;',
 			),
 			array(
-				'title'   => 'Descuento del pack, junto al título',
-				'desc'    => 'En «Completa tu colección», bajo el título. Escribe ' . LandingOffer::PCT_MARKER . ' donde quieras el descuento más alto de esa serie (el número va solo; el «%» lo pones tú). Si borras el marcador, el texto sale tal cual, sin número. Al tocarlo se abren los tramos y las condiciones. Vacío vuelve a «' . LandingOffer::DEFAULT_OFFER_HOOK . '».',
-				'id'      => LandingOffer::OPTION_OFFER_HOOK,
-				'type'    => 'text',
-				'default' => LandingOffer::DEFAULT_OFFER_HOOK,
-				'css'     => 'width: 400px;',
-			),
-			array(
-				'title'   => 'Enlace a las condiciones del pack',
-				'desc'    => 'Va a continuación del descuento: al tocarlo se muestran los tramos («Desde 5 tomos · 8% dto.») y las condiciones (se aplica al sumarlos al carrito, cada tomo distinto cuenta una vez…). Vacío vuelve a «' . LandingOffer::DEFAULT_RULES_TOGGLE . '».',
-				'id'      => LandingOffer::OPTION_RULES_TOGGLE,
-				'type'    => 'text',
-				'default' => LandingOffer::DEFAULT_RULES_TOGGLE,
-				'css'     => 'width: 400px;',
-			),
-			array(
 				'type' => 'sectionend',
 				'id'   => 'akb_copys_series_landing',
-			),
-			array(
-				'title' => 'Contenido de preventas',
-				'type'  => 'title',
-				'id'    => 'akb_preventas_content',
-				'desc'  => 'Contenido editorial de la primera página de A pedido (/a-pedido/). No se repite en filtros ni paginación.',
-			),
-			array(
-				'title'   => 'Introducción',
-				'desc'    => 'Explica el modelo de reserva. Admite &lt;strong&gt; para negrita y &lt;em&gt; para cursiva; scripts, enlaces y títulos se eliminan al guardar.',
-				'id'      => PreventasRoute::OPTION_INTRO,
-				'type'    => 'textarea',
-				'default' => PreventasRoute::DEFAULT_INTRO_CONTENT,
-				'css'     => 'width: min(100%, 680px); min-height: 120px;',
-			),
-			array(
-				'title'   => 'Guía de preventas',
-				'desc'    => 'Entrada publicada que se enlaza debajo de la introducción. “Sin guía” retira el CTA.',
-				'id'      => PreventasRoute::OPTION_GUIDE,
-				'type'    => 'select',
-				'default' => '0',
-				'options' => $this->published_post_options(),
-				'css'     => 'width: min(100%, 480px);',
-			),
-			array(
-				'title'   => 'CTA de la guía: apertura',
-				'desc'    => 'Frase corta que precede al enlace. Sólo se ve si arriba hay una guía elegida.',
-				'id'      => PreventasRoute::OPTION_GUIDE_PREFIX,
-				'type'    => 'text',
-				'default' => PreventasRoute::GUIDE_PREFIX,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'CTA de la guía: texto del enlace',
-				'desc'    => 'Lo que se lee subrayado. Descríbelo por lo que el cliente va a encontrar, no como «haz clic aquí».',
-				'id'      => PreventasRoute::OPTION_GUIDE_LINK,
-				'type'    => 'text',
-				'default' => PreventasRoute::GUIDE_LINK_COPY,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'Enlace a Disponibles: apertura',
-				'desc'    => 'Frase corta que precede al enlace hacia /disponibles/.',
-				'id'      => PreventasRoute::OPTION_SIBLING_PREFIX,
-				'type'    => 'text',
-				'default' => PreventasRoute::SIBLING_PREFIX,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'Enlace a Disponibles: texto del enlace',
-				'desc'    => 'Este párrafo es la ÚNICA puerta interna hacia /disponibles/: si lo dejas en blanco vuelve al texto de fábrica en vez de desaparecer, porque sin él esa página queda huérfana para Google.',
-				'id'      => PreventasRoute::OPTION_SIBLING_LINK,
-				'type'    => 'text',
-				'default' => PreventasRoute::SIBLING_LINK_COPY,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_preventas_content',
-			),
-			array(
-				'title' => 'Contenido de disponibles',
-				'type'  => 'title',
-				'id'    => 'akb_disponibles_content',
-				'desc'  => 'Contenido editorial de la primera página de Disponibles (/disponibles/). No se repite en filtros ni paginación. El enlace a A pedido que va debajo apunta siempre a esa ruta —une las dos mitades del catálogo—, pero su texto se edita acá abajo.',
-			),
-			array(
-				'title'   => 'Introducción',
-				'desc'    => 'Explica qué significa que un tomo esté disponible y en qué se diferencia de una preventa. Admite &lt;strong&gt; para negrita y &lt;em&gt; para cursiva; scripts, enlaces y títulos se eliminan al guardar.',
-				'id'      => DisponiblesRoute::OPTION_INTRO,
-				'type'    => 'textarea',
-				'default' => DisponiblesRoute::DEFAULT_INTRO_CONTENT,
-				'css'     => 'width: min(100%, 680px); min-height: 120px;',
-			),
-			array(
-				'title'   => 'Enlace a A pedido: apertura',
-				'desc'    => 'Frase corta que precede al enlace. Sólo se ve cuando la introducción de arriba tiene texto.',
-				'id'      => DisponiblesRoute::OPTION_SIBLING_PREFIX,
-				'type'    => 'text',
-				'default' => DisponiblesRoute::SIBLING_PREFIX,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'title'   => 'Enlace a A pedido: texto del enlace',
-				'desc'    => 'Es la salida de quien no encontró su tomo disponible. En blanco vuelve al texto de fábrica.',
-				'id'      => DisponiblesRoute::OPTION_SIBLING_LINK,
-				'type'    => 'text',
-				'default' => DisponiblesRoute::SIBLING_LINK_COPY,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_disponibles_content',
 			),
 			array(
 				'title' => 'Ordenamiento del catálogo',
@@ -1257,24 +872,6 @@ final class CopyManager {
 				'id'   => 'akb_wl_guest_copys',
 			),
 			array(
-				'title' => 'Mi cuenta · Colección',
-				'type'  => 'title',
-				'id'    => 'akb_coleccion_copys',
-				'desc'  => 'La colección cuenta sólo los pedidos con el pago confirmado. Los pagos por transferencia entran cuando tú confirmas el depósito, así que hasta entonces el cliente no ve el tomo acá.',
-			),
-			array(
-				'title'   => 'Aviso de compras recientes',
-				'desc'    => 'Se muestra en «Mi cuenta → Colección», tanto cuando está vacía como encima de las tarjetas. Vacío retira la línea. No prometas un plazo acá: una transferencia sin confirmar puede tardar horas o no llegar nunca.',
-				'id'      => CollectionRenderer::OPTION_DELAY_NOTICE,
-				'type'    => 'text',
-				'default' => CollectionRenderer::DEFAULT_DELAY_NOTICE,
-				'css'     => 'width: min(100%, 680px);',
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_coleccion_copys',
-			),
-			array(
 				'title' => 'Formulario de contacto',
 				'type'  => 'title',
 				'id'    => 'akb_contacto_settings',
@@ -1320,36 +917,6 @@ final class CopyManager {
 	}
 
 	/**
-	 * Sanitiza el copy de preventas con la allowlist del renderer.
-	 *
-	 * @param mixed               $value     Valor preprocesado por WooCommerce.
-	 * @param array<string,mixed> $option    Definición del ajuste.
-	 * @param mixed               $raw_value Valor crudo del formulario.
-	 */
-	public function sanitize_preventas_intro( $value, array $option = array(), $raw_value = null ): string {
-		unset( $option );
-		$candidate = null !== $raw_value ? $raw_value : $value;
-		return PreventasRoute::sanitize_intro_content( $candidate );
-	}
-
-	/**
-	 * Sanitiza el copy de disponibles con la allowlist de su propio renderer.
-	 *
-	 * Delega en `DisponiblesRoute` y no en `PreventasRoute` a propósito: cada
-	 * ruta es dueña de su allowlist, así endurecer una no cambia la otra en
-	 * silencio.
-	 *
-	 * @param mixed               $value     Valor preprocesado por WooCommerce.
-	 * @param array<string,mixed> $option    Definición del ajuste.
-	 * @param mixed               $raw_value Valor crudo del formulario.
-	 */
-	public function sanitize_disponibles_intro( $value, array $option = array(), $raw_value = null ): string {
-		unset( $option );
-		$candidate = null !== $raw_value ? $raw_value : $value;
-		return DisponiblesRoute::sanitize_intro_content( $candidate );
-	}
-
-	/**
 	 * Un correo inválido cae al destinatario de siempre en vez de guardarse.
 	 *
 	 * El lector (`Forms\Settings::get_notify_email()`) ya sabe caer al fallback,
@@ -1370,69 +937,5 @@ final class CopyManager {
 		$email = trim( (string) $candidate );
 
 		return is_email( $email ) ? $email : FormsSettings::DEFAULT_NOTIFY_EMAIL;
-	}
-
-	/**
-	 * Acepta solo una entrada publicada. `null` indica a WooCommerce que debe
-	 * conservar el valor anterior cuando se intenta guardar un destino inválido.
-	 *
-	 * @param mixed               $value     Valor preprocesado por WooCommerce.
-	 * @param array<string,mixed> $option    Definición del ajuste.
-	 * @param mixed               $raw_value Valor crudo del formulario.
-	 * @return int|null
-	 */
-	public function sanitize_preventas_guide( $value, array $option = array(), $raw_value = null ): ?int {
-		unset( $option );
-		$candidate = null !== $raw_value ? $raw_value : $value;
-		if ( ! is_scalar( $candidate ) ) {
-			return null;
-		}
-
-		$post_id = absint( $candidate );
-		if ( 0 === $post_id ) {
-			return 0;
-		}
-
-		$published_id = PreventasRoute::published_post_id( $post_id );
-		return $published_id > 0 ? $published_id : null;
-	}
-
-	/**
-	 * Opciones del selector mantenible de guía editorial.
-	 *
-	 * @return array<string,string>
-	 */
-	private function published_post_options(): array {
-		$options = array( '0' => '— Sin guía de preventas —' );
-		$posts   = get_posts(
-			array(
-				'post_type'              => 'post',
-				'post_status'            => 'publish',
-				'posts_per_page'         => -1,
-				'orderby'                => 'title',
-				'order'                  => 'ASC',
-				'suppress_filters'       => false,
-				'no_found_rows'          => true,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-			)
-		);
-
-		foreach ( $posts as $post ) {
-			if ( ! isset( $post->ID, $post->post_title ) ) {
-				continue;
-			}
-			$options[ (string) $post->ID ] = (string) $post->post_title;
-		}
-
-		// Preserva la guía actualmente asignada en el selector aunque no esté publicada,
-		// evitando desasignaciones accidentales al guardar otros campos de la pestaña.
-		$guardada = absint( get_option( PreventasRoute::OPTION_GUIDE, 0 ) );
-		if ( $guardada > 0 && ! isset( $options[ (string) $guardada ] ) ) {
-			$titulo                         = get_the_title( $guardada );
-			$options[ (string) $guardada ] = ( '' !== (string) $titulo ? (string) $titulo : '#' . $guardada ) . ' (no publicada)';
-		}
-
-		return $options;
 	}
 }

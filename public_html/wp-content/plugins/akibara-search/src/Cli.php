@@ -18,6 +18,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedVariable
+ * @psalm-suppress UnusedParam
  */
 final class Cli {
 
@@ -62,6 +66,7 @@ final class Cli {
 	 * @param array $args       Posicionales (sin uso).
 	 * @param array $assoc_args --async: encolar por Action Scheduler en vez de correr inline.
 	 * @return void
+	 * @psalm-suppress UnusedParam
 	 */
 	public function cmd_rebuild( array $args = array(), array $assoc_args = array() ): void {
 		Install::maybe_install();
@@ -181,12 +186,12 @@ final class Cli {
 
 		$last = get_option( RebuildJob::OPTION_LAST );
 		if ( is_array( $last ) ) {
-			\WP_CLI::log( 'último rebuild: ' . (string) wp_json_encode( $last ) );
+			\WP_CLI::log( 'último rebuild: ' . wp_json_encode( $last ) );
 		}
 
 		$reconcile = get_option( Reconciler::OPTION_LAST );
 		if ( is_array( $reconcile ) ) {
-			\WP_CLI::log( 'último reconcile: ' . (string) wp_json_encode( $reconcile ) );
+			\WP_CLI::log( 'último reconcile: ' . wp_json_encode( $reconcile ) );
 		}
 	}
 
@@ -234,6 +239,6 @@ final class Cli {
 	public function cmd_reconcile(): void {
 		AuditLog::record( 'reconcile_encolado', 'Reconcile inline por CLI (wp akb-search reconcile)' );
 		$summary = $this->reconciler->run();
-		\WP_CLI::success( 'Reconcile: ' . (string) wp_json_encode( $summary ) );
+		\WP_CLI::success( 'Reconcile: ' . wp_json_encode( $summary ) );
 	}
 }

@@ -13,18 +13,18 @@
 	 * región aria-live y el botón deshabilitado; al terminar (o cambiar el
 	 * veredicto) recarga para el render fresco. Manda X-WP-Nonce (wp_rest). */
 	document.addEventListener('DOMContentLoaded', function () {
-		var band = document.querySelector('[data-akb-search-status]');
+		const band = document.querySelector('[data-akb-search-status]');
 		if (!band || band.getAttribute('data-state') !== 'reconstruyendo') {
 			return;
 		}
-		var endpoint = band.getAttribute('data-endpoint');
-		var nonce = band.getAttribute('data-nonce');
+		const endpoint = band.getAttribute('data-endpoint');
+		const nonce = band.getAttribute('data-nonce');
 		if (!endpoint || !nonce || !window.fetch) {
 			return;
 		}
-		var progress = band.querySelector('[data-akb-progress]');
-		var btn = document.querySelector('[data-akb-rebuild-btn]');
-		var timer = window.setInterval(function () {
+		const progress = band.querySelector('[data-akb-progress]');
+		const btn = document.querySelector('[data-akb-rebuild-btn]');
+		const timer = window.setInterval(function () {
 			window.fetch(endpoint, {
 				headers: { 'X-WP-Nonce': nonce },
 				credentials: 'same-origin'
@@ -39,7 +39,7 @@
 						window.location.reload();
 						return;
 					}
-					var txt = 'Reconstruyendo… ' + data.rebuild.done + ' de ' + data.rebuild.total;
+					const txt = 'Reconstruyendo… ' + data.rebuild.done + ' de ' + data.rebuild.total;
 					if (progress) {
 						progress.textContent = txt + ' productos';
 					}
@@ -54,12 +54,12 @@
 	/* Facetas → alta: el input de contexto apunta al datalist de la taxonomía
 	 * elegida en el select (un datalist por taxonomía ya está en el DOM). */
 	document.addEventListener('DOMContentLoaded', function () {
-		var picker = document.querySelector('[data-akb-parent-picker]');
-		var tax = document.getElementById('akb-nf-tax');
+		const picker = document.querySelector('[data-akb-parent-picker]');
+		const tax = document.getElementById('akb-nf-tax');
 		if (!picker || !tax) {
 			return;
 		}
-		var sync = function () {
+		const sync = function () {
 			if (tax.value) {
 				picker.setAttribute('list', 'akb-parents-' + tax.value);
 			} else {
@@ -73,13 +73,13 @@
 	/* Facetas: reordenar con ↑/↓ y quitar. El orden real lo da el orden de los
 	 * <tr> en el POST; acá movemos filas y anunciamos en la región live (a11y). */
 	function facetLabel(tr) {
-		var input = tr.querySelector('input[type="text"]');
-		var code = tr.querySelector('th code');
+		const input = tr.querySelector('input[type="text"]');
+		const code = tr.querySelector('th code');
 		return (input && input.value) || (code && code.textContent) || 'faceta';
 	}
 
 	function announceFacet(msg) {
-		var live = document.getElementById('akb-facets-live');
+		const live = document.getElementById('akb-facets-live');
 		if (live) {
 			live.textContent = '';
 			window.setTimeout(function () { live.textContent = msg; }, 60);
@@ -87,15 +87,15 @@
 	}
 
 	document.addEventListener('click', function (e) {
-		var move = e.target.closest('[data-akb-move]');
+		const move = e.target.closest('[data-akb-move]');
 		if (move) {
-			var tr = move.closest('tr');
-			var body = tr && tr.parentElement;
+			const tr = move.closest('tr');
+			const body = tr && tr.parentElement;
 			if (!tr || !body) {
 				return;
 			}
-			var up = move.getAttribute('data-akb-move') === 'up';
-			var sib = up ? tr.previousElementSibling : tr.nextElementSibling;
+			const up = move.getAttribute('data-akb-move') === 'up';
+			const sib = up ? tr.previousElementSibling : tr.nextElementSibling;
 			if (!sib) {
 				announceFacet(facetLabel(tr) + (up ? ' ya está primera' : ' ya está última'));
 				return;
@@ -105,23 +105,23 @@
 			} else {
 				sib.after(tr);
 			}
-			var rows = Array.prototype.slice.call(body.children);
+			const rows = Array.prototype.slice.call(body.children);
 			announceFacet(facetLabel(tr) + ' movida a la posición ' + (rows.indexOf(tr) + 1) + ' de ' + rows.length);
 			move.focus(); // el botón viaja con la fila: el teclado no se pierde.
 			return;
 		}
 
-		var remove = e.target.closest('[data-akb-remove-facet]');
+		const remove = e.target.closest('[data-akb-remove-facet]');
 		if (remove) {
-			var row = remove.closest('tr');
+			const row = remove.closest('tr');
 			if (!row) {
 				return;
 			}
-			var label = facetLabel(row);
-			var next = row.nextElementSibling || row.previousElementSibling;
+			const label = facetLabel(row);
+			const next = row.nextElementSibling || row.previousElementSibling;
 			row.remove();
 			announceFacet('Faceta ' + label + ' quitada. Guarda para confirmar.');
-			var target = next && next.querySelector('[data-akb-move="up"]');
+			const target = next && next.querySelector('[data-akb-move="up"]');
 			if (target) {
 				target.focus();
 			}

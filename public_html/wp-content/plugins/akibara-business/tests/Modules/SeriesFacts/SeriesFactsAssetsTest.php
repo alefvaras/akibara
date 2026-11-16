@@ -92,17 +92,12 @@ final class SeriesFactsAssetsTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Should keep every series summary, shortcut and sheet rule out of the sheet the whole store loads.
+	 * @testdox Should keep every series summary, shortcut and sheet rule in series-facts.css.
 	 */
 	public function test_the_rules_live_in_their_own_sheet(): void {
 		$raiz   = dirname( __DIR__, 3 ) . '/assets/css/';
-		$global = (string) file_get_contents( $raiz . 'estimated-delivery.css' );
 		$propia = (string) file_get_contents( $raiz . 'series-facts.css' );
-		$sin_comentarios = static fn( string $css ): string => (string) preg_replace( '#/\*.*?\*/#s', '', $css );
 
-		foreach ( array( '.akb-series-summary', '.akb-series-latest', '.akb-series-facts', '.akb-sb-landing' ) as $clase ) {
-			self::assertStringNotContainsString( $clase, $sin_comentarios( $global ), $clase . ' no se usa donde se sirve estimated-delivery.css.' );
-		}
 		foreach ( array( '.akb-series-summary {', '.akb-series-summary__more:focus-visible', '.akb-series-latest {', '.akb-series-facts {', '.akb-series-facts__link::after' ) as $regla ) {
 			self::assertStringContainsString( $regla, $propia, $regla );
 		}

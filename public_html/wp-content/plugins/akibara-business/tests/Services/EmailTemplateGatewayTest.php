@@ -81,7 +81,9 @@ final class EmailTemplateGatewayTest extends TestCase {
 	 * @testdox fallback_html produce un correo con la tríada brutalista Akibara si no hay WooCommerce.
 	 */
 	public function test_fallback_renders_brand_tokens(): void {
-		$rendered = EmailTemplateGateway::render( 'Aviso urgente', '<p>Cuerpo del correo</p>' );
+		$ref = new \ReflectionMethod( EmailTemplateGateway::class, 'fallback_html' );
+		$ref->setAccessible( true );
+		$rendered = $ref->invoke( null, 'Aviso urgente', '<p>Cuerpo del correo</p>' );
 
 		self::assertStringContainsString( '#0d0d0d', $rendered );
 		self::assertStringContainsString( '#E60012', $rendered );

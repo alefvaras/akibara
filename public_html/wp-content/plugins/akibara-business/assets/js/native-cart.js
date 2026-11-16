@@ -2,43 +2,43 @@
 	'use strict';
 
 	document.addEventListener('DOMContentLoaded', function () {
-		var config = window.akbNativeCart || {};
-		var overlay = document.getElementById('akb-native-cart-overlay');
-		var drawer = document.getElementById('akb-native-cart-drawer');
+		const config = window.akbNativeCart || {};
+		const overlay = document.getElementById('akb-native-cart-overlay');
+		const drawer = document.getElementById('akb-native-cart-drawer');
 
 		if (!overlay || !drawer || config.enabled === false) {
 			return;
 		}
 
-		var closeBtn = drawer.querySelector('.akb-cart-close');
-		var itemsContainer = drawer.querySelector('.akb-cart-items-container');
-		var subtotalVal = drawer.querySelector('.akb-cart-subtotal-val');
-		var discountRow = drawer.querySelector('.akb-cart-discount');
-		var discountVal = drawer.querySelector('.akb-cart-discount-val');
-		var totalRow = drawer.querySelector('.akb-cart-total');
-		var totalVal = drawer.querySelector('.akb-cart-total-val');
-		var shippingNotice = drawer.querySelector('.akb-cart-shipping-notice');
-		var liveRegion = drawer.querySelector('.akb-cart-live');
-		var statusContainer = drawer.querySelector('[data-akb-cart-status]');
-		var footer = drawer.querySelector('.akb-cart-footer');
-		var body = drawer.querySelector('.akb-cart-body');
-		var progressSlot = drawer.querySelector('.akb-cart-progress-slot');
-		var checkoutButton = drawer.querySelector('.akb-cart-checkout-btn');
-		var checkoutLabel = checkoutButton ? checkoutButton.textContent : '';
-		var lastFocused = null;
-		var lastTriggerIndex = -1;
-		var isOpen = false;
-		var isMutating = false;
-		var isCheckingOut = false;
-		var checkoutAttempt = 0;
-		var recommendationPending = false;
-		var resumeTimer = null;
-		var suppressNextFragmentRefresh = false;
-		var memoryCache = null;
-		var cartReadController = null;
-		var cartReadSequence = 0;
-		var bodyOverflow = '';
-		var focusableSelector = [
+		const closeBtn = drawer.querySelector('.akb-cart-close');
+		const itemsContainer = drawer.querySelector('.akb-cart-items-container');
+		const subtotalVal = drawer.querySelector('.akb-cart-subtotal-val');
+		const discountRow = drawer.querySelector('.akb-cart-discount');
+		const discountVal = drawer.querySelector('.akb-cart-discount-val');
+		const totalRow = drawer.querySelector('.akb-cart-total');
+		const totalVal = drawer.querySelector('.akb-cart-total-val');
+		const shippingNotice = drawer.querySelector('.akb-cart-shipping-notice');
+		const liveRegion = drawer.querySelector('.akb-cart-live');
+		const statusContainer = drawer.querySelector('[data-akb-cart-status]');
+		const footer = drawer.querySelector('.akb-cart-footer');
+		const body = drawer.querySelector('.akb-cart-body');
+		const progressSlot = drawer.querySelector('.akb-cart-progress-slot');
+		const checkoutButton = drawer.querySelector('.akb-cart-checkout-btn');
+		const checkoutLabel = checkoutButton ? checkoutButton.textContent : '';
+		let lastFocused = null;
+		let lastTriggerIndex = -1;
+		let isOpen = false;
+		let isMutating = false;
+		let isCheckingOut = false;
+		let checkoutAttempt = 0;
+		let recommendationPending = false;
+		let resumeTimer = null;
+		let suppressNextFragmentRefresh = false;
+		let memoryCache = null;
+		let cartReadController = null;
+		let cartReadSequence = 0;
+		let bodyOverflow = '';
+		const focusableSelector = [
 			'a[href]',
 			'button:not([disabled])',
 			'input:not([disabled])',
@@ -57,7 +57,7 @@
 		// atributos a todos los disparadores tras cada reemplazo y cubrir temas que aún no los
 		// declaran.
 		function syncCartTriggersAria() {
-			var expanded = isOpen ? 'true' : 'false';
+			const expanded = isOpen ? 'true' : 'false';
 			document.querySelectorAll('.akb-cart-trigger').forEach(function (trigger) {
 				if (!trigger.hasAttribute('aria-haspopup')) {
 					trigger.setAttribute('aria-haspopup', 'dialog');
@@ -81,6 +81,7 @@
 			if (lastTriggerIndex < 0) {
 				return null;
 			}
+			// eslint-disable-next-line security/detect-object-injection
 			return document.querySelectorAll('.akb-cart-trigger')[lastTriggerIndex] || null;
 		}
 
@@ -92,19 +93,43 @@
 			}
 		}
 
+		function setBackgroundInert(active) {
+			if (!document.body || !document.body.children) {
+				return;
+			}
+			Array.prototype.forEach.call(document.body.children, function (node) {
+				if (!node || node === overlay || node === drawer) {
+					return;
+				}
+				const tag = String(node.tagName || '').toUpperCase();
+				if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'LINK') {
+					return;
+				}
+				if (active) {
+					node.setAttribute('inert', '');
+					node.setAttribute('data-akb-cart-inert', '1');
+				} else if (node.hasAttribute('data-akb-cart-inert')) {
+					node.removeAttribute('inert');
+					node.removeAttribute('data-akb-cart-inert');
+				}
+			});
+		}
+
 		window.akbCart = {
-			open: function (trigger) {
+			open (trigger) {
 				if (isOpen) {
 					return;
 				}
 
-				lastFocused = trigger && trigger.focus ? trigger : document.activeElement;
+				lastFocused = trigger && trigger.focus ? trigger : document.documentElement.ownerDocument.activeElement;
 				lastTriggerIndex = Array.prototype.indexOf.call(document.querySelectorAll('.akb-cart-trigger'), lastFocused);
 				isOpen = true;
+				document.body.classList.add('akb-cart-open');
 				overlay.classList.add('akb-open');
 				drawer.classList.add('akb-open');
 				overlay.setAttribute('aria-hidden', 'false');
 				drawer.setAttribute('aria-hidden', 'false');
+				setBackgroundInert(true);
 				syncCartTriggersAria();
 				bodyOverflow = document.body.style.overflow;
 				document.body.style.overflow = 'hidden';
@@ -116,38 +141,43 @@
 				// Evento de dominio para interop desacoplada (p.ej. el motor de
 				// popup de marketing auto-suprime al abrirse el carrito). Aditivo y
 				// backward-compatible: nadie más lo escuchaba antes.
-				try { document.dispatchEvent(new CustomEvent('akb:cart:open')); } catch (e) {}
+				try { document.dispatchEvent(new CustomEvent('akb:cart:open')); } catch (_e) {}
 			},
-			close: function () {
+			close () {
 				if (!isOpen) {
 					return;
 				}
 
 				isOpen = false;
+				document.body.classList.remove('akb-cart-open');
 				cancelCheckout();
 				overlay.classList.remove('akb-open');
 				drawer.classList.remove('akb-open');
 				overlay.setAttribute('aria-hidden', 'true');
 				drawer.setAttribute('aria-hidden', 'true');
+				setBackgroundInert(false);
 				syncCartTriggersAria();
 				document.body.style.overflow = bodyOverflow;
 				document.removeEventListener('keydown', onDocumentKeydown);
 
-				var returnTarget = focusReturnTarget();
+				const returnTarget = focusReturnTarget();
 				if (returnTarget) {
 					returnTarget.focus();
 				}
 
-				try { document.dispatchEvent(new CustomEvent('akb:cart:close')); } catch (e) {}
+				try { document.dispatchEvent(new CustomEvent('akb:cart:close')); } catch (_e) {}
 			},
-			toggle: function (trigger) {
+			toggle (trigger) {
 				if (isOpen) {
 					window.akbCart.close();
 				} else {
 					window.akbCart.open(trigger);
 				}
 			},
-			refresh: function (forceRefresh) {
+			refresh (forceRefresh) {
+				if (forceRefresh) {
+					memoryCache = null;
+				}
 				if (isOpen && !isCheckingOut) {
 					fetchCart(Boolean(forceRefresh));
 				}
@@ -216,9 +246,9 @@
 				return;
 			}
 			if (isMutating || recommendationPending) {
-				var waitMessage = text('checkoutWait', text('loading', 'Cargando...'));
+				const waitMessage = text('checkoutWait', text('loading', 'Cargando...'));
 				if (statusContainer && !statusContainer.querySelector('[data-akb-cart-wait]')) {
-					var notice = createText('akb-cart-status__item', waitMessage);
+					const notice = createText('akb-cart-status__item', waitMessage);
 					notice.setAttribute('data-akb-cart-wait', '');
 					statusContainer.appendChild(notice);
 					statusContainer.hidden = false;
@@ -227,13 +257,13 @@
 				return;
 			}
 
-			var attempt = ++checkoutAttempt;
-			var navigating = false;
+			const attempt = ++checkoutAttempt;
+			let navigating = false;
 			setCheckoutBusy(true);
 			try {
 				// Nunca decidir con el DOM, fragments o cache: la cookie de sesión
 				// puede haberse borrado mientras este mismo cajón seguía abierto.
-				var fresh = await fetchCart(true);
+				const fresh = await fetchCart(true);
 				if (attempt !== checkoutAttempt || !isOpen || !fresh) {
 					return;
 				}
@@ -269,7 +299,6 @@
 				// describe la verdad. Sin esto, open() pintaba primero el carrito
 				// ANTERIOR (sin el producto recién agregado) y lo sustituía al
 				// llegar la respuesta — el "parpadeo" al abrir.
-				memoryCache = null;
 				window.akbCart.refresh(true);
 				if (config.autoOpenOnAdd && event.type === 'added_to_cart') {
 					window.akbCart.open();
@@ -278,7 +307,7 @@
 		}
 
 		function bindConfiguredTriggers() {
-			var selector = typeof config.triggerSelector === 'string' ? config.triggerSelector.trim() : '';
+			const selector = typeof config.triggerSelector === 'string' ? config.triggerSelector.trim() : '';
 
 			if (!selector) {
 				return;
@@ -287,13 +316,10 @@
 			// Delegado en document: el icono de carrito del header es un WC fragment
 			// que se reemplaza en added_to_cart; un binding directo perdería el listener.
 			document.addEventListener('click', function (event) {
-				var btn;
+				let btn;
 				try {
 					btn = event.target.closest(selector);
-				} catch (error) {
-					if (window.console && console.warn) {
-						console.warn('Akibara NativeCart: selector inválido', error);
-					}
+				} catch (_error) {
 					return;
 				}
 				if (!btn) {
@@ -323,25 +349,20 @@
 		}
 
 		function focusInitialControl() {
-			var target = closeBtn || drawer;
-
-			window.setTimeout(function () {
-				if (!isOpen) {
-					return;
-				}
-				target.focus();
-			}, 40);
-			window.setTimeout(function () {
-				if (isOpen && !drawer.contains(document.activeElement)) {
+			const target = closeBtn || drawer;
+			const focusIfOutside = function () {
+				if (isOpen && !drawer.contains(document.documentElement.ownerDocument.activeElement)) {
 					target.focus();
 				}
-			}, config.reducedMotion ? 80 : 360);
+			};
+			window.setTimeout(focusIfOutside, 40);
+			window.setTimeout(focusIfOutside, config.reducedMotion ? 80 : 360);
 		}
 
 		function trapFocus(event) {
-			var focusables = Array.prototype.slice.call(drawer.querySelectorAll(focusableSelector))
+			const focusables = Array.prototype.slice.call(drawer.querySelectorAll(focusableSelector))
 				.filter(function (el) {
-					return el.getClientRects().length > 0 || el === document.activeElement;
+					return el.getClientRects().length > 0 || el === document.documentElement.ownerDocument.activeElement;
 				});
 
 			if (!focusables.length) {
@@ -350,19 +371,20 @@
 				return;
 			}
 
-			var first = focusables[0];
-			var last = focusables[focusables.length - 1];
+			const first = focusables[0];
+			const last = focusables[focusables.length - 1];
 
-			if (event.shiftKey && document.activeElement === first) {
+			if (event.shiftKey && document.documentElement.ownerDocument.activeElement === first) {
 				event.preventDefault();
 				last.focus();
-			} else if (!event.shiftKey && document.activeElement === last) {
+			} else if (!event.shiftKey && document.documentElement.ownerDocument.activeElement === last) {
 				event.preventDefault();
 				first.focus();
 			}
 		}
 
 		function text(key, fallback) {
+			// eslint-disable-next-line security/detect-object-injection
 			return config.copy && config.copy[key] ? config.copy[key] : fallback;
 		}
 
@@ -379,32 +401,36 @@
 		}
 
 		function createText(className, value, tagName) {
-			var el = document.createElement(tagName || 'div');
+			const el = document.createElement(tagName || 'div');
 			el.className = className;
 			el.textContent = value || '';
 			return el;
 		}
 
-		function appendTitleWithVolume(container, title, className) {
-			var el = document.createElement('div');
+		function appendTitleWithVolume(container, title, className, permalink) {
+			const hasLink = typeof permalink === 'string' && permalink.length > 0 && !/^\s*javascript:/i.test(permalink);
+			const el = document.createElement(hasLink ? 'a' : 'div');
 			el.className = className;
+			if (hasLink) {
+				el.setAttribute('href', permalink);
+			}
 			if (!title) {
 				container.appendChild(el);
 				return;
 			}
-			var match = title.match(/^(.*\S)\s*(?:[Nn]\.?[º°]|#)\s*(\d+)\s*(\([^()]*\))\s*$/) ||
+			const match = title.match(/^(.*\S)\s*(?:[Nn]\.?[º°]|#)\s*(\d+)\s*(\([^()]*\))\s*$/) ||
 				title.match(/^(.*\S)\s*(?:[Nn]\.?[º°]|#)\s*(\d+)\s*$/) ||
 				title.match(/^(.*\S)\s+(\d+)\s*(\([^()]*\))\s*$/) ||
 				title.match(/^(.*\S)\s+(\d+)\s*$/);
 			if (match) {
-				var name = match[1].replace(/\s*(?:[Nn]\.?[º°]|#)\s*$/, '');
+				let name = match[1].replace(/\s*(?:[Nn]\.?[º°]|#)\s*$/, '');
 				if (match[3]) {
 					name += ' ' + match[3];
 				}
-				var nameSpan = document.createElement('span');
+				const nameSpan = document.createElement('span');
 				nameSpan.className = 'akb-title-name';
 				nameSpan.textContent = name.trim() + ' ';
-				var volSpan = document.createElement('span');
+				const volSpan = document.createElement('span');
 				volSpan.className = 'akb-vol';
 				volSpan.textContent = match[2];
 				el.appendChild(nameSpan);
@@ -421,8 +447,11 @@
 		// formaction, data:text/html, <base> ni otros vectores. El HTML de usuarios o terceros debe
 		// sanearse antes en el backend.
 		function safeHtmlFragment(html) {
-			var template = document.createElement('template');
-			template.innerHTML = html || '';
+			const doc = new DOMParser().parseFromString(html || '', 'text/html');
+			const template = document.createElement('template');
+			while (doc.body.firstChild) {
+				template.content.appendChild(doc.body.firstChild);
+			}
 			template.content.querySelectorAll('script, style, iframe, object, embed').forEach(function (node) {
 				node.remove();
 			});
@@ -439,17 +468,17 @@
 		}
 
 		function createSkeletonCard() {
-			var item = document.createElement('div');
+			const item = document.createElement('div');
 			item.className = 'akb-cart-skeleton-item';
-			var thumb = document.createElement('div');
+			const thumb = document.createElement('div');
 			thumb.className = 'akb-cart-skeleton-thumb';
-			var details = document.createElement('div');
+			const details = document.createElement('div');
 			details.className = 'akb-cart-skeleton-details';
-			var t1 = document.createElement('div');
+			const t1 = document.createElement('div');
 			t1.className = 'akb-cart-skeleton-line akb-cart-skeleton-line--title';
-			var t2 = document.createElement('div');
+			const t2 = document.createElement('div');
 			t2.className = 'akb-cart-skeleton-line akb-cart-skeleton-line--sub';
-			var t3 = document.createElement('div');
+			const t3 = document.createElement('div');
 			t3.className = 'akb-cart-skeleton-line akb-cart-skeleton-line--price';
 			details.appendChild(t1);
 			details.appendChild(t2);
@@ -463,15 +492,15 @@
 		// Para las mutaciones existe setBusy(), que no destruye nada.
 		function renderLoading() {
 			clear(itemsContainer);
-			var wrap = document.createElement('div');
+			const wrap = document.createElement('div');
 			wrap.className = 'akb-cart-loading';
 			wrap.setAttribute('role', 'status');
 			wrap.setAttribute('aria-label', text('loading', 'Cargando carrito...'));
-			var sr = document.createElement('span');
+			const sr = document.createElement('span');
 			sr.className = 'screen-reader-text';
 			sr.textContent = text('loading', 'Cargando carrito...');
 			wrap.appendChild(sr);
-			var list = document.createElement('div');
+			const list = document.createElement('div');
 			list.className = 'akb-cart-skeleton-list';
 			list.setAttribute('aria-hidden', 'true');
 			list.appendChild(createSkeletonCard());
@@ -491,6 +520,7 @@
 		 * Durante una mutación de cantidad o eliminación, conservar lista y footer para mantener
 		 * scroll, foco y geometría del diálogo. Atenuar y bloquear la interacción con aria-busy, sin
 		 * sustituir el contenido por el estado de carga inicial.
+		 * @param {*} busy
 		 */
 		function setBusy(busy) {
 			isMutating = busy;
@@ -498,7 +528,7 @@
 		}
 
 		function syncBusyState() {
-			var busy = isMutating || isCheckingOut;
+			const busy = isMutating || isCheckingOut;
 			drawer.classList.toggle('akb-cart--busy', busy);
 			// aria-busy va en el contenedor de la lista, no en el diálogo: el
 			// footer y el botón de cerrar siguen siendo contenido estable.
@@ -506,10 +536,10 @@
 		}
 
 		function captureRestorePoint() {
-			var active = document.activeElement;
-			var inCart = active && itemsContainer.contains(active);
-			var row = inCart ? active.closest('.akb-cart-item') : null;
-			var rows = Array.prototype.slice.call(itemsContainer.querySelectorAll('.akb-cart-item'));
+			const active = document.documentElement.ownerDocument.activeElement;
+			const inCart = active && itemsContainer.contains(active);
+			const row = inCart ? active.closest('.akb-cart-item') : null;
+			const rows = Array.prototype.slice.call(itemsContainer.querySelectorAll('.akb-cart-item'));
 
 			return {
 				scrollTop: body ? body.scrollTop : 0,
@@ -533,6 +563,7 @@
 		 * y se busca el equivalente en el DOM nuevo. Si la fila desapareció
 		 * (cantidad a 0), el foco cae al control más cercano que sí exista, nunca
 		 * al <body>.
+		 * @param {*} point
 		 */
 		function restorePoint(point) {
 			if (!point) {
@@ -547,14 +578,14 @@
 				return;
 			}
 
-			var rows = itemsContainer.querySelectorAll('.akb-cart-item');
+			const rows = itemsContainer.querySelectorAll('.akb-cart-item');
 			if (!rows.length) {
 				focusInsideDrawer(closeBtn);
 				return;
 			}
 
-			var row = rows[Math.min(point.rowIndex, rows.length - 1)];
-			var target = row.querySelector('.' + point.controlClass);
+			const row = rows[Math.min(point.rowIndex, rows.length - 1)];
+			let target = row.querySelector('.' + point.controlClass);
 
 			// El "+" puede quedar deshabilitado al tocar el tope de stock: en ese
 			// caso el foco pasa al "−", que sigue siendo accionable.
@@ -567,11 +598,19 @@
 			focusInsideDrawer(target);
 		}
 
-		function renderCart(data, announceMutation) {
-			var settings = Object.assign({}, config, data.settings || {});
+		function renderCart(data, announceMutation, fresh) {
+			if (fresh && Array.isArray(data.items)) {
+				document.dispatchEvent(new CustomEvent('akb:cart:state', {
+					detail: {
+						product_ids: data.items.map(function (item) { return Number(item.id); }).filter(Number.isSafeInteger),
+						purchase_incentives: data.purchase_incentives || null
+					}
+				}));
+			}
+			const settings = Object.assign({}, config, data.settings || {});
 			// clear() destruye los nodos y el navegador colapsa el scroll a 0. Con
 			// una lista larga, cualquier refresco devolvía al cliente al principio.
-			var previousScroll = body ? body.scrollTop : 0;
+			const previousScroll = body ? body.scrollTop : 0;
 			clear(itemsContainer);
 			renderStatus(settings, data);
 
@@ -629,7 +668,7 @@
 				clear(subtotalVal);
 				subtotalVal.appendChild(safeHtmlFragment(data.subtotal_html || ''));
 			}
-			var showDiscountBreakdown = Boolean(data.has_discount && data.discount_html && data.total_html);
+			const showDiscountBreakdown = Boolean(data.has_discount && data.discount_html && data.total_html);
 			if (discountRow) {
 				discountRow.toggleAttribute('hidden', !showDiscountBreakdown);
 			}
@@ -678,7 +717,7 @@
 		}
 
 		function renderEmptyState(settings) {
-			var emptyState = document.createElement('div');
+			const emptyState = document.createElement('div');
 			emptyState.className = 'akb-cart-empty';
 
 			emptyState.appendChild(
@@ -691,7 +730,7 @@
 				)
 			);
 
-			var continueLink = document.createElement('a');
+			const continueLink = document.createElement('a');
 			continueLink.className = 'akb-cart-empty__cta';
 			continueLink.href = settings.continueUrl || config.continueUrl || '/tienda/';
 			continueLink.textContent = settings.copy && settings.copy.continue
@@ -702,47 +741,24 @@
 			return emptyState;
 		}
 
-		function renderStatus(settings, data) {
+		function renderStatus() {
 			if (!statusContainer) {
 				return;
 			}
 
 			clear(statusContainer);
 			statusContainer.hidden = true;
-
-			if (!data.items || !data.items.length) {
-				return;
-			}
-
-			// Píldora de Despacho Consolidado para compras mixtas (Stock + A Pedido)
-			if (data.is_mixed) {
-				var mixedPill = createText(
-					'akb-cart-status__item akb-cart-status__item--mixed',
-					'🚚 Despacho Consolidado: Tus tomos se enviarán juntos al llegar la reserva para ahorrarte costos de envío.'
-				);
-				mixedPill.style.background = '#eef7ff';
-				mixedPill.style.border = '1px solid #b9dcff';
-				mixedPill.style.color = '#0b4d8c';
-				mixedPill.style.padding = '8px 12px';
-				mixedPill.style.borderRadius = '6px';
-				mixedPill.style.fontSize = '12px';
-				mixedPill.style.lineHeight = '1.4';
-				mixedPill.style.fontWeight = '500';
-				statusContainer.appendChild(mixedPill);
-			}
-
-			statusContainer.hidden = !statusContainer.children.length;
 		}
 
 		function renderItem(item, settings) {
-			var row = document.createElement('div');
+			const row = document.createElement('div');
 			row.className = 'akb-cart-item';
 
 			if (settings.showThumbnails) {
-				var image = document.createElement('div');
+				const image = document.createElement('div');
 				image.className = 'akb-cart-item-img';
 				if (item.thumbnail_url) {
-					var imgEl = document.createElement('img');
+					const imgEl = document.createElement('img');
 					imgEl.src = item.thumbnail_url;
 					imgEl.alt = item.title || '';
 					imgEl.loading = 'lazy';
@@ -753,9 +769,9 @@
 				row.appendChild(image);
 			}
 
-			var details = document.createElement('div');
+			const details = document.createElement('div');
 			details.className = 'akb-cart-item-details';
-			appendTitleWithVolume(details, item.title, 'akb-cart-item-title');
+			appendTitleWithVolume(details, item.title, 'akb-cart-item-title', item.permalink);
 			if (item.stock_label) {
 				details.appendChild(createText('akb-cart-item-availability', item.stock_label));
 			}
@@ -764,15 +780,15 @@
 			}
 
 
-			var actions = document.createElement('div');
+			const actions = document.createElement('div');
 			actions.className = 'akb-cart-item-actions';
 
-			var price = document.createElement('div');
+			const price = document.createElement('div');
 			price.className = 'akb-cart-item-price';
 			price.appendChild(safeHtmlFragment(item.price_html || ''));
 			actions.appendChild(price);
 
-			var qty = document.createElement('div');
+			const qty = document.createElement('div');
 			qty.className = 'akb-cart-item-qty';
 			qty.appendChild(renderQuantityControl(item));
 			actions.appendChild(qty);
@@ -780,7 +796,7 @@
 			details.appendChild(actions);
 			row.appendChild(details);
 
-			var remove = document.createElement('button');
+			const remove = document.createElement('button');
 			remove.type = 'button';
 			remove.className = 'akb-cart-item-remove';
 			remove.dataset.keys = JSON.stringify(item.keys_to_remove || []);
@@ -798,17 +814,17 @@
 		}
 
 		function renderQuantityControl(item) {
-			var control = document.createElement('div');
-			var itemKey = item.keys_to_remove && item.keys_to_remove[0] ? item.keys_to_remove[0] : '';
-			var current = Number(item.quantity);
-			var max = (typeof item.max !== 'undefined') ? Number(item.max) : -1;
+			const control = document.createElement('div');
+			const itemKey = item.keys_to_remove && item.keys_to_remove[0] ? item.keys_to_remove[0] : '';
+			const current = Number(item.quantity);
+			const max = (typeof item.max !== 'undefined') ? Number(item.max) : -1;
 			// Identificar el producto en los controles de cantidad. El título recibido del servidor se
 			// asigna con setAttribute, nunca como HTML.
-			var itemTitle = item.title || 'producto';
+			const itemTitle = item.title || 'producto';
 			control.className = 'akb-cart-qty-ctrl';
 			control.appendChild(quantityButton('akb-qty-minus', '-', itemKey, current - 1, 'Disminuir cantidad de ' + itemTitle));
 
-			var input = document.createElement('input');
+			const input = document.createElement('input');
 			input.type = 'number';
 			input.readOnly = true;
 			input.value = item.quantity;
@@ -818,8 +834,8 @@
 			// El máximo comprable admite tres valores: -1 sin límite, N como tope y 0 sin unidades
 			// comprables. Deshabilitar el incremento también con 0; el servidor retira las líneas
 			// agotadas.
-			var atMax = (max === 0) || (max > 0 && current >= max);
-			var plus = quantityButton('akb-qty-plus', '+', itemKey, atMax ? max : current + 1, 'Aumentar cantidad de ' + itemTitle);
+			const atMax = (max === 0) || (max > 0 && current >= max);
+			const plus = quantityButton('akb-qty-plus', '+', itemKey, atMax ? max : current + 1, 'Aumentar cantidad de ' + itemTitle);
 			if (atMax) {
 				plus.disabled = true;
 				plus.setAttribute('aria-disabled', 'true');
@@ -829,7 +845,7 @@
 		}
 
 		function quantityButton(className, label, key, qty, ariaLabel) {
-			var button = document.createElement('button');
+			const button = document.createElement('button');
 			button.type = 'button';
 			button.className = className;
 			button.dataset.key = key;
@@ -840,19 +856,19 @@
 		}
 
 		function renderRecommendations(items, settings) {
-			var wrap = document.createElement('div');
+			const wrap = document.createElement('div');
 			wrap.className = 'akb-cart-cross-sells';
 			wrap.appendChild(createText('', settings.copy && settings.copy.recommendations ? settings.copy.recommendations : text('recommendations', 'También te puede gustar'), 'h4'));
 
 			items.forEach(function (cs) {
-				var row = document.createElement('div');
+				const row = document.createElement('div');
 				row.className = 'akb-cs-item';
 
 				if (settings.showThumbnails) {
-					var image = document.createElement('div');
+					const image = document.createElement('div');
 					image.className = 'akb-cs-img';
 					if (cs.thumbnail_url) {
-						var imgEl = document.createElement('img');
+						const imgEl = document.createElement('img');
 						imgEl.src = cs.thumbnail_url;
 						imgEl.alt = cs.title || '';
 						imgEl.loading = 'lazy';
@@ -863,10 +879,10 @@
 					row.appendChild(image);
 				}
 
-				var details = document.createElement('div');
+				const details = document.createElement('div');
 				details.className = 'akb-cs-details';
-				appendTitleWithVolume(details, cs.title, 'akb-cs-title');
-				var price = document.createElement('div');
+				appendTitleWithVolume(details, cs.title, 'akb-cs-title', cs.permalink);
+				const price = document.createElement('div');
 				price.className = 'akb-cs-price';
 				price.appendChild(safeHtmlFragment(cs.price_html || ''));
 				details.appendChild(price);
@@ -874,7 +890,7 @@
 
 				// Agregar al carrito es una acción, no navegación. Un botón evita
 				// publicar otra URL rastreable con ?add-to-cart= en el drawer.
-				var add = document.createElement('button');
+				const add = document.createElement('button');
 				add.type = 'button';
 				add.className = 'akb-cs-add-btn';
 				add.dataset.product_id = cs.id;
@@ -914,24 +930,24 @@
 				return;
 			}
 			recommendationPending = true;
-			var btn = event.currentTarget;
-			var pid = btn.dataset.product_id;
-			var defaultLabel = btn.textContent;
-			var recommendationButtons = Array.prototype.slice.call(
+			const btn = event.currentTarget;
+			const pid = btn.dataset.product_id;
+			const defaultLabel = btn.textContent;
+			const recommendationButtons = Array.prototype.slice.call(
 				itemsContainer.querySelectorAll('.akb-cs-add-btn')
 			);
-			var recommendationIndex = Math.max(0, recommendationButtons.indexOf(btn));
+			const recommendationIndex = Math.max(0, recommendationButtons.indexOf(btn));
 
 			btn.disabled = true;
 			btn.setAttribute('aria-busy', 'true');
 			btn.textContent = text('adding', 'Agregando…');
 
 			try {
-				var formData = new URLSearchParams();
+				const formData = new URLSearchParams();
 				formData.append('product_id', pid);
 				formData.append('quantity', '1');
 
-				var response = await fetch(endpoint('add_to_cart'), {
+				const response = await fetch(endpoint('add_to_cart'), {
 					method: 'POST',
 					body: formData,
 					headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
@@ -941,7 +957,7 @@
 					throw new Error('add to cart failed: HTTP ' + response.status);
 				}
 
-				var result = await response.json();
+				const result = await response.json();
 				if (result.error) {
 					throw new Error('add to cart rejected');
 				}
@@ -953,8 +969,8 @@
 				if (window.jQuery) {
 					window.jQuery(document.body).trigger('wc_fragment_refresh');
 				}
-			} catch (err) {
-				var message = text('addError', 'No se pudo agregar. Intenta de nuevo.');
+			} catch (_err) {
+				const message = text('addError', 'No se pudo agregar. Intenta de nuevo.');
 				if (statusContainer) {
 					statusContainer.appendChild(createText('akb-cart-status__item akb-cart-status__item--error', message));
 					statusContainer.hidden = false;
@@ -971,9 +987,9 @@
 		}
 
 		function restoreFocusAfterRecommendation(previousIndex) {
-			var nextButtons = itemsContainer.querySelectorAll('.akb-cs-add-btn');
-			var fallback = closeBtn || drawer;
-			var target = nextButtons.length
+			const nextButtons = itemsContainer.querySelectorAll('.akb-cs-add-btn');
+			const fallback = closeBtn || drawer;
+			const target = nextButtons.length
 				? nextButtons[Math.min(previousIndex, nextButtons.length - 1)]
 				: fallback;
 
@@ -983,12 +999,11 @@
 		async function fetchCart(forceRefresh) {
 			abortCartRead();
 
-			var requestId = cartReadSequence;
-			var controller = typeof AbortController === 'function' ? new AbortController() : null;
-			var requestOptions = { cache: 'no-store', credentials: 'same-origin' };
-			var timedOut = false;
-			var timeout = null;
-			var hadItems = hasRenderedCart();
+			const requestId = cartReadSequence;
+			const controller = typeof AbortController === 'function' ? new AbortController() : null;
+			const requestOptions = { cache: 'no-store', credentials: 'same-origin' };
+			let timedOut = false;
+			let timeout = null;
 			if (controller) {
 				requestOptions.signal = controller.signal;
 				timeout = setTimeout(function () {
@@ -1010,11 +1025,11 @@
 			}
 
 			try {
-				var res = await fetch(endpoint('akb_get_cart'), requestOptions);
+				const res = await fetch(endpoint('akb_get_cart'), requestOptions);
 				if (!res.ok) {
 					throw new Error('cart read failed: HTTP ' + res.status);
 				}
-				var json = await res.json();
+				const json = await res.json();
 
 				if (requestId !== cartReadSequence) {
 					return false;
@@ -1023,21 +1038,22 @@
 				if (json.success === true && json.data && Array.isArray(json.data.items)
 					&& Number.isFinite(json.data.cart_count) && json.data.cart_count >= 0
 					&& (json.data.items.length ? json.data.cart_count > 0 : json.data.cart_count === 0)) {
+					const hadItems = hasRenderedCart();
 					adoptNonce(json.data);
 					memoryCache = json.data;
 					// Capturar al recibir, no al iniciar: el cliente puede haber
 					// movido el foco mientras esperaba. Mantener el mismo control
 					// de producto/recomendación al reemplazar sus nodos.
-					var active = document.activeElement;
-					var focusedLabel = active && itemsContainer.contains(active) ? active.getAttribute('aria-label') : null;
-					var point = focusedLabel ? captureRestorePoint() : null;
+					const active = document.documentElement.ownerDocument.activeElement;
+					const focusedLabel = active && itemsContainer.contains(active) ? active.getAttribute('aria-label') : null;
+					const point = focusedLabel ? captureRestorePoint() : null;
 					// Una lectura inicial no es un cambio de estado: el contenido
 					// visible ya comunica el carrito y repetirlo en aria-live haría
 					// que lectores de pantalla oyeran el mismo copy dos veces.
-					renderCart(json.data, false);
+				renderCart(json.data, false, true);
 					updateCounts(json.data.cart_count);
 					if (focusedLabel && json.data.items.length) {
-						var replacement = Array.prototype.find.call(itemsContainer.querySelectorAll('button, input'), function (el) {
+						const replacement = Array.prototype.find.call(itemsContainer.querySelectorAll('button, input'), function (el) {
 							return !el.disabled && el.getAttribute('aria-label') === focusedLabel;
 						});
 						if (replacement) {
@@ -1049,8 +1065,8 @@
 						}
 					}
 					if (hadItems && !json.data.items.length) {
-						var emptyMessage = text('cartEmptied', text('empty', 'Tu carrito está vacío.'));
-						var emptyText = itemsContainer.querySelector('.akb-cart-empty__message');
+						const emptyMessage = text('cartEmptied', text('empty', 'Tu carrito está vacío.'));
+						const emptyText = itemsContainer.querySelector('.akb-cart-empty__message');
 						if (emptyText) {
 							emptyText.textContent = emptyMessage;
 						}
@@ -1085,11 +1101,11 @@
 		function renderError(message) {
 			memoryCache = null;
 			clear(itemsContainer);
-			var errorState = document.createElement('div');
+			const errorState = document.createElement('div');
 			errorState.className = 'akb-cart-empty';
 			errorState.appendChild(createText('akb-cart-empty__message', message, 'p'));
 
-			var retryButton = document.createElement('button');
+			const retryButton = document.createElement('button');
 			retryButton.type = 'button';
 			retryButton.className = 'akb-cart-empty__cta';
 			retryButton.textContent = 'Reintentar';
@@ -1125,7 +1141,7 @@
 		// contador. El default va siempre unido porque el header del theme lo emite
 		// aunque el ajuste apunte a otra cosa.
 		function countTargetSelector() {
-			var configured = typeof config.triggerSelector === 'string' ? config.triggerSelector.trim() : '';
+			const configured = typeof config.triggerSelector === 'string' ? config.triggerSelector.trim() : '';
 
 			return configured && configured !== '.akb-cart-trigger'
 				? '.akb-cart-trigger, ' + configured
@@ -1133,17 +1149,14 @@
 		}
 
 		function updateCounts(count) {
-			var val = String(count);
-			var targets;
+			const val = String(count);
+			let targets;
 
 			// Mismo blindaje que bindConfiguredTriggers: un selector inválido
 			// guardado por otra vía no puede tumbar el refresco del carrito.
 			try {
 				targets = document.querySelectorAll(countTargetSelector());
-			} catch (error) {
-				if (window.console && console.warn) {
-					console.warn('Akibara NativeCart: selector inválido', error);
-				}
+			} catch (_error) {
 				targets = document.querySelectorAll('.akb-cart-trigger');
 			}
 
@@ -1161,7 +1174,7 @@
 
 		async function removeItems(keys) {
 			await mutateWithRetry('akb_remove_cart_items', function () {
-				var formData = new URLSearchParams();
+				const formData = new URLSearchParams();
 				(keys || []).forEach(function (key) {
 					formData.append('keys[]', key);
 				});
@@ -1172,7 +1185,7 @@
 
 		async function updateItemQty(key, qty) {
 			await mutateWithRetry('akb_update_cart_item', function () {
-				var formData = new URLSearchParams();
+				const formData = new URLSearchParams();
 				formData.append('key', key);
 				formData.append('qty', qty);
 				formData.append('nonce', config.nonce || '');
@@ -1187,6 +1200,8 @@
 		 * loop posible). Ambas mutaciones son idempotentes server-side (remove de una
 		 * key ya removida es no-op; set_quantity re-aplica el mismo qty). Cualquier
 		 * otro fallo, o el fallo del reintento, termina en fallo VISIBLE.
+		 * @param {*} action
+		 * @param {*} buildFormData
 		 */
 		async function mutateWithRetry(action, buildFormData) {
 			// Una segunda mutación mientras la primera vuela dejaría dos escrituras
@@ -1196,7 +1211,7 @@
 				return;
 			}
 
-			var point = captureRestorePoint();
+			const point = captureRestorePoint();
 			setBusy(true);
 			try {
 				await mutateCart(action, buildFormData(), point);
@@ -1206,7 +1221,7 @@
 					try {
 						await mutateCart(action, buildFormData(), point);
 						return;
-					} catch (retryError) {
+					} catch {
 						await showMutationError();
 						return;
 					}
@@ -1223,7 +1238,7 @@
 		// vacía el contenedor en cada renderCart).
 		async function showMutationError() {
 			await fetchCart(true);
-			var message = text('mutationError', 'No pudimos actualizar tu carrito. Intenta de nuevo.');
+			const message = text('mutationError', 'No pudimos actualizar tu carrito. Intenta de nuevo.');
 			if (statusContainer) {
 				statusContainer.appendChild(createText('akb-cart-status__item akb-cart-status__item--error', message));
 				statusContainer.hidden = false;
@@ -1234,7 +1249,7 @@
 		async function mutateCart(action, formData, point) {
 			abortCartRead();
 
-			var res = await fetch(endpoint(action), {
+			const res = await fetch(endpoint(action), {
 				method: 'POST',
 				body: formData,
 				headers: {
@@ -1246,12 +1261,12 @@
 			// status ANTES de res.json() o el parse revienta y el 403 se disfraza
 			// de error genérico sin status (imposible de reintentar con criterio).
 			if (!res.ok) {
-				var httpError = new Error('cart mutation failed: HTTP ' + res.status);
+				const httpError = new Error('cart mutation failed: HTTP ' + res.status);
 				httpError.status = res.status;
 				throw httpError;
 			}
 
-			var json = await res.json();
+			const json = await res.json();
 
 			if (!json.success) {
 				throw new Error('cart mutation failed');
@@ -1261,7 +1276,7 @@
 			memoryCache = json.data;
 			// remove/update sí son mutaciones iniciadas por el usuario; sólo en ese
 			// caso la región viva debe anunciar el nuevo estado.
-			renderCart(json.data, true);
+			renderCart(json.data, true, true);
 			updateCounts(json.data.cart_count);
 			restorePoint(point);
 

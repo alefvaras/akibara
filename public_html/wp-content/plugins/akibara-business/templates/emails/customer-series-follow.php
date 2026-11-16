@@ -81,7 +81,7 @@ if ( $akibara_todos_huecos && 1 === count( $groups ) && 1 === $akibara_tomos ) {
 			<?php if ( '' !== (string) $akibara_group['image_url'] ) : ?>
 				<td style="width:96px;padding:14px 0 14px 14px;vertical-align:top;">
 					<a href="<?php echo esc_url( (string) $akibara_group['url'] ); ?>">
-						<img src="<?php echo esc_url( (string) $akibara_group['image_url'] ); ?>" alt="<?php echo esc_attr( (string) $akibara_group['title'] ); ?>" width="80" style="display:block;width:80px;height:auto;border:1px solid #141416;">
+						<img src="<?php echo esc_url( (string) $akibara_group['image_url'] ); ?>" alt="<?php echo esc_attr( (string) ( $akibara_group['title'] ?? $akibara_group['series_name'] ?? '' ) ); ?>" width="80" style="display:block;width:80px;height:auto;border:1px solid #141416;">
 					</a>
 				</td>
 			<?php endif; ?>
@@ -138,7 +138,7 @@ if ( $akibara_todos_huecos && 1 === count( $groups ) && 1 === $akibara_tomos ) {
 <?php endforeach; ?>
 
 <p style="color:#6b6b6b;font-size:13px;">
-	<a href="<?php echo esc_url( $collection_url ); ?>">Ver mi colección completa</a>
+	<a href="<?php echo esc_url( $collection_url ); ?>">Ir a Mi Cuenta</a>
 </p>
 
 <?php

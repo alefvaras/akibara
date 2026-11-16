@@ -134,7 +134,7 @@ defined( 'ABSPATH' ) || exit;
 			<div class="akb-hero-slide__fieldgroup">
 				<p>
 					<label>Eyebrow (texto pequeño encima del título)
-						<input type="text" name="slides[<?php echo (int) $idx; ?>][eyebrow]" value="<?php echo esc_attr( (string) ( $slide['eyebrow'] ?? '' ) ); ?>" maxlength="40" class="regular-text" placeholder="Ej: NOVEDAD, PREVENTA, OFERTA">
+						<input type="text" name="slides[<?php echo (int) $idx; ?>][eyebrow]" value="<?php echo esc_attr( (string) ( $slide['eyebrow'] ?? '' ) ); ?>" maxlength="40" class="regular-text" placeholder="Ej: NOVEDAD, EXCLUSIVO, OFERTA">
 					</label>
 				</p>
 
@@ -160,7 +160,7 @@ defined( 'ABSPATH' ) || exit;
 						<input type="text" name="slides[<?php echo (int) $idx; ?>][lede_color]" value="<?php echo esc_attr( (string) ( $slide['lede_color'] ?? '' ) ); ?>" class="akb-color-picker" data-default-color="#FFFFFF">
 					</label>
 				</p>
-				<span class="description">Deja vacío para usar los colores default del tema (blanco). Para destacar "NOVEDAD", "PREVENTA", etc. usa el <strong>Eyebrow</strong> arriba.</span>
+				<span class="description">Deja vacío para usar los colores default del tema (blanco). Para destacar "NOVEDAD", "OFERTA", etc. usa el <strong>Eyebrow</strong> arriba.</span>
 			</div>
 
 			<div class="akb-hero-slide__fieldgroup">

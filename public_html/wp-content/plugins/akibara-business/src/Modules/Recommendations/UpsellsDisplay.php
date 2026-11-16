@@ -18,6 +18,10 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class UpsellsDisplay {
 
 	/** Acción de la plantilla donde WooCommerce pinta upsells (15) y relacionados (20). */

@@ -22,6 +22,10 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class Headings {
 
 	/** Título del bloque de upsells de la ficha. */

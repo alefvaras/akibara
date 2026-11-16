@@ -12,13 +12,13 @@
  *   - Header: #orderNumber · fecha
  *   - Badge de estado (color según estado WC)
  *   - Total + nº items
- *   - Slot para columnas custom (OrderPreventa "Llegada") via do_action
+ *   - Slot para columnas custom via do_action
  *   - Acciones: las que devuelva `wc_get_account_orders_actions()` (Ver pedido,
  *     Pagar, Cancelar) — full-width en mobile. «Volver a comprar» NO se ofrece:
  *     ver `MyAccountUx::orders_actions()`.
  *
  * Preserva `do_action( 'woocommerce_my_account_my_orders_column_*' )` para
- * que plugins (OrderPreventa "Llegada") puedan inyectar contenido.
+ * que hooks externos puedan inyectar contenido.
  *
  * @package Akibara\Business
  * @version 9.5.0

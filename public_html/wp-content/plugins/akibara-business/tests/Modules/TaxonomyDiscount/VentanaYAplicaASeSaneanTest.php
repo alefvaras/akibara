@@ -104,7 +104,7 @@ final class VentanaYAplicaASeSaneanTest extends TestCase {
 	 * @testdox Otra pestaña no bloquea aunque haya fechas malas en el POST.
 	 */
 	public function test_otra_pestana_no_se_entera(): void {
-		self::assertSame( array(), $this->errores( 'ayer', 'basura', 'branding' ) );
+		self::assertSame( array(), $this->errores( 'ayer', 'basura', 'address' ) );
 	}
 
 	/**

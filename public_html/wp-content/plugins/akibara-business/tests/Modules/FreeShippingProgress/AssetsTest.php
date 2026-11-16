@@ -68,7 +68,7 @@ final class AssetsTest extends TestCase {
 		self::assertSame(
 			1,
 			preg_match(
-				'/mask-image:\s*url\("(?<mask>data:image\/svg\+xml;base64,[^"]+)"\)/',
+				'/mask-image:\s*url\(["\']?(?<mask>data:image\/svg\+xml;base64,[^"\'\)]+)["\']?\)/',
 				$base_truck,
 				$base_mask
 			),
@@ -77,7 +77,7 @@ final class AssetsTest extends TestCase {
 		self::assertSame(
 			1,
 			preg_match(
-				'/mask-image:\s*url\("(?<mask>data:image\/svg\+xml;base64,[^"]+)"\)/',
+				'/mask-image:\s*url\(["\']?(?<mask>data:image\/svg\+xml;base64,[^"\'\)]+)["\']?\)/',
 				$truck_inner,
 				$inner_mask
 			),
@@ -95,7 +95,7 @@ final class AssetsTest extends TestCase {
 		self::assertSame(
 			1,
 			preg_match(
-				'/mask-image:\s*url\("data:image\/svg\+xml;base64,(?<svg>[^"]+)"\)/',
+				'/mask-image:\s*url\(["\']?data:image\/svg\+xml;base64,(?<svg>[^"\'\)]+)["\']?\)/',
 				$truck,
 				$matches
 			)

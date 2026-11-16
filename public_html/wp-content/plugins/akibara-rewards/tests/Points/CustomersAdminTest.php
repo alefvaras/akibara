@@ -39,10 +39,38 @@ final class CustomersAdminTest extends RewardsTestCase {
 	/** @testdox Hidden details register their actual admin_page hook without orphaning a WooCommerce submenu. */
 	public function test_hidden_detail_registers_without_an_inaccessible_parent(): void {
 		$page = new CustomerPointsPage();
-		Functions\expect( 'add_submenu_page' )->once()->with( '', 'Gestionar puntos', 'Gestionar puntos', 'manage_woocommerce', CustomerPointsPage::SLUG, array( $page, 'render' ) );
-		Functions\expect( 'remove_submenu_page' )->never();
-		$page->add_page();
-		$this->assertStringContainsString( 'admin.php?page=akb-customer-points', CustomerPointsPage::url( 197 ) );
+		$previous_hooks = $GLOBALS['admin_page_hooks'] ?? null;
+		$GLOBALS['admin_page_hooks'] = array();
+		try {
+			Functions\expect( 'add_submenu_page' )->once()->with( '', 'Gestionar puntos', 'Gestionar puntos', 'manage_woocommerce', CustomerPointsPage::SLUG, array( $page, 'render' ) );
+			Functions\expect( 'remove_submenu_page' )->never();
+			$page->add_page();
+			$this->assertStringContainsString( 'admin.php?page=akb-customer-points', CustomerPointsPage::url( 197 ) );
+		} finally {
+			if ( null === $previous_hooks ) {
+				unset( $GLOBALS['admin_page_hooks'] );
+			} else {
+				$GLOBALS['admin_page_hooks'] = $previous_hooks;
+			}
+		}
+	}
+
+	/** @testdox When the Akibara panel is registered, customer points attaches under akibara-panel so the parent menu stays highlighted. */
+	public function test_hidden_detail_attaches_to_akibara_panel_when_available(): void {
+		$page = new CustomerPointsPage();
+		$previous_hooks = $GLOBALS['admin_page_hooks'] ?? null;
+		$GLOBALS['admin_page_hooks'] = array( 'akibara-panel' => 'toplevel_page_akibara-panel' );
+		try {
+			Functions\expect( 'add_submenu_page' )->once()->with( 'akibara-panel', 'Gestionar puntos', 'Gestionar puntos', 'manage_woocommerce', CustomerPointsPage::SLUG, array( $page, 'render' ) );
+			$page->add_page();
+			$this->addToAssertionCount( 1 );
+		} finally {
+			if ( null === $previous_hooks ) {
+				unset( $GLOBALS['admin_page_hooks'] );
+			} else {
+				$GLOBALS['admin_page_hooks'] = $previous_hooks;
+			}
+		}
 	}
 
 	/** @testdox Report data maps user_id rather than the unrelated Analytics id, and guests have no balance or action. */

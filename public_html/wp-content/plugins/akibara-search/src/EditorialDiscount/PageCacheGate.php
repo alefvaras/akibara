@@ -21,6 +21,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Extraído de EditorialDiscountPublication para aislar el protocolo de caché
  * de la máquina de estados de indexación.
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class PageCacheGate {
 
@@ -122,7 +125,7 @@ final class PageCacheGate {
 		}
 
 		// Campaña viva: el precio editorial es filter-only.
-		if ( true === $window['active'] ) {
+		if ( $window['active'] ) {
 			return null;
 		}
 
@@ -208,7 +211,7 @@ final class PageCacheGate {
 				? sanitize_text_field( wp_unslash( $_SERVER['QUERY_STRING'] ) )
 				: '';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- sólo se mide SI vienen parámetros; ningún valor se lee.
-			if ( '' !== $query_string || ( isset( $_GET ) && is_array( $_GET ) && array() !== $_GET ) ) {
+			if ( '' !== $query_string || ! empty( $_GET ) ) {
 				return false;
 			}
 			if ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) {
@@ -235,7 +238,7 @@ final class PageCacheGate {
 	 * @return bool
 	 */
 	public static function request_carries_private_cookie(): bool {
-		if ( ! isset( $_COOKIE ) || ! is_array( $_COOKIE ) ) {
+		if ( empty( $_COOKIE ) || ! is_array( $_COOKIE ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return false;
 		}
 		$private = array(

@@ -93,25 +93,25 @@ final class FotoObligatoriaTest extends RewardsTestCase {
 		);
 	}
 
-	/** @testdox La ficha explica que su reseña siempre es voluntaria, incluso con foto, y conserva avisos existentes. */
+	/** @testdox La ficha explica la elegibilidad unificada por foto real y conserva avisos existentes. */
 	public function test_native_form_explains_voluntary_optional_photo(): void {
 		$form = new ReviewForm();
 		$args = $form->native_form_notice( array( 'comment_field' => '<textarea name="comment"></textarea>', 'comment_notes_before' => '<p>Aviso existente</p>' ) );
 		self::assertSame( '<p>Aviso existente</p>', $args['comment_notes_before'] );
 		self::assertStringContainsString( '<textarea name="comment"></textarea>', $args['comment_field'] );
-		self::assertStringContainsString( 'puedes añadir una foto y no solicita puntos', $args['comment_field'] );
+		self::assertStringContainsString( 'Si compraste este tomo y adjuntas una foto real con tu cuenta, solicitarás puntos al aprobarse', $args['comment_field'] );
 		self::assertStringContainsString( 'enlace de reseña de tu pedido', $args['comment_field'] );
 		\Brain\Monkey\Functions\when( 'get_option' )->alias( static fn( string $option, $default = false ) => 'akb_rewards_reviews_enabled' === $option ? 'no' : $default );
 		self::assertStringNotContainsString( 'enlace de reseña de tu pedido', $form->native_form_notice( array() )['comment_field'], 'Con el programa apagado sólo se explica la reseña voluntaria.' );
 	}
 
-	/** @testdox La ficha sólo promete revisión pendiente cuando el interruptor nativo está encendido. */
+	/** @testdox La ficha sólo promete revisión pendiente cuando el interruptor nativo está encendido o hay foto elegible. */
 	public function test_native_pending_copy_follows_moderation_toggle(): void {
 		$form = new ReviewForm();
 		foreach ( array( 'yes', 'no' ) as $enabled ) {
 			\Brain\Monkey\Functions\when( 'get_option' )->alias( static fn( string $key, $default = false ) => 'akb_rewards_moderate_reviews' === $key ? $enabled : $default );
 			$args = $form->native_form_notice( array( 'comment_field' => '<textarea name="comment"></textarea>' ) );
-			self::assertStringContainsString( 'puedes añadir una foto y no solicita puntos', $args['comment_field'] );
+			self::assertStringContainsString( 'Si compraste este tomo y adjuntas una foto real con tu cuenta, solicitarás puntos al aprobarse', $args['comment_field'] );
 			self::assertStringContainsString( '<textarea name="comment"></textarea>', $args['comment_field'] );
 			if ( 'yes' === $enabled ) {
 				self::assertStringContainsString( 'Tu reseña quedará pendiente de revisión', $args['comment_field'] );

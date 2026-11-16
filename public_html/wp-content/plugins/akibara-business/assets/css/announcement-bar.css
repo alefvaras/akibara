@@ -2,7 +2,7 @@
  * Announcement Bar — carril manual de promociones.
  *
  * Markup contract (emitido por AnnouncementBar.php):
- *   <div id="akb-ann-bar" class="akb-ann-bar" style="--akb-ann-bg:...;--akb-ann-color:...;" role="region">
+ *   <div id="akb-ann-bar" class="akb-ann-bar" role="region">
  *     <div class="akb-ann-content">
  *       <span class="akb-ann-msg akb-on">Mensaje 1</span>
  *       <span class="akb-ann-msg">Mensaje 2</span>
@@ -27,6 +27,7 @@
     overflow: hidden;
 }
 
+#akb-ann-bar[hidden],
 #akb-ann-bar.akb-hidden {
     display: none !important;
 }
@@ -66,6 +67,7 @@
     
     /* Persona 5 Tape Style */
     font-family: var(--font-heading, "Inter", sans-serif);
+
     /*
      * Bebas usa su peso 400 y postura normal; el sesgo procede del contenedor para no sintetizar
      * italic ni bold inexistentes.
@@ -80,17 +82,21 @@
     padding: 6px 20px;
     
     position: relative;
-    color: var(--akb-ann-color, #fff);
+    color: #fff;
     z-index: 1;
 }
 
-/* Sombra roja (aparece primero y se queda estática) */
+.akb-ann-msg[hidden] {
+    display: none;
+}
+
+/* Sombra roja P5 (aparece primero y se queda estática) */
 .akb-ann-msg::before {
     content: '';
     position: absolute;
     inset: 0;
     background: transparent;
-    box-shadow: -4px 4px 0 var(--akb-ann-border, #D90010);
+    box-shadow: -4px 4px 0 #D90010;
     transform: skew(-12deg);
     opacity: 0;
     visibility: hidden;
@@ -98,12 +104,12 @@
     z-index: -1;
 }
 
-/* Fondo negro deslizable (se mueve detrás del texto) */
+/* Fondo negro P5 deslizable (se mueve detrás del texto) */
 .akb-ann-msg::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--akb-ann-bg, #0a0a0a);
+    background: #0a0a0a;
     transform: skew(-12deg) translateX(28px);
     opacity: 0;
     visibility: hidden;
@@ -115,6 +121,7 @@
 .akb-ann-msg-inner {
     position: relative;
     z-index: 1;
+
     /* Un-skew para la lectura */
     transform: skew(4deg) translateX(28px);
     opacity: 0;
@@ -223,7 +230,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--akb-ann-color, #fff);
+    color: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -237,6 +244,10 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+#akb-ann-bar .akb-ann-next[hidden] {
+    display: none;
+}
+
 .akb-ann-next__count {
     font-family: var(--font-heading, "Inter", sans-serif);
     font-size: 11px;
@@ -248,8 +259,8 @@
 .akb-ann-next__arrow {
     width: 8px;
     height: 8px;
-    border-top: 2px solid currentColor;
-    border-right: 2px solid currentColor;
+    border-top: 2px solid currentcolor;
+    border-right: 2px solid currentcolor;
     transform: rotate(45deg);
 }
 
@@ -282,7 +293,7 @@
 
 /* El outline de la casa (DS-5), por dentro: la barra recorta lo que sale. */
 #akb-ann-bar .akb-ann-next:focus-visible {
-    outline: var(--aki-focus-outline, 3px solid #ffffff);
+    outline: var(--aki-focus-outline, 3px solid #fff);
     outline-offset: -4px;
 }
 
@@ -293,12 +304,55 @@
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
 }
 
+/* ── Chip Neo-Brutalista de Cuenta Regresiva (Countdown) ── */
+.akb-ann-countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 7px;
+    background: #000;
+    border: 1.5px solid #FC0;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    color: #fff;
+    vertical-align: middle;
+    text-transform: none;
+    transform: skew(-4deg);
+}
+
+.akb-ann-countdown[hidden] {
+    display: none;
+}
+
+.akb-ann-countdown__icon {
+    flex-shrink: 0;
+}
+
+.akb-ann-countdown__prefix {
+    color: #fff;
+    font-size: 10px;
+    opacity: 0.9;
+}
+
+.akb-ann-countdown__digits {
+    color: #FC0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+
 @media (prefers-reduced-motion: reduce) {
+
     #akb-ann-bar,
     .akb-ann-msg,
     .akb-ann-msg::before,
@@ -320,6 +374,7 @@
 
 /* ── Mobile responsive ──────────────────────────────────────── */
 @media (max-width: 768px) {
+
     #akb-ann-bar {
         min-height: 44px;
         padding: 0 8px;
@@ -401,6 +456,16 @@
         width: 56px;
         margin-left: 0;
     }
+
+    .akb-ann-countdown {
+        font-size: 10px;
+        padding: 1px 5px;
+        margin-left: 4px;
+    }
+
+    .akb-ann-countdown__prefix {
+        font-size: 9px;
+    }
 }
 
 /* Colores forzados (alto contraste de Windows, también con zoom a ≤768px): el
@@ -410,6 +475,7 @@
  * `#akb-ann-bar` delante por lo mismo que arriba: el CSS crítico repite
  * `border-block: … transparent` después de esta hoja. */
 @media (max-width: 768px) and (forced-colors: active) {
+
     #akb-ann-bar .akb-ann-msg--link .akb-ann-msg-inner {
         border-color: Canvas;
     }

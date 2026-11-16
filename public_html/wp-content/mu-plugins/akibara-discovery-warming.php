@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'rank_math/sitemap/http_headers',
 	static function ( $headers ) {

@@ -18,6 +18,7 @@
  */
 
 .akb-fsp-wrap {
+
 	/* Defaults asumen dark theme (Akibara cart/checkout body bg #0a0a0a). */
 	--akb-fsp-track:   rgba(255, 255, 255, 0.12);
 	--akb-fsp-fill:    #d90010;
@@ -29,6 +30,7 @@
 	font-family: inherit;
 	color: var(--akb-fsp-ink);
 	line-height: 1.4;
+
 	/* El skew(-15deg) del track proyecta sus esquinas ~3px fuera del ancho
 	   del contenedor (overflow horizontal en /carrito/ desktop); el camión
 	   (right:-12px) también puede sobresalir con fill alto. Contener aquí. */
@@ -54,6 +56,7 @@
 	margin: 0 0 16px;
 	display: inline-block;
 	transform: skew(-10deg);
+
 	/* Sombra dura hacia abajo-DERECHA, no abajo-izquierda. El wrap recorta con
 	   `overflow:hidden` (necesario: el skew del track y el camión se salen del
 	   ancho del contenedor), y ese recorte sí afecta al box-shadow de los hijos:
@@ -93,8 +96,8 @@
 	height: 24px;
 	background-color: var(--aki-white, #fff);
 	transform: skew(15deg); /* Un-skew truck so it's not distorted by the track skew */
-	-webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
-	mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
+	-webkit-mask-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+);
+	mask-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+);
 	-webkit-mask-size: contain;
 	mask-size: contain;
 	-webkit-mask-repeat: no-repeat;
@@ -122,7 +125,7 @@
 .akb-fsp-active .akb-fsp-message .woocommerce-Price-amount {
 	font-weight: 400;
 	font-synthesis: none;
-	color: var(--aki-white, #ffffff);
+	color: var(--aki-white, #fff);
 	font-size: 1.15em;
 	font-variant-numeric: tabular-nums;
 	text-shadow: -1px 1px 0 var(--aki-black, #0a0a0a);
@@ -160,8 +163,8 @@
 	width: 16px;
 	height: 16px;
 	background-color: var(--akb-fsp-success);
-	-webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHBhdGggZmlsbD0nYmxhY2snIGQ9J002LjMgMTEuMyAzIDhsMS40LTEuNCAxLjkgMS45IDUuMy01LjNMMTMgNC42eicvPjwvc3ZnPg==");
-	mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHBhdGggZmlsbD0nYmxhY2snIGQ9J002LjMgMTEuMyAzIDhsMS40LTEuNCAxLjkgMS45IDUuMy01LjNMMTMgNC42eicvPjwvc3ZnPg==");
+	-webkit-mask-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHBhdGggZmlsbD0nYmxhY2snIGQ9J002LjMgMTEuMyAzIDhsMS40LTEuNCAxLjkgMS45IDUuMy01LjNMMTMgNC42eicvPjwvc3ZnPg==);
+	mask-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHBhdGggZmlsbD0nYmxhY2snIGQ9J002LjMgMTEuMyAzIDhsMS40LTEuNCAxLjkgMS45IDUuMy01LjNMMTMgNC42eicvPjwvc3ZnPg==);
 	-webkit-mask-size: contain;
 	mask-size: contain;
 	-webkit-mask-repeat: no-repeat;
@@ -194,17 +197,21 @@
 .akb-cart-progress-slot .akb-fsp-wrap:not(.akb-fsp-empty) {
 	padding: 2px 0 2px;
 }
+
 .akb-cart-progress-slot .akb-fsp-title {
 	display: none;
 }
+
 .akb-cart-progress-slot .akb-fsp-track {
 	height: 6px;
 	margin: 6px 0 6px;
 }
+
 .akb-cart-progress-slot .akb-fsp-message {
 	font-size: 12px;
 	letter-spacing: 0.03em;
 }
+
 /* — Drawer, estado LOGRADO —
  * Micro-cinta esbelta: comunica el logro con máximo contraste y estilo brutalista
  * sin bloquear la visualización vertical de los tomos. */
@@ -252,8 +259,11 @@
 
 /* — Mobile — */
 @media (max-width: 480px) {
+
 	.akb-fsp-title { font-size: 9.5px; letter-spacing: 0.12em; }
+
 	.akb-fsp-message { font-size: 13px; }
+
 	/* 8px, no 4px: con un track de 4px el camión de 24px quedaba flotando
 	   desprendido de la barra, y el propio progreso era casi imperceptible.
 	   8px sigue siendo compacto y mantiene la relación camión/track del desktop. */
@@ -266,6 +276,7 @@
  * progreso; el bloque completo permanece estable.
  */
 .akb-fsp-almost-there .akb-fsp-track {
+
 	/* La pista pendiente debe seguir siendo neutral. Un borde amarillo alrededor
 	   de TODO el track dibuja una segunda figura a la derecha del fill y, en
 	   mobile, se confunde con un remolque sin ruedas. La urgencia ya la comunica
@@ -276,11 +287,13 @@
 
 .akb-fsp-almost-there .akb-fsp-fill {
 	background: var(--aki-yellow, #ffd700);
+
 	/* Sobre relleno amarillo, el filo y el camión blancos se pierden. */
 	border-right-color: var(--aki-black, #0a0a0a);
 }
 
 .akb-fsp-almost-there .akb-fsp-truck {
+
 	/* El icono mide 24px. Con right:-12px quedaba exactamente medio camión
 	   sobre el tramo negro: desaparecían la cabina y una rueda (negro/negro).
 	   Cuatro píxeles de resguardo lo mantienen completo dentro del fill incluso
@@ -300,8 +313,8 @@
 	position: absolute;
 	inset: 2px;
 	background-color: var(--aki-black, #0a0a0a);
-	-webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
-	mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+");
+	-webkit-mask-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+);
+	mask-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIwIDhoLTNWNEgzYy0xLjEgMC0yIC45LTIgMnYxMWgyYzAgMS42NiAxLjM0IDMgMyAzczMtMS4zNCAzLTNoNmMwIDEuNjYgMS4zNCAzIDMgM3MzLTEuMzQgMy0zaDJ2LTVsLTMtNHpNNiAxOC41Yy0uODMgMC0xLjUtLjY3LTEuNS0xLjVzLjY3LTEuNSAxLjUtMS41IDEuNS42NyAxLjUgMS41LS42NyAxLjUtMS41IDEuNXptMTIgMGMtLjgzIDAtMS41LS42Ny0xLjUtMS41cy42Ny0xLjUgMS41LTEuNSAxLjUuNjcgMS41IDEuNS0uNjcgMS41LTEuNSAxLjV6TTE3IDEyVjkuNWgyLjVsMS45NiAyLjVIMTd6Jy8+PC9zdmc+);
 	-webkit-mask-size: contain;
 	mask-size: contain;
 	-webkit-mask-repeat: no-repeat;
@@ -312,7 +325,7 @@
 }
 
 .akb-fsp-almost-there .akb-fsp-message {
-	color: var(--aki-white, #ffffff);
+	color: var(--aki-white, #fff);
 	font-weight: 400;
 	font-synthesis: none;
 }
@@ -320,7 +333,7 @@
 .akb-fsp-almost-there .akb-fsp-message bdi,
 .akb-fsp-almost-there .akb-fsp-message .amount,
 .akb-fsp-almost-there .akb-fsp-message .woocommerce-Price-amount {
-	color: var(--aki-white, #ffffff);
+	color: var(--aki-white, #fff);
 }
 
 /* El ícono de aviso es un SVG inline con `fill:currentColor`; basta con darle
@@ -331,6 +344,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-fsp-fill,
 	.akb-fsp-truck {
 		transition: none;

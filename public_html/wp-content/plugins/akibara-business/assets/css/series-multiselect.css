@@ -1,0 +1,482 @@
+/* ── Checkbox / Micro-botón en tarjeta de tomo ─────────────────────────── */
+
+body.akb-has-batch-series ul.products li.product {
+    padding-bottom: 14px;
+}
+
+.akb-series-card-select {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.akb-series-card-select__owned {
+    background: rgba(18, 18, 18, 0.92);
+    color: var(--aki-yellow, #fc0);
+    border: 1.5px solid var(--aki-yellow, #fc0);
+    padding: 3px 7px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
+    pointer-events: none;
+}
+
+.akb-series-card-select__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    position: relative;
+}
+
+.akb-series-card-select__input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    margin: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+/* Micro-botón brutalista circular '+' en reposo y '✓' en activo */
+.akb-series-card-select__custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(18, 18, 18, 0.92);
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    pointer-events: none;
+}
+
+.akb-series-card-select__custom::before {
+    content: "+";
+    color: #fff;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: -1px;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.akb-series-card-select__label:hover .akb-series-card-select__custom {
+    transform: scale(1.1);
+    border-color: var(--aki-red, #e60012);
+    background: #000;
+}
+
+.akb-series-card-select__input:focus-visible + .akb-series-card-select__custom {
+    outline: var(--aki-focus-outline);
+    outline-offset: 2px;
+}
+
+.akb-series-card-select__input:checked + .akb-series-card-select__custom {
+    background: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(230, 0, 18, 0.7);
+}
+
+.akb-series-card-select__input:checked + .akb-series-card-select__custom::before {
+    content: "✓";
+    font-size: 18px;
+    font-weight: 800;
+    margin-top: 0;
+}
+
+/* Resaltado integral de la tarjeta cuando el tomo está seleccionado */
+html body.akb-has-batch-series ul.products li.product.akb-volume-selected,
+html body.akb-has-batch-series ul.products li.product:has(.akb-series-card-select__input:checked) {
+    border-color: var(--aki-red, #e60012);
+    box-shadow: 0 0 14px rgba(230, 0, 18, 0.35);
+}
+
+/* Elevación automática del botón flotante de WhatsApp para evitar colisión en mobile */
+html body.akb-has-series-action-bar .joinchat,
+html body.akb-has-series-action-bar .akb-whatsapp-float {
+    bottom: calc(114px + env(safe-area-inset-bottom, 0px));
+    transition: bottom 0.25s ease-in-out;
+}
+
+/* Padding inferior compensatorio en la rejilla para que la última fila de tomos no quede oculta */
+html body.akb-has-series-action-bar ul.products {
+    padding-bottom: 135px;
+}
+
+/* ── Toolbar de selección rápida (arriba de la rejilla) ─────────────────────── */
+
+.akb-series-select-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-block: 12px;
+    padding: 10px 14px;
+    background: var(--aki-surface-2, #1a1a1a);
+    border: 1px solid var(--aki-border, #2a2a2e);
+    border-top: 2px solid var(--aki-red, #e60012);
+    border-radius: 0;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.akb-series-select-toolbar *,
+.akb-series-select-toolbar *::before,
+.akb-series-select-toolbar *::after {
+    box-sizing: border-box;
+}
+
+.akb-series-select-toolbar__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--touch-target-min, 44px);
+    padding: 8px 14px;
+    background: var(--aki-surface-3, #26262a);
+    border: 1px solid var(--aki-border-light, #3a3a3e);
+    border-radius: 0;
+    color: var(--aki-gray-200, #e0e0e0);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.akb-series-select-toolbar__btn[hidden] {
+    display: none;
+}
+
+.akb-series-select-toolbar__btn:hover {
+    background: var(--aki-surface-3, #323238);
+    border-color: var(--aki-gray-300, #b0b0b0);
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-select-toolbar__btn:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-series-select-toolbar__btn[aria-pressed="true"] {
+    background: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+    color: #fff;
+}
+
+.akb-series-select-toolbar__btn--clear {
+    background: transparent;
+    border-color: transparent;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-weight: 500;
+}
+
+.akb-series-select-toolbar__btn--clear:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-select-toolbar__status {
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--aki-yellow, #fc0);
+}
+
+.akb-series-select-toolbar__actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Selector de tramo numérico (Propuesta C para series > 20 tomos) ─────── */
+
+.akb-series-range-selector {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    border-left: 1px solid var(--aki-border, #2a2a2e);
+    margin-left: auto;
+}
+
+.akb-range-selector__label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--aki-gray-300, #b0b0b0);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.akb-range-selector__field {
+    display: inline-flex;
+    margin: 0;
+}
+
+.akb-range-selector__input {
+    width: 52px;
+    min-height: var(--touch-target-min, 44px);
+    padding: 4px 6px;
+    background: #111113;
+    border: 1px solid var(--aki-input-border, #707070);
+    border-radius: 0;
+    color: var(--aki-white, #fff);
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.akb-range-selector__input::-webkit-outer-spin-button,
+.akb-range-selector__input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.akb-range-selector__input:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
+    outline-offset: var(--aki-focus-offset, 2px);
+    border-color: var(--aki-white, #fff);
+}
+
+.akb-range-selector__sep {
+    font-size: 0.8rem;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-weight: 600;
+}
+
+.akb-series-select-toolbar__btn--range {
+    min-height: var(--touch-target-min, 44px);
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    background: var(--aki-surface-3, #2a2a2e);
+    border-color: var(--aki-border-light, #3e3e44);
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-select-toolbar__btn--range:hover {
+    background: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+    color: #fff;
+}
+
+/* ── Sticky Action Bar (Barra Flotante Inferior) ───────────────────────────── */
+
+.akb-series-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: calc(var(--z-sticky, 200) + 20);
+    box-sizing: border-box;
+    background: rgba(18, 18, 20, 0.96);
+    backdrop-filter: blur(12px);
+    border-top: 2px solid var(--aki-red, #e60012);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.7);
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    transform: translateY(0);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.akb-series-action-bar *,
+.akb-series-action-bar *::before,
+.akb-series-action-bar *::after {
+    box-sizing: border-box;
+}
+
+.akb-series-action-bar[hidden] {
+    display: none;
+}
+
+body.akb-has-series-action-bar {
+    padding-bottom: 110px;
+}
+
+.akb-series-action-bar__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Resumen y Botón */
+.akb-series-action-bar__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.akb-series-action-bar__info {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.akb-series-action-bar__count {
+    font-size: 0.8rem;
+    color: var(--aki-gray-300, #b0b0b0);
+}
+
+.akb-series-action-bar__total {
+    font-size: 1.25rem;
+    font-weight: 400;
+    font-synthesis: none;
+    color: var(--aki-white, #fff);
+    font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+}
+
+.akb-series-action-bar__submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 10px 22px;
+    background: var(--aki-buy-bg, var(--aki-red-readable, #cc0010));
+    border: none;
+    border-radius: 0;
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.2;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 4px 12px rgba(230, 0, 18, 0.4);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.akb-series-action-bar__submit:hover {
+    background: var(--aki-buy-bg-hover, #99000c);
+    transform: translateY(-1px);
+}
+
+.akb-series-action-bar__submit:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-series-action-bar__submit:active {
+    transform: translateY(1px);
+}
+
+.akb-series-action-bar__submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.akb-series-action-bar__submit .akb-submit-icon {
+    font-size: 1.1rem;
+    color: var(--aki-yellow, #fc0);
+}
+
+@media (max-width: 600px) {
+
+    .akb-series-select-toolbar {
+        padding: 8px;
+        gap: 8px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .akb-series-select-toolbar__actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .akb-series-range-selector {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+        padding: 8px 0 2px;
+        border-left: 0;
+        border-top: 1px solid var(--aki-border, #2a2a2e);
+        gap: 8px;
+    }
+
+    .akb-range-selector__input {
+        width: 48px;
+    }
+
+    .akb-series-select-toolbar__btn--range {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .akb-series-select-toolbar__btn {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+
+    .akb-series-select-toolbar__status {
+        width: 100%;
+        margin-left: 0;
+        text-align: right;
+        font-size: 0.8rem;
+    }
+
+    .akb-series-action-bar {
+        padding: 10px 12px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    }
+
+    .akb-series-action-bar__summary {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .akb-series-action-bar__total {
+        font-size: 1.15rem;
+    }
+
+    .akb-series-action-bar__count {
+        font-size: 0.75rem;
+    }
+
+    .akb-series-action-bar__submit {
+        flex: 0 1 auto;
+        font-size: 0.85rem;
+        padding: 10px 14px;
+        min-height: var(--touch-target-min, 44px);
+    }
+}
+
+[data-akb-series-purchase-preview] {
+    flex: 1 1 100%;
+    width: 100%;
+    margin-block: 12px 0;
+}

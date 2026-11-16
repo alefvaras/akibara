@@ -23,6 +23,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.112.1
+ * @api
  */
 final class EmailButton {
 

@@ -6,8 +6,7 @@
  * mostraban «$14.000» tachado en gris y NINGÚN precio vigente, mientras el
  * lector de pantalla sí oía «El precio actual es: $13.500». Estos tests fijan
  * las cuatro ramas del contrato: agotado con oferta (un solo importe, el
- * vigente), agotado sin oferta (idéntico a antes), disponible y preventa
- * (intactos, la preventa es dominio de OrderPreventa\PreventaUX).
+ * vigente), agotado sin oferta (idéntico a antes) y disponible (intacto).
  *
  * @package Akibara\Business\Tests
  */
@@ -17,9 +16,7 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Tests\Modules\LoopEnhancer;
 
 use Akibara\Business\Modules\LoopEnhancer\LoopEnhancer;
-use Akibara\Business\Modules\OrderPreventa\PreventaUX;
 use Akibara\Business\Modules\Stock\StockStatus;
-use Akibara\Business\Modules\TaxonomyDiscount\PriceFilters;
 use Brain\Monkey;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
@@ -237,12 +234,6 @@ final class OutOfStockPriceTest extends TestCase {
 				$plain,
 				'',
 			),
-			'preventa en oferta' => array(
-				StockStatus::ON_BACKORDER,
-				true,
-				self::SALE_HTML,
-				'La preventa es dominio EXCLUSIVO de OrderPreventa\PreventaUX (prio 25): acá no se toca.',
-			),
 			'estado desconocido' => array(
 				'algo-que-woo-no-conoce',
 				true,
@@ -299,32 +290,14 @@ final class OutOfStockPriceTest extends TestCase {
 	}
 
 	/**
-	 * Contrato de ORDEN entre los tres filtros de la casa sobre el mismo hook.
-	 * Son disjuntos por `stock_status`, así que un empate no rompe nada HOY —
-	 * pero correr antes de TaxonomyDiscount dejaría que la campaña volviera a
-	 * pegar su `<del>`/`<ins>` encima, y el bug reaparecería solo en los
-	 * productos con descuento por taxonomía: el peor modo de falla posible.
-	 *
-	 * @testdox Should run after the taxonomy-discount and preventa price filters.
+	 * @testdox Should register with priority 30 on woocommerce_get_price_html.
 	 */
-	public function test_runs_after_the_other_price_html_filters(): void {
+	public function test_runs_with_priority_30(): void {
 		$enhancer = new LoopEnhancer();
 		$enhancer->register();
 
-		$preventa = new PreventaUX();
-		$preventa->register();
-
-		// PriceFilters real pide un DiscountResolver que register() no toca.
-		$discounts = ( new ReflectionClass( PriceFilters::class ) )->newInstanceWithoutConstructor();
-		$discounts->register();
-
-		$mine     = Filters\has( 'woocommerce_get_price_html', array( $enhancer, 'simplify_out_of_stock_price_html' ) );
-		$theirs   = Filters\has( 'woocommerce_get_price_html', array( $preventa, 'rewrite_preventa_price_html' ) );
-		$campaign = Filters\has( 'woocommerce_get_price_html', array( $discounts, 'filter_price_html' ) );
-
+		$mine = Filters\has( 'woocommerce_get_price_html', array( $enhancer, 'simplify_out_of_stock_price_html' ) );
 		self::assertSame( 30, $mine );
-		self::assertGreaterThan( $campaign, $mine, 'Debe leer el precio que la campaña ya resolvió, no adelantarse a ella.' );
-		self::assertGreaterThan( $theirs, $mine, 'Última palabra sobre el precio del agotado.' );
 	}
 
 	/**

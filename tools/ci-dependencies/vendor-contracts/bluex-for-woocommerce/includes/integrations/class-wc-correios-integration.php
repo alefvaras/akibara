@@ -102,10 +102,8 @@ class WC_Correios_Integration extends WC_Integration
 
 		// Register AJAX actions
 		add_action('wp_ajax_validate_integration_is_active', array($this, 'ajax_validate_integration_is_active'));
-		add_action('wp_ajax_nopriv_validate_integration_is_active', array($this, 'ajax_validate_integration_is_active'));
 
 		add_action('wp_ajax_update_integration_credentials', array($this, 'ajax_update_integration_credentials'));
-		add_action('wp_ajax_nopriv_update_integration_credentials', array($this, 'ajax_update_integration_credentials'));
 
 		add_action('wp_ajax_save_integration_settings', array($this, 'ajax_save_integration_settings'));
 
@@ -562,7 +560,7 @@ class WC_Correios_Integration extends WC_Integration
 				bluex_log('info', 'Integration test (via API Client) successful - Response: ' . json_encode($response));
 				$this->get_settings_handler()->update_setting('test_pricing_query', true);
 				wp_send_json_success('Integración exitosa.');
-				// Note: Original code checked response_code === 200. 
+				// Note: Original code checked response_code === 200.
 				// The client now handles HTTP errors, returning WP_Error.
 				// Success here means the API call itself didn't fail at HTTP level and returned valid JSON.
 				// Further checks on $response['code'] or $response['data'] could be added if needed.
@@ -697,7 +695,7 @@ class WC_Correios_Integration extends WC_Integration
 			$credentials = json_decode($credentials_raw, true);
 
 			if (empty($storeId) || empty($credentials) || !is_array($credentials) || !isset($credentials['clientKey']) || !isset($credentials['clientSecret'])) {
-				bluex_log('error', 'Invalid parameters for ajax_update_integration_credentials. StoreID: ' . $storeId . ' Credentials Raw: ' . $credentials_raw);
+				bluex_log('error', 'Invalid parameters for ajax_update_integration_credentials. StoreID: ' . $storeId);
 				wp_send_json_error(['message' => __('Parámetros inválidos o faltantes (storeId, credentials with clientKey/clientSecret).', 'woocommerce-correios')]);
 				return;
 			}
@@ -741,6 +739,7 @@ class WC_Correios_Integration extends WC_Integration
 			$settings['noBlueStatus'] = isset($_POST['noBlueStatus']) ? sanitize_text_field(wp_unslash($_POST['noBlueStatus'])) : $settings['noBlueStatus'];
 			$settings['districtCode'] = isset($_POST['districtCode']) ? sanitize_text_field(wp_unslash($_POST['districtCode'])) : $settings['districtCode'];
 			$settings['pudoEnable'] = isset($_POST['pudoEnable']) ? sanitize_key(wp_unslash($_POST['pudoEnable'])) : $settings['pudoEnable']; // Should be 'yes' or 'no'
+			$settings['pudoWidgetVersion'] = isset($_POST['pudoWidgetVersion']) ? WC_Correios_Settings::sanitize_pudo_widget_version(wp_unslash($_POST['pudoWidgetVersion'])) : $settings['pudoWidgetVersion']; // 'v1' or 'v2'
 			$settings['districtsEnable'] = isset($_POST['districtsEnable']) ? sanitize_key(wp_unslash($_POST['districtsEnable'])) : $settings['districtsEnable']; // Should be 'yes' or 'no'
 			$settings['active_logs'] = isset($_POST['active_logs']) ? sanitize_key(wp_unslash($_POST['active_logs'])) : $settings['active_logs']; // Should be 'yes' or 'no'
 
@@ -750,7 +749,7 @@ class WC_Correios_Integration extends WC_Integration
 			$this->load_settings_from_handler(); // Reload properties if needed
 
 			// Run the integration test *after* saving settings successfully
-			// We don't send the test result back directly here anymore, 
+			// We don't send the test result back directly here anymore,
 			// the test runs and logs its outcome. Frontend can trigger test separately if needed.
 			$this->run_integration_test_silently();
 

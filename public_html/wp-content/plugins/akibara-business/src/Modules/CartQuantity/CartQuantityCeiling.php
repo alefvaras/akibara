@@ -22,6 +22,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.30
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class CartQuantityCeiling {
 

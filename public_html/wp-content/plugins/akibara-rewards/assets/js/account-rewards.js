@@ -3,21 +3,30 @@
     'use strict';
     function boot() {
         document.querySelectorAll('[data-akb-redeem]').forEach(function (form) {
-            var input = form.querySelector('[name="akb_rw_points"]');
-            var preview = form.querySelector('#akb-rw-preview');
-            var maximum = form.querySelector('.akb-rw-max');
-            var config;
-            try { config = JSON.parse(form.dataset.akbRedeem); } catch (e) { return; }
+            let config;
+            try { config = JSON.parse(form.dataset.akbRedeem); } catch (_e) { return; }
+            const input = form.querySelector('[name="akb_rw_points"]');
+            const preview = form.querySelector('#akb-rw-preview');
+            const maximum = form.querySelector('.akb-rw-max');
             if (!input || !preview || !maximum || !Number.isSafeInteger(config.value) || config.value <= 0) { return; }
             if (!config.eligible || input.disabled || maximum.disabled) { maximum.hidden = false; return; }
-            var pointFormat = new Intl.NumberFormat(document.documentElement.lang || 'es-CL');
+            const pointFormat = new Intl.NumberFormat(document.documentElement.lang || 'es-CL');
+            function formatThousands(digits, sep) {
+                let out = '';
+                for (let i = 0; i < digits.length; i++) {
+                    if (i > 0 && (digits.length - i) % 3 === 0) { out += sep; }
+                    // eslint-disable-next-line security/detect-object-injection
+                    out += digits[i];
+                }
+                return out;
+            }
             function money(amount) {
-                var parts = amount.toFixed(config.decimals).split('.');
-                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, config.thousand);
+                const parts = amount.toFixed(config.decimals).split('.');
+                parts[0] = formatThousands(parts[0], config.thousand);
                 return config.format.replace('%1$s', config.symbol).replace('%2$s', parts.join(config.decimal));
             }
             function update() {
-                var points = Number(input.value);
+                const points = Number(input.value);
                 if (input.value === '') {
                     preview.textContent = 'Escribe cuántos puntos quieres canjear para ver el descuento aplicable en este carrito.';
                 } else if (!Number.isSafeInteger(points) || !Number.isSafeInteger(points * config.value) || points <= 0 || !input.validity.valid) {
@@ -40,17 +49,17 @@
         /* Copiado y compartido del enlace de invitación a un amigo */
         if (typeof document.querySelectorAll === 'function') {
             try {
-                var copyBtns = document.querySelectorAll('.akb-rw-copy-btn');
+                const copyBtns = document.querySelectorAll('.akb-rw-copy-btn');
                 if (copyBtns && copyBtns.forEach) {
                     copyBtns.forEach(function (btn) {
                         if (!btn || typeof btn.getAttribute !== 'function') { return; }
-                        var url = btn.getAttribute('data-akb-copy-url');
+                        const url = btn.getAttribute('data-akb-copy-url');
                         if (!url || typeof btn.addEventListener !== 'function') { return; }
-                        var originalHtml = btn.innerHTML;
+                        const originalText = btn.textContent;
                         btn.addEventListener('click', function () {
                             function feedback() {
-                                btn.innerHTML = '✅ ¡Copiado!';
-                                setTimeout(function () { btn.innerHTML = originalHtml; }, 2500);
+                                btn.textContent = '✅ ¡Copiado!';
+                                setTimeout(function () { btn.textContent = originalText; }, 2500);
                             }
                             if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
                                 navigator.clipboard.writeText(url).then(feedback).catch(function () {
@@ -62,11 +71,11 @@
                         });
                     });
                 }
-            } catch (e) {}
+            } catch (_e) {}
 
             try {
                 if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-                    var shareBtns = document.querySelectorAll('.akb-rw-share-btn');
+                    const shareBtns = document.querySelectorAll('.akb-rw-share-btn');
                     if (shareBtns && shareBtns.forEach) {
                         shareBtns.forEach(function (btn) {
                             if (!btn || typeof btn.getAttribute !== 'function' || typeof btn.addEventListener !== 'function') { return; }
@@ -81,7 +90,7 @@
                         });
                     }
                 }
-            } catch (e) {}
+            } catch (_e) {}
         }
     }
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }

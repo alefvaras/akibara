@@ -1559,7 +1559,6 @@ namespace Akibara\Search\Tests {
 					),
 				) as $case => $rows
 			) {
-				$calls = count( $GLOBALS['wpdb']->queries );
 				$this->structural_term_rows = array(
 					'manga' => array_map(
 						static fn( \WP_Term $term ): array => array(
@@ -1589,7 +1588,7 @@ namespace Akibara\Search\Tests {
 			$first->name        = 'Manga vivo 7';
 			$first->sku         = ' ISBN-ABC ';
 			$first->price_html  = '<span>$12.990</span>';
-			$first->stock_status = 'onbackorder';
+			$first->stock_status = 'outofstock';
 			$second             = new RuntimeLiveProduct( 8 );
 			$second->name       = 'Manga vivo 8';
 			$hidden             = new RuntimeLiveProduct( 9 );
@@ -1611,12 +1610,9 @@ namespace Akibara\Search\Tests {
 			self::assertSame( 'https://akibara.test/media/70-' . DocumentBuilder::THUMB_SIZE . '.jpg', $cards[1]['thumb'] );
 			self::assertSame( '<span>$12.990</span>', $cards[1]['price_html'] );
 			self::assertSame( 'isbn-abc', $cards[1]['sku'] );
-			// «A pedido»: la palabra default del grupo reservable (separación
-			// 1.109.0 de business); «Preventa» exige el filtro con lanzamiento
-			// pendiente, que este runtime aislado no engancha.
-			self::assertSame( 'A pedido', $cards[1]['badge'] );
-			self::assertSame( 'order', $cards[1]['badge_tone'] );
-			self::assertSame( 'a_pedido', $cards[1]['availability'] );
+			self::assertSame( 'Agotado', $cards[1]['badge'] );
+			self::assertSame( 'out', $cards[1]['badge_tone'] );
+			self::assertSame( 'outofstock', $cards[1]['availability'] );
 			self::assertSame( array( 'posts:0:0', 'meta', 'terms' ), $this->prime_calls );
 			self::assertNotEmpty( $db->queries, 'La autoridad sí debe leer relaciones crudas.' );
 			self::assertSame(
@@ -1630,43 +1626,36 @@ namespace Akibara\Search\Tests {
 		public function test_document_builder_materializes_the_commercial_availability_facet(): void {
 			$db                    = new RuntimeReadersWpdb();
 			$GLOBALS['wpdb']       = $db;
-			$preventa              = new RuntimeLiveProduct( 74 );
-			$preventa->stock_status = 'onbackorder';
-			$this->live_products   = array( 74 => $preventa );
-			$this->filter_callbacks['akb_search_availability_value'] = static fn( $value, $id ) => 74 === (int) $id ? 'preventa' : $value;
+			$agotado               = new RuntimeLiveProduct( 74 );
+			$agotado->stock_status = 'outofstock';
+			$this->live_products   = array( 74 => $agotado );
 
 			Functions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
-			$built = ( new DocumentBuilder() )->build( $preventa );
+			$built = ( new DocumentBuilder() )->build( $agotado );
 
 			$filas = array_values( array_filter( $built['facets'], static fn( array $f ): bool => 'disponibilidad' === $f['facet'] ) );
 			self::assertCount( 1, $filas, 'Una sola fila de disponibilidad por producto.' );
-			self::assertSame( 'preventa', $filas[0]['value'], 'La faceta filtra por el valor comercial; con el stock crudo el checkbox «Preventa» no encontraba nada.' );
-			self::assertSame( 'Preventa', $filas[0]['label'] );
-
-			$this->filter_callbacks['akb_search_availability_value'] = static fn( $value ) => $value;
-			$built = ( new DocumentBuilder() )->build( $preventa );
-			$filas = array_values( array_filter( $built['facets'], static fn( array $f ): bool => 'disponibilidad' === $f['facet'] ) );
-			self::assertSame( array( 'a_pedido', 'A pedido' ), array( $filas[0]['value'], $filas[0]['label'] ), 'Sin business enganchado, todo reservable es «a pedido».' );
+			self::assertSame( 'outofstock', $filas[0]['value'] );
+			self::assertSame( 'Agotado', $filas[0]['label'] );
 		}
 
-		/** @testdox El badge vivo dice «Preventa» cuando business lo resuelve por ficha, igual que la faceta. */
+		/** @testdox El badge vivo refleja disponible y agotado con sus respectivos tonos. */
 		public function test_product_presenter_badge_follows_the_availability_provider(): void {
 			$db                        = new RuntimeReadersWpdb();
 			$GLOBALS['wpdb']           = $db;
-			$preventa                  = new RuntimeLiveProduct( 71 );
-			$preventa->stock_status    = 'onbackorder';
-			$pedido                    = new RuntimeLiveProduct( 72 );
-			$pedido->stock_status      = 'onbackorder';
-			$this->live_products       = array( 71 => $preventa, 72 => $pedido );
-			$this->filter_callbacks['akb_search_availability_value'] = static fn( $value, $id ) => 71 === (int) $id ? 'preventa' : $value;
+			$disponible                = new RuntimeLiveProduct( 71 );
+			$disponible->stock_status  = 'instock';
+			$agotado                   = new RuntimeLiveProduct( 72 );
+			$agotado->stock_status     = 'outofstock';
+			$this->live_products       = array( 71 => $disponible, 72 => $agotado );
 
 			$presenter = new ProductPresenter( $db );
 			$cards     = $presenter->cards( array( 71, 72 ) );
 
 			self::assertTrue( $presenter->is_available() );
-			self::assertSame( array( 'Preventa', 'A pedido' ), array_column( $cards, 'badge' ), 'El badge decía «A pedido» sobre una preventa que la faceta del mismo índice ya distinguía.' );
-			self::assertSame( array( 'pre', 'order' ), array_column( $cards, 'badge_tone' ) );
-			self::assertSame( array( 'preventa', 'a_pedido' ), array_column( $cards, 'availability' ) );
+			self::assertSame( array( 'Disponible', 'Agotado' ), array_column( $cards, 'badge' ) );
+			self::assertSame( array( 'ok', 'out' ), array_column( $cards, 'badge_tone' ) );
+			self::assertSame( array( 'instock', 'outofstock' ), array_column( $cards, 'availability' ) );
 		}
 
 		/** @testdox Un estado de stock que WooCommerce no define invalida la respuesta viva en vez de inventar un badge. */
@@ -1682,6 +1671,45 @@ namespace Akibara\Search\Tests {
 
 			self::assertFalse( $presenter->is_available() );
 			self::assertSame( array(), $cards );
+		}
+
+		/** @testdox Un producto con onbackorder nativo de WooCommerce se presenta fail-closed como agotado sin apagar el presenter. */
+		public function test_product_presenter_handles_onbackorder_without_becoming_unavailable(): void {
+			$db                      = new RuntimeReadersWpdb();
+			$GLOBALS['wpdb']         = $db;
+			$backorder               = new RuntimeLiveProduct( 75 );
+			$backorder->stock_status = 'onbackorder';
+			$this->live_products     = array( 75 => $backorder );
+
+			$presenter = new ProductPresenter( $db );
+			$cards     = $presenter->cards( array( 75 ) );
+
+			self::assertTrue( $presenter->is_available(), 'onbackorder es un estado nativo de WC y no apaga el buscador.' );
+			self::assertCount( 1, $cards );
+			self::assertSame( 'Agotado', $cards[0]['badge'] );
+			self::assertSame( 'out', $cards[0]['badge_tone'] );
+			self::assertSame( 'outofstock', $cards[0]['availability'] );
+		}
+
+		/** @testdox DocumentBuilder maneja onbackorder y estados desconocidos sin crashear. */
+		public function test_document_builder_handles_onbackorder_and_unknown_gracefully(): void {
+			$db                       = new RuntimeReadersWpdb();
+			$GLOBALS['wpdb']          = $db;
+			$bo_product               = new RuntimeLiveProduct( 76 );
+			$bo_product->stock_status = 'onbackorder';
+			$this->live_products      = array( 76 => $bo_product );
+
+			\Brain\Monkey\Functions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
+			$built = ( new DocumentBuilder() )->build( $bo_product );
+
+			self::assertSame( 1, $built['doc']['stock_rank'], 'onbackorder tiene stock_rank = 1.' );
+
+			$unknown_product               = new RuntimeLiveProduct( 77 );
+			$unknown_product->stock_status = 'custom_unknown_status';
+			$this->live_products           = array( 77 => $unknown_product );
+
+			$built_unknown = ( new DocumentBuilder() )->build( $unknown_product );
+			self::assertSame( 2, $built_unknown['doc']['stock_rank'], 'Estado desconocido degrada a outofstock con rank 2 sin crashear.' );
 		}
 
 		/** @testdox Un precio Woo vacío es ausencia válida y no invalida la tarjeta viva. */

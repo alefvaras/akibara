@@ -456,26 +456,36 @@ final class CacheWarmerTest extends TestCase {
 		self::assertSame( 'ya-en-curso', $this->warmer()->start_manual() );
 	}
 
-	/** @testdox Apagado no trabaja ni encola, y apagarlo retira lo agendado, también en el primer guardado. */
-	public function test_disabled_does_nothing(): void {
-		$this->options[ CacheWarmer::OPTION_ENABLED ] = 'no';
+	/** @testdox El módulo opera permanentemente por código (Always-On). */
+	public function test_always_enabled_operates_by_code(): void {
+		self::assertTrue( CacheWarmer::enabled() );
 		$this->ahora      = (float) $this->local( '2026-09-16 01:00:00' );
 		$this->db->fichas = array( 1 );
 
 		$this->warmer()->run();
-		self::assertSame( array(), $this->pedidas );
-		self::assertSame( 'apagado', $this->warmer()->start_manual() );
+		self::assertCount( 1, $this->pedidas );
+	}
 
-		CacheWarmer::on_toggle( 'yes', 'no' );
-		self::assertSame( 1, $this->cancelaciones );
-		CacheWarmer::on_toggle( 'no', 'yes' );
-		self::assertSame( 1, $this->cancelaciones );
+	/** @testdox El circuit breaker corta la pasada si se acumulan 5 errores consecutivos de conexión. */
+	public function test_circuit_breaker_aborts_pass_on_consecutive_errors(): void {
+		$this->ahora      = (float) $this->local( '2026-09-16 01:00:00' );
+		$this->db->fichas = array( 1, 2, 3, 4, 5, 6, 7, 8 );
+		$this->respuesta  = array( '*' => array( 'error' => 'Connection refused' ) );
 
-		// La fila no existía: WordPress la crea con add_option.
-		CacheWarmer::on_first_save( CacheWarmer::OPTION_ENABLED, 'no' );
-		self::assertSame( 2, $this->cancelaciones );
-		CacheWarmer::on_first_save( CacheWarmer::OPTION_ENABLED, 'yes' );
-		self::assertSame( 2, $this->cancelaciones );
+		// Corrida 1: tanda 1-2 falla, frena y agenda a los 60s.
+		$this->warmer()->run();
+		self::assertSame( 0, (int) CacheWarmer::state()['cortada'] );
+
+		// Corrida 2: tanda 3-4 falla, frena y agenda a los 60s.
+		$this->warmer()->run();
+		self::assertSame( 0, (int) CacheWarmer::state()['cortada'] );
+
+		// Corrida 3: tanda 5-6 falla, alcanza el tope de errores consecutivos y corta la pasada.
+		$this->warmer()->run();
+		$estado = CacheWarmer::state();
+		self::assertSame( 1, (int) $estado['cortada'] );
+		self::assertGreaterThan( 0, (int) $estado['finished'] );
+		self::assertGreaterThanOrEqual( CacheWarmer::MAX_CONSECUTIVE_ERRORS, (int) $estado['errores'] );
 	}
 
 	/** @testdox Las fichas se piden primero las que se venden, al final las agotadas. */
@@ -518,5 +528,30 @@ final class CacheWarmerTest extends TestCase {
 
 		self::assertLessThan( CacheWarmer::next_window_start( $this->local( '2026-09-16 15:00:00' ) ), $vitrina );
 		self::assertFalse( CacheWarmer::in_window( $vitrina ), 'Su purga total no puede caer dentro de la pasada.' );
+	}
+
+	/** @testdox Editar productos aplica debounce de ventana deslizante de 600 segundos desprogramando la anterior. */
+	public function test_product_save_sliding_window_debounce(): void {
+		$this->ahora = (float) $this->local( '2026-09-16 12:00:00' );
+		$warmer      = $this->warmer();
+
+		$post = (object) array( 'post_status' => 'publish' );
+		$warmer->on_product_save( 101, $post );
+
+		self::assertSame( 1, $this->cancelaciones );
+		self::assertSame( array( (int) $this->ahora + CacheWarmer::DEBOUNCE_SECONDS ), $this->agendadas );
+
+		// Segunda edición 60 segundos después: desliza la ventana otros 600 segundos
+		$this->ahora += 60.0;
+		$warmer->on_product_save( 102, $post );
+
+		self::assertSame( 2, $this->cancelaciones );
+		self::assertSame(
+			array(
+				(int) $this->ahora - 60 + CacheWarmer::DEBOUNCE_SECONDS,
+				(int) $this->ahora + CacheWarmer::DEBOUNCE_SECONDS,
+			),
+			$this->agendadas
+		);
 	}
 }

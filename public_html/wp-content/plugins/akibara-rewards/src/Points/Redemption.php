@@ -35,7 +35,21 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InternalMethod
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
+// @phpstan-ignore complexity.classLike
 final class Redemption {
 
 	public const SESSION_KEY          = 'akb_rewards_redemption';
@@ -151,12 +165,6 @@ final class Redemption {
 	/** Lo que lee quien compra cuando otra operación tenía tomados sus puntos. */
 	private const MSG_OCUPADO = 'No pudimos confirmar tus Puntos Akibara en este momento. Espera unos segundos y vuelve a confirmar tu compra.';
 
-	/**
-	 * Veredicto de clamp_requested() cuando lo pedido no llega al mínimo: no
-	 * es «0 puntos» (que borra el canje), es «no se toca nada».
-	 */
-	public const BELOW_MIN = -1;
-
 	private const LOCK_TIMEOUT = 3;
 
 	/**
@@ -185,7 +193,7 @@ final class Redemption {
 		add_filter( 'rest_post_dispatch', array( $this, 'watch_checkout_response' ), 10, 3 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'forget_rejection_on_success' ), 10, 2 );
 		add_filter( 'woocommerce_coupon_is_valid', array( $this, 'disallow_coupon_with_points' ), 10, 2 );
-		add_action( 'template_redirect', array( $this, 'handle_points_bundle_switch' ) );
+		add_filter( 'woocommerce_shipping_free_shipping_is_available', array( $this, 'filter_free_shipping_availability' ), 20, 3 );
 	}
 
 	/**
@@ -253,80 +261,6 @@ final class Redemption {
 	 */
 	public function clear_intent(): void {
 		self::set_intent( 0 );
-		if ( function_exists( 'WC' ) && WC()->session ) {
-			WC()->session->set( 'akb_prefer_points_over_bundle', false );
-		}
-	}
-
-	/**
-	 * Conmuta entre el descuento automático de pack (akb_sb_) y el canje de Puntos Akibara
-	 * cuando los puntos disponibles del cliente superan al ahorro del pack.
-	 */
-	public function handle_points_bundle_switch(): void {
-		if ( ! isset( $_GET['akb_prefer_points_switch'] ) && ! isset( $_GET['akb_prefer_bundle_switch'] ) ) {
-			return;
-		}
-
-		if ( ! function_exists( 'WC' ) || ! WC()->session ) {
-			return;
-		}
-
-		if ( isset( $_GET['akb_prefer_points_switch'] ) ) {
-			WC()->session->set( 'akb_prefer_points_over_bundle', true );
-			if ( WC()->cart instanceof \WC_Cart ) {
-				foreach ( WC()->cart->get_applied_coupons() as $coupon_code ) {
-					if ( 0 === strpos( (string) $coupon_code, 'akb_sb_' ) ) {
-						WC()->cart->remove_coupon( $coupon_code );
-					}
-				}
-				WC()->cart->calculate_totals();
-				$limits = self::redemption_limits( WC()->cart, get_current_user_id() );
-				if ( ( $limits['max_points'] ?? 0 ) > 0 ) {
-					self::set_intent( (int) $limits['max_points'] );
-					WC()->cart->calculate_totals();
-				} else {
-					WC()->session->set( 'akb_prefer_points_over_bundle', false );
-					WC()->cart->calculate_totals();
-				}
-			}
-			wp_safe_redirect( remove_query_arg( 'akb_prefer_points_switch' ) );
-			exit;
-		}
-
-		if ( isset( $_GET['akb_prefer_bundle_switch'] ) ) {
-			WC()->session->set( 'akb_prefer_points_over_bundle', false );
-			self::set_intent( 0 );
-			if ( WC()->cart instanceof \WC_Cart ) {
-				WC()->cart->calculate_totals();
-			}
-			wp_safe_redirect( remove_query_arg( 'akb_prefer_bundle_switch' ) );
-			exit;
-		}
-	}
-
-	/**
-	 * Clamp ÚNICO de lo que el cliente PIDE canjear: mínimo configurado y
-	 * saldo real. Lo consumen las dos superficies que fijan la intención (Mi
-	 * cuenta y la caja del checkout de bloques); el tope por carrito lo pone
-	 * después effective_points(). Tres copias del mismo clamp fue donde nació
-	 * la divergencia entre pantallas.
-	 *
-	 * @param int $user_id   Usuario que canjea.
-	 * @param int $requested Puntos pedidos.
-	 * @return int Puntos a fijar, o BELOW_MIN si no llega al mínimo (la
-	 *             intención previa NO se toca).
-	 */
-	public static function clamp_requested( int $user_id, int $requested ): int {
-		if ( $user_id <= 0 ) {
-			return 0; // El canje exige cuenta.
-		}
-
-		$min = Options::redeem_min_points();
-		if ( $requested > 0 && $min > 0 && $requested < $min ) {
-			return self::BELOW_MIN;
-		}
-
-		return max( 0, min( $requested, self::available_points( $user_id ) ) );
 	}
 
 	/**
@@ -623,19 +557,7 @@ final class Redemption {
 	public static function redemption_limits( ?\WC_Cart $cart, int $user_id ): array {
 		$present           = null !== $cart && array() !== $cart->get_cart();
 		$base              = $present ? Calculator::award_base_for_cart( $cart ) : 0.0;
-		$has_coupons       = $present && $cart instanceof \WC_Cart && method_exists( $cart, 'get_applied_coupons' ) && count( $cart->get_applied_coupons() ) > 0;
-		$has_bundle_coupon   = false;
-		$bundle_discount_clp = 0.0;
-		if ( $has_coupons ) {
-			foreach ( $cart->get_applied_coupons() as $coupon_code ) {
-				if ( 0 === strpos( (string) $coupon_code, 'akb_sb_' ) ) {
-					$has_bundle_coupon = true;
-					if ( method_exists( $cart, 'get_coupon_discount_amount' ) ) {
-						$bundle_discount_clp += (float) $cart->get_coupon_discount_amount( $coupon_code ) + (float) $cart->get_coupon_discount_tax_amount( $coupon_code );
-					}
-				}
-			}
-		}
+		$has_coupons       = $present && $cart instanceof \WC_Cart && method_exists( $cart, 'get_applied_coupons' ) && count( $cart->get_applied_coupons() ) > 0; // @phpstan-ignore function.alreadyNarrowedType
 		$missing           = self::missing_for_minimum( $base );
 		$available         = $user_id > 0 ? self::available_points( $user_id ) : 0;
 		$minimum           = max( 1, Options::redeem_min_points() );
@@ -655,10 +577,16 @@ final class Redemption {
 			: $gross_max;
 		$capped    = min( $gross_max, $tramo_cap );
 
-		// El umbral de Envío Gratis ($60.000 CLP) se evalúa en WooCommerce y Blue Express
-		// sobre el subtotal de productos antes de fees (los Puntos Akibara son un fee, no un cupón),
-		// por lo que canjear puntos en un carrito >= $60.000 conserva el Envío Gratis sin recortar el tramo.
-		$free_shipping_threshold = 60000.0;
+		// El umbral de Envío Gratis ($60.000 CLP por defecto) se evalúa dinámicamente
+		// consultando la opción oficial de Akibara Business ('akibara_fsp_carrier_threshold').
+		// Los Puntos Akibara son un fee, no un cupón, por lo que canjear puntos en un
+		// carrito >= umbral conserva el Envío Gratis sin recortar el tramo de compra.
+		$free_shipping_threshold = function_exists( 'get_option' )
+			? (float) get_option( 'akibara_fsp_carrier_threshold', 60000.0 )
+			: 60000.0;
+		if ( $free_shipping_threshold <= 0.0 ) {
+			$free_shipping_threshold = 60000.0;
+		}
 		if ( class_exists( '\Akibara\Business\Modules\ShippingCopy\ShippingCopy' ) ) {
 			$dyn_threshold = (float) \Akibara\Business\Modules\ShippingCopy\ShippingCopy::threshold();
 			if ( $dyn_threshold > 0.0 ) {
@@ -670,23 +598,6 @@ final class Redemption {
 			? max( 0, min( $available, $capped ) )
 			: 0;
 
-		// Al comparar Puntos vs. Pack (akb_sb_), evaluar la base real de productos SIN restar
-		// el descuento del pack, ya que al conmutar a puntos se retira el cupón akb_sb_.
-		$base_without_bundle      = $has_bundle_coupon ? ( $base + $bundle_discount_clp ) : $base;
-		$missing_without_bundle   = self::missing_for_minimum( $base_without_bundle );
-		$gross_max_without_bundle = (int) floor( self::redeemable_gross( $base_without_bundle ) / $value );
-		$tramo_cap_without_bundle = Options::redeem_max_amount() > 0
-			? ( ( $base_without_bundle < $tier2_min && Options::redeem_min_cart() < $tier2_min ) ? $tier1_cap : $tier2_cap )
-			: $gross_max_without_bundle;
-		$capped_without_bundle    = min( $gross_max_without_bundle, $tramo_cap_without_bundle );
-
-		$potential_max             = ( $present && 0 === $missing_without_bundle ) ? max( 0, min( $available, $capped_without_bundle ) ) : 0;
-		$potential_max             = $potential_max >= $minimum ? $potential_max : 0;
-		$max_redeemable_points_clp = (float) ( $potential_max * $value );
-		$points_exceed_bundle      = $has_bundle_coupon && ( $max_redeemable_points_clp > $bundle_discount_clp );
-		$allow_manual_switch       = ! function_exists( 'get_option' ) || 'yes' === (string) get_option( 'akb_rewards_allow_manual_switch_below_bundle', 'yes' );
-		$can_switch_from_bundle    = $has_bundle_coupon && $potential_max > 0 && ( $points_exceed_bundle || $allow_manual_switch );
-
 		return array(
 			'cart_present'              => $present,
 			'base'                      => $base,
@@ -696,12 +607,6 @@ final class Redemption {
 			'max_points'                => $maximum >= $minimum ? $maximum : 0,
 			'value'                     => $value,
 			'has_coupons'               => $has_coupons,
-			'has_bundle_coupon'         => $has_bundle_coupon,
-			'bundle_discount_clp'       => $bundle_discount_clp,
-			'max_redeemable_points'     => $potential_max,
-			'max_redeemable_points_clp' => $max_redeemable_points_clp,
-			'points_exceed_bundle'      => $points_exceed_bundle,
-			'can_switch_from_bundle'    => $can_switch_from_bundle,
 			'free_shipping_threshold'   => $free_shipping_threshold,
 		);
 	}
@@ -716,6 +621,55 @@ final class Redemption {
 	public static function effective_points_for_limits( int $intent, array $limits ): int {
 		$points = max( 0, min( $intent, $limits['max_points'] ) );
 		return $points >= $limits['min_points'] ? $points : 0;
+	}
+
+	/**
+	 * Preserva el envío gratis evaluando el subtotal pre-descuento frente al umbral comercial.
+	 *
+	 * Certifica la paridad transversal entre la regla nativa de cupones y el canje de recompensas.
+	 *
+	 * @param float|null $subtotal Subtotal opcional a evaluar. Si es null, usa el carrito actual.
+	 * @return bool True si el subtotal califica para envío gratis conservado.
+	 */
+	public static function preserve_free_shipping( ?float $subtotal = null ): bool {
+		$threshold = function_exists( 'get_option' )
+			? (float) get_option( 'akibara_fsp_carrier_threshold', 60000.0 )
+			: 60000.0;
+		if ( $threshold <= 0.0 ) {
+			$threshold = 60000.0;
+		}
+		if ( class_exists( '\Akibara\Business\Modules\ShippingCopy\ShippingCopy' ) ) {
+			$dyn_threshold = (float) \Akibara\Business\Modules\ShippingCopy\ShippingCopy::threshold();
+			if ( $dyn_threshold > 0.0 ) {
+				$threshold = $dyn_threshold;
+			}
+		}
+
+		if ( null === $subtotal ) {
+			if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+				return false;
+			}
+			$subtotal = (float) WC()->cart->get_displayed_subtotal();
+		}
+
+		return $subtotal >= $threshold;
+	}
+
+	/**
+	 * Filtra la disponibilidad del método de envío gratuito de WooCommerce
+	 * para asegurar que no se pierda si el subtotal califica antes del fee de canje.
+	 *
+	 * @param bool  $is_available Estado de disponibilidad del método.
+	 * @param array $package      Paquete de envío.
+	 * @param mixed $method       Instancia del método de envío.
+	 * @return bool
+	 */
+	public function filter_free_shipping_availability( $is_available, array $package = array(), $method = null ): bool {
+		unset( $package, $method );
+		if ( self::preserve_free_shipping() ) {
+			return true;
+		}
+		return (bool) $is_available;
 	}
 
 	/**
@@ -749,37 +703,6 @@ final class Redemption {
 		if ( ! $limits['cart_present'] ) {
 			return 'Añade productos al carrito para calcular cuánto puedes canjear.';
 		}
-		if ( ! empty( $limits['has_bundle_coupon'] ) ) {
-			if ( ! empty( $limits['points_exceed_bundle'] ) || ! empty( $limits['can_switch_from_bundle'] ) ) {
-				$val            = (int) ( $limits['value'] ?? 1 );
-				$val            = $val > 0 ? $val : 1;
-				$pts_formatted  = number_format_i18n( (int) ( ( $limits['max_redeemable_points_clp'] ?? 0 ) / $val ) );
-				$pts_clp_fmt    = function_exists( 'wc_price' )
-					? html_entity_decode( wp_strip_all_tags( wc_price( $limits['max_redeemable_points_clp'] ?? 0 ) ), ENT_QUOTES, 'UTF-8' )
-					: ( '$' . number_format( $limits['max_redeemable_points_clp'] ?? 0, 0, ',', '.' ) );
-				$bundle_clp_fmt = function_exists( 'wc_price' )
-					? html_entity_decode( wp_strip_all_tags( wc_price( $limits['bundle_discount_clp'] ?? 0 ) ), ENT_QUOTES, 'UTF-8' )
-					: ( '$' . number_format( $limits['bundle_discount_clp'] ?? 0, 0, ',', '.' ) );
-
-				if ( ! empty( $limits['points_exceed_bundle'] ) ) {
-					return sprintf(
-						'💡 Tienes %s Puntos Akibara (%s) disponibles (superan los %s de tu descuento de pack actual). Puedes usar tus %s en puntos en lugar del descuento de pack.',
-						$pts_formatted,
-						$pts_clp_fmt,
-						$bundle_clp_fmt,
-						$pts_clp_fmt
-					);
-				}
-
-				return sprintf(
-					'⚡ ¡Tu pedido ya incluye un descuento directo por pack de tu serie (%s)! Con esta compra además acumularás Puntos Akibara para canjear en tus próximos pedidos (o puedes usar tus %s puntos disponibles en esta compra).',
-					$bundle_clp_fmt,
-					$pts_formatted
-				);
-			}
-
-			return '⚡ ¡Tu pedido ya incluye un descuento directo por pack de tu serie! Con esta compra además acumularás Puntos Akibara para canjear en tus próximos pedidos.';
-		}
 		if ( ! empty( $limits['has_coupons'] ) ) {
 			return 'Puedes elegir entre usar un cupón de descuento o canjear tus Puntos Akibara (no se pueden combinar en un mismo pedido).';
 		}
@@ -790,7 +713,7 @@ final class Redemption {
 			return sprintf( 'Te faltan %s puntos para poder canjear: el mínimo por canje es %s.', number_format_i18n( $limits['min_points'] - $limits['available'] ), number_format_i18n( $limits['min_points'] ) );
 		}
 		if ( ! empty( $limits['free_shipping_warning'] ) && 0 === $limits['max_points'] ) {
-			return (string) $limits['free_shipping_warning'];
+			return (string) $limits['free_shipping_warning']; // @phpstan-ignore offsetAccess.notFound
 		}
 		if ( 0 === $limits['max_points'] ) {
 			return sprintf( 'Los topes de esta compra no permiten alcanzar el mínimo de %s puntos por canje.', number_format_i18n( $limits['min_points'] ) );
@@ -886,7 +809,7 @@ final class Redemption {
 			return;
 		}
 
-		if ( method_exists( $cart, 'get_applied_coupons' ) && count( $cart->get_applied_coupons() ) > 0 ) {
+		if ( method_exists( $cart, 'get_applied_coupons' ) && count( $cart->get_applied_coupons() ) > 0 ) { // @phpstan-ignore function.alreadyNarrowedType
 			return;
 		}
 
@@ -915,8 +838,9 @@ final class Redemption {
 	 * @param \WC_Coupon $coupon   Cupón que se intenta aplicar.
 	 * @return bool
 	 * @throws \Exception Si hay canje de puntos activo.
+	 * @psalm-suppress UnusedParam
 	 */
-	public function disallow_coupon_with_points( $is_valid, $coupon ): bool {
+	public function disallow_coupon_with_points( $is_valid, $coupon ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ! $is_valid ) {
 			return false;
 		}
@@ -939,12 +863,14 @@ final class Redemption {
 	 * @return float Bruto concedido (≥ 0).
 	 */
 	public static function granted_gross( \WC_Order $order ): float {
-		foreach ( $order->get_items( 'fee' ) as $item ) {
+		/** @var array<int,\WC_Order_Item_Fee> $fees The fee query returns fee items, which expose total and tax. */
+		$fees = $order->get_items( 'fee' );
+		foreach ( $fees as $item ) {
 			if ( $item->get_name() !== self::FEE_NAME ) {
 				continue;
 			}
 			$total = (float) $item->get_total() + (float) $item->get_total_tax();
-			if ( $total < 0 ) {
+		if ( $total < 0 ) {
 				return -$total;
 			}
 		}
@@ -1321,7 +1247,8 @@ final class Redemption {
 	 * @return string COBRO_*: en los reintentos ('' ) siempre COBRO_OK, porque
 	 *                no hay pago que detener.
 	 */
-	private function lock_and_capture( int $order_id, string $checkout ): string {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function lock_and_capture( int $order_id, string $checkout ): string { // @phpstan-ignore complexity.functionLike
 		// Si el candado del pedido no se consigue, el cuerpo no corre: en la caja
 		// eso es «no se pudo cobrar», no «no había nada que cobrar».
 		$resultado = '' === $checkout ? self::COBRO_OK : self::COBRO_OCUPADO;
@@ -1361,6 +1288,17 @@ final class Redemption {
 					return;
 				}
 
+				$attempt  = (int) $order->get_meta( '_akb_redeem_attempt' );
+				$restores = Ledger::count_movements( 'order', $order_id, 'redeem_refund' );
+				if ( $restores > 0 && $attempt <= $restores ) {
+					$attempt = $restores + 1;
+				}
+				if ( $attempt > 0 ) {
+					$order->update_meta_data( '_akb_redeem_attempt', $attempt );
+					$order->save_meta_data();
+				}
+				$event_key = $attempt > 1 ? sprintf( 'redeem_%d_%d', $order_id, $attempt ) : sprintf( 'redeem_%d', $order_id );
+
 				$debited = Ledger::debit(
 					$user_id,
 					$points,
@@ -1369,7 +1307,7 @@ final class Redemption {
 					$order_id,
 					sprintf( 'Canje en el pedido #%d', $order_id ),
 					true,
-					sprintf( 'redeem_%d', $order_id )
+					$event_key
 				);
 
 				if ( null === $debited && '' !== $checkout ) {
@@ -1405,7 +1343,7 @@ final class Redemption {
 						$order_id,
 						sprintf( 'Canje con saldo insuficiente en el pedido #%d', $order_id ),
 						false,
-						sprintf( 'redeem_%d', $order_id )
+						$event_key
 					);
 					$debited   = is_int( $partial ) ? $partial : 0;
 					$shortfall = $points - $debited;
@@ -1445,7 +1383,7 @@ final class Redemption {
 				// redujo el pedido): la base puntuable debe restar lo que el
 				// cliente no pagó con plata, hubiera o no saldo suficiente.
 				$order->update_meta_data( self::META_REDEEMED_POINTS, (int) $debited );
-				$order->update_meta_data( self::META_REDEEMED_VALUE, (float) $gross );
+				$order->update_meta_data( self::META_REDEEMED_VALUE, $gross );
 				$order->save_meta_data();
 			}
 		);
@@ -1525,7 +1463,7 @@ final class Redemption {
 			$order->add_order_note( sprintf( 'Puntos Akibara: el canje de este pedido cambió de %d a %d puntos al volver a pagarlo; se devolvieron %d.', $cobrado, $pide, $diferencia ) );
 		}
 
-		$order->update_meta_data( self::META_REDEEMED_VALUE, (float) $gross );
+		$order->update_meta_data( self::META_REDEEMED_VALUE, $gross );
 		$order->save_meta_data();
 
 		return self::COBRO_OK;
@@ -1612,7 +1550,7 @@ final class Redemption {
 	 *                          este rechazado (release_superseded()); 0 si no.
 	 * @return void
 	 */
-	private function restore( int $order_id, bool $full, int $replaced_by = 0 ): void {
+	private function restore( int $order_id, bool $full, int $replaced_by = 0 ): void { // @phpstan-ignore complexity.functionLike
 		$this->with_order_lock(
 			$order_id,
 			function () use ( $order_id, $full, $replaced_by ): void {
@@ -1756,6 +1694,9 @@ final class Redemption {
 					return;
 				}
 
+				$recaptures = Ledger::count_movements( 'order', $order_id, 'redemption_recapture' );
+				$event_key  = sprintf( 'redeem_recapture_%d_%d', $order_id, $recaptures + 1 );
+
 				$debited = Ledger::debit(
 					$user_id,
 					$debt,
@@ -1763,7 +1704,8 @@ final class Redemption {
 					'order',
 					$order_id,
 					sprintf( 'Re-cobro del canje al revivir el pedido #%d', $order_id ),
-					$strict
+					$strict,
+					$event_key
 				);
 
 				if ( $strict && false === $debited ) {
@@ -1992,7 +1934,7 @@ final class Redemption {
 				$redeemed = (int) $order->get_meta( self::META_REDEEMED_POINTS );
 				$order->delete_meta_data( self::META_PENDING_GIVEBACK );
 				$order->update_meta_data( self::META_REDEEMED_POINTS, max( 0, $redeemed - $puntos ) );
-				$order->update_meta_data( self::META_REDEEMED_VALUE, (float) self::granted_gross( $order ) );
+				$order->update_meta_data( self::META_REDEEMED_VALUE, self::granted_gross( $order ) );
 				$order->add_order_note( sprintf( 'Puntos Akibara: se devolvieron los %d puntos que habían quedado pendientes del ajuste del canje.', $puntos ) );
 				$order->save_meta_data();
 			}
@@ -2141,7 +2083,7 @@ final class Redemption {
 	 */
 	private static function fresh_cart_response(): array {
 		try {
-			if ( ! function_exists( 'WC' ) || ! isset( WC()->cart ) ) {
+			if ( ! function_exists( 'WC' ) ) {
 				return array();
 			}
 

@@ -27,6 +27,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
  */
 final class CollectionToggle {
 
@@ -89,6 +90,10 @@ final class CollectionToggle {
 				400
 			);
 		}
+		$term = get_term( $term_id, 'pa_serie' );
+		if ( ! $term instanceof \WP_Term || 'pa_serie' !== $term->taxonomy ) {
+			return new WP_REST_Response( array( 'code' => 'invalid_series', 'message' => 'Esa edición ya no está disponible.' ), 400 );
+		}
 
 		if ( $follow ) {
 			FollowRegistry::opt_in( $user_id, $term_id );
@@ -100,9 +105,9 @@ final class CollectionToggle {
 			array(
 				'code'      => $follow ? 'following' : 'unfollowed',
 				'following' => $follow,
-				'message'   => $follow
+				'message'   => $follow && SeriesFollow::enabled()
 					? 'Listo: te avisamos cuando salga el siguiente tomo.'
-					: 'Listo: no te avisaremos de esta serie.',
+					: ( $follow ? 'Preferencia guardada. Los avisos automáticos están pausados.' : 'Listo: no te avisaremos de esta serie.' ),
 			),
 			200
 		);

@@ -245,28 +245,28 @@ if ( ! function_exists( 'akb_inv_norm_snapshot_product' ) ) {
 				$reasons[] = 'instock_without_managed_positive_quantity';
 			}
 			$candidate->set_backorders( 'no' );
-		} elseif ( in_array( $status, array( 'onbackorder', 'outofstock' ), true ) ) {
+		} elseif ( 'outofstock' === $status ) {
 			if ( is_numeric( $quantity ) && $quantity > 0 ) {
 				$reasons[] = 'positive_quantity_must_not_be_erased';
 			}
-			$candidate->set_manage_stock( false );
-			$candidate->set_stock_quantity( null );
+			$candidate->set_manage_stock( true );
+			$candidate->set_stock_quantity( 0 );
 			$candidate->set_backorders( 'no' );
 			$regular = $before['regular_price'];
-			if ( ! is_numeric( $regular ) || ( 'onbackorder' === $status ? (float) $regular <= 0 : (float) $regular < 0 ) ) {
+			if ( ! is_numeric( $regular ) || (float) $regular < 0 ) {
 				$reasons[] = 'invalid_regular_price';
 			} else {
-				$sale  = 'onbackorder' === $status ? (string) ( (int) ( round( ( (float) $regular * 0.95 ) / 100.0, 0, PHP_ROUND_HALF_UP ) * 100 ) ) : '';
-				$price = 'onbackorder' === $status ? $sale : $regular;
-				$candidate->set_sale_price( $sale );
-				$candidate->set_price( $price );
-				if ( $before['sale_price'] === $sale && $before['price'] !== $price ) {
+				$candidate->set_sale_price( '' );
+				$candidate->set_price( $regular );
+				if ( '' === $before['sale_price'] && $before['price'] !== $regular ) {
 					$reasons[] = 'price_only_drift_needs_official_resync';
 				}
 			}
 			if ( null !== $before['sale_from'] || null !== $before['sale_to'] ) {
 				$reasons[] = 'sale_schedule_requires_review';
 			}
+		} elseif ( 'onbackorder' === $status ) {
+			$reasons[] = 'forbidden_onbackorder_status';
 		} else {
 			$reasons[] = 'unknown_stock_status';
 		}

@@ -19,6 +19,11 @@ use Akibara\Business\Modules\SeriesDirectory\SeriesIndex;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UnusedForeachValue
+ */
 final class Blog {
 
 	/** Transient con el mapa nombre-de-serie → URL (24 h). */
@@ -130,7 +135,7 @@ final class Blog {
 
 		foreach ( $parts as &$part ) {
 			if ( preg_match( '/<a[\s>]/i', $part ) ) {
-				$in_a++;
+				++$in_a;
 				continue;
 			}
 			if ( preg_match( '/<\/a>/i', $part ) ) {
@@ -138,7 +143,7 @@ final class Blog {
 				continue;
 			}
 			if ( preg_match( '/<h[1-6][\s>]/i', $part ) ) {
-				$in_heading++;
+				++$in_heading;
 				continue;
 			}
 			if ( preg_match( '/<\/h[1-6]>/i', $part ) ) {

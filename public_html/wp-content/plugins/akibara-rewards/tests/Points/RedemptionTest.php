@@ -552,4 +552,52 @@ final class RedemptionTest extends RewardsTestCase {
 
 		$this->assertSame( 0, Redemption::effective_points( $this->cart() ), 'Bajo el mínimo, el canje no aplica ni un peso.' );
 	}
+
+	/** @testdox Fallo de pago y reintento en el mismo order_id genera redeem_{order_id}_2 y no colisiona con event_key. */
+	public function test_fallo_de_pago_y_reintento_genera_event_key_con_intento(): void {
+		Ledger::credit( 7, 1500, 'order', 'order', 50 );
+		Redemption::set_intent( 1000 );
+		$order = $this->order_with_fee();
+
+		// 1. Intento 1 de cobro del canje
+		$this->redemption->capture_from_order( $order );
+		$this->assertSame( 500, Ledger::balance( 7 ) );
+
+		// Verificamos que el primer débito usó la clave inicial redeem_100
+		$event_keys = array_column( array_column( $this->wpdb->inserts, 1 ), 'event_key' );
+		$this->assertContains( 'redeem_100', $event_keys );
+
+		// 2. La pasarela falla y el pedido pasa a fallido/cancelado, restituyendo los puntos
+		$order->status = 'failed';
+		$this->redemption->on_status_changed( 100, 'pending', 'failed', $order );
+		$this->assertSame( 1500, Ledger::balance( 7 ), 'Los puntos se devolvieron por el fallo de pago.' );
+
+		// 3. El cliente reintenta pagar el mismo pedido #100
+		$order->status = 'pending';
+		$order->delete_meta_data( Redemption::META_REVIVAL_DEBT );
+		unset( $order->meta[ Redemption::META_REDEEMED_POINTS ] );
+		$this->redemption->capture_from_order( $order );
+
+		$this->assertSame( 500, Ledger::balance( 7 ), 'El reintento volvió a capturar los 1000 puntos exitosamente.' );
+		$this->assertSame( 2, (int) $order->saved_meta['_akb_redeem_attempt'], 'El contador de intento avanzó a 2.' );
+
+		$updated_keys = array_column( array_column( $this->wpdb->inserts, 1 ), 'event_key' );
+		$this->assertContains( 'redeem_100_2', $updated_keys, 'El segundo intento usó redeem_100_2 para evitar colisión UNIQUE.' );
+	}
+
+	/** @testdox preserve_free_shipping evalúa subtotal frente al umbral comercial ($60.000 CLP) con paridad pre-cupones. */
+	public function test_preserve_free_shipping_evaluates_threshold_correctly(): void {
+		self::assertTrue( Redemption::preserve_free_shipping( 60000.0 ) );
+		self::assertTrue( Redemption::preserve_free_shipping( 75000.0 ) );
+		self::assertFalse( Redemption::preserve_free_shipping( 59990.0 ) );
+	}
+
+	/** @testdox filter_free_shipping_availability devuelve true cuando el subtotal califica para envío gratis */
+	public function test_filter_free_shipping_availability(): void {
+		$redemption = new Redemption();
+		// Cuando el subtotal es 0 o null y no califica, preserva el valor original false
+		self::assertFalse( $redemption->filter_free_shipping_availability( false, array() ) );
+		// Si el método ya era true, sigue siendo true
+		self::assertTrue( $redemption->filter_free_shipping_availability( true, array() ) );
+	}
 }

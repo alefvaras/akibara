@@ -27,6 +27,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.115.23
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class PickupCoordination {
 

@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.113.0
+ * @api
  */
 final class ShippingCopy {
 

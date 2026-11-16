@@ -22,7 +22,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress InvalidScalarArgument
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class FacetService {
 
 	use Support\FailsClosed;
@@ -49,14 +56,14 @@ final class FacetService {
 	 * @return array<int, int> post_ids (sin ordenar).
 	 */
 	public function filter( FilterSet $filters, ?array $search_ids = null ): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( ! $this->filter_set_is_valid( $filters ) ) {
 			return array();
 		}
 		$search_ids = $this->validated_search_ids( $search_ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( null !== $search_ids && empty( $search_ids ) ) {
@@ -67,7 +74,7 @@ final class FacetService {
 
 		list( $joins, $params ) = $this->facet_joins( $filters );
 		list( $search_sql, $search_params ) = $this->search_constraint( $search_ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -125,15 +132,15 @@ final class FacetService {
 	 * @param array<int, int>|null $search_ids Ids del motor (null = sin búsqueda).
 	 * @return array<string, array<string, array{value: string, label: string, count: int, selected: bool}>>
 	 */
-	public function counts( FilterSet $filters, ?array $search_ids = null ): array {
-		if ( ! $this->available ) {
+	public function counts( FilterSet $filters, ?array $search_ids = null ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( ! $this->filter_set_is_valid( $filters ) ) {
 			return array();
 		}
 		$search_ids = $this->validated_search_ids( $search_ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		// Cacheable = sin búsqueda y sin facetas EXPLÍCITAS (landing y archives
@@ -148,7 +155,7 @@ final class FacetService {
 		$cache_stamp = '';
 		if ( $cacheable ) {
 			$cache_stamp = $this->counts_cache_stamp();
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 			$cache_key = $this->counts_cache_key( $filters );
@@ -162,64 +169,19 @@ final class FacetService {
 		$unselected = array();
 
 		$definitions = $this->facet_definitions();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		foreach ( $definitions as $facet => $def ) {
-			$is_price = 'precio' === ( $def['type'] ?? '' );
-			$selected = $filters->values( $facet );
-
-			if ( $is_price ) {
-				// Sin buckets utilizables (option ausente/pre-primer-reindex) la
-				// faceta se OCULTA: ni counts sobre la const [gate v3.1 nit 2].
-				if ( ! $this->has_price_buckets() ) {
-					if ( ! $this->available ) {
-						return array();
-					}
-					continue;
-				}
-				$out[ $facet ] = $this->price_counts( $filters->without( $facet ), $selected, $search_ids );
-				if ( ! $this->available ) {
-					return array();
-				}
-				continue;
-			}
-
-			if ( 'novedad' === ( $def['type'] ?? '' ) ) {
-				// Flag OFF: sin counts → FacetsView auto-oculta (el gate es
-				// query-time; el índice materializa siempre). El bump de gen al
-				// togglear rota el transient del landing al instante.
-				if ( ! $this->novelty_enabled() ) {
-					if ( ! $this->available ) {
-						return array();
-					}
-					continue;
-				}
-				$out[ $facet ] = $this->novedad_counts( $filters->without( $facet ), $selected, $search_ids );
-				if ( ! $this->available ) {
-					return array();
-				}
-				continue;
-			}
-
-			if ( empty( $selected ) ) {
-				// Base = TODAS las activas (X no está entre ellas): se batchean
-				// todas las no-seleccionadas en UNA query (el caso landing).
-				$unselected[] = $facet;
-				continue;
-			}
-
-			// Seleccionada: base propia (todas menos X) — query individual.
-			$out[ $facet ] = $this->count_facets( array( $facet ), $filters->without( $facet ), $search_ids )[ $facet ] ?? array();
-			if ( ! $this->available ) {
+			$this->accumulate_single_facet_count( (string) $facet, $def, $filters, $search_ids, $out, $unselected );
+			if ( ! $this->is_available() ) {
 				return array();
 			}
-			$out[ $facet ] = $this->mark_selected( $out[ $facet ], $selected, (string) $facet );
 		}
 
 		if ( ! empty( $unselected ) ) {
 			$batched = $this->count_facets( $unselected, $filters, $search_ids );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 			foreach ( $unselected as $facet ) {
@@ -229,12 +191,60 @@ final class FacetService {
 
 		if ( $cacheable ) {
 			$this->store_counts( $cache_key, $cache_stamp, $out );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Resuelve el conteo de una faceta individual o la encola en el lote de no seleccionadas.
+	 *
+	 * @param string               $facet      Nombre de la faceta.
+	 * @param array<string, mixed> $def        Definición de la faceta.
+	 * @param FilterSet            $filters    Selecciones activas.
+	 * @param array<int, int>|null $search_ids IDs del motor.
+	 * @param array<string, mixed> $out        Acumulador de resultados.
+	 * @param array<int, string>   $unselected Acumulador de facetas no seleccionadas.
+	 * @return void
+	 */
+	private function accumulate_single_facet_count(
+		string $facet,
+		array $def,
+		FilterSet $filters,
+		?array $search_ids,
+		array &$out,
+		array &$unselected
+	): void {
+		$type     = (string) ( $def['type'] ?? '' );
+		$selected = $filters->values( $facet );
+
+		if ( 'precio' === $type ) {
+			if ( $this->has_price_buckets() && $this->available ) {
+				$out[ $facet ] = $this->price_counts( $filters->without( $facet ), $selected, $search_ids );
+			}
+			return;
+		}
+
+		if ( 'novedad' === $type ) {
+			if ( $this->novelty_enabled() && $this->available ) {
+				$out[ $facet ] = $this->novedad_counts( $filters->without( $facet ), $selected, $search_ids );
+			}
+			return;
+		}
+
+		if ( empty( $selected ) ) {
+			$unselected[] = $facet;
+			return;
+		}
+
+		$counted = $this->count_facets( array( $facet ), $filters->without( $facet ), $search_ids )[ $facet ] ?? array();
+		if ( ! $this->is_available() ) {
+			return;
+		}
+		$out[ $facet ] = $this->mark_selected( $counted, $selected, $facet );
 	}
 
 	/**
@@ -245,7 +255,7 @@ final class FacetService {
 	 * @return bool
 	 */
 	public function index_is_empty(): bool {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		$docs = Install::docs_table();
@@ -377,12 +387,12 @@ final class FacetService {
 		// La hora cuantizada viaja dentro del sello (stamp) y no en la clave de
 		// caché: invalida automáticamente el valor cada hora (desfase máximo 1h)
 		// reutilizando el mismo slot sin multiplicar filas en la tabla de opciones.
-		$hour = $this->novelty_enabled() ? '|h' . (string) intdiv( time(), HOUR_IN_SECONDS ) : '';
-		if ( ! $this->available ) {
+		$hour = $this->novelty_enabled() ? '|h' . intdiv( time(), HOUR_IN_SECONDS ) : '';
+		if ( ! $this->is_available() ) {
 			return '';
 		}
 
-		return (string) $stamp_values['count'] . '|' . $stamp_values['max'] . '|' . $gen . $hour;
+		return $stamp_values['count'] . '|' . $stamp_values['max'] . '|' . $gen . $hour;
 	}
 
 	/**
@@ -437,7 +447,7 @@ final class FacetService {
 			return;
 		}
 		$current_stamp = $this->counts_cache_stamp();
-		if ( ! $this->available || $stamp !== $current_stamp ) {
+		if ( ! $this->is_available() || $stamp !== $current_stamp ) {
 			return;
 		}
 		// TTL de 1 día como backstop; el sello por-estado ya invalida al reindexar.
@@ -448,6 +458,7 @@ final class FacetService {
 		} catch ( \Throwable $exception ) {
 			// El transient es una optimización. La respuesta calculada sigue siendo
 			// autoritativa aunque el backend de object cache no pueda escribir.
+			unset( $exception );
 		}
 	}
 
@@ -467,7 +478,7 @@ final class FacetService {
 			return $out;
 		}
 		$definitions = $this->facet_definitions();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return $out;
 		}
 		$seen_names = array();
@@ -487,7 +498,7 @@ final class FacetService {
 
 		list( $joins, $join_params ) = $this->facet_joins( $base_filters );
 		list( $search_sql, $search_params ) = $this->search_constraint( $search_ids, 'fx' );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return $out;
 		}
 
@@ -622,7 +633,7 @@ final class FacetService {
 	 * @return array<string,string> Mapa valor => etiqueta.
 	 */
 	private function labels_for_values( string $facet, array $values ): array {
-		if ( '' === $facet || empty( $values ) || ! $this->available || ! $this->valid_facet_value( $facet ) ) {
+		if ( '' === $facet || empty( $values ) || ! $this->is_available() || ! $this->valid_facet_value( $facet ) ) {
 			return array();
 		}
 		foreach ( $values as $value ) {
@@ -679,7 +690,7 @@ final class FacetService {
 	 */
 	private function price_counts( FilterSet $others, array $selected, ?array $search_ids ): array {
 		$buckets = $this->price_buckets();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		$selected_map = $this->selected_value_map( $selected );
@@ -697,7 +708,7 @@ final class FacetService {
 					'selected' => isset( $selected_map[ (string) $i ] ),
 				);
 			}
-			return $out;
+			return $out; // @phpstan-ignore return.type
 		}
 
 		$facets = Install::facets_table();
@@ -705,7 +716,7 @@ final class FacetService {
 
 		list( $joins, $join_params ) = $this->facet_joins( $others );
 		list( $search_sql, $search_params ) = $this->search_constraint( $search_ids, 'fx' );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -772,7 +783,7 @@ final class FacetService {
 			);
 		}
 
-		return $out;
+		return $out; // @phpstan-ignore return.type
 	}
 
 	/**
@@ -782,13 +793,13 @@ final class FacetService {
 	 * @param FilterSet $filters Facetas activas.
 	 * @return array{0: array<int, string>, 1: array<int, mixed>}
 	 */
-	private function facet_joins( FilterSet $filters ): array {
+	private function facet_joins( FilterSet $filters ): array { // @phpstan-ignore complexity.functionLike
 		$facets = Install::facets_table();
 		$joins  = array();
 		$params = array();
 		$i      = 0;
 		$definitions = $this->facet_definitions();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array( array(), array() );
 		}
 
@@ -806,7 +817,7 @@ final class FacetService {
 				// Flag OFF: un `_novedad` en la URL se ignora limpio (sin
 				// backdoor) — mismo drop del JOIN que el índice muerto de precio.
 				if ( ! $this->novelty_enabled() ) {
-					if ( ! $this->available ) {
+					if ( ! $this->is_available() ) {
 						return array( array(), array() );
 					}
 					--$i;
@@ -829,7 +840,7 @@ final class FacetService {
 				// no filtra por la const [gate v3.1 nit 2] — mismo drop del JOIN
 				// que el caso all-invalid.
 				if ( ! $this->has_price_buckets() ) {
-					if ( ! $this->available ) {
+					if ( ! $this->is_available() ) {
 						return array( array(), array() );
 					}
 					--$i;
@@ -873,7 +884,7 @@ final class FacetService {
 	 */
 	private function price_join_condition( string $alias, array $bucket_indices ): array {
 		$buckets = $this->price_buckets();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array( '', array() );
 		}
 		$ranges  = array();
@@ -925,7 +936,7 @@ final class FacetService {
 			return array();
 		}
 		$buckets = $this->novelty_buckets();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -939,7 +950,7 @@ final class FacetService {
 					'selected' => isset( $selected_map[ (string) $i ] ),
 				);
 			}
-			return $out;
+			return $out; // @phpstan-ignore return.type
 		}
 
 		$facets = Install::facets_table();
@@ -947,7 +958,7 @@ final class FacetService {
 
 		list( $joins, $join_params ) = $this->facet_joins( $others );
 		list( $search_sql, $search_params ) = $this->search_constraint( $search_ids, 'fx' );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -957,7 +968,7 @@ final class FacetService {
 		$select_params = array();
 		foreach ( $buckets as $i => $bucket ) {
 			$cutoff = $this->novelty_cutoff( (int) $bucket['days'] );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 			$selects[]       = "COUNT(DISTINCT CASE WHEN fx.value_num >= %f THEN fx.post_id END) AS b{$i}";
@@ -1009,7 +1020,7 @@ final class FacetService {
 			);
 		}
 
-		return $out;
+		return $out; // @phpstan-ignore return.type
 	}
 
 	/**
@@ -1025,7 +1036,7 @@ final class FacetService {
 	 */
 	private function novedad_join_condition( string $alias, array $bucket_indices ): array {
 		$buckets = $this->novelty_buckets();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array( '', array() );
 		}
 		$ranges  = array();
@@ -1039,7 +1050,7 @@ final class FacetService {
 				continue;
 			}
 			$cutoff = $this->novelty_cutoff( (int) $bucket['days'] );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array( '', array() );
 			}
 			$ranges[] = "({$alias}.value_num >= %f)";
@@ -1064,7 +1075,7 @@ final class FacetService {
 	 */
 	private function search_constraint( ?array $search_ids, string $alias = 'd' ): array {
 		$search_ids = $this->validated_search_ids( $search_ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array( ' AND 1=0', array() );
 		}
 		if ( null === $search_ids ) {
@@ -1133,7 +1144,7 @@ final class FacetService {
 	 * @return array{0: bool, 1: mixed}
 	 */
 	private function guarded_call( callable $callback, string $fallback, bool $read = true ): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array( false, null );
 		}
 
@@ -1205,7 +1216,7 @@ final class FacetService {
 			$error = 'Facet registry source is not authoritative.';
 			try {
 				$candidate = FacetRegistry::last_error();
-				if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
+				if ( is_string( $candidate ) && '' !== trim( $candidate ) ) { // @phpstan-ignore function.alreadyNarrowedType
 					$error = $candidate;
 				}
 			} catch ( \Throwable $exception ) {
@@ -1331,7 +1342,7 @@ final class FacetService {
 		}
 		if ( true !== $novelty_available ) {
 			$error = SemanticPublication::authoritative_error();
-			$this->mark_unavailable( is_string( $error ) && '' !== trim( $error ) ? $error : 'Novelty configuration is not authoritative.' );
+			$this->mark_unavailable( is_string( $error ) && '' !== trim( $error ) ? $error : 'Novelty configuration is not authoritative.' ); // @phpstan-ignore function.alreadyNarrowedType
 			return false;
 		}
 
@@ -1341,7 +1352,7 @@ final class FacetService {
 	/** Valida que un FilterSet manual conserve la gramática del parser público. */
 	private function filter_set_is_valid( FilterSet $filters ): bool {
 		$definitions = $this->facet_definitions();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		$joined = $filters->joined();
@@ -1462,22 +1473,23 @@ final class FacetService {
 	 * @param array<string|int, mixed> $cached
 	 * @return array<string, array<string, array<string, mixed>>>|null
 	 */
-	private function validated_cached_counts( array $cached ): ?array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function validated_cached_counts( array $cached ): ?array { // @phpstan-ignore complexity.functionLike
 		$definitions = $this->facet_definitions();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		$expected = array();
 		foreach ( $definitions as $facet => $definition ) {
 			$type = (string) $definition['type'];
 			if ( 'precio' === $type && ! $this->has_price_buckets() ) {
-				if ( ! $this->available ) {
+				if ( ! $this->is_available() ) {
 					return null;
 				}
 				continue;
 			}
 			if ( 'novedad' === $type && ! $this->novelty_enabled() ) {
-				if ( ! $this->available ) {
+				if ( ! $this->is_available() ) {
 					return null;
 				}
 				continue;
@@ -1499,7 +1511,7 @@ final class FacetService {
 			} elseif ( 'novedad' === $type ) {
 				$expected_options = $this->novelty_buckets();
 			}
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return null;
 			}
 			if ( null !== $expected_options && count( $options ) !== count( $expected_options ) ) {

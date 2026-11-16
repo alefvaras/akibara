@@ -11,5 +11,8 @@ namespace Akibara\Business\Internal;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class UpgradeRetryRequired extends \RuntimeException {
 }

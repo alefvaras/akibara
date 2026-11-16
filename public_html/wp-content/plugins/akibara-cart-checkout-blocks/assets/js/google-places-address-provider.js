@@ -88,7 +88,7 @@
 
 	function findSearchCombobox(query) {
 		const normalizedQuery = String(query || '').trim();
-		const activeInput = document.activeElement;
+		const activeInput = document.documentElement.ownerDocument.activeElement;
 		if (
 			autocompleteContainer(activeInput)
 			&& String(activeInput.value || '').trim() === normalizedQuery
@@ -176,7 +176,6 @@
 		// these styles within one animation frame avoids accumulating a stale
 		// constraint after a resize or a checkout-column layout change.
 		resetSuggestionsPositionStyles(state.container);
-		const inputRect = state.input.getBoundingClientRect();
 		const panelRect = panel.getBoundingClientRect();
 		const listRect = list.getBoundingClientRect();
 		const visualViewportHeight = Number(window.visualViewport?.height);
@@ -197,6 +196,7 @@
 			return false;
 		}
 
+		const inputRect = state.input.getBoundingClientRect();
 		const fixedPanelHeight = Math.max(0, panelHeight - listHeight);
 		const availableBelow = Math.max(
 			0,
@@ -262,11 +262,11 @@
 		stopSuggestionsPosition(input);
 		const state = {
 			active: true,
-			container: container,
+			container,
 			frameId: null,
 			frameType: '',
 			framesRemaining: suggestionsPositionMaxFrames,
-			input: input,
+			input,
 			onViewportChange: null,
 			visualViewport: window.visualViewport || null
 		};
@@ -428,9 +428,9 @@
 		container.appendChild(feedback);
 
 		state = {
-			container: container,
-			feedback: feedback,
-			input: input,
+			container,
+			feedback,
+			input,
 			// 'search' o 'selection': qué pidió el aviso vigente (Escape sólo
 			// descarta búsquedas; el «Completando dirección…» sigue).
 			kind: '',
@@ -488,7 +488,7 @@
 		input.addEventListener('blur', function () {
 			const blurredToken = state.token;
 			window.setTimeout(function () {
-				if (document.activeElement === input) {
+				if (document.documentElement.ownerDocument.activeElement === input) {
 					return;
 				}
 
@@ -497,9 +497,9 @@
 				// blur window has either dispatched the option click or closed the panel.
 				clearFeedback(input, blurredToken, true);
 				window.setTimeout(function () {
-					const container = autocompleteContainer(input);
-					const panel = container?.querySelector(suggestionsSelector);
-					if (document.activeElement !== input || !panel) {
+					const targetContainer = autocompleteContainer(input);
+					const panel = targetContainer?.querySelector(suggestionsSelector);
+					if (document.documentElement.ownerDocument.activeElement !== input || !panel) {
 						stopSuggestionsPosition(input);
 					}
 				}, suggestionsBlurCleanupMs);
@@ -539,7 +539,7 @@
 		renderFeedback(state, 'loading', message);
 
 		return {
-			input: input,
+			input,
 			query: state.query,
 			token: state.token
 		};
@@ -676,7 +676,9 @@
 
 		for (const name of names) {
 			const configuredKey = String(name).trim().toUpperCase();
+			// eslint-disable-next-line security/detect-object-injection
 			if (regionMap[configuredKey]) {
+				// eslint-disable-next-line security/detect-object-injection
 				return regionMap[configuredKey];
 			}
 			if (configuredCodes.has(name)) {
@@ -684,7 +686,9 @@
 			}
 
 			const alias = chileRegionAliases[normalizeRegionName(name)];
+			// eslint-disable-next-line security/detect-object-injection
 			if (alias && regionMap[alias]) {
+				// eslint-disable-next-line security/detect-object-injection
 				return regionMap[alias];
 			}
 		}
@@ -726,8 +730,9 @@
 			.trim();
 	}
 
-	function communeName(candidates, regionCode) {
-		const regionCommunes = window.akbComunaData?.regions?.[regionCode];
+	function communeName(candidates, targetRegionCode) {
+		// eslint-disable-next-line security/detect-object-injection
+		const regionCommunes = window.akbComunaData?.regions?.[targetRegionCode];
 		if (!Array.isArray(regionCommunes) || !regionCommunes.length) {
 			return '';
 		}
@@ -756,7 +761,7 @@
 			seen.add(normalized);
 			matches.push({
 				name: canonicalNames.get(normalized),
-				normalized: normalized
+				normalized
 			});
 		});
 
@@ -824,7 +829,9 @@
 
 		/* Google no debe borrar un departamento ni un código postal ya escritos cuando la predicción no trae esos datos. Los valores vacíos se omiten. Comuna y región sí se vacían deliberadamente si el catálogo no las reconoce, para que el cliente elija una opción válida. */
 		['address_2', 'postcode'].forEach(function (key) {
+			// eslint-disable-next-line security/detect-object-injection
 			if (values[key] === '') {
+				// eslint-disable-next-line security/detect-object-injection
 				delete values[key];
 			}
 		});
@@ -833,7 +840,7 @@
 	}
 
 	function rememberPrediction(id, prediction, input) {
-		predictions.set(id, { input: input, prediction: prediction });
+		predictions.set(id, { input, prediction });
 		if (predictions.size <= 50) {
 			return;
 		}
@@ -877,7 +884,7 @@
 			message,
 			{
 				context: 'woocommerce/checkout',
-				id: id,
+				id,
 				type: 'snackbar'
 			}
 		);
@@ -910,7 +917,7 @@
 	// su contador sólo atiende la búsqueda nueva.
 	function focusIsOnSuggestions(combobox) {
 		const panel = autocompleteContainer(combobox)?.querySelector(suggestionsSelector);
-		const active = document.activeElement;
+		const active = document.documentElement.ownerDocument.activeElement;
 		return Boolean(panel && active && active !== combobox && panel.contains(active));
 	}
 
@@ -941,7 +948,7 @@
 			endSuggestionPress(suggestionPress);
 		}
 		if (!suggestionPress) {
-			suggestionPress = { combobox: combobox, selected: false, timer: null, waiters: [] };
+			suggestionPress = { combobox, selected: false, timer: null, waiters: [] };
 		}
 		window.clearTimeout(suggestionPress.timer);
 		suggestionPress.timer = null;
@@ -1084,13 +1091,13 @@
 				const id = String(prediction.placeId || [query, index, Date.now()].join(':'));
 				rememberPrediction(id, prediction, searchFeedback?.input || null);
 				return {
-					id: id,
+					id,
 					label: predictionLabel(prediction, query),
 					matchedSubstrings: []
 				};
 			}).filter(Boolean);
 			outcome = results.length ? 'success' : 'empty';
-		} catch (error) {
+		} catch (_error) {
 			if (searchFeedback && !isCurrentFeedback(searchFeedback)) {
 				return unansweredWhilePressingSuggestion(searchFeedback.input);
 			}
@@ -1112,10 +1119,10 @@
 
 	const provider = {
 		id: config.providerId,
-		canSearch: function (country) {
+		canSearch (country) {
 			return String(country || '').toUpperCase() === 'CL';
 		},
-		search: function (input, country) {
+		search (input, country) {
 			const query = String(input || '').trim();
 			const combobox = findSearchCombobox(query);
 			cancelPendingSearch(combobox);
@@ -1130,9 +1137,9 @@
 			// Nada de DOM ni de red en la tecla: sólo un temporizador. Toda búsqueda
 			// que la reemplaza pasa antes por cancelPendingSearch(), que limpia este
 			// temporizador y resuelve su promesa: si llega a dispararse, es la vigente.
-			const wasFocused = Boolean(combobox) && document.activeElement === combobox;
+			const wasFocused = Boolean(combobox) && document.documentElement.ownerDocument.activeElement === combobox;
 			return new Promise(function (resolve) {
-				const pending = { resolve: resolve, timer: null };
+				const pending = { resolve, timer: null };
 				const fire = function () {
 					if (isPressingSuggestion(combobox)) {
 						// Vence a mitad de un toque sobre la lista: espera a que suelte.
@@ -1158,7 +1165,7 @@
 						resolve([]);
 						return;
 					}
-					if (combobox && wasFocused && document.activeElement !== combobox) {
+					if (combobox && wasFocused && document.documentElement.ownerDocument.activeElement !== combobox) {
 						// Si se fue a la lista, está pulsando una sugerencia: nada.
 						if (!focusIsOnSuggestions(combobox)) {
 							resolve([]);
@@ -1172,7 +1179,7 @@
 				pendingSearches.set(combobox, pending);
 			});
 		},
-		select: async function (id) {
+		async select (id) {
 			// El toque en curso eligió: lo que conteste Google ya no se entrega.
 			if (suggestionPress) {
 				suggestionPress.selected = true;
@@ -1201,7 +1208,7 @@
 				await place.fetchFields({ fields: ['addressComponents'] });
 				finishSelectionFeedback(selectionFeedback, true);
 				return parseAddressComponents(place.addressComponents);
-			} catch (error) {
+			} catch (_error) {
 				finishSelectionFeedback(selectionFeedback, false);
 				if (!selectionFeedback) {
 					showSelectionError();

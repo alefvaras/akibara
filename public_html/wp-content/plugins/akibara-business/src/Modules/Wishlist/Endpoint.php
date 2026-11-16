@@ -15,6 +15,11 @@ namespace Akibara\Business\Modules\Wishlist;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ */
 final class Endpoint {
 
 	public const SLUG = 'favoritos';
@@ -26,8 +31,10 @@ final class Endpoint {
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'menu_item' ) );
 		add_filter( 'woocommerce_endpoint_' . self::SLUG . '_title', array( $this, 'endpoint_title' ) );
 		add_action( 'woocommerce_account_' . self::SLUG . '_endpoint', array( $this, 'render' ) );
+		add_action( 'send_headers', array( $this, 'private_headers' ) );
+		add_action( 'template_redirect', array( $this, 'disable_page_cache' ), 1 );
 
-		// El flush de reglas NO se guarda acá. Lo hace `Plugin::run_upgrade_tasks()`
+		// El flush de reglas NO se guarda acá. Lo hace `UpgradeManager::run_upgrade_tasks()`
 		// una vez por bump de versión, con las reglas de todos los módulos ya
 		// registradas (corre en `init` 999). La guarda propia que vivía aquí
 		// comparaba contra `Install::DB_VERSION`, que sólo cambia dentro de un
@@ -62,7 +69,39 @@ final class Endpoint {
 	}
 
 	public function endpoint_title( string $title ): string {
+		unset( $title );
 		return 'Favoritos';
+	}
+
+	public function private_headers(): void {
+		if ( ! self::is_current_endpoint() || headers_sent() ) {
+			return;
+		}
+		header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private' );
+		header( 'Pragma: no-cache' );
+		header( 'Expires: Wed, 11 Jan 1984 05:00:00 GMT' );
+		header( 'Vary: Cookie', false );
+	}
+
+	public function disable_page_cache(): void {
+		if ( ! self::is_current_endpoint() ) {
+			return;
+		}
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		if ( function_exists( 'nocache_headers' ) && ! headers_sent() ) {
+			nocache_headers();
+		}
+		do_action( 'litespeed_control_set_nocache', 'akibara-wishlist-private' );
+	}
+
+	public static function is_current_endpoint(): bool {
+		if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( self::SLUG ) ) {
+			return true;
+		}
+		global $wp;
+		return is_object( $wp ) && isset( $wp->query_vars[ self::QUERY_VAR ] );
 	}
 
 	public function render(): void {

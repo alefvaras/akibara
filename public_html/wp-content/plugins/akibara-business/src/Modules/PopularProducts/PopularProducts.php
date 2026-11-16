@@ -22,6 +22,12 @@ use Akibara\Business\Modules\Stock\StockStatus;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class PopularProducts {
 
 	/**
@@ -88,6 +94,7 @@ final class PopularProducts {
 	 * @param mixed $fallback Valor por defecto del filtro (se ignora; lo provee este módulo).
 	 * @param int   $limit    Cantidad de productos.
 	 * @return int[]
+	 * @psalm-suppress UnusedParam
 	 */
 	public function get_ids( $fallback = array(), int $limit = 4 ): array {
 		$limit = max( 1, $limit );
@@ -147,13 +154,13 @@ final class PopularProducts {
 			'post_type'           => 'product',
 			'posts_per_page'      => max( 1, $limit ),
 			'post_status'         => 'publish',
-			'meta_key'            => 'total_sales',
+			'meta_key'            => 'total_sales', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 			'orderby'             => 'meta_value_num',
 			'order'               => 'DESC',
 			'fields'              => 'ids',
 			'no_found_rows'       => true,
 			'ignore_sticky_posts' => true,
-			'tax_query'           => array(
+			'tax_query'           => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 				array(
 					'taxonomy' => 'product_visibility',
 					'field'    => 'name',
@@ -161,15 +168,11 @@ final class PopularProducts {
 					'operator' => 'NOT IN',
 				),
 			),
-			// Comprables, no «en bodega»: el filtro estricto a `instock` dejaba
-			// fuera los 422 productos «A pedido» (onbackorder), que se venden
-			// exactamente igual y son el 27% del catálogo. La única exclusión
-			// legítima acá es `outofstock`, que no se puede comprar.
-			'meta_query'          => array(
+			'meta_query'          => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				array(
 					'key'     => '_stock_status',
-					'value'   => array( StockStatus::IN_STOCK, StockStatus::ON_BACKORDER ),
-					'compare' => 'IN',
+					'value'   => StockStatus::IN_STOCK,
+					'compare' => '=',
 				),
 			),
 		);

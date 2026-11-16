@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
  */
 final class Options {
 
@@ -43,6 +44,11 @@ final class Options {
 	 * pasarela confirma el pago.
 	 */
 	public const DEFAULT_AWARD_STATUS = 'processing';
+
+	/**
+	 * Días de carencia por defecto antes de liberar los puntos de compra a saldo disponible.
+	 */
+	public const DEFAULT_ESCROW_DAYS = 7;
 
 	/**
 	 * Techo de fábrica de la RAZÓN del programa: cuántos pesos puede devolver
@@ -143,6 +149,26 @@ final class Options {
 	public static function award_status(): string {
 		$status = (string) get_option( 'akb_rewards_award_status', self::DEFAULT_AWARD_STATUS );
 		return '' !== $status ? $status : self::DEFAULT_AWARD_STATUS;
+	}
+
+	/**
+	 * Días de carencia para liberación de puntos ganados por compra.
+	 *
+	 * 7 días exactos tras completarse el pedido (status = completed), para prevenir
+	 * arbitraje y devoluciones con puntos ya canjeados.
+	 * En entorno de tests o si se configura 0, se acreditan de inmediato.
+	 *
+	 * @return int
+	 */
+	public static function escrow_days(): int {
+		$raw = get_option( 'akb_rewards_accrual_escrow_days', null );
+		if ( null === $raw || false === $raw || '' === $raw ) {
+			$days = defined( 'PHPUNIT_COMPOSER_INSTALL' ) ? 0 : self::DEFAULT_ESCROW_DAYS;
+		} else {
+			$days = (int) $raw;
+		}
+
+		return (int) apply_filters( 'akb_rewards_accrual_escrow_days', max( 0, $days ) );
 	}
 
 	/**
@@ -287,11 +313,11 @@ final class Options {
 	 */
 	public static function reviews_engine_on(): bool {
 		/**
-		 * Permite forzar el estado del motor de reseñas (pruebas, cutover).
+		 * Permite forzar el estado del motor de reseñas (pruebas o mantenimiento).
 		 *
-		 * @param bool $on Despierto si CusRev no está activo.
+		 * @param bool $on Despierto por defecto.
 		 */
-		return (bool) apply_filters( 'akb_rewards_reviews_engine_on', ! class_exists( '\\CR_Reviews' ) );
+		return (bool) apply_filters( 'akb_rewards_reviews_engine_on', true );
 	}
 
 	/**
@@ -424,12 +450,12 @@ final class Options {
 	}
 
 	/**
-	 * Largo mínimo del texto para que una reseña sea elegible del carrusel.
+	 * Largo mínimo del texto: 0 (sin mínimo por orden del dueño).
 	 *
 	 * @return int
 	 */
 	public static function carousel_min_chars(): int {
-		return max( 1, (int) get_option( 'akb_rewards_carousel_min_chars', 40 ) );
+		return 0;
 	}
 
 	/**
@@ -451,22 +477,14 @@ final class Options {
 		return in_array( $mode, array( 'mixed', 'photos', 'text' ), true ) ? $mode : 'mixed';
 	}
 
-	/** Permite mostrar el aviso de puntos en el carrusel sin cambiar el de las fichas. */
+	/** Aviso de puntos en carrusel: desactivado/eliminado por orden del dueño. */
 	public static function carousel_disclosure_on(): bool {
-		return 'yes' === (string) get_option( 'akb_rewards_carousel_disclosure_enabled', 'no' );
+		return false;
 	}
 
-	/**
-	 * ¿Se pinta el aviso de incentivo en las reseñas premiadas?
-	 *
-	 * Estado del aviso de incentivo: desactivado por defecto. Permite activar
-	 * el aviso de divulgación con un clic en el panel administrativo según
-	 * las pautas de datos estructurados de motores de búsqueda.
-	 *
-	 * @return bool
-	 */
+	/** Aviso de incentivo en reseñas: desactivado/eliminado por orden del dueño. */
 	public static function disclosure_on(): bool {
-		return 'yes' === (string) get_option( 'akb_rewards_disclosure_enabled', 'no' );
+		return false;
 	}
 
 	/**
@@ -494,12 +512,12 @@ final class Options {
 	}
 
 	/**
-	 * Máximo de premios de reseña por cliente EN LA HISTORIA. 0 = sin tope.
+	 * Máximo de premios de reseña por cliente en ventana móvil de 30 días. 0 = sin tope.
 	 *
 	 * @return int
 	 */
 	public static function review_max_per_user(): int {
-		return max( 0, (int) get_option( 'akb_rewards_review_max_per_user', 0 ) );
+		return max( 0, (int) get_option( 'akb_rewards_review_max_per_user', 5 ) );
 	}
 
 	/**
@@ -559,5 +577,119 @@ final class Options {
 		}
 
 		return $validos;
+	}
+
+	/**
+	 * Mapa canónico de opciones de gamificación sobrescribibles vía Twelve-Factor en wp-config.php.
+	 *
+	 * @var array<string,string>
+	 */
+	public const TIER_CONSTANTS = array(
+		'akb_rewards_tiers_enabled'           => 'AKB_REWARDS_TIERS_ENABLED',
+		'akb_rewards_tier_coleccionista_min'  => 'AKB_REWARDS_TIER_COLECCIONISTA_MIN',
+		'akb_rewards_tier_coleccionista_mult' => 'AKB_REWARDS_TIER_COLECCIONISTA_MULT',
+		'akb_rewards_tier_residente_min'      => 'AKB_REWARDS_TIER_RESIDENTE_MIN',
+		'akb_rewards_tier_residente_mult'     => 'AKB_REWARDS_TIER_RESIDENTE_MULT',
+		'akb_rewards_tier_validity_days'      => 'AKB_REWARDS_TIER_VALIDITY_DAYS',
+	);
+
+	/**
+	 * Devuelve el valor efectivo de una opción de nivel desde wp-config.php si está definida.
+	 *
+	 * @param string $option Nombre de la opción.
+	 * @return mixed|null Valor resuelto o null si no está controlada por constante.
+	 */
+	public static function tier_constant_value( string $option ) {
+		if ( ! isset( self::TIER_CONSTANTS[ $option ] ) || ! defined( self::TIER_CONSTANTS[ $option ] ) ) {
+			return null;
+		}
+
+		return match ( $option ) {
+			'akb_rewards_tiers_enabled'           => self::tiers_enabled() ? 'yes' : 'no',
+			'akb_rewards_tier_coleccionista_min'  => self::tier_coleccionista_min(),
+			'akb_rewards_tier_coleccionista_mult' => self::tier_coleccionista_multiplier(),
+			'akb_rewards_tier_residente_min'      => self::tier_residente_min(),
+			'akb_rewards_tier_residente_mult'     => self::tier_residente_multiplier(),
+			'akb_rewards_tier_validity_days'      => self::tier_validity_days(), // @phpstan-ignore match.alwaysTrue
+			default                               => null,
+		};
+	}
+
+	/**
+	 * ¿Están activos los niveles de fidelización (Lector, Coleccionista, Residente de Akiba)?
+	 *
+	 * @return bool
+	 */
+	public static function tiers_enabled(): bool {
+		if ( defined( 'AKB_REWARDS_TIERS_ENABLED' ) ) {
+			$val = AKB_REWARDS_TIERS_ENABLED;
+			if ( is_string( $val ) ) {
+				return in_array( strtolower( trim( $val ) ), array( 'yes', 'true', '1', 'on' ), true );
+			}
+			return (bool) $val;
+		}
+		return 'yes' === (string) get_option( 'akb_rewards_tiers_enabled', 'yes' );
+	}
+
+	/**
+	 * Puntos acumulados mínimos para alcanzar el nivel Coleccionista.
+	 *
+	 * @return int
+	 */
+	public static function tier_coleccionista_min(): int {
+		if ( defined( 'AKB_REWARDS_TIER_COLECCIONISTA_MIN' ) ) {
+			return min( 50000, max( 1, (int) AKB_REWARDS_TIER_COLECCIONISTA_MIN ) );
+		}
+		return min( 50000, max( 1, (int) get_option( 'akb_rewards_tier_coleccionista_min', 2000 ) ) );
+	}
+
+	/**
+	 * Multiplicador de puntos para nivel Coleccionista (ej. 1.2x).
+	 *
+	 * @return float
+	 */
+	public static function tier_coleccionista_multiplier(): float {
+		if ( defined( 'AKB_REWARDS_TIER_COLECCIONISTA_MULT' ) ) {
+			return min( 5.0, max( 1.0, (float) AKB_REWARDS_TIER_COLECCIONISTA_MULT ) );
+		}
+		return min( 5.0, max( 1.0, (float) get_option( 'akb_rewards_tier_coleccionista_mult', 1.2 ) ) );
+	}
+
+	/**
+	 * Puntos acumulados mínimos para alcanzar el nivel Residente de Akiba.
+	 *
+	 * @return int
+	 */
+	public static function tier_residente_min(): int {
+		$col_min = self::tier_coleccionista_min();
+		if ( defined( 'AKB_REWARDS_TIER_RESIDENTE_MIN' ) ) {
+			return min( 200000, max( $col_min + 1, (int) AKB_REWARDS_TIER_RESIDENTE_MIN ) );
+		}
+		return min( 200000, max( $col_min + 1, (int) get_option( 'akb_rewards_tier_residente_min', 8000 ) ) );
+	}
+
+	/**
+	 * Multiplicador de puntos para nivel Residente de Akiba (ej. 1.5x).
+	 *
+	 * @return float
+	 */
+	public static function tier_residente_multiplier(): float {
+		$col_mult = self::tier_coleccionista_multiplier();
+		if ( defined( 'AKB_REWARDS_TIER_RESIDENTE_MULT' ) ) {
+			return min( 5.0, max( $col_mult, (float) AKB_REWARDS_TIER_RESIDENTE_MULT ) );
+		}
+		return min( 5.0, max( $col_mult, (float) get_option( 'akb_rewards_tier_residente_mult', 1.5 ) ) );
+	}
+
+	/**
+	 * Días de vigencia del estatus de nivel tras alcanzarlo (0 = Vitalicio / no vence, máximo 730).
+	 *
+	 * @return int
+	 */
+	public static function tier_validity_days(): int {
+		if ( defined( 'AKB_REWARDS_TIER_VALIDITY_DAYS' ) ) {
+			return min( 730, max( 0, (int) AKB_REWARDS_TIER_VALIDITY_DAYS ) );
+		}
+		return min( 730, max( 0, (int) get_option( 'akb_rewards_tier_validity_days', 365 ) ) );
 	}
 }

@@ -122,7 +122,9 @@ final class SeriesIndexTest extends TestCase {
 		);
 
 		Functions\when( 'get_term_meta' )->alias(
-			fn( int $term_id, string $key, bool $single = false ) => $this->robots[ $term_id ] ?? ''
+			fn( int $term_id, string $key, bool $single = false ) => 'rank_math_robots' === $key
+				? ( $this->robots[ $term_id ] ?? '' )
+				: ''
 		);
 
 		Functions\when( 'get_term_link' )->alias(
@@ -572,13 +574,38 @@ final class SeriesIndexTest extends TestCase {
 		self::assertSame( 'editorial-ivrea', $ivrea['brand_slug'] );
 		self::assertSame( 'Argentina', $ivrea['country_name'] );
 		self::assertSame( 'argentina', $ivrea['country_slug'] );
-		self::assertSame( array( 'Fumando juntos detrás del súper' ), $ivrea['related_names'] );
-		self::assertStringContainsString( 'fumando juntos detras del super', $ivrea['haystack'] );
+		self::assertSame( array(), $ivrea['related_names'] );
 		self::assertStringContainsString( 'editorial ivrea', $ivrea['haystack'] );
 		self::assertStringContainsString( 'argentina', $ivrea['haystack'] );
 
 		self::assertSame( 607, $panini['term_id'] );
-		self::assertSame( array( 'Fumando atrás del súper con vos' ), $panini['related_names'] );
-		self::assertStringContainsString( 'fumando atras del super con vos', $panini['haystack'] );
+		self::assertSame( array(), $panini['related_names'] );
+	}
+
+	/**
+	 * @testdox Should enrich entries with author names in the search haystack.
+	 */
+	public function test_enriches_entries_with_author_names_in_haystack(): void {
+		$this->term( 100, 'one-piece', 'One Piece', 107 );
+
+		$this->eligibility_database->rows = array(
+			array(
+				'term_taxonomy_id' => 100,
+				'product_count'    => 107,
+				'volume_count'     => 107,
+				'brand_name'       => 'Editorial Ivrea',
+				'brand_slug'       => 'editorial-ivrea',
+				'country_name'     => 'Argentina',
+				'country_slug'     => 'argentina',
+				'author_names'     => array( 'Eiichiro Oda' ),
+			),
+		);
+
+		$index   = new SeriesIndex( new SeriesCatalogEligibility( $this->eligibility_database ) );
+		$entries = $index->entries();
+
+		self::assertCount( 1, $entries );
+		self::assertStringContainsString( 'eiichiro oda', $entries[0]['haystack'] );
+		self::assertStringContainsString( 'one piece', $entries[0]['haystack'] );
 	}
 }

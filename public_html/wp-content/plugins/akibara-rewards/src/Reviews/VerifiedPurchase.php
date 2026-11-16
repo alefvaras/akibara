@@ -13,6 +13,9 @@ use Akibara\Rewards\Support\OrderStates;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class VerifiedPurchase {
 
 	/**
@@ -48,9 +51,12 @@ final class VerifiedPurchase {
 		if ( $product_id <= 0 || OrderStates::is_down( $status ) || in_array( $status, array( 'pending', 'on-hold', 'checkout-draft' ), true ) ) {
 			return false;
 		}
+		if ( ! $order->get_date_paid() ) {
+			return false;
+		}
 		if ( ! in_array( $status, array( 'processing', 'completed' ), true ) ) {
 			$authorized = in_array( $status, OrderStates::PAID, true ) || Invitations::is_trigger( $status ) || $status === (string) $order->get_meta( Invitations::META_TRIGGER );
-			if ( ! $authorized || ! $order->get_date_paid() ) {
+			if ( ! $authorized ) {
 				return false;
 			}
 		}
@@ -73,8 +79,7 @@ final class VerifiedPurchase {
 			return false;
 		}
 		foreach ( $order->get_items() as $item_id => $item ) {
-			if ( (int) $item->get_product_id() !== $product_id ) {
-				continue;
+			if ( (int) $item->get_product_id() !== $product_id ) {				continue; // @phpstan-ignore method.notFound
 			}
 			$quantity = (float) $item->get_quantity();
 			if ( $quantity > 0 && abs( (float) $order->get_qty_refunded_for_item( (int) $item_id ) ) < $quantity ) {

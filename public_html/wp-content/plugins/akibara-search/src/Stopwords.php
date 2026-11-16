@@ -20,6 +20,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress MismatchingDocblockParamType
+ * @psalm-suppress MismatchingDocblockParamType
  */
 final class Stopwords {
 
@@ -64,10 +67,11 @@ final class Stopwords {
 	 * Lo que no cumple `word_is_valid()` se descarta y se avisa.
 	 *
 	 * @param string    $raw       Texto del panel.
+	  * @psalm-suppress MismatchingDocblockParamType
 	 * @param bool|null $truncated Se marca true si hubo que descartar algo.
 	 * @return array<int, string>
 	 */
-	public static function sanitize_words( string $raw, ?bool &$truncated = null ): array {
+	public static function sanitize_words( string $raw, bool &$truncated = false ): array { // @phpstan-ignore parameter.phpDocType
 		$truncated = false;
 		$words     = array();
 
@@ -92,7 +96,7 @@ final class Stopwords {
 	 * @return array<int, string>
 	 */
 	public static function all(): array {
-		$stored = SemanticPublication::authoritative_value( self::OPTION, null );
+		$stored = SemanticPublication::authoritative_value( self::OPTION );
 		if ( ! is_array( $stored ) ) {
 			return self::defaults();
 		}

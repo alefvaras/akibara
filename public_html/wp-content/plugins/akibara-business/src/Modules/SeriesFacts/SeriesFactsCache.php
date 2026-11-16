@@ -19,6 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * Gestor de caché y generaciones de SeriesFacts.
  *
  * @since 1.120.4
+ * @api
  */
 final class SeriesFactsCache {
 

@@ -1,26 +1,32 @@
 # Akibara · Contexto vivo y mapa de arquitectura
 
-Revisión de fuentes: 2026-11-04. Este mapa orienta; no certifica pruebas ni sustituye las reglas canónicas. La evidencia de cada entrega identifica versión y hashes por separado de Git.
+Revisión de fuentes: 2026-11-10 ([ADR-010](decisiones/ADR-010-erradicacion-preventa-a-pedido-packs-y-ediciones-pais.md), [ADR-011](decisiones/ADR-011-blindaje-shortcodes-legados-y-coherencia-transversal-precios-envio.md), [ADR-012](decisiones/ADR-012-optimizaciones-financieras-carencia-rewards-y-batch-atc.md), [ADR-013](decisiones/ADR-013-auditoria-zero-trust-erradicacion-codigo-muerto-y-relevancia-buscador.md), [ADR-014](decisiones/ADR-014-saneamiento-estructural-blindaje-reserva-y-suite-bluex.md), [ADR-015](decisiones/ADR-015-cierre-shims-legados-y-alineacion-reglas.md), [ADR-016](decisiones/ADR-016-hondana-2-0-integracion-manual-owned-y-cro-blocks.md), [ADR-017](decisiones/ADR-017-erradicacion-cusrev-y-evolucion-modulo-resenas-2-0.md)). Versiones en producción: `akibara-business 1.121.3`, `akibara-rewards 0.4.37`, `akibara-search 0.1.95`, `akibara-cart-checkout-blocks 2.2.37`, `akibara-gp 2.1.158`. El módulo legado «Arma tu Pack» (`SeriesBundles/`, `VolumeTierResolver.php`, `Support/Money.php`) se encuentra físicamente erradicado al 100% del sistema. Este mapa orienta; no certifica pruebas ni sustituye las reglas canónicas. La evidencia de cada entrega identifica versión y hashes por separado de Git.
 
 ## Identidad y entornos
 
-Akibara Manga & Cómics, «Tu rincón de Akihabara en Chile». Tienda WooCommerce con catálogo importado y despacho desde Santiago. Local Docker: http://localhost:8080. Producción: https://akibara.cl.
+Akibara Manga & Cómics, «Tu rincón de Akihabara en Chile». Tienda WooCommerce con catálogo importado y despacho inmediato desde bodega física en Santiago. Local Docker: http://localhost:8080. Producción: https://akibara.cl.
 
 ## Reglas y coordinación: fuentes únicas
 
-Leer [AGENTS.md](../../AGENTS.md), [catálogo](../../.agents/rules/catalogo.md) y [entrega](../../.agents/rules/entrega.md). Se evita duplicarlas aquí: la versión anterior fijaba 5% sin recoger la discusión de configuración e identificaba como inmutables todos los metadatos operativos de las líneas.
+Leer [AGENTS.md](../../AGENTS.md), [catálogo](../../.agents/rules/catalogo.md), [entrega](../../.agents/rules/entrega.md) y [ADR-010](decisiones/ADR-010-erradicacion-preventa-a-pedido-packs-y-ediciones-pais.md).
 
-Precio y promesa al comprar se conservan; cantidades recibidas, asignadas y reembolsadas evolucionan por operaciones trazables. Cambiar catálogo no equivale a cambiar un pedido. No reconstruir inventario productivo desde el espejo.
+### Gobierno Nativo de Inventario y Precios (WooCommerce)
+WooCommerce gobierna el inventario y los precios de forma 100% nativa. El código de Akibara jamás fuerza `_manage_stock`, `_backorders`, `_stock` ni borra `_sale_price`. El dueño de la tienda administra libremente el inventario y las ofertas en WooCommerce (incluyendo si decide habilitar `onbackorder` o precios promocionales en cualquier producto). Nuestro código solo lee el estado de WooCommerce (`is_in_stock()`, `get_stock_status()`) para pintar insignias visuales, alimentar `akibara-search` y activar el botón de reposición `BackInStock`.
 
-Pizarra operativa: [README](../../ops/coordinacion/README.md). Célula actual: [Preventa y A pedido](../../ops/coordinacion/abiertos/2026-11-04-pa-00-celula-preventa-a-pedido.md). Codex supervisa arquitectura y QA; Antigravity implementa. Desarrollo entrega a QA, que vuelve a medir.
+### Cero Bloqueos al Cambiar Precios
+WooCommerce congela de forma nativa los precios e ítems en `wp_woocommerce_order_itemmeta` al momento de crearse una orden. Por ende, actualizar precios en el catálogo jamás altera órdenes existentes ni requiere bloqueos artificiales de 24h/2h por estados `wc-pending`. `OrderLockGuard` fue completamente erradicado del repositorio.
+
+Los antiguos dominios de Preventa / A Pedido (`OrderPreventa`, `EstimatedDelivery`, `MixedCartShipmentGuard`), Conmutadores de Familia/Edición (`SeriesEditions`, `BrandFamilyLanding`, `BrandLandingCallout`, `BrandLandings`), «Arma tu Pack» (`SeriesBundles` / BYP) e integraciones de Google Listings & Ads y Microsoft Clarity fueron erradicados de raíz en [ADR-010](decisiones/ADR-010-erradicacion-preventa-a-pedido-packs-y-ediciones-pais.md). Se conservan `BrandRegion` y `MenuInjector` para el mega-menú desplegable de Editoriales (`AR` / `ES`) y el directorio `/editoriales/`.
+
+Pizarra operativa: [README](../../ops/coordinacion/README.md).
 
 ## Topología comprobada en fuentes
 
 ```mermaid
 flowchart TD
     Business[akibara-business] --> Woo[WordPress y WooCommerce]
-    Business --> Availability[Stock/Availability y EstimatedDelivery]
-    Business --> Orders[OrderPreventa]
+    Business --> Availability[Stock/Availability y StockStatus]
+    Business --> Collection[AccountCollection y BackInStock]
     Business --> Matrix[PricingMatrix]
     Search[akibara-search] --> DB[Tablas MySQL/MariaDB vía wpdb]
     Business -->|integración de catálogo| Search
@@ -29,25 +35,15 @@ flowchart TD
     Rewards[akibara-rewards] --> Woo
 ```
 
-La versión anterior situaba Search en SQLite y nombraba el tema `akibara-theme-gp`. Corrección: `akibara-search/src/Install.php`, `WorkRepository.php` e `Indexer.php` usan tablas WordPress mediante wpdb; el tema está en `public_html/wp-content/themes/akibara-gp/`. Rewards es otro plugin, no una clase del módulo de precios.
+`akibara-search/src/Install.php`, `WorkRepository.php` e `Indexer.php` usan tablas WordPress mediante `wpdb`; el tema está en `public_html/wp-content/themes/akibara-gp/`. `akibara-rewards` gestiona el programa de lealtad y reseñas verificadas.
 
-## Mapa del flujo Preventa y A pedido
+## Mapa de Disponibilidad, Colección y Reposición
 
-- `Stock/Availability`: clasificación comercial; `StockStatus`: estado nativo Woo.
-- `EstimatedDelivery/DateCalculator`: cálculo de ventanas. Lanzamiento editorial y llegada a Akibara son conceptos distintos.
-- `OrderPreventa/LineItemSnapshot` y `OrderTagging`: datos al comprar e integración clásico/Store API/guardado genérico.
-- `PreventaItems`, `SummaryRecalculator`, `PromiseWindow`: cantidades netas, pendientes y promesas.
-- `PreventasScreen`: pantalla y handlers actuales de recepción, FIFO, apartado y des-apartado; no existe un servicio separado `StockReception` en el árbol auditado.
-- `ReadyToShipCron`, `StockChangeListener`, `RefundListener`: reevaluación operativa.
-- `ReadyEmailDispatcher`, `ReadyToShipEmail`, `RemindersCron`: comunicaciones y reintentos.
-- `FulfillmentCapabilities`, `CompletionPolicy` e integraciones: retiro, carrier y cierre.
-
-[Mapa detallado, riesgos y arquitectura propuesta](PREVENTA_A_PEDIDO.md). Las propuestas se distinguen del código existente: el fallback de stock global aún puede marcar listos pedidos sin asignación (PA-03).
+- `Stock/Availability` y `StockStatus`: clasificación binaria estricta (`DISPONIBLE` / `instock` vs `AGOTADO` / `outofstock`).
+- `BackInStock`: captura de alertas de reposición para tomos agotados (`CaptureRestController`, `SubscriberRepository`, `ConfirmationEmail`, `StockAlertEmail`).
+- `AccountCollection`: estantería personal del cliente en `/mi-cuenta/coleccion/`, integrada con `SeriesFollow`, suscripción 1-clic a `BackInStock` cuando el siguiente tomo está agotado, y adición 1-clic al carrito (`NativeCart`) de tomos faltantes disponibles en stock.
+- `PricingMatrix`: cálculo y sincronización de precios regulares por escala editorial (WooCommerce gobierna precios e inventario nativamente).
 
 ## Estado y límites del grafo
 
 `graphify-out/graph.json` es un índice generado de fuentes. `graphify query` y `graphify explain` sirven para localizar clases y relaciones; verificar siempre el código citado. Las métricas de nodos y versiones no se mantienen a mano aquí.
-
-El hook `.githooks/post-commit` intenta actualización estructural, puede omitirse en rebase/merge y no demuestra despliegue ni QA. Tampoco sustituye la revisión semántica de documentos. Una extracción por encabezados no valida lo que afirma un ADR.
-
-Esta auditoría corrige documentos y actualiza sólo sus entradas del grafo. La visualización HTML, la wiki y las comunidades de un build anterior no deben presentarse como certificación nueva. La auditoría registra alcance y hashes en `graphify-out/QA_PREVENTA_2026-11-04.md`.

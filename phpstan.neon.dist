@@ -1,0 +1,46 @@
+parameters:
+    level: 6
+    paths:
+        - public_html/wp-content/plugins/akibara-business/src
+        - public_html/wp-content/plugins/akibara-business/akibara-business.php
+        - public_html/wp-content/plugins/akibara-search/src
+        - public_html/wp-content/plugins/akibara-search/akibara-search.php
+        - public_html/wp-content/plugins/akibara-rewards/src
+        - public_html/wp-content/plugins/akibara-rewards/akibara-rewards.php
+        - public_html/wp-content/plugins/akibara-cart-checkout-blocks/src
+        - public_html/wp-content/themes/akibara-gp/functions.php
+        - public_html/wp-content/themes/akibara-gp/inc
+        - public_html/wp-content/mu-plugins
+
+    excludePaths:
+        - */tests/*
+        - */vendor/*
+        - */node_modules/*
+        - */build/*
+        - */dist/*
+        - public_html/wp-content/mu-plugins/hostinger-*.php
+
+    bootstrapFiles:
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+        - phpstan-bootstrap.php
+        - phpstan-stubs.php
+
+    treatPhpDocTypesAsCertain: false
+
+    shipmonkDeadCode:
+        detect:
+            deadMethods: true
+            deadConstants: true
+            deadEnumCases: true
+            deadProperties:
+                neverRead: true
+                neverWritten: true
+
+    cognitive_complexity:
+        class: 80
+        function: 25
+
+    ignoreErrors:
+        - identifier: missingType.iterableValue
+        - identifier: return.void
+        - '#Parameter \#2 \$value of method WC_Data::update_meta_data\(\) expects#'

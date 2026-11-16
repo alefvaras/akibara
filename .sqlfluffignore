@@ -1,0 +1,7 @@
+database/**
+.local-*/**
+vendor/**
+node_modules/**
+public_html/**
+backups/**
+tools/akibara-releases/**

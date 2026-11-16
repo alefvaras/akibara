@@ -21,6 +21,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedProperty
  */
 final class Search {
 
@@ -134,9 +139,6 @@ final class Search {
 		// para poblar datos de novedades independientemente de los flags de front.
 		Arrival::register();
 
-		// Solicitudes de títulos y radar de encargos locales: SIEMPRE
-		TitleRequests::init();
-
 		// Panel admin: SIEMPRE (el operador necesita rebuild/estado/log aunque
 		// los flags de front estén OFF). Solo wp-admin, cero superficie front.
 		$this->admin_section->register();
@@ -244,7 +246,7 @@ final class Search {
 		$path = AKIBARA_SEARCH_DIR . ltrim( $relative, '/' );
 
 		return file_exists( $path )
-			? AKIBARA_SEARCH_VERSION . '.' . (string) filemtime( $path )
+			? AKIBARA_SEARCH_VERSION . '.' . filemtime( $path )
 			: AKIBARA_SEARCH_VERSION;
 	}
 

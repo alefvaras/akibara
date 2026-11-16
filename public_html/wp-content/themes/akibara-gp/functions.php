@@ -53,6 +53,9 @@ require_once $akb_inc . 'blog.php';
 require_once $akb_inc . 'guide-series.php';
 require_once $akb_inc . 'rank-math.php';
 require_once $akb_inc . 'trust-badges.php';
+/**
+ * @return mixed
+ */
 function akibara_gp_meta_viewport() {
     return '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">';
 }
@@ -67,14 +70,18 @@ add_filter( 'generate_meta_viewport', 'akibara_gp_meta_viewport' );
  * Re-hook a prio 0 para que el viewport preceda a todo preload. Va en
  * after_setup_theme porque el functions.php del child carga antes que GP
  * registre su hook.
+ * @return mixed
  */
 function akibara_gp_viewport_before_preloads() {
     remove_action( 'wp_head', 'generate_add_viewport', 1 );
-    add_action( 'wp_head', 'generate_add_viewport', 0 );
+    add_action( 'wp_head', 'generate_add_viewport', 0 ); // @phpstan-ignore argument.type
 }
 add_action( 'after_setup_theme', 'akibara_gp_viewport_before_preloads' );
 
 // Enqueue Persona 5 Reviews styling ONLY for Single Products
+/**
+ * @return mixed
+ */
 function akibara_gp_enqueue_p5_reviews() {
 	if ( function_exists('is_product') && is_product() ) {
 		list( $css_uri, $version ) = akibara_gp_asset( 'assets/css/reviews-p5-v4.css' );
@@ -123,16 +130,16 @@ add_action( 'wp_head', function() {
     // El mismo tamaño que renderiza el template de la galería de WooCommerce:
     // si aquí se pidiera otro, el candidato base ya no coincidiría.
     $size      = 'woocommerce_single';
-    $image_url = wp_get_attachment_image_url( $image_id, $size );
+    $image_url = wp_get_attachment_image_url( (int) $image_id, $size );
     if ( ! $image_url ) {
         return;
     }
 
-    $srcset = wp_get_attachment_image_srcset( $image_id, $size );
+    $srcset = wp_get_attachment_image_srcset( (int) $image_id, $size );
     // Pasa por `akibara_gp_single_cover_sizes()` (inc/performance.php), el mismo
     // filtro que da su `sizes` al `<img>` de la galería: los dos declaran el
     // ancho pintado y el escáner elige el mismo candidato.
-    $sizes  = wp_get_attachment_image_sizes( $image_id, $size );
+    $sizes  = wp_get_attachment_image_sizes( (int) $image_id, $size );
 
     $tag = '<link rel="preload" as="image" href="' . esc_url( $image_url ) . '"';
     // Los DOS o ninguno. `imagesrcset` sin `imagesizes` hace que el scanner

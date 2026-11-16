@@ -6,8 +6,7 @@
  * - Usa métodos CRUD de WooCommerce ($product->set_regular_price(), set_sale_price(), save())
  *   y actualiza wp_wc_product_meta_lookup + limpia transients/object cache.
  * - Ejecuta dentro de BatchGuard (0 tormenta de hooks AS, 1 sync de akibara-search al final).
- * - Respeta estrictamente OrderLockGuard (tablas de órdenes 100% solo lectura, stock/timestamps
- *   de productos comprometidos 100% intocables).
+ * - WooCommerce gobierna el inventario; actualizar precios nunca altera pedidos creados.
  * - Garantiza cero filas duplicadas en wp_postmeta para metadatos propios.
  *
  * @package Akibara\Business\Modules\PricingMatrix
@@ -22,6 +21,12 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class PricingSynchronizer {
 
 	/**
@@ -35,22 +40,6 @@ final class PricingSynchronizer {
 		'_akb_tramo_prev_regular',
 		'_akb_tramo_prev_sale',
 		'rank_math_internal_links_processed',
-	);
-
-	/**
-	 * Distribuidoras y sellos editoriales oficiales autorizados para reposición (Reglas 15 y 18, ADR-003).
-	 *
-	 * @var array<string, string>
-	 */
-	public const APPROVED_SUPPLIERS = array(
-		'candela'        => 'Candela (Ivrea Argentina / Ovni Press)',
-		'pujol-amado'    => 'Pujol & Amadó (Panini / Planeta Cómic)',
-		'milky-way'      => 'Milky Way Ediciones',
-		'panini-espana'  => 'Panini España',
-		'ivrea-espana'   => 'Ivrea España',
-		'arechi'         => 'Arechi Manga',
-		'distrito-manga' => 'Distrito Manga',
-		'devir'          => 'Devir Chile',
 	);
 
 	/**
@@ -119,6 +108,7 @@ final class PricingSynchronizer {
 	 * @param list<int>    $post_ids  IDs de productos.
 	 * @param list<string> $meta_keys Claves a desduplicar.
 	 * @return void
+	 * @psalm-suppress UnusedParam
 	 */
 	public static function dedup_post_meta_keys_batch( array $post_ids, array $meta_keys = self::DEDUP_META_KEYS ): void {
 		global $wpdb;
@@ -157,52 +147,34 @@ final class PricingSynchronizer {
 	}
 
 	/**
-	 * Aplica el cambio de precio a un producto individual respetando el blindaje de órdenes.
+	 * Aplica el cambio de precio a un producto individual sin bloqueos de órdenes.
+	 * El dueño de la tienda puede actualizar el precio regular o de oferta de cualquier producto.
 	 *
 	 * @param int                                     $product_id            ID del producto.
 	 * @param int                                     $target_regular        Nuevo precio regular CLP.
-	 * @param int                                     $target_backorder_sale Nuevo precio oferta A Pedido CLP.
-	 * @param bool                                    $protect_active_orders Si true, omite productos en get_locked_product_ids().
-	 * @param array<int, true>|null                   $locked_set            Mapa precalculado de IDs bloqueados.
-	 * @param array<int, list<array<string,mixed>>>|null $locked_orders_map  Mapa precalculado de órdenes por producto.
+	 * @param int                                     $target_backorder_sale Precio oferta opcional CLP.
+	 * @param bool                                    $protect_active_orders Obsoleto (mantenido por compatibilidad de firma).
+	 * @param array<int, true>|null                   $locked_set            Obsoleto (mantenido por compatibilidad de firma).
+	 * @param array<int, list<array<string,mixed>>>|null $locked_orders_map  Obsoleto (mantenido por compatibilidad de firma).
 	 * @param bool                                    $dry_run               Si true, solo simula sin escribir.
 	 * @return array<string, mixed>
 	 */
 	public static function apply_product_price(
 		int $product_id,
 		int $target_regular,
-		int $target_backorder_sale,
-		bool $protect_active_orders = true,
+		?int $target_backorder_sale = null,
+		bool $protect_active_orders = false,
 		?array $locked_set = null,
 		?array $locked_orders_map = null,
 		bool $dry_run = false
 	): array {
-		if ( null === $locked_set ) {
-			$locked_set = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-		}
-		if ( null === $locked_orders_map ) {
-			$locked_orders_map = OrderLockGuard::get_locked_map_by_product();
-		}
-
-		$is_locked = isset( $locked_set[ $product_id ] );
-		$orders    = $locked_orders_map[ $product_id ] ?? array();
-
-		if ( $is_locked && $protect_active_orders ) {
-			return array(
-				'status'     => 'skipped_locked',
-				'product_id' => $product_id,
-				'locked'     => true,
-				'orders'     => $orders,
-			);
-		}
+		unset( $protect_active_orders, $locked_set, $locked_orders_map );
 
 		$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
 		if ( ! $product instanceof WC_Product ) {
 			return array(
 				'status'     => 'not_found',
 				'product_id' => $product_id,
-				'locked'     => $is_locked,
-				'orders'     => $orders,
 			);
 		}
 
@@ -220,7 +192,7 @@ final class PricingSynchronizer {
 		);
 
 		$new_sale_int = '' !== $new_sale_str ? (int) $new_sale_str : null;
-		$changed      = ( $new_regular !== $old_regular ) || ( $new_sale_int !== $old_sale );
+		$changed      = ( $new_regular !== $old_regular ) || ( $new_sale_str !== $old_sale_raw );
 
 		$serie_terms = function_exists( 'wp_get_post_terms' ) ? wp_get_post_terms( $product_id, 'pa_serie', array( 'fields' => 'all' ) ) : array();
 		$serie_name  = ( ! empty( $serie_terms ) && ! is_wp_error( $serie_terms ) && isset( $serie_terms[0]->name ) ) ? (string) $serie_terms[0]->name : '';
@@ -238,8 +210,6 @@ final class PricingSynchronizer {
 				'new_regular'  => $new_regular,
 				'old_sale'     => $old_sale,
 				'new_sale'     => $new_sale_int,
-				'locked'       => $is_locked,
-				'orders'       => $orders,
 			);
 		}
 
@@ -272,46 +242,40 @@ final class PricingSynchronizer {
 			'new_regular'  => $new_regular,
 			'old_sale'     => $old_sale,
 			'new_sale'     => $new_sale_int,
-			'locked'       => $is_locked,
-			'orders'       => $orders,
 		);
 	}
 
 	/**
-	 * Determina el `_sale_price` objetivo según estado de stock y candados de campaña/manuales.
+	 * Determina el `_sale_price` objetivo de WooCommerce:
+	 * - 0 o >= $new_regular: el producto queda SIN OFERTA ('').
+	 * - > 0 y < $new_regular: fija la oferta en ese monto exacto.
+	 * - null o negativo: conserva el valor previo $old_sale_raw.
 	 *
-	 * @param int    $product_id            ID del producto.
-	 * @param string $stock_status          Estado de stock actual.
-	 * @param int    $new_regular           Nuevo precio regular.
-	 * @param int    $target_backorder_sale Precio oferta objetivo A Pedido.
-	 * @param string $old_sale_raw          Precio oferta previo crudo.
+	 * @param int      $product_id            ID del producto.
+	 * @param string   $stock_status          Estado de stock actual.
+	 * @param int      $new_regular           Nuevo precio regular.
+	 * @param int|null $target_backorder_sale Precio oferta objetivo (0 = sin oferta).
+	 * @param string   $old_sale_raw          Precio oferta previo crudo.
 	 * @return string
 	 */
-	private static function compute_target_sale_string(
+	public static function compute_target_sale_string(
 		int $product_id,
 		string $stock_status,
 		int $new_regular,
-		int $target_backorder_sale,
+		?int $target_backorder_sale,
 		string $old_sale_raw
 	): string {
-		$eta_type = (string) get_post_meta( $product_id, '_akb_eta_type', true );
-		if ( StockStatus::ON_BACKORDER === $stock_status && 'disabled' !== $eta_type ) {
-			$manual_lock = 'yes' === (string) get_post_meta( $product_id, '_akb_manual_sale_lock', true );
-			if ( $manual_lock && '' !== $old_sale_raw && (int) $old_sale_raw > 0 && (int) $old_sale_raw < $new_regular ) {
-				return $old_sale_raw;
-			}
-			return ( $target_backorder_sale > 0 && $target_backorder_sale < $new_regular )
-				? (string) $target_backorder_sale
-				: '';
+		unset( $product_id, $stock_status );
+
+		if ( null === $target_backorder_sale || $target_backorder_sale < 0 ) {
+			return $old_sale_raw;
 		}
 
-		if ( StockStatus::IN_STOCK === $stock_status ) {
-			$manual_lock = 'yes' === (string) get_post_meta( $product_id, '_akb_manual_sale_lock', true );
-			$tax_disc_on = 'yes' === (string) get_option( 'akibara_taxonomy_discount_enabled', 'no' );
-			return ( $manual_lock || $tax_disc_on ) ? $old_sale_raw : '';
+		if ( 0 === $target_backorder_sale || $target_backorder_sale >= $new_regular ) {
+			return '';
 		}
 
-		return '';
+		return (string) $target_backorder_sale;
 	}
 
 	/**
@@ -323,7 +287,7 @@ final class PricingSynchronizer {
 	 * @param int      $new_regular           Nuevo precio regular.
 	 * @param float    $discount_pct          % descuento A Pedido.
 	 * @param string   $rounding_mode         Modo de redondeo CLP.
-	 * @param int|null $manual_sale_price     Precio manual opcional.
+	 * @param int|null $manual_sale_price     Precio manual opcional (0 = sin oferta).
 	 * @param bool     $protect_active_orders Si true, omite productos con órdenes activas.
 	 * @param bool     $dry_run               Si true, ejecuta simulación sin persistir.
 	 * @param int      $serie_id              ID opcional de término pa_serie para acotar a una sola serie.
@@ -342,7 +306,14 @@ final class PricingSynchronizer {
 		int $serie_id = 0
 	): array {
 		$effective_reg = $new_regular > 0 ? $new_regular : $scale_regular;
-		$target_sale   = PricingMath::calculate_sale_price( $effective_reg, $discount_pct, $rounding_mode, $manual_sale_price );
+
+		if ( 0 === $manual_sale_price ) {
+			$target_sale = 0; // 0 = SIN OFERTA explícita
+		} elseif ( null !== $manual_sale_price && $manual_sale_price > 0 ) {
+			$target_sale = $manual_sale_price < $effective_reg ? $manual_sale_price : 0;
+		} else {
+			$target_sale = PricingMath::calculate_sale_price( $effective_reg, $discount_pct, $rounding_mode, $manual_sale_price );
+		}
 
 		if ( ! $dry_run && '' !== $editorial_slug ) {
 			PricingRulesRepository::set_scale_rule(
@@ -356,9 +327,6 @@ final class PricingSynchronizer {
 		}
 
 		$product_ids       = ScaleScanner::get_product_ids_for_scale( $brand_id, $scale_regular, $serie_id );
-		$locked_set        = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-		$locked_orders_map = OrderLockGuard::get_locked_map_by_product();
-
 		$summary = array(
 			'brand_id'              => $brand_id,
 			'editorial_slug'        => $editorial_slug,
@@ -382,9 +350,6 @@ final class PricingSynchronizer {
 			$product_ids,
 			$effective_reg,
 			$target_sale,
-			$protect_active_orders,
-			$locked_set,
-			$locked_orders_map,
 			$dry_run,
 			&$summary
 		): void {
@@ -393,133 +358,15 @@ final class PricingSynchronizer {
 					$pid,
 					$effective_reg,
 					$target_sale,
-					$protect_active_orders,
-					$locked_set,
-					$locked_orders_map,
+					false,
+					null,
+					null,
 					$dry_run
 				);
 				$summary['items'][] = $res;
 
-				if ( 'skipped_locked' === $res['status'] ) {
-					++$summary['skipped_locked_count'];
-					$summary['skipped_locked_items'][] = $res;
-				} elseif ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
-					++$summary['updated_count'];
-				} else {
-					++$summary['unchanged_count'];
-				}
-			}
-		};
-
-		if ( $dry_run ) {
-			$runner();
-		} else {
-			BatchGuard::run( $runner, false );
-		}
-
-		return $summary;
-	}
-
-	/**
-	 * Sincroniza el precio de oferta A Pedido (`_sale_price`) de todos los productos en `onbackorder`
-	 * según las reglas de redondeo CLP vigentes (`round_100` al 5% por defecto).
-	 *
-	 * @param bool     $protect_active_orders Si true (default), omite productos en órdenes activas.
-	 * @param bool     $dry_run               Si true, solo simula.
-	 * @param int|null $brand_id              ID de editorial opcional para filtrar.
-	 * @return array<string, mixed>
-	 */
-	public static function sync_all_backorders(
-		bool $protect_active_orders = true,
-		bool $dry_run = false,
-		?int $brand_id = null
-	): array {
-		global $wpdb;
-
-		$brand_join = '';
-		if ( null !== $brand_id && $brand_id > 0 ) {
-			$brand_join = $wpdb->prepare(
-				" INNER JOIN {$wpdb->term_relationships} tr_b ON p.ID = tr_b.object_id
-				  INNER JOIN {$wpdb->term_taxonomy} tt_b ON tr_b.term_taxonomy_id = tt_b.term_taxonomy_id
-				    AND tt_b.taxonomy = 'product_brand' AND tt_b.term_id = %d ",
-				$brand_id
-			);
-		}
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $brand_join proviene de $wpdb->prepare() o vacío.
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT DISTINCT p.ID
-				FROM {$wpdb->posts} p
-				{$brand_join}
-				INNER JOIN {$wpdb->postmeta} pm_st
-					ON p.ID = pm_st.post_id AND pm_st.meta_key = %s AND pm_st.meta_value = %s
-				WHERE p.post_type = 'product'
-				  AND p.post_status = 'publish'
-				ORDER BY p.ID ASC",
-				'_stock_status',
-				StockStatus::ON_BACKORDER
-			)
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$product_ids       = is_array( $ids ) ? array_values( array_map( 'intval', $ids ) ) : array();
-		$locked_set        = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-		$locked_orders_map = OrderLockGuard::get_locked_map_by_product();
-
-		$summary = array(
-			'protect_active_orders' => $protect_active_orders,
-			'dry_run'               => $dry_run,
-			'total_scanned'         => count( $product_ids ),
-			'updated_count'         => 0,
-			'unchanged_count'       => 0,
-			'skipped_locked_count'  => 0,
-			'skipped_locked_items'  => array(),
-			'updated_items'         => array(),
-		);
-
-		$runner = static function () use (
-			$product_ids,
-			$protect_active_orders,
-			$locked_set,
-			$locked_orders_map,
-			$dry_run,
-			&$summary
-		): void {
-			foreach ( $product_ids as $pid ) {
-				if ( isset( $locked_set[ $pid ] ) && $protect_active_orders ) {
-					++$summary['skipped_locked_count'];
-					$summary['skipped_locked_items'][] = array(
-						'product_id' => $pid,
-						'orders'     => $locked_orders_map[ $pid ] ?? array(),
-					);
-					continue;
-				}
-
-				$product = function_exists( 'wc_get_product' ) ? wc_get_product( $pid ) : null;
-				if ( ! $product instanceof WC_Product ) {
-					continue;
-				}
-
-				$reg = (int) round( (float) $product->get_regular_price( 'edit' ) );
-				if ( $reg <= 0 ) {
-					continue;
-				}
-
-				$target_sale = PricingRulesRepository::resolve_sale_price_for_product( $product, $reg );
-				$res         = self::apply_product_price(
-					$pid,
-					$reg,
-					$target_sale,
-					$protect_active_orders,
-					$locked_set,
-					$locked_orders_map,
-					$dry_run
-				);
-
 				if ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
 					++$summary['updated_count'];
-					$summary['updated_items'][] = $res;
 				} else {
 					++$summary['unchanged_count'];
 				}
@@ -545,6 +392,7 @@ final class PricingSynchronizer {
 	 * @param bool $protect_active_orders Si true, omite tomos comprometidos en órdenes activas.
 	 * @param bool $dry_run               Si true, solo simula.
 	 * @return array<string, mixed>
+	 * @psalm-suppress UnusedParam
 	 */
 	public static function level_series_scale(
 		int $serie_id,
@@ -593,11 +441,9 @@ final class PricingSynchronizer {
 			);
 		}
 
-		$editorial_slug    = (string) ( $rows[0]['editorial_slug'] ?? '' );
-		$rule              = PricingRulesRepository::resolve_rule_for_scale( $editorial_slug, $target_regular );
-		$target_sale       = (int) $rule['sale_price'];
-		$locked_set        = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-		$locked_orders_map = OrderLockGuard::get_locked_map_by_product();
+		$editorial_slug = (string) ( $rows[0]['editorial_slug'] ?? '' );
+		$rule           = PricingRulesRepository::resolve_rule_for_scale( $editorial_slug, $target_regular );
+		$target_sale    = (int) $rule['sale_price'];
 
 		$summary = array(
 			'ok'                   => true,
@@ -616,9 +462,6 @@ final class PricingSynchronizer {
 			$rows,
 			$target_regular,
 			$target_sale,
-			$protect_active_orders,
-			$locked_set,
-			$locked_orders_map,
 			$dry_run,
 			&$summary
 		): void {
@@ -636,17 +479,14 @@ final class PricingSynchronizer {
 					$pid,
 					$target_regular,
 					$target_sale,
-					$protect_active_orders,
-					$locked_set,
-					$locked_orders_map,
+					false,
+					null,
+					null,
 					$dry_run
 				);
 				$summary['items'][] = $res;
 
-				if ( 'skipped_locked' === $res['status'] ) {
-					++$summary['skipped_locked_count'];
-					$summary['skipped_locked_items'][] = $res;
-				} elseif ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
+				if ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
 					++$summary['updated_count'];
 				}
 			}
@@ -656,228 +496,6 @@ final class PricingSynchronizer {
 			$runner();
 		} else {
 			BatchGuard::run( $runner, false );
-		}
-
-		return $summary;
-	}
-
-	/**
-	 * Rescata productos de `outofstock` a `onbackorder` bajo el contrato nativo de la Regla 18:
-	 * - Excluye SIEMPRE `OrderLockGuard::get_locked_product_ids()`
-	 * - Excluye `_akb_eta_type = 'disabled'`
-	 * - Configura `_stock_status = 'onbackorder'`, `_manage_stock = 'no'`, `_stock = null`,
-	 *   `_backorders = 'no'` y `_sale_price` redondeado al 5% (`round_100`).
-	 * - Exige autorización expresa del distribuidor oficial (Reglas 15 y 18, Auditoría 2026-11-04) en ejecuciones en vivo.
-	 *
-	 * @param list<int>       $product_ids         IDs de productos candidatos a rescatar.
-	 * @param bool            $dry_run             Si es true, sólo simula sin modificar la BD.
-	 * @param array{supplier?: string, reference?: string, confirmed?: bool} $distributor_auth Datos de autorización de la distribuidora oficial.
-	 * @param float|null      $custom_discount_pct Porcentaje de descuento opcional a nivel grupal.
-	 * @param string|null     $rounding_mode       Modo de redondeo opcional (round_100|round_50|floor_100).
-	 * @param array<int, array{sale_price?: int}> $individual_overrides Precios manuales por ID de producto.
-	 * @return array<string, mixed>
-	 */
-	public static function rescue_outofstock_products(
-		array $product_ids,
-		bool $dry_run = false,
-		array $distributor_auth = array(),
-		?float $custom_discount_pct = null,
-		?string $rounding_mode = null,
-		array $individual_overrides = array()
-	): array {
-		$supplier_raw = isset( $distributor_auth['supplier'] ) ? trim( (string) $distributor_auth['supplier'] ) : '';
-		$supplier_key = strtolower( str_replace( array( ' ', '_' ), '-', $supplier_raw ) );
-		$reference    = isset( $distributor_auth['reference'] ) ? trim( (string) $distributor_auth['reference'] ) : '';
-		$confirmed    = ! empty( $distributor_auth['confirmed'] );
-		$allowed_skus = isset( $distributor_auth['skus'] ) && is_array( $distributor_auth['skus'] )
-			? array_flip( array_map( 'strval', $distributor_auth['skus'] ) )
-			: null;
-
-		$operator = 'admin';
-		if ( isset( $distributor_auth['operator'] ) && '' !== trim( (string) $distributor_auth['operator'] ) ) {
-			$operator = trim( (string) $distributor_auth['operator'] );
-		} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() && function_exists( 'wp_get_current_user' ) ) {
-			$u = wp_get_current_user();
-			if ( $u && ! empty( $u->user_login ) ) {
-				$operator = (string) $u->user_login;
-			}
-		}
-
-		if ( ! $dry_run ) {
-			$is_approved = isset( self::APPROVED_SUPPLIERS[ $supplier_key ] )
-				|| in_array( $supplier_raw, self::APPROVED_SUPPLIERS, true )
-				|| isset( self::APPROVED_SUPPLIERS[ $supplier_raw ] );
-
-			if ( '' === $supplier_raw || ! $is_approved || '' === $reference || ! $confirmed ) {
-				throw new \InvalidArgumentException( sprintf(
-					'Rescate en vivo rechazado: según las Reglas 15 y 18 es obligatorio registrar una distribuidora oficial autorizada (%s), el documento de respaldo y la confirmación expresa de stock.',
-					implode( ', ', array_keys( self::APPROVED_SUPPLIERS ) )
-				) );
-			}
-		}
-
-		$product_ids = array_values( array_unique( array_filter( array_map( 'intval', $product_ids ), static fn( int $id ): bool => $id > 0 ) ) );
-		$locked_set  = array_fill_keys( OrderLockGuard::get_locked_product_ids(), true );
-
-		$summary = array(
-			'dry_run'              => $dry_run,
-			'supplier'             => $supplier_key,
-			'reference'            => $reference,
-			'operator'             => $operator,
-			'discount_pct'         => $custom_discount_pct,
-			'rounding_mode'        => $rounding_mode,
-			'rescued_count'        => 0,
-			'skipped_locked_count' => 0,
-			'skipped_other_count'  => 0,
-			'items'                => array(),
-		);
-
-		$runner = static function () use (
-			$product_ids,
-			$locked_set,
-			$dry_run,
-			$supplier_key,
-			$reference,
-			$operator,
-			$allowed_skus,
-			$custom_discount_pct,
-			$rounding_mode,
-			$individual_overrides,
-			&$summary
-		): void {
-			foreach ( $product_ids as $pid ) {
-				// Regla Inquebrantable 2: prohibido tocar stock/estado en productos bloqueados.
-				if ( isset( $locked_set[ $pid ] ) ) {
-					++$summary['skipped_locked_count'];
-					$summary['items'][] = array(
-						'product_id' => $pid,
-						'status'     => 'skipped_locked',
-					);
-					continue;
-				}
-
-				$eta_type = (string) get_post_meta( $pid, '_akb_eta_type', true );
-				if ( '' !== $eta_type && 'auto' !== $eta_type ) {
-					++$summary['skipped_other_count'];
-					continue;
-				}
-
-				$product = function_exists( 'wc_get_product' ) ? wc_get_product( $pid ) : null;
-				if ( ! $product instanceof WC_Product || StockStatus::OUT_OF_STOCK !== $product->get_stock_status( 'edit' ) ) {
-					++$summary['skipped_other_count'];
-					continue;
-				}
-
-				$sku = (string) $product->get_sku();
-				if ( '' === $sku ) {
-					++$summary['skipped_other_count'];
-					$summary['items'][] = array(
-						'product_id' => $pid,
-						'status'     => 'skipped_no_sku',
-					);
-					continue;
-				}
-
-				if ( null !== $allowed_skus && ! isset( $allowed_skus[ $sku ] ) ) {
-					++$summary['skipped_other_count'];
-					$summary['items'][] = array(
-						'product_id' => $pid,
-						'sku'        => $sku,
-						'status'     => 'skipped_sku_not_in_whitelist',
-					);
-					continue;
-				}
-
-				$reg = (int) round( (float) $product->get_regular_price( 'edit' ) );
-				if ( $reg <= 0 ) {
-					++$summary['skipped_other_count'];
-					continue;
-				}
-
-				$is_manual_locked = false;
-				if ( isset( $individual_overrides[ $pid ]['sale_price'] ) && (int) $individual_overrides[ $pid ]['sale_price'] > 0 ) {
-					$sale             = (int) $individual_overrides[ $pid ]['sale_price'];
-					$is_manual_locked = true;
-				} elseif ( null !== $custom_discount_pct && $custom_discount_pct >= 0.0 ) {
-					$mode = null !== $rounding_mode ? PricingMath::normalize_mode( $rounding_mode ) : PricingMath::DEFAULT_MODE;
-					$sale = PricingMath::calculate_sale_price( $reg, $custom_discount_pct, $mode );
-				} else {
-					$sale = PricingRulesRepository::resolve_sale_price_for_product( $product, $reg );
-				}
-
-				if ( $dry_run ) {
-					++$summary['rescued_count'];
-					$summary['items'][] = array(
-						'product_id'     => $pid,
-						'sku'            => $sku,
-						'title'          => $product->get_name(),
-						'status'         => 'would_rescue',
-						'regular_price'  => $reg,
-						'sale_price'     => $sale,
-						'manual_locked'  => $is_manual_locked,
-					);
-					continue;
-				}
-
-				$product->set_manage_stock( false );
-				$product->set_stock_quantity( null );
-				$product->set_backorders( 'no' );
-				$product->set_stock_status( StockStatus::ON_BACKORDER );
-				$product->set_regular_price( (string) $reg );
-				$product->set_sale_price( (string) $sale );
-				$product->save();
-
-				delete_post_meta( $pid, '_stock' );
-				delete_post_meta( $pid, '_akb_out_of_stock_at' );
-				wp_remove_object_terms( $pid, StockStatus::OUT_OF_STOCK, 'product_visibility' );
-
-				if ( $is_manual_locked ) {
-					update_post_meta( $pid, '_akb_manual_sale_lock', 'yes' );
-				}
-
-				if ( '' !== $supplier_key ) {
-					// Persistencia canónica según ADR-003:
-					update_post_meta( $pid, '_akb_rescue_supplier', sanitize_text_field( $supplier_key ) );
-					update_post_meta( $pid, '_akb_rescue_ref', sanitize_text_field( $reference ) );
-					update_post_meta( $pid, '_akb_rescue_at', gmdate( 'Y-m-d H:i:s' ) );
-					update_post_meta( $pid, '_akb_rescue_by', sanitize_text_field( $operator ) );
-
-					// Compatibilidad retroactiva:
-					update_post_meta( $pid, '_akb_rescue_distributor', sanitize_text_field( $supplier_key ) );
-					update_post_meta( $pid, '_akb_rescue_reference', sanitize_text_field( $reference ) );
-					update_post_meta( $pid, '_akb_rescue_authorized_at', gmdate( 'Y-m-d H:i:s' ) );
-				}
-
-				$existing_ts = (string) get_post_meta( $pid, '_akb_onbackorder_at', true );
-				if ( '' === $existing_ts ) {
-					self::update_unique_post_meta( $pid, '_akb_onbackorder_at', (string) time() );
-				} else {
-					self::dedup_post_meta_keys( $pid );
-				}
-
-				if ( function_exists( 'wc_delete_product_transients' ) ) {
-					wc_delete_product_transients( $pid );
-				}
-				clean_post_cache( $pid );
-				BatchGuard::mark_product_modified( $pid, true );
-
-				++$summary['rescued_count'];
-				$summary['items'][] = array(
-					'product_id'     => $pid,
-					'sku'            => $sku,
-					'title'          => $product->get_name(),
-					'status'         => 'rescued',
-					'regular_price'  => $reg,
-					'sale_price'     => $sale,
-					'manual_locked'  => $is_manual_locked,
-				);
-			}
-		};
-
-		if ( $dry_run ) {
-			$runner();
-		} else {
-			BatchGuard::run( $runner, true );
 		}
 
 		return $summary;

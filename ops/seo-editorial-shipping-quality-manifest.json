@@ -1,0 +1,1410 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-24",
+  "environment": "docker-local-snapshot",
+  "purpose": "Read-only, fail-closed editorial proposals after national shipping copy normalization.",
+  "rank_math_excluded": true,
+  "policy": {
+    "max_product_excerpt_visible_chars": 320,
+    "official_ui_first": true,
+    "no_direct_database_writes": true
+  },
+  "application_policy": {
+    "official_ui_entries": 68,
+    "code_or_database_entries": 0,
+    "rank_math_entries": 0,
+    "note": "Apply each proposal through the named WordPress or WooCommerce administration UI. If a declarative content source is maintained later, update it only after the UI result is validated; this manifest performs no writes."
+  },
+  "audit_summary": {
+    "entries": 68,
+    "by_issue_code": {
+      "broken_preposition_after_bulk_replace": 1,
+      "legal_copy_clarity": 1,
+      "broken_sentence_join": 19,
+      "shipping_copy_editorial": 19,
+      "unescaped_html_ampersand": 3,
+      "overlong_product_excerpt": 42,
+      "low_information_density": 42,
+      "unescaped_ampersand_in_href": 2,
+      "redundant_shipping_copy": 1,
+      "taxonomy_editorial_quality": 1,
+      "malformed_wpautop_section_header": 1,
+      "dead_presentational_span": 1
+    },
+    "exact_duplicate_excerpt_groups_observed": 0
+  },
+  "entries": [
+    {
+      "key": "post:3:post_content",
+      "object_type": "post",
+      "object_id": 3,
+      "title": "Términos y Condiciones",
+      "field": "post_content",
+      "issue_codes": [
+        "broken_preposition_after_bulk_replace",
+        "legal_copy_clarity"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Páginas > Términos y condiciones > Editar contenido > Actualizar",
+      "expected_before": "<div class=\"akb-page\">\n\n<header class=\"akb-page__hero\">\n<h1>Términos y condiciones</h1>\n<p>Última actualización: Abril 2026</p>\n</header>\n\n<div class=\"akb-page__layout\">\n\n<aside class=\"akb-page__toc\" aria-label=\"Índice de secciones\">\n<p class=\"akb-page__toc-title\">Contenido</p>\n<ol>\n<li><a href=\"#tc-info\">Información general</a></li>\n<li><a href=\"#tc-aceptacion\">Aceptación</a></li>\n<li><a href=\"#tc-cuenta\">Registro y cuenta</a></li>\n<li><a href=\"#tc-productos\">Productos</a></li>\n<li><a href=\"#tc-precios\">Precios</a></li>\n<li><a href=\"#tc-pagos\">Métodos de pago</a></li>\n<li><a href=\"#tc-envios\">Envíos</a></li>\n<li><a href=\"#tc-preventas\">Preventas</a></li>\n<li><a href=\"#tc-devoluciones\">Devoluciones y cambios</a></li>\n<li><a href=\"#tc-pi\">Propiedad intelectual</a></li>\n<li><a href=\"#tc-datos\">Protección de datos</a></li>\n<li><a href=\"#tc-usuario\">Responsabilidad del usuario</a></li>\n<li><a href=\"#tc-limitacion\">Limitación de responsabilidad</a></li>\n<li><a href=\"#tc-jurisdiccion\">Jurisdicción</a></li>\n<li><a href=\"#tc-contacto\">Contacto</a></li>\n</ol>\n</aside>\n\n<div class=\"akb-page__body\">\n\n<h2 id=\"tc-info\">Información general</h2>\n<p>Akibara SpA (en adelante «Akibara») es una empresa chilena dedicada a la comercialización de manga, cómics, novelas ligeras y productos relacionados a través de su tienda online <strong>akibara.cl</strong>.</p>\n\n<h2 id=\"tc-aceptacion\">Aceptación de los términos</h2>\n<p>Al acceder y utilizar este sitio web, aceptas estos términos y condiciones en su totalidad. Si no estás de acuerdo, te solicitamos no utilizar el sitio. Akibara se reserva el derecho de modificar estos términos en cualquier momento.</p>\n\n<h2 id=\"tc-cuenta\">Registro y cuenta de usuario</h2>\n<p>Para realizar compras puedes proceder como invitado o crear una cuenta. Eres responsable de mantener la confidencialidad de tus credenciales de acceso.</p>\n\n<h2 id=\"tc-productos\">Productos</h2>\n<p>Todos los productos comercializados son 100% originales, adquiridos directamente de editoriales autorizadas. La disponibilidad está sujeta a stock. Las imágenes son referenciales y pueden variar levemente del producto final.</p>\n\n<h2 id=\"tc-precios\">Precios</h2>\n<p>Los precios están expresados en pesos chilenos (CLP) e incluyen IVA. Akibara se reserva el derecho de modificar precios sin previo aviso. En caso de error en el precio publicado, se contactará al cliente para ofrecer alternativas.</p>\n\n<h2 id=\"tc-pagos\">Métodos de pago</h2>\n<p>Aceptamos pagos a través de <strong>Mercado Pago</strong> (botón de pago y tarjeta de crédito o débito), <strong>Flow</strong> (Webpay y otros medios de la red Flow) y <strong>transferencia bancaria</strong>. Los pagos con tarjeta de crédito permiten <strong>hasta 3 cuotas sin interés</strong>. Akibara no almacena información financiera de los usuarios.</p>\n\n<h2 id=\"tc-envios\">Envíos</h2>\n<p>Akibara ofrece distintas modalidades de envío según la dirección de destino y la preferencia del cliente:</p>\n<ul>\n<li><strong>Despacho a domicilio · Blue Express:</strong> envíos según cobertura del transportista. Tiempos estimados: Región Metropolitana 2 a 5 días hábiles, regiones 3 a 10 días hábiles.</li>\n<li><strong>Retiro en punto Blue Express:</strong> más de 3.200 puntos en cobertura del transportista, incluyendo Copec 24/7, con lockers inteligentes mediante código QR o PIN. Tarifa <strong>desde $2.600</strong> en zona local (IVA incluido). El cliente dispone de hasta 5 días hábiles para retirar el paquete una vez que llega al punto. Tiempos estimados: RM 2 a 7 días hábiles, zonas extremas 10 a 15 días hábiles.</li>\n<li><strong>Retiro en punto Akibara (San Miguel, Santiago):</strong> gratuito. Se coordina por correo al confirmar el pedido.</li>\n</ul>\n<p>El costo del envío se calcula automáticamente en el checkout según la comuna de destino y la modalidad elegida. <strong>Envío gratuito en compras sobre $55.000 CLP</strong> (aplica únicamente a despacho a domicilio Blue Express y retiro en punto Blue Express). Los tiempos de entrega son estimados y pueden variar en fechas de alta demanda (CyberDay, Navidad, etc.) o por causas de fuerza mayor.</p>\n\n<h2 id=\"tc-preventas\">Preventas</h2>\n<p>Los productos en preventa muestran una <strong>fecha estimada de llegada a Akibara</strong>, calculada según el país de origen y el plazo de importación; no necesariamente corresponde a la fecha oficial de publicación de la editorial y puede variar. Al comprar en preventa, el producto se despacha apenas ingresa a nuestro stock. Si la demora supera los <strong>60 días</strong> desde la fecha estimada, el cliente puede solicitar la cancelación y reembolso íntegro.</p>\n<p><strong>Pedidos mixtos (stock + preventa):</strong> puedes combinar ambos tipos de producto en una misma compra. En ese caso, el pedido se despacha cuando todos los productos estén disponibles. Si necesitas envíos por separado, contáctanos para coordinar; el costo del envío adicional corre por cuenta del cliente.</p>\n<p><strong>Producto agotado al gestionar el pedido con la editorial:</strong> si al solicitar la importación el título resulta agotado y no podemos comprometerlo, te avisaremos por correo y podrás elegir entre <strong>cambiarlo por otro título en stock o en preventa</strong> o solicitar la <strong>devolución íntegra del pago</strong>.</p>\n\n<h2 id=\"tc-devoluciones\">Devoluciones y cambios</h2>\n<p>El plazo para solicitar devoluciones es de <strong>10 días corridos</strong> desde la recepción del producto, conforme a la Ley 19.496. El producto debe estar sin uso, en su empaque original y en las mismas condiciones en que fue recibido. Se excluyen productos con daño causado por el usuario. Detalle completo en <a href=\"/devoluciones/\">Cambios y devoluciones</a>.</p>\n\n<h2 id=\"tc-pi\">Propiedad intelectual</h2>\n<p>Todo el contenido del sitio (textos, imágenes, diseño, logotipos) es propiedad de Akibara SpA o de sus respectivos licenciantes. Queda prohibida su reproducción sin autorización.</p>\n\n<h2 id=\"tc-datos\">Protección de datos</h2>\n<p>Akibara cumple con la Ley N° 19.628 sobre protección de la vida privada. La información recopilada se utiliza exclusivamente para procesar pedidos y mejorar el servicio. El detalle completo del tratamiento, los terceros con quienes se comparten datos y los derechos del titular están disponibles en la <a href=\"/politica-de-privacidad/\">Política de privacidad</a>.</p>\n\n<h2 id=\"tc-usuario\">Responsabilidad del usuario</h2>\n<p>El usuario se compromete a proporcionar información veraz y a no utilizar el sitio para fines ilícitos o que perjudiquen a terceros.</p>\n\n<h2 id=\"tc-limitacion\">Limitación de responsabilidad</h2>\n<p>Akibara no será responsable por daños indirectos derivados del uso del sitio, interrupciones del servicio o errores técnicos ajenos a nuestro control.</p>\n\n<h2 id=\"tc-jurisdiccion\">Jurisdicción</h2>\n<p>Estos términos se rigen por la legislación chilena. Cualquier controversia será sometida a los tribunales ordinarios de Santiago de Chile.</p>\n\n<h2 id=\"tc-contacto\">Contacto</h2>\n<p>Para consultas sobre estos términos: <a href=\"mailto:contacto@akibara.cl\">contacto@akibara.cl</a> o desde el <a href=\"/contacto/\">formulario de contacto</a>.</p>\n\n</div>\n</div>\n</div>",
+      "expected_before_sha256": "d293ae471edabf58cee19a6b77dac8a40d212684f29d4e52b34d9586f94e22b3",
+      "problem_text_exact": "más de 3.200 puntos en cobertura del transportista",
+      "proposed_after": "<div class=\"akb-page\">\n\n<header class=\"akb-page__hero\">\n<h1>Términos y condiciones</h1>\n<p>Última actualización: Abril 2026</p>\n</header>\n\n<div class=\"akb-page__layout\">\n\n<aside class=\"akb-page__toc\" aria-label=\"Índice de secciones\">\n<p class=\"akb-page__toc-title\">Contenido</p>\n<ol>\n<li><a href=\"#tc-info\">Información general</a></li>\n<li><a href=\"#tc-aceptacion\">Aceptación</a></li>\n<li><a href=\"#tc-cuenta\">Registro y cuenta</a></li>\n<li><a href=\"#tc-productos\">Productos</a></li>\n<li><a href=\"#tc-precios\">Precios</a></li>\n<li><a href=\"#tc-pagos\">Métodos de pago</a></li>\n<li><a href=\"#tc-envios\">Envíos</a></li>\n<li><a href=\"#tc-preventas\">Preventas</a></li>\n<li><a href=\"#tc-devoluciones\">Devoluciones y cambios</a></li>\n<li><a href=\"#tc-pi\">Propiedad intelectual</a></li>\n<li><a href=\"#tc-datos\">Protección de datos</a></li>\n<li><a href=\"#tc-usuario\">Responsabilidad del usuario</a></li>\n<li><a href=\"#tc-limitacion\">Limitación de responsabilidad</a></li>\n<li><a href=\"#tc-jurisdiccion\">Jurisdicción</a></li>\n<li><a href=\"#tc-contacto\">Contacto</a></li>\n</ol>\n</aside>\n\n<div class=\"akb-page__body\">\n\n<h2 id=\"tc-info\">Información general</h2>\n<p>Akibara SpA (en adelante «Akibara») es una empresa chilena dedicada a la comercialización de manga, cómics, novelas ligeras y productos relacionados a través de su tienda online <strong>akibara.cl</strong>.</p>\n\n<h2 id=\"tc-aceptacion\">Aceptación de los términos</h2>\n<p>Al acceder y utilizar este sitio web, aceptas estos términos y condiciones en su totalidad. Si no estás de acuerdo, te solicitamos no utilizar el sitio. Akibara se reserva el derecho de modificar estos términos en cualquier momento.</p>\n\n<h2 id=\"tc-cuenta\">Registro y cuenta de usuario</h2>\n<p>Para realizar compras puedes proceder como invitado o crear una cuenta. Eres responsable de mantener la confidencialidad de tus credenciales de acceso.</p>\n\n<h2 id=\"tc-productos\">Productos</h2>\n<p>Todos los productos comercializados son 100% originales, adquiridos directamente de editoriales autorizadas. La disponibilidad está sujeta a stock. Las imágenes son referenciales y pueden variar levemente del producto final.</p>\n\n<h2 id=\"tc-precios\">Precios</h2>\n<p>Los precios están expresados en pesos chilenos (CLP) e incluyen IVA. Akibara se reserva el derecho de modificar precios sin previo aviso. En caso de error en el precio publicado, se contactará al cliente para ofrecer alternativas.</p>\n\n<h2 id=\"tc-pagos\">Métodos de pago</h2>\n<p>Aceptamos pagos a través de <strong>Mercado Pago</strong> (botón de pago y tarjeta de crédito o débito), <strong>Flow</strong> (Webpay y otros medios de la red Flow) y <strong>transferencia bancaria</strong>. Los pagos con tarjeta de crédito permiten <strong>hasta 3 cuotas sin interés</strong>. Akibara no almacena información financiera de los usuarios.</p>\n\n<h2 id=\"tc-envios\">Envíos</h2>\n<p>Akibara ofrece distintas modalidades de envío según la dirección de destino y la preferencia del cliente:</p>\n<ul>\n<li><strong>Despacho a domicilio · Blue Express:</strong> envíos según cobertura del transportista. Tiempos estimados: Región Metropolitana 2 a 5 días hábiles, regiones 3 a 10 días hábiles.</li>\n<li><strong>Retiro en punto Blue Express:</strong> más de 3.200 puntos de retiro, sujetos a cobertura y disponibilidad del transportista, incluyendo Copec 24/7, con lockers inteligentes mediante código QR o PIN. Tarifa <strong>desde $2.600</strong> en zona local (IVA incluido). El cliente dispone de hasta 5 días hábiles para retirar el paquete una vez que llega al punto. Tiempos estimados: RM 2 a 7 días hábiles, zonas extremas 10 a 15 días hábiles.</li>\n<li><strong>Retiro en punto Akibara (San Miguel, Santiago):</strong> gratuito. Se coordina por correo al confirmar el pedido.</li>\n</ul>\n<p>El costo del envío se calcula automáticamente en el checkout según la comuna de destino y la modalidad elegida. <strong>Envío gratuito en compras sobre $55.000 CLP</strong> (aplica únicamente a despacho a domicilio Blue Express y retiro en punto Blue Express). Los tiempos de entrega son estimados y pueden variar en fechas de alta demanda (CyberDay, Navidad, etc.) o por causas de fuerza mayor.</p>\n\n<h2 id=\"tc-preventas\">Preventas</h2>\n<p>Los productos en preventa muestran una <strong>fecha estimada de llegada a Akibara</strong>, calculada según el país de origen y el plazo de importación; no necesariamente corresponde a la fecha oficial de publicación de la editorial y puede variar. Al comprar en preventa, el producto se despacha apenas ingresa a nuestro stock. Si la demora supera los <strong>60 días</strong> desde la fecha estimada, el cliente puede solicitar la cancelación y reembolso íntegro.</p>\n<p><strong>Pedidos mixtos (stock + preventa):</strong> puedes combinar ambos tipos de producto en una misma compra. En ese caso, el pedido se despacha cuando todos los productos estén disponibles. Si necesitas envíos por separado, contáctanos para coordinar; el costo del envío adicional corre por cuenta del cliente.</p>\n<p><strong>Producto agotado al gestionar el pedido con la editorial:</strong> si al solicitar la importación el título resulta agotado y no podemos comprometerlo, te avisaremos por correo y podrás elegir entre <strong>cambiarlo por otro título en stock o en preventa</strong> o solicitar la <strong>devolución íntegra del pago</strong>.</p>\n\n<h2 id=\"tc-devoluciones\">Devoluciones y cambios</h2>\n<p>El plazo para solicitar devoluciones es de <strong>10 días corridos</strong> desde la recepción del producto, conforme a la Ley 19.496. El producto debe estar sin uso, en su empaque original y en las mismas condiciones en que fue recibido. Se excluyen productos con daño causado por el usuario. Detalle completo en <a href=\"/devoluciones/\">Cambios y devoluciones</a>.</p>\n\n<h2 id=\"tc-pi\">Propiedad intelectual</h2>\n<p>Todo el contenido del sitio (textos, imágenes, diseño, logotipos) es propiedad de Akibara SpA o de sus respectivos licenciantes. Queda prohibida su reproducción sin autorización.</p>\n\n<h2 id=\"tc-datos\">Protección de datos</h2>\n<p>Akibara cumple con la Ley N° 19.628 sobre protección de la vida privada. La información recopilada se utiliza exclusivamente para procesar pedidos y mejorar el servicio. El detalle completo del tratamiento, los terceros con quienes se comparten datos y los derechos del titular están disponibles en la <a href=\"/politica-de-privacidad/\">Política de privacidad</a>.</p>\n\n<h2 id=\"tc-usuario\">Responsabilidad del usuario</h2>\n<p>El usuario se compromete a proporcionar información veraz y a no utilizar el sitio para fines ilícitos o que perjudiquen a terceros.</p>\n\n<h2 id=\"tc-limitacion\">Limitación de responsabilidad</h2>\n<p>Akibara no será responsable por daños indirectos derivados del uso del sitio, interrupciones del servicio o errores técnicos ajenos a nuestro control.</p>\n\n<h2 id=\"tc-jurisdiccion\">Jurisdicción</h2>\n<p>Estos términos se rigen por la legislación chilena. Cualquier controversia será sometida a los tribunales ordinarios de Santiago de Chile.</p>\n\n<h2 id=\"tc-contacto\">Contacto</h2>\n<p>Para consultas sobre estos términos: <a href=\"mailto:contacto@akibara.cl\">contacto@akibara.cl</a> o desde el <a href=\"/contacto/\">formulario de contacto</a>.</p>\n\n</div>\n</div>\n</div>",
+      "proposed_after_sha256": "be2b57af54b9529115950c340feeaa65967255a32ffb41a6748e8dfa3b3fab45",
+      "proposed_visible_chars": 5439
+    },
+    {
+      "key": "post:16495:post_excerpt",
+      "object_type": "post",
+      "object_id": 16495,
+      "title": "John Constantine: Hellblazer (Biblioteca Vertigo) 01",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡El origen del mito! Compra <strong>John Constantine: Hellblazer Vol. 1 (Biblioteca Vértigo)</strong> en <strong>Akibara</strong>. Edición en rústica de alta calidad de <strong>Panini España</strong> que recopila la etapa clásica de Jamie Delano. Terror y magia negra  Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "444db6ca6c632b6b034d0f22744d54a832b7341c3d0956eaecb3dcf9e6e15363",
+      "problem_text_exact": "Terror y magia negra  Envío",
+      "proposed_after": "<p>¡El origen del mito! Compra <strong>John Constantine: Hellblazer Vol. 1 (Biblioteca Vértigo)</strong> en <strong>Akibara</strong>. Edición en rústica de alta calidad de <strong>Panini España</strong> que recopila la etapa clásica de Jamie Delano. Terror y magia negra. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "3456a4ed031fd14a362fa0af9215944d8f1d7b71a0f3101b3bc6431baf7714a5",
+      "proposed_visible_chars": 273
+    },
+    {
+      "key": "post:16532:post_excerpt",
+      "object_type": "post",
+      "object_id": 16532,
+      "title": "Maximum Berserk 03",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Gloria y batallas! Compra <strong>Maximum Berserk 3</strong> en <strong>Akibara</strong>. Sigue el ascenso de la Cuadrilla del Halcón en la edición de <strong>Panini España</strong>. Arte detallado y narrativa profunda en formato Maximum Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "b85479abb84c638e5f21bee1d171f8fa3e7a66d61bd1b26cbe4f8de04d52ceae",
+      "problem_text_exact": "formato Maximum Envío",
+      "proposed_after": "<p>¡Gloria y batallas! Compra <strong>Maximum Berserk 3</strong> en <strong>Akibara</strong>. Sigue el ascenso de la Cuadrilla del Halcón en la edición de <strong>Panini España</strong>. Arte detallado y narrativa profunda en formato Maximum. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "da9e34e480666153bcfb2e4619c4af581bb0efa7173d7358f0fa0609911509b6",
+      "proposed_visible_chars": 245
+    },
+    {
+      "key": "post:16551:post_excerpt",
+      "object_type": "post",
+      "object_id": 16551,
+      "title": "Maximum Berserk 08",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Venganza de hierro! Compra <strong>Maximum Berserk 8</strong> en <strong>Akibara</strong>. Comienza la cacería de Guts contra los Apóstoles en la edición de gran formato de <strong>Panini España</strong>. Acción brutal y arte espectacular Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "e63144414ec8b7c8c499eabb136e5db835febd115aaeca820627187f2bb906c1",
+      "problem_text_exact": "arte espectacular Envío",
+      "proposed_after": "<p>¡Venganza de hierro! Compra <strong>Maximum Berserk 8</strong> en <strong>Akibara</strong>. Comienza la cacería de Guts contra los Apóstoles en la edición de gran formato de <strong>Panini España</strong>. Acción brutal y arte espectacular. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "1249710649639e59f941344a98cf6e46bf22b880dc8153f1f9d1e7f81ac1001d",
+      "proposed_visible_chars": 246
+    },
+    {
+      "key": "post:16726:post_content",
+      "object_type": "post",
+      "object_id": 16726,
+      "title": "El verano que Hikaru murió 03",
+      "field": "post_content",
+      "issue_codes": [
+        "unescaped_html_ampersand"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > descripción > Actualizar",
+      "expected_before": "<h2>El verano que Hikaru murió 03 — el experimento del pantano y el hombre del hámster</h2>\n\n<p>El tomo abre con una clase aparentemente común que se vuelve manifiesto filosófico. Mientras <strong>Yoshiki Tsujinaka</strong> intenta concentrarse, el profesor introduce el experimento mental del Hombre del Pantano: un viajero muere fulminado por un rayo, y el rayo, junto al lodo, esculpe una réplica idéntica que sigue viviendo su vida. El paralelo con <strong>Hikaru Indo</strong> es evidente para Yoshiki, y la pregunta —si el reemplazo siente, recuerda y ama, ¿es la misma persona?— vertebra todo el volumen.</p>\n\n<p>El pueblo deja de ser un fondo silencioso. Tres ancianos preocupados por la inquietud espiritual llaman a <strong>Tanaka</strong>, un joven desaliñado que carga un hámster enjaulado como detector primitivo de presencias. Tanaka aparece en la mañana con la mochila del padre de Hikaru, recuperada de la montaña, y abre un frente de investigación que nadie pidió pero que ya no se puede frenar. Para Yoshiki, ese hallazgo significa que su secreto tiene fecha de caducidad.</p>\n\n<p>El cierre del tomo se decanta en una noche de fuegos artificiales. <strong>Asako Yamagishi</strong> aprovecha la dispersión de la gente para llevarse a «Hikaru» a un costado y, ya sin testigos, le pregunta qué es. Asako revela que su abuela le enseñó a oír impurezas y que desde el regreso del verano hay una presencia que no sabe nombrar. <strong>Mokumokuren</strong> alterna esa intimidad ominosa con escenas costumbristas —puestos del festival, yukatas, la familia Indo cenando— para mantener la distancia exacta entre cariño y horror que define a la obra.</p>\n\n<p><strong>Edición Milky Way</strong> — formato 13 × 18 cm rústica con sobrecubierta, blanco y negro con páginas a color. Capítulos 12 a 16 más extra y Q&A. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "638e5f991bcb9b142d4acf0a2aafe9b3c4b1ffef8e074878652b82f6a71dce79",
+      "problem_text_exact": "Q&A",
+      "proposed_after": "<h2>El verano que Hikaru murió 03 — el experimento del pantano y el hombre del hámster</h2>\n\n<p>El tomo abre con una clase aparentemente común que se vuelve manifiesto filosófico. Mientras <strong>Yoshiki Tsujinaka</strong> intenta concentrarse, el profesor introduce el experimento mental del Hombre del Pantano: un viajero muere fulminado por un rayo, y el rayo, junto al lodo, esculpe una réplica idéntica que sigue viviendo su vida. El paralelo con <strong>Hikaru Indo</strong> es evidente para Yoshiki, y la pregunta —si el reemplazo siente, recuerda y ama, ¿es la misma persona?— vertebra todo el volumen.</p>\n\n<p>El pueblo deja de ser un fondo silencioso. Tres ancianos preocupados por la inquietud espiritual llaman a <strong>Tanaka</strong>, un joven desaliñado que carga un hámster enjaulado como detector primitivo de presencias. Tanaka aparece en la mañana con la mochila del padre de Hikaru, recuperada de la montaña, y abre un frente de investigación que nadie pidió pero que ya no se puede frenar. Para Yoshiki, ese hallazgo significa que su secreto tiene fecha de caducidad.</p>\n\n<p>El cierre del tomo se decanta en una noche de fuegos artificiales. <strong>Asako Yamagishi</strong> aprovecha la dispersión de la gente para llevarse a «Hikaru» a un costado y, ya sin testigos, le pregunta qué es. Asako revela que su abuela le enseñó a oír impurezas y que desde el regreso del verano hay una presencia que no sabe nombrar. <strong>Mokumokuren</strong> alterna esa intimidad ominosa con escenas costumbristas —puestos del festival, yukatas, la familia Indo cenando— para mantener la distancia exacta entre cariño y horror que define a la obra.</p>\n\n<p><strong>Edición Milky Way</strong> — formato 13 × 18 cm rústica con sobrecubierta, blanco y negro con páginas a color. Capítulos 12 a 16 más extra y Q&amp;A. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "5d16301f8cc805ebeb3112f09d369c4c256c690995cd8050f99e0ed919e56361",
+      "proposed_visible_chars": 1737
+    },
+    {
+      "key": "post:16735:post_content",
+      "object_type": "post",
+      "object_id": 16735,
+      "title": "El verano que Hikaru murió 05",
+      "field": "post_content",
+      "issue_codes": [
+        "unescaped_html_ampersand"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > descripción > Actualizar",
+      "expected_before": "<h2>El verano que Hikaru murió 05 — un erudito de afuera, un boceto de 1519 y la playa</h2>\n\n<p>El tomo retoma el ataque que cerraba la entrega anterior y deposita a <strong>Yoshiki Tsujinaka</strong> en una cama de hospital. Su madre le explica que los hechos quedaron silenciados por gente del pueblo, una pista temprana de que la red de complicidades es más profunda de lo que el chico imaginaba. La amenaza se duplica con la llegada de un erudito foráneo cuya cara guarda parecido inquietante con la del antiguo <strong>Hikaru Indo</strong>: trabaja para un empleador con siglos a cuestas, busca específicas criaturas del otro lado de la grieta y se niega a explicar qué quiere hacer con ellas.</p>\n\n<p>Las indagaciones bajan al subsuelo histórico del pueblo. Una compañera de clase relata que las viejas minas surtían abortivos en épocas de hambruna y que el culto al dios de la montaña creció en paralelo, manteniendo a raya las epidemias. Una visita al santuario familiar de los Indou expone qué ofrendas se entregaban a la deidad y cómo el clan ha cargado con la memoria del trato. La criatura, por primera vez, se conmueve: siente culpa por los amigos que extrañan al verdadero Hikaru y empieza a percibir el costo emocional del lugar que ocupa.</p>\n\n<p>El padre de Yoshiki entra en escena —fue amigo cercano del padre de Hikaru— y le cuenta a su hijo cómo los Indou trajeron calamidad al pueblo y se ataron a una maldición. Entre los papeles aparece un boceto europeo fechado en 1519 que retrata exactamente al ser que ahora habita el cuerpo de su amigo. Yoshiki entiende que su propio organismo ya cambió y que dejó de ser puramente humano. <strong>Mokumokuren</strong> cierra la entrega con un capítulo de vacaciones de verano en la playa, donde la liviandad de la juventud se sostiene a pesar del sustrato cósmico que la mira de reojo. <strong>Asako Yamagishi</strong> y <strong>Tanaka</strong> aportan miradas distintas sobre cuánto puede sobrevivir un secreto.</p>\n\n<p><strong>Edición Milky Way</strong> — formato 13 × 18 cm rústica con sobrecubierta, blanco y negro con páginas a color. Capítulos 22 a 26 más extra y Q&A. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "e98bea55fec28a1e606ce0ef2e2a48088d2f1afcb48d41c4c628c74f1fed7112",
+      "problem_text_exact": "Q&A",
+      "proposed_after": "<h2>El verano que Hikaru murió 05 — un erudito de afuera, un boceto de 1519 y la playa</h2>\n\n<p>El tomo retoma el ataque que cerraba la entrega anterior y deposita a <strong>Yoshiki Tsujinaka</strong> en una cama de hospital. Su madre le explica que los hechos quedaron silenciados por gente del pueblo, una pista temprana de que la red de complicidades es más profunda de lo que el chico imaginaba. La amenaza se duplica con la llegada de un erudito foráneo cuya cara guarda parecido inquietante con la del antiguo <strong>Hikaru Indo</strong>: trabaja para un empleador con siglos a cuestas, busca específicas criaturas del otro lado de la grieta y se niega a explicar qué quiere hacer con ellas.</p>\n\n<p>Las indagaciones bajan al subsuelo histórico del pueblo. Una compañera de clase relata que las viejas minas surtían abortivos en épocas de hambruna y que el culto al dios de la montaña creció en paralelo, manteniendo a raya las epidemias. Una visita al santuario familiar de los Indou expone qué ofrendas se entregaban a la deidad y cómo el clan ha cargado con la memoria del trato. La criatura, por primera vez, se conmueve: siente culpa por los amigos que extrañan al verdadero Hikaru y empieza a percibir el costo emocional del lugar que ocupa.</p>\n\n<p>El padre de Yoshiki entra en escena —fue amigo cercano del padre de Hikaru— y le cuenta a su hijo cómo los Indou trajeron calamidad al pueblo y se ataron a una maldición. Entre los papeles aparece un boceto europeo fechado en 1519 que retrata exactamente al ser que ahora habita el cuerpo de su amigo. Yoshiki entiende que su propio organismo ya cambió y que dejó de ser puramente humano. <strong>Mokumokuren</strong> cierra la entrega con un capítulo de vacaciones de verano en la playa, donde la liviandad de la juventud se sostiene a pesar del sustrato cósmico que la mira de reojo. <strong>Asako Yamagishi</strong> y <strong>Tanaka</strong> aportan miradas distintas sobre cuánto puede sobrevivir un secreto.</p>\n\n<p><strong>Edición Milky Way</strong> — formato 13 × 18 cm rústica con sobrecubierta, blanco y negro con páginas a color. Capítulos 22 a 26 más extra y Q&amp;A. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "220f21779118616d263e9773674b9fce8559146764428b1fd10a4ed0be0f99b9",
+      "proposed_visible_chars": 2054
+    },
+    {
+      "key": "post:16738:post_content",
+      "object_type": "post",
+      "object_id": 16738,
+      "title": "El verano que Hikaru murió 06",
+      "field": "post_content",
+      "issue_codes": [
+        "unescaped_html_ampersand"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > descripción > Actualizar",
+      "expected_before": "<h2>El verano que Hikaru murió 06 — Tanaka pone sobre la mesa la palabra Spawn</h2>\n\n<p>Mientras la criatura que ocupa el cuerpo de <strong>Hikaru Indo</strong> decide volver a la montaña para enfrentar lo que es, <strong>Tanaka</strong> los intercepta en la playa. No llega a pelear: viene a pedir un favor. La conversación que se abre redefine la serie. Tanaka explica que «Hikaru» pertenece a una categoría conocida como Spawn, una entidad anómala que los habitantes del pueblo confundieron siglos atrás con Nōnuki-sama, la deidad local de la montaña. El malentendido se selló cuando un antepasado de los Indou, desesperado por resucitar a alguien llamado Hichi, se topó en los montes Kubitachi con esta presencia y la nombró como dios.</p>\n\n<p>La revelación reordena la cosmología del manga. La grieta que conecta el plano humano con el Otro Lado existe y está creciendo, dejando pasar impurezas que, sin contención, terminarán en catástrofe colectiva. <strong>Yoshiki Tsujinaka</strong> entiende que su elección personal ya tiene consecuencias regionales, y la dupla acepta investigar más a fondo en lugar de huir. Tanaka, por su parte, suaviza su rol de cazador y pasa a aliado pragmático, aunque mantiene reservas sobre cuánto puede confiarse en el Spawn que se hace llamar Hikaru.</p>\n\n<p>El segundo arco arranca cuando los chicos viajan hasta Ashidori, el pueblo natal de <strong>Yūta Maki</strong>, en busca de huellas de fenómenos similares. Allí afloran rituales olvidados, registros vetados y una vibración religiosa muy distinta a la del pueblo de Yoshiki. <strong>Mokumokuren</strong> apuesta por escenas de amplio silencio, atmósferas saturadas de niebla y diálogos que se quedan a medio camino entre el horror y la confesión. El tomo es uno de los más densos de la obra y prepara el salto definitivo a la segunda gran etapa.</p>\n\n<p><strong>Edición Milky Way</strong> — formato 13 × 18 cm rústica con sobrecubierta, blanco y negro con páginas a color. Capítulos 27 a 31 más extra y Q&A. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "22fd986651709a36ccc7c4a1a36052093b6abb0465a38a1d5799b2e069695140",
+      "problem_text_exact": "Q&A",
+      "proposed_after": "<h2>El verano que Hikaru murió 06 — Tanaka pone sobre la mesa la palabra Spawn</h2>\n\n<p>Mientras la criatura que ocupa el cuerpo de <strong>Hikaru Indo</strong> decide volver a la montaña para enfrentar lo que es, <strong>Tanaka</strong> los intercepta en la playa. No llega a pelear: viene a pedir un favor. La conversación que se abre redefine la serie. Tanaka explica que «Hikaru» pertenece a una categoría conocida como Spawn, una entidad anómala que los habitantes del pueblo confundieron siglos atrás con Nōnuki-sama, la deidad local de la montaña. El malentendido se selló cuando un antepasado de los Indou, desesperado por resucitar a alguien llamado Hichi, se topó en los montes Kubitachi con esta presencia y la nombró como dios.</p>\n\n<p>La revelación reordena la cosmología del manga. La grieta que conecta el plano humano con el Otro Lado existe y está creciendo, dejando pasar impurezas que, sin contención, terminarán en catástrofe colectiva. <strong>Yoshiki Tsujinaka</strong> entiende que su elección personal ya tiene consecuencias regionales, y la dupla acepta investigar más a fondo en lugar de huir. Tanaka, por su parte, suaviza su rol de cazador y pasa a aliado pragmático, aunque mantiene reservas sobre cuánto puede confiarse en el Spawn que se hace llamar Hikaru.</p>\n\n<p>El segundo arco arranca cuando los chicos viajan hasta Ashidori, el pueblo natal de <strong>Yūta Maki</strong>, en busca de huellas de fenómenos similares. Allí afloran rituales olvidados, registros vetados y una vibración religiosa muy distinta a la del pueblo de Yoshiki. <strong>Mokumokuren</strong> apuesta por escenas de amplio silencio, atmósferas saturadas de niebla y diálogos que se quedan a medio camino entre el horror y la confesión. El tomo es uno de los más densos de la obra y prepara el salto definitivo a la segunda gran etapa.</p>\n\n<p><strong>Edición Milky Way</strong> — formato 13 × 18 cm rústica con sobrecubierta, blanco y negro con páginas a color. Capítulos 27 a 31 más extra y Q&amp;A. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "d6ab14422d4b489ec9bb70b85a646cadfc754ea97bb8694c94350eeb630f8c19",
+      "proposed_visible_chars": 1920
+    },
+    {
+      "key": "post:17212:post_excerpt",
+      "object_type": "post",
+      "object_id": 17212,
+      "title": "One Punch-Man 04",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Emergencia nivel Dragón! Compra <strong>One Punch-Man Tomo 4</strong> en <strong>Akibara</strong>. El meteorito se acerca y Saitama debe salvar Ciudad Z. Debut de <strong>Silver Fang</strong> y <strong>Metal Knight</strong>. Edición <strong>Ivrea España</strong> original con ¡No te quedes sin el tuyo! Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "794556b0c31beda6c93ec6e2a5359a099a65a9ad97502d4ad67bed71a36f373b",
+      "problem_text_exact": "Edición <strong>Ivrea España</strong> original con ¡No te quedes sin el tuyo! Envío",
+      "proposed_after": "<p>¡Emergencia nivel Dragón! Compra <strong>One Punch-Man Tomo 4</strong> en <strong>Akibara</strong>. El meteorito se acerca y Saitama debe salvar Ciudad Z. Debut de <strong>Silver Fang</strong> y <strong>Metal Knight</strong>. Edición original de <strong>Ivrea España</strong>. ¡No te quedes sin el tuyo! Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "cf06cc003012dca580373c2760ebd4473d934fc9b6f268082b7791c71ff820f3",
+      "proposed_visible_chars": 276
+    },
+    {
+      "key": "post:17219:post_excerpt",
+      "object_type": "post",
+      "object_id": 17219,
+      "title": "One Punch-Man 06",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Invasión extraterrestre! Consigue <strong>One Punch-Man Tomo 6</strong> en <strong>Akibara</strong>. Comienza la saga de <strong>Boros</strong> y la reunión de los héroes <strong>Clase S</strong>. Edición <strong>Ivrea España</strong> con el dibujo inigualable de Yusuke Murata. </p>Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "a50df95dce0127dbb827e56e8ecc5f5f532c954729821483f33535cc0a5110a1",
+      "problem_text_exact": "Murata. </p>Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>¡Invasión extraterrestre! Consigue <strong>One Punch-Man Tomo 6</strong> en <strong>Akibara</strong>. Comienza la saga de <strong>Boros</strong> y la reunión de los héroes <strong>Clase S</strong>. Edición <strong>Ivrea España</strong> con el dibujo inigualable de Yusuke Murata. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "ce6fe5ed4bd3006d2dbb2dd8fa200c9aba6020dc3f3a3602adb9875bbd0cccab",
+      "proposed_visible_chars": 251
+    },
+    {
+      "key": "post:17222:post_excerpt",
+      "object_type": "post",
+      "object_id": 17222,
+      "title": "One Punch-Man 07",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Conoce al legendario King! Compra <strong>One Punch-Man Tomo 7</strong> en <strong>Akibara</strong>. Descubre el secreto del \"Motor King\" y la divertida relación entre Saitama y el héroe Clase S. Edición original de <strong>Ivrea España</strong> con envío express. </p>Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "2ff20f448dd0673070db76bb54e02e9f0f294c7fd4dc17990f99edfe0002265e",
+      "problem_text_exact": "Edición original de <strong>Ivrea España</strong> con envío express. </p>Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>¡Conoce al legendario King! Compra <strong>One Punch-Man Tomo 7</strong> en <strong>Akibara</strong>. Descubre el secreto del \"Motor King\" y la divertida relación entre Saitama y el héroe Clase S. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "37f0da7a2fb258d215937af46eca01d31c6cc62ac8ce750fb14a91c9f7b454f4",
+      "proposed_visible_chars": 253
+    },
+    {
+      "key": "post:17232:post_excerpt",
+      "object_type": "post",
+      "object_id": 17232,
+      "title": "One Punch-Man 10",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Metal Bat entra en acción! Compra <strong>One Punch-Man Tomo 10</strong> en <strong>Akibara</strong>. Vive la batalla épica contra <strong>Garou</strong> y el <strong>Ciempiés Anciano</strong>. Edición de <strong>Ivrea España</strong> original. </p>Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "0018014c3149c78ded9462f0509cbd83d18afc5338943a234cb03caf59985f9b",
+      "problem_text_exact": "Edición de <strong>Ivrea España</strong> original. </p>Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>¡Metal Bat entra en acción! Compra <strong>One Punch-Man Tomo 10</strong> en <strong>Akibara</strong>. Vive la batalla épica contra <strong>Garou</strong> y el <strong>Ciempiés Anciano</strong>. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "8bbd582f1b997356cd7cb44bb287f47b84fd34c293203b87aded48af52150444",
+      "proposed_visible_chars": 218
+    },
+    {
+      "key": "post:17237:post_excerpt",
+      "object_type": "post",
+      "object_id": 17237,
+      "title": "One Punch-Man 12",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Terror en el estadio! Compra <strong>One Punch-Man Tomo 12</strong> en <strong>Akibara</strong>. Vive la caída de <strong>Suiryu</strong> ante el temible <strong>Gouketsu</strong> y la respuesta de Saitama. Edición original <strong>Ivrea España</strong> con Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "ced91d270548d7a42f1ee689cf2ba48267961041d01b5490a7e65c24ea6b3d2b",
+      "problem_text_exact": "Edición original <strong>Ivrea España</strong> con Envío",
+      "proposed_after": "<p>¡Terror en el estadio! Compra <strong>One Punch-Man Tomo 12</strong> en <strong>Akibara</strong>. Vive la caída de <strong>Suiryu</strong> ante el temible <strong>Gouketsu</strong> y la respuesta de Saitama. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "ee9288ffe3a52ebe62dd239ea2709f1f0f8cc39028de636c341bbb5c01d45726",
+      "proposed_visible_chars": 230
+    },
+    {
+      "key": "post:17243:post_excerpt",
+      "object_type": "post",
+      "object_id": 17243,
+      "title": "One Punch-Man 14",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡La calma antes de la tormenta! Compra <strong>One Punch-Man Tomo 14</strong> en <strong>Akibara</strong>. No te pierdas la charla existencial entre Saitama y <strong>King</strong>, y el inicio del rescate de Waganma. Edición de <strong>Ivrea España</strong> original Envío según cobertura del transportista desde Akibara. <strong>¡Completa tu saga ahora!</strong></p>",
+      "expected_before_sha256": "b93a3eead8b7b5193260a9d5b3cb491dbc8bd297d638877e2df777e840837f8f",
+      "problem_text_exact": "Edición de <strong>Ivrea España</strong> original Envío",
+      "proposed_after": "<p>¡La calma antes de la tormenta! Compra <strong>One Punch-Man Tomo 14</strong> en <strong>Akibara</strong>. No te pierdas la charla existencial entre Saitama y <strong>King</strong>, y el inicio del rescate de Waganma. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara. <strong>¡Completa tu saga ahora!</strong></p>",
+      "proposed_after_sha256": "4af0f26d83d4925cc6d7dbed3d3ca66ba285963237b2e54366fab84dee32c3a7",
+      "proposed_visible_chars": 283
+    },
+    {
+      "key": "post:17252:post_excerpt",
+      "object_type": "post",
+      "object_id": 17252,
+      "title": "One Punch-Man 17",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Garou contra los monstruos! Compra <strong>One Punch-Man Tomo 17</strong> en <strong>Akibara</strong>. Vive el enfrentamiento contra <strong>Royal Ripper</strong> y conoce las profundidades de la Asociación de Monstruos. Edición de <strong>Ivrea España</strong> original. <strong> a Santiago y regiones!</strong> Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "f5c40e4d99aaeffa768cb56d3cb37c5368cb4c53089f3beefc19d62294ccc102",
+      "problem_text_exact": ". <strong> a Santiago y regiones!</strong> Envío",
+      "proposed_after": "<p>¡Garou contra los monstruos! Compra <strong>One Punch-Man Tomo 17</strong> en <strong>Akibara</strong>. Vive el enfrentamiento contra <strong>Royal Ripper</strong> y conoce las profundidades de la Asociación de Monstruos. Edición de <strong>Ivrea España</strong> original. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "7377afac2b4abf1d54963980f41d91b753bdf938e23d1ef379df7c1dcf0dd4f5",
+      "proposed_visible_chars": 260
+    },
+    {
+      "key": "post:17255:post_excerpt",
+      "object_type": "post",
+      "object_id": 17255,
+      "title": "One Punch-Man 18",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Invasión total! Consigue <strong>One Punch-Man Tomo 18</strong> en <strong>Akibara</strong>. Comienza el asalto al cuartel de los monstruos con <strong>Tatsumaki</strong> y el <strong>Child Emperor</strong> a la cabeza. Edición original <strong>Ivrea España</strong>. <strong> y en Chile!</strong> Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "e27dc827f527ed8057f08fa2098374ce3490deae3fc39ce0b4f5a2a47aad1f0a",
+      "problem_text_exact": ". <strong> y en Chile!</strong> Envío",
+      "proposed_after": "<p>¡Invasión total! Consigue <strong>One Punch-Man Tomo 18</strong> en <strong>Akibara</strong>. Comienza el asalto al cuartel de los monstruos con <strong>Tatsumaki</strong> y el <strong>Child Emperor</strong> a la cabeza. Edición original <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "bbf36bda5162ac4d977fc0ad5702f42e797934f84412577042348baf5a9c1738",
+      "proposed_visible_chars": 240
+    },
+    {
+      "key": "post:17261:post_excerpt",
+      "object_type": "post",
+      "object_id": 17261,
+      "title": "One Punch-Man 20",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Duelo de inmortales! Compra <strong>One Punch-Man Tomo 20</strong> en <strong>Akibara</strong>. No te pierdas la batalla sangrienta entre <strong>Zombieman</strong> y el vampiro <strong>Pureblood</strong>. Edición original de <strong>Ivrea España</strong> con Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "ad52f4a9ec45ddb0d81b528f923392d27bdf42bb657b6000c4421a89fde7a1f0",
+      "problem_text_exact": "Edición original de <strong>Ivrea España</strong> con Envío",
+      "proposed_after": "<p>¡Duelo de inmortales! Compra <strong>One Punch-Man Tomo 20</strong> en <strong>Akibara</strong>. No te pierdas la batalla sangrienta entre <strong>Zombieman</strong> y el vampiro <strong>Pureblood</strong>. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "f6e5d566686660e1a454246ec2844babe4738574404a8b4780840d2f9e80765d",
+      "proposed_visible_chars": 230
+    },
+    {
+      "key": "post:17264:post_excerpt",
+      "object_type": "post",
+      "object_id": 17264,
+      "title": "One Punch-Man 21",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Duelo ninja a velocidad luz! Compra <strong>One Punch-Man Tomo 21</strong> en <strong>Akibara</strong>. Vive la batalla de <strong>Flashy Flash</strong> contra los monstruos de la aldea ninja. Edición <strong>Ivrea España</strong> 100% original. <strong>¡ envío inmediato!</strong> Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "95e1c546914dbf4a25a313c0f553bd9e2bf0ce85f5b124ea19dc3a99ebd77f7e",
+      "problem_text_exact": "<strong>¡ envío inmediato!</strong>",
+      "proposed_after": "<p>¡Duelo ninja a velocidad luz! Compra <strong>One Punch-Man Tomo 21</strong> en <strong>Akibara</strong>. Vive la batalla de <strong>Flashy Flash</strong> contra los monstruos de la aldea ninja. Edición <strong>Ivrea España</strong> 100% original. <strong>¡Envío inmediato!</strong> Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "2b566ae1eef97146e3f6af808def751ea5a7d15bfdb32f7f8354bcbdb00321e2",
+      "proposed_visible_chars": 252
+    },
+    {
+      "key": "post:17270:post_excerpt",
+      "object_type": "post",
+      "object_id": 17270,
+      "title": "One Punch-Man 23",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Drive Knight entra en batalla! Compra <strong>One Punch-Man Tomo 23</strong> en <strong>Akibara</strong>. Descubre las transformaciones tácticas contra el temible <strong>Nyan</strong>. Edición original de <strong>Ivrea España</strong>. </p>Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "55b9865b6b5601749ea5fb0e405b3354c9d965fb47c37b6d199ee5c3ce228eed",
+      "problem_text_exact": "Edición original de <strong>Ivrea España</strong>. </p>Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>¡Drive Knight entra en batalla! Compra <strong>One Punch-Man Tomo 23</strong> en <strong>Akibara</strong>. Descubre las transformaciones tácticas contra el temible <strong>Nyan</strong>. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "60334254926184fcdc0e12d859d1ea54e785ff25be188adbeff5213bbc638ee3",
+      "proposed_visible_chars": 227
+    },
+    {
+      "key": "post:17273:post_excerpt",
+      "object_type": "post",
+      "object_id": 17273,
+      "title": "One Punch-Man 24",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Duelo psíquico total! Compra <strong>One Punch-Man Tomo 24</strong> en <strong>Akibara</strong>. Vive el choque colosal entre <strong>Tatsumaki</strong> y la fusión <strong>Psychos-Orochi</strong>. Edición <strong>Ivrea España</strong> original Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "b7e4c8bb04d5f8d196a1d04b826c0b011605007eb57818ac694ccee335b586ee",
+      "problem_text_exact": "Edición <strong>Ivrea España</strong> original Envío",
+      "proposed_after": "<p>¡Duelo psíquico total! Compra <strong>One Punch-Man Tomo 24</strong> en <strong>Akibara</strong>. Vive el choque colosal entre <strong>Tatsumaki</strong> y la fusión <strong>Psychos-Orochi</strong>. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "b5bc76b91e6f7916df7e344771a54db4bca2096aca23c3af0c66cc6db8db85ee",
+      "proposed_visible_chars": 222
+    },
+    {
+      "key": "post:17286:post_excerpt",
+      "object_type": "post",
+      "object_id": 17286,
+      "title": "One Punch-Man 28",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Atomic Samurai desata la Sun Blade! Compra <strong>One Punch-Man Tomo 28</strong> en <strong>Akibara</strong>. Vive el clímax del duelo entre <strong>Bang y Garou</strong>. Edición <strong>Ivrea España</strong> original con Envío según cobertura del transportista desde Akibara. </p>",
+      "expected_before_sha256": "ef434495bfd3287390efd8e51357bb9199a136fb9fb3e7f83eb44d2c05c3c87c",
+      "problem_text_exact": "Edición <strong>Ivrea España</strong> original con Envío",
+      "proposed_after": "<p>¡Atomic Samurai desata la Sun Blade! Compra <strong>One Punch-Man Tomo 28</strong> en <strong>Akibara</strong>. Vive el clímax del duelo entre <strong>Bang y Garou</strong>. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "a7ed72b7acebbbd13a09db3691ee4699d834ea21335bfd5a12f7e31d1dbefe50",
+      "proposed_visible_chars": 214
+    },
+    {
+      "key": "post:17296:post_excerpt",
+      "object_type": "post",
+      "object_id": 17296,
+      "title": "One Punch-Man 31",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Saitama asciende a Clase A! Compra <strong>One Punch-Man Tomo 31</strong> en <strong>Akibara</strong>. Vive la mudanza a Ciudad A y las nuevas aventuras junto a <strong>Black Sperm</strong> y <strong>Manako</strong>. Edición original <strong>Ivrea España</strong> Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "04f0889e1b6f6a4238c407e9340ba5de0a5eb9a39716c9126b0e9cc942aecec9",
+      "problem_text_exact": "Edición original <strong>Ivrea España</strong> Envío",
+      "proposed_after": "<p>¡Saitama asciende a Clase A! Compra <strong>One Punch-Man Tomo 31</strong> en <strong>Akibara</strong>. Vive la mudanza a Ciudad A y las nuevas aventuras junto a <strong>Black Sperm</strong> y <strong>Manako</strong>. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "e8fa468a172e316a501dc9222629092f0590161384ee97f3aa3c4b3d75d5197d",
+      "proposed_visible_chars": 241
+    },
+    {
+      "key": "post:17299:post_excerpt",
+      "object_type": "post",
+      "object_id": 17299,
+      "title": "One Punch-Man 32",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡Intriga y poderes psíquicos! Compra <strong>One Punch-Man Tomo 32</strong> en <strong>Akibara</strong>. Descubre la amenaza de <strong>Tsukuyomi</strong> y la lucha de <strong>Fubuki</strong> en la prisión de alta seguridad. Edición <strong>Ivrea España</strong> original con Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "17787baa8c10787cfe7e40aceb6652d0f5c55c684c5f5f626348cc23969f2bf0",
+      "problem_text_exact": "Edición <strong>Ivrea España</strong> original con Envío",
+      "proposed_after": "<p>¡Intriga y poderes psíquicos! Compra <strong>One Punch-Man Tomo 32</strong> en <strong>Akibara</strong>. Descubre la amenaza de <strong>Tsukuyomi</strong> y la lucha de <strong>Fubuki</strong> en la prisión de alta seguridad. Edición original de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "8d23895e6eb215945ec766ad87cbc3102a3a6a55d95469f7a786e498c1b9e4a5",
+      "proposed_visible_chars": 248
+    },
+    {
+      "key": "post:17305:post_excerpt",
+      "object_type": "post",
+      "object_id": 17305,
+      "title": "One Punch-Man 34",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "broken_sentence_join",
+        "shipping_copy_editorial"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>¡El destino de las hermanas! Compra <strong>One Punch-Man Tomo 34</strong> en <strong>Akibara</strong>. Vive el desenlace del duelo psíquico y los primeros indicios de los <strong>Neo Heroes</strong>. Edición <strong>Ivrea España</strong> con Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "3551836ad26cbd6367bf3a574d782e8169c1e46fd595ef119d86524bb8acbe8c",
+      "problem_text_exact": "Edición <strong>Ivrea España</strong> con Envío",
+      "proposed_after": "<p>¡El destino de las hermanas! Compra <strong>One Punch-Man Tomo 34</strong> en <strong>Akibara</strong>. Vive el desenlace del duelo psíquico y los primeros indicios de los <strong>Neo Heroes</strong>. Edición de <strong>Ivrea España</strong>. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "493f96990fc251ae7692b2367bce42b9dd16bf2fc0962f6759c0cb31d938685b",
+      "proposed_visible_chars": 232
+    },
+    {
+      "key": "post:21627:post_excerpt",
+      "object_type": "post",
+      "object_id": 21627,
+      "title": "Tokyo Revengers 02",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 2 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "8b2fa8fa1ef2bb5d5bea627d825bd6c66ed13a9e79a5623f0161ad7297fe218f",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 2 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 2</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "9a9e51860c9a009bcae4576506ed597a6ef05f1e6b2f60aee9230e4a64a617c4",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21630:post_excerpt",
+      "object_type": "post",
+      "object_id": 21630,
+      "title": "Tokyo Revengers 03",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 3 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "65fb7be23588c5d219d624f550f26b3c94dd34fdc9177cdecd82e589d543ba3c",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 3 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 3</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "6e4f1479dbd77264eaa0ccb60cb872386876705e1983293410c1c8f2c8b266f6",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21634:post_excerpt",
+      "object_type": "post",
+      "object_id": 21634,
+      "title": "Tokyo Revengers 04",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 4 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "3ddf47178c2e732fd5e77c23dc5bcec41f153414b8a79caf648abe5b09c4f793",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 4 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 4</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "24b7574d03d4a333f15aa916e9f0e657d79f8a7b5776fbaccccdcd65aaef1e96",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21637:post_excerpt",
+      "object_type": "post",
+      "object_id": 21637,
+      "title": "Tokyo Revengers 30",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 30 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "059b5de53e968b766555c1f3df7d95faa27d2d597b7017625b8c74dc8db0257c",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 30 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 30</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "4881ea4a5964e735209e1de0d379dbac42491d5852610a2feca416e3e78363c6",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21644:post_excerpt",
+      "object_type": "post",
+      "object_id": 21644,
+      "title": "Tokyo Revengers 05",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 5 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "f6bb31ee3bdbfdd454045c6cbb84c274d04a47bd8df86cd33feadb4c7967ee03",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 5 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 5</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "d1f27eb8624bf3353db28f8a955fcbf8012df96427749b24d7a98cc699bb1e2a",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21648:post_excerpt",
+      "object_type": "post",
+      "object_id": 21648,
+      "title": "Tokyo Revengers 06",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 6 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "bb51e4206dbcdf55378b9263bb75a38c7502ca4480d6bee197f8cda9d38939d2",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 6 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 6</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "c51da88cc961f6d6a0eeb54b0be4872f6a921b1856e0733ad8ec86f23142f78e",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21655:post_excerpt",
+      "object_type": "post",
+      "object_id": 21655,
+      "title": "Tokyo Revengers 08",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 8 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "7f8ddf51829b7d64e5dc224be10a434e2a0affd1eeeff4db24c526543207391e",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 8 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 8</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "b9c3c1b01386ddbbe4b8c2b4b216a69474f0380b563e5cf3133b41e36fbe8661",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21660:post_excerpt",
+      "object_type": "post",
+      "object_id": 21660,
+      "title": "Tokyo Revengers 09",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 9 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "632ab88038847e3b6ffbdab442ea6567e13d8784eaeb99ecbe5917be308f1673",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 9 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 9</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "5d5d84be96eb660dbde990092bf93586d8764a382a662aebcd43377b203cbcb9",
+      "proposed_visible_chars": 201
+    },
+    {
+      "key": "post:21669:post_excerpt",
+      "object_type": "post",
+      "object_id": 21669,
+      "title": "Tokyo Revengers 12",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 12 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "93be81237a28b74223b3128e376b186422d5769cc1767c55458105fac47915fa",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 12 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 12</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "aa37188cf9a0c77d24d9e53836cff08a2d46de2d26c6679378764227bc56f304",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21672:post_excerpt",
+      "object_type": "post",
+      "object_id": 21672,
+      "title": "Tokyo Revengers 13",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 13 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "c68e7990c8b5f02648504bb992f1179bc7f95e56ec45fd9f3b6849d45c40cfff",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 13 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 13</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "9fd6ebc38a4f7928a0c00398053a0cc99a5dafb00a88b82460e9cffe8679a9e0",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21675:post_excerpt",
+      "object_type": "post",
+      "object_id": 21675,
+      "title": "Tokyo Revengers 14",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 14 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "a67bc5aa11853f4540ad7fe047b862522260d986f97f62b9f45b0df4e8df51af",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 14 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 14</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "30f1e8ee72e1b4a4257ca044c3111b68039eda7451bc7ae3039ce599552cbdbb",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21681:post_excerpt",
+      "object_type": "post",
+      "object_id": 21681,
+      "title": "Tokyo Revengers 16",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 16 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "ef9b17380913183487a680d6b170b0ee0db19943c69300493c7dd08b9a2b22c2",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 16 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 16</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "681d8d6624eae589c1961d66f43a289cc941211f6b0874cae9619b6a78fa9880",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21685:post_excerpt",
+      "object_type": "post",
+      "object_id": 21685,
+      "title": "Tokyo Revengers 17",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 17 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "9609e24537ad1c049a2e6b7eaed37018b47984a596405185acbc02cadb4cccb1",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 17 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 17</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "cac9fe7b1d68103f4153c8376aef56e5cf58f61fdc47f67313ca5cf043596f9b",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21689:post_excerpt",
+      "object_type": "post",
+      "object_id": 21689,
+      "title": "Tokyo Revengers 18",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 18 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "29a5dcd4ea1fdd3cf91cff65912dd96f53eebc0e2882e0f776bb3887dea14cd2",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 18 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 18</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "95e893616db3ea86c1aae67449318d4dd03ae190de04eb6fd4a1c05cde0d6f3e",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21692:post_excerpt",
+      "object_type": "post",
+      "object_id": 21692,
+      "title": "Tokyo Revengers 19",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 19 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "b7ee44e40d2bffefb8c3018b0b80d5a66cbd7567ae9a61ca0c87795e5c6f41e5",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 19 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 19</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "41b32dd3b8e3e115990e3854437b82da0da306cd36229129a0ac3600f07da087",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21701:post_excerpt",
+      "object_type": "post",
+      "object_id": 21701,
+      "title": "Tokyo Revengers 22",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 22 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "d5ff3191a4aca2186a88615d31088a251b76aacebb0f0c5739ac0bf5e73c8b37",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 22 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 22</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "e1a4a12eb903f0cf7b15198b8c7e18bac04de1ae5a54bb7903d3d26f7f9d2ea5",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21704:post_excerpt",
+      "object_type": "post",
+      "object_id": 21704,
+      "title": "Tokyo Revengers 23",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 23 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "53dc0fe477b679344af20285cb8f8a098a67807585e0e94bb8e122ab192d8841",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 23 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 23</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "69014c2e9f16365ba1c627c7b4ef2bf346fb6b8c6b4d67218f82184faa7c0509",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21707:post_excerpt",
+      "object_type": "post",
+      "object_id": 21707,
+      "title": "Tokyo Revengers 24",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 24 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "432b6da77dfe2a4e014396c1bb2c67992653495bd21b1496835af36993e387ff",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 24 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 24</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "28921f9d3dd1fa4e3751f6aa45a81f73bc8d02e4c24a9e31155d465b1d74730a",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21710:post_excerpt",
+      "object_type": "post",
+      "object_id": 21710,
+      "title": "Tokyo Revengers 25",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 25 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "053359dc9d2889d9b0e05654fdfa7a6f4043f5609159708567e4159b592417ef",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 25 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 25</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "9a30c3d5b431cfe0d858434f15407d3c0c47f6ea5a29c39b3478b337dc8b72a9",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21713:post_excerpt",
+      "object_type": "post",
+      "object_id": 21713,
+      "title": "Tokyo Revengers 26",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 26 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "da1534d67c19a269791f7d9ed3aab799a83dd7fdc8670feee6ffca6c71aa7731",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 26 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 26</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "de35958c200e5c0424459e4b9d534163e5455b6781435e2f99aa6fc93ca1b68a",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21719:post_excerpt",
+      "object_type": "post",
+      "object_id": 21719,
+      "title": "Tokyo Revengers 28",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 28 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "111f82389ec931d6c75ed06adb2f6a1d18db54350d5ff96803be72c5bc67e243",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 28 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 28</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "a286378038ad04de86631854b60ffb4cb651a86a9f633aabcda35aa7c3f0bad4",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21722:post_excerpt",
+      "object_type": "post",
+      "object_id": 21722,
+      "title": "Tokyo Revengers 29",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "<p>Tokyo Revengers Tomo 29 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "e9d3e399951c0187dfbd4050af94229e78e4a60c9f9b5ddfd317e35d03643676",
+      "problem_text_exact": "<p>Tokyo Revengers Tomo 29 Takemichi Hanagaki, un fracasado de 26 años, descubre que su ex novia Hinata fue asesinada por la Tokyo Manji-kai. Tras ser empujado a las vías del tren, viaja 12 años al pasado a su época de secundaria. Con el poder de cambiar el futuro, Takemichi intentará salvar a Hinata y corregir los errores que arruinaron su vida, enfrentándose al peligroso mundo de las pandillas. Obra de Ken Wakui que revolucionó el shonen moderno con su mezcla de acción, drama y viajes en el tiempo. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after": "<p>Compra <strong>Tokyo Revengers Tomo 29</strong> de <strong>Ken Wakui</strong> en Akibara. Sigue a Takemichi en su intento de cambiar el futuro, salvar a Hinata y enfrentar a la Tokyo Manji. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "21d794f5b199a7bced9aea14a9f168aab6fbee12f33973f8ae912c53e6d158d7",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:21775:post_excerpt",
+      "object_type": "post",
+      "object_id": 21775,
+      "title": "Drifting Dragons 01",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "Drifting Dragons Tomo 1 recopila los volúmenes 1-2. Naves cazadragones recorren los cielos en busca de las últimas criaturas. La tripulación de Quin Zaza arriesga sus vidas cazando, pero a Mika solo le importa probar su deliciosa carne. Aventura aérea, caza épica y gastronomía exótica en la serie de Taku Kuwabara con anime en Netflix. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "e64ab5ee43cb4da587839db9dd0147f3b204cd337c7573e597a8ab65bd5a0a66",
+      "problem_text_exact": "Drifting Dragons Tomo 1 recopila los volúmenes 1-2. Naves cazadragones recorren los cielos en busca de las últimas criaturas. La tripulación de Quin Zaza arriesga sus vidas cazando, pero a Mika solo le importa probar su deliciosa carne. Aventura aérea, caza épica y gastronomía exótica en la serie de Taku Kuwabara con anime en Netflix. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>Drifting Dragons Tomo 1</strong> de Taku Kuwabara. Conoce a la tripulación de la Quin Zaza y su vida entre dragones, aventuras aéreas y gastronomía. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "1f331ab8da6f5fbfa7d4a46f06113d1058615f6612443531ee359b24e557390b",
+      "proposed_visible_chars": 193
+    },
+    {
+      "key": "post:21778:post_excerpt",
+      "object_type": "post",
+      "object_id": 21778,
+      "title": "Drifting Dragons 02",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "Drifting Dragons Tomo 2 recopila los volúmenes 3-4. Takita cae de la Quin Zaza y termina en un valle con una cría de dragón como única compañía. Mientras lucha por sobrevivir, la tripulación enfrenta nuevos desafíos. Descubren más sobre los dragones y Mika prueba nuevas recetas. La aventura aérea de Taku Kuwabara continúa. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "a2de6f399e7c64650828eae6c66e3076ccaf696409fd030e8a7d0f3194ecda52",
+      "problem_text_exact": "Drifting Dragons Tomo 2 recopila los volúmenes 3-4. Takita cae de la Quin Zaza y termina en un valle con una cría de dragón como única compañía. Mientras lucha por sobrevivir, la tripulación enfrenta nuevos desafíos. Descubren más sobre los dragones y Mika prueba nuevas recetas. La aventura aérea de Taku Kuwabara continúa. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>Drifting Dragons Tomo 2</strong> de Taku Kuwabara. Takita cae de la Quin Zaza y debe sobrevivir en un valle junto a una cría de dragón. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "6bdc0cd84a0f13bc63d149af17b4f7d74081c6ea4e61618b0fda797a7cb8acc7",
+      "proposed_visible_chars": 180
+    },
+    {
+      "key": "post:21781:post_excerpt",
+      "object_type": "post",
+      "object_id": 21781,
+      "title": "Drifting Dragons 03",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "Drifting Dragons Tomo 3 recopila los volúmenes 5-6. ¡Un dragón devora a Vanabelle! La tripulación de Quin Zaza arriesga todo en una cacería desesperada para salvarla mientras un dragón salvaje los ataca. Además, se revela el pasado de Mika. La aventura culinaria aérea de Taku Kuwabara alcanza nuevos niveles de tensión y emoción. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "5aaaeb82ecd31a9e6b5217be5af1440b3a6b035317997f43efa8090ee54f3125",
+      "problem_text_exact": "Drifting Dragons Tomo 3 recopila los volúmenes 5-6. ¡Un dragón devora a Vanabelle! La tripulación de Quin Zaza arriesga todo en una cacería desesperada para salvarla mientras un dragón salvaje los ataca. Además, se revela el pasado de Mika. La aventura culinaria aérea de Taku Kuwabara alcanza nuevos niveles de tensión y emoción. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>Drifting Dragons Tomo 3</strong> de Taku Kuwabara. La tripulación arriesga todo para rescatar a Vanabelle mientras un dragón salvaje los ataca. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "3086c266a3b278af2d2bcd61322c9ec0da2f6c8ca5d993d19a7803ddc31a9060",
+      "proposed_visible_chars": 188
+    },
+    {
+      "key": "post:21784:post_excerpt",
+      "object_type": "post",
+      "object_id": 21784,
+      "title": "Drifting Dragons 04",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "Drifting Dragons Tomo 4 recopila los volúmenes 7-8. Después de la tormenta, calma: conoce los secretos íntimos de la tripulación. Pero aparece la Plana Grava capitaneada por Kuruga, quien cree que los dragones deben extinguirse. ¿Puede Mika aceptar esto? Entre debates filosóficos y banquetes exóticos continúa la aventura de Taku Kuwabara. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "65ab5c99aa3a9c9af9a6e827b5a93c67fbdddc6ee5f3eb61713bdafa9c3a5646",
+      "problem_text_exact": "Drifting Dragons Tomo 4 recopila los volúmenes 7-8. Después de la tormenta, calma: conoce los secretos íntimos de la tripulación. Pero aparece la Plana Grava capitaneada por Kuruga, quien cree que los dragones deben extinguirse. ¿Puede Mika aceptar esto? Entre debates filosóficos y banquetes exóticos continúa la aventura de Taku Kuwabara. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>Drifting Dragons Tomo 4</strong> de Taku Kuwabara. La llegada de la Plana Grava enfrenta a Mika con una visión radical sobre el futuro de los dragones. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "82b863424ef7390e4ac0957838a61fcef716513bc7748555590f8f7a7706cab1",
+      "proposed_visible_chars": 196
+    },
+    {
+      "key": "post:21788:post_excerpt",
+      "object_type": "post",
+      "object_id": 21788,
+      "title": "Drifting Dragons 05",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "Drifting Dragons Tomo 5 recopila los volúmenes 9-10. ¡Typhon, el legendario dragón devorador de naves, regresa! Se revela el primer encuentro con la Quin Zaza. Luego, el pasado de Vanabelle los arrastra a una guerra civil. Entre dragones legendarios, conflictos políticos y banquetes exóticos, la aventura de Taku Kuwabara se vuelve más intensa y personal. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "84a58abddd2813c456cdbda6412b16fdd55652dc339245b61a81c121378ebf35",
+      "problem_text_exact": "Drifting Dragons Tomo 5 recopila los volúmenes 9-10. ¡Typhon, el legendario dragón devorador de naves, regresa! Se revela el primer encuentro con la Quin Zaza. Luego, el pasado de Vanabelle los arrastra a una guerra civil. Entre dragones legendarios, conflictos políticos y banquetes exóticos, la aventura de Taku Kuwabara se vuelve más intensa y personal. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>Drifting Dragons Tomo 5</strong> de Taku Kuwabara. El regreso del legendario Typhon y el pasado de Vanabelle arrastran a la Quin Zaza a una guerra civil. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "e483ba4cbb115ed7b36ae8b5a2e8490f645a8eb1eff0dd80b3a2b608a091272d",
+      "proposed_visible_chars": 198
+    },
+    {
+      "key": "post:22018:post_excerpt",
+      "object_type": "post",
+      "object_id": 22018,
+      "title": "Re:Zero Chapter Three 05",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "Re:Zero Chapter Three Tomo 5. Subaru va a mansión Roswaal para derrotar Culto de Bruja. Atacado por Ballena Blanca en camino, solo sacrificio de Rem le permite escapar. Llega a mansión pero pierde horriblemente a Emilia. Regreso por Muerte lo revive traumatizado nuevamente. Ciclo de horror y pérdidas. Franquicia 10+ millones vendidas, momento más emotivo. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "287eb283e971965edba7ea1f6db3193dd36ca9b5f72708380e9672b3cd8dd1e1",
+      "problem_text_exact": "Re:Zero Chapter Three Tomo 5. Subaru va a mansión Roswaal para derrotar Culto de Bruja. Atacado por Ballena Blanca en camino, solo sacrificio de Rem le permite escapar. Llega a mansión pero pierde horriblemente a Emilia. Regreso por Muerte lo revive traumatizado nuevamente. Ciclo de horror y pérdidas. Franquicia 10+ millones vendidas, momento más emotivo. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>Re:Zero Chapter Three Tomo 5</strong>. Subaru intenta volver a la mansión Roswaal mientras la Ballena Blanca y el Culto de la Bruja lo empujan a un nuevo ciclo de pérdidas. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "ac6ed649d26411313c9557d8b7d3c1e3826d0a21fdd945114b46f9e00e8e641b",
+      "proposed_visible_chars": 218
+    },
+    {
+      "key": "post:22153:post_excerpt",
+      "object_type": "post",
+      "object_id": 22153,
+      "title": "From Hell (nueva edición)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "From Hell - Nueva Edición. Obra maestra de Alan Moore y Eddie Campbell. Galardonada con Eisner, Harvey y Angoulema 2001. Reedición completa revisada con comentarios de Moore. Revisitación de Jack el Destripador + disección despiadada de sociedad victoriana. Investigación histórica profunda, conspiración, mal filosófico. Novela gráfica definitiva del genio Moore (Watchmen, V de Vendetta). Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "0b1ab75a568ebaad334c6991b67e52e42a1b60e6eee28d5bbb1592a3970d85b3",
+      "problem_text_exact": "From Hell - Nueva Edición. Obra maestra de Alan Moore y Eddie Campbell. Galardonada con Eisner, Harvey y Angoulema 2001. Reedición completa revisada con comentarios de Moore. Revisitación de Jack el Destripador + disección despiadada de sociedad victoriana. Investigación histórica profunda, conspiración, mal filosófico. Novela gráfica definitiva del genio Moore (Watchmen, V de Vendetta). Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>From Hell – Nueva edición</strong> de Alan Moore y Eddie Campbell. Una investigación oscura y documentada sobre Jack el Destripador y la sociedad victoriana. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "4640fc2ba73d09dd430c678c09ee2c97b135e1dc199ef7f444ac7e70b542dd32",
+      "proposed_visible_chars": 202
+    },
+    {
+      "key": "post:22157:post_excerpt",
+      "object_type": "post",
+      "object_id": 22157,
+      "title": "One Piece nº 01 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 1. ¡Nueva edición shonen pirata! Era de grandes piratas buscan One Piece, tesoro de Gold Roger. Luffy, admirador de Shanks el Pelirrojo, come fruta del diablo: cuerpo de goma, pierde nadar. Shanks sacrifica brazo salvándolo. 10 años después, con sombrero de paja, Luffy se hace a la mar solo. ¡Viaje para ser Rey de Piratas comienza! Manga más vendido historia, anime desde 1999. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "b3a69707ac02af158cd8f2d93bbbc0ebebf1e38ba0ed322004876647847e57c6",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 1. ¡Nueva edición shonen pirata! Era de grandes piratas buscan One Piece, tesoro de Gold Roger. Luffy, admirador de Shanks el Pelirrojo, come fruta del diablo: cuerpo de goma, pierde nadar. Shanks sacrifica brazo salvándolo. 10 años después, con sombrero de paja, Luffy se hace a la mar solo. ¡Viaje para ser Rey de Piratas comienza! Manga más vendido historia, anime desde 1999. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 1</strong> de Eiichiro Oda. Luffy inicia su viaje para convertirse en Rey de los Piratas y comienza a formar su tripulación. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "c52863272b88c8b1cfcd33b9c4a90d2e30a91c14db2cae446e4d2882afd5b8e4",
+      "proposed_visible_chars": 193
+    },
+    {
+      "key": "post:22160:post_excerpt",
+      "object_type": "post",
+      "object_id": 22160,
+      "title": "One Piece nº 02 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 2. ¡Únete a tripulación! Capitán Kuro, haciéndose pasar por mayordomo de Kaya (chica rica), planea atacar aldea, matarla y heredar fortuna. Luffy, Zoro y Nami saben lo que Usopp siente por Kaya: deciden ayudarle plantando cara a piratas. Monkey D. Luffy dispuesto a todo: ¡guerra sin cuartel! Arco Syrup, Usopp se une. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "40c4d5f24f1a525e66958cdc298937316fbd55d7f4715b98ece4005aef24844e",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 2. ¡Únete a tripulación! Capitán Kuro, haciéndose pasar por mayordomo de Kaya (chica rica), planea atacar aldea, matarla y heredar fortuna. Luffy, Zoro y Nami saben lo que Usopp siente por Kaya: deciden ayudarle plantando cara a piratas. Monkey D. Luffy dispuesto a todo: ¡guerra sin cuartel! Arco Syrup, Usopp se une. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 2</strong> de Eiichiro Oda. Luffy, Zoro y Nami ayudan a Usopp a detener el plan del capitán Kuro contra Kaya. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "1e2487e34f3f9b7f50a8c01641d37a5fe633f2a216ac560c5f317efdec1f4fc2",
+      "proposed_visible_chars": 178
+    },
+    {
+      "key": "post:22164:post_excerpt",
+      "object_type": "post",
+      "object_id": 22164,
+      "title": "One Piece nº 03 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 3 de Eiichiro Oda. Don Krieg (pirata más poderoso East Blue) usa a Zeff como rehén. Sanji, su discípulo, no ataca. Flashback devastador: naufragio 85 días sin comida, Zeff sacrifica pierna y toda comida para salvar niño Sanji. Deuda de vida vs sueño del All Blue. Luffy enfurecido por táctica vil. Batalla emotiva donde Sanji debe elegir: quedarse o zarpar. Arco donde cocinero se une. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "1e36d8019dddf8ea130a921990bd4c0f07c7f0293ddbd47d19db0f2f49047a7a",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 3 de Eiichiro Oda. Don Krieg (pirata más poderoso East Blue) usa a Zeff como rehén. Sanji, su discípulo, no ataca. Flashback devastador: naufragio 85 días sin comida, Zeff sacrifica pierna y toda comida para salvar niño Sanji. Deuda de vida vs sueño del All Blue. Luffy enfurecido por táctica vil. Batalla emotiva donde Sanji debe elegir: quedarse o zarpar. Arco donde cocinero se une. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 3</strong> de Eiichiro Oda. La batalla contra Don Krieg revela el pasado de Zeff y la deuda que une a Sanji con el Baratie. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "d65f972a002fdfd44925763db5208f024ac17f555484a65a5b9ce1aec3d1f74c",
+      "proposed_visible_chars": 192
+    },
+    {
+      "key": "post:22167:post_excerpt",
+      "object_type": "post",
+      "object_id": 22167,
+      "title": "One Piece nº 04 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 4. ¡Historia piratas buscando One Piece! Luffy y banda escuchan petición auxilio de Nami del corazón: batalla campal contra Arlong (hombre-pez que esclavizó aldea 8 años). Luffy cae al agua: peligro inminente para usuario fruta del diablo. Banda lucha salvar capitán. Momento más emotivo: destruir opresión de Nami. Arco Arlong Park icónico. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "057fad01bb3d019d1a75baf218c946abb1b2108fad580be56ff591640d1edaff",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 4. ¡Historia piratas buscando One Piece! Luffy y banda escuchan petición auxilio de Nami del corazón: batalla campal contra Arlong (hombre-pez que esclavizó aldea 8 años). Luffy cae al agua: peligro inminente para usuario fruta del diablo. Banda lucha salvar capitán. Momento más emotivo: destruir opresión de Nami. Arco Arlong Park icónico. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 4</strong> de Eiichiro Oda. Luffy y su tripulación enfrentan a Arlong para liberar a Nami y su aldea. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "91bbefdd5adbc3ec6e70bf142562b9ca682b5501963510bc09cd5ab861a942fa",
+      "proposed_visible_chars": 170
+    },
+    {
+      "key": "post:22170:post_excerpt",
+      "object_type": "post",
+      "object_id": 22170,
+      "title": "One Piece nº 05 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 5. ¡Historia piratas buscando One Piece! Nada más entrar Grand Line, Luffy y tripulación son objetivo de Baroque Works, organización criminal secreta. Salvan a Vivi, princesa infiltrada. ¿Qué ocurre ahora que saben nombre del jefe? Sir Crocodile (Shichibukai) los marca para muerte. Proteger reino Alabasta. Inicio arco Alabasta aclamado. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "d8a93a74d3477c51b2c9e8fbca09a78ee3a48188ee8af74d19ca537078406032",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 5. ¡Historia piratas buscando One Piece! Nada más entrar Grand Line, Luffy y tripulación son objetivo de Baroque Works, organización criminal secreta. Salvan a Vivi, princesa infiltrada. ¿Qué ocurre ahora que saben nombre del jefe? Sir Crocodile (Shichibukai) los marca para muerte. Proteger reino Alabasta. Inicio arco Alabasta aclamado. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 5</strong> de Eiichiro Oda. La tripulación entra a Grand Line, conoce a Vivi y queda en la mira de Baroque Works. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "a40ea1f53799d468fdfaf2200da06d4aa91336d1f7aeb3c4d7a9c733a01dd247",
+      "proposed_visible_chars": 182
+    },
+    {
+      "key": "post:22173:post_excerpt",
+      "object_type": "post",
+      "object_id": 22173,
+      "title": "One Piece nº 06 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 6. ¡Historia piratas buscando One Piece! Luffy y tripulación deciden que Tony Tony Chopper (reno con Fruta Humano-Humano) sea uno de los suyos. Pero triste acontecimiento pasado dejó gran herida en corazón del reno nariz azul. Rechazado por manada, Dr. Hiriluk lo salvó. Tragedia con hongo venenoso. Historia emotiva sobre aceptación y familia. Arco Drum Island. Manga más vendido. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "36a46688b961363c8428eeda090ddb30422b5861b01a136c999524ebf0c06e6a",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 6. ¡Historia piratas buscando One Piece! Luffy y tripulación deciden que Tony Tony Chopper (reno con Fruta Humano-Humano) sea uno de los suyos. Pero triste acontecimiento pasado dejó gran herida en corazón del reno nariz azul. Rechazado por manada, Dr. Hiriluk lo salvó. Tragedia con hongo venenoso. Historia emotiva sobre aceptación y familia. Arco Drum Island. Manga más vendido. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 6</strong> de Eiichiro Oda. En Drum Island, Luffy conoce a Chopper y descubre la historia que marcó al pequeño médico. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "887bad1bcec16ef2f961bdcdca225f0ebc8faac2792704f7db82ecb34cfa5a15",
+      "proposed_visible_chars": 187
+    },
+    {
+      "key": "post:22176:post_excerpt",
+      "object_type": "post",
+      "object_id": 22176,
+      "title": "One Piece nº 07 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 7. ¡Historia piratas buscando One Piece! Tropas rebeldes y ejército real a punto de enfrentarse por tejemanejes de Baroque Works. Luffy y tripulación se dirigen a Rainbase donde está Mr. 0 (Crocodile) para detener revuelta. Caen en trampa, terminan encerrados en jaula submarina con cocodrilos gigantes. Deben escapar antes que guerra mate miles. Arco Alabasta clímax. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "ef006c316ff6e2fb8856a6b64d9382ef031fe94d27168d5a002785de2d0e88cd",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 7. ¡Historia piratas buscando One Piece! Tropas rebeldes y ejército real a punto de enfrentarse por tejemanejes de Baroque Works. Luffy y tripulación se dirigen a Rainbase donde está Mr. 0 (Crocodile) para detener revuelta. Caen en trampa, terminan encerrados en jaula submarina con cocodrilos gigantes. Deben escapar antes que guerra mate miles. Arco Alabasta clímax. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 7</strong> de Eiichiro Oda. Luffy llega a Rainbase para detener a Crocodile y evitar la guerra en Alabasta. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "35ed50fd35b3e672f7d0760a558e1ced0d5a14f85cfaf8a384ccb19057e30cc9",
+      "proposed_visible_chars": 176
+    },
+    {
+      "key": "post:22179:post_excerpt",
+      "object_type": "post",
+      "object_id": 22179,
+      "title": "One Piece nº 08 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 8. ¡Historia piratas buscando One Piece! Cuenta atrás para bombardeo plaza Alubarna. ¡Luffy al fin llega hasta Crocodile! Lucha definitiva para detener revuelta Arabasta. Shichibukai invencible con Fruta Arena vs pirata novato. Derrotado dos veces ya, última oportunidad. Bomba explota en minutos. Batalla decide destino de nación entera. Arco Alabasta final épico. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "eb740528bd2c243169a9a3e4c1632e68bd908328733162f9c26fe6b5c02cf59f",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 8. ¡Historia piratas buscando One Piece! Cuenta atrás para bombardeo plaza Alubarna. ¡Luffy al fin llega hasta Crocodile! Lucha definitiva para detener revuelta Arabasta. Shichibukai invencible con Fruta Arena vs pirata novato. Derrotado dos veces ya, última oportunidad. Bomba explota en minutos. Batalla decide destino de nación entera. Arco Alabasta final épico. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 8</strong> de Eiichiro Oda. La batalla final contra Crocodile decidirá el destino de Alabasta. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "62a6948ef792cd527b9a63e86218e45e84636cc4396eeb9822e51252e9009054",
+      "proposed_visible_chars": 163
+    },
+    {
+      "key": "post:22182:post_excerpt",
+      "object_type": "post",
+      "object_id": 22182,
+      "title": "One Piece nº 09 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 9. ¡Nueva edición! ¿Existe isla del cielo? Banda de Luffy llena de expectación visita a Cricket, desterrado en isla Jaya. ¿Cuál es secreto para navegar hasta cielo? Knock Up Stream: corriente que lanza océano verticalmente. Montblanc Cricket busca Ciudad de Oro de ancestro \"mentiroso\". Bellamy burla sueños. ¡Historia piratas buscando One Piece! Inicio arco Skypiea. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "705c6b7feb430e63c6137c694e3fa9a30c89b146b73e96b87d44d943b431612e",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 9. ¡Nueva edición! ¿Existe isla del cielo? Banda de Luffy llena de expectación visita a Cricket, desterrado en isla Jaya. ¿Cuál es secreto para navegar hasta cielo? Knock Up Stream: corriente que lanza océano verticalmente. Montblanc Cricket busca Ciudad de Oro de ancestro \"mentiroso\". Bellamy burla sueños. ¡Historia piratas buscando One Piece! Inicio arco Skypiea. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 9</strong> de Eiichiro Oda. En Jaya, Luffy busca la ruta hacia la isla del cielo y conoce la historia de Montblanc Cricket. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "c46e4252797d84314901b87532a2c73848ed20052dc26bdfef78192e95f0e9e8",
+      "proposed_visible_chars": 192
+    },
+    {
+      "key": "post:22185:post_excerpt",
+      "object_type": "post",
+      "object_id": 22185,
+      "title": "One Piece nº 10 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 10. ¡Historia piratas buscando One Piece! Luffy y tripulación van por oro en Upper Yard. Inmersos en lucha entre Enel (dios autoproclamado con Fruta Rayo-Rayo, 200M voltios) y secuaces que controlan isla cielo, vs Shandia (guerreros quieren recuperar territorio ancestral). ¡Pugna por supervivencia! Ciudad de Oro misterio. Arco Skypiea clímax. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "12b861d752ab5896bd3aefd67ecd6e2f9b6144dfc278d51c7b45bf0304e5e39f",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 10. ¡Historia piratas buscando One Piece! Luffy y tripulación van por oro en Upper Yard. Inmersos en lucha entre Enel (dios autoproclamado con Fruta Rayo-Rayo, 200M voltios) y secuaces que controlan isla cielo, vs Shandia (guerreros quieren recuperar territorio ancestral). ¡Pugna por supervivencia! Ciudad de Oro misterio. Arco Skypiea clímax. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 10</strong> de Eiichiro Oda. En Upper Yard, la tripulación queda atrapada en la lucha entre Enel y los guerreros shandia. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "9b3628c76930fe25e967b113e873bdb5f288448749f9ce37e8101c74e3adc215",
+      "proposed_visible_chars": 190
+    },
+    {
+      "key": "post:22188:post_excerpt",
+      "object_type": "post",
+      "object_id": 22188,
+      "title": "One Piece nº 11 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 11. Bienvenidos a historia piratas más famosa. Luffy fuera de combate (200M voltios). Enel va a salirse con suya: destrucción total con Raigo. Última esperanza: campana del Dorado. Si logran hacerla sonar ¡desbloquearán memoria de descendientes de Calgara! Demostrarán Noland no mentía, Ciudad Oro existía. Clímax emocional Skypiea. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "7bd7ce7307ccd58d622d9a44a24be2f228ba31a575ecc1a26b7dd5c9a2c1a625",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 11. Bienvenidos a historia piratas más famosa. Luffy fuera de combate (200M voltios). Enel va a salirse con suya: destrucción total con Raigo. Última esperanza: campana del Dorado. Si logran hacerla sonar ¡desbloquearán memoria de descendientes de Calgara! Demostrarán Noland no mentía, Ciudad Oro existía. Clímax emocional Skypiea. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 11</strong> de Eiichiro Oda. El arco de Skypiea llega a su clímax mientras Luffy intenta detener a Enel y hacer sonar la campana dorada. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "f5ead5e305e04a41f1fc5cba7d1c72028e8fb61a0ddcdb75043d49fb3adf816c",
+      "proposed_visible_chars": 205
+    },
+    {
+      "key": "post:22191:post_excerpt",
+      "object_type": "post",
+      "object_id": 22191,
+      "title": "One Piece nº 12 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 12. Nueva edición obra maestra Eiichiro Oda. Luffy con afro vence a Foxy en Davy Back Fight. Se dirigen a Water Seven (Ciudad del Agua) buscando carpintero para Going Merry. Pero Almirante Aokiji \"Faisán Azul\" (Fruta Hielo congela océanos) aparece. ¿Qué sabe del pasado de Robin Ohara? ¿Por qué Robin inquieta? Secretos del pasado emergen. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "a66cb26ed94303609b1af5436663f40b6f70409643f7717c00081d2302590ffd",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 12. Nueva edición obra maestra Eiichiro Oda. Luffy con afro vence a Foxy en Davy Back Fight. Se dirigen a Water Seven (Ciudad del Agua) buscando carpintero para Going Merry. Pero Almirante Aokiji \"Faisán Azul\" (Fruta Hielo congela océanos) aparece. ¿Qué sabe del pasado de Robin Ohara? ¿Por qué Robin inquieta? Secretos del pasado emergen. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 12</strong> de Eiichiro Oda. Tras el Davy Back Fight, la tripulación llega a Water Seven y el almirante Aokiji revela pistas sobre Robin. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "cfd1ce8cd48e055b912b489cde801e5dc67c8a50f0613d3b73fa67b9fc39e61f",
+      "proposed_visible_chars": 206
+    },
+    {
+      "key": "post:22197:post_excerpt",
+      "object_type": "post",
+      "object_id": 22197,
+      "title": "One Piece nº 13 (3 en 1)",
+      "field": "post_excerpt",
+      "issue_codes": [
+        "overlong_product_excerpt",
+        "low_information_density"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Editar producto > Descripción corta del producto > Actualizar",
+      "expected_before": "One Piece Edición 3 en 1 - Tomo 13. Nueva edición recopilatorio manga más famoso. Para impedir Robin se separe sacrificándose, ¡Luffy y tripulación enfrentan CP9! Asesinos secretos del Gobierno buscan planos arma ancestral Plutón en escondite de Franky cyborg. ¿Qué verdad sale a luz en almacén? Conexión Tom-Plutón-Gobierno. ¡Historia piratas buscando One Piece! Arco Water Seven clímax. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "expected_before_sha256": "f2e88b1e333c2bbce324949da9150674edfb1a48f8ed20f80ebaf5390185ed5b",
+      "problem_text_exact": "One Piece Edición 3 en 1 - Tomo 13. Nueva edición recopilatorio manga más famoso. Para impedir Robin se separe sacrificándose, ¡Luffy y tripulación enfrentan CP9! Asesinos secretos del Gobierno buscan planos arma ancestral Plutón en escondite de Franky cyborg. ¿Qué verdad sale a luz en almacén? Conexión Tom-Plutón-Gobierno. ¡Historia piratas buscando One Piece! Arco Water Seven clímax. Manga más vendido historia. Envío según cobertura del transportista desde Akibara.",
+      "proposed_after": "<p>Compra <strong>One Piece 3 en 1 – Tomo 13</strong> de Eiichiro Oda. Luffy y su tripulación enfrentan al CP9 para proteger a Robin y descubrir el secreto de Plutón. Despacho sujeto a cobertura del transportista.</p>",
+      "proposed_after_sha256": "2ae7694d98e5c36a3cf4ff0f68a217cf5eb11b5d0a3d35472153132dbc1b57b7",
+      "proposed_visible_chars": 193
+    },
+    {
+      "key": "post:22353:post_content",
+      "object_type": "post",
+      "object_id": 22353,
+      "title": "Atelier of Witch Hat: la obra maestra de Kamome Shirahama",
+      "field": "post_content",
+      "issue_codes": [
+        "unescaped_ampersand_in_href",
+        "malformed_wpautop_section_header",
+        "dead_presentational_span"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Editar entrada > contenido > Actualizar",
+      "expected_before": "<div class=\"aki-page-hero\" style=\"background:linear-gradient(135deg,#1a1a2e 60%,#6a4c93 100%)\">\n<h1>Atelier of Witch Hat: la obra maestra de Kamome Shirahama</h1>\n<p>Por qué este manga es considerado uno de los más bellos jamás dibujados</p>\n</div>\n\n<div class=\"aki-page\">\n\n<p class=\"aki-about-intro\"><strong>Atelier of Witch Hat</strong> (Tongari Boushi no Atelier) no es un manga más de fantasía. Es una obra de arte en cada página, una historia de superación y magia que ha cautivado a lectores y críticos desde 2016. Ganadora de premios Eisner y Harvey, con 15 tomos publicados y un anime que se estrenó en abril de 2026, esta serie es una de las joyas imprescindibles del manga contemporáneo.</p>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿De qué trata?</h2></div>\n<p style=\"font-size:15px;line-height:1.8\"><strong>Coco</strong> es una niña que sueña con ser bruja, pero en su mundo la magia es un don de nacimiento — no algo que se pueda aprender. Un día descubre que la magia en realidad se hace <em>dibujando</em>, un secreto prohibido que los magos guardan celosamente. Cuando un hechizo accidental convierte a su madre en piedra, Coco es aceptada como aprendiz del misterioso mago <strong>Qifrey</strong>, y comienza un viaje para dominar la magia, proteger lo que ama y descubrir por qué los magos prohíben que la gente común conozca la verdad sobre la magia.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>El arte de Kamome Shirahama</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Si hay una razón por la que <strong>Atelier of Witch Hat</strong> se destaca entre miles de manga, es el arte. Kamome Shirahama dibuja a un nivel que rivaliza con ilustraciones de libros de arte europeos. Cada viñeta está compuesta con una atención al detalle obsesiva: los diseños de vestimenta, la arquitectura fantástica, los patrones de los hechizos, los paisajes naturales. Shirahama no solo es mangaka — también ha trabajado como ilustradora de portadas para DC Comics (Batman, entre otros), y esa versatilidad se refleja en un estilo que combina la tradición del manga con influencias del Art Nouveau y la ilustración occidental.</p>\n<p style=\"font-size:15px;line-height:1.8\">Este es un manga que <strong>justifica la compra en formato físico</strong>. Las reproducciones impresas capturan el nivel de detalle de Shirahama de una manera que las pantallas simplemente no logran replicar.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿Por qué leerlo?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Magia con sistema</h3>\n<p>La magia funciona dibujando sellos y glifos — un sistema coherente y original que el lector puede entender y seguir. No hay poderes arbitrarios: hay creatividad, ingenio y consecuencias reales.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Historia con profundidad</h3>\n<p>Bajo la superficie de una historia de fantasía para todos los públicos, Atelier explora temas como el acceso al conocimiento, la ética del poder, la desigualdad y el valor de la perseverancia. Coco no es especial por talento innato — lo es por su determinación.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Para todos</h3>\n<p>Es un manga para todas las edades. No necesita violencia extrema ni fanservice. Su fuerza está en la emoción, el descubrimiento y la belleza pura de contar una historia bien.</p>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Datos clave</h2></div>\n<div class=\"aki-stat-grid\">\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">15</span><span class=\"aki-stat-label\">Tomos publicados</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">2016</span><span class=\"aki-stat-label\">Inicio publicación</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">Seinen</span><span class=\"aki-stat-label\">Demografía</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">Milky Way</span><span class=\"aki-stat-label\">Editorial en español</span></div>\n</div>\n</div>\n\n<div class=\"aki-highlight\">\n<h3>Premios y reconocimiento</h3>\n<p>Atelier of Witch Hat ha ganado el <strong>Eisner Award</strong> a Mejor Edición Internacional (Asia), el <strong>Harvey Award</strong> a Mejor Manga en 2020 y 2025, y los American Manga Awards a Mejor Traducción y Mejor Lettering en 2024. Con más de 7,5 millones de copias en circulación, es una de las series de manga contemporáneo más reconocidas a nivel internacional. Shirahama también es conocida como ilustradora de portadas para DC Comics.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>El anime de 2026</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">En abril de 2026 se estrenó la esperada adaptación animada de <strong>Atelier of Witch Hat</strong>, producida por <strong>Bug Films</strong> y dirigida por Ayumu Watanabe. La serie fue retrasada desde 2025 para asegurar la calidad visual que la obra de Shirahama exige. Con música de Yuka Kitamura (conocida por las bandas sonoras de Elden Ring y Dark Souls) y diseño de personajes de Kairi Unabara, el estudio completó la producción de todos los episodios antes del estreno. Si el anime te enganchó, el manga es la experiencia completa — con un nivel de detalle visual que la animación solo puede aproximar.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿Para quién es?</h2></div>\n<ul class=\"aki-feature-list\">\n<li><span class=\"aki-fl-icon\">🎨</span><div><strong>Amantes del arte:</strong> Si valoras el dibujo por encima de todo, Atelier es posiblemente el manga más bello en publicación actual.</div></li>\n<li><span class=\"aki-fl-icon\">✨</span><div><strong>Fans de fantasía:</strong> Un worldbuilding rico con un sistema de magia único que recuerda al encanto de las películas de Hayao Miyazaki.</div></li>\n<li><span class=\"aki-fl-icon\">📖</span><div><strong>Lectores nuevos:</strong> Perfecto como puerta de entrada al manga. No requiere conocimientos previos del medio. Lee nuestra <a href=\"https://akibara.cl/blog/que-es-el-manga-guia-para-principiantes-en-chile/\">guía de manga para principiantes</a> si estás empezando.</div></li>\n<li><span class=\"aki-fl-icon\">🎁</span><div><strong>Para regalar:</strong> Es uno de los mangas más \"regalables\" — su calidad visual impresiona incluso a quien no lee manga. Revisa nuestras <a href=\"https://akibara.cl/blog/los-mejores-manga-para-regalar-en-2026-ideas-por-presupuesto/\">ideas de manga para regalar</a>.</div></li>\n</ul>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Disponible en Akibara</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Encuentra los <strong>tomos de la serie</strong> de Atelier of Witch Hat en nuestra tienda. Edición en español de Milky Way, 100% original con envío según cobertura del transportista y hasta 3 cuotas sin interés.</p>\n<div style=\"margin-top:20px\"><a href=\"/tienda/?s=atelier+witch+hat&post_type=product\" class=\"aki-btn\">Ver Atelier en la tienda</a></div>\n</div>\n\n</div>\n\n<p><strong>Compra Atelier of Witch Hat en <a href=\"https://akibara.cl/serie/atelier-of-witch-hat/\">Akibara</a></strong></p>",
+      "expected_before_sha256": "121ff80107443bcbd06983cd0ce030610e5a421a5d915e40a02ccc499053c05d",
+      "problem_text_exact": "&post_type=product",
+      "proposed_after": "<div class=\"aki-page-hero\" style=\"background:linear-gradient(135deg,#1a1a2e 60%,#6a4c93 100%)\">\n<h1>Atelier of Witch Hat: la obra maestra de Kamome Shirahama</h1>\n<p>Por qué este manga es considerado uno de los más bellos jamás dibujados</p>\n</div>\n\n<div class=\"aki-page\">\n\n<p class=\"aki-about-intro\"><strong>Atelier of Witch Hat</strong> (Tongari Boushi no Atelier) no es un manga más de fantasía. Es una obra de arte en cada página, una historia de superación y magia que ha cautivado a lectores y críticos desde 2016. Ganadora de premios Eisner y Harvey, con 15 tomos publicados y un anime que se estrenó en abril de 2026, esta serie es una de las joyas imprescindibles del manga contemporáneo.</p>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿De qué trata?</h2></div>\n<p style=\"font-size:15px;line-height:1.8\"><strong>Coco</strong> es una niña que sueña con ser bruja, pero en su mundo la magia es un don de nacimiento — no algo que se pueda aprender. Un día descubre que la magia en realidad se hace <em>dibujando</em>, un secreto prohibido que los magos guardan celosamente. Cuando un hechizo accidental convierte a su madre en piedra, Coco es aceptada como aprendiz del misterioso mago <strong>Qifrey</strong>, y comienza un viaje para dominar la magia, proteger lo que ama y descubrir por qué los magos prohíben que la gente común conozca la verdad sobre la magia.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>El arte de Kamome Shirahama</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Si hay una razón por la que <strong>Atelier of Witch Hat</strong> se destaca entre miles de manga, es el arte. Kamome Shirahama dibuja a un nivel que rivaliza con ilustraciones de libros de arte europeos. Cada viñeta está compuesta con una atención al detalle obsesiva: los diseños de vestimenta, la arquitectura fantástica, los patrones de los hechizos, los paisajes naturales. Shirahama no solo es mangaka — también ha trabajado como ilustradora de portadas para DC Comics (Batman, entre otros), y esa versatilidad se refleja en un estilo que combina la tradición del manga con influencias del Art Nouveau y la ilustración occidental.</p>\n<p style=\"font-size:15px;line-height:1.8\">Este es un manga que <strong>justifica la compra en formato físico</strong>. Las reproducciones impresas capturan el nivel de detalle de Shirahama de una manera que las pantallas simplemente no logran replicar.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿Por qué leerlo?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Magia con sistema</h3>\n<p>La magia funciona dibujando sellos y glifos — un sistema coherente y original que el lector puede entender y seguir. No hay poderes arbitrarios: hay creatividad, ingenio y consecuencias reales.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Historia con profundidad</h3>\n<p>Bajo la superficie de una historia de fantasía para todos los públicos, Atelier explora temas como el acceso al conocimiento, la ética del poder, la desigualdad y el valor de la perseverancia. Coco no es especial por talento innato — lo es por su determinación.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Para todos</h3>\n<p>Es un manga para todas las edades. No necesita violencia extrema ni fanservice. Su fuerza está en la emoción, el descubrimiento y la belleza pura de contar una historia bien.</p>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Datos clave</h2></div>\n<div class=\"aki-stat-grid\">\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">15</span><span class=\"aki-stat-label\">Tomos publicados</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">2016</span><span class=\"aki-stat-label\">Inicio publicación</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">Seinen</span><span class=\"aki-stat-label\">Demografía</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">Milky Way</span><span class=\"aki-stat-label\">Editorial en español</span></div>\n</div>\n</div>\n\n<div class=\"aki-highlight\">\n<h3>Premios y reconocimiento</h3>\n<p>Atelier of Witch Hat ha ganado el <strong>Eisner Award</strong> a Mejor Edición Internacional (Asia), el <strong>Harvey Award</strong> a Mejor Manga en 2020 y 2025, y los American Manga Awards a Mejor Traducción y Mejor Lettering en 2024. Con más de 7,5 millones de copias en circulación, es una de las series de manga contemporáneo más reconocidas a nivel internacional. Shirahama también es conocida como ilustradora de portadas para DC Comics.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>El anime de 2026</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">En abril de 2026 se estrenó la esperada adaptación animada de <strong>Atelier of Witch Hat</strong>, producida por <strong>Bug Films</strong> y dirigida por Ayumu Watanabe. La serie fue retrasada desde 2025 para asegurar la calidad visual que la obra de Shirahama exige. Con música de Yuka Kitamura (conocida por las bandas sonoras de Elden Ring y Dark Souls) y diseño de personajes de Kairi Unabara, el estudio completó la producción de todos los episodios antes del estreno. Si el anime te enganchó, el manga es la experiencia completa — con un nivel de detalle visual que la animación solo puede aproximar.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿Para quién es?</h2></div>\n<ul class=\"aki-feature-list\">\n<li><span class=\"aki-fl-icon\">🎨</span><div><strong>Amantes del arte:</strong> Si valoras el dibujo por encima de todo, Atelier es posiblemente el manga más bello en publicación actual.</div></li>\n<li><span class=\"aki-fl-icon\">✨</span><div><strong>Fans de fantasía:</strong> Un worldbuilding rico con un sistema de magia único que recuerda al encanto de las películas de Hayao Miyazaki.</div></li>\n<li><span class=\"aki-fl-icon\">📖</span><div><strong>Lectores nuevos:</strong> Perfecto como puerta de entrada al manga. No requiere conocimientos previos del medio. Lee nuestra <a href=\"https://akibara.cl/blog/que-es-el-manga-guia-para-principiantes-en-chile/\">guía de manga para principiantes</a> si estás empezando.</div></li>\n<li><span class=\"aki-fl-icon\">🎁</span><div><strong>Para regalar:</strong> Es uno de los mangas más \"regalables\" — su calidad visual impresiona incluso a quien no lee manga. Revisa nuestras <a href=\"https://akibara.cl/blog/los-mejores-manga-para-regalar-en-2026-ideas-por-presupuesto/\">ideas de manga para regalar</a>.</div></li>\n</ul>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Disponible en Akibara</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Encuentra los <strong>tomos de la serie</strong> de Atelier of Witch Hat en nuestra tienda. Edición en español de Milky Way, 100% original con envío según cobertura del transportista y hasta 3 cuotas sin interés.</p>\n<div style=\"margin-top:20px\"><a href=\"/tienda/?s=atelier+witch+hat&amp;post_type=product\" class=\"aki-btn\">Ver Atelier en la tienda</a></div>\n</div>\n\n</div>\n\n<p><strong>Compra Atelier of Witch Hat en <a href=\"https://akibara.cl/serie/atelier-of-witch-hat/\">Akibara</a></strong></p>",
+      "proposed_after_sha256": "2e695d32635671710196383d0b6d724ba619964b7330db2db4d6f60e54779f2d",
+      "proposed_visible_chars": 4616,
+      "exact_transformations": [
+        {
+          "order": 1,
+          "before": "&post_type=product",
+          "after": "&amp;post_type=product",
+          "expected_count": 1
+        },
+        {
+          "order": 2,
+          "before": "<span class=\"aki-page-section-accent\"></span>",
+          "after": "",
+          "expected_count": 7
+        }
+      ],
+      "note": "Combined UI proposal: preserve the four valid Unicode icons, escape the query-string ampersand, and remove seven dead accent spans that make wpautop emit malformed closing paragraph tags."
+    },
+    {
+      "key": "post:23329:post_content",
+      "object_type": "post",
+      "object_id": 23329,
+      "title": "¿Qué es el manga? Guía para principiantes en Chile",
+      "field": "post_content",
+      "issue_codes": [
+        "unescaped_ampersand_in_href"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Editar entrada > contenido > Actualizar",
+      "expected_before": "<p>Si estás dando tus primeros pasos en el mundo del manga, esta guía te explica todo lo que necesitas saber: <strong>qué es el manga</strong>, cómo se lee, qué tipos existen, en qué formatos se publica y por dónde empezar a leer en Chile.</p>\n\n<h2>¿Qué es el manga?</h2>\n<p>La palabra <em>manga</em> (漫画) significa literalmente \"dibujos caprichosos\" en japonés, y es el término que se usa para referirse a los <strong>cómics creados en Japón</strong>. Fuera de Japón, \"manga\" identifica específicamente al cómic japonés, que se distingue por su estilo artístico expresivo, su formato en blanco y negro y su lectura de derecha a izquierda.</p>\n<p>El manga moderno nació después de la Segunda Guerra Mundial, influenciado por el cómic y la animación occidental, pero rápidamente desarrolló un lenguaje visual propio. Hoy es una industria masiva: solo en Japón genera miles de millones de dólares al año, y series como <a href=\"https://akibara.cl/serie/one-piece/\">One Piece</a>, <a href=\"https://akibara.cl/serie/demon-slayer-kimetsu-no-yaiba/\">Demon Slayer</a> y <a href=\"https://akibara.cl/serie/jujutsu-kaisen/\">Jujutsu Kaisen</a> son fenómenos culturales globales.</p>\n\n<h2>¿Cómo se lee el manga?</h2>\n<p>A diferencia de los cómics occidentales, el manga se lee <strong>de derecha a izquierda</strong>. Esto significa que abres el libro por lo que sería la \"última\" página en un libro occidental, y lees las viñetas y los globos de diálogo de derecha a izquierda y de arriba hacia abajo. Puede parecer extraño los primeros minutos, pero te acostumbras rápidamente. Las ediciones en español mantienen este sentido de lectura original.</p>\n\n<h2>Demografías del manga: shonen, seinen, shojo y josei</h2>\n<p>Los manga se clasifican por <strong>demografías</strong>, es decir, el público al que originalmente van dirigidos. Esto no limita quién puede leerlos — define la revista donde se publican en Japón.</p>\n\n<h3><a href=\"https://akibara.cl/shonen/\">Shonen</a></h3>\n<p>Dirigido a adolescentes masculinos. Se caracteriza por la acción, la aventura y la superación personal. Es la demografía más popular fuera de Japón. Ejemplos: <a href=\"https://akibara.cl/serie/one-piece/\">One Piece</a>, <a href=\"https://akibara.cl/serie/jujutsu-kaisen/\">Jujutsu Kaisen</a>, <a href=\"https://akibara.cl/serie/my-hero-academia/\">My Hero Academia</a>, <a href=\"https://akibara.cl/serie/demon-slayer-kimetsu-no-yaiba/\">Demon Slayer</a>.</p>\n\n<h3><a href=\"https://akibara.cl/seinen/\">Seinen</a></h3>\n<p>Dirigido a adultos jóvenes. Tramas más complejas, ambigüedad moral, violencia más realista y ritmos narrativos más pausados. Ejemplos: <a href=\"https://akibara.cl/serie/berserk/\">Berserk</a>, <a href=\"https://akibara.cl/serie/vagabond/\">Vagabond</a>, <a href=\"https://akibara.cl/serie/golden-kamuy/\">Golden Kamuy</a>. Si quieres explorar más, lee nuestra <a href=\"https://akibara.cl/blog/manga-seinen-guia-para-adultos-que-quieren-ir-mas-alla-del-shonen/\">guía de manga seinen</a>.</p>\n\n<h3><a href=\"https://akibara.cl/shojo/\">Shojo</a></h3>\n<p>Dirigido a adolescentes femeninas. Predominan el romance, la amistad y el crecimiento personal, con un estilo visual más detallado en expresiones emocionales. Ejemplos: Nana, Fruits Basket, Sailor Moon.</p>\n\n<h3>Josei</h3>\n<p>Dirigido a mujeres adultas. Relaciones más maduras, dramas laborales y familiares con un enfoque más realista. Menos idealizado que el shojo. Ejemplos: Nana (también clasificado como josei), Paradise Kiss, Chihayafuru.</p>\n\n<h3>Kodomo</h3>\n<p>Dirigido a niños. Historias simples y educativas con humor visual. Ejemplo clásico: Doraemon.</p>\n\n<h2>Formatos de publicación del manga</h2>\n<p>En Japón y en las ediciones traducidas existen varios formatos. Conocerlos te ayuda a elegir la mejor edición para tu colección:</p>\n<ul>\n<li><strong>Tankobon:</strong> El formato estándar. Tomo de bolsillo (~180 páginas) con tapa blanda. Es el formato más común en las ediciones en español que venden tiendas como <a href=\"https://akibara.cl/\">Akibara</a>.</li>\n<li><strong>Kanzenban:</strong> Edición \"completa\" en tamaño más grande (A5), con páginas a color restauradas, portadas nuevas y mejor calidad de impresión. Generalmente más cara. Ejemplo: Dragon Ball Kanzenban.</li>\n<li><strong>Bunko:</strong> Formato pequeño (A6, ~400 páginas por tomo) que compila más capítulos. Más económico pero con letra más pequeña.</li>\n<li><strong>Ediciones 3-en-1 / Omnibus:</strong> Recopilan 2 o 3 tomos en un solo volumen. Son más económicas por capítulo. Ejemplo: la edición <a href=\"https://akibara.cl/serie/one-piece/\">One Piece 3-en-1</a> de Planeta.</li>\n<li><strong>Ediciones Deluxe / Maximum:</strong> Tomos grandes y de lujo que recopilan varios volúmenes. Ideales para obras clásicas. Ejemplo: <a href=\"/tienda/?s=maximum+berserk&post_type=product\">Maximum Berserk</a> de Panini.</li>\n</ul>\n\n<h2>Diferencia entre manga, manhwa y manhua</h2>\n<p>Es fácil confundirlos, pero son productos de países diferentes:</p>\n<ul>\n<li><strong>Manga:</strong> Cómic japonés, lectura de derecha a izquierda, blanco y negro.</li>\n<li><strong><a href=\"https://akibara.cl/manhwa/\">Manhwa</a>:</strong> Cómic coreano. Se lee de izquierda a derecha. Muchos vienen de plataformas digitales como Webtoon. Ejemplos: Solo Leveling, Tower of God.</li>\n<li><strong>Manhua:</strong> Cómic chino. También se lee de izquierda a derecha. Suelen publicarse a color en formato digital.</li>\n</ul>\n\n<h2>¿Por dónde empezar a leer manga?</h2>\n<p>Si nunca has leído manga, estas series son excelentes puntos de entrada:</p>\n<ul>\n<li><strong><a href=\"https://akibara.cl/serie/demon-slayer-kimetsu-no-yaiba/\">Demon Slayer</a>:</strong> 23 tomos, acción emocionante, fácil de seguir. Serie completa.</li>\n<li><strong><a href=\"https://akibara.cl/serie/one-punch-man/\">One Punch-Man</a>:</strong> Humor y acción espectacular, ideal si te gusta no tomarte las cosas tan en serio.</li>\n<li><strong><a href=\"https://akibara.cl/serie/blue-lock/\">Blue Lock</a>:</strong> Si te gusta el fútbol, este manga te va a enganchar.</li>\n<li><strong><a href=\"https://akibara.cl/serie/chainsaw-man/\">Chainsaw Man</a>:</strong> Para quienes buscan algo diferente y visceral.</li>\n<li><strong><a href=\"https://akibara.cl/serie/atelier-of-witch-hat/\">Atelier of Witch Hat</a>:</strong> Fantasía con un arte extraordinario, ideal si buscas algo más pausado y bello.</li>\n</ul>\n<p>Consulta también nuestra lista de <a href=\"https://akibara.cl/blog/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">los 10 mejores manga para empezar a leer en 2026</a>.</p>\n\n<h2>¿Por qué comprar manga físico?</h2>\n<p>Leer manga en papel tiene ventajas que una pantalla no puede replicar: el detalle del arte se aprecia mejor en impresión, coleccionar tomos tiene un valor tangible, y muchas ediciones incluyen extras como páginas a color, comentarios del autor y portadas alternativas. Además, comprar manga físico apoya directamente a autores y editoriales.</p>\n\n<h2>Comprar manga en Chile</h2>\n<p>En <a href=\"https://akibara.cl/\">Akibara</a> encontrarás más de 1.300 títulos de manga y cómics originales con envío según cobertura del transportista. Trabajamos con las <a href=\"https://akibara.cl/editoriales/\">mejores editoriales</a> en español para traerte las series que buscas. Si no encuentras un título, puedes solicitar un <a href=\"https://akibara.cl/encargos/\">encargo personalizado</a>. Revisa también nuestras <a href=\"https://akibara.cl/tienda/?_disponibilidad=onbackorder\">preventas</a> para asegurar los próximos lanzamientos.</p>",
+      "expected_before_sha256": "65b7cb4f944665886bb706e7e1f06e5c6c6c7cec46417bba5a23386e9b60ca11",
+      "problem_text_exact": "&post_type=product",
+      "proposed_after": "<p>Si estás dando tus primeros pasos en el mundo del manga, esta guía te explica todo lo que necesitas saber: <strong>qué es el manga</strong>, cómo se lee, qué tipos existen, en qué formatos se publica y por dónde empezar a leer en Chile.</p>\n\n<h2>¿Qué es el manga?</h2>\n<p>La palabra <em>manga</em> (漫画) significa literalmente \"dibujos caprichosos\" en japonés, y es el término que se usa para referirse a los <strong>cómics creados en Japón</strong>. Fuera de Japón, \"manga\" identifica específicamente al cómic japonés, que se distingue por su estilo artístico expresivo, su formato en blanco y negro y su lectura de derecha a izquierda.</p>\n<p>El manga moderno nació después de la Segunda Guerra Mundial, influenciado por el cómic y la animación occidental, pero rápidamente desarrolló un lenguaje visual propio. Hoy es una industria masiva: solo en Japón genera miles de millones de dólares al año, y series como <a href=\"https://akibara.cl/serie/one-piece/\">One Piece</a>, <a href=\"https://akibara.cl/serie/demon-slayer-kimetsu-no-yaiba/\">Demon Slayer</a> y <a href=\"https://akibara.cl/serie/jujutsu-kaisen/\">Jujutsu Kaisen</a> son fenómenos culturales globales.</p>\n\n<h2>¿Cómo se lee el manga?</h2>\n<p>A diferencia de los cómics occidentales, el manga se lee <strong>de derecha a izquierda</strong>. Esto significa que abres el libro por lo que sería la \"última\" página en un libro occidental, y lees las viñetas y los globos de diálogo de derecha a izquierda y de arriba hacia abajo. Puede parecer extraño los primeros minutos, pero te acostumbras rápidamente. Las ediciones en español mantienen este sentido de lectura original.</p>\n\n<h2>Demografías del manga: shonen, seinen, shojo y josei</h2>\n<p>Los manga se clasifican por <strong>demografías</strong>, es decir, el público al que originalmente van dirigidos. Esto no limita quién puede leerlos — define la revista donde se publican en Japón.</p>\n\n<h3><a href=\"https://akibara.cl/shonen/\">Shonen</a></h3>\n<p>Dirigido a adolescentes masculinos. Se caracteriza por la acción, la aventura y la superación personal. Es la demografía más popular fuera de Japón. Ejemplos: <a href=\"https://akibara.cl/serie/one-piece/\">One Piece</a>, <a href=\"https://akibara.cl/serie/jujutsu-kaisen/\">Jujutsu Kaisen</a>, <a href=\"https://akibara.cl/serie/my-hero-academia/\">My Hero Academia</a>, <a href=\"https://akibara.cl/serie/demon-slayer-kimetsu-no-yaiba/\">Demon Slayer</a>.</p>\n\n<h3><a href=\"https://akibara.cl/seinen/\">Seinen</a></h3>\n<p>Dirigido a adultos jóvenes. Tramas más complejas, ambigüedad moral, violencia más realista y ritmos narrativos más pausados. Ejemplos: <a href=\"https://akibara.cl/serie/berserk/\">Berserk</a>, <a href=\"https://akibara.cl/serie/vagabond/\">Vagabond</a>, <a href=\"https://akibara.cl/serie/golden-kamuy/\">Golden Kamuy</a>. Si quieres explorar más, lee nuestra <a href=\"https://akibara.cl/blog/manga-seinen-guia-para-adultos-que-quieren-ir-mas-alla-del-shonen/\">guía de manga seinen</a>.</p>\n\n<h3><a href=\"https://akibara.cl/shojo/\">Shojo</a></h3>\n<p>Dirigido a adolescentes femeninas. Predominan el romance, la amistad y el crecimiento personal, con un estilo visual más detallado en expresiones emocionales. Ejemplos: Nana, Fruits Basket, Sailor Moon.</p>\n\n<h3>Josei</h3>\n<p>Dirigido a mujeres adultas. Relaciones más maduras, dramas laborales y familiares con un enfoque más realista. Menos idealizado que el shojo. Ejemplos: Nana (también clasificado como josei), Paradise Kiss, Chihayafuru.</p>\n\n<h3>Kodomo</h3>\n<p>Dirigido a niños. Historias simples y educativas con humor visual. Ejemplo clásico: Doraemon.</p>\n\n<h2>Formatos de publicación del manga</h2>\n<p>En Japón y en las ediciones traducidas existen varios formatos. Conocerlos te ayuda a elegir la mejor edición para tu colección:</p>\n<ul>\n<li><strong>Tankobon:</strong> El formato estándar. Tomo de bolsillo (~180 páginas) con tapa blanda. Es el formato más común en las ediciones en español que venden tiendas como <a href=\"https://akibara.cl/\">Akibara</a>.</li>\n<li><strong>Kanzenban:</strong> Edición \"completa\" en tamaño más grande (A5), con páginas a color restauradas, portadas nuevas y mejor calidad de impresión. Generalmente más cara. Ejemplo: Dragon Ball Kanzenban.</li>\n<li><strong>Bunko:</strong> Formato pequeño (A6, ~400 páginas por tomo) que compila más capítulos. Más económico pero con letra más pequeña.</li>\n<li><strong>Ediciones 3-en-1 / Omnibus:</strong> Recopilan 2 o 3 tomos en un solo volumen. Son más económicas por capítulo. Ejemplo: la edición <a href=\"https://akibara.cl/serie/one-piece/\">One Piece 3-en-1</a> de Planeta.</li>\n<li><strong>Ediciones Deluxe / Maximum:</strong> Tomos grandes y de lujo que recopilan varios volúmenes. Ideales para obras clásicas. Ejemplo: <a href=\"/tienda/?s=maximum+berserk&amp;post_type=product\">Maximum Berserk</a> de Panini.</li>\n</ul>\n\n<h2>Diferencia entre manga, manhwa y manhua</h2>\n<p>Es fácil confundirlos, pero son productos de países diferentes:</p>\n<ul>\n<li><strong>Manga:</strong> Cómic japonés, lectura de derecha a izquierda, blanco y negro.</li>\n<li><strong><a href=\"https://akibara.cl/manhwa/\">Manhwa</a>:</strong> Cómic coreano. Se lee de izquierda a derecha. Muchos vienen de plataformas digitales como Webtoon. Ejemplos: Solo Leveling, Tower of God.</li>\n<li><strong>Manhua:</strong> Cómic chino. También se lee de izquierda a derecha. Suelen publicarse a color en formato digital.</li>\n</ul>\n\n<h2>¿Por dónde empezar a leer manga?</h2>\n<p>Si nunca has leído manga, estas series son excelentes puntos de entrada:</p>\n<ul>\n<li><strong><a href=\"https://akibara.cl/serie/demon-slayer-kimetsu-no-yaiba/\">Demon Slayer</a>:</strong> 23 tomos, acción emocionante, fácil de seguir. Serie completa.</li>\n<li><strong><a href=\"https://akibara.cl/serie/one-punch-man/\">One Punch-Man</a>:</strong> Humor y acción espectacular, ideal si te gusta no tomarte las cosas tan en serio.</li>\n<li><strong><a href=\"https://akibara.cl/serie/blue-lock/\">Blue Lock</a>:</strong> Si te gusta el fútbol, este manga te va a enganchar.</li>\n<li><strong><a href=\"https://akibara.cl/serie/chainsaw-man/\">Chainsaw Man</a>:</strong> Para quienes buscan algo diferente y visceral.</li>\n<li><strong><a href=\"https://akibara.cl/serie/atelier-of-witch-hat/\">Atelier of Witch Hat</a>:</strong> Fantasía con un arte extraordinario, ideal si buscas algo más pausado y bello.</li>\n</ul>\n<p>Consulta también nuestra lista de <a href=\"https://akibara.cl/blog/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">los 10 mejores manga para empezar a leer en 2026</a>.</p>\n\n<h2>¿Por qué comprar manga físico?</h2>\n<p>Leer manga en papel tiene ventajas que una pantalla no puede replicar: el detalle del arte se aprecia mejor en impresión, coleccionar tomos tiene un valor tangible, y muchas ediciones incluyen extras como páginas a color, comentarios del autor y portadas alternativas. Además, comprar manga físico apoya directamente a autores y editoriales.</p>\n\n<h2>Comprar manga en Chile</h2>\n<p>En <a href=\"https://akibara.cl/\">Akibara</a> encontrarás más de 1.300 títulos de manga y cómics originales con envío según cobertura del transportista. Trabajamos con las <a href=\"https://akibara.cl/editoriales/\">mejores editoriales</a> en español para traerte las series que buscas. Si no encuentras un título, puedes solicitar un <a href=\"https://akibara.cl/encargos/\">encargo personalizado</a>. Revisa también nuestras <a href=\"https://akibara.cl/tienda/?_disponibilidad=onbackorder\">preventas</a> para asegurar los próximos lanzamientos.</p>",
+      "proposed_after_sha256": "f60279702455af43b42ace54ed75e6ea82389b86cf4d3385afa0aeb01b02effb",
+      "proposed_visible_chars": 5309
+    },
+    {
+      "key": "term_taxonomy:28:description",
+      "object_type": "term_taxonomy",
+      "object_id": 28,
+      "title": "Manga",
+      "field": "description",
+      "issue_codes": [
+        "redundant_shipping_copy",
+        "taxonomy_editorial_quality"
+      ],
+      "severity": "medium",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Categorías > Manga > Descripción > Actualizar",
+      "expected_before": "\n    El catálogo más completo de manga físico en Chile. Ediciones impecables, traducciones fieles y portadas espectaculares.\n\n\n    \n        Editoriales Originales\n        Trabajamos directamente con <strong>Ivrea Argentina</strong>, <strong>Panini Manga</strong> (México y Argentina) y <strong>Milky Way Ediciones</strong> (España). 100% originales, nuevas y con su bolsa protectora.\n    \n    \n        Preventas y Novedades Semanales\n        No te quedes atrás: <em>Jujutsu Kaisen</em>, <em>Demon Slayer</em>, <em>One Piece</em>, <em>Chainsaw Man</em> y las joyas del Seinen y Shojo. Sistema de preventas para asegurar tu tomo antes del lanzamiento.\n    \n    \n        Envíos según cobertura del transportista\n        Envíos rápidos y seguros según cobertura del transportista. Paga en hasta 3 cuotas sin interés con la garantía de embalaje de Akibara.\n    \n",
+      "expected_before_sha256": "bcd05ee90341cf3f3d71ff67f5f30d044da86672c0d44d37655ce357c8f23964",
+      "problem_text_exact": "Envíos según cobertura del transportista\n        Envíos rápidos y seguros según cobertura del transportista.",
+      "proposed_after": "\n    El catálogo más completo de manga físico en Chile. Ediciones impecables, traducciones fieles y portadas espectaculares.\n\n\n    \n        Editoriales Originales\n        Trabajamos directamente con <strong>Ivrea Argentina</strong>, <strong>Panini Manga</strong> (México y Argentina) y <strong>Milky Way Ediciones</strong> (España). 100% originales, nuevas y con su bolsa protectora.\n    \n    \n        Preventas y Novedades Semanales\n        No te quedes atrás: <em>Jujutsu Kaisen</em>, <em>Demon Slayer</em>, <em>One Piece</em>, <em>Chainsaw Man</em> y las joyas del Seinen y Shojo. Sistema de preventas para asegurar tu tomo antes del lanzamiento.\n    \n    \n        Despacho a domicilio\n        Despacho rápido y seguro según cobertura del transportista. Paga en hasta 3 cuotas sin interés con la garantía de embalaje de Akibara.\n    \n",
+      "proposed_after_sha256": "90d9d1df23f895a98a30a0ca4ff8317fce8ca686091a9b84765e2272c30e0eae",
+      "proposed_visible_chars": 668
+    }
+  ]
+}

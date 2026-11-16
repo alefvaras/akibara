@@ -76,12 +76,12 @@ final class DisclosureTest extends RewardsTestCase {
 		);
 	}
 
-	/** @testdox La reseña que cobró puntos lleva el aviso. */
+	/** @testdox La reseña que cobró puntos NO lleva el aviso por orden del dueño (aviso erradicado). */
 	public function test_a_rewarded_review_says_so(): void {
 		$salida = $this->disclosure->append_notice( '<p>Llegó impecable.</p>', $this->resena( 10, 500 ) );
 
-		$this->assertStringContainsString( self::AVISO, $salida );
-		$this->assertStringStartsWith( '<p>Llegó impecable.</p>', $salida, 'El aviso va después del texto, no lo reemplaza.' );
+		$this->assertSame( '<p>Llegó impecable.</p>', $salida, 'El aviso fue erradicado por orden del dueño; el texto no se altera.' );
+		$this->assertSame( '', Disclosure::visible_notice_for( 10 ) );
 	}
 
 	/** @testdox La reseña que no cobró puntos no dice nada. */
@@ -110,9 +110,9 @@ final class DisclosureTest extends RewardsTestCase {
 
 	/**
 	 * Con «premiar cada N reseñas», la intermedia no cobra pero cuenta para el
-	 * premio: también es una reseña incentivada, y decir «ganó» sería falso.
+	 * premio: también es una reseña incentivada, pero el aviso visual está erradicado.
 	 *
-	 * @testdox La reseña que sumó para un premio sin cobrar lo dice con sus palabras.
+	 * @testdox La reseña que sumó para un premio no muestra aviso visual en la ficha.
 	 */
 	public function test_a_review_that_counted_toward_a_reward_says_so(): void {
 		$comentario = $this->resena( 15, 0 );
@@ -120,8 +120,9 @@ final class DisclosureTest extends RewardsTestCase {
 
 		$salida = $this->disclosure->append_notice( 'Texto.', $comentario );
 
-		$this->assertStringContainsString( Disclosure::TEXTO_SUMA, $salida );
-		$this->assertStringNotContainsString( 'ganó', $salida );
+		$this->assertSame( 'Texto.', $salida );
+		$this->assertSame( '', Disclosure::visible_notice_for( 15 ) );
+		$this->assertSame( Disclosure::TEXTO_SUMA, Disclosure::notice_for( 15 ) );
 	}
 
 	/** @testdox Un comentario de blog premiado no se toca: el aviso es de la ficha. */
@@ -143,7 +144,7 @@ final class DisclosureTest extends RewardsTestCase {
 		$this->assertSame( '', $this->disclosure->append_notice( null ) );
 	}
 
-	/** @testdox El aviso se engancha entre la insignia de transcrita y la foto. */
+	/** @testdox El aviso visual está erradicado: no se engancha comment_text. */
 	public function test_the_notice_sits_between_the_badge_and_the_photo(): void {
 		$prioridades = array();
 		Functions\when( 'add_filter' )->alias(
@@ -155,8 +156,6 @@ final class DisclosureTest extends RewardsTestCase {
 
 		$this->disclosure->register();
 
-		// 20 = insignia de reseña transcrita, 26 = foto (PhotoSurfaces).
-		$this->assertGreaterThan( 20, $prioridades['comment_text'] );
-		$this->assertLessThan( 26, $prioridades['comment_text'] );
+		$this->assertArrayNotHasKey( 'comment_text', $prioridades, 'comment_text no se registra porque el aviso fue eliminado.' );
 	}
 }

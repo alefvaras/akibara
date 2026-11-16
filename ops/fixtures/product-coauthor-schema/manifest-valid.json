@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "source": "fixture authoritative pa_autor capture",
+  "capturedAt": "2026-07-26T12:00:00Z",
+  "taxonomy": "pa_autor",
+  "products": [
+    {
+      "url": "https://akibara.cl/fixture-coauthor-a/",
+      "authors": [
+        {
+          "name": "Alice Mori",
+          "url": "https://akibara.cl/autor/alice-mori/"
+        },
+        {
+          "name": "Bob Kato",
+          "url": "https://akibara.cl/autor/bob-kato/"
+        }
+      ]
+    },
+    {
+      "url": "https://akibara.cl/fixture-coauthor-b/",
+      "authors": [
+        {
+          "name": "Bob Kato",
+          "url": "https://akibara.cl/autor/bob-kato/"
+        },
+        {
+          "name": "Alice Mori",
+          "url": "https://akibara.cl/autor/alice-mori/"
+        }
+      ]
+    }
+  ]
+}

@@ -99,7 +99,7 @@ final class AdminReviewsTest extends RewardsTestCase {
 
 		$meta = $this->wpdb->comment_meta[33];
 		$this->assertSame( array( 0 ), $meta['verified'], 'Sin marcar, la reseña del admin NO es compra verificada.' );
-		$this->assertSame( array( 'Edición preciosa' ), $meta['cr_rev_title'] );
+		$this->assertSame( array( 'Edición preciosa' ), $meta[ AdminReviews::META_TITLE ] );
 		$this->assertSame( array( 1 ), $meta[ AdminReviews::META_ADMIN_CREATED ] );
 		$this->assertSame( array( 901 ), $meta[ Media::META_LOCAL_IMAGE ] );
 	}

@@ -85,7 +85,6 @@ final class GuideSeriesTest extends TestCase {
 				'cover'   => 'https://akibara.test/wp-content/uploads/portadas/rk-1.avif',
 				'estados' => array(
 					array( 'label' => 'Disponible', 'texto' => '10 tomos' ),
-					array( 'label' => 'A pedido', 'texto' => '1 tomo' ),
 					array( 'label' => 'Agotado', 'texto' => '<b>3</b> tomos' ),
 				),
 			),
@@ -105,7 +104,6 @@ final class GuideSeriesTest extends TestCase {
 		self::assertStringContainsString( 'href="https://akibara.test/serie/rurouni-kenshin/"', $html );
 		self::assertStringContainsString( 'alt="" width="300" height="450" loading="lazy"', $html, 'la portada declara su alto (sin salto al cargar) y es decorativa: el nombre ya va escrito' );
 		self::assertStringContainsString( '<span class="akb-guide-series__state">Disponible</span> 10 tomos', $html );
-		self::assertStringContainsString( '<span class="akb-guide-series__state">A pedido</span> 1 tomo<', $html );
 		self::assertStringContainsString( '<span class="akb-guide-series__state">Agotado</span> &lt;b&gt;3&lt;/b&gt; tomos', $html, 'lo que llega se escapa: se imprime, no se interpreta' );
 	}
 

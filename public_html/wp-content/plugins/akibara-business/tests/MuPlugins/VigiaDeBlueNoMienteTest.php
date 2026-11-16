@@ -46,7 +46,7 @@ final class VigiaDeBlueNoMienteTest extends TestCase {
 	private array $correos = array();
 
 	private static function ruta(): string {
-		return dirname( __DIR__, 4 ) . '/mu-plugins/akibara-bluex-integrity-watch.php';
+		return dirname( __DIR__, 4 ) . '/mu-plugins/akibara-bluex-suite.php';
 	}
 
 	protected function setUp(): void {

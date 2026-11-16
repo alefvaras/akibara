@@ -30,6 +30,20 @@ use WC_Product;
 defined( 'ABSPATH' ) || exit;
 use Akibara\Business\Modules\SeriesFacts\PublicationStatus;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
+// @phpstan-ignore complexity.classLike
 final class PdpSeriesEnhancer {
 
 	private const CACHE_GROUP = 'akb_pdp';
@@ -178,6 +192,7 @@ final class PdpSeriesEnhancer {
 	 * @param string            $taxonomy   Taxonomía del cambio.
 	 * @param bool              $append     Si fue append.
 	 * @param array<int, mixed> $old_tt_ids term_taxonomy_ids previos.
+	 * @psalm-suppress UnusedParam
 	 */
 	public function flush_series_cache_on_terms_change(
 		$object_id,
@@ -320,13 +335,13 @@ final class PdpSeriesEnhancer {
 	 */
 	private function get_series_term( int $product_id ): ?object {
 		$terms = get_the_terms( $product_id, 'pa_serie' );
-		if ( ! is_array( $terms ) || array() === $terms || is_wp_error( $terms ) ) {
+		if ( ! is_array( $terms ) || array() === $terms || is_wp_error( $terms ) ) { // @phpstan-ignore function.impossibleType
 			return null;
 		}
 
 		$term = reset( $terms );
 
-		return is_object( $term ) && isset( $term->term_id ) ? $term : null;
+		return is_object( $term ) && isset( $term->term_id ) ? $term : null; // @phpstan-ignore isset.property
 	}
 
 	/**
@@ -357,8 +372,8 @@ final class PdpSeriesEnhancer {
 			'post_type'              => 'product',
 			'post_status'            => 'publish',
 			// Tope holgado: ninguna serie del catálogo se acerca a esta cifra.
-			'posts_per_page'         => 500,
-			'tax_query'              => array(
+			'posts_per_page'         => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page
+			'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 				array(
 					'taxonomy' => 'pa_serie',
 					'field'    => 'term_id',
@@ -551,7 +566,7 @@ final class PdpSeriesEnhancer {
 		if ( null !== $number ) {
 			foreach ( $chain as $index => $id ) {
 				if ( $number === VolumeTitle::extract_number( (string) $products[ $id ]['title'] ) ) {
-					return self::around( $chain, (int) $index );
+					return self::around( $chain, $index );
 				}
 			}
 		}

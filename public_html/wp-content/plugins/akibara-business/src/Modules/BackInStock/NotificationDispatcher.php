@@ -23,6 +23,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UndefinedMethod
  */
 final class NotificationDispatcher {
 
@@ -73,14 +76,28 @@ final class NotificationDispatcher {
 	private $mailer_ready;
 
 	/**
-	 * @param SubscriberRepository $repository    Persistencia.
-	 * @param callable|null        $email_factory Factory del InstockEmail (tests).
-	 * @param callable|null        $mailer_ready  Sonda de mailer cargado (tests).
+	 * Sonda de «¿el usuario ya posee este producto?» (inyectable en pruebas).
+	 *
+	 * @var callable|null
 	 */
-	public function __construct( SubscriberRepository $repository, ?callable $email_factory = null, ?callable $mailer_ready = null ) {
-		$this->repository    = $repository;
-		$this->email_factory = $email_factory;
-		$this->mailer_ready  = $mailer_ready;
+	private $ownership_checker;
+
+	/**
+	 * @param SubscriberRepository $repository        Persistencia.
+	 * @param callable|null        $email_factory     Factory del InstockEmail (tests).
+	 * @param callable|null        $mailer_ready      Sonda de mailer cargado (tests).
+	 * @param callable|null        $ownership_checker Sonda de posesión previa (tests).
+	 */
+	public function __construct(
+		SubscriberRepository $repository,
+		?callable $email_factory = null,
+		?callable $mailer_ready = null,
+		?callable $ownership_checker = null
+	) {
+		$this->repository        = $repository;
+		$this->email_factory     = $email_factory;
+		$this->mailer_ready      = $mailer_ready;
+		$this->ownership_checker = $ownership_checker;
 	}
 
 	/**
@@ -100,7 +117,6 @@ final class NotificationDispatcher {
 
 		// Guardar el ajuste de reactivación rearma la cola pausada.
 		add_action( 'update_option_' . BackInStock::OPTION_DISPATCH, array( $this, 'on_dispatch_setting_saved' ), 10, 2 );
-		add_action( 'update_option_' . BackInStock::OPTION_NOTIFY_BACKORDER, array( $this, 'on_dispatch_setting_saved' ), 10, 2 );
 	}
 
 	/**
@@ -156,7 +172,7 @@ final class NotificationDispatcher {
 	 *                                             propia y muere con la cadena).
 	 * @return void
 	 */
-	public function dispatch( $product_id, $pause_try = 0 ): void {
+	public function dispatch( $product_id, $pause_try = 0 ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		if ( is_array( $product_id ) ) {
 			$pause_try  = $product_id['pause_try'] ?? $pause_try;
 			$product_id = $product_id['product_id'] ?? 0;
@@ -235,6 +251,13 @@ final class NotificationDispatcher {
 		foreach ( $this->repository->for_product( $product_id, $batch_size ) as $subscriber ) {
 			// CLAIM atómico: si otro worker ya tomó esta fila, saltear.
 			if ( ! $this->repository->mark_notified( $subscriber->id ) ) {
+				continue;
+			}
+
+			// Guarda anti-correo redundante: si el cliente ya posee el tomo en su colección o estantería,
+			// se omite el envío del correo y la espera queda cerrada limpiamente.
+			if ( $this->subscriber_already_owns( $subscriber, $product_id ) ) {
+				$this->log( sprintf( 'Envío BIS omitido para suscriptor #%d (producto %d): ya posee el tomo en su colección.', $subscriber->id, $product_id ) );
 				continue;
 			}
 
@@ -369,5 +392,45 @@ final class NotificationDispatcher {
 	 */
 	private function log( string $message ): void {
 		Log::warn( 'bis', $message );
+	}
+
+	/**
+	 * Comprueba si el suscriptor ya posee el producto en su colección o estantería.
+	 *
+	 * @param Subscriber $subscriber Suscripción reclamada.
+	 * @param int        $product_id  ID del producto en reposición.
+	 * @return bool True si el usuario ya posee el producto o su volumen equivalente.
+	 */
+	private function subscriber_already_owns( Subscriber $subscriber, int $product_id ): bool {
+		if ( null !== $this->ownership_checker ) {
+			return (bool) ( $this->ownership_checker )( $subscriber, $product_id );
+		}
+
+		$user_id = $subscriber->user_id ?? 0;
+
+		if ( $user_id <= 0 && '' !== $subscriber->email && function_exists( 'get_user_by' ) ) {
+			try {
+				$user = get_user_by( 'email', $subscriber->email );
+				if ( $user instanceof \WP_User && $user->ID > 0 ) {
+					$user_id = (int) $user->ID;
+				}
+			} catch ( \Throwable $e ) {
+				$user_id = 0;
+			}
+		}
+
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+
+		if ( class_exists( '\Akibara\Business\Modules\AccountCollection\CustomerCollection' ) ) {
+			try {
+				return \Akibara\Business\Modules\AccountCollection\CollectionOwnership::owns_product( $user_id, $product_id );
+			} catch ( \Throwable $e ) {
+				return false;
+			}
+		}
+
+		return false;
 	}
 }

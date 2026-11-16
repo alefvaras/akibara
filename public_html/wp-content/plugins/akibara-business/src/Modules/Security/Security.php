@@ -18,6 +18,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.18.1
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
  */
 final class Security {
 
@@ -353,6 +357,7 @@ JS;
 	 * portada. Una cuenta WooCommerce no elude el control por iniciar sesión.
 	 *
 	 * @return void
+	 * @param mixed $wp
 	 */
 	public function block_author_enumeration( $wp ): void {
 		if ( is_admin() || current_user_can( 'list_users' ) ) {

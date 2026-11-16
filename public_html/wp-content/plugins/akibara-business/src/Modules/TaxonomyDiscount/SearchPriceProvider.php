@@ -27,6 +27,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.99.14
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class SearchPriceProvider {
 
@@ -241,6 +243,8 @@ final class SearchPriceProvider {
 			$this->fail( 'El resolver dejó de estar ligado a la foto adoptada.' );
 		}
 
+		$discounted = null;
+
 		try {
 			if ( self::STATE_PENDING === $this->state ) {
 				// Primer uso: recién acá el resolver queda ligado a la foto
@@ -278,7 +282,7 @@ final class SearchPriceProvider {
 			$this->fail( 'La autoridad se invalidó durante el cálculo del precio.' );
 		}
 
-		return null !== $discounted ? (float) $discounted : (float) $base;
+		return null !== $discounted ? $discounted : (float) $base;
 	}
 
 	/**

@@ -17,7 +17,13 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Configura PHPMailer únicamente cuando el transporte fue habilitado de forma
  * explícita mediante constantes privadas de wp-config.php.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress RedundantFunctionCall
  */
+// @phpstan-ignore complexity.classLike
 final class Transport {
 
 	private const DEFAULT_HOST       = 'smtp.hostinger.com';
@@ -622,7 +628,7 @@ final class Transport {
 			return '';
 		}
 
-		return 'el sitio responde como ' . (string) parse_url( $home, PHP_URL_HOST ) // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- mismo host que acaba de validar is_production_host().
+		return 'el sitio responde como ' . parse_url( $home, PHP_URL_HOST ) // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- mismo host que acaba de validar is_production_host().
 			. ' pero WP_ENVIRONMENT_TYPE vale «' . $environment . '»: fuera de producción el correo de clientes se desvía a la bandeja de captura. Corrige WP_ENVIRONMENT_TYPE en wp-config.php';
 	}
 

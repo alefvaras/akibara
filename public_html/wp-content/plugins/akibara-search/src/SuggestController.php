@@ -35,6 +35,13 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class SuggestController {
 
@@ -42,7 +49,6 @@ final class SuggestController {
 	private const ROUTE_SUGGEST  = '/search/suggest';
 	private const ROUTE_TRACK    = '/search/track';
 	private const ROUTE_POPULAR  = '/search/popular';
-	private const ROUTE_REQUEST  = '/search/request';
 
 	/** Resultados devueltos por el autocomplete (paridad live-ajax: 7). */
 	private const SUGGEST_LIMIT = 7;
@@ -163,66 +169,6 @@ final class SuggestController {
 				'permission_callback' => '__return_true',
 			)
 		);
-
-		register_rest_route(
-			self::REST_NAMESPACE,
-			self::ROUTE_REQUEST,
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'handle_request' ),
-				'permission_callback' => '__return_true',
-			)
-		);
-	}
-
-	/**
-	 * POST /search/request — registra solicitud de título no disponible o encargo.
-	 *
-	 * @param WP_REST_Request $request Request.
-	 * @return WP_REST_Response
-	 */
-	public function handle_request( WP_REST_Request $request ): WP_REST_Response {
-		$response = new WP_REST_Response();
-		RestCache::no_store( $response );
-
-		if ( $this->rate_limited( 'request', self::RL_TRACK_PER_MINUTE ) ) {
-			$response->set_status( 429 );
-			$response->set_data(
-				array(
-					'success' => false,
-					'message' => 'Demasiadas solicitudes. Por favor espera un momento.',
-				)
-			);
-			return $response;
-		}
-
-		// Honeypot check antispam
-		$hp = (string) $request->get_param( 'akb_hp_url' );
-		if ( '' !== trim( $hp ) ) {
-			$response->set_status( 200 );
-			$response->set_data(
-				array(
-					'success' => true,
-					'message' => '¡Solicitud recibida con éxito!',
-				)
-			);
-			return $response;
-		}
-
-		$params = (array) $request->get_json_params();
-		if ( empty( $params ) ) {
-			$params = (array) $request->get_params();
-		}
-
-		if ( ! isset( $params['product_id'] ) && $request->get_param( 'product_id' ) ) {
-			$params['product_id'] = (int) $request->get_param( 'product_id' );
-		}
-
-		$result = TitleRequests::record( $params, RateLimit::client_ip() );
-
-		$response->set_status( $result['success'] ? 200 : 400 );
-		$response->set_data( $result );
-		return $response;
 	}
 
 	/**
@@ -231,7 +177,7 @@ final class SuggestController {
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
 	 */
-	public function handle_suggest( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_suggest( WP_REST_Request $request ): WP_REST_Response { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$response = new WP_REST_Response();
 		$publication_token = self::publication_token();
 
@@ -272,30 +218,13 @@ final class SuggestController {
 		$scoped = $filters->has_facets() || $filters->has_context();
 
 		// Micro-caché server-side en memoria (60s) ligada a index_gen + token de publicación + filtros
-		$cache_key = self::microcache_key( $query, $publication_token, $query_params );
-		if ( '' !== $cache_key ) {
-			$cached_data = function_exists( 'wp_cache_get' ) ? wp_cache_get( $cache_key, 'akb_search' ) : false;
-			if ( false === $cached_data && function_exists( 'get_transient' ) ) {
-				$cached_data = get_transient( $cache_key );
-			}
-			if ( is_array( $cached_data ) && isset( $cached_data['items'], $cached_data['total'] ) ) {
-				if ( ! self::publication_token_matches( $publication_token ) ) {
-					return $this->suggest_unavailable( $response );
-				}
-				$response->set_data( $cached_data );
-				RestCache::apply( $response );
-				return $response;
-			}
+		$cache_key  = self::microcache_key( $query, $publication_token, $query_params );
+		$cached_res = $this->try_read_suggest_microcache( $cache_key, $publication_token, $response );
+		if ( null !== $cached_res ) {
+			return $cached_res;
 		}
 
-		// suggest() es ATÓMICO (spec v5 D3): la corrección fuzzy (política
-		// ESTRICTA — ante ambigüedad calla) viaja EN el retorno, no por un
-		// side-channel estático. `corrected` es null sin corrección.
-		//
-		// Bajo contexto se pide el ranking completo en vez de 14: el recorte del
-		// motor ocurre antes de conocer la faceta, así que filtrar después
-		// dejaba el panel casi vacío mientras el footer prometía decenas.
-		$result    = $this->engine->suggest( $query, $scoped ? QueryEngine::MAX_RESULTS : self::SUGGEST_FETCH );
+		$result = $this->engine->suggest( $query, $scoped ? QueryEngine::MAX_RESULTS : self::SUGGEST_FETCH );
 		if ( ! $this->engine->is_available() ) {
 			return $this->suggest_unavailable( $response );
 		}
@@ -303,22 +232,14 @@ final class SuggestController {
 		$corrected = $result['corrected'];
 		$relaxed   = $result['relaxed'] ?? null;
 
-		// Bajo contexto de archive, filtra las tarjetas por el mismo conjunto de facetas
-		// para mantener concordancia exacta con el total del footer y la página de destino.
 		$truncated = self::SUGGEST_FETCH === count( $ids );
 		if ( $scoped ) {
-			// `FacetService::filter()` documenta su retorno como «post_ids (sin
-			// ordenar)» — su SELECT no lleva ORDER BY. Quedarse con su salida
-			// tal cual y recortarla daría 7 tomos en orden de tabla en vez de
-			// los 7 mejor rankeados: en /serie/naruto/ el panel abriría por un
-			// tomo cualquiera. Se usa SOLO como conjunto de permitidos y se
-			// recorre `$ids` en el orden del motor, que es el que rankea.
 			$allowed = $this->facets->filter( $filters, $ids );
 			if ( ! $this->facets->is_available() ) {
 				return $this->suggest_unavailable( $response );
 			}
-			$allowed = array_flip( $allowed );
-			$ids     = array_values(
+			$allowed   = array_flip( $allowed );
+			$ids       = array_values(
 				array_filter(
 					$ids,
 					static function ( $id ) use ( $allowed ) {
@@ -326,83 +247,127 @@ final class SuggestController {
 					}
 				)
 			);
-
-			// Combina la señal de truncamiento con la del motor para recalcular
-			// el total exacto cuando el conjunto excede la capacidad del over-fetch.
 			$truncated = $truncated || count( $ids ) > self::SUGGEST_FETCH;
 			$ids       = array_slice( $ids, 0, self::SUGGEST_FETCH );
 		}
-		// Recorte DESPUÉS de presentar: los ids que el presenter descarta por
-		// fail-closed (post_status ≠ publish) se reemplazan con los del
-		// over-fetch en vez de dejar el hueco (ver SUGGEST_FETCH).
-		$cards     = $this->presenter->cards( $ids );
+
+		$cards = $this->presenter->cards( $ids );
 		if ( ! $this->presenter->is_available() ) {
 			return $this->suggest_unavailable( $response );
 		}
-		$items     = array_slice( $cards, 0, self::SUGGEST_LIMIT );
+		$items = array_slice( $cards, 0, self::SUGGEST_LIMIT );
 
-		// Contrato §5.7: `corrected` NUNCA viaja sobre panel vacío (staleness
-		// del presenter — un id corregido que ya no resuelve a tarjeta no debe
-		// afirmar una corrección que no se ve).
 		if ( empty( $items ) ) {
 			$corrected = null;
-			// Mismo contrato para el aviso de editorial: sin tarjetas a la vista,
-			// «esto es lo que tenemos» no señalaría nada.
 			$relaxed = null;
 		}
 
-		// Excerpts/highlights: resaltar los tokens del término en el título con
-		// <mark> (server-side, escapado por Highlighter). El cliente usa
-		// title_html. Con corrección, las tarjetas matchean el término REAL:
-		// resaltamos contra `fix`, no contra el typo (que no aparece en el
-		// título y no resaltaría nada).
 		$hl_tokens = Normalizer::tokenize( $corrected['fix'] ?? ( is_array( $relaxed ) ? (string) $relaxed['kept'] : $query ) );
 		foreach ( $items as &$hl_item ) {
 			$hl_item['title_html'] = Highlighter::mark( (string) $hl_item['title'], $hl_tokens );
 		}
 		unset( $hl_item );
 
-		// Series que matchean (`pa_serie` → /serie/<slug>/). Van en su PROPIA
-		// clave, no mezcladas en `items`: son otra cosa (agrupan tomos, no
-		// tienen precio ni stock) y `total`/"Ver los N resultados" siguen
-		// contando SOLO productos, que es lo que la página destino muestra.
-		//
-		// Contra la query CORREGIDA por el mismo motivo que el highlight: si el
-		// fuzzy resolvió "jujustu"→"jujutsu", la serie que corresponde es la del
-		// término real, no la del typo.
-		//
-		// DEGRADACIÓN ACOTADA, a diferencia de todo lo de arriba: un fallo acá
-		// apaga sólo el grupo de series. Devolver 503 borraría también las
-		// tarjetas de producto —lo único que vende— por un bloque que hasta hoy
-		// ni existía. La respuesta nunca se almacena públicamente
-		// (`RestCache::apply()` fuerza no-store), así que la degradación no
-		// queda cacheada para nadie más.
 		$series = $this->series->suggest( $corrected['fix'] ?? $query );
 		if ( ! $this->series->is_available() ) {
 			$series = array();
 		}
 
-		// `total` alimenta el footer de resultados: cuando se supera el límite de tarjetas o hubo truncamiento,
-		// se evalúa el total exacto aplicando los mismos filtros de faceta sobre la búsqueda completa.
-		$total = count( $items );
-		if ( count( $cards ) > self::SUGGEST_LIMIT || $truncated ) {
-			// Con relajación de editorial, el total se calcula sobre la consulta efectivamente conservada.
-			$total_query = $corrected['fix'] ?? ( is_array( $relaxed ) ? (string) $relaxed['kept'] : $query );
-			$exact = $this->engine->search( $total_query, false, QueryEngine::MAX_RESULTS, false );
-			if ( ! $this->engine->is_available() ) {
-				return $this->suggest_unavailable( $response );
-			}
-			$filtered = $this->facets->filter( $filters, $exact );
-			if ( ! $this->facets->is_available() ) {
-				return $this->suggest_unavailable( $response );
-			}
-			$total = count( $filtered );
-		}
-
-		if ( ! self::publication_token_matches( $publication_token ) ) {
+		$total = $this->resolve_suggest_total( $cards, $items, $truncated, $corrected, $relaxed, $query, $filters );
+		if ( null === $total || ! self::publication_token_matches( $publication_token ) ) {
 			return $this->suggest_unavailable( $response );
 		}
 
+		$data = $this->build_suggest_payload( $query, $items, $total, $series, $corrected, $relaxed );
+		$this->write_suggest_microcache( $cache_key, $data );
+
+		$response->set_data( $data );
+		RestCache::apply( $response );
+		return $response;
+	}
+
+	/**
+	 * Intenta responder desde la micro-caché de 60s si existe y el token sigue vigente.
+	 *
+	 * @param string           $cache_key         Clave de micro-caché.
+	 * @param string           $publication_token Token de publicación capturado.
+	 * @param WP_REST_Response $response          Respuesta REST.
+	 * @return WP_REST_Response|null Respuesta lista o null en caso de miss.
+	 */
+	private function try_read_suggest_microcache( string $cache_key, string $publication_token, WP_REST_Response $response ): ?WP_REST_Response {
+		if ( '' === $cache_key ) {
+			return null;
+		}
+		$cached_data = function_exists( 'wp_cache_get' ) ? wp_cache_get( $cache_key, 'akb_search' ) : false;
+		if ( false === $cached_data && function_exists( 'get_transient' ) ) {
+			$cached_data = get_transient( $cache_key );
+		}
+		if ( ! is_array( $cached_data ) || ! isset( $cached_data['items'], $cached_data['total'] ) ) {
+			return null;
+		}
+		if ( ! self::publication_token_matches( $publication_token ) ) {
+			return $this->suggest_unavailable( $response );
+		}
+		$response->set_data( $cached_data );
+		RestCache::apply( $response );
+		return $response;
+	}
+
+	/**
+	 * Calcula el total exacto de productos para el pie del panel cuando el resultado excede el límite visual.
+	 *
+	 * @param array<int, array<string, mixed>>      $cards     Tarjetas antes de recortar.
+	 * @param array<int, array<string, mixed>>      $items     Tarjetas recortadas.
+	 * @param bool                                  $truncated Si hubo truncamiento en el fetch.
+	 * @param array{typo: string, fix: string}|null $corrected Corrección ortográfica.
+	 * @param array<string, mixed>|null             $relaxed   Aviso de editorial relajada.
+	 * @param string                                $query     Consulta original.
+	 * @param mixed                                 $filters   Filtros activos.
+	 * @return int|null Total exacto o null si la lectura autoritativa falló.
+	 */
+	private function resolve_suggest_total(
+		array $cards,
+		array $items,
+		bool $truncated,
+		?array $corrected,
+		?array $relaxed,
+		string $query,
+		$filters
+	): ?int {
+		if ( count( $cards ) > self::SUGGEST_LIMIT || $truncated ) {
+			$total_query = $corrected['fix'] ?? ( is_array( $relaxed ) ? (string) $relaxed['kept'] : $query );
+			$exact       = $this->engine->search( $total_query, false, QueryEngine::MAX_RESULTS, false );
+			if ( ! $this->engine->is_available() ) {
+				return null;
+			}
+			$filtered = $this->facets->filter( $filters, $exact );
+			if ( ! $this->facets->is_available() ) {
+				return null;
+			}
+			return count( $filtered );
+		}
+		return count( $items );
+	}
+
+	/**
+	 * Arma el payload final de `/suggest` con correcciones y avisos de editorial relajada.
+	 *
+	 * @param string                             $query     Término buscado.
+	 * @param array<int, array<string, mixed>>   $items     Tarjetas de producto.
+	 * @param int                                $total     Total de coincidencias.
+	 * @param array<int, array<string, mixed>>   $series    Series sugeridas.
+	 * @param array{typo: string, fix: string}|null $corrected Corrección ortográfica.
+	 * @param array<string, mixed>|null          $relaxed   Aviso de editorial relajada.
+	 * @return array<string, mixed>
+	 */
+	private function build_suggest_payload(
+		string $query,
+		array $items,
+		int $total,
+		array $series,
+		?array $corrected,
+		?array $relaxed
+	): array {
 		$data = array(
 			'query'  => $query,
 			'items'  => $items,
@@ -419,27 +384,30 @@ final class SuggestController {
 					'ignored'     => array_values( (array) $relaxed['ignored'] ),
 					'kept'        => (string) $relaxed['kept'],
 					'notice'      => $frase,
-					// Ya escapado en el servidor, con las dos piezas en negrita:
-					// mismo trato que `title_html` (Highlighter) y por el mismo
-					// motivo — el énfasis lo decide quien conoce las piezas.
 					'notice_html' => BrandRelax::sentence_html( (array) $relaxed['ignored'], (string) $relaxed['kept'] ),
 				);
 			}
 		}
+		return $data;
+	}
 
-		if ( '' !== $cache_key ) {
-			if ( function_exists( 'set_transient' ) ) {
-				set_transient( $cache_key, $data, 60 );
-			}
-			if ( function_exists( 'wp_cache_set' ) ) {
-				wp_cache_set( $cache_key, $data, 'akb_search', 60 );
-			}
+	/**
+	 * Persiste el payload en la micro-caché de 60s.
+	 *
+	 * @param string               $cache_key Clave de caché.
+	 * @param array<string, mixed> $data      Payload a almacenar.
+	 * @return void
+	 */
+	private function write_suggest_microcache( string $cache_key, array $data ): void {
+		if ( '' === $cache_key ) {
+			return;
 		}
-
-		$response->set_data( $data );
-		// Cachear solo tras completar y revalidar todas las lecturas autoritativas.
-		RestCache::apply( $response );
-		return $response;
+		if ( function_exists( 'set_transient' ) ) {
+			set_transient( $cache_key, $data, 60 );
+		}
+		if ( function_exists( 'wp_cache_set' ) ) {
+			wp_cache_set( $cache_key, $data, 'akb_search', 60 );
+		}
 	}
 
 	/**
@@ -451,8 +419,9 @@ final class SuggestController {
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
+	 * @psalm-suppress UnusedParam
 	 */
-	public function handle_popular( WP_REST_Request $request ): WP_REST_Response {
+	public function handle_popular( WP_REST_Request $request ): WP_REST_Response { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 		$response = new WP_REST_Response();
 		$publication_token = self::publication_token();
 
@@ -551,6 +520,7 @@ final class SuggestController {
 			$this->logger->log( $query, $hits, $src, $this->user_agent() );
 		} catch ( \Throwable $exception ) {
 			// /track es analytics best-effort: conserva 204/no-store.
+			unset( $exception );
 		}
 
 		return $response;

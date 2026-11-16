@@ -88,7 +88,7 @@ final class OutOfStockQuantityTest extends TestCase {
 		$js = $this->frontendSource();
 
 		self::assertMatchesRegularExpression(
-			'/var atMax = \(max === 0\) \|\| \(max > 0 && current >= max\)/',
+			'/(?:var|let|const) atMax = \(max === 0\) \|\| \(max > 0 && current >= max\)/',
 			$js,
 			'`max > 0 && ...` dejaba el «+» activo con max === 0, o sea en el producto agotado.'
 		);

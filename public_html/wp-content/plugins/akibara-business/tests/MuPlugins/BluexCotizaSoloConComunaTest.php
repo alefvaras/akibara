@@ -36,7 +36,7 @@ namespace Akibara\Business\Tests\MuPlugins {
 			Monkey\setUp();
 
 			if ( ! function_exists( 'akibara_bluex_disponible_solo_con_comuna' ) ) {
-				require_once dirname( __DIR__, 4 ) . '/mu-plugins/akibara-bluex-cotiza-solo-con-comuna.php';
+				require_once dirname( __DIR__, 4 ) . '/mu-plugins/akibara-bluex-suite.php';
 			}
 
 			unset( $GLOBALS['wp_filter'] );
@@ -96,7 +96,7 @@ namespace Akibara\Business\Tests\MuPlugins {
 		 * @testdox El registro espera a `plugins_loaded` tarde y muere con el tercero.
 		 */
 		public function test_el_registro_espera_a_plugins_loaded_tarde_y_muere_con_el_tercero(): void {
-			$fuente = (string) file_get_contents( dirname( __DIR__, 4 ) . '/mu-plugins/akibara-bluex-cotiza-solo-con-comuna.php' );
+			$fuente = (string) file_get_contents( dirname( __DIR__, 4 ) . '/mu-plugins/akibara-bluex-suite.php' );
 			$fuente = (string) preg_replace( '#/\*.*?\*/|//[^\n]*#s', '', $fuente );
 
 			self::assertStringContainsString( "add_action( 'plugins_loaded', 'akibara_bluex_registrar_cotiza_solo_con_comuna', 20 );", $fuente );

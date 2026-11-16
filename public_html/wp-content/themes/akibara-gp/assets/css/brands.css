@@ -9,7 +9,7 @@
  */
 
 .akb-brands-directory {
-    max-width: var(--container-narrow);
+    max-width: 1040px;
     margin: 0 auto;
     padding: var(--space-6) var(--space-4) var(--space-12);
     display: flex;
@@ -32,6 +32,7 @@
     font-size: var(--text-xs);
     font-style: italic;
     font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    font-synthesis: none;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
@@ -50,9 +51,12 @@
     margin: 0 0 var(--space-5);
     font-family: var(--font-heading);
     font-size: var(--text-2xl);
+    font-weight: 400;
+    font-synthesis: none;
     color: var(--aki-white);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    text-wrap: balance;
 }
 
 .akb-brands-section__accent {
@@ -79,7 +83,7 @@
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
     gap: var(--space-4);
 }
 
@@ -93,6 +97,8 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: var(--space-4);
+    height: 100%;
+    box-sizing: border-box;
     padding: var(--space-4) var(--space-5);
     background: var(--aki-surface-2);
     border: 1px solid var(--aki-border);
@@ -122,15 +128,19 @@
    (mismo defecto transversal que el card de producto). El borde/sombra quedan
    como feedback breve; el :focus-visible (teclado) conserva su lift. */
 @media (hover: none) {
+
     .akb-brand-card__link:hover {
         transform: none;
     }
 }
+
 /* Reduced-motion: sin animación ni desplazamiento; el borde rojo queda de señal. */
 @media (prefers-reduced-motion: reduce) {
+
     .akb-brand-card__link {
         transition: none;
     }
+
     .akb-brand-card__link:hover,
     .akb-brand-card__link:focus-visible {
         transform: none;
@@ -146,6 +156,7 @@
     height: 56px;
     border-radius: 0;
     background: var(--aki-surface-3);
+
     /* Monograma de inicial: BLANCO (no amarillo — amarillo = solo precio; en mobile
        este monograma reemplaza al logo y dominaba toda la pantalla en oro). Blanco
        sobre surface-3 = ~15.9:1; el hover ya pasa a rojo. */
@@ -167,6 +178,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+
     /* PLACA ANCHA, no cuadrado (2.1.73): 6 de los 8 logos son wordmarks de
        aspecto 3.4:1 a 6.6:1 — en una caja cuadrada con object-fit: contain
        quedaban en franjas de 9-18px de alto (Planeta Cómic ~9px, ilegible).
@@ -196,7 +208,7 @@
     height: 100%;
     max-height: 52px;
     display: block;
-    fill: currentColor;
+    fill: currentcolor;
     transition: transform 0.15s ease;
 }
 
@@ -214,11 +226,11 @@
 }
 
 .akb-brand-card__logo .akb-publisher-logo--ovni-press {
-    color: #000000;
+    color: #000;
 }
 
 .akb-brand-card__logo .akb-publisher-logo--distrito-manga {
-    color: #000000;
+    color: #000;
 }
 
 .akb-brand-card__logo .akb-publisher-logo--devir {
@@ -234,6 +246,10 @@
     color: #ED1C3B;
 }
 
+.akb-brand-card__logo .akb-publisher-logo--panini {
+    color: #EF1C26;
+}
+
 /* La interactividad del hover la da la tarjeta física (movimiento, borde y sombra), no la deformación del logo */
 .akb-brand-card__link:hover .akb-publisher-logo {
     transform: scale(1.04);
@@ -243,7 +259,8 @@
 .akb-brand-card__body {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-self: stretch;
+    gap: var(--space-1);
     min-width: 0;
 }
 
@@ -251,9 +268,12 @@
     color: var(--aki-white);
     font-family: var(--font-heading);
     font-size: var(--text-lg);
+    font-weight: 400;
+    font-synthesis: none;
     text-transform: uppercase;
     letter-spacing: 0.02em;
     line-height: 1.2;
+    text-wrap: balance;
 }
 
 .akb-brand-card__desc {
@@ -267,12 +287,14 @@
 }
 
 .akb-brand-card__count {
-    color: var(--aki-gray-400);
+    color: var(--aki-gray-300);
     font-size: var(--text-xs);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     font-weight: var(--weight-semibold);
-    margin-top: var(--space-1);
+    line-height: 1.25;
+    margin-top: auto;
+    padding-top: var(--space-3);
 }
 
 /* Arrow */
@@ -289,6 +311,7 @@
 
 /* ─── Mobile: directorio compacto y escalable ───────────────── */
 @media (max-width: 640px) {
+
     .akb-brands-directory {
         padding: var(--space-5) var(--space-3) var(--space-10);
         gap: var(--space-8);
@@ -311,20 +334,22 @@
     .akb-brand-card__link {
         position: relative;
         display: flex;
+        height: 100%;
         min-height: 104px;
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-2);
         padding: var(--space-3);
+        box-sizing: border-box;
     }
 
-    /* Mostrar el LOGO real también en mobile (antes se ocultaba y caía al
-       monograma de inicial). Recupera reconocimiento de marca: en mobile hay
-       3 tarjetas "P" (Panini AR, Panini ES, Planeta) que la inicial no
-       distingue, pero el logo sí. El monograma plano (.monogram sin --fallback)
-       sigue cubriendo a las marcas SIN asset de logo. */
+    /* Mostrar el LOGO real también en mobile con placa a lo ancho de la card (2.1.73):
+       recupera reconocimiento de marca y aprovecha el ancho para wordmarks. */
     .akb-brand-card__logo {
         display: inline-flex;
+        width: 100%;
+        height: 64px;
+        padding: 8px 12px;
     }
 
     .akb-brand-card__monogram {
@@ -333,16 +358,9 @@
         font-size: 1.5rem;
     }
 
-    /* Placa a lo ancho de la card (2.1.73): mismo racional que en desktop —
-       los wordmarks anchos necesitan ancho, no un cuadrado más grande. Llena
-       el costado derecho que quedaba muerto y calza con la placa del home. */
-    .akb-brand-card__logo {
-        width: 100%;
-        height: 64px;
-        padding: 8px 12px;
-    }
-
     .akb-brand-card__body {
+        flex: 1 1 auto;
+        width: 100%;
         gap: var(--space-1);
     }
 
@@ -355,26 +373,32 @@
         line-height: 1.15;
         overflow-wrap: anywhere;
         word-break: normal;
+        text-wrap: balance;
     }
 
     .akb-brand-card__count {
-        margin-top: 0;
-        font-size: 10px;
-        line-height: 1.2;
+        margin-top: auto;
+        padding-top: var(--space-1);
+        padding-right: var(--space-5);
+        color: var(--aki-gray-300);
+        font-size: var(--text-xs);
+        line-height: 1.25;
     }
 
     .akb-brand-card__arrow {
         position: absolute;
-        top: var(--space-2);
+        top: auto;
+        bottom: var(--space-3);
         right: var(--space-3);
         font-size: var(--text-lg);
+        line-height: 1;
     }
 }
 
 /* ─── Filterbar (search + region chips) ────────────────────────────────
  * Activado por el shortcode cuando el directorio tiene ≥6 brands.
  * JS: assets/js/akibara-brands-filter.js (vanilla, sin dependencias).
- * Tokens del proyecto. Cero hardcoded values, cero !important.
+ * Tokens del proyecto. Cero hardcoded values, cero overrides forzados.
  */
 .akb-brands-filterbar {
     display: grid;
@@ -401,9 +425,10 @@
     margin: 0;
     color: var(--aki-gray-300);
     font-family: var(--font-heading);
-    font-size: var(--text-xs, 12px);
+    font-size: var(--text-xs);
     font-style: italic;
     font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    font-synthesis: none;
     letter-spacing: 0.06em;
     line-height: 1.2;
     text-transform: uppercase;
@@ -422,7 +447,7 @@
     height: 18px;
     color: var(--aki-gray-400);
     fill: none;
-    stroke: currentColor;
+    stroke: currentcolor;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 2;
@@ -437,7 +462,7 @@
 
 .akb-brands-filterbar__input {
     width: 100%;
-    min-height: var(--touch-target-min, 44px);
+    min-height: var(--touch-target-min);
     padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 26px);
     background: var(--aki-surface-2);
     border: 1px solid var(--aki-border);
@@ -491,7 +516,7 @@
 .akb-brands-filterbar__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
+    gap: var(--space-2) var(--space-4);
     margin-top: var(--space-2);
 }
 
@@ -499,14 +524,15 @@
     appearance: none;
     display: inline-flex;
     align-items: center;
-    min-height: var(--touch-target-min, 44px); /* tap target (antes ~36px) */
+    min-height: var(--touch-target-min); /* tap target (antes ~36px) */
     background: var(--aki-surface-2);
     border: 1px solid var(--aki-border);
     color: var(--aki-gray-300);
     padding: var(--space-1) var(--space-3);
     border-radius: 0;
-    font-size: var(--text-xs, 12px);
+    font-size: var(--text-xs);
     font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    font-synthesis: none;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     font-family: var(--font-heading);
@@ -537,6 +563,7 @@
 .akb-brands-chip--active,
 .akb-brands-chip--active:hover,
 .akb-brands-chip--active:focus-visible {
+
     /* Texto BLANCO sobre rojo (4.80:1, pasa AA). Negro sobre rojo daba 3.90:1
        (falla AA para texto chico, que es lo que es: Bebas xs). */
     color: var(--aki-white);
@@ -551,8 +578,8 @@
 
 .akb-brands-chip__count {
     font-weight: var(--weight-medium);
-    opacity: 0.7;
-    font-size: 11px;
+    opacity: 0.9;
+    font-size: var(--text-xs);
 }
 
 .akb-brands-filterbar__status {
@@ -563,8 +590,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    color: var(--aki-gray-400);
-    font-size: var(--text-xs, 12px);
+    color: var(--aki-gray-300);
+    font-size: var(--text-xs);
     min-height: 1.2em;
 }
 
@@ -576,16 +603,21 @@
 
 .akb-brands-filterbar__clear {
     appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    padding: var(--space-1) var(--space-3);
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) var(--space-4);
     background: var(--aki-surface-2);
     border: 1px solid var(--aki-border);
     color: var(--aki-gray-300);
     border-radius: 0;
     font-family: var(--font-heading);
-    font-size: var(--text-xs, 12px);
+    font-size: var(--text-xs);
     font-style: italic;
     font-weight: 400; /* Bebas Neue en peso nominal 400 */
+    font-synthesis: none;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
@@ -617,7 +649,8 @@
     color: var(--aki-gray-300);
     background: var(--aki-surface);
     border: 1px solid var(--aki-border);
-    border-radius: var(--radius-md, 8px);
+    border-left: 4px solid var(--aki-red);
+    border-radius: 0;
 }
 
 .akb-brands-empty a {
@@ -633,6 +666,7 @@
 
 /* Mobile — apilar input arriba, chips abajo, sin row gap */
 @media (max-width: 720px) {
+
     .akb-brands-directory__summary {
         gap: 0.2rem var(--space-2);
     }
@@ -648,13 +682,13 @@
         flex-wrap: nowrap;
         overflow-x: auto;
         margin: var(--space-2) calc(var(--space-3) * -1) 0;
-        padding: 0 var(--space-3) 2px;
+        padding: 6px var(--space-4);
         scrollbar-width: thin;
     }
 
     .akb-brands-chip {
         flex: 0 0 auto;
-        min-height: var(--touch-target-min, 44px);
+        min-height: var(--touch-target-min);
     }
 
     .akb-brands-filterbar__status {

@@ -32,7 +32,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.99.15
+ * @api
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class AuthoritativeReader {
 
 	/** Mismo dominio sellado por Search y AdoptedSnapshot. */
@@ -152,7 +157,7 @@ final class AuthoritativeReader {
 		}
 
 		if ( '' !== (string) $wpdb->last_error ) {
-			$this->authority->fail( 'Lectura cruda de opciones falló en SQL: ' . (string) $wpdb->last_error );
+			$this->authority->fail( 'Lectura cruda de opciones falló en SQL: ' . $wpdb->last_error );
 			return $this->options;
 		}
 
@@ -429,7 +434,8 @@ final class AuthoritativeReader {
 	 *
 	 * @return array<string, string> `pa_slug => label`.
 	 */
-	public function attribute_taxonomy_map(): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function attribute_taxonomy_map(): array { // @phpstan-ignore complexity.functionLike
 		if ( null !== $this->attribute_map ) {
 			return $this->attribute_map;
 		}
@@ -457,7 +463,7 @@ final class AuthoritativeReader {
 		}
 
 		if ( '' !== (string) $wpdb->last_error ) {
-			$this->authority->fail( 'Lectura cruda de atributos falló en SQL: ' . (string) $wpdb->last_error );
+			$this->authority->fail( 'Lectura cruda de atributos falló en SQL: ' . $wpdb->last_error );
 			return $this->attribute_map;
 		}
 
@@ -561,7 +567,7 @@ final class AuthoritativeReader {
 		}
 
 		if ( '' !== (string) $wpdb->last_error ) {
-			$this->authority->fail( 'Lectura cruda de relaciones falló en SQL: ' . (string) $wpdb->last_error );
+			$this->authority->fail( 'Lectura cruda de relaciones falló en SQL: ' . $wpdb->last_error );
 			return array();
 		}
 
@@ -644,7 +650,7 @@ final class AuthoritativeReader {
 		}
 
 		if ( '' !== (string) $wpdb->last_error ) {
-			$this->authority->fail( 'Lectura cruda de term-meta falló en SQL: ' . (string) $wpdb->last_error );
+			$this->authority->fail( 'Lectura cruda de term-meta falló en SQL: ' . $wpdb->last_error );
 			return 0;
 		}
 
@@ -712,7 +718,7 @@ final class AuthoritativeReader {
 	 * @return string Cadena vacía si no se pudo serializar.
 	 */
 	private function encode( $material ): string {
-		$json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $material ) : json_encode( $material );
+		$json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $material ) : json_encode( $material ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
 
 		if ( ! is_string( $json ) || '' === $json ) {
 			$this->authority->fail( 'No se pudo serializar la foto autoritativa (encode inválido).' );

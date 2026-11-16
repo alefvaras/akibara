@@ -14,14 +14,20 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\ProductFaq;
 
-use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Services\CheckoutTrustSignals;
-use Akibara\Business\Services\VolumeTitle;
 use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedVariable
+ * @psalm-suppress UnusedParam
+ */
 final class ProductFaq {
 
 	private const MANGA_CATEGORY_SLUG = 'manga';
@@ -38,6 +44,7 @@ final class ProductFaq {
 	 * @param mixed           $fallback Valor por defecto del filtro (se ignora).
 	 * @param WC_Product|null $product  Producto; si null, el del loop actual.
 	 * @return array<int, array{q:string, a:string}>
+	 * @psalm-suppress UnusedParam
 	 */
 	public function get_faq_data( $fallback = array(), ?WC_Product $product = null ): array {
 		if ( ! $product instanceof WC_Product ) {
@@ -55,18 +62,13 @@ final class ProductFaq {
 
 		$name = $product->get_name();
 
-		// La serie procede de pa_serie y el número del título mediante VolumeTitle.
-		// _akibara_serie se conserva como opción inicial para instalaciones que la
-		// tengan poblada; las metas auxiliares sin consumidores no son la autoridad.
-
-		$serie = (string) get_post_meta( $pid, '_akibara_serie', true );
+		// La serie procede canónicamente de pa_serie y el número del título mediante VolumeTitle.
+		$serie      = '';
 		$serie_term = null;
-		if ( '' === $serie ) {
-			$serie_terms = get_the_terms( $pid, 'pa_serie' );
-			if ( $serie_terms && ! is_wp_error( $serie_terms ) ) {
-				$serie_term = $serie_terms[0];
-				$serie      = (string) $serie_term->name;
-			}
+		$serie_terms = get_the_terms( $pid, 'pa_serie' );
+		if ( $serie_terms && ! is_wp_error( $serie_terms ) ) {
+			$serie_term = $serie_terms[0];
+			$serie      = (string) $serie_term->name;
 		}
 
 		$brands = get_the_terms( $pid, 'product_brand' );
@@ -81,15 +83,8 @@ final class ProductFaq {
 			: '';
 		$publication_noun = $this->publication_noun( $pid );
 
-		$in_stock    = StockStatus::is_instock( $product );
-		$is_preorder = StockStatus::is_reservable( $product );
-		if ( $is_preorder ) {
-			// La palabra sigue al estado comercial (1.109.0): «preventa» solo si
-			// el tomo aún no sale; el backlist se declara «a pedido».
-			$stock_text = Availability::is_preventa( $product ) ? 'disponible en preventa' : 'disponible a pedido';
-		} else {
-			$stock_text = $in_stock ? 'disponible en stock' : 'actualmente agotado';
-		}
+		$in_stock   = StockStatus::is_instock( $product );
+		$stock_text = $in_stock ? 'disponible en stock' : 'actualmente agotado';
 		$serie_or_name = $serie ?: $name;
 
 		$faqs = array();
@@ -157,18 +152,18 @@ final class ProductFaq {
 				continue;
 			}
 
-			if ( isset( $category->slug ) && is_string( $category->slug ) ) {
+			if ( isset( $category->slug ) && is_string( $category->slug ) ) { // @phpstan-ignore isset.property
 				$slugs[] = $category->slug;
 			}
 
-			$term_id = isset( $category->term_id ) ? (int) $category->term_id : 0;
+			$term_id = isset( $category->term_id ) ? (int) $category->term_id : 0; // @phpstan-ignore isset.property
 			if ( $term_id < 1 ) {
 				continue;
 			}
 
 			foreach ( get_ancestors( $term_id, 'product_cat', 'taxonomy' ) as $ancestor_id ) {
 				$ancestor = get_term( (int) $ancestor_id, 'product_cat' );
-				if ( is_object( $ancestor ) && ! is_wp_error( $ancestor ) && isset( $ancestor->slug ) && is_string( $ancestor->slug ) ) {
+				if ( is_object( $ancestor ) && ! is_wp_error( $ancestor ) && isset( $ancestor->slug ) && is_string( $ancestor->slug ) ) { // @phpstan-ignore isset.property
 					$slugs[] = $ancestor->slug;
 				}
 			}

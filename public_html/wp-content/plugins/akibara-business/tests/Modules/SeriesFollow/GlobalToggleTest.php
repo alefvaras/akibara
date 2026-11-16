@@ -54,6 +54,7 @@ final class GlobalToggleTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->alias( fn (): int => $this->logueado ? self::SESION : 0 );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->alias( static fn ( $value ): string => trim( (string) $value ) );
+		Functions\when( 'WC' )->justReturn( null );
 		// El nonce válido es SÓLO el del usuario de la sesión: 'nonce-<id>'.
 		Functions\when( 'wp_verify_nonce' )->alias(
 			static fn ( string $nonce, string $action ): bool => 'nonce-' . substr( $action, strlen( GlobalToggle::NONCE_ACTION ) ) === $nonce
@@ -71,6 +72,8 @@ final class GlobalToggleTest extends TestCase {
 		);
 		Functions\when( 'home_url' )->alias( static fn ( string $path = '' ): string => 'https://akibara.test' . $path );
 		Functions\when( 'wc_get_page_permalink' )->justReturn( 'https://akibara.test/mi-cuenta/' );
+		Functions\when( 'wc_get_account_endpoint_url' )->alias( static fn ( string $slug ): string => 'https://akibara.test/mi-cuenta/' . $slug . '/' );
+		Functions\when( 'get_option' )->alias( static fn ( string $key, $default = false ) => 'akb_sf_enabled' === $key ? 'yes' : $default );
 		Functions\when( 'wc_get_endpoint_url' )->alias(
 			static fn ( string $slug, string $value = '', string $permalink = '' ): string =>
 				( '' !== $permalink ? rtrim( $permalink, '/' ) . '/' : 'https://akibara.test/mi-cuenta/' ) . $slug . '/'
@@ -154,7 +157,7 @@ final class GlobalToggleTest extends TestCase {
 		$this->enviar( 'POST', 'off' );
 
 		self::assertSame( '1', $this->bajas_globales[ self::SESION ] );
-		self::assertSame( array( 'https://akibara.test/mi-cuenta/coleccion/' ), $this->redirecciones );
+		self::assertSame( array( 'https://akibara.test/mi-cuenta/' ), $this->redirecciones );
 	}
 
 	/**
@@ -262,7 +265,7 @@ final class GlobalToggleTest extends TestCase {
 
 		self::assertSame( array(), $this->bajas_globales );
 		self::assertSame( array( array( GlobalToggle::NOTICE_SESSION, 'error' ) ), $this->avisos );
-		self::assertSame( array( 'https://akibara.test/mi-cuenta/coleccion/' ), $this->redirecciones );
+		self::assertSame( array( 'https://akibara.test/mi-cuenta/' ), $this->redirecciones );
 	}
 
 	/**
@@ -280,7 +283,7 @@ final class GlobalToggleTest extends TestCase {
 			array( array( 'No pudimos guardar el cambio: la página llevaba demasiado tiempo abierta. Vuelve a intentarlo.', 'error' ) ),
 			$this->avisos
 		);
-		self::assertSame( array( 'https://akibara.test/mi-cuenta/coleccion/' ), $this->redirecciones );
+		self::assertSame( array( 'https://akibara.test/mi-cuenta/' ), $this->redirecciones );
 	}
 
 	/**
@@ -293,7 +296,7 @@ final class GlobalToggleTest extends TestCase {
 
 		self::assertSame( array(), $this->bajas_globales );
 		self::assertSame( array( array( GlobalToggle::NOTICE_RETRY, 'error' ) ), $this->avisos );
-		self::assertSame( array( 'https://akibara.test/mi-cuenta/coleccion/' ), $this->redirecciones );
+		self::assertSame( array( 'https://akibara.test/mi-cuenta/' ), $this->redirecciones );
 	}
 
 	/** @testdox [NEG] Un GET no muta nada: sólo el POST del formulario. */

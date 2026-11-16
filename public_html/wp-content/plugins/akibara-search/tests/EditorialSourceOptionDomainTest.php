@@ -69,7 +69,7 @@ final class EditorialSourceOptionDomainTest extends TestCase {
 			'akibara_taxonomy_discount_enabled'             => array( 'yes', 'no' ),
 			'akibara_taxonomy_discount_from'                => array( '', '2026-09-05' ),
 			'akibara_taxonomy_discount_to'                  => array( '', '2026-09-07' ),
-			'akibara_taxonomy_discount_apply_to'            => array( 'instock_only', 'all' ),
+			'akibara_taxonomy_discount_apply_to'            => array( 'instock_only', 'instock_and_onbackorder', 'all' ),
 			'akibara_taxonomy_discount_sale_policy'         => array( 'greatest_wins', 'from_regular' ),
 			'akibara_business_search_feed_contract_version' => array( '2' ),
 			'akb_discount_max_pct'                          => array( '1', '15', '90' ),

@@ -14,7 +14,11 @@ use Throwable;
  *
  * All operations bypass WordPress object cache to guarantee physical consistency
  * during snapshot adoption and index publication.
+ * @api
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class SourceSnapshotReader {
 
 	/**
@@ -97,14 +101,13 @@ final class SourceSnapshotReader {
 		$feed_present    = isset( $options[ EditorialDiscountPublication::OPTION_FEED ] )
 			&& $options[ EditorialDiscountPublication::OPTION_FEED ]['present'];
 
-		if ( $provider_absent && ( 'yes' === $enabled || $feed_present ) ) {
+		if ( $provider_absent && 'yes' === $enabled ) {
 			EditorialDiscountPublication::mark_read_unavailable( 'Editorial price provider is missing for an active Business contract.' );
 			return false;
 		}
 
 		if ( ! $provider_absent
-			&& ( ! isset( $options[ EditorialDiscountPublication::OPTION_FEED ] )
-				|| ! $options[ EditorialDiscountPublication::OPTION_FEED ]['present']
+			&& ( ! $feed_present
 				|| EditorialDiscountPublication::REQUIRED_FEED_CONTRACT !== self::decoded_option_string( (string) $options[ EditorialDiscountPublication::OPTION_FEED ]['raw'] ) ) ) {
 			EditorialDiscountPublication::mark_read_unavailable( 'Editorial feed contract is missing or incompatible.' );
 			return false;
@@ -166,7 +169,7 @@ final class SourceSnapshotReader {
 			return null;
 		}
 
-		$attributes = (string) $wpdb->prefix . 'woocommerce_attribute_taxonomies';
+		$attributes = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
 		try {
 			$wpdb->last_error = '';
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$wpdb->termmeta} and {$attributes} are table names derived internally.
@@ -187,7 +190,7 @@ final class SourceSnapshotReader {
 			return null;
 		}
 
-		if ( ! is_array( $rows ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( ! is_array( $rows ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			EditorialDiscountPublication::mark_read_unavailable( 'Editorial database source read failed.' );
 			return null;
 		}
@@ -271,7 +274,7 @@ final class SourceSnapshotReader {
 			return null;
 		}
 
-		if ( ! is_array( $rows ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( ! is_array( $rows ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			EditorialDiscountPublication::mark_read_unavailable( 'Editorial option source read failed.' );
 			return null;
 		}
@@ -324,7 +327,7 @@ final class SourceSnapshotReader {
 			return null;
 		}
 
-		if ( ! is_array( $rows ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( ! is_array( $rows ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			EditorialDiscountPublication::mark_read_unavailable( 'Editorial termmeta read failed.' );
 			return null;
 		}
@@ -386,8 +389,8 @@ final class SourceSnapshotReader {
 		return array(
 			'meta_id'    => (int) ( $row->meta_id ?? 0 ),
 			'term_id'    => (int) ( $row->term_id ?? 0 ),
-			'meta_key'   => (string) ( $row->meta_key ?? '' ),
-			'meta_value' => (string) ( $row->meta_value ?? '' ),
+			'meta_key'   => (string) ( $row->meta_key ?? '' ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			'meta_value' => (string) ( $row->meta_value ?? '' ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		);
 	}
 
@@ -407,7 +410,7 @@ final class SourceSnapshotReader {
 			return null;
 		}
 
-		$table = (string) $wpdb->prefix . 'woocommerce_attribute_taxonomies';
+		$table = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
 		try {
 			$wpdb->last_error = '';
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name derived from wpdb prefix.
@@ -417,7 +420,7 @@ final class SourceSnapshotReader {
 			return null;
 		}
 
-		if ( ! is_array( $attributes ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( ! is_array( $attributes ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			EditorialDiscountPublication::mark_read_unavailable( 'WooCommerce attribute read failed.' );
 			return null;
 		}
@@ -564,7 +567,6 @@ final class SourceSnapshotReader {
 
 		$callable = $flat[0]['row']['function'];
 		if ( ! is_object( $callable )
-			|| 'Akibara\\Business\\Modules\\TaxonomyDiscount\\SearchPriceProvider' !== get_class( $callable )
 			|| ! is_callable( $callable )
 			|| ! is_callable( array( $callable, 'adopt_search_snapshot' ) )
 			|| ! is_callable( array( $callable, 'snapshot_is_fresh' ) )
@@ -624,9 +626,6 @@ final class SourceSnapshotReader {
 	public static function window_snapshot( string $enabled, string $from, string $to, DateTimeZone $timezone ): ?array {
 		try {
 			$now = new DateTimeImmutable( 'now', $timezone );
-			if ( ! $now instanceof \DateTimeInterface ) {
-				return null;
-			}
 
 			$today = $now->format( 'Y-m-d' );
 			if ( ( '' !== $from && ! self::valid_date( $from, $timezone ) )
@@ -811,10 +810,10 @@ final class SourceSnapshotReader {
 			);
 		}
 		if ( 1 === preg_match( '/^(?:a|O|C|s|i|d|b):/', $raw ) ) {
-			$value = @unserialize( $raw, array( 'allowed_classes' => false ) );
+			$value = @unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize, WordPress.PHP.NoSilencedErrors.Discouraged
 			return array(
 				'valid' => ( false !== $value || 'b:0;' === $raw )
-					&& serialize( $value ) === $raw
+					&& serialize( $value ) === $raw // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 					&& ! is_object( $value ),
 				'value' => $value,
 			);

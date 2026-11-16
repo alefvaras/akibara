@@ -119,6 +119,7 @@
 }
 
 .akb-empty__btn--secondary {
+
 	/* Secundario en crema-outline (no amarillo — amarillo = solo precio).
 	   El primario sigue siendo rojo; este es el secundario neutro. */
 	background: transparent;
@@ -146,7 +147,7 @@
 	min-height: var(--touch-target-min);
 	padding: 0 var(--space-4);
 	background: var(--aki-surface-2);
-	border: 1px solid var(--aki-border);
+	border: 1px solid var(--aki-input-border);
 	border-radius: var(--radius-md);
 	color: var(--aki-white);
 	font-family: var(--font-body);
@@ -163,8 +164,8 @@
 	min-width: var(--touch-target-min);
 	min-height: var(--touch-target-min);
 	padding: 0 var(--space-5);
-	background: var(--aki-red);
-	color: var(--aki-white);
+	background: var(--aki-buy-bg);
+	color: var(--aki-buy-fg);
 	border: none;
 	border-radius: var(--radius-md);
 	font-family: var(--font-body);
@@ -175,7 +176,7 @@
 
 .akb-empty__search-btn:hover,
 .akb-empty__search-btn:focus-visible {
-	background: var(--aki-red-hover);
+	background: var(--aki-buy-bg-hover);
 }
 
 /* ─── Category chips (no-products-found) ─────────────────────── */
@@ -239,7 +240,7 @@
 	font-weight: var(--weight-bold);
 }
 
-/* ─── Encargos hint (no-products-found) ──────────────────────── */
+/* ─── Sugerencia de navegación (no-products-found) ────────────── */
 .akb-empty__hint {
 	margin-top: var(--space-8);
 	padding: var(--space-5);
@@ -292,12 +293,15 @@
 
 /* ─── Responsive tuning ──────────────────────────────────────── */
 @media (max-width: 720px) {
+
 	.akb-empty {
 		padding: var(--space-8) var(--space-4);
 	}
+
 	.akb-empty__title {
 		font-size: var(--text-3xl);
 	}
+
 	.akb-empty__cta-row {
 		flex-direction: column;
 		align-items: stretch;
@@ -305,9 +309,11 @@
 		margin-left: auto;
 		margin-right: auto;
 	}
+
 	.akb-empty__btn {
 		width: 100%;
 	}
+
 	.akb-empty__trust {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -316,12 +322,14 @@
 		margin-left: auto;
 		margin-right: auto;
 	}
+
 	.akb-empty__trust-item {
 		justify-content: center;
 		min-width: 0;
 		font-size: 0.85em;
 		line-height: 1.2;
 	}
+
 	.akb-empty__trust-item:nth-child(3) {
 		grid-column: 1 / -1;
 	}
@@ -342,7 +350,7 @@
 	font-family: var(--font-heading);
 	font-size: clamp(2rem, 5vw, 3rem);
 	text-transform: uppercase;
-	letter-spacing: var(--tracking-wide);
+	letter-spacing: var(--aki-type-heading-tracking);
 	color: var(--aki-white);
 }
 

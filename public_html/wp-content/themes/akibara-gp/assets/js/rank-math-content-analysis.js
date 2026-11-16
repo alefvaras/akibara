@@ -1,7 +1,7 @@
 ( function ( wp, window ) {
 	'use strict';
 
-	var previousMarkup = '';
+	let previousMarkup = '';
 
 	function escapeAttribute( value ) {
 		return String( value )
@@ -18,25 +18,25 @@
 	}
 
 	function featuredImageMarkup() {
-		var editor = wp.data.select( 'core/editor' );
+		const editor = wp.data.select( 'core/editor' );
 		if ( ! editor || editor.getCurrentPostType() !== 'post' ) {
 			return '';
 		}
 
-		var attachmentId = Number(
+		const attachmentId = Number(
 			editor.getEditedPostAttribute( 'featured_media' )
 		);
 		if ( ! attachmentId ) {
 			return '';
 		}
 
-		var mediaStore = wp.data.select( 'core' );
-		var media = mediaStore && mediaStore.getMedia( attachmentId );
+		const mediaStore = wp.data.select( 'core' );
+		const media = mediaStore && mediaStore.getMedia( attachmentId );
 		if ( ! media || ! media.source_url ) {
 			return '';
 		}
 
-		var alt = plainText( media.alt_text );
+		let alt = plainText( media.alt_text );
 		if ( ! alt ) {
 			alt = plainText( editor.getEditedPostAttribute( 'title' ) );
 		}
@@ -56,7 +56,7 @@
 		'rank_math_content',
 		'akibara-gp/featured-image',
 		function ( content ) {
-			var markup = featuredImageMarkup();
+			const markup = featuredImageMarkup();
 			return markup ? content + markup : content;
 		}
 	);
@@ -72,7 +72,7 @@
 		}
 
 		wp.data.subscribe( function () {
-			var markup = featuredImageMarkup();
+			const markup = featuredImageMarkup();
 			if ( markup === previousMarkup ) {
 				return;
 			}

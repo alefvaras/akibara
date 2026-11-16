@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Akibara — WP-Cron resoluble en el entorno local
- * Description: En Docker, WP_SITEURL es http://localhost:8080, pero ese host:puerto solo existe en la máquina anfitriona: dentro de los contenedores `localhost:8080` no resuelve y `spawn_cron()` muere con cURL error 7. Sin spawn, `action_scheduler_run_queue` nunca corre y las colas de Akibara Search y de preventa se congelan. Este mu-plugin reescribe SOLO la URL del auto-disparo de cron hacia el hostname interno del servicio web, dejando intacta la URL pública del sitio. Inerte fuera de `local`.
+ * Description: En Docker, WP_SITEURL es http://localhost:8080, pero ese host:puerto solo existe en la máquina anfitriona: dentro de los contenedores `localhost:8080` no resuelve y `spawn_cron()` muere con cURL error 7. Sin spawn, `action_scheduler_run_queue` nunca corre y las colas de Akibara Search se congelan. Este mu-plugin reescribe SOLO la URL del auto-disparo de cron hacia el hostname interno del servicio web, dejando intacta la URL pública del sitio. Inerte fuera de `local`.
  * Version: 1.0.0
  * Author: Akibara
  *
@@ -27,6 +27,7 @@ const AKIBARA_LOCAL_CRON_INTERNAL_HOST = 'wordpress';
  *
  * @param array<string,mixed> $cron_request Petición de cron de WordPress.
  * @return array<string,mixed>
+ * @psalm-suppress RedundantCast
  */
 function akibara_local_cron_spawn_request( array $cron_request ): array {
 	if ( 'local' !== wp_get_environment_type() ) {

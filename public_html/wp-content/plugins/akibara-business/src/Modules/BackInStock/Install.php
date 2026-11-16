@@ -19,10 +19,13 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress UnusedVariable
  */
 final class Install {
 
-	public const DB_VERSION = '2.0.0';
+	public const DB_VERSION = '2.1.0';
 	public const OPTION_KEY = 'akb_bis_db_version';
 
 	/**
@@ -63,7 +66,7 @@ final class Install {
 			if ( ! function_exists( 'wc_get_logger' ) ) {
 				// Sin WooCommerce cargada el canal de la casa no existe y este
 				// fallo NO puede quedar mudo.
-				error_log( '[akibara-business] ' . $message );
+				error_log( '[akibara-business] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 
 			return;
@@ -108,7 +111,9 @@ final class Install {
 	 */
 	public static function install(): void {
 		global $wpdb;
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( ! function_exists( 'dbDelta' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		}
 
 		$table   = self::table_name();
 		$charset = $wpdb->get_charset_collate();
@@ -131,7 +136,10 @@ final class Install {
 			PRIMARY KEY  (id),
 			UNIQUE KEY uniq_product_email (product_id, email),
 			UNIQUE KEY uniq_token (token),
-			KEY idx_product_status (product_id, status)
+			KEY idx_product_status (product_id, status),
+			KEY idx_user_status_product (user_id, status, product_id),
+			KEY idx_email_status (email, status),
+			KEY idx_status_created (status, created_at)
 		) {$charset};";
 
 		dbDelta( $sql );

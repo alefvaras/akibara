@@ -17,7 +17,7 @@
 		description.id = description.id || 'akb-category-intro-' + index;
 		description.classList.add('akb-archive-intro__content');
 		description.setAttribute('data-akb-archive-intro', '');
-		var toggle = document.createElement('button');
+		const toggle = document.createElement('button');
 		toggle.type = 'button';
 		toggle.className = 'akb-archive-intro__toggle';
 		toggle.setAttribute('data-akb-archive-intro-toggle', '');
@@ -29,22 +29,22 @@
 		description.insertAdjacentElement('afterend', toggle);
 	});
 
-	var toggles = document.querySelectorAll('[data-akb-archive-intro-toggle]');
+	const toggles = document.querySelectorAll('[data-akb-archive-intro-toggle]');
 
 	if (!toggles.length || !window.matchMedia) {
 		return;
 	}
 
-	var mobile = window.matchMedia('(max-width: 600px)');
-	var resizeFrame = 0;
+	const mobile = window.matchMedia('(max-width: 600px)');
+	let resizeFrame = 0;
 
 	function getDescription(toggle) {
-		var id = toggle.getAttribute('aria-controls');
+		const id = toggle.getAttribute('aria-controls');
 		return id ? document.getElementById(id) : null;
 	}
 
 	function updateControlLabel(toggle, expanded) {
-		var label = expanded
+		const label = expanded
 			? toggle.getAttribute('data-label-collapse')
 			: toggle.getAttribute('data-label-expand');
 
@@ -52,13 +52,13 @@
 	}
 
 	function syncToggle(toggle) {
-		var description = getDescription(toggle);
+		const description = getDescription(toggle);
 		if (!description) {
 			toggle.hidden = true;
 			return;
 		}
 
-		var expanded = toggle.getAttribute('aria-expanded') === 'true';
+		const expanded = toggle.getAttribute('aria-expanded') === 'true';
 
 		if (!mobile.matches) {
 			description.classList.remove('is-collapsed');
@@ -73,7 +73,7 @@
 		}
 
 		description.classList.add('is-collapsed');
-		var overflows = description.scrollHeight > description.clientHeight + 1;
+		const overflows = description.scrollHeight > description.clientHeight + 1;
 		description.classList.toggle('is-collapsed', overflows);
 		toggle.hidden = !overflows;
 	}
@@ -83,13 +83,13 @@
 	}
 
 	toggles.forEach(function (toggle) {
-		var description = getDescription(toggle);
+		const description = getDescription(toggle);
 		if (!description) {
 			return;
 		}
 
 		toggle.addEventListener('click', function () {
-			var expanded = toggle.getAttribute('aria-expanded') !== 'true';
+			const expanded = toggle.getAttribute('aria-expanded') !== 'true';
 			toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 			description.classList.toggle('is-collapsed', !expanded);
 			updateControlLabel(toggle, expanded);

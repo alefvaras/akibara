@@ -47,16 +47,8 @@ final class GuardrailsTest extends TestCase {
 		return $files;
 	}
 
-	public function test_no_spar_symbols_survive_outside_the_migration(): void {
+	public function test_no_spar_symbols_survive_anywhere_in_src(): void {
 		foreach ( $this->src_files() as $path ) {
-			if ( str_ends_with( $path, 'Points/Migration.php' ) ) {
-				continue; // La migración LEE el mundo SPAR por diseño.
-			}
-			if ( str_ends_with( $path, 'Points/AccountRewards.php' ) ) {
-				continue; // DEFINE el shim spar_get_user_points (spec 37):
-				// compatibilidad hacia los llamadores, no dependencia de SPAR.
-			}
-
 			$offenders = array();
 			foreach ( token_get_all( (string) file_get_contents( $path ) ) as $token ) {
 				if ( ! is_array( $token ) ) {

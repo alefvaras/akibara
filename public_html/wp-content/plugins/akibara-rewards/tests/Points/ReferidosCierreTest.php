@@ -236,4 +236,26 @@ final class ReferidosCierreTest extends RewardsTestCase {
 
 		$this->assertStringContainsString( '(ya llevas 1)', $html );
 	}
+
+	/** @testdox El bloque de Mi Cuenta informa el tope vitalicio por cuenta cuando está configurado. */
+	public function test_mi_cuenta_muestra_tope_vitalicio_por_cuenta(): void {
+		$this->opciones['akb_rewards_referral_max_per_user'] = 10;
+
+		ob_start();
+		$this->referrals->render_invite_block( 7 );
+		$sin_referidos = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Tope vitalicio por cuenta: 10 en total.', $sin_referidos );
+		$this->assertStringContainsString( 'Tope vitalicio: hasta 10 en total por cuenta', $sin_referidos );
+
+		$this->wpdb->user_meta[44][ Referrals::META_REFERRED_BY ] = 7;
+		$this->referrals->maybe_pay_referrer( $this->make_order( 102, 44, 10000.0, 1900.0 ), 44 );
+
+		ob_start();
+		$this->referrals->render_invite_block( 7 );
+		$con_referido = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '(ya llevas 1)', $con_referido );
+		$this->assertStringContainsString( 'de 10 amigos ya compraron con tu enlace (vitalicio por cuenta)', $con_referido );
+	}
 }

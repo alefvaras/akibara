@@ -19,14 +19,18 @@ defined( 'ABSPATH' ) || exit;
  * no se renderiza nada (degradación elegante).
  */
 
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_after_single_product', 'akibara_render_product_faqs', 5 );
 
+/**
+ * @psalm-suppress HookNotFound
+ */
 function akibara_render_product_faqs(): void {
 	global $product;
 	$source = ( $product instanceof WC_Product ) ? $product : null;
 
 	/** @var array<int, array{q:string,a:string}> $faqs */
-	$faqs = (array) apply_filters( 'akibara/product_faq_data', array(), $source );
+	$faqs = (array) apply_filters( 'akibara/product_faq_data', array(), $source ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 	if ( empty( $faqs ) ) {
 		return;
 	}

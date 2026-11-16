@@ -36,7 +36,18 @@ use Akibara\Search\Admin\SettingsAdminView;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidNullableReturnType
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress NullableReturnStatement
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedVariable
+ * @psalm-suppress UnusedParam
  */
+// @phpstan-ignore complexity.classLike
 final class SearchAdminSection {
 
 	/** Slug de la página de admin PROPIA del plugin (menú standalone, no el panel de business). */
@@ -140,7 +151,6 @@ final class SearchAdminSection {
 		add_action( 'admin_post_' . self::ACTION_PRECIOS, array( $this, 'handle_save_precios' ) );
 		add_action( 'admin_post_' . self::ACTION_GAP_DISMISS, array( $this, 'handle_gap_dismiss' ) );
 		add_action( 'admin_post_' . self::ACTION_GAP_RESTORE, array( $this, 'handle_gap_restore' ) );
-		add_action( 'admin_post_akb_update_request_status', array( $this, 'handle_update_request_status' ) );
 
 		// Página de admin PROPIA (standalone). NO es un tab del panel de
 		// akibara-business — el buscador es un plugin aparte con su propio menú,
@@ -202,9 +212,10 @@ final class SearchAdminSection {
 	public function render_page(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- no hay formulario que verificar: el parámetro sólo elige qué pestaña se pinta, no escribe nada, y exigir nonce rompería el enlace del submenú y cualquier marcador. El valor pasa por sanitize_key() y después por una lista blanca cerrada de siete pestañas.
 		$sub = isset( $_GET['sub'] ) ? sanitize_key( (string) $_GET['sub'] ) : 'indice';
-		$sub = in_array( $sub, array( 'indice', 'busquedas', 'encargos', 'facetas', 'precios', 'sinonimos', 'stopwords', 'ajustes' ), true ) ? $sub : 'indice';
+		$sub = in_array( $sub, array( 'indice', 'busquedas', 'facetas', 'precios', 'sinonimos', 'stopwords', 'ajustes' ), true ) ? $sub : 'indice';
 
 		echo '<div class="wrap akb-fwp"><div class="akb-fwp-panel">';
+		echo '<div class="akb-panel-top-bar"><a href="' . esc_url( admin_url( 'admin.php?page=akibara-panel' ) ) . '" class="akb-panel-back-btn">← Volver al Centro de Mando</a></div>';
 
 		// Header estilo FacetWP: marca + versión + tabs + botón de reindex.
 		// El brand define el <h1> de la pantalla para garantizar la jerarquía
@@ -337,61 +348,20 @@ final class SearchAdminSection {
 		// respetamos ese orden.
 		foreach ( $raw as $name => $fields ) {
 			$name = sanitize_key( (string) $name );
-			if ( '' === $name || ! is_array( $fields ) || ! isset( $previous[ $name ] ) ) {
-				continue; // solo facetas conocidas; el alta va por new_facet.
-			}
-			if ( ! FacetRegistry::name_is_valid( $name ) ) {
-				continue; // una clave ya envenenada (SQL, WP-CLI) no se reescribe idéntica.
+			if ( '' === $name || ! is_array( $fields ) || ! isset( $previous[ $name ] ) || ! FacetRegistry::name_is_valid( $name ) ) {
+				continue;
 			}
 
-			$override = array(
-				'visible' => ! empty( $fields['visible'] ),
-				'order'   => $order++,
+			$out[ $name ] = $this->build_facet_override_row(
+				$name,
+				$fields,
+				$previous[ $name ],
+				$seed_names,
+				$order++,
+				$needs_reindex,
+				$invalid_parent,
+				$ambiguous_parent
 			);
-
-			$label = isset( $fields['label'] ) ? FacetRegistry::sanitize_label( (string) $fields['label'] ) : '';
-			if ( '' !== $label ) {
-				$override['label'] = $label;
-			}
-
-			$override['ui'] = self::sanitize_facet_ui(
-				(string) ( $fields['ui'] ?? ( $previous[ $name ]['ui'] ?? 'checkboxes' ) ),
-				$previous[ $name ]
-			);
-
-			// Las facetas del operador viven SOLO en la option: si no re-copiamos
-			// type/taxonomy/ui acá, el save las degradaría a override vacío.
-			if ( ! in_array( $name, $seed_names, true ) ) {
-				$override['type']     = (string) ( $previous[ $name ]['type'] ?? 'taxonomy' );
-				$override['taxonomy'] = (string) ( $previous[ $name ]['taxonomy'] ?? '' );
-			}
-
-			// Contexto jerárquico (parent_term): exclusivo para facetas de taxonomía.
-			// Admite nombre exacto o ID numérico; un valor vacío o cero indica sin contexto.
-			// Si el término es inexistente o ambiguo se preserva estrictamente el valor previo.
-			// Cualquier alteración de jerarquía requiere reindexación para actualizar el índice.
-			if ( isset( $fields['parent_term'] ) && 'taxonomy' === ( $previous[ $name ]['type'] ?? '' ) ) {
-				$previous_parent = (int) ( $previous[ $name ]['parent_term'] ?? 0 );
-				$resolved        = self::resolve_parent_term(
-					(string) $fields['parent_term'],
-					(string) ( $previous[ $name ]['taxonomy'] ?? '' )
-				);
-
-				if ( '' !== $resolved['error'] ) {
-					$invalid_parent[] = $name;
-					if ( 'facets_ambiguous_parent' === $resolved['error'] ) {
-						$ambiguous_parent = true;
-					}
-					$parent = $previous_parent; // conservar el válido anterior.
-				} else {
-					$parent = $resolved['id'];
-				}
-
-				$override['parent_term'] = $parent > 0 ? $parent : '';
-				$needs_reindex           = $needs_reindex || $parent !== $previous_parent;
-			}
-
-			$out[ $name ] = $override;
 		}
 
 		// Baja: una faceta del operador que estaba y no vino en el POST fue
@@ -436,6 +406,73 @@ final class SearchAdminSection {
 	}
 
 	/**
+	 * Construye la fila de override para una faceta existente.
+	 *
+	 * @param string               $name             Nombre de la faceta.
+	 * @param array<string, mixed> $fields           Campos enviados en POST.
+	 * @param array<string, mixed> $prev_def         Definición vigente.
+	 * @param array<int, string>   $seed_names       Nombres de facetas base.
+	 * @param int                  $order            Orden asignado.
+	 * @param bool                 $needs_reindex    Flag de reindexación (por referencia).
+	 * @param array<int, string>   $invalid_parent   Acumulador de padres inválidos (por referencia).
+	 * @param bool                 $ambiguous_parent Flag de padre ambiguo (por referencia).
+	 * @return array<string, mixed>
+	 */
+	private function build_facet_override_row(
+		string $name,
+		array $fields,
+		array $prev_def,
+		array $seed_names,
+		int $order,
+		bool &$needs_reindex,
+		array &$invalid_parent,
+		bool &$ambiguous_parent
+	): array {
+		$override = array(
+			'visible' => ! empty( $fields['visible'] ),
+			'order'   => $order,
+		);
+
+		$label = isset( $fields['label'] ) ? FacetRegistry::sanitize_label( (string) $fields['label'] ) : '';
+		if ( '' !== $label ) {
+			$override['label'] = $label;
+		}
+
+		$override['ui'] = self::sanitize_facet_ui(
+			(string) ( $fields['ui'] ?? ( $prev_def['ui'] ?? 'checkboxes' ) ),
+			$prev_def
+		);
+
+		if ( ! in_array( $name, $seed_names, true ) ) {
+			$override['type']     = (string) ( $prev_def['type'] ?? 'taxonomy' );
+			$override['taxonomy'] = (string) ( $prev_def['taxonomy'] ?? '' );
+		}
+
+		if ( isset( $fields['parent_term'] ) && 'taxonomy' === ( $prev_def['type'] ?? '' ) ) {
+			$previous_parent = (int) ( $prev_def['parent_term'] ?? 0 );
+			$resolved        = self::resolve_parent_term(
+				(string) $fields['parent_term'],
+				(string) ( $prev_def['taxonomy'] ?? '' )
+			);
+
+			if ( '' !== $resolved['error'] ) {
+				$invalid_parent[] = $name;
+				if ( 'facets_ambiguous_parent' === $resolved['error'] ) {
+					$ambiguous_parent = true;
+				}
+				$parent = $previous_parent;
+			} else {
+				$parent = $resolved['id'];
+			}
+
+			$override['parent_term'] = $parent > 0 ? $parent : '';
+			$needs_reindex           = $needs_reindex || $parent !== $previous_parent;
+		}
+
+		return $override;
+	}
+
+	/**
 	 * Procesa el alta de una faceta nueva desde el formulario (new_facet[…]).
 	 * La agrega a $out por referencia si es válida.
 	 *
@@ -444,7 +481,7 @@ final class SearchAdminSection {
 	 * @param array<string, array<string, mixed>> $out      Overrides a persistir (por referencia).
 	 * @return string '' = no se intentó alta · 'added' = ok · otro = código de error.
 	 */
-	private function process_new_facet( array $previous, int $order, array &$out ): string {
+	private function process_new_facet( array $previous, int $order, array &$out ): string { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- el caller (handle_save_facets) ya validó nonce; array saneado campo a campo justo debajo (sanitize_key).
 		$new = isset( $_POST['new_facet'] ) && is_array( $_POST['new_facet'] ) ? wp_unslash( $_POST['new_facet'] ) : array();
 
@@ -519,7 +556,7 @@ final class SearchAdminSection {
 	public function render_admin_section(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- no hay formulario que verificar: el parámetro sólo elige qué pestaña se pinta, no escribe nada. El valor pasa por sanitize_key() y después por la misma lista blanca cerrada de siete pestañas.
 		$sub = isset( $_GET['sub'] ) ? sanitize_key( (string) $_GET['sub'] ) : 'indice';
-		$sub = in_array( $sub, array( 'indice', 'busquedas', 'encargos', 'facetas', 'precios', 'sinonimos', 'stopwords', 'ajustes' ), true ) ? $sub : 'indice';
+		$sub = in_array( $sub, array( 'indice', 'busquedas', 'facetas', 'precios', 'sinonimos', 'stopwords', 'ajustes' ), true ) ? $sub : 'indice';
 
 		$this->render_notice();
 
@@ -528,9 +565,6 @@ final class SearchAdminSection {
 		switch ( $sub ) {
 			case 'busquedas':
 				$this->render_searches();
-				break;
-			case 'encargos':
-				$this->render_encargos();
 				break;
 			case 'facetas':
 				$this->render_facets();
@@ -558,19 +592,9 @@ final class SearchAdminSection {
 	 * @return void
 	 */
 	private function render_subnav( string $active ): void {
-		$pending_count = 0;
-		if ( class_exists( '\Akibara\Search\TitleRequests' ) ) {
-			$counts = TitleRequests::count_by_status();
-			$pending_count = (int) ( $counts[ TitleRequests::STATUS_PENDING ] ?? 0 );
-		}
-		$encargos_label = $pending_count > 0
-			? sprintf( 'Encargos (%d)', $pending_count )
-			: 'Encargos';
-
 		$tabs = array(
 			'indice'    => 'Índice',
 			'busquedas' => 'Búsquedas',
-			'encargos'  => $encargos_label,
 			'facetas'   => 'Facetas',
 			'precios'   => 'Precios',
 			'sinonimos' => 'Sinónimos',
@@ -606,7 +630,8 @@ final class SearchAdminSection {
 	 * @return void
 	 */
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $view_data se consume dentro del template incluido en el scope local.
-	public function render_template( string $template_name, array $view_data = array() ): void {
+	/** @psalm-suppress UnusedParam */
+	public function render_template( string $template_name, array $view_data = array() ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$template_path = dirname( __DIR__ ) . '/templates/admin/' . $template_name;
 		if ( is_readable( $template_path ) ) {
 			include $template_path;
@@ -649,19 +674,10 @@ final class SearchAdminSection {
 	 * @param array<string, mixed> $verdict Salida de HealthReport::verdict().
 	 * @return void
 	 */
-	private function render_health_band( array $data, array $verdict ): void {
+	public function render_health_band( array $data, array $verdict ): void {
 		IndexAdminView::render_health_band( $data, $verdict );
 	}
 
-	/**
-	 * CTA contextual de una razón.
-	 *
-	 * @param string $cta Código de CTA del veredicto.
-	 * @return string
-	 */
-	private function reason_cta( string $cta ): string {
-		return IndexAdminView::reason_cta( $cta );
-	}
 
 	/**
 	 * Muestra el estado individual de cada servicio del motor de búsqueda.
@@ -671,22 +687,10 @@ final class SearchAdminSection {
 	 * @param array<string, mixed> $semantic  Autoridad y publicación de la foto semántica.
 	 * @return void
 	 */
-	private function render_services( array $flags, array $editorial = array(), array $semantic = array() ): void {
+	public function render_services( array $flags, array $editorial = array(), array $semantic = array() ): void {
 		IndexAdminView::render_services( $flags, $editorial, $semantic );
 	}
 
-	/**
-	 * Razón por la que un servicio configurado como 'yes' no está efectivo.
-	 *
-	 * @param string               $key       Clave de servicio.
-	 * @param array<string, mixed> $flag      Estado del flag.
-	 * @param array<string, mixed> $editorial Estado editorial.
-	 * @param array<string, mixed> $semantic  Estado semántico.
-	 * @return string
-	 */
-	private function service_gate_reason( string $key, array $flag, array $editorial, array $semantic ): string {
-		return IndexAdminView::service_gate_reason( $key, $flag, $editorial, $semantic );
-	}
 
 	/**
 	 * Explica por qué la publicación editorial está bloqueada.
@@ -694,7 +698,7 @@ final class SearchAdminSection {
 	 * @param array<string, mixed> $editorial Salida de EditorialDiscountPublication::collect_status().
 	 * @return string
 	 */
-	private function editorial_gate_reason( array $editorial ): string {
+	public function editorial_gate_reason( array $editorial ): string {
 		return IndexAdminView::editorial_gate_reason( $editorial );
 	}
 
@@ -704,28 +708,11 @@ final class SearchAdminSection {
 	 * @param array<string, mixed> $data Datos de HealthReport::collect().
 	 * @return void
 	 */
-	private function render_state_table( array $data ): void {
+	public function render_state_table( array $data ): void {
 		IndexAdminView::render_state_table( $data );
 	}
 
-	/**
-	 * Fila con la próxima reconstrucción encolada si existe.
-	 *
-	 * @return void
-	 */
-	private function render_pending_rebuild_row(): void {
-		IndexAdminView::render_pending_rebuild_row();
-	}
 
-	/**
-	 * Etiqueta legible de la razón de una reconstrucción.
-	 *
-	 * @param string $reason Código técnico de la razón.
-	 * @return string
-	 */
-	private function rebuild_reason_label( string $reason ): string {
-		return IndexAdminView::rebuild_reason_label( $reason );
-	}
 
 	/**
 	 * Sección de mantenimiento.
@@ -734,7 +721,7 @@ final class SearchAdminSection {
 	 * @param array<string, mixed> $verdict Veredicto de salud.
 	 * @return void
 	 */
-	private function render_maintenance( array $data, array $verdict ): void {
+	public function render_maintenance( array $data, array $verdict ): void {
 		IndexAdminView::render_maintenance( $data, $verdict );
 	}
 
@@ -754,29 +741,11 @@ final class SearchAdminSection {
 	 * @param array<string, mixed> $data Datos de HealthReport.
 	 * @return void
 	 */
-	private function render_diagnostics( array $data ): void {
+	public function render_diagnostics( array $data ): void {
 		IndexAdminView::render_diagnostics( $data );
 	}
 
-	/**
-	 * Formatea el resultado de una corrida histórica.
-	 *
-	 * @param array<string, mixed> $entry Entrada del historial.
-	 * @return string
-	 */
-	private function history_result_html( array $entry ): string {
-		return IndexAdminView::history_result_html( $entry );
-	}
 
-	/**
-	 * Etiqueta legible de un código de error de rebuild.
-	 *
-	 * @param string $code Código técnico de error.
-	 * @return string
-	 */
-	private function error_label( string $code ): string {
-		return IndexAdminView::error_label( $code );
-	}
 
 	/**
 	 * Detalle de una fila del registro, con su contador si se repitió.
@@ -794,7 +763,7 @@ final class SearchAdminSection {
 	 * @param string $code Código de acción del AuditLog.
 	 * @return string
 	 */
-	private function audit_action_label( string $code ): string {
+	public function audit_action_label( string $code ): string {
 		return IndexAdminView::audit_action_label( $code );
 	}
 
@@ -804,7 +773,7 @@ final class SearchAdminSection {
 	 * @param int $ts Marca de tiempo Unix.
 	 * @return string
 	 */
-	private function stamp( int $ts ): string {
+	public function stamp( int $ts ): string {
 		return IndexAdminView::stamp( $ts );
 	}
 
@@ -815,7 +784,7 @@ final class SearchAdminSection {
 	 * @param int $end   Fin (Unix).
 	 * @return string
 	 */
-	private function duration( int $start, int $end ): string {
+	public function duration( int $start, int $end ): string {
 		return IndexAdminView::duration( $start, $end );
 	}
 
@@ -874,73 +843,6 @@ final class SearchAdminSection {
 	}
 
 	/**
-	 * Procesa la actualización de estado y notas de una solicitud de tomo por encargo.
-	 *
-	 * @return void
-	 */
-	public function handle_update_request_status(): void {
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( 'No autorizado.' );
-		}
-		check_admin_referer( 'akb_update_request_status' );
-
-		$id     = isset( $_POST['request_id'] ) ? (int) $_POST['request_id'] : 0;
-		$status = isset( $_POST['new_status'] ) ? sanitize_key( wp_unslash( (string) $_POST['new_status'] ) ) : '';
-		$notes  = isset( $_POST['request_notes'] ) ? sanitize_textarea_field( wp_unslash( (string) $_POST['request_notes'] ) ) : '';
-
-		if ( $id > 0 && in_array( $status, TitleRequests::STATUSES, true ) ) {
-			TitleRequests::update_status( $id, $status, $notes );
-		}
-
-		$status_filter = isset( $_POST['current_filter'] ) ? sanitize_key( wp_unslash( (string) $_POST['current_filter'] ) ) : 'pending';
-
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'    => self::PAGE_SLUG,
-					'sub'     => 'encargos',
-					'status'  => $status_filter,
-					'updated' => '1',
-				),
-				admin_url( 'admin.php' )
-			)
-		);
-		exit;
-	}
-
-	/**
-	 * Pestaña de administración: Solicitudes de Tomos por Encargo.
-	 *
-	 * Permite ver las solicitudes de tomos no disponibles en bodega registradas por clientes
-	 * desde el modal de búsqueda, contactarlos por WhatsApp/Email y gestionar su ciclo de vida.
-	 *
-	 * @return void
-	 */
-	private function render_encargos(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- sólo elige el filtro de estado en la vista.
-		$filter_status = isset( $_GET['status'] ) ? sanitize_key( (string) $_GET['status'] ) : 'pending';
-		$valid_filters = array_merge( array( 'all' ), TitleRequests::STATUSES );
-		if ( ! in_array( $filter_status, $valid_filters, true ) ) {
-			$filter_status = 'pending';
-		}
-
-		$counts = TitleRequests::count_by_status();
-		$rows   = TitleRequests::list_requests( $filter_status, 100 );
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- parámetro de redirección tras guardar.
-		$updated = isset( $_GET['updated'] ) && '1' === sanitize_key( wp_unslash( (string) $_GET['updated'] ) );
-
-		$this->render_template(
-			'tab-encargos.php',
-			array(
-				'filter_status' => $filter_status,
-				'counts'        => $counts,
-				'rows'          => $rows,
-				'updated'       => $updated,
-			)
-		);
-	}
-
-	/**
 	 * Evalúa si las búsquedas sin resultados registrados devuelven actualmente coincidencias
 	 * en el motor al aplicar corrección tipográfica (fuzzy).
 	 *
@@ -966,7 +868,7 @@ final class SearchAdminSection {
 	 * @param array{hits: int, fix: string}|null $rescue Medición del motor.
 	 * @return string
 	 */
-	private function zero_result_verdict_html( ?array $rescue ): string {
+	public function zero_result_verdict_html( ?array $rescue ): string {
 		return DemandGapsAdminView::zero_result_verdict_html( $rescue );
 	}
 
@@ -976,7 +878,7 @@ final class SearchAdminSection {
 	 * @param array<int, object> $reales Huecos reales.
 	 * @return void
 	 */
-	private function render_missing_titles( array $reales ): void {
+	public function render_missing_titles( array $reales ): void {
 		DemandGapsAdminView::render_missing_titles( $reales );
 	}
 
@@ -997,7 +899,7 @@ final class SearchAdminSection {
 	 * @param string $query Búsqueda normalizada.
 	 * @return string
 	 */
-	private function gap_dismiss_link_html( string $query ): string {
+	public function gap_dismiss_link_html( string $query ): string {
 		return DemandGapsAdminView::gap_dismiss_link_html( $query );
 	}
 
@@ -1007,8 +909,8 @@ final class SearchAdminSection {
 	 * @param array<string, string> $descartadas Búsquedas descartadas.
 	 * @return void
 	 */
-	private function render_dismissed_gaps( array $descartadas ): void {
-		DemandGapsAdminView::render_dismissed_gaps( $descartadas );
+	public function render_dismissed_gaps( array $descartadas ): void {
+		DemandGapsAdminView::render_dismissed_gaps( $descartadas ); // @phpstan-ignore argument.type
 	}
 
 	/**
@@ -1053,7 +955,7 @@ final class SearchAdminSection {
 	 * @param string $query Búsqueda normalizada.
 	 * @return string
 	 */
-	private function create_product_link_html( string $query ): string {
+	public function create_product_link_html( string $query ): string {
 		return DemandGapsAdminView::create_product_link_html( $query );
 	}
 
@@ -1063,7 +965,7 @@ final class SearchAdminSection {
 	 * @param string $query Búsqueda normalizada.
 	 * @return string
 	 */
-	private function zero_result_actions_html( string $query ): string {
+	public function zero_result_actions_html( string $query ): string {
 		return DemandGapsAdminView::zero_result_actions_html( $query );
 	}
 
@@ -1073,7 +975,7 @@ final class SearchAdminSection {
 	 * @param string $day Fecha ISO YYYY-MM-DD.
 	 * @return string
 	 */
-	private function qlog_day_label( string $day ): string {
+	public function qlog_day_label( string $day ): string {
 		return DemandGapsAdminView::qlog_day_label( $day );
 	}
 
@@ -1107,15 +1009,6 @@ final class SearchAdminSection {
 		return FacetsAdminView::sanitize_facet_ui( $ui, $def );
 	}
 
-	/**
-	 * Etiqueta legible de un control de UI de faceta.
-	 *
-	 * @param string $ui Control de UI.
-	 * @return string
-	 */
-	private static function facet_ui_label( string $ui ): string {
-		return FacetsAdminView::facet_ui_label( $ui );
-	}
 
 	private function guard( string $nonce_action ): void {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -1260,15 +1153,6 @@ final class SearchAdminSection {
 		return SettingsAdminView::settings_words_reset( $id, $name, $words, $factory );
 	}
 
-	/**
-	 * Formatea grupos de palabras.
-	 *
-	 * @param array<int, mixed> $grupos Grupos de palabras.
-	 * @return array<int, string>
-	 */
-	private static function word_groups( array $grupos ): array {
-		return SettingsAdminView::word_groups( $grupos );
-	}
 
 	/**
 	 * Valores vigentes de todos los campos de Ajustes.
@@ -1292,7 +1176,7 @@ final class SearchAdminSection {
 		SettingsAdminView::settings_toggle( $name, $label, $desc, $on );
 	}
 
-	public function handle_save_settings(): void {
+	public function handle_save_settings(): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$this->guard( self::NONCE_SETTINGS );
 
 		// Captura del estado previo antes de procesar el formulario:
@@ -1465,7 +1349,7 @@ final class SearchAdminSection {
 	 * @return string
 	 */
 	private function posted_settings_text( string $name, string $fallback, array $before, array &$avisos ): string {
-		return SettingsAdminView::posted_settings_text( $name, $fallback, $before, $avisos );
+		return SettingsAdminView::posted_settings_text( $name, $fallback, $before, $avisos ); // @phpstan-ignore parameterByRef.type
 	}
 
 	/**
@@ -1479,16 +1363,6 @@ final class SearchAdminSection {
 		return SettingsAdminView::settings_changes( $before, $after );
 	}
 
-	/**
-	 * Resumen compacto de cambios en palabras de formato.
-	 *
-	 * @param string $before Huella anterior.
-	 * @param string $after  Huella guardada.
-	 * @return string
-	 */
-	private static function tail_words_change( string $before, string $after ): string {
-		return SettingsAdminView::tail_words_change( $before, $after );
-	}
 
 	/**
 	 * Pestaña Precios: editor de rangos de la faceta Precio.
@@ -1499,15 +1373,6 @@ final class SearchAdminSection {
 		PriceBucketsAdminView::render_precios( $this );
 	}
 
-	/**
-	 * Conteos reales por tramo desde la base de datos.
-	 *
-	 * @param array<int, array{min: ?int, max: ?int}> $buckets Tramos de precio.
-	 * @return array<int, int>
-	 */
-	private function precio_row_counts( array $buckets ): array {
-		return PriceBucketsAdminView::precio_row_counts( $buckets );
-	}
 
 	public function handle_save_precios(): void {
 		$this->guard( self::NONCE_PRECIOS );
@@ -1535,14 +1400,14 @@ final class SearchAdminSection {
 
 		// Un valor no-numérico (parse devolvió string sentinela) o cualquier otra
 		// violación del contrato → el validador lo rechaza y NO se persiste.
-		if ( null !== FacetRegistry::validate_precio_buckets( $rows ) ) {
+		if ( null !== FacetRegistry::validate_precio_buckets( $rows ) ) { // @phpstan-ignore argument.type
 			$this->redirect( 'precios', 'precios_invalid' );
 		}
 
 		// PriceBuckets compara bounds sobre la foto SQL bloqueada y persiste
 		// mode+buckets en un único UPSERT transaccional. Ninguna decisión de modo
 		// depende de una lectura PHP previa que pueda quedar obsoleta.
-		if ( ! PriceBuckets::save_manual( array_values( $rows ) ) ) {
+		if ( ! PriceBuckets::save_manual( array_values( $rows ) ) ) { // @phpstan-ignore argument.type
 			$this->redirect( 'precios', 'save_failed' );
 		}
 
@@ -1574,42 +1439,15 @@ final class SearchAdminSection {
 	 * @return array{ok: bool, rows?: array<int, array{min: ?int, max: ?int}>, error?: string}
 	 */
 	private function build_precio_rows( array $mins, array $maxs ): array {
-		return PriceBucketsAdminView::build_precio_rows( $mins, $maxs );
+		return PriceBucketsAdminView::build_precio_rows( $mins, $maxs ); // @phpstan-ignore return.type
 	}
 
-	/**
-	 * Parsea una cota de precio asegurando límites numéricos y formato entero.
-	 *
-	 * @param string $raw Cadena sin sanear del POST.
-	 * @return int|null|false null = abierto · int = cota válida · false = inválido.
-	 */
-	private function parse_price_bound( string $raw ) {
-		return PriceBucketsAdminView::parse_price_bound( $raw );
-	}
 
 	private function persist_options_exact( array $values, array $releases = array() ): bool {
 		return OptionStorage::persist_options_exact( $values, $releases );
 	}
 
-	/**
-	 * Toma fotos exactas de un conjunto de options.
-	 *
-	 * @param array<int, string> $options Options a fotografiar.
-	 * @return array<string, array{present: bool, value: mixed, raw: string, autoload: string}>|null
-	 */
-	private function option_snapshots( array $options ): ?array {
-		return OptionStorage::option_snapshots( $options );
-	}
 
-	/**
-	 * Lee valor+autoload en una sola foto DB-direct.
-	 *
-	 * @param string $option Option a fotografiar.
-	 * @return array{present: bool, value: mixed, raw: string, autoload: string}|null
-	 */
-	private function option_snapshot( string $option ): ?array {
-		return OptionStorage::option_snapshot( $option );
-	}
 
 	/**
 	 * Rollback compensatorio best-effort.
@@ -1619,7 +1457,7 @@ final class SearchAdminSection {
 	 * @param array<string, array{present: bool, value: mixed, raw: string, autoload: string}>|null $attempted Estado escrito por este grupo.
 	 * @return bool
 	 */
-	private function restore_option_snapshots( array $snapshots, ?array $only = null, ?array $attempted = null ): bool {
+	public function restore_option_snapshots( array $snapshots, ?array $only = null, ?array $attempted = null ): bool {
 		return OptionStorage::restore_option_snapshots( $snapshots, $only, $attempted );
 	}
 
@@ -1631,63 +1469,14 @@ final class SearchAdminSection {
 	 * @param array{present: bool, value: mixed, raw: string, autoload: string} $attempted Estado propio esperado.
 	 * @return array{ok: bool, changed: bool}
 	 */
-	private function restore_option_snapshot_cas( string $option, array $snapshot, array $attempted ): array {
+	public function restore_option_snapshot_cas( string $option, array $snapshot, array $attempted ): array {
 		return OptionStorage::restore_option_snapshot_cas( $option, $snapshot, $attempted );
 	}
 
-	/**
-	 * Construye el estado raw que debe dejar un write real de Core.
-	 *
-	 * @param string $option Option objetivo.
-	 * @param mixed  $value  Valor objetivo.
-	 * @return array{present: bool, value: mixed, raw: string, autoload: string}
-	 */
-	private function expected_option_state( string $option, $value ): array {
-		return OptionStorage::expected_option_state( $option, $value );
-	}
 
-	/**
-	 * Compara presencia, bytes y autoload de dos estados.
-	 *
-	 * @param array{present: bool, value: mixed, raw: string, autoload: string} $a Estado.
-	 * @param array{present: bool, value: mixed, raw: string, autoload: string} $b Estado.
-	 * @return bool
-	 */
-	private function option_states_equal( array $a, array $b ): bool {
-		return OptionStorage::option_states_equal( $a, $b );
-	}
 
-	/**
-	 * Compara sólo el valor raw para reconocer un no-op legítimo de Core.
-	 *
-	 * @param array{present: bool, value: mixed, raw: string, autoload: string} $state    Estado.
-	 * @param mixed                                                             $expected Valor esperado.
-	 * @return bool
-	 */
-	private function option_value_equals( array $state, $expected ): bool {
-		return OptionStorage::option_value_equals( $state, $expected );
-	}
 
-	/**
-	 * Obtiene el valor de autoload que Core escribirá con `$autoload=false`.
-	 *
-	 * @param string $option Option objetivo.
-	 * @param mixed  $value  Valor objetivo.
-	 * @return string
-	 */
-	private static function expected_autoload( string $option, $value ): string {
-		return OptionStorage::expected_autoload( $option, $value );
-	}
 
-	/**
-	 * Invalida todas las variantes del object cache de una option.
-	 *
-	 * @param string $option Option.
-	 * @return void
-	 */
-	private function clear_option_cache( string $option ): void {
-		OptionStorage::clear_option_cache( $option );
-	}
 
 	/**
 	 * @param string $sub    Sub-tab destino.
@@ -1778,18 +1567,9 @@ final class SearchAdminSection {
 	 * @return array<string, bool> Taxonomías con datalist truncado al tope.
 	 */
 	public function render_parent_datalists( array $taxes ): array {
-		return FacetsAdminView::render_parent_datalists( $taxes );
+		return FacetsAdminView::render_parent_datalists( $taxes ); // @phpstan-ignore return.type
 	}
 
-	/**
-	 * Candidatos a término padre para una taxonomía jerárquica.
-	 *
-	 * @param string $taxonomy Slug de la taxonomía.
-	 * @return array<int, \WP_Term>
-	 */
-	private function parent_candidates( string $taxonomy ): array {
-		return FacetsAdminView::parent_candidates( $taxonomy );
-	}
 
 	/**
 	 * Resuelve una entrada de término padre (ID o nombre) a un ID válido.

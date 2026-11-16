@@ -27,8 +27,8 @@
 (function () {
 	'use strict';
 
-	var doc = document;
-	var body = doc.body;
+	const doc = document;
+	const body = doc.body;
 	if (!body) {
 		return;
 	}
@@ -36,37 +36,37 @@
 	// Cuánto se espera a animations.js antes de abrir el cajón sin vuelo. El
 	// alta por AJAX ya tardó su ida y vuelta al servidor, y el toque que la
 	// disparó empezó la descarga (ver ESCUCHAS): lo normal es que llegue antes.
-	var ESPERA_VUELO_MS = 800;
-	var ESCUCHAS = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel'];
+	const ESPERA_VUELO_MS = 800;
+	const ESCUCHAS = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel'];
 
-	var reduceMql = window.matchMedia('(prefers-reduced-motion: reduce)');
-	var diferidos = leerDiferidos(doc.currentScript);
-	var estado = 'inicial'; // → 'cargando' → 'listo' | 'fallido'
-	var esperando = [];
+	const reduceMql = window.matchMedia('(prefers-reduced-motion: reduce)');
+	const diferidos = leerDiferidos(doc.currentScript);
+	let estado = 'inicial'; // → 'cargando' → 'listo' | 'fallido'
+	let esperando = [];
 
 	function leerDiferidos(nodo) {
 		if (!nodo) {
 			return [];
 		}
 		try {
-			var lista = JSON.parse(nodo.getAttribute('data-akb-diferidos') || '[]');
+			const lista = JSON.parse(nodo.getAttribute('data-akb-diferidos') || '[]');
 			return Array.isArray(lista)
 				? lista.filter(function (url) { return 'string' === typeof url && '' !== url; })
 				: [];
-		} catch (err) {
+		} catch (_err) {
 			return [];
 		}
 	}
 
 	function listas() {
-		var anim = window.akbAnimations;
+		const anim = window.akbAnimations;
 		return anim && 'function' === typeof anim.volarAlCarrito ? anim : null;
 	}
 
 	function avisar() {
-		var cola = esperando;
+		const cola = esperando;
 		esperando = [];
-		var anim = listas();
+		const anim = listas();
 		cola.forEach(function (responder) { responder(anim); });
 	}
 
@@ -79,16 +79,17 @@
 	// <script> con el mismo fichero (impreso por WordPress como dependencia de
 	// otro, todavía sin ejecutar).
 	function yaPresente(url) {
-		var fichero = url.split('?')[0].split('/').pop();
+		const fichero = url.split('?')[0].split('/').pop();
 		if ('gsap.min.js' === fichero && 'undefined' !== typeof window.gsap) {
 			return true;
 		}
 		if ('ScrollTrigger.min.js' === fichero && 'undefined' !== typeof window.ScrollTrigger) {
 			return true;
 		}
-		var scripts = doc.getElementsByTagName('script');
-		for (var i = 0; i < scripts.length; i++) {
-			var src = scripts[i].getAttribute('src') || '';
+		const scripts = doc.getElementsByTagName('script');
+		for (let i = 0; i < scripts.length; i++) {
+			// eslint-disable-next-line security/detect-object-injection
+			const src = scripts[i].getAttribute('src') || '';
 			if (src.split('?')[0].split('/').pop() === fichero) {
 				return true;
 			}
@@ -117,7 +118,7 @@
 			if (yaPresente(url)) {
 				return;
 			}
-			var script = doc.createElement('script');
+			const script = doc.createElement('script');
 			script.src = url;
 			script.async = false;
 			script.setAttribute('data-no-optimize', '1');
@@ -135,7 +136,7 @@
 	}
 
 	function alQuedarLibre() {
-		var enReposo = window.requestIdleCallback
+		const enReposo = window.requestIdleCallback
 			? function (fn) { window.requestIdleCallback(fn, { timeout: 2000 }); }
 			: function (fn) { window.setTimeout(fn, 200); };
 		enReposo(alInteractuar);
@@ -154,13 +155,13 @@
 
 	// Entrega animations.js en cuanto esté, o null si no llega a tiempo.
 	function cuandoListas(ms, cb) {
-		var anim = listas();
+		const anim = listas();
 		if (anim || 'fallido' === estado) {
 			cb(anim);
 			return;
 		}
-		var hecho = false;
-		var reloj = window.setTimeout(function () { responder(null); }, ms);
+		let hecho = false;
+		const reloj = window.setTimeout(function () { responder(null); }, ms);
 		function responder(valor) {
 			if (hecho) {
 				return;
@@ -180,7 +181,7 @@
 	}
 
 	body.addEventListener('akb:added_to_cart', function (e) {
-		var abierto = false;
+		let abierto = false;
 		function alAterrizar() {
 			if (abierto) {
 				return;
@@ -189,10 +190,11 @@
 			abrirCajon();
 		}
 		try {
-			var detail = e.detail || [];
-			var raw = detail[2]; // el botón: nodo DOM o wrapper jQuery ($button).
-			var btn = raw && raw.nodeType ? raw : (raw && raw.length ? raw[0] : null);
-			var hamburguesa = !!doc.querySelector('#mobile-drawer[aria-hidden="false"], .hamburger.active');
+			const detail = e.detail || [];
+			const raw = detail[2]; // el botón: nodo DOM o wrapper jQuery ($button).
+			const unwrapped = raw && raw.length ? raw[0] : null;
+			const btn = raw && raw.nodeType ? raw : unwrapped;
+			const hamburguesa = !!doc.querySelector('#mobile-drawer[aria-hidden="false"], .hamburger.active');
 			if (reduceMql.matches || hamburguesa) {
 				alAterrizar();
 				return;
@@ -204,11 +206,11 @@
 				}
 				try {
 					anim.volarAlCarrito(btn, alAterrizar);
-				} catch (err) {
+				} catch (_err) {
 					alAterrizar();
 				}
 			});
-		} catch (err) {
+		} catch (_err) {
 			alAterrizar();
 		}
 	});

@@ -3,7 +3,7 @@
  * Candado: la lista de términos de `pa_serie` muestra el estado de publicación.
  *
  * La configuración de una serie vive repartida en cuatro pantallas —estado de
- * publicación y ediciones en el término, tramos de «Arma tu Pack» en el panel de
+ * publicación y ediciones en el término, panel de
  * Akibara— y ninguna enlazaba a las otras. Peor: la lista de términos, la única
  * que muestra las 115 series de una vez, no decía NADA de su estado, así que
  * saber cuáles faltaban por cargar obligaba a abrirlas una por una.
@@ -139,23 +139,5 @@ final class PublicationStatusColumnsTest extends TestCase {
 		$content = ( new PublicationStatusFields() )->handle_admin_column_content( 'intacto', 'slug', 9 );
 
 		self::assertSame( 'intacto', $content );
-	}
-
-	/**
-	 * @testdox La pantalla de edición enlaza al panel que configura la misma serie.
-	 */
-	public function test_edit_screen_links_to_the_bundles_panel(): void {
-		$term           = new \stdClass();
-		$term->term_id  = 9;
-
-		ob_start();
-		( new PublicationStatusFields() )->handle_edit_form_fields( $term, 'pa_serie' );
-		$html = (string) ob_get_clean();
-
-		self::assertStringContainsString( 'page=akibara-panel', $html );
-		self::assertStringContainsString( 'tab=series_bundles', $html );
-		// Sin fragmento: el `<details>` de cada serie no lleva `id`, y enlazar a un
-		// ancla inexistente hace que el navegador ignore el salto en silencio.
-		self::assertStringNotContainsString( '#akb-sb-series', $html );
 	}
 }

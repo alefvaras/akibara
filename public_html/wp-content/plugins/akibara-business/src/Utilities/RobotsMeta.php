@@ -11,7 +11,7 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Evita que distintas superficies SEO interpreten la misma meta de otro modo. */
+/** Evita que distintas superficies SEO interpreten la misma meta de otro modo. @api */
 final class RobotsMeta {
 
 	/**

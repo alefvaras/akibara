@@ -19,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.8
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class SchemaTypeFields {
 

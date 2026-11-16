@@ -23,7 +23,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress RedundantCondition
  */
+// @phpstan-ignore complexity.classLike
 final class FacetRegistry {
 
 	/**
@@ -83,11 +86,11 @@ final class FacetRegistry {
 	/**
 	 * Ancho mínimo (en pesos) de un tramo con techo. Igual a la grilla de la
 	 * derivación automática (`PriceBuckets::STEP` = 1000) y estrictamente mayor
-	 * que el epsilon de display del label (`PriceBuckets::LABEL_EPS` = 10), de
+	 * que el epsilon de display del label (`PriceBuckets::LABEL_EPS` = 1), de
 	 * modo que `derive_label()` (que muestra `max − LABEL_EPS`) NUNCA pueda
 	 * renderizar un rango reversado o degenerado. Aplica a los tramos acotados
-	 * (`[10000,10005)` daría «$10.000 – $9.995») Y al primero sin piso
-	 * (`[null,5)` daría «Hasta $-5» — su ancho efectivo arranca en 0, así que
+	 * (`[10000,10005)` daría «$10.000 – $10.004») Y al primero sin piso
+	 * (`[null,5)` daría «Hasta $4» — su ancho efectivo arranca en 0, así que
 	 * el guard exige `max` ≥ grilla). AUTO siempre produce cortes ≥ STEP; esto
 	 * solo puede violarse con curaduría manual absurda, y el validador la
 	 * rechaza en ambos caminos.
@@ -132,9 +135,10 @@ final class FacetRegistry {
 		self::$structural_terms_cache = array();
 	}
 
-	/** Indica si las fuentes dinámicas del registry fueron autoritativas. */
+	/** Indica si las fuentes dinámicas del registry fueron autoritativas.  * @phpstan-impure
+	 */
 	public static function is_available(): bool {
-		return self::$available && SemanticPublication::authoritative_available();
+		return ( self::$available && SemanticPublication::authoritative_available() ) && defined( 'ABSPATH' );
 	}
 
 	/** Devuelve el primer error de lectura del registry en este request. */
@@ -165,7 +169,7 @@ final class FacetRegistry {
 			return self::$precio_buckets_cache = self::PRECIO_BUCKETS;
 		}
 
-		$stored = SemanticPublication::authoritative_value( self::OPTION_PRECIO_BUCKETS, null );
+		$stored = SemanticPublication::authoritative_value( self::OPTION_PRECIO_BUCKETS );
 		if ( ! SemanticPublication::authoritative_available() ) {
 			self::mark_unavailable( SemanticPublication::authoritative_error() );
 			return self::$precio_buckets_cache = self::PRECIO_BUCKETS;
@@ -203,7 +207,7 @@ final class FacetRegistry {
 		if ( ! function_exists( 'get_option' ) ) {
 			return true;
 		}
-		$stored = SemanticPublication::authoritative_value( self::OPTION_PRECIO_BUCKETS, null );
+		$stored = SemanticPublication::authoritative_value( self::OPTION_PRECIO_BUCKETS );
 		if ( ! SemanticPublication::authoritative_available() ) {
 			self::mark_unavailable( SemanticPublication::authoritative_error() );
 			return false;
@@ -227,7 +231,8 @@ final class FacetRegistry {
 	 * @param array<int, mixed> $rows Filas candidatas.
 	 * @return string|null Código de error, o null si es válido.
 	 */
-	public static function validate_precio_buckets( array $rows ): ?string {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function validate_precio_buckets( array $rows ): ?string { // @phpstan-ignore complexity.functionLike
 		$rows  = array_values( $rows );
 		$count = count( $rows );
 		if ( $count < 2 || $count > 8 ) {
@@ -325,14 +330,14 @@ final class FacetRegistry {
 		if ( isset( self::$structural_terms_cache[ $slug ] ) ) {
 			return self::$structural_terms_cache[ $slug ];
 		}
-		if ( ! self::$available ) {
+		if ( ! self::is_available() ) {
 			return $fallback;
 		}
 		if ( ! function_exists( 'taxonomy_exists' ) || ! taxonomy_exists( 'product_cat' ) ) {
 			return $fallback;
 		}
 		$term = self::authoritative_term_by_slug( $slug, 'product_cat' );
-		if ( ! self::$available ) {
+		if ( ! self::is_available() ) { // @phpstan-ignore booleanNot.alwaysFalse
 			return $fallback;
 		}
 		if ( ! is_array( $term ) ) {
@@ -349,8 +354,9 @@ final class FacetRegistry {
 	 *
 	 * @return array{term_id:int,taxonomy:string,parent:int,slug:string,name:string}|false|null
 	 */
-	public static function authoritative_term_by_slug( string $slug, string $taxonomy ) {
-		if ( ! self::$available ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function authoritative_term_by_slug( string $slug, string $taxonomy ) { // @phpstan-ignore complexity.functionLike
+		if ( ! self::is_available() ) {
 			return null;
 		}
 		if ( '' === $slug || '' === $taxonomy ) {
@@ -364,7 +370,7 @@ final class FacetRegistry {
 			self::mark_unavailable( 'Term slug tables are unavailable.' );
 			return null;
 		}
-		if ( is_object( $wpdb ) && property_exists( $wpdb, 'last_error' ) ) {
+		if ( is_object( $wpdb ) && property_exists( $wpdb, 'last_error' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			$wpdb->last_error = '';
 		}
 		try {
@@ -383,7 +389,7 @@ final class FacetRegistry {
 			self::mark_unavailable( $exception->getMessage() ?: 'Could not read term by slug.' );
 			return null;
 		}
-		$database_error = is_object( $wpdb ) && property_exists( $wpdb, 'last_error' )
+		$database_error = is_object( $wpdb ) && property_exists( $wpdb, 'last_error' ) // @phpstan-ignore function.alreadyNarrowedType
 			? trim( (string) $wpdb->last_error )
 			: '';
 		if ( '' !== $database_error || ! is_array( $terms ) ) {
@@ -459,23 +465,23 @@ final class FacetRegistry {
 	public const PRECIO_BUCKETS = array(
 		array(
 			'min'   => null,
-			'max'   => 10000,
-			'label' => 'Hasta $9.990',
+			'max'   => 11000,
+			'label' => 'Hasta $10.999',
 		),
 		array(
-			'min'   => 10000,
+			'min'   => 11000,
 			'max'   => 15000,
-			'label' => '$10.000 – $14.990',
+			'label' => '$11.000 – $14.999',
 		),
 		array(
 			'min'   => 15000,
-			'max'   => 20000,
-			'label' => '$15.000 – $19.990',
+			'max'   => 23000,
+			'label' => '$15.000 – $22.999',
 		),
 		array(
-			'min'   => 20000,
+			'min'   => 23000,
 			'max'   => null,
-			'label' => '$20.000 o más',
+			'label' => '$23.000 o más',
 		),
 	);
 

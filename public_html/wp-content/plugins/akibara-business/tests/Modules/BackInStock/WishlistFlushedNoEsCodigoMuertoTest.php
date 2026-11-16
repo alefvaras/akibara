@@ -37,10 +37,4 @@ final class WishlistFlushedNoEsCodigoMuertoTest extends TestCase {
 		);
 	}
 
-	/** @testdox cleanup_orphan_options() sigue siendo la única baja de akb_wishlist_flushed. */
-	public function test_cleanup_orphan_options_stays_the_single_source(): void {
-		$plugin = (string) file_get_contents( dirname( __DIR__, 3 ) . '/src/Plugin.php' );
-
-		self::assertStringContainsString( "delete_option( 'akb_wishlist_flushed' );", $plugin );
-	}
 }

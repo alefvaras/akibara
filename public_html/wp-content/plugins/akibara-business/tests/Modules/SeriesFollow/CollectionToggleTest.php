@@ -57,6 +57,8 @@ namespace Akibara\Business\Tests\Modules\SeriesFollow {
 			$this->logueado       = true;
 			$this->nonce_valido   = true;
 
+			Functions\when( 'get_term' )->alias( static function ( int $id ): \WP_Term { $term = new \WP_Term( $id, 'serie', 'Serie' ); $term->taxonomy = 'pa_serie'; return $term; } );
+			Functions\when( 'get_option' )->alias( static fn ( string $key, $default = false ) => 'akb_sf_enabled' === $key ? 'yes' : $default );
 			Functions\when( 'is_user_logged_in' )->alias( fn (): bool => $this->logueado );
 			Functions\when( 'wp_verify_nonce' )->alias( fn (): bool => $this->nonce_valido );
 			Functions\when( 'get_current_user_id' )->alias( fn (): int => $this->logueado ? self::SESION : 0 );

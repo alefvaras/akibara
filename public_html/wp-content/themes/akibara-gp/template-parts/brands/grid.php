@@ -194,7 +194,7 @@ $akb_status_id     = wp_unique_id( 'akb-brands-status-' );
 							<a class="akb-brand-card__link" href="<?php echo esc_url( $akb_link ); ?>">
 								<?php if ( '' !== $akb_matrix_key && function_exists( 'akibara_gp_render_publisher_logo' ) ) : ?>
 									<span class="akb-brand-card__logo" aria-hidden="true">
-										<?php echo akibara_gp_render_publisher_logo( (string) $akb_brand->slug ); ?>
+										<?php echo wp_kses( akibara_gp_render_publisher_logo( (string) $akb_brand->slug ), akibara_gp_allowed_svg_html() ); ?>
 									</span>
 								<?php elseif ( '' !== $akb_logo['url'] ) : ?>
 									<span class="akb-brand-card__logo" aria-hidden="true">
@@ -236,7 +236,7 @@ $akb_status_id     = wp_unique_id( 'akb-brands-status-' );
 	?>
 		<p class="akb-brands-empty" hidden>
 			No encontramos editoriales que coincidan.
-			<a href="<?php echo esc_url( $akb_contact_url ); ?>">¿La pides por contacto?</a>
+			<a href="<?php echo esc_url( $akb_contact_url ); ?>">¿Tienes dudas sobre nuestro catálogo? Escríbenos</a>
 		</p>
 	<?php endif; ?>
 </div>

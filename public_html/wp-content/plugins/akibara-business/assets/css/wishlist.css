@@ -12,6 +12,7 @@
  */
 
 /* ─── Botón corazón en loop ─────────────────────────────────────── */
+
 /* Posicionado absolute bottom-right de la portada (cover).
  * Fondo oscuro semitransparente para legibilidad, como en el diseño original. */
 .woocommerce ul.products li.product .akb-product-cover-wrap > img {
@@ -69,10 +70,10 @@
  * una regla posterior de igual especificidad podría borrar el estado guardado tras un toque.
  */
 @media (hover: hover) {
+
 	.products li.product .akb-wl-toggle--loop:hover {
-		color: var(--aki-red, #e63946);
+		color: var(--aki-red, #E60012);
 		background: rgba(0, 0, 0, 0.7);
-		outline: none;
 		transform: scale(1.08);
 		opacity: 1;
 	}
@@ -81,21 +82,22 @@
 /* El foco de teclado es otro eje y NO se puede meter en la puerta de hover: un
  * teclado existe en dispositivos sin hover. Va suelto. */
 .products li.product .akb-wl-toggle--loop:focus-visible {
-	color: var(--aki-red, #e63946);
+	color: var(--aki-red-text, #FF4756);
 	background: rgba(0, 0, 0, 0.7);
-	outline: none;
+	outline: var(--aki-focus-outline, 2px solid #FFF);
+	outline-offset: var(--aki-focus-offset, 2px);
 	transform: scale(1.08);
 	opacity: 1;
 }
 
 .products li.product .akb-wl-toggle--loop.is-saved {
-	color: var(--aki-red, #e63946);
+	color: var(--aki-red-text, #FF4756);
 	background: rgba(0, 0, 0, 0.7);
 	opacity: 1;
 }
 
 .products li.product .akb-wl-toggle--loop.is-saved .akb-wl-toggle__icon {
-	fill: currentColor;
+	fill: currentcolor;
 }
 
 .products li.product .akb-wl-toggle--loop.is-loading {
@@ -104,13 +106,15 @@
 }
 
 /* ─── Botón corazón en single product ───────────────────────────── */
+
 /* Inline-flex junto al ATC. Padding mínimo, hit target 44px. */
 .akb-wl-toggle--single {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2, 8px);
-	background: transparent;
-	border: 2px solid var(--aki-black, #121212);
+	background: var(--aki-surface-2, #1A1A1A);
+	border: 2px solid var(--aki-border-light, #333);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
 	color: var(--aki-white, #fff);
 	padding: var(--space-2, 8px) var(--space-4, 16px);
 	border-radius: 0;
@@ -122,26 +126,33 @@
 	transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease), box-shadow var(--transition-fast, 150ms ease), transform var(--transition-fast, 150ms ease);
 }
 
-.akb-wl-toggle--single:hover,
-.akb-wl-toggle--single:focus-visible {
+.akb-wl-toggle--single:hover {
 	border-color: var(--aki-black, #121212);
-	background-color: var(--aki-red, #e63946);
-	color: var(--aki-white, #fff);
-	box-shadow: 2px 2px 0px var(--aki-black, #121212);
+	background-color: var(--aki-buy-bg, #CC0010);
+	color: var(--aki-buy-fg, #FFF);
+	box-shadow: 2px 2px 0 var(--aki-black, #121212);
 	transform: translate(-2px, -2px);
-	outline: none;
+}
+
+.akb-wl-toggle--single:focus-visible {
+	border-color: var(--aki-white, #FFF);
+	background-color: var(--aki-buy-bg, #CC0010);
+	color: var(--aki-buy-fg, #FFF);
+	box-shadow: var(--aki-focus-ring, 0 0 0 2px #FFF);
+	outline: var(--aki-focus-outline, 2px solid #FFF);
+	outline-offset: var(--aki-focus-offset, 2px);
 }
 
 .akb-wl-toggle--single.is-saved {
 	border-color: var(--aki-black, #121212);
-	color: var(--aki-red, #e63946);
+	color: var(--aki-red-text, #FF4756);
 	background-color: transparent;
-	box-shadow: 2px 2px 0px var(--aki-black, #121212);
+	box-shadow: 2px 2px 0 var(--aki-black, #121212);
 	transform: translate(-2px, -2px);
 }
 
 .akb-wl-toggle--single.is-saved .akb-wl-toggle__icon {
-	fill: currentColor;
+	fill: currentcolor;
 }
 
 .akb-wl-toggle--single.is-loading {
@@ -150,6 +161,7 @@
 }
 
 /* ─── Empty state en /mi-cuenta/favoritos/ ──────────────────────── */
+
 /* Render.php aplica `.akb-empty` + `.akb-empty__hero` + `.akb-empty__title` +
  * `.akb-empty__subtitle` + `.akb-empty__cta-row` + `.akb-empty__btn--primary`
  * + cross-sell de 4 más vendidos. Todo el styling vive en
@@ -158,7 +170,7 @@
  * contexto wishlist (icono del corazón). */
 
 .akb-wl-empty__icon {
-	color: var(--aki-gray-400, #6b6b6b);
+	color: var(--aki-gray-400, #8A8A8A);
 	margin-bottom: var(--space-4, 16px);
 }
 
@@ -168,7 +180,7 @@
 }
 
 .akb-wl-grid__lead {
-	color: var(--aki-gray-300, #9a9a9a);
+	color: var(--aki-gray-300, #B0B0B0);
 	font-size: var(--text-sm, 14px);
 	margin: 0 0 var(--space-4, 16px);
 }
@@ -177,10 +189,10 @@
  * Explicación secundaria de por qué algunos productos guardados no tienen tarjeta visible.
  */
 .akb-wl-grid__nota {
-    display: block;
-    margin-top: 2px;
-    color: var(--aki-gray-400, #9e9e9e);
-    font-size: .9em;
+	display: block;
+	margin-top: 2px;
+	color: var(--aki-gray-300, #B0B0B0);
+	font-size: 0.9em;
 }
 
 
@@ -216,7 +228,9 @@
  * `prefers-reduced-motion`: se respeta más abajo deshabilitando todas las
  * animaciones del módulo. */
 @keyframes akb-wl-pulse {
+
 	0%, 100% { transform: scale(1); }
+
 	50%      { transform: scale(1.2); }
 }
 
@@ -240,9 +254,11 @@
 
 /* ─── Reduced motion: deshabilita pulse + fade ────────────────── */
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-wl-toggle.is-saved .akb-wl-toggle__icon {
 		animation: none;
 	}
+
 	.akb-wl-grid .product {
 		transition: none;
 	}
@@ -250,7 +266,9 @@
 
 /* ─── Mobile tweaks ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
+
 	.products li.product .akb-wl-toggle--loop {
+
 		/* El control real, no solo su pseudo-hitbox, conserva el mínimo táctil. */
 		width: 44px;
 		height: 44px;
@@ -260,6 +278,7 @@
 		border-color: rgba(255, 255, 255, 0.08);
 		opacity: 0.86;
 	}
+
 	.akb-wl-toggle--single {
 		width: 100%;
 		justify-content: center;
@@ -278,34 +297,79 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 0.4rem;
+	min-height: 44px;
 	padding: 0.45rem 1rem;
-	border-radius: 9999px;
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	background: #18181c;
-	color: #e2e8f0;
+	border-radius: 0;
+	border: 2px solid var(--aki-border, #2A2A2E);
+	background: var(--aki-surface-2, #1A1A1A);
+	color: var(--aki-gray-100, #F5F5F5);
 	font-size: 0.85rem;
-	font-weight: 600;
+	font-weight: 700;
 	cursor: pointer;
-	transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+	transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease;
 	white-space: nowrap;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
 }
 
 .akb-wl-filter-tab:hover {
-	border-color: rgba(225, 29, 72, 0.6);
-	background: #221518;
-	color: #ffffff;
-	transform: translateY(-1px);
+	border-color: var(--aki-red, #E60012);
+	background: var(--aki-surface-3, #222);
+	color: var(--aki-white, #FFF);
+	transform: translate(-1px, -1px);
+	box-shadow: 4px 4px 0 var(--aki-black, #121212);
 }
 
 .akb-wl-filter-tab.is-active {
-	background: #e11d48;
-	border-color: #f43f5e;
-	color: #ffffff;
-	box-shadow: 0 2px 10px rgba(225, 29, 72, 0.45);
+	background: var(--aki-buy-bg, #CC0010);
+	border-color: var(--aki-black, #121212);
+	color: var(--aki-buy-fg, #FFF);
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+}
+
+.akb-wl-empty-filter {
+	display: none;
+	padding: 32px 16px;
+	text-align: center;
+	background: var(--aki-surface-2, #1A1A1A);
+	border: 2px solid var(--aki-black, #121212);
+	box-shadow: 4px 4px 0 var(--aki-black, #121212);
+	margin: 16px 0 24px;
+}
+
+.akb-wl-empty-filter__text {
+	margin: 0 0 12px;
+	font-size: 1rem;
+	color: var(--aki-gray-300, #B0B0B0);
+}
+
+.akb-wl-btn-reset {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	background: var(--aki-buy-bg, #CC0010);
+	color: var(--aki-buy-fg, #FFF);
+	border: 2px solid var(--aki-black, #121212);
+	border-radius: 0;
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
+	padding: 8px 18px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.akb-wl-btn-reset:hover {
+	background: var(--aki-buy-bg-hover, #99000C);
+}
+
+.akb-wl-filter-tab:focus-visible,
+.akb-wl-btn-reset:focus-visible {
+	outline: var(--aki-focus-outline, 2px solid #FFF);
+	outline-offset: var(--aki-focus-offset, 2px);
 }
 
 @media (max-width: 600px) {
+
 	.akb-wl-filters {
 		flex-wrap: nowrap;
 		overflow-x: auto;
@@ -313,9 +377,11 @@
 		padding-bottom: 0.5rem;
 		scrollbar-width: none;
 	}
+
 	.akb-wl-filters::-webkit-scrollbar {
 		display: none;
 	}
+
 	.akb-wl-filter-tab {
 		flex-shrink: 0;
 		padding: 0.45rem 0.85rem;

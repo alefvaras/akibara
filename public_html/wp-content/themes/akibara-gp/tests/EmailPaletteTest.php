@@ -61,6 +61,7 @@ final class EmailPaletteTest extends TestCase {
 			static fn( $value ) => strip_tags( (string) $value )
 		);
 		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'is_rtl' )->justReturn( false );
 
 		// El pie incluye `akibara_gp_email_footer_public_line()` (inc/woocommerce.php).
 		// Esta clase no la cargaba: pasaba sólo si OTRA prueba había cargado ese

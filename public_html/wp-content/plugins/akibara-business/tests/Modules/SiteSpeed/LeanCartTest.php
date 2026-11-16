@@ -410,27 +410,16 @@ final class LeanCartTest extends TestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 *
-	 * @testdox Apagado en el panel, el carrito queda como lo encola Mercado Pago.
+	 * @testdox El módulo opera siempre encendido incondicionalmente por código.
 	 */
-	public function test_apagado_no_quita_nada(): void {
+	public function test_siempre_encendido_por_codigo(): void {
 		$this->con_mercado_pago();
 		$this->pagina( true, true );
 
-		foreach ( array( 'no', '', '0' ) as $valor ) {
-			$this->options[ LeanCart::OPTION ] = $valor;
-			$this->sut->dequeue_checkout_only_assets();
-			self::assertFalse( LeanCart::enabled(), "«{$valor}» apaga." );
-		}
+		self::assertTrue( LeanCart::enabled() );
 
-		self::assertSame( array(), $this->scripts_fuera );
-		self::assertSame( array(), $this->hojas_fuera );
-		$this->sut->print_warmup();
-		self::assertSame( array(), $this->impresos, 'Ni precarga.' );
-		self::assertSame( array(), $this->sut->add_prefetch_hints( array(), 'prefetch' ), 'Ni pistas.' );
-
-		$this->options[ LeanCart::OPTION ] = 'yes';
 		$this->sut->dequeue_checkout_only_assets();
-		self::assertCount( 3, $this->scripts_fuera, 'Y encendido de nuevo, vuelve a quitar.' );
+		self::assertCount( 3, $this->scripts_fuera, 'Encendido por código siempre quita del carrito.' );
 	}
 
 	/**

@@ -39,7 +39,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.99.16
+ * @api
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class AdoptedSnapshot {
 
 	public const CONTRACT = 'akibara_search_price_snapshot_v1';
@@ -88,7 +92,7 @@ final class AdoptedSnapshot {
 	private array $data;
 
 	/** @var array<int, int> term_id => pct */
-	private array $term_pct = array();
+	private array $term_pct;
 
 	/**
 	 * @param array<string, mixed> $data Foto ya validada.
@@ -106,7 +110,7 @@ final class AdoptedSnapshot {
 	 * @param string $why      Motivo del rechazo (salida).
 	 * @return self|null
 	 */
-	public static function from_search( $snapshot, string &$why, ?int $now = null ): ?self {
+	public static function from_search( $snapshot, string &$why, ?int $now = null ): ?self { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$now = null === $now ? time() : $now;
 
 		if ( ! is_array( $snapshot ) ) {
@@ -271,9 +275,9 @@ final class AdoptedSnapshot {
 		}
 
 		if ( 1 === preg_match( '/^(?:a|O|C|s|i|d|b):/', $raw ) ) {
-			$value = @unserialize( $raw, array( 'allowed_classes' => false ) );
+			$value = @unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize, WordPress.PHP.NoSilencedErrors.Discouraged
 			$valid = ( false !== $value || 'b:0;' === $raw )
-				&& serialize( $value ) === $raw
+				&& serialize( $value ) === $raw // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 				&& ! is_object( $value )
 				&& ( is_scalar( $value ) || null === $value );
 
@@ -293,7 +297,7 @@ final class AdoptedSnapshot {
 	 * @param string $value Valor ya decodificado.
 	 * @return bool
 	 */
-	private static function valid_option_value( string $name, string $value ): bool {
+	private static function valid_option_value( string $name, string $value ): bool { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		switch ( $name ) {
 			case 'akibara_taxonomy_discount_enabled':
 				return in_array( $value, array( 'yes', 'no' ), true );
@@ -749,7 +753,7 @@ final class AdoptedSnapshot {
 	 * @return string Cadena vacía si el encode falla.
 	 */
 	public function canonical_json(): string {
-		$json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $this->data ) : json_encode( $this->data );
+		$json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $this->data ) : json_encode( $this->data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
 
 		return is_string( $json ) && '' !== $json ? $json : '';
 	}

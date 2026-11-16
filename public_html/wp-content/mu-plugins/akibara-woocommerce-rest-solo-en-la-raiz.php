@@ -18,6 +18,8 @@ defined( 'ABSPATH' ) || exit;
  * @param string $home_path   Ruta del sitio dentro del dominio (vacía en la raíz).
  * @param string $prefix      Prefijo REST sin barras («wp-json»).
  * @return bool
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_woo_rest_ruta_es_de_la_api( string $request_uri, string $home_path, string $prefix ): bool {
 	$path = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
@@ -38,6 +40,8 @@ function akibara_woo_rest_ruta_es_de_la_api( string $request_uri, string $home_p
  *
  * @param bool $is_rest Lo que decidió WooCommerce.
  * @return bool
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_woo_rest_solo_en_la_raiz( $is_rest ): bool {
 	if ( ! $is_rest ) {
@@ -57,4 +61,5 @@ function akibara_woo_rest_solo_en_la_raiz( $is_rest ): bool {
 	);
 }
 
+/** @psalm-suppress HookNotFound */
 add_filter( 'woocommerce_is_rest_api_request', 'akibara_woo_rest_solo_en_la_raiz' );

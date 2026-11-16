@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-business-production-release",
+  "release_id": "akibara-business-1.99.13",
+  "seal_state": "sealed",
+  "promotion_sequence": [
+    "docker-local",
+    "production"
+  ],
+  "exclusive_targets": [
+    "public_html/wp-content/plugins/akibara-business"
+  ],
+  "supersedes": {
+    "rejected_candidates": [
+      "1.99.11",
+      "1.99.12"
+    ],
+    "reason": "Rechazados por la revisión adversarial Codex (rondas 1 y 2). Se conservan en dist/ como evidencia; NO se promueven ni se sobrescriben."
+  },
+  "change_summary": {
+    "scope": "P1 — exception safety del despacho ready-to-ship (OrderPreventa)",
+    "highlights": [
+      "setup_locale() dentro del tramo protegido; locale restaurado en todo camino",
+      "WC_Email::$sending y los tres filtros de wp_mail limpiados en finally",
+      "marker de idempotencia releído sin cache antes del transporte, fail-CLOSED",
+      "fallo de durabilidad borra el marker del objeto antes de contar el intento",
+      "reintento pre-transporte acotado por SendFailureRearm::MAX_ATTEMPTS"
+    ]
+  },
+  "components": {
+    "business": {
+      "kind": "plugin",
+      "slug": "akibara-business",
+      "source_root": "public_html/wp-content/plugins/akibara-business",
+      "preimage": {
+        "version": "1.99.10",
+        "archive": "dist/akibara-business-1.99.10.zip",
+        "archive_sha256": "7b397d2c5c2518cfafa0a138b7ee6a7801a91e6a891609d14fbfbf9213763134",
+        "inventory": "dist/akibara-business-1.99.10.files.sha256",
+        "inventory_sha256": "5172c0291ac7c92606a1f4984d3d71e14e907301fe58ced7567da943c0774522",
+        "runtime_files": 221
+      },
+      "remote_baseline": {
+        "version": "1.99.10",
+        "inventory": "dist/akibara-business-1.99.10.files.sha256",
+        "inventory_sha256": "5172c0291ac7c92606a1f4984d3d71e14e907301fe58ced7567da943c0774522",
+        "runtime_files": 221
+      },
+      "candidate": {
+        "version": "1.99.13",
+        "archive": "dist/akibara-business-1.99.13.zip",
+        "archive_sha256": "cd4b07dcb46216a083770b7a116f1254d888794e1405edb521874edf40f82599",
+        "inventory": "dist/akibara-business-1.99.13.files.sha256",
+        "inventory_sha256": "0c6627c3bbfbef21ef816a4d64a22b995598d7bec4f0813130ad90a69bc8368e",
+        "runtime_files": 221
+      },
+      "modified_runtime_files": [
+        "akibara-business/akibara-business.php",
+        "akibara-business/src/Modules/OrderPreventa/ReadyToShipEmail.php"
+      ],
+      "added_runtime_files": [],
+      "removed_runtime_files": [],
+      "source_inputs": [
+        {
+          "path": "akibara-business/akibara-business.php",
+          "sha256": "4f9ca53f28e286fbaa98a267789999a9c753409b819350ec8601d5c26fe6489a"
+        },
+        {
+          "path": "akibara-business/src/Modules/OrderPreventa/ReadyToShipEmail.php",
+          "sha256": "b3ee2014cf41617c14d10c0f2814eb53b256de22106c50bc3d07b096641c1175"
+        }
+      ]
+    }
+  },
+  "production_invariants": {
+    "protected_components": [
+      {
+        "kind": "plugin",
+        "slug": "akibara-cart-checkout-blocks"
+      },
+      {
+        "kind": "plugin",
+        "slug": "akibara-search"
+      },
+      {
+        "kind": "plugin",
+        "slug": "bluex-for-woocommerce"
+      },
+      {
+        "kind": "theme",
+        "slug": "akibara-gp"
+      }
+    ],
+    "required_active_plugins": [
+      "akibara-business",
+      "akibara-cart-checkout-blocks",
+      "akibara-search",
+      "bluex-for-woocommerce",
+      "litespeed-cache",
+      "seo-by-rank-math",
+      "woocommerce"
+    ],
+    "required_active_theme": "akibara-gp",
+    "runtime_outside_business_must_remain_byte_identical": true,
+    "commerce_fingerprint_must_remain_identical": true,
+    "search_fingerprint_must_remain_identical": true,
+    "remote_backups_allowed": false,
+    "graphify_during_release_allowed": false,
+    "cloudflare_zone_name": "akibara.cl",
+    "cloudflare_zone_id": "b298201b3a38d017bc8413d9fd7414cd",
+    "cloudflare_purge_required": true,
+    "cloudflare_purge_transport": "official-mcp-handoff",
+    "cloudflare_witness_max_age_seconds": 900,
+    "cloudflare_purge_payload": {
+      "purge_everything": true
+    },
+    "live_cache_purge_order": [
+      "litespeed",
+      "cloudflare"
+    ],
+    "manga_archive_copy": {
+      "source": "woocommerce_product_category_description",
+      "canonical_clean_first_page": "first_paragraph_above_rest_after_main_content",
+      "query_or_page_2": "suppressed",
+      "allowed_html": [
+        "p",
+        "a",
+        "strong",
+        "em",
+        "br",
+        "ul",
+        "ol",
+        "li"
+      ],
+      "faq_schema_added": false,
+      "required_viewports": [
+        "375x812",
+        "1440x1000"
+      ]
+    }
+  },
+  "quality_gates": {
+    "unit": {
+      "command": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-business/phpunit.xml.dist",
+      "expected": "570 tests / 1583 assertions"
+    },
+    "dispatch_integration": {
+      "command": "bash tools/akibara-releases/qa-preventa-dispatch.sh",
+      "expected": "dos corridas verdes y cero residuo verificado contra la base"
+    },
+    "full_local_qa": {
+      "command": "tools/akibara-business/qa.sh",
+      "expected": "EXIT 0"
+    }
+  }
+}

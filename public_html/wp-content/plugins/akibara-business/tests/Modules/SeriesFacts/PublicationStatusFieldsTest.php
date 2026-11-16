@@ -54,8 +54,7 @@ final class PublicationStatusFieldsTest extends TestCase {
 		Functions\when( 'term_exists' )->justReturn( 12 );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		// El formulario de edición cierra con un enlace al panel que configura la
-		// MISMA serie (los tramos de «Arma tu Pack» viven en otra pantalla y antes
-		// nada las enlazaba). `function_exists()` no basta como guardia acá: Brain
+		// MISMA serie. `function_exists()` no basta como guardia acá: Brain
 		// Monkey deja el símbolo definido y lo que revienta es la llamada.
 		Functions\when( 'admin_url' )->alias(
 			static fn( string $path = '' ): string => 'https://example.test/wp-admin/' . $path

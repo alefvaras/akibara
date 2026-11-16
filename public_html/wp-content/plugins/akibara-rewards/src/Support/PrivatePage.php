@@ -26,6 +26,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.4.9
+ * @api
  */
 final class PrivatePage {
 

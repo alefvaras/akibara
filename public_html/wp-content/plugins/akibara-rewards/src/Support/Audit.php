@@ -24,6 +24,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.0
+ * @api
  */
 final class Audit {
 
@@ -91,6 +92,9 @@ final class Audit {
 		return $out;
 	}
 
+	/**
+	 * @return mixed
+	 */
 	public static function repair( int $user_id ) {
 		return Ledger::with_user_lock(
 			$user_id,

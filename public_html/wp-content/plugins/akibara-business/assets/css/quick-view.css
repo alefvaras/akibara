@@ -211,7 +211,7 @@ body.akb-qv-open {
 .akb-qv__meta .price {
 	flex: 0 0 100%;
 	margin-top: 12px;
-	color: var(--aki-white, #ffffff);
+	color: var(--aki-white, #fff);
 	font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
 	font-size: 38px;
 	line-height: 1;
@@ -270,19 +270,21 @@ body.akb-qv-open {
 	align-items: center;
 	min-height: 44px;
 	color: var(--aki-gray-200, #e0e0e0);
+	text-decoration: underline;
 	text-decoration-color: var(--aki-red, #e60012);
 	text-underline-offset: 4px;
 	font-size: 14px;
 	font-weight: 700;
-	text-decoration: underline;
 }
 
 /* ─── Animación de apertura — estilo viñeta manga (220ms, 60fps) ─── */
 @keyframes akb-qv-fade-in {
+
 	from {
 		opacity: 0;
 		transform: scale(0.96) translateY(8px);
 	}
+
 	to {
 		opacity: 1;
 		transform: scale(1) translateY(0);
@@ -290,15 +292,18 @@ body.akb-qv-open {
 }
 
 @keyframes akb-qv-backdrop-fade {
+
 	from {
 		opacity: 0;
 	}
+
 	to {
 		opacity: 1;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-qv[open],
 	.akb-qv[open]::backdrop {
 		animation: none;

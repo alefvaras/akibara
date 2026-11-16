@@ -121,6 +121,7 @@
 	border: 3px solid #1A1A1D;
 	border-radius: 0;
 	box-shadow: 6px 6px 0 #E50914;
+
 	/*
 	 * overflow visible permite que el panel de vista previa sticky se ancle durante el scroll del
 	 * fieldset.
@@ -174,6 +175,7 @@
 }
 
 .akb-hero-slide__title { font-size: 14px; }
+
 .akb-hero-slide__legend-spacer { flex: 1; }
 
 /* S-8f270422: aviso de que la slide guardada sin imagen no sale en el sitio. */
@@ -217,8 +219,11 @@
 }
 
 .akb-hero-slide__remove { color: #b32d2e; }
+
 .akb-hero-slide__move   { color: #646970; text-decoration: none; font-weight: 600; }
+
 .akb-hero-slide__move:hover { background: #fff; color: #1d2327; }
+
 .akb-hero-slide__action:hover { background: #fff; }
 
 .akb-hero-slide__grid {
@@ -232,6 +237,7 @@
 }
 
 .akb-hero-slide__media:nth-of-type(1) { grid-area: mediadesk; }
+
 .akb-hero-slide__media:nth-of-type(2) { grid-area: mediamob; }
 
 .akb-hero-slide__media {
@@ -254,15 +260,23 @@
 	max-height: calc(100vh - 100px);
 	overflow-y: auto;
 	overflow-x: hidden;
+	--scrollbar-thumb: #787c82;
+	--scrollbar-track: transparent;
+	scrollbar-width: thin;
+	scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 /* Custom scrollbar discreto para el preview pane cuando overflow */
-.akb-hero-slide__preview-pane::-webkit-scrollbar {
-	width: 4px;
-}
-.akb-hero-slide__preview-pane::-webkit-scrollbar-thumb {
-	background: #c3c4c7;
-	border-radius: 2px;
+@supports not (scrollbar-color: auto) {
+
+	.akb-hero-slide__preview-pane::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.akb-hero-slide__preview-pane::-webkit-scrollbar-thumb {
+		background: var(--scrollbar-thumb);
+		border-radius: 2px;
+	}
 }
 
 /* === Mini-preview card (capa 1: live update sin AJAX) ===
@@ -292,6 +306,7 @@
 
 /* Browser sin :has(): fallback gracioso — todos los previews visibles (legacy). */
 @supports not (selector(:has(*))) {
+
 	.akb-hero-slide .akb-hero-preview {
 		display: block;
 	}
@@ -363,6 +378,7 @@
 	overflow: hidden;
 	background: #0f0f10;
 	border: 1px solid #1A1A1D;
+
 	/* height la fija el JS (alto escalado del iframe por device). */
 	min-height: 120px;
 	transition: height 180ms ease;
@@ -372,6 +388,7 @@
 	display: block;
 	border: 0;
 	background: #0f0f10;
+
 	/* width/height/transform los setea el JS (applyMiniDevice): el iframe
 	 * renderiza al ancho del device y se escala para caber en la columna. */
 }
@@ -416,6 +433,7 @@
 
 /* Responsive: collapse layout en viewports estrechos del admin */
 @media (max-width: 1280px) {
+
 	.akb-hero-slide__grid {
 		grid-template-columns: 1fr 1fr;
 		grid-template-areas:
@@ -469,7 +487,9 @@
 }
 
 .akb-hero-slide__fields p { margin: 12px 0; }
+
 .akb-hero-slide__fields label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px; }
+
 .akb-hero-slide__fields input[type="text"],
 .akb-hero-slide__fields input[type="url"],
 .akb-hero-slide__fields input[type="number"] {
@@ -955,7 +975,7 @@
 	margin: -1px;
 	padding: 0;
 	overflow: hidden;
-	clip: rect( 0, 0, 0, 0 );
+	clip-path: inset( 50% );
 	border: 0;
 }
 
@@ -1007,12 +1027,15 @@
 
 /* ---- Responsive admin ---- */
 @media ( max-width: 782px ) {
+
 	.akb-hero-slide__grid {
 		grid-template-columns: 1fr;
 	}
+
 	.akb-hero-cta {
 		grid-template-columns: 1fr;
 	}
+
 	.akb-hero-height__presets {
 		grid-template-columns: 1fr 1fr;
 	}
@@ -1075,6 +1098,7 @@ body.akb-hero-modal-open {
 	padding: 12px 16px;
 	background: #f6f7f7;
 	border-bottom: 1px solid #dcdcde;
+
 	/*
 	 * El encabezado de la vista previa permite wrap para mantener siempre accesible el botón de
 	 * cerrar en pantallas estrechas, incluso con el scroll de body bloqueado.
@@ -1242,6 +1266,7 @@ body.akb-hero-modal-open {
  * dispositivo pasan a su propia fila: en un teléfono la vista previa ya ES
  * móvil, así que elegir «Desktop» es secundario frente a poder salir. */
 @media ( max-width: 782px ) {
+
 	.akb-hero-modal__header {
 		padding-right: 56px;
 		align-items: flex-start;

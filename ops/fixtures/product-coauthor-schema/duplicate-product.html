@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": ["Product", "Book"],
+      "name": "First Product",
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Alice Mori",
+          "url": "https://akibara.cl/autor/alice-mori/"
+        },
+        {
+          "@type": "Person",
+          "name": "Bob Kato",
+          "url": "https://akibara.cl/autor/bob-kato/"
+        }
+      ]
+    },
+    {
+      "@type": ["Book", "Product"],
+      "name": "Duplicate Product",
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Alice Mori",
+          "url": "https://akibara.cl/autor/alice-mori/"
+        },
+        {
+          "@type": "Person",
+          "name": "Bob Kato",
+          "url": "https://akibara.cl/autor/bob-kato/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body></body>
+</html>

@@ -6,7 +6,7 @@
  * `akb_*` a secas es de akibara-business. Los `uninstall.php` de ambos filtran
  * en base a esa frontera, así que romperla tiene una consecuencia concreta y
  * silenciosa: un `DELETE ... LIKE 'akb\_%'` del lado del buscador borraría la
- * configuración de Business (lista de espera, favoritos, Arma tu Pack) sin que
+ * configuración de Business (lista de espera, favoritos, descuentos) sin que
  * nadie se entere hasta mucho después.
  *
  * Este test convierte esa convención en algo verificable, en vez de un
@@ -174,7 +174,7 @@ final class OptionNamespaceBoundaryTest extends TestCase {
 			// cortes (Transport::OPTION_OUTAGE), distinta de la del centinela
 			// que lo vigila, y también quedaba fuera del uninstall.
 			'rastro de cortes del correo' => array( 'akibara\_mail\_transport\_outage', 'mu-plugins/akibara-correo-smtp.php' ),
-			'vigía de Blue'         => array( 'akb\_bluex\_watch\_', 'mu-plugins/akibara-bluex-integrity-watch.php' ),
+			'vigía de Blue'         => array( 'akb\_bluex\_watch\_', 'mu-plugins/akibara-bluex-suite.php' ),
 			'rotación del log'      => array( 'akibara\_debug\_log\_rotation\_checked', 'mu-plugins/akibara-debug-log-rotation.php' ),
 		);
 	}

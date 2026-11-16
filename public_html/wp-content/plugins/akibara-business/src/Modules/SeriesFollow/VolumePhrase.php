@@ -24,6 +24,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.115.21
+ * @api
  */
 final class VolumePhrase {
 

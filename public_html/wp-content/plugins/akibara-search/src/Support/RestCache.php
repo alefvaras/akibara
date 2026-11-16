@@ -28,6 +28,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.9
+ * @api
  */
 final class RestCache {
 
@@ -88,6 +89,7 @@ final class RestCache {
 		} catch ( Throwable $throwable ) {
 			// Cache-Control ya quedó aplicado. Un callback de optimización no puede
 			// convertir una respuesta 503/429/204 en fatal ni borrar el no-store.
+			unset( $throwable );
 		}
 	}
 
@@ -130,9 +132,7 @@ final class RestCache {
 			'ack_scope'         => 'local_dispatch_only',
 		);
 		update_option( self::OPTION_PURGE_RECEIPT, $receipt, false );
-
-		$persisted = self::has_purge_receipt( $generation_target );
-		return $persisted;
+		return self::has_purge_receipt( $generation_target );
 	}
 
 	/**

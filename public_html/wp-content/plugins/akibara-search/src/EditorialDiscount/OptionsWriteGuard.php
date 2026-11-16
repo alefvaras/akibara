@@ -14,7 +14,12 @@ use Throwable;
  * Enforces editorial consistency before options and taxonomy term metadata are committed
  * to the WordPress database. Prevents corrupted snapshots, manages atomic write vetos,
  * handles administrative warning notices, and coordinates safe repair writes.
+ * @api
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class OptionsWriteGuard {
 
 	public const WRITE_UNCHANGED = 'sin_cambio';

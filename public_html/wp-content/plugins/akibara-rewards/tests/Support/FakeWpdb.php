@@ -109,6 +109,13 @@ class FakeWpdb {
 	public array $results_answers = array();
 
 	/**
+	 * Respuestas scripteadas para get_col por fragmento de SQL.
+	 *
+	 * @var array<string,array<int,string>>
+	 */
+	public array $col_answers = array();
+
+	/**
 	 * Interpolación fiel a lo que el código necesita: %s citado, %d entero.
 	 *
 	 * @param string $query Query con placeholders.
@@ -121,6 +128,7 @@ class FakeWpdb {
 		}
 
 		$query = str_replace( array( '%s', '%d' ), array( "'%s'", '%d' ), $query );
+		$query = str_replace( '%i', '%s', $query );
 
 		return vsprintf( $query, array_map( static fn( $a ) => is_int( $a ) ? $a : (string) $a, $args ) );
 	}
@@ -245,15 +253,28 @@ class FakeWpdb {
 
 		// Créditos VIGENTES agrupados por referencia (el GROUP BY … HAVING de
 		// MySQL): fuente única de los premios de referido vigentes Y del tope
-		// histórico de reseñas premiadas (Ledger::count_live_credits()).
-		if ( preg_match( "/SELECT COUNT\(\*\) FROM \( SELECT ref_id FROM wp_akb_rewards_ledger WHERE user_id = (\d+) AND ref_type = '([^']+)' AND action IN \('([^']+)','([^']+)'\) GROUP BY ref_id HAVING SUM\(delta\) > 0 \) AS vigentes/", $sql, $m ) ) {
-			$netos = array();
+		// de reseñas premiadas (Ledger::count_live_credits(), histórico o últimos N días).
+		if ( preg_match( "/SELECT COUNT\(\*\) FROM \( SELECT ref_id FROM wp_akb_rewards_ledger WHERE user_id = (\d+) AND ref_type = '([^']+)' AND action IN \('([^']+)','([^']+)'\) GROUP BY ref_id HAVING SUM\(delta\) > 0(?: AND MAX\(created_at\) >= '([^']+)')? \) AS vigentes/", $sql, $m ) ) {
+			$cutoff = $m[5] ?? '';
+			$netos  = array();
+			$fechas = array();
 			foreach ( $this->inserts as $ins ) {
 				if ( (int) $ins[1]['user_id'] === (int) $m[1] && (string) $ins[1]['ref_type'] === $m[2] && in_array( (string) $ins[1]['action'], array( $m[3], $m[4] ), true ) ) {
-					$netos[ (int) $ins[1]['ref_id'] ] = ( $netos[ (int) $ins[1]['ref_id'] ] ?? 0 ) + (int) $ins[1]['delta'];
+					$rid           = (int) $ins[1]['ref_id'];
+					$netos[ $rid ] = ( $netos[ $rid ] ?? 0 ) + (int) $ins[1]['delta'];
+					$created       = (string) ( $ins[1]['created_at'] ?? '' );
+					if ( ! isset( $fechas[ $rid ] ) || $created > $fechas[ $rid ] ) {
+						$fechas[ $rid ] = $created;
+					}
 				}
 			}
-			return (string) count( array_filter( $netos, static fn( int $neto ): bool => $neto > 0 ) );
+			$count = 0;
+			foreach ( $netos as $rid => $neto ) {
+				if ( $neto > 0 && ( '' === $cutoff || ( $fechas[ $rid ] ?? '' ) >= $cutoff ) ) {
+					++$count;
+				}
+			}
+			return (string) $count;
 		}
 
 		// Conteo de movimientos por usuario+referencia/acción (reversas por
@@ -476,6 +497,12 @@ class FakeWpdb {
 	 * @return array<int,string>
 	 */
 	public function get_col( string $sql ): array {
+		foreach ( $this->col_answers as $needle => $answer ) {
+			if ( false !== strpos( $sql, $needle ) ) {
+				return $answer;
+			}
+		}
+
 		if ( preg_match( "/SELECT id FROM wp_akb_rewards_ledger WHERE user_id = (\\d+)/", $sql, $m ) ) {
 			$ids = array();
 			foreach ( $this->inserts as $i => $ins ) {

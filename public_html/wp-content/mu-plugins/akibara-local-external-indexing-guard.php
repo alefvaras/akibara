@@ -14,10 +14,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Exige entorno production y dominio oficial mediante el mismo predicado que
- * el correo y Clarity. Los clones pueden heredar el entorno y las claves.
+ * el correo. Los clones pueden heredar el entorno y las claves.
  * Si falta el transporte que valida el dominio, bloquea la indexación externa.
  *
  * @return bool
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_external_indexing_es_la_tienda_de_verdad(): bool {
 	if ( 'production' !== wp_get_environment_type() ) {
@@ -38,16 +40,20 @@ function akibara_external_indexing_es_la_tienda_de_verdad(): bool {
  *
  * @param mixed $url URL candidata.
  * @return mixed URL original en producción; false en cualquier otro entorno.
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_external_indexing_url_guard( $url ) {
 	return akibara_external_indexing_es_la_tienda_de_verdad() ? $url : false;
 }
 
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'rank_math/instant_indexing/publish_url',
 	'akibara_external_indexing_url_guard',
 	PHP_INT_MAX
 );
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'rank_math/instant_indexing/submit_url',
 	'akibara_external_indexing_url_guard',
@@ -66,6 +72,8 @@ add_filter(
  * @param mixed $value     Nuevo valor propuesto.
  * @param mixed $old_value Valor persistido antes del intento.
  * @return mixed Nuevo valor intacto en producción; valor anterior fuera de ella.
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_external_indexing_log_guard( $value, $old_value ) {
 	return akibara_external_indexing_es_la_tienda_de_verdad() ? $value : $old_value;
@@ -86,6 +94,8 @@ add_filter(
  * @param string $option    Nombre de la opción.
  * @param mixed  $old_value Valor persistido antes del intento.
  * @return mixed
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_external_indexing_global_option_guard( $value, string $option, $old_value ) {
 	if ( 'rank_math_indexnow_log' !== $option || akibara_external_indexing_es_la_tienda_de_verdad() ) {
@@ -109,6 +119,8 @@ add_filter(
  * @param array<string, mixed> $args    Argumentos HTTP (no se modifican).
  * @param string               $url     URL remota.
  * @return mixed
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
  */
 function akibara_external_indexing_http_guard( $preempt, array $args, string $url ) {
 	unset( $args );

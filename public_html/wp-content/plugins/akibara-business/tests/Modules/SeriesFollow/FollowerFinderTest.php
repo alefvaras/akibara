@@ -13,7 +13,7 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\SeriesFollow;
 
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\SeriesFollow\FollowerFinder;
 use Akibara\Business\Tests\Support\SeriesFollowFollowersWpdb;
 use Brain\Monkey;

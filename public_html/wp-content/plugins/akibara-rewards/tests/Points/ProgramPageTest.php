@@ -119,7 +119,9 @@ final class ProgramPageTest extends RewardsTestCase {
 		$html = ( new ProgramPage() )->render();
 
 		$this->assertStringContainsString( 'hasta 10 invitados', $html );
-		$this->assertStringContainsString( 'hasta 5 premiadas', $html );
+		$this->assertStringContainsString( 'vitalicio por cuenta', $html );
+		$this->assertStringContainsString( 'en total', $html );
+		$this->assertStringContainsString( 'hasta 5 premiadas cada 30 días', $html );
 		$this->assertStringContainsString( 'el enlace recuerda 30 días', $html, 'La memoria del enlace también es un límite.' );
 	}
 
@@ -127,10 +129,21 @@ final class ProgramPageTest extends RewardsTestCase {
 	 * @testdox Sin topes configurados, la página no inventa un límite.
 	 */
 	public function test_sin_topes_no_se_inventan_limites(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $option, $default_value = false ) {
+				$mapa = array(
+					'akb_rewards_referral_max_per_user' => 0,
+					'akb_rewards_review_max_per_user'   => 0,
+				);
+				return $mapa[ $option ] ?? $default_value;
+			}
+		);
+
 		$html = ( new ProgramPage() )->render();
 
 		$this->assertStringContainsString( '500 puntos por invitado', $html );
 		$this->assertStringNotContainsString( 'hasta 10 invitados', $html );
+		$this->assertStringNotContainsString( 'vitalicio por cuenta', $html );
 		$this->assertStringNotContainsString( 'premiadas)', $html );
 	}
 
@@ -301,5 +314,86 @@ final class ProgramPageTest extends RewardsTestCase {
 		$this->assertSame( '7 puntos por cada $100', $page->render( array( 'solo' => 'ratio' ) ) );
 		$this->assertSame( '7%', $page->render( array( 'solo' => 'tasa' ) ) );
 		$this->assertStringContainsString( '<td>$10.000</td><td>700 puntos</td>', $page->render( array( 'solo' => 'ejemplos' ) ) );
+	}
+
+	/**
+	 * @testdox render_club_landing() produce la experiencia completa e interactiva y se actualiza ante cambios de configuración
+	 */
+	public function test_render_club_landing_is_dynamic_and_reflects_configuration_changes(): void {
+		Functions\when( 'wc_get_order_status_name' )->alias( static fn( string $estado ): string => 'Procesando' );
+
+		Functions\when( 'get_option' )->alias(
+			static function ( string $option, $default_value = false ) {
+				$mapa = array(
+					'akb_rewards_earn_points'     => 100,
+					'akb_rewards_earn_amount'     => 1000,
+					'akb_rewards_redeem_value'    => 1,
+					'akb_rewards_birthday_points' => 1500,
+					'akb_rewards_review_points'   => 750,
+					'akb_rewards_welcome_bonus'   => 2000,
+					'akb_rewards_referral_points' => 800,
+					'akb_rewards_tiers_enabled'   => 'yes',
+				);
+				return $mapa[ $option ] ?? $default_value;
+			}
+		);
+
+		$page = new ProgramPage();
+		$html = $page->render( array( 'solo' => 'club' ) );
+
+		// 1. Hero y Badges
+		$this->assertStringContainsString( 'Club de Puntos Akibara', $html );
+		$this->assertStringContainsString( '1 punto = $1', $html );
+		$this->assertStringContainsString( 'Envío Gratis protegido sobre $60.000', $html );
+
+		// 2. Calculadora Interactiva con atributos de datos
+		$this->assertStringContainsString( 'id="akb-club-calc"', $html );
+		$this->assertStringContainsString( 'data-earn-amount="1000"', $html );
+		$this->assertStringContainsString( 'data-earn-points="100"', $html );
+		$this->assertStringContainsString( 'data-redeem-value="1"', $html );
+		$this->assertStringContainsString( '¿Cuánto ganas en tu próxima compra?', $html );
+
+		// 3. Formas de ganar dinámicas reflejando los valores vivos
+		$this->assertStringContainsString( '100 puntos por cada $1.000', $html );
+		$this->assertStringContainsString( '+1.500 pts ($1.500 CLP)', $html, 'Cumpleaños dinámico' );
+		$this->assertStringContainsString( '+750 pts ($750 CLP)', $html, 'Reseñas dinámicas' );
+		$this->assertStringContainsString( '+2.000 pts ($2.000 CLP)', $html, 'Bienvenida dinámica' );
+		$this->assertStringContainsString( '+800 pts ($800 CLP)', $html, 'Referidos dinámicos' );
+
+		// 4. Niveles y FAQ
+		$this->assertStringContainsString( 'Niveles de Coleccionista', $html );
+		$this->assertStringContainsString( 'Lector', $html );
+		$this->assertStringContainsString( 'Coleccionista', $html );
+		$this->assertStringContainsString( 'Residente de Akiba', $html );
+		$this->assertStringContainsString( 'Lo que debes saber', $html );
+		$this->assertStringContainsString( '¿Pierdo mi Envío Gratis si canjeo puntos?', $html );
+	}
+
+	/** @testdox La landing del club respeta la fecha futura del programa y documenta vigencia y Soft-Landing dinámicamente. */
+	public function test_club_landing_respects_future_program_gate_zero_rate_and_renders_validity_faq(): void {
+		Functions\when( 'wc_get_order_status_name' )->justReturn( 'Procesando' );
+		Functions\when( 'get_option' )->alias(
+			static fn( string $option, $default = false ) => match ( $option ) {
+				'akb_rewards_program_start'      => '2099-01-01 00:00:00',
+				'akb_rewards_earn_points'        => 2,
+				'akb_rewards_earn_amount'        => 100,
+				'akb_rewards_welcome_bonus'      => 500,
+				'akb_rewards_referral_points'    => 1000,
+				'akb_rewards_tier_validity_days' => 365,
+				'akb_rewards_tiers_enabled'      => 'yes',
+				default                          => $default,
+			}
+		);
+
+		$page = new ProgramPage();
+		$html = $page->render( array( 'solo' => 'club' ) );
+
+		$this->assertStringContainsString( 'data-earn-points="0"', $html, 'Con inicio futuro Promise::rate() entrega 0 puntos.' );
+		$this->assertStringContainsString( '365 días', $html );
+		$this->assertStringContainsString( '1 año estándar', $html );
+		$this->assertStringContainsString( 'Soft-Landing', $html );
+		$this->assertStringNotContainsString( 'Bono de bienvenida', $html, 'Con programa en el futuro no promete bono de bienvenida.' );
+		$this->assertStringNotContainsString( 'Invita a tus amigos', $html, 'Con programa en el futuro no promete referidos.' );
+		$this->assertStringNotContainsString( 'Por cada compra', $html, 'Sin acumulación activa no muestra tarjeta de compra.' );
 	}
 }

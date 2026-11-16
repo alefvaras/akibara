@@ -23,6 +23,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
  */
 final class Moderation {
 

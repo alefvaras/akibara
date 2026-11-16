@@ -27,15 +27,15 @@
 ( function ( d, w ) {
 	'use strict';
 
-	var COMPRA = '.ajax_add_to_cart';
-	var DESTINOS = '#menu-toggle, #bottom-nav-search, ' + COMPRA;
-	var MARCA = 'akb-toque-pendiente';
-	var FICHA = 'form.cart';
-	var PLAZO_ENVIO = 30000;
-	var compras = [];
-	var cajon = null;
-	var listo = false;
-	var plazo = 0;
+	const COMPRA = '.ajax_add_to_cart';
+	const DESTINOS = '#menu-toggle, #bottom-nav-search, ' + COMPRA;
+	const MARCA = 'akb-toque-pendiente';
+	const FICHA = 'form.cart';
+	const PLAZO_ENVIO = 30000;
+	let compras = [];
+	let cajon = null;
+	let listo = false;
+	let plazo = 0;
 
 	function marcar( el ) {
 		el.classList.add( MARCA );
@@ -48,8 +48,9 @@
 	}
 
 	function yaEnCola( el ) {
-		var id = el.getAttribute( 'data-product_id' );
-		for ( var i = 0; i < compras.length; i++ ) {
+		const id = el.getAttribute( 'data-product_id' );
+		for ( let i = 0; i < compras.length; i++ ) {
+			// eslint-disable-next-line security/detect-object-injection
 			if ( compras[ i ] === el || ( id && compras[ i ].getAttribute( 'data-product_id' ) === id ) ) {
 				return true;
 			}
@@ -61,7 +62,7 @@
 		if ( listo ) {
 			return;
 		}
-		var destino = e.target && e.target.closest ? e.target.closest( DESTINOS ) : null;
+		const destino = e.target && e.target.closest ? e.target.closest( DESTINOS ) : null;
 		if ( ! destino ) {
 			return;
 		}
@@ -85,21 +86,23 @@
 	function soltar() {
 		listo = true;
 		d.removeEventListener( 'click', captar, true );
-		var cola = cajon ? compras.concat( [ cajon ] ) : compras;
+		const cola = cajon ? compras.concat( [ cajon ] ) : compras;
 		compras = [];
 		cajon = null;
 		Array.prototype.forEach.call( d.querySelectorAll( '.' + MARCA ), desmarcar );
-		for ( var i = 0; i < cola.length; i++ ) {
+		for ( let i = 0; i < cola.length; i++ ) {
 			// El nodo pudo desaparecer (el buscador repinta el listado) o quedar
 			// deshabilitado: entonces no hay a quién repetirle el toque.
+			// eslint-disable-next-line security/detect-object-injection
 			if ( d.documentElement.contains( cola[ i ] ) && ! cola[ i ].disabled ) {
+				// eslint-disable-next-line security/detect-object-injection
 				cola[ i ].click();
 			}
 		}
 	}
 
 	function arrancado() {
-		var $ = w.jQuery;
+		const $ = w.jQuery;
 		if ( 'function' === typeof $ ) {
 			$( function () {
 				w.setTimeout( soltar, 0 );
@@ -110,7 +113,7 @@
 	}
 
 	function alEnviar( e ) {
-		var form = e.target;
+		const form = e.target;
 		if ( ! e.defaultPrevented && form && form.matches && form.matches( FICHA ) ) {
 			form.setAttribute( 'inert', '' );
 			w.clearTimeout( plazo );

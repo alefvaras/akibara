@@ -44,7 +44,7 @@ test( 'PJAX ignora popstate de fragmento y conserva la ubicación del DOM visibl
 	const update = source.indexOf( 'renderedLocation = navigationKey( url )' );
 	const dispatch = source.indexOf( "document.dispatchEvent( new Event( 'akb:pjax' ) )" );
 
-	assert.match( source, /var renderedLocation = location\.pathname \+ location\.search;/ );
+	assert.match( source, /(?:var|let|const) renderedLocation = location\.pathname \+ location\.search;/ );
 	assert.match(
 		source,
 		/function navigationKey\( url \)[\s\S]*?new URL\( url, location\.href \)[\s\S]*?return parsed\.pathname \+ parsed\.search;/
@@ -76,12 +76,17 @@ test( 'el bundle PJAX publicado ignora hash-only pero navega otro pathname', () 
 			listeners.set( type, ( listeners.get( type ) || [] ).filter( ( l ) => l !== listener ) );
 		},
 		clearTimeout: () => {},
-		document: {
-			addEventListener: () => {},
-			body: { classList: { add: () => {}, remove: () => {} } },
-			querySelector: () => null,
-			readyState: 'loading',
-		},
+		document: ( () => {
+			const d = {
+				addEventListener: () => {},
+				body: { classList: { add: () => {}, remove: () => {} } },
+				querySelector: () => null,
+				readyState: 'loading',
+			};
+			d.documentElement = d;
+			d.ownerDocument = d;
+			return d;
+		} )(),
 		fetch: () => {
 			fetches += 1;
 			return new Promise( () => {} );
@@ -131,8 +136,8 @@ test( 'el grupo de series va arriba, rotulado, y sin romper el recorrido del lis
 	// las series y los productos correrse ese mismo offset, o Enter navegaría
 	// a otra cosa que la resaltada.
 	assert.match( source, /state\.items = series\.concat\( items \)/ );
-	assert.match( source, /var idx = series\.length \+ i;/ );
-	assert.match( source, /var moreIdx = series\.length \+ items\.length;/ );
+	assert.match( source, /(?:var|let|const) idx = series\.length \+ i;/ );
+	assert.match( source, /(?:var|let|const) moreIdx = series\.length \+ items\.length;/ );
 	assert.match( source, /state\.items = series\.concat\( items, \[ \{ url: moreUrl \} \] \)/ );
 
 	// Una serie sola (sin productos) todavía abre el panel: el vacío es vacío
@@ -285,12 +290,17 @@ test( 'el bundle publicado cancela el PJAX en vuelo cuando el usuario pulsa Atr�
 			listeners.set( type, ( listeners.get( type ) || [] ).filter( ( l ) => l !== listener ) );
 		},
 		clearTimeout: () => {},
-		document: {
-			addEventListener: () => {},
-			body: { classList: { add: () => {}, remove: ( c ) => clasesQuitadas.push( c ) } },
-			querySelector: () => null,
-			readyState: 'loading',
-		},
+		document: ( () => {
+			const d = {
+				addEventListener: () => {},
+				body: { classList: { add: () => {}, remove: ( c ) => clasesQuitadas.push( c ) } },
+				querySelector: () => null,
+				readyState: 'loading',
+			};
+			d.documentElement = d;
+			d.ownerDocument = d;
+			return d;
+		} )(),
 		fetch: ( _url, opciones ) => {
 			señales.push( opciones && opciones.signal );
 			return new Promise( () => {} ); // nunca resuelve: el fetch sigue en vuelo.
@@ -356,20 +366,25 @@ test( 'quitar un chip conserva el orden del catálogo', () => {
 		removeEventListener: () => {},
 		clearTimeout: () => {},
 		Date,
-		document: {
-			addEventListener: ( type, listener ) => {
-				documentListeners.set(
-					type,
-					( documentListeners.get( type ) || [] ).concat( listener )
-				);
-			},
-			body: { classList: { add: () => {}, remove: () => {} } },
-			// Sin `<form data-akb-facets>` (los archives de atributo van sin
-			// sidebar): es la rama que pasa por urlWithout().
-			querySelector: () => null,
-			querySelectorAll: () => [],
-			readyState: 'loading',
-		},
+		document: ( () => {
+			const d = {
+				addEventListener: ( type, listener ) => {
+					documentListeners.set(
+						type,
+						( documentListeners.get( type ) || [] ).concat( listener )
+					);
+				},
+				body: { classList: { add: () => {}, remove: () => {} } },
+				// Sin `<form data-akb-facets>` (los archives de atributo van sin
+				// sidebar): es la rama que pasa por urlWithout().
+				querySelector: () => null,
+				querySelectorAll: () => [],
+				readyState: 'loading',
+			};
+			d.documentElement = d;
+			d.ownerDocument = d;
+			return d;
+		} )(),
 		history: { pushState: () => {} },
 		location,
 		setTimeout: () => 1,
@@ -503,7 +518,10 @@ test( 'los bundles .min corresponden a su fuente: banner sha256 obligatorio (la 
  */
 test( 'el helper de reintento es idéntico en los dos bundles', () => {
 	const bloque = ( fuente ) => {
-		const inicio = fuente.indexOf( '\tvar RETRY_BASE = 1000;' );
+		let inicio = fuente.indexOf( '\tconst RETRY_BASE = 1000;' );
+		if ( inicio === -1 ) {
+			inicio = fuente.indexOf( '\tvar RETRY_BASE = 1000;' );
+		}
 		const cierre = '\t\treturn intento( 0 );\n\t}';
 		const fin = fuente.indexOf( cierre, inicio );
 		assert.ok( inicio !== -1 && fin !== -1, 'el helper de reintento existe' );
@@ -551,8 +569,8 @@ test( 'el backoff del cliente es coherente con el Retry-After y el re-sellado de
 	const reintentoResellado = Number( /RECONCILE_RETRY_SECONDS = (\d+);/.exec( asset( 'src/EditorialDiscountPublication.php' ) )[ 1 ] );
 	for ( const fichero of [ 'assets/js/search-suggest.js', 'assets/js/akb-search.js' ] ) {
 		const fuente = asset( fichero );
-		const base = Number( /var RETRY_BASE = (\d+);/.exec( fuente )[ 1 ] );
-		const maximo = Number( /var RETRY_MAX = (\d+);/.exec( fuente )[ 1 ] );
+		const base = Number( /(?:var|let|const) RETRY_BASE = (\d+);/.exec( fuente )[ 1 ] );
+		const maximo = Number( /(?:var|let|const) RETRY_MAX = (\d+);/.exec( fuente )[ 1 ] );
 		assert.equal( base, retryAfter * 1000, fichero + ': el primer reintento es el Retry-After del servidor' );
 		let hastaElUltimo = 0;
 		for ( let n = 0; n < maximo; n++ ) {
@@ -599,6 +617,19 @@ function montarPjax( respuestas ) {
 		setAttribute() {}, classList: { add() {}, remove() {} },
 		closest: () => null,
 	} );
+	const doc = {
+		addEventListener() {}, removeEventListener() {},
+		body: { classList: { add() {}, remove() {} }, appendChild() {} },
+		querySelector: () => null,
+		querySelectorAll: () => [],
+		getElementById: () => null,
+		createElement: nodo,
+		dispatchEvent: ( ev ) => { if ( 'akb:pjax' === ev.type ) { pintadas += 1; } },
+		readyState: 'loading',
+	};
+	doc.documentElement = doc;
+	doc.ownerDocument = doc;
+
 	const sandbox = {
 		AbortController, Event, URL, Date,
 		AKB_FACETS: {},
@@ -621,16 +652,7 @@ function montarPjax( respuestas ) {
 				},
 			} );
 		},
-		document: {
-			addEventListener() {}, removeEventListener() {},
-			body: { classList: { add() {}, remove() {} }, appendChild() {} },
-			querySelector: () => null,
-			querySelectorAll: () => [],
-			getElementById: () => null,
-			createElement: nodo,
-			dispatchEvent: ( ev ) => { if ( 'akb:pjax' === ev.type ) { pintadas += 1; } },
-			readyState: 'loading',
-		},
+		document: doc,
 		fetch: ( url ) => {
 			pedidas.push( url );
 			const html = respuestas.shift();

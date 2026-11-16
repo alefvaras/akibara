@@ -4,7 +4,9 @@
  * Orden de dependencias: tokens fonts base header footer
  * Edita los ficheros de origen y vuelve a ejecutar el script.
  */
+
 /* --- tokens.css --- */
+
 /**
  * Tokens — back-compat shim sobre theme.json.
  *
@@ -22,6 +24,7 @@
  */
 
 :root {
+
     /* UI dark-first (fondo #0A0A0A, theme-color oscuro): le decimos al UA que
      * pinte los controles nativos en dark — scrollbars, <select>, inputs de
      * fecha, autofill y spinners — para que no salgan en claro sobre el fondo. */
@@ -33,6 +36,7 @@
     --aki-red-bright:    var(--wp--preset--color--primary-bright);
     --aki-red-dark:      var(--wp--preset--color--primary-dark);
     --aki-red-readable:  var(--wp--preset--color--primary-readable);
+
     /* Rojo para TEXTO chico sobre superficies elevadas: red-bright (#FF0A1D) da
      * 4.74:1 sobre la superficie real de card (#121212) pero cae a 4.03:1 sobre
      * surface-3 (#222) — falla AA justo en los contenedores más claros. Este
@@ -42,12 +46,10 @@
      * — ya hubo comments con ratios falsos por medir contra el token equivocado. */
     --aki-red-text:      var(--wp--preset--color--primary-text);
     --aki-yellow:        var(--wp--preset--color--accent);
-    --aki-yellow-bright: var(--wp--preset--color--accent-bright);
-    --aki-yellow-dark:   var(--wp--preset--color--accent-dark);
-    --aki-accent:        var(--wp--preset--color--accent);
 
     /* ─── Status ───────────────────────────────────────────────── */
     --aki-success: var(--wp--preset--color--success);
+
     /* Ramp de verdes derivado de --aki-success (single source of truth:
      * cambiar success en theme.json propaga a todo el ramp). bright = texto/
      * íconos sobre dark; deep = bordes de notificación y confirmación. */
@@ -55,19 +57,18 @@
     --aki-green-deep:   color-mix(in srgb, var(--aki-success) 60%, var(--aki-black));
     --aki-warning: var(--wp--preset--color--warning);
     --aki-error:   var(--wp--preset--color--error);
-    --aki-info:    var(--wp--preset--color--info);
 
     /* ─── Surfaces / neutral ───────────────────────────────────── */
     --aki-black:        var(--wp--preset--color--black);
     --aki-surface:      var(--wp--preset--color--surface);
-    /* surface-1: token configurable por el owner (ThemeCustomizer del plugin
-     * lo re-inyecta en :root más abajo en el head). Fallback aquí para que
-     * la elevación exista aunque el plugin esté inactivo. */
+
+    /* surface-1: elevación base sobre el background (#111111 vía theme.json). */
     --aki-surface-1:    var(--aki-surface);
     --aki-surface-2:    var(--wp--preset--color--surface-2);
     --aki-surface-3:    var(--wp--preset--color--surface-3);
     --aki-border:       var(--wp--preset--color--border);
     --aki-border-light: var(--wp--preset--color--border-light);
+
     /* Borde de campos de formulario en reposo. --aki-border (#2A2A2E) sobre los
        surfaces oscuros da ~1.3:1 (los inputs vacíos se ven como huecos, falla
        WCAG 1.4.11 que pide ≥3:1 para límites de UI). #707070 da 3.52:1 sobre
@@ -82,11 +83,9 @@
     --aki-gray-500:     var(--wp--preset--color--gray-500);
     --aki-gray-600:     var(--wp--preset--color--gray-600);
     --aki-gray-700:     var(--wp--preset--color--gray-700);
-    --aki-gray-800:     var(--wp--preset--color--gray-800);
     --aki-gray-900:     var(--wp--preset--color--gray-900);
 
     --aki-text-muted: var(--aki-gray-400);
-    --aki-muted:      var(--aki-gray-400);
     --aki-light:      var(--aki-gray-200);
 
     /* ─── Typography aliases ───────────────────────────────────── */
@@ -94,7 +93,7 @@
     --font-display: var(--font-heading);
     --font-body:    var(--wp--preset--font-family--body);
     --font-sans:    var(--font-body);
-    --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-mono:    'JetBrains Mono', ui-monospace, sfmono-regular, menlo, monaco, consolas, monospace;
 
     --weight-normal:   400;
     --weight-medium:   500;
@@ -107,6 +106,7 @@
     --text-base: var(--wp--preset--font-size--base);
     --text-lg:   var(--wp--preset--font-size--lg);
     --text-xl:   var(--wp--preset--font-size--xl);
+
     /* WP sanitiza slugs con transición dígito→letra agregando guión:
      * theme.json "2xl" → CSS var --wp--preset--font-size--2-xl. */
     --text-2xl:  var(--wp--preset--font-size--2-xl);
@@ -155,7 +155,6 @@
 
     /* ─── Texturas Manga Físico / Ben-Day Screentones (網点) ────────── */
     --aki-screentone: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 8px 8px;
-    --aki-screentone-dense: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px) 0 0 / 6px 6px;
     --aki-screentone-red: radial-gradient(circle, rgba(230, 0, 18, 0.15) 1.2px, transparent 1.2px) 0 0 / 8px 8px;
 
     --transition-fast:   var(--wp--custom--transition--fast);
@@ -172,6 +171,7 @@
     --z-overlay:  var(--wp--custom--z--overlay);
     --z-modal:    var(--wp--custom--z--modal);
     --z-toast:    var(--wp--custom--z--toast);
+
     /* Capas con nombre por encima de la escala de z-index.
      * Jerarquía estricta: sticky (200) < modal/drawer (400) < chat flotante (9000)
      * < barra de lectura (9999) < carrito lateral (10400) < enlace saltar al contenido
@@ -209,30 +209,31 @@
     --aki-status-ok:       var(--aki-green-bright);
     --aki-status-warn:     var(--aki-warning);
     --aki-status-alert:    var(--aki-red-text);
-    --aki-status-preorder: var(--aki-red-bright);
     --aki-status-out-bg:   var(--aki-gray-700);
     --aki-status-out-fg:   var(--aki-gray-200);
-}
 
-/* ─── Franja inferior fija (móvil, ≤1024px) ───────────────────────
- * Tokens de dimensionamiento para las barras inferiores fijadas
- * (bottom navigation y barra sticky de compra). */
-:root {
+    /* ─── Franja inferior fija (móvil, ≤1024px) y barra de anuncios ───
+     * Tokens de dimensionamiento para las barras inferiores fijadas
+     * (bottom navigation y barra sticky de compra) y reserva de announcement bar. */
     --bottom-nav-height:    var(--wp--custom--layout--bottom-nav-height, 66px);
     --buy-bar-height:       var(--wp--custom--layout--buy-bar-height, 68px);
     --franja-inferior-peor: calc(var(--bottom-nav-height) + var(--buy-bar-height));
+    --akb-ann-bar-h:        0;
 }
 
 /* Altura de cabecera en escritorio (>= 1025px) para compensación de anclas y scroll-margin. */
 @media (min-width: 1025px) {
+
     :root {
         --header-height: 130px;
     }
 }
 
 /* ─── Reduced motion override (WCAG 2.3.3) ─────────────────────── */
+
 /* Global cascade: disable ALL transitions, animations, and scroll-behavior */
 @media (prefers-reduced-motion: reduce) {
+
     :root {
         --transition-fast:   0ms;
         --transition-base:   0ms;
@@ -287,6 +288,7 @@
 }
 
 /* ─── Base focus ring (WCAG 2.4.13) ────────────────────────────── */
+
 /* Persona-style double shadow: yellow ring + black outer ring */
 a:focus-visible,
 button:focus-visible,
@@ -317,13 +319,16 @@ textarea:focus-visible,
  * Se excluye #main mediante :where() para evitar recuadros perimetrales
  * involuntarios al activar el salto al contenido. */
 @media (forced-colors: active) {
+
     :focus-visible:where(:not(#main)) {
         outline: 2px solid Highlight !important;
         outline-offset: 2px;
     }
 }
 
+
 /* --- fonts.css --- */
+
 /*
  * Bebas Neue e Inter se declaran una única vez en theme.json
  * (settings.typography.fontFamilies[].fontFace), impresas por WordPress mediante
@@ -331,42 +336,44 @@ textarea:focus-visible,
  * Saira se declara aquí para uso tipográfico en el hero slider.
  */
 @font-face {
-    font-family: 'Saira';
+    font-family: Saira;
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url('../fonts/saira-v23-latin-regular.woff2') format('woff2');
+    src: url(../fonts/saira-v23-latin-regular.woff2) format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-    font-family: 'Saira';
+    font-family: Saira;
     font-style: normal;
     font-weight: 500;
     font-display: swap;
-    src: url('../fonts/saira-v23-latin-500.woff2') format('woff2');
+    src: url(../fonts/saira-v23-latin-500.woff2) format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-    font-family: 'Saira';
+    font-family: Saira;
     font-style: normal;
     font-weight: 600;
     font-display: swap;
-    src: url('../fonts/saira-v23-latin-600.woff2') format('woff2');
+    src: url(../fonts/saira-v23-latin-600.woff2) format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-    font-family: 'Saira';
+    font-family: Saira;
     font-style: normal;
     font-weight: 700;
     font-display: swap;
-    src: url('../fonts/saira-v23-latin-700.woff2') format('woff2');
+    src: url(../fonts/saira-v23-latin-700.woff2) format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+
 /* --- base.css --- */
+
 /*
  * Base — site-wide normalize + body defaults + defensive constraints.
  * Carga después de tokens, antes de header/footer.
@@ -380,6 +387,7 @@ body {
     color: var(--aki-gray-200);
     background: var(--aki-black);
     line-height: 1.6;
+    overflow-x: clip;
 }
 
 /* ─── Global OS/Browser Overrides (100% Brand Immersion) ──────── */
@@ -387,28 +395,35 @@ body {
     background: var(--aki-red);
     color: var(--aki-white);
 }
+
 ::-moz-selection {
     background: var(--aki-red);
     color: var(--aki-white);
 }
 
-/* Brutalist / Persona 5 dark mode scrollbars */
-::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
-}
-::-webkit-scrollbar-track {
-    background: var(--aki-black);
-    border-left: 2px solid var(--aki-surface-2); /* Separador sutil, no rojo */
-}
-::-webkit-scrollbar-thumb {
-    background: var(--aki-surface-2);
-    border: 2px solid var(--aki-black);
-    border-radius: 0; /* Brutalista: Cero bordes redondeados */
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--aki-red);
-    border: 2px solid var(--aki-black);
+/* Brutalist / Persona 5 dark mode scrollbars (fallback legacy solo si falta scrollbar-color) */
+@supports not (scrollbar-color: auto) {
+
+    ::-webkit-scrollbar {
+        width: 14px;
+        height: 14px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--scrollbar-track, var(--aki-black));
+        border-left: 2px solid var(--aki-surface-2); /* Separador sutil, no rojo */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb, var(--aki-gray-400));
+        border: 2px solid var(--scrollbar-track, var(--aki-black));
+        border-radius: 0; /* Brutalista: Cero bordes redondeados */
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--aki-red);
+        border: 2px solid var(--scrollbar-track, var(--aki-black));
+    }
 }
 
 /* GP wrappers heredan el dark bg para que no haya islas blancas
@@ -437,6 +452,7 @@ body {
  * productos, tablas de carrito, formularios.
  * Specificity matched con GP (0,0,2,1) — gana por orden de carga. */
 @media (max-width: 768px) {
+
     .separate-containers .inside-article,
     .separate-containers .comments-area,
     .separate-containers .page-header {
@@ -461,6 +477,7 @@ body {
  * ancestor del .inside-article), por eso va sin espacio en el
  * selector — ambas clases en el mismo elemento. */
 @media (max-width: 768px) {
+
     body.post-type-archive-product .inside-article,
     body.tax-product_cat .inside-article,
     body.tax-product_brand .inside-article,
@@ -471,6 +488,7 @@ body {
     body.tax-product_tag .inside-article {
         padding: 0;
     }
+
     /* `#main-content` es el wrapper outer (un <div>, ver header.php),
      * distinto del `<main id="main">` interno. GP lo pinta con padding
      * 16px lateral en mobile; usar el ID gana specificity sobre la regla
@@ -560,6 +578,7 @@ svg {
 input[type="radio"],
 input[type="checkbox"] {
     accent-color: var(--aki-red);
+
     /* ~20px: el default del UA (~13px) era un tap target chico para checks
      * obligatorios (terminos del checkout, "recuerdame"). Las facetas propias
      * usan inputs nativos, así que este tamaño aplica también a sus checks. */
@@ -578,6 +597,7 @@ textarea,
 select {
     background: var(--aki-surface-1);
     color: var(--aki-white);
+
     /* Borde ≥3:1 sobre el fondo oscuro: sin esto el input vacío se lee como
        hueco (WCAG 1.4.11). El foco da borde blanco + el anillo amarillo. */
     border: 2px solid var(--aki-input-border);
@@ -610,6 +630,7 @@ textarea:focus,
 select:focus {
     border-color: var(--aki-white);
     outline: none;
+
     /* Enfoque accesible sin translate para prevenir desplazamientos durante el foco. */
     box-shadow: var(--aki-focus-ring);
 }
@@ -670,6 +691,7 @@ input[type="reset"],
 input[type="submit"], 
 .wc-block-grid__product-add-to-cart.wp-block-button .wp-block-button__link,
 .single_add_to_cart_button {
+
 	/* Herencia tipográfica explícita en controles para mantener consistencia de fuentes. */
 	font-family: inherit;
 	transition: transform var(--wp--custom--transition--base), box-shadow var(--wp--custom--transition--base), background-color var(--wp--custom--transition--base) !important;
@@ -680,6 +702,7 @@ input[type="submit"],
    tocar fuera — los !important de estos bloques le ganan al reset táctil de
    loop.css, dejando botón escalado / card levantada pegados tras cada tap. */
 @media (hover: hover) {
+
 	.button:hover,
 	input[type="button"]:hover,
 	input[type="reset"]:hover,
@@ -706,6 +729,7 @@ input[type="submit"],
 }
 
 @media (hover: hover) {
+
 	.wc-block-grid__product:hover {
 		border-color: var(--aki-white);
 		transform: translate(-6px, -6px);
@@ -714,6 +738,7 @@ input[type="submit"],
 }
 
 /* ─── Persona 5 Styling Overrides ─────────────── */
+
 /* Angular cutouts for buttons */
 .button,
 .wp-block-button__link,
@@ -724,6 +749,7 @@ button[type="submit"] {
     transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.15s linear;
     text-transform: uppercase;
     font-family: var(--font-heading);
+
     /* Bebas solo existe en 400: el 700 que hereda de WC core se sintetizaba
        (faux bold = trazo engordado por el browser, contadores tapados).
        Jerarquía por tamaño/letter-spacing, nunca por peso falso. */
@@ -762,13 +788,14 @@ h1, h2, h3, h4, h5, h6 {
    :hover de este archivo: este es el ganador REAL del transform del CTA (orden +
    especificidad 0,2,1) y sin gate el botón queda escalado/rotado tras cada tap. */
 @media (hover: hover) {
+
     .button:hover,
     .wp-block-button__link:hover,
     .wc-block-components-button:hover,
     a.button:hover,
     button[type="submit"]:hover {
         transform: scale(1.05) rotate(-2deg);
-        box-shadow: 6px 6px 0px var(--aki-black);
+        box-shadow: 6px 6px 0 var(--aki-black);
         color: var(--aki-white);
         text-decoration: none !important;
     }
@@ -787,7 +814,7 @@ h1, h2, h3, h4, h5, h6 {
 h1, h2, h3 {
     text-transform: uppercase;
     transform: skewX(-5deg);
-    text-shadow: 3px 3px 0px var(--aki-black);
+    text-shadow: 3px 3px 0 var(--aki-black);
 }
 
 .button:active, 
@@ -799,11 +826,12 @@ input[type="button"]:active,
 input[type="reset"]:active,
 input[type="submit"]:active {
     transform: translate(2px, 2px) scale(0.98);
-    box-shadow: 1px 1px 0px var(--aki-black);
+    box-shadow: 1px 1px 0 var(--aki-black);
     transition: transform 50ms ease, box-shadow 50ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .button,
     button,
     input[type="button"],
@@ -937,11 +965,19 @@ body.error404 .akb-404::before {
  * distinto, y tiene su propia regla de reduced-motion.
  */
 html {
+    overflow-x: clip;
+    interpolate-size: allow-keywords;
+    --scrollbar-thumb: var(--aki-gray-400);
+    --scrollbar-track: var(--aki-black);
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
     scroll-padding-top: calc(var(--header-height, 70px) + var(--space-2, 8px));
 }
 
 @media (max-width: 1024px) {
+
     html {
+
         /* Reserva inferior reactiva medida dinámicamente por franja-inferior.js
            mediante ResizeObserver (--akb-franja-inferior). El fallback cubre
            el caso estático con ambas barras apiladas más safe-area-inset. */
@@ -949,7 +985,9 @@ html {
     }
 }
 
+
 /* --- header.css --- */
+
 /*
  * Header — extracted from legacy header-v2.css.
  * Solo reglas que renderea header.php (cero código muerto).
@@ -973,6 +1011,7 @@ html {
  */
 
 /* ── Scroll progress bar ─────────────────────────────────────── */
+
 /* Barra de progreso de lectura: animación por GPU vía scaleX() desde la izquierda. */
 #aki-scroll-progress {
     position: fixed;
@@ -994,9 +1033,7 @@ html {
     position: sticky;
     top: 0;
     z-index: var(--z-sticky, 200);
-    background: rgba(18, 18, 18, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: var(--aki-black);
 }
 
 /* ── Header main row (logo + search + icons) ─────────────────── */
@@ -1050,16 +1087,19 @@ html {
 .akibara-search,
 .mobile-drawer__search {
     --akb-search-line: rgba(255, 255, 255, 0.72);
+
     /* Contraste no-textual WCAG 1.4.11 (≥3:1) frente al gradiente de fondo. */
     --akb-search-field-border: #707070;
     position: relative;
     display: flex;
     align-items: stretch;
+
     /* Altura táctil accesible estándar de 44px (WCAG 2.5.5). */
     height: 44px;
     background: linear-gradient(180deg, var(--aki-surface-2) 0%, var(--aki-surface) 100%);
     border: 1px solid var(--akb-search-field-border);
-    border-radius: 0px;
+    border-radius: 0;
+
     /* Cuña roja de marca PERMANENTE en el filo izquierdo desde reposo (firma manga
      * que antes solo aparecía en :focus). red-dark en reposo → readable/más gruesa
      * en hover/focus: la energía sube con la interacción sin gritar. Una sola
@@ -1081,6 +1121,7 @@ html {
     z-index: 0;
     background: repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 8px);
     clip-path: polygon(0 0, 42% 0, 60% 100%, 0 100%);
+
     /* Screentone/speed-lines a baja intensidad PERMANENTE (0.14) en reposo: la firma
      * de marca deja de vivir escondida detrás del :focus. Salto claro a 0.52 en focus
      * (regla abajo). transform:none → la diagonal ya está compuesta en su sitio en
@@ -1100,6 +1141,7 @@ html {
 }
 
 .mobile-drawer__search {
+
     /* space-3 lateral (12px, antes space-4=16px): +8px por lado = +16px de ancho de
      * form dentro del drawer angosto, atacando el crunch junto con el pozo del icono.
      * No toca el margen vertical ni la altura 44px (target táctil AA). */
@@ -1219,6 +1261,7 @@ html {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+
     .akibara-search.is-fetching::after,
     .mobile-drawer__search.is-fetching::after {
         animation: akb-spin 0.7s linear infinite;
@@ -1226,6 +1269,7 @@ html {
 }
 
 @keyframes akb-spin {
+
     to {
         transform: rotate(360deg);
     }
@@ -1286,6 +1330,7 @@ html {
 }
 
 .akibara-search__input::placeholder {
+
     /* gray-300 (#B0B0B0 = 8.7:1 vs #111, 8.0:1 vs #1A1A1A) en vez de gray-400
      * (#8A8A8A, al filo sobre el tope del gradiente): sube contraste del reposo con
      * holgura y lo diferencia de la lupa gris (rompe la "mancha gris"). El texto
@@ -1307,9 +1352,11 @@ html {
 /* En pantallas táctiles móviles (≤ 768px), el input utiliza 16px para prevenir
  * el auto-zoom intrusivo de iOS Safari al hacer foco. */
 @media ( max-width: 768px ) {
+
     .akibara-search input.akibara-search__input[type="search"],
     .mobile-drawer__search input.akibara-search__input[type="search"] {
         font-size: 16px;
+
         /* Ajuste de espaciado en drawers estrechos preservando margen respecto al icono. */
         padding-left: 32px;
     }
@@ -1326,6 +1373,7 @@ html {
     background: var(--aki-red-readable);
     color: var(--aki-white);
     border: 0;
+
     /* Tipografía Bebas Neue condensada en mayúsculas (peso 400). */
     font-family: var(--font-heading);
     font-size: 14px;
@@ -1338,6 +1386,7 @@ html {
     -webkit-tap-highlight-color: transparent;
     position: relative;
     z-index: 1;
+
     /* Cuña del paralelogramo ensanchada (12/8 vs 10/6): la firma diagonal se lee a
      * tamaño chico sin redondearse. NUNCA eliminar ni redondear — es la firma. */
     clip-path: polygon(12px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
@@ -1357,6 +1406,7 @@ html {
     align-self: center;
     background: var(--aki-surface-2);
     color: var(--aki-gray-300);
+
     /* Borde visible (mismo token de campo, 3.5:1 sobre surface-2) para que el target
      * de 44px sea perceptible en reposo sin depender del hover. No rompe el ring
      * amarillo de :focus-visible ya definido. */
@@ -1405,6 +1455,7 @@ html {
     background: var(--aki-black);
     color: var(--aki-white);
     outline: none;
+
     /* El anillo amarillo de la casa + la franja roja interior del botón. */
     box-shadow:
         var(--aki-focus-ring),
@@ -1506,6 +1557,7 @@ html {
  * Se eximen las barras de la hamburguesa de forzado de fondo con forced-color-adjust: none
  * asignando ButtonText para preservar visibilidad frente al fondo del botón. */
 @media (forced-colors: active) {
+
     .hamburger span {
         forced-color-adjust: none;
         background: ButtonText;
@@ -1513,6 +1565,7 @@ html {
 }
 
 /* ── FiboSearch desktop (inyectado en header.php) ────────────── */
+
 /* ── Header icons (account/cart) ──────────────────────────────── */
 .header-icons {
     display: flex;
@@ -1537,6 +1590,21 @@ html {
     text-decoration: none;
 }
 
+.akb-header-tier {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--aki-black);
+    font-size: 12px;
+    line-height: 1;
+    pointer-events: none;
+}
+
 .header-icon:hover,
 .header-icon:focus-visible {
     color: var(--aki-red);
@@ -1552,6 +1620,7 @@ html {
  * estructural después de abandonar el primer viewport. La clase la conmuta
  * main.js con un listener pasivo y rAF; mobile mantiene su header de 72px. */
 @media (min-width: 1025px) {
+
     .site-header.is-compact .header-main__inner {
         height: 60px;
     }
@@ -1570,17 +1639,21 @@ html {
 }
 
 @keyframes akb-header-bump {
+
     0% {
         transform: translateY(0) scale(1);
         filter: none;
     }
+
     35% {
         transform: translateY(-3px) scale(1.14) rotate(-3deg);
         filter: drop-shadow(3px 3px 0 var(--aki-black));
     }
+
     70% {
         transform: translateY(0) scale(0.96) rotate(2deg);
     }
+
     100% {
         transform: translateY(0) scale(1);
         filter: none;
@@ -1663,6 +1736,7 @@ html {
     align-items: center;
     gap: 6px;
     padding: 12px 16px;
+
     /* Bebas Neue (display de marca) en vez de Inter genérico: la nav desktop
        chocaba con la identidad display (logo, drawer mobile, headings) y con
        los propios sublinks del mega-menú, que ya estaban en Bebas. 16px porque
@@ -1678,7 +1752,7 @@ html {
     transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
     white-space: nowrap;
     position: relative;
-    border-radius: 0px;
+    border-radius: 0;
 }
 
 /* Indicador visual de selección JRPG:
@@ -1773,7 +1847,7 @@ html {
     transform: rotate(180deg);
 }
 
-/* Submenu dropdowns (Manga, Cómics, Preventas)
+/* Submenu dropdowns (Manga, Cómics, Editoriales)
  * - Pill rounded card con border + glow del top accent rojo.
  * - Slide-down + fade-in + slight scale para profundidad.
  */
@@ -1784,6 +1858,7 @@ html {
     display: flex;
     flex-direction: column;
     min-width: 220px;
+
     /* Cap de altura al viewport (menos el alto del header ~78px + margen) con
      * scroll interno: con 60+ editoriales el mega-dropdown crecía más alto que
      * la ventana y el enlace "Ver todas →" del fondo quedaba cortado bajo el
@@ -1796,7 +1871,7 @@ html {
     background-size: 4px 4px;
     border: 1px solid var(--aki-border);
     border-radius: var(--radius-md);
-    box-shadow: 6px 6px 0px var(--aki-black);
+    box-shadow: 6px 6px 0 var(--aki-black);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px) scale(0.98);
@@ -1929,6 +2004,7 @@ html {
 .mainnav__sublink--parent {
     margin: 0 0 var(--space-1);
     border-bottom: 1px solid var(--aki-border);
+
     /* Label de sección del dropdown: BLANCO (no amarillo — amarillo = solo precio). */
     color: var(--aki-white);
     font-family: var(--font-heading);
@@ -1946,7 +2022,7 @@ html {
 }
 
 .mainnav__sublink--all {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     border-top: 1px solid var(--aki-border);
     margin-top: var(--space-1);
     padding-top: var(--space-3);
@@ -1956,6 +2032,10 @@ html {
     font-style: normal;
     font-synthesis: none;
     text-transform: uppercase;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background: var(--aki-surface);
 }
 
 .mainnav__sublink--all:hover,
@@ -2051,7 +2131,9 @@ html {
 }
 
 .mainnav__sub--cols-2 { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+
 .mainnav__sub--cols-3 { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+
 .mainnav__sub--cols-4 { grid-template-columns: repeat(4, minmax(160px, 1fr)); }
 
 /* En grid, los sublabels atraviesan todas las columnas para encabezar la
@@ -2096,19 +2178,12 @@ html {
     padding-right: 0;
 }
 
-/* "Ver todas →" pegado al fondo del dropdown: aunque la lista de editoriales
- * sea larga y el dropdown haga scroll interno (max-height + overflow-y), el
- * CTA queda siempre visible y alcanzable en el borde inferior. */
-.mainnav__sublink--all {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    background: var(--aki-surface);
-}
+
 
 /* Ajuste responsive para variantes fijas en desktop intermedio (1025px - 1099px):
  * Colapsa subpaneles de 3 y 4 columnas a 2 columnas para evitar compresión de texto. */
 @media (min-width: 1025px) and (max-width: 1099px) {
+
     .mainnav__sub--cols-3,
     .mainnav__sub--cols-4 {
         grid-template-columns: repeat(2, minmax(160px, 1fr));
@@ -2135,8 +2210,6 @@ html {
     max-width: min(880px, calc(100vw - 60px));
     transform: translate3d(-50%, -8px, 0) scale(0.98);
     will-change: transform, opacity;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 }
 
 .mainnav__item--has-sub:hover > .mainnav__sub--mega,
@@ -2243,7 +2316,7 @@ html {
     border-top: 1px solid var(--aki-border);
     margin-top: var(--space-4);
     padding: var(--space-3) var(--space-2) 0;
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     font-family: var(--font-heading);
     font-size: 15px;
     text-transform: uppercase;
@@ -2388,6 +2461,7 @@ html {
 }
 
 /* ── Mobile drawer (slide from left) ─────────────────────────── */
+
 /* AnnouncementBar offset: cuando #akb-ann-bar está presente y visible, el
  * drawer y overlay se desplazan hacia abajo para no taparla.
  *
@@ -2396,12 +2470,10 @@ html {
  * normal. :has() support: Chrome 105+, Safari 15.4+, Firefox 121+.
  *
  * Altura `38px` matchea AnnouncementBar.css (`#akb-ann-bar { height: 38px }`).
- * Si la altura del plugin cambia, actualizar acá. */
-:root {
-    --akb-ann-bar-h: 0px;
-}
+ * Si la altura del plugin cambia, actualizar acá (token --akb-ann-bar-h declarado en tokens.css). */
 
 body:has(#akb-ann-bar:not(.akb-hidden)) {
+
     /* Altura de reserva cuando la barra de anuncios está activa en móvil */
     --akb-ann-bar-h: 44px;
 }
@@ -2414,8 +2486,6 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     bottom: 0;
     left: 0;
     background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     z-index: calc(var(--z-modal) - 1);
     opacity: 0;
     visibility: hidden;
@@ -2439,6 +2509,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     position: fixed;
     top: 0;
     left: 0;
+
     /* min() colapsa width + max-width en una sola declaración: 360px ideal
      * con cap a 88vw para dispositivos compactos. */
     width: min(360px, 88vw);
@@ -2466,6 +2537,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     border-right: 0;
     padding-bottom: 0;
     overflow-y: visible;
+
     /* La transición del drawer es translateX(-100%)→0: en full-screen se ve
      * como una cortina desde la izquierda; para búsqueda es preferible un
      * fundido, que además no compite con la aparición del teclado. */
@@ -2478,13 +2550,14 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .mobile-drawer__search {
+
     /* Fila superior: input + Cancelar. El botón «Buscar» rojo se sustituye por
      * un «Cancelar» de texto (patrón iOS/Android); enviar sigue siendo Enter
      * del teclado (`enterkeyhint="search"`). El marco/gradiente del form pasa
      * al campo (`--akb-sheet-field`) para que «Cancelar» quede FUERA del
      * campo: es otra acción, no parte del input. */
     margin: var(--space-2) var(--space-3) 0;
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: env(safe-area-inset-top, 0);
     border: 0;
     background: transparent;
     box-shadow: none;
@@ -2492,6 +2565,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .mobile-drawer__search::before {
+
     /* La cuña roja decorativa del form se reubica al campo vía outline. */
     display: none;
 }
@@ -2502,7 +2576,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * pasa a border-left del input. */
 .mobile-drawer--search .mobile-drawer__search input.akibara-search__input[type="search"],
 .mobile-drawer--search .mobile-drawer__search input.akibara-search__input[type="search"]:focus {
-    border: 1px solid var(--akb-search-field-border, #707070);
+    border: 1px solid var(--akb-search-field-border, var(--aki-input-border));
     border-left: 3px solid var(--aki-red);
     background: var(--aki-gray-900);
     padding-left: 40px;
@@ -2515,6 +2589,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akb-suggest-panel {
+
     /* Sheet a pantalla completa: el panel puede usar hasta el borde inferior
      * (menos el teclado, que el navegador resta solo). El 78vh/560px del
      * dropdown clásico dejaba una banda muerta abajo. */
@@ -2527,6 +2602,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .mobile-drawer__search::after {
+
     /* Sin este pseudo, el borde inferior del form queda solo; una línea sutil
      * bajo la fila de búsqueda ancla el panel de sugerencias. */
     content: "";
@@ -2539,6 +2615,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akibara-search__clear {
+
     /* Área táctil accesible ≥ 44px (WCAG 2.5.5) */
     width: 44px;
     height: 44px;
@@ -2572,6 +2649,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     font-size: var(--text-xs);
     letter-spacing: 0.08em;
     text-transform: uppercase;
+
     /* Contraste accesible WCAG 1.4.3 (≥ 4.5:1) sobre fondo oscuro */
     color: var(--aki-gray-300);
     opacity: 1;
@@ -2585,6 +2663,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 .mobile-drawer--search .akb-suggest-panel .akb-suggest-zero {
     display: inline-flex;
     align-items: center;
+
     /* Box-sizing border-box y alineación vertical consistente entre elementos <button> y <a> */
     box-sizing: border-box;
     vertical-align: middle;
@@ -2592,7 +2671,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     margin: 4px 0 4px var(--space-3);
     padding: 0 14px;
     min-height: 44px; /* Área táctil accesible ≥ 44px (WCAG 2.5.5) */
-    border: 1px solid var(--akb-search-field-border, #707070);
+    border: 1px solid var(--akb-search-field-border, var(--aki-input-border));
     border-radius: 999px;
     background: var(--aki-gray-900);
     color: var(--aki-white);
@@ -2609,6 +2688,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akb-suggest-panel .akb-suggest-zero .akb-suggest-thumb {
+
     /* Recientes con portada: chip con miniatura pequeña a la izquierda. */
     width: 24px;
     height: 24px;
@@ -2618,6 +2698,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akb-suggest-panel .akb-suggest-clear {
+
     /* «Borrar historial» no es un chip: enlace discreto bajo los recientes. */
     display: block;
     width: auto;
@@ -2648,12 +2729,14 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* El drawer ya no arranca bajo la barra de anuncios: sin esto el botón
-     * cerrar quedaría bajo el notch/isla dinámica en iOS. */
-    padding-top: env(safe-area-inset-top, 0px);
+
     /* Reducido space-4 → space-3 vertical: combinado con close circular 36px
      * deja el head en ~60px (antes 76px) — más contenido above-the-fold. */
     padding: var(--space-3) var(--space-5);
+
+    /* El drawer ya no arranca bajo la barra de anuncios: sin esto el botón
+     * cerrar quedaría bajo el notch/isla dinámica en iOS. */
+    padding-top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
     border-bottom: 1px solid var(--aki-border);
 }
 
@@ -2661,6 +2744,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     font-family: var(--font-heading);
     font-size: var(--text-lg);
     text-transform: uppercase;
+
     /* gray-200 en vez de white pleno: el título es un label de contexto,
      * no debería competir visualmente con los items clicables (que sí van
      * en white). Mantiene jerarquía sin perder legibilidad. */
@@ -2719,6 +2803,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     justify-content: space-between;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-5);
+
     /* Brand Typography Sync */
     font-family: var(--font-heading);
     font-size: 20px;
@@ -2728,6 +2813,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     color: var(--aki-white);
     border: 0;
     background: none;
+
     /* Box-sizing border-box evita desbordamientos laterales por padding horizontal */
     box-sizing: border-box;
     width: 100%;
@@ -2809,7 +2895,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * footer accordion. */
 .mobile-drawer__toggle[aria-expanded="true"],
 .mobile-drawer__subtoggle[aria-expanded="true"] {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
 }
 
 .mobile-drawer__sub {
@@ -2817,6 +2903,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     overflow: hidden;
     background: var(--aki-surface-2);
     padding: 0 var(--space-5);
+
     /* visibility: hidden remueve elementos colapsados del orden de tabulación (a11y);
      * el retardo de transición preserva la visibilidad durante la animación de cierre. */
     visibility: hidden;
@@ -2862,7 +2949,9 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     background: rgba(255, 255, 255, 0.08);
     color: var(--aki-gray-400);
 }
+
 .mobile-drawer__sublink.akb-brand--argentina::after { content: 'AR'; }
+
 .mobile-drawer__sublink.akb-brand--espana::after { content: 'ES'; }
 
 .mobile-drawer__sublink--active {
@@ -2876,6 +2965,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     min-height: 44px;
     margin-bottom: var(--space-1);
     border-bottom: 1px solid var(--aki-border);
+
     /* Label de sección del drawer: BLANCO (no amarillo — amarillo = solo precio). */
     color: var(--aki-white);
     font-family: var(--font-heading);
@@ -2895,7 +2985,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     margin-top: var(--space-3);
     padding-top: var(--space-3);
     border-top: 1px solid var(--aki-border);
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     font-family: var(--font-heading);
     font-size: 18px;
     font-style: normal;
@@ -2904,7 +2994,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer__sublink--accent {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     font-weight: var(--weight-semibold);
 }
 
@@ -2980,7 +3070,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer__subtoggle--active[aria-expanded="true"] {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
 }
 
 /* ── Mobile drawer: nivel 3 (brand links) ──────────────────── */
@@ -3010,6 +3100,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * `max-height: none` dentro del @supports anula el cap de las rules previas
  * sin recurrir a !important (cascade orden + specificity equivalente). */
 @supports (interpolate-size: allow-keywords) {
+
     .mobile-drawer {
         interpolate-size: allow-keywords;
     }
@@ -3021,6 +3112,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     }
 
     .mobile-drawer__sub {
+
         /* Preserva la transición diferida de visibility al redefinir el shorthand transition con interpolate-size */
         transition: height 280ms ease, padding 280ms ease, visibility 0s linear 280ms;
     }
@@ -3058,11 +3150,15 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 
 /* ── Responsive: ≤1024px hide desktop, show mobile bits ────── */
 @media (max-width: 1024px) {
+
     .mainnav {
         display: none;
     }
+
     .hamburger {
         display: flex;
+        grid-column: 1;
+        justify-self: start;
     }
 
     /* Mobile: tres columnas con laterales iguales. Así el logo queda centrado
@@ -3101,11 +3197,6 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
         margin: 0;
     }
 
-    .hamburger {
-        grid-column: 1;
-        justify-self: start;
-    }
-
     .header-icons {
         grid-column: 3;
         justify-self: end;
@@ -3125,12 +3216,14 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * táctiles de 44px. Mi cuenta sigue disponible como enlace en el drawer; se
  * conserva en el header Favoritos y Carrito, que son acciones más contextuales. */
 @media (max-width: 374px) {
+
     .header-icon--account {
         display: none;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .akibara-search::before,
     .mobile-drawer__search::before,
     .header-icon.is-bumped,
@@ -3178,7 +3271,9 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     }
 }
 
+
 /* --- footer.css --- */
+
 /*
  * Footer + bottom-nav — extracted from legacy layout-v2.css.
  * Site-wide, dark theme.
@@ -3201,10 +3296,12 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     color: var(--aki-white);
     padding: var(--space-2) var(--space-4);
     text-decoration: none;
+
     /* Nivel superior en la jerarquía visual (--z-skip-link) para asegurar visibilidad en navegación asistida y teclado. */
     z-index: var(--z-skip-link);
     font-weight: var(--weight-semibold);
 }
+
 .skip-link:focus {
     left: 8px;
     top: 8px;
@@ -3217,6 +3314,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     bottom: 0;
     left: 0;
     right: 0;
+
     /* Alto PINTADO = el token (tokens.css), borde incluido, más el gesto de
      * inicio del iPhone. Con border-box el contenido sigue midiendo 64px
      * (66 − 2 de borde), exactamente la geometría que había con `height:64px`
@@ -3229,8 +3327,8 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     z-index: var(--z-sticky, 200);
     align-items: center;
     justify-content: space-around;
-    padding: 0 0 env(safe-area-inset-bottom, 0px) 0;
-    box-shadow: -4px -4px 0px var(--aki-black);
+    padding: 0 0 env(safe-area-inset-bottom, 0) 0;
+    box-shadow: -4px -4px 0 var(--aki-black);
 }
 
 .bottom-nav__item {
@@ -3255,7 +3353,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 
 .bottom-nav__item:hover,
 .bottom-nav__item--active {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
 }
 
 .bottom-nav__item:active {
@@ -3305,9 +3403,11 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 @media (max-width: 1024px) {
+
     .bottom-nav {
         display: flex;
     }
+
     /* Reservar espacio para el bottom-nav fijo: su alto pintado (el token
      * ya incluye el border-top de 2px, que antes dejaba 2px de solape con el
      * último contenido, e.g. el copyright cortado en mi-cuenta) más
@@ -3315,11 +3415,13 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     body {
         padding-bottom: calc(var(--bottom-nav-height, 66px) + env(safe-area-inset-bottom, 0px));
     }
+
     /* Ocultar bottom-nav cuando el drawer de navegación o de filtros está abierto.
      * La alternativa sin :has() se mantiene en regla separada para compatibilidad con navegadores antiguos. */
     body.akb-drawer-open .bottom-nav {
         display: none;
     }
+
     body:has(#mobile-drawer[aria-hidden="false"]) .bottom-nav,
     body:has(.hamburger.active) .bottom-nav {
         display: none;
@@ -3329,6 +3431,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 /* Ventana baja (≤ 500 px de alto): retiro de bottom-nav fijo para preservar viewport útil en zoom o apaisado.
  * Restaura el relleno inferior del cuerpo y la posición base del botón flotante de WhatsApp. */
 @media (max-width: 1024px) and (max-height: 500px) {
+
     .bottom-nav {
         display: none;
     }
@@ -3387,6 +3490,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .footer-brand__desc {
+
     /* gray-300 (~8.4:1 sobre #111) — gray-400 daba ~4.0:1, bajo AA. */
     color: var(--aki-gray-300);
     font-size: var(--text-sm);
@@ -3412,6 +3516,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+
     /* Objetivo táctil mínimo (WCAG 2.5.8): 24 px en escritorio, 44 px en móvil. */
     min-height: 24px;
     color: inherit;
@@ -3433,6 +3538,7 @@ a.footer-nap__item:hover {
 }
 
 .footer-social__link {
+
     /* Touch target ≥44px (antes 36px). El glifo queda a su tamaño visual. */
     width: var(--touch-target-min);
     height: var(--touch-target-min);
@@ -3484,6 +3590,7 @@ a.footer-nap__item:hover {
 }
 
 .footer-column__title {
+    box-sizing: border-box;
     font-family: var(--font-heading);
     font-size: var(--text-lg);
     text-transform: uppercase;
@@ -3491,6 +3598,7 @@ a.footer-nap__item:hover {
     color: var(--aki-white);
     margin: 0 0 var(--space-4);
     position: relative;
+    min-block-size: var(--touch-target-min);
     padding: 10px 0 var(--space-2);
     background: transparent !important;
     border: 0 !important;
@@ -3507,13 +3615,13 @@ a.footer-nap__item:hover {
 }
 
 /* Hover/focus — botón hereda bg gris del browser por default. Forzamos
- * transparent y solo cambiamos las LETRAS al rojo principal. La sombra ya la
+ * transparent y solo cambiamos las LETRAS al rojo accesible. La sombra ya la
  * prohíbe la regla base. */
 .footer-column__title:hover,
 .footer-column__title:focus:not(:focus-visible),
 .footer-column__title:active {
     background: transparent !important;
-    color: var(--aki-red) !important;
+    color: var(--aki-red-text) !important;
     transform: none !important;
 }
 
@@ -3529,7 +3637,7 @@ a.footer-nap__item:hover {
  * Sin !important: (0,2,0) ya gana al `button:focus` de GeneratePress y, por
  * orden, al `outline: none` global de tokens.css. */
 .footer-column__title:focus-visible {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     outline: var(--aki-focus-outline);
     outline-offset: var(--aki-focus-offset);
 }
@@ -3543,6 +3651,7 @@ a.footer-nap__item:hover {
     height: 4px;
     background: var(--aki-red);
     transform: skewX(-15deg);
+
     /* Idem: el token ya incluye cubic-bezier. */
     transition: width var(--transition-fast, 150ms ease-out);
 }
@@ -3561,12 +3670,14 @@ a.footer-nap__item:hover {
 }
 
 .footer-column__link {
+
     /* gray-300 (~8.4:1) — gray-400 daba ~4.0:1 (bajo AA) y además era idéntico
        al texto NO clicable (tagline/copyright), sin affordance de link en reposo. */
     color: var(--aki-gray-300);
     font-size: var(--text-sm);
     text-decoration: none;
     transition: color var(--transition-fast);
+
     /* Tap target ≥44px (antes ~30px) — el min-height lo garantiza en mobile y
        desktop sin depender del padding. */
     display: flex;
@@ -3576,18 +3687,18 @@ a.footer-nap__item:hover {
 
 .footer-column__link:hover,
 .footer-column__link:focus-visible {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
 }
 
 /* ───── Trust signals reutilizables ───────────────────────────────
  * Se renderizan en PDP, checkout y footer. Antes este bloque vivía como
- * <style> dentro de trust-badges.php y se duplicaba cuando una vista contenía
+ * \3c style> dentro de trust-badges.php y se duplicaba cuando una vista contenía
  * más de una instancia. footer.css es global y ya se carga en todas las rutas,
  * por lo que centralizarlo aquí evita CSS repetido y una cascada tardía. */
 .akb-product-trust-badges {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
     gap: var(--space-3);
     margin-top: var(--space-4);
     padding-top: var(--space-4);
@@ -3600,6 +3711,7 @@ a.footer-nap__item:hover {
     display: flex;
     align-items: center;
     min-width: 0;
+    min-height: var(--touch-target-min);
     gap: 8px;
     padding: 6px 10px;
     border: 1px solid var(--aki-border);
@@ -3615,6 +3727,10 @@ a.footer-nap__item:hover {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
+}
+
+.akb-product-trust-badges .akb-badge-trust.akb-badge-trust--linked {
+    padding: 0;
 }
 
 .akb-product-trust-badges .akb-badge-trust span {
@@ -3634,8 +3750,8 @@ a.footer-nap__item:hover {
     width: 100%;
     min-width: var(--touch-target-min);
     min-height: var(--touch-target-min);
-    gap: 6px;
-    padding: 0 6px;
+    gap: 8px;
+    padding: 6px 10px;
     color: inherit;
     background-color: transparent;
     text-decoration: none;
@@ -3647,6 +3763,7 @@ a.footer-nap__item:hover {
 }
 
 @media (hover: hover) {
+
     .akb-product-trust-badges .akb-badge-trust > .akb-badge-trust__link:hover {
         color: var(--aki-white);
         background-color: rgba(255, 10, 29, 0.1);
@@ -3666,8 +3783,9 @@ a.footer-nap__item:hover {
     flex: 0 0 auto;
     width: 16px;
     height: 16px;
-    /* Rojo de marca: el amarillo se reserva a precios y foco de teclado. */
-    color: var(--aki-red-bright);
+
+    /* Rojo accesible de marca: el amarillo se reserva a precios y foco de teclado. */
+    color: var(--aki-red-text);
 }
 
 
@@ -3678,13 +3796,15 @@ a.footer-nap__item:hover {
     margin: 0 auto;
     text-align: center;
     font-size: var(--text-xs);
+
     /* gray-300 para pasar AA en el copyright (gray-500 daba <4.5:1). */
     color: var(--aki-gray-300);
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ───── Mobile footer accordion ────────────────────────────────── */
 @media (max-width: 768px) {
+
     /* Las columnas se cuentan según cuántos beneficios haya, no a mano. Esta
      * regla fijaba tres columnas porque en su momento eran tres beneficios;
      * al añadirse el cuarto ("Atención personalizada") quedó colgando solo en
@@ -3698,6 +3818,7 @@ a.footer-nap__item:hover {
         align-items: start;
         gap: var(--space-3) var(--space-2);
     }
+
     .akb-product-trust-badges .akb-badge-trust {
         width: 100%;
         min-width: 0;
@@ -3706,17 +3827,21 @@ a.footer-nap__item:hover {
         font-size: var(--text-sm);
         line-height: 1.35;
     }
+
     .akb-product-trust-badges .akb-badge-trust > .akb-badge-trust__link {
         justify-content: center;
         text-align: center;
     }
+
     .akb-product-trust-badges .akb-badge-trust span {
         text-wrap: balance;
     }
+
     .akb-product-trust-badges .akb-badge-trust:nth-child(3) {
         grid-column: auto;
         margin-top: 0;
     }
+
     .footer-main {
         grid-template-columns: 1fr;
         gap: 0;
@@ -3726,6 +3851,7 @@ a.footer-nap__item:hover {
             var(--space-6)
             max(var(--space-4), env(safe-area-inset-left, 0px));
     }
+
     .footer-brand {
         align-items: center;
         text-align: center;
@@ -3734,9 +3860,11 @@ a.footer-nap__item:hover {
         margin-bottom: var(--space-2);
         gap: var(--space-2);
     }
+
     .footer-nap {
         width: auto;
     }
+
     /* En móvil todo el bloque de marca va centrado (logo → info → redes →
        accesos). Cada fila icon+texto se centra COMO UNIDAD y en FLUJO
        INLINE: con flex, la fila que quiebra («Retiro de pedidos…») consumía
@@ -3749,27 +3877,34 @@ a.footer-nap__item:hover {
         text-align: center;
         text-wrap: balance;
     }
+
     .footer-nap__item svg {
         display: inline-block;
         vertical-align: -2px;
         margin-right: 6px;
     }
+
     a.footer-nap__item {
+
         /* Target táctil ≥44px sin flex: el alto lo da el padding, así el
            número queda centrado dentro de su propia zona de toque. */
         padding-block: 12px;
     }
+
     a.footer-nap__item,
     .footer-mobile-shortcuts__item {
         box-sizing: border-box;
         min-height: var(--touch-target-min);
     }
+
     .footer-brand__logo img {
         height: 64px;
     }
+
     .footer-brand__desc {
         display: none;
     }
+
     .footer-mobile-shortcuts {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3783,8 +3918,8 @@ a.footer-nap__item:hover {
     }
 
     .bottom-nav {
-        padding-left: env(safe-area-inset-left, 0px);
-        padding-right: env(safe-area-inset-right, 0px);
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
     }
 }
 
@@ -3801,25 +3936,30 @@ a.footer-nap__item:hover {
  * .site-footer.js-footer-accordion, añadido dinámicamente por main.js tras
  * inicializarse. En ausencia de JS o fallos de ejecución, las listas permanecen
  * abiertas y completamente accesibles por defecto. */
+
 /* ───── Footer en tablet: marca arriba, tres columnas debajo ─────
  * Entre 601 y 768 px el grid de escritorio (1.3fr + 3 columnas) deja las
  * listas demasiado estrechas, y el de teléfono (1 columna) apila todo y
  * estira el footer a 1.357 px. Con la marca a ancho completo y las tres
  * columnas en fila quedan a 230 px cada una y el footer baja a 803 px. */
 @media (min-width: 601px) and (max-width: 768px) {
+
     .footer-main {
         grid-template-columns: repeat(3, 1fr);
         gap: var(--space-4);
     }
+
     .footer-brand {
         grid-column: 1 / -1;
     }
 }
 
 @media (max-width: 600px) {
+
     .footer-column {
         border-bottom: 1px solid var(--aki-border);
     }
+
     .footer-column__title {
         user-select: none;
         padding: var(--space-3) 0;
@@ -3829,11 +3969,13 @@ a.footer-nap__item:hover {
         justify-content: space-between;
         width: 100%;
     }
+
     /* Sin `.js-footer-accordion` el botón no colapsa nada (ver arriba): cursor
      * default, como cualquier encabezado estático. */
     .site-footer.js-footer-accordion .footer-column__title {
         cursor: pointer;
     }
+
     /* Affordance "+"/"−" en lugar de chevron rotado: glyph tipográfico
      * limpio, posicionado al extremo derecho del button por flex
      * space-between (heredado de .footer-column__title). Gateado igual que el
@@ -3854,28 +3996,36 @@ a.footer-nap__item:hover {
         color: var(--aki-gray-400);
         transition: color var(--transition-fast);
     }
+
     .site-footer.js-footer-accordion .footer-column__title.active::after,
     .site-footer.js-footer-accordion .footer-column__title[aria-expanded="true"]::after {
         content: "\2212"; /* − minus sign U+2212, mejor proporción que '-' */
-        color: var(--aki-red);
+        color: var(--aki-red-text);
     }
-    /* Open state: title también va a rojo brand para que el state sea
+
+    /* Open state: title también va a rojo accesible para que el state sea
      * visible sin depender solo del +/-. Closed state: white default. */
     .site-footer.js-footer-accordion .footer-column__title[aria-expanded="true"] {
-        color: var(--aki-red);
+        color: var(--aki-red-text);
     }
+
     .site-footer.js-footer-accordion .footer-column__list {
+        interpolate-size: allow-keywords;
         max-height: 0;
+        block-size: 0;
         overflow: hidden;
         visibility: hidden;
         pointer-events: none;
         transition:
+            block-size 0.3s ease,
             max-height 0.3s ease,
             visibility 0s linear 0.3s;
         padding-bottom: 0;
     }
+
     .site-footer.js-footer-accordion .footer-column__list.active {
         max-height: 420px;
+        block-size: auto;
         visibility: visible;
         pointer-events: auto;
         transition-delay: 0s;
@@ -3883,20 +4033,32 @@ a.footer-nap__item:hover {
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+
+    .site-footer.js-footer-accordion .footer-column__list,
+    .site-footer.js-footer-accordion .footer-column__list.active {
+        transition: none;
+    }
+}
+
 @media (max-width: 480px) {
+
     /* En teléfonos angostos el icono sobre el texto iguala los tres ejes
      * visuales y evita que una etiqueta larga empuje a las demás. */
     .akb-product-trust-badges .akb-badge-trust {
         flex-direction: column;
         gap: 6px;
     }
+
     .akb-product-trust-badges .akb-badge-trust > .akb-badge-trust__link {
         flex-direction: column;
         gap: 6px;
     }
+
     .akb-product-trust-badges .akb-badge-trust span {
         max-width: 12ch;
     }
+
     .akb-product-trust-badges .akb-badge-trust svg {
         width: 18px;
         height: 18px;
@@ -3909,10 +4071,36 @@ body .joinchat {
     z-index: var(--z-chat);
 }
 
-/* ───── Prevención de colisión del botón flotante de WhatsApp sobre acciones de compra ─────
+/* En vista móvil, el botón flotante de WhatsApp debe respetar la altura de la barra
+ * de navegación inferior sticky (--bottom-nav-height) sin solapar accesos críticos. */
+@media (max-width: 1024px) {
+
+    html body .joinchat,
+    html body.single-product .joinchat {
+        bottom: calc(var(--bottom-nav-height, 66px) + env(safe-area-inset-bottom, 0px) + 16px);
+    }
+}
+
+/* ───── Prevención de colisión del botón flotante de WhatsApp sobre acciones de compra y carrito ─────
  * Cuando un botón de compra queda bajo el botón flotante, la clase `.akb-fab-cede`
  * en el body lo oculta temporalmente evitando pulsaciones accidentales sobre el CTA principal. */
 body.akb-fab-cede .joinchat:not(.joinchat--chatbox):not(:focus-within) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+
+/* Cuando el cajón 'Tu carrito' está abierto, se oculta el botón flotante de WhatsApp para no
+ * interferir visualmente ni generar ambigüedades con el overlay del carrito. */
+body.akb-cart-open .joinchat {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+
+body:has(#akb-native-cart-drawer.akb-open) .joinchat {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;

@@ -307,19 +307,41 @@ final class FreeShippingThresholdTest extends TestCase {
 		);
 	}
 
-	public function test_carrier_fallback_declares_a_min_amount_method_of_unknown_availability(): void {
+	public function test_carrier_fallback_declares_an_either_method_with_pre_discount_evaluation(): void {
 		$methods = FreeShippingThreshold::carrier_fallback_for_enabled_methods(
 			array( 'bluex-pudo', 'local_pickup', 'bluex-ex' ),
-			55000.0
+			60000.0
 		);
 
 		self::assertCount( 1, $methods );
-		self::assertSame( 'min_amount', $methods[0]['requires'] );
-		self::assertSame( 55000.0, $methods[0]['min_amount'] );
-		self::assertSame( 'no', $methods[0]['ignore_discounts'] );
+		self::assertSame( 'either', $methods[0]['requires'] );
+		self::assertSame( 60000.0, $methods[0]['min_amount'] );
+		self::assertSame( 'yes', $methods[0]['ignore_discounts'] );
 		// La tarifa real la cotiza el transportista en el checkout: afirmar
 		// disponibilidad aquí sería inventar una autoridad que no tenemos.
 		self::assertNull( $methods[0]['current_available'] );
+	}
+
+	public function test_carrier_fallback_preserves_free_shipping_with_percentage_coupon(): void {
+		$methods = FreeShippingThreshold::carrier_fallback_for_enabled_methods(
+			array( 'bluex-ex' ),
+			60000.0
+		);
+
+		// Carro de $60.000 con cupón del 10% (descuento $6.000, subtotal neto $54.000)
+		$progress = FreeShippingThreshold::evaluate_packages(
+			array( $methods ),
+			60000.0,
+			6000.0,
+			0.0,
+			false,
+			false
+		);
+
+		self::assertSame( FreeShippingThreshold::STATE_QUALIFIED, $progress['state'] );
+		self::assertSame( 'order_amount', $progress['reason'] );
+		self::assertSame( 60000.0, $progress['threshold'] );
+		self::assertSame( 0.0, $progress['remaining'] );
 	}
 
 	public function test_carrier_fallback_feeds_the_same_progress_semantics_as_a_core_method(): void {

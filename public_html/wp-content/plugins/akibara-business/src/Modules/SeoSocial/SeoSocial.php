@@ -13,6 +13,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Keeps Open Graph page types aligned with the visible WooCommerce template.
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class SeoSocial {
 

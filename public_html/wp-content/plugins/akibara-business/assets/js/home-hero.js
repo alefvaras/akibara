@@ -13,7 +13,7 @@
  *
  * Solo se inicializa cuando hay 2+ slides. 1 slide = hero estático sin JS.
  *
- * @package akibara-business
+ * @package
  */
 ( function () {
 	'use strict';
@@ -25,24 +25,25 @@
 	 * aplica cuando scripting está deshabilitado), pero sí evita slides vacíos
 	 * por una incompatibilidad o transformación defectuosa del optimizador. En
 	 * el fallo total de red, el slide 0 SSR sigue siendo utilizable.
+	 * @param {*} root
 	 */
 	function failOpenHero( root ) {
 		if ( ! root ) { return; }
 
-		var templates = root.querySelectorAll( 'template[data-akb-hero-media]' );
+		const templates = root.querySelectorAll( 'template[data-akb-hero-media]' );
 		Array.prototype.forEach.call( templates, function ( template ) {
 			if ( ! template.content || ! template.parentNode ) { return; }
-			var fragment = template.content.cloneNode( true );
+			const fragment = template.content.cloneNode( true );
 			template.parentNode.insertBefore( fragment, template );
 			template.parentNode.removeChild( template );
 		} );
 
-		var slides = root.querySelectorAll( '.akb-hero__slide' );
+		const slides = root.querySelectorAll( '.akb-hero__slide' );
 		Array.prototype.forEach.call( slides, function ( slide ) {
 			slide.removeAttribute( 'aria-hidden' );
-			var focusables = slide.querySelectorAll( '[data-akb-prev-tabindex]' );
+			const focusables = slide.querySelectorAll( '[data-akb-prev-tabindex]' );
 			Array.prototype.forEach.call( focusables, function ( el ) {
-				var previous = el.getAttribute( 'data-akb-prev-tabindex' );
+				const previous = el.getAttribute( 'data-akb-prev-tabindex' );
 				if ( '' === previous ) {
 					el.removeAttribute( 'tabindex' );
 				} else {
@@ -52,7 +53,7 @@
 			} );
 		} );
 
-		var controls = root.querySelectorAll( '.akb-hero__progress,.akb-hero__arrow' );
+		const controls = root.querySelectorAll( '.akb-hero__progress,.akb-hero__arrow' );
 		Array.prototype.forEach.call( controls, function ( control ) {
 			control.setAttribute( 'hidden', '' );
 		} );
@@ -64,25 +65,28 @@
 		if ( ! root || root.__akbHeroInit ) { return; }
 		root.__akbHeroInit = true;
 
-		var track       = root.querySelector( '.akb-hero__track' );
-		var slides      = Array.prototype.slice.call( root.querySelectorAll( '.akb-hero__slide' ) );
-		var segs        = Array.prototype.slice.call( root.querySelectorAll( '.akb-hero__seg' ) );
-		var prevBtn     = root.querySelector( '.akb-hero__arrow--prev' );
-		var nextBtn     = root.querySelector( '.akb-hero__arrow--next' );
-		var progress    = root.querySelector( '.akb-hero__progress' );
-		var progressBtn = root.querySelector( '[data-akb-progress]' );
-		var srStatus    = root.querySelector( '.akb-hero__sr-status' );
+		const slides      = Array.prototype.slice.call( root.querySelectorAll( '.akb-hero__slide' ) );
+		if ( slides.length < 2 ) { return; }
+
+		const track       = root.querySelector( '.akb-hero__track' );
+		const segs        = Array.prototype.slice.call( root.querySelectorAll( '.akb-hero__seg' ) );
+		const prevBtn     = root.querySelector( '.akb-hero__arrow--prev' );
+		const nextBtn     = root.querySelector( '.akb-hero__arrow--next' );
+		const progress    = root.querySelector( '.akb-hero__progress' );
+		const progressBtn = root.querySelector( '[data-akb-progress]' );
+		const srStatus    = root.querySelector( '.akb-hero__sr-status' );
+
+		let current     = 0;
 
 		// El "reloj" es el fill del segmento ACTIVO (indicador segmentado):
 		// se re-resuelve en cada cambio de slide, no es un nodo fijo.
 		function activeFill() {
-			var seg = segs[ current ];
+			// eslint-disable-next-line security/detect-object-injection
+			const seg = segs[ current ];
 			return seg ? seg.querySelector( '[data-akb-seg-fill]' ) : null;
 		}
 
-		if ( slides.length < 2 ) { return; }
-
-		var cfg = {
+		const cfg = {
 			autoplay:    root.getAttribute( 'data-autoplay' )    === '1',
 			interval:    parseInt( root.getAttribute( 'data-interval' ), 10 ) || 6000,
 			pauseHover:  root.getAttribute( 'data-pause-hover' ) === '1',
@@ -90,29 +94,27 @@
 			loop:        root.getAttribute( 'data-loop' )        === '1'
 		};
 
-		var reduceMql = window.matchMedia( '(prefers-reduced-motion: reduce)' );
-		var desktopAutoplayMql = window.matchMedia( '(min-width: 769px)' );
-		var configuredAutoplay = cfg.autoplay;
-		var reduced = reduceMql.matches;
+		const reduceMql = window.matchMedia( '(prefers-reduced-motion: reduce)' );
+		const desktopAutoplayMql = window.matchMedia( '(min-width: 769px)' );
+		const configuredAutoplay = cfg.autoplay;
+		let reduced = reduceMql.matches;
 		// La UI del módulo define el autoplay como comportamiento de escritorio.
 		// En móvil los segmentos y el swipe siguen disponibles, pero no se rota ni
 		// se precargan slides sin una intención explícita del usuario.
 		cfg.autoplay = configuredAutoplay && ! reduced && desktopAutoplayMql.matches;
-
-		var current     = 0;
-		var timerId     = null;
-		var userPaused  = false;        // pausa manual del progress button (persistente)
-		var pauseReasons = {};           // hover/touch/focus/drag pueden solaparse.
-		var inViewport  = ! ( 'IntersectionObserver' in window );
-		var remainingMs = cfg.interval;
-		var timerDeadline = 0;
-		var isDragging  = false;
-		var dragStartX  = 0;
-		var dragStartScroll = 0;
-		var draggedPx   = 0;
-		var snapAnimating = false;      // true durante smooth-scroll programático
-		var snapTimer   = null;
-		var mediaWarmTimer = null;      // hidrata el próximo slide poco antes del autoplay.
+		let timerId     = null;
+		let userPaused  = false;        // pausa manual del progress button (persistente)
+		const pauseReasons = {};           // hover/touch/focus/drag pueden solaparse.
+		let inViewport  = ! ( 'IntersectionObserver' in window );
+		let remainingMs = cfg.interval;
+		let timerDeadline = 0;
+		let isDragging  = false;
+		let dragStartX  = 0;
+		let dragStartScroll = 0;
+		let draggedPx   = 0;
+		let snapAnimating = false;      // true durante smooth-scroll programático
+		let snapTimer   = null;
+		let mediaWarmTimer = null;      // hidrata el próximo slide poco antes del autoplay.
 
 		/**
 		 * Materializa una sola vez el `<picture>` diferido de un slide.
@@ -120,22 +122,23 @@
 		 * El clone + insert es síncrono: dos señales de intención en el mismo
 		 * frame no pueden duplicar la imagen. El `<noscript>` queda intacto como
 		 * fallback real para navegación sin JS.
+		 * @param {*} slide
 		 */
 		function hydrateSlideMedia( slide ) {
 			if ( ! slide ) { return null; }
 
-			var existing = slide.querySelector( '.akb-hero__picture' );
+			const existing = slide.querySelector( '.akb-hero__picture' );
 			if ( existing ) {
 				slide.__akbHeroMediaReady = true;
 				return existing;
 			}
 			if ( slide.__akbHeroMediaReady ) { return null; }
 
-			var template = slide.querySelector( 'template[data-akb-hero-media]' );
+			const template = slide.querySelector( 'template[data-akb-hero-media]' );
 			if ( ! template || ! template.content ) { return null; }
 
-			var fragment = template.content.cloneNode( true );
-			var image = fragment.querySelector( '.akb-hero__img' );
+			const fragment = template.content.cloneNode( true );
+			const image = fragment.querySelector( '.akb-hero__img' );
 			if ( image ) {
 				// La decisión de descarga ya ocurrió por intención/autoplay: desde
 				// aquí eager evita un panel vacío en saltos directos 0→2. Nunca
@@ -157,14 +160,14 @@
 		}
 
 		function adjacentIndex( delta ) {
-			var idx = current + delta;
+			const idx = current + delta;
 			if ( idx >= 0 && idx < slides.length ) { return idx; }
 			if ( ! cfg.loop ) { return -1; }
 			return idx < 0 ? slides.length - 1 : 0;
 		}
 
 		function physicalAdjacentIndex( delta ) {
-			var idx = current + delta;
+			const idx = current + delta;
 			return idx >= 0 && idx < slides.length ? idx : -1;
 		}
 
@@ -172,9 +175,11 @@
 			// Un gesto físico no hace wrap: desde el slide 0 no se puede arrastrar
 			// al último. Usar límites reales evita descargar ambos vecinos en el
 			// primer touch/mousedown.
-			var previous = physicalAdjacentIndex( -1 );
-			var upcoming = physicalAdjacentIndex( 1 );
+			const previous = physicalAdjacentIndex( -1 );
+			const upcoming = physicalAdjacentIndex( 1 );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( previous >= 0 ) { hydrateSlideMedia( slides[ previous ] ); }
+			// eslint-disable-next-line security/detect-object-injection
 			if ( upcoming >= 0 ) { hydrateSlideMedia( slides[ upcoming ] ); }
 		}
 
@@ -198,28 +203,30 @@
 			clearMediaWarmTimer();
 			if ( ! canAutoplay() ) { return; }
 
-			var targetIdx = autoplayTargetIndex();
+			const targetIdx = autoplayTargetIndex();
+			// eslint-disable-next-line security/detect-object-injection
 			if ( targetIdx < 0 || slides[ targetIdx ].__akbHeroMediaReady ) { return; }
 
-			var leadMs = Math.min( 1500, Math.max( 500, Math.round( cfg.interval * 0.2 ) ) );
-			var delay  = Math.max( 0, remainingMs - leadMs );
+			const leadMs = Math.min( 1500, Math.max( 500, Math.round( cfg.interval * 0.2 ) ) );
+			const delay  = Math.max( 0, remainingMs - leadMs );
 			mediaWarmTimer = window.setTimeout( function () {
 				mediaWarmTimer = null;
+				// eslint-disable-next-line security/detect-object-injection
 				hydrateSlideMedia( slides[ targetIdx ] );
 			}, delay );
 		}
 
 		// ---- Render helpers ----
 		function setSlideFocusable( slide, enabled ) {
-			var focusables = slide.querySelectorAll( 'a[href], button, input, select, textarea, [tabindex]' );
+			const focusables = slide.querySelectorAll( 'a[href], button, input, select, textarea, [tabindex]' );
 			Array.prototype.forEach.call( focusables, function ( el ) {
 				if ( enabled ) {
 					if ( el.hasAttribute( 'data-akb-prev-tabindex' ) ) {
-						var prev = el.getAttribute( 'data-akb-prev-tabindex' );
-						if ( prev === '' ) {
+						const prevTabindex = el.getAttribute( 'data-akb-prev-tabindex' );
+						if ( prevTabindex === '' ) {
 							el.removeAttribute( 'tabindex' );
 						} else {
-							el.setAttribute( 'tabindex', prev );
+							el.setAttribute( 'tabindex', prevTabindex );
 						}
 						el.removeAttribute( 'data-akb-prev-tabindex' );
 					}
@@ -247,7 +254,7 @@
 				}
 			} );
 			segs.forEach( function ( seg, i ) {
-				var on = i === idx;
+				const on = i === idx;
 				seg.classList.toggle( 'is-active', on );
 				// Previos llenos (patrón stories). El fill "visto" es CLASE, no
 				// inline: el reset animation:none del reloj no debe poder dejar
@@ -262,6 +269,7 @@
 			} );
 			resetProgress();
 			if ( announce && srStatus ) {
+				// eslint-disable-next-line security/detect-object-injection
 				srStatus.textContent = slides[ idx ].getAttribute( 'aria-label' )
 					|| ( 'Slide ' + ( idx + 1 ) + ' de ' + slides.length );
 			}
@@ -269,7 +277,8 @@
 		}
 
 		function snapTo( idx ) {
-			var target = slides[ idx ];
+			// eslint-disable-next-line security/detect-object-injection
+			const target = slides[ idx ];
 			if ( ! target ) { return; }
 			hydrateSlideMedia( target );
 			// Marca animation activa para que el scroll listener no revierta el
@@ -300,7 +309,7 @@
 		}
 
 		function next( announce ) {
-			var idx = current + 1;
+			let idx = current + 1;
 			if ( idx >= slides.length ) {
 				if ( ! cfg.loop ) { return; }
 				idx = 0;
@@ -309,7 +318,7 @@
 		}
 
 		function prev( announce ) {
-			var idx = current - 1;
+			let idx = current - 1;
 			if ( idx < 0 ) {
 				if ( ! cfg.loop ) { return; }
 				idx = slides.length - 1;
@@ -318,13 +327,13 @@
 		}
 
 		// ---- Scroll-driven active detection (replaces transform manipulation) ----
-		var scrollDebounce = null;
+		let scrollDebounce = null;
 		track.addEventListener( 'wheel', function ( e ) {
-			var horizontalDelta = Math.abs( e.deltaX ) >= Math.abs( e.deltaY )
-				? e.deltaX
-				: ( e.shiftKey ? e.deltaY : 0 );
+			const shiftDelta = e.shiftKey ? e.deltaY : 0;
+			const horizontalDelta = Math.abs( e.deltaX ) >= Math.abs( e.deltaY ) ? e.deltaX : shiftDelta;
 			if ( 0 === horizontalDelta ) { return; }
-			var idx = physicalAdjacentIndex( horizontalDelta > 0 ? 1 : -1 );
+			const idx = physicalAdjacentIndex( horizontalDelta > 0 ? 1 : -1 );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( idx >= 0 ) { hydrateSlideMedia( slides[ idx ] ); }
 		}, { passive: true } );
 
@@ -332,10 +341,11 @@
 			// El swipe/scroll nativo puede comenzar sin pasar por un botón. En
 			// cuanto el gesto revela otro panel, materializar su media evita que
 			// permanezca vacío aunque el navegador haya originado el movimiento.
-			var liveWidth = track.clientWidth;
+			const liveWidth = track.clientWidth;
 			if ( liveWidth > 0 ) {
-				var visibleIdx = Math.round( track.scrollLeft / liveWidth );
+				let visibleIdx = Math.round( track.scrollLeft / liveWidth );
 				visibleIdx = Math.max( 0, Math.min( slides.length - 1, visibleIdx ) );
+				// eslint-disable-next-line security/detect-object-injection
 				hydrateSlideMedia( slides[ visibleIdx ] );
 			}
 
@@ -344,9 +354,9 @@
 				// Ignorar mientras snapTo() programático está animando — sino
 				// el listener detecta posición intermedia y revierte el slide.
 				if ( isDragging || snapAnimating ) { return; }
-				var width = track.clientWidth;
+				const width = track.clientWidth;
 				if ( width <= 0 ) { return; }
-				var idx = Math.round( track.scrollLeft / width );
+				let idx = Math.round( track.scrollLeft / width );
 				idx = Math.max( 0, Math.min( slides.length - 1, idx ) );
 				if ( idx !== current ) {
 					setActive( idx, false );
@@ -363,7 +373,7 @@
 		// limpiar animaciones inline los previos no pierden su fill.
 		function clearFills() {
 			segs.forEach( function ( seg ) {
-				var fill = seg.querySelector( '[data-akb-seg-fill]' );
+				const fill = seg.querySelector( '[data-akb-seg-fill]' );
 				if ( fill ) {
 					fill.style.animation = '';
 				}
@@ -372,7 +382,7 @@
 
 		function armActiveFill() {
 			clearFills();
-			var fill = activeFill();
+			const fill = activeFill();
 			if ( ! fill ) { return; }
 			fill.style.animation = 'none';
 			// Force reflow para reiniciar la animación.
@@ -383,6 +393,7 @@
 
 		function hasPauseReason() {
 			return Object.keys( pauseReasons ).some( function ( reason ) {
+				// eslint-disable-next-line security/detect-object-injection
 				return pauseReasons[ reason ];
 			} );
 		}
@@ -402,7 +413,7 @@
 			}
 			if ( ! canAutoplay() || null !== timerId ) { return; }
 
-			var fill = activeFill();
+			const fill = activeFill();
 			if ( fill ) {
 				fill.style.animationPlayState = 'running';
 			}
@@ -410,13 +421,14 @@
 			timerDeadline = Date.now() + remainingMs;
 			scheduleAutoplayMedia();
 			timerId = window.setTimeout( function () {
-				var targetIdx = autoplayTargetIndex();
+				const targetIdx = autoplayTargetIndex();
 				if ( targetIdx >= 0 ) {
 					// Garantía final: incluso si el warm-up fue cancelado por una
 					// pausa/reanudación, el picture existe antes de navegar.
+					// eslint-disable-next-line security/detect-object-injection
 					hydrateSlideMedia( slides[ targetIdx ] );
 				}
-				var previous = current;
+				const previous = current;
 				timerId = null;
 				remainingMs = cfg.interval;
 				next( false );
@@ -438,7 +450,7 @@
 				window.clearTimeout( timerId );
 				timerId = null;
 			}
-			var fill = activeFill();
+			const fill = activeFill();
 			if ( fill ) {
 				fill.style.animationPlayState = 'paused';
 			}
@@ -457,6 +469,7 @@
 		}
 
 		function setPauseReason( reason, paused ) {
+			// eslint-disable-next-line security/detect-object-injection
 			pauseReasons[ reason ] = !! paused;
 			if ( canAutoplay() ) {
 				startAutoplay( false );
@@ -486,6 +499,7 @@
 		// ---- Events: segmentos, arrows, pause/play, keyboard ----
 		segs.forEach( function ( seg, i ) {
 			function warmSegmentMedia() {
+				// eslint-disable-next-line security/detect-object-injection
 				hydrateSlideMedia( slides[ i ] );
 			}
 			seg.addEventListener( 'mouseenter', warmSegmentMedia );
@@ -499,7 +513,8 @@
 
 		if ( prevBtn ) {
 			function warmPreviousMedia() {
-				var idx = adjacentIndex( -1 );
+				const idx = adjacentIndex( -1 );
+				// eslint-disable-next-line security/detect-object-injection
 				if ( idx >= 0 ) { hydrateSlideMedia( slides[ idx ] ); }
 			}
 			prevBtn.addEventListener( 'mouseenter', warmPreviousMedia );
@@ -512,7 +527,8 @@
 		}
 		if ( nextBtn ) {
 			function warmNextMedia() {
-				var idx = adjacentIndex( 1 );
+				const idx = adjacentIndex( 1 );
+				// eslint-disable-next-line security/detect-object-injection
 				if ( idx >= 0 ) { hydrateSlideMedia( slides[ idx ] ); }
 			}
 			nextBtn.addEventListener( 'mouseenter', warmNextMedia );
@@ -534,7 +550,7 @@
 			// No secuestrar las flechas desde CTAs o contenido del slide: al cambiar
 			// de panel, el enlace enfocado quedaría dentro de aria-hidden. La
 			// navegación por flechas pertenece a los controles del carrusel.
-			var target = e.target;
+			const target = e.target;
 			if (
 				! target
 				|| ! target.closest
@@ -561,7 +577,7 @@
 		root.addEventListener( 'focusin', function () { setPauseReason( 'focus', true ); } );
 		root.addEventListener( 'focusout', function () {
 			window.setTimeout( function () {
-				setPauseReason( 'focus', root.contains( document.activeElement ) );
+				setPauseReason( 'focus', root.contains( document.documentElement.ownerDocument.activeElement ) );
 			}, 0 );
 		} );
 
@@ -577,7 +593,7 @@
 
 		// IO autoplay solo cuando el hero está en viewport.
 		if ( 'IntersectionObserver' in window ) {
-			var io = new IntersectionObserver( function ( entries ) {
+			const io = new IntersectionObserver( function ( entries ) {
 				entries.forEach( function ( entry ) {
 					inViewport = entry.isIntersecting;
 					if ( inViewport ) { startAutoplay( false ); }
@@ -632,7 +648,7 @@
 
 		document.addEventListener( 'mousemove', function ( e ) {
 			if ( ! isDragging ) { return; }
-			var dx = e.pageX - dragStartX;
+			const dx = e.pageX - dragStartX;
 			draggedPx = Math.abs( dx );
 			track.scrollLeft = dragStartScroll - dx;
 		} );
@@ -687,7 +703,7 @@
 	}
 
 	function bootAll() {
-		var heroes = document.querySelectorAll( '[data-akb-hero]' );
+		const heroes = document.querySelectorAll( '[data-akb-hero]' );
 		Array.prototype.forEach.call( heroes, function ( root ) {
 			try {
 				initHero( root );

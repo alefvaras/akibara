@@ -20,6 +20,9 @@ defined( 'ABSPATH' ) || exit;
  * Owns every Akibara Cart and Checkout Blocks Store API extension.
  *
  * @since 2.0.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class StoreApiIntegration {
 
@@ -133,40 +136,6 @@ final class StoreApiIntegration {
 	public function extend_cart_schema(): array {
 		return array(
 			'schema_version' => $this->readonly_schema( 'Versión del contrato de presentación del carrito.', 'integer' ),
-			'bundle'         => $this->readonly_object_schema(
-				'Estado estructurado de Build Your Pack.',
-				array(
-					'coupon_prefix'        => array( 'type' => 'string' ),
-					'coupon_labels'        => array(
-						'type'                 => 'object',
-						'additionalProperties' => array( 'type' => 'string' ),
-					),
-					'generic_coupon_label' => array( 'type' => 'string' ),
-					'notices'              => array(
-						'type'  => 'array',
-						'items' => array(
-							'type'       => 'object',
-							'properties' => array(
-								'id'               => array( 'type' => 'string' ),
-								'kind'             => array(
-									'type' => 'string',
-									'enum' => array( 'mixed_preventa', 'external_coupon', 'next_tier' ),
-								),
-								'tone'             => array(
-									'type' => 'string',
-									'enum' => array( 'info', 'warning' ),
-								),
-								'badge'            => array( 'type' => 'string' ),
-								'series_name'      => array( 'type' => 'string' ),
-								'title'            => array( 'type' => 'string' ),
-								'message'          => array( 'type' => 'string' ),
-								'missing_count'    => array( 'type' => 'integer' ),
-								'discount_percent' => array( 'type' => 'integer' ),
-							),
-						),
-					),
-				)
-			),
 			'free_shipping'  => $this->readonly_object_schema(
 				'Estado estructurado del beneficio de envío.',
 				array(
@@ -188,17 +157,6 @@ final class StoreApiIntegration {
 					'remaining'           => array( 'type' => 'number' ),
 					'progress_percent'    => array( 'type' => 'number' ),
 					'almost_there'        => array( 'type' => 'boolean' ),
-				)
-			),
-			'preventa'       => $this->readonly_object_schema(
-				'Resumen estructurado de preventas.',
-				array(
-					'count'         => array( 'type' => 'integer' ),
-					'is_mixed'      => array( 'type' => 'boolean' ),
-					'summary_label' => array( 'type' => 'string' ),
-					'summary_value' => array( 'type' => 'string' ),
-					'has_tba'       => array( 'type' => 'boolean' ),
-					'explanation'   => array( 'type' => 'string' ),
 				)
 			),
 			'trust_signals'  => array_merge(
@@ -228,7 +186,7 @@ final class StoreApiIntegration {
 	 * @since 2.0.0
 	 */
 	public function extend_cart_data(): array {
-		if ( ! method_exists( $this->data_provider, 'structured_cart_data' ) ) {
+		if ( ! method_exists( $this->data_provider, 'structured_cart_data' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return array( 'schema_version' => 0 );
 		}
 
@@ -236,10 +194,6 @@ final class StoreApiIntegration {
 		if ( self::SCHEMA_VERSION !== (int) ( $data['schema_version'] ?? 0 ) ) {
 			return array( 'schema_version' => 0 );
 		}
-
-		$bundle                  = is_array( $data['bundle'] ?? null ) ? $data['bundle'] : array();
-		$bundle['coupon_labels'] = (object) (array) ( $bundle['coupon_labels'] ?? array() );
-		$data['bundle']          = $bundle;
 
 		return $data;
 	}
@@ -255,24 +209,9 @@ final class StoreApiIntegration {
 		return array(
 			'stock_status' => array_merge(
 				$this->readonly_schema( 'Estado de stock canónico de Akibara.', 'string' ),
-				array( 'enum' => array( 'instock', 'onbackorder', 'outofstock' ) )
+				array( 'enum' => array( 'instock', 'outofstock' ) )
 			),
-			'reservation_price_label' => $this->readonly_schema( 'Etiqueta del precio vigente de reserva, vacía en ofertas reales.', 'string' ),
-			'reservation_price_note' => $this->readonly_schema( 'Explicación del precio futuro, sin modificar importes.', 'string' ),
-			'stock_label' => $this->readonly_schema( 'Etiqueta visible canónica del estado de stock.', 'string' ),
-			'is_preventa' => $this->readonly_schema( 'Indica si el producto se vende en preventa.', 'boolean' ),
-			'eta' => array(
-				'description' => 'Fecha o estado estimado de llegada de la preventa.',
-				'type'        => array( 'string', 'null' ),
-				'context'     => array( 'view', 'edit' ),
-				'readonly'    => true,
-			),
-			'eta_timestamp' => array(
-				'description' => 'Timestamp máximo de llegada; null cuando la fecha está por confirmar.',
-				'type'        => array( 'integer', 'null' ),
-				'context'     => array( 'view', 'edit' ),
-				'readonly'    => true,
-			),
+			'stock_label'  => $this->readonly_schema( 'Etiqueta visible canónica del estado de stock.', 'string' ),
 		);
 	}
 
@@ -290,17 +229,18 @@ final class StoreApiIntegration {
 			return array(
 				'stock_status' => 'outofstock',
 				'stock_label'  => 'Agotado',
-				'is_preventa'  => false,
-				'eta'           => null,
-				'eta_timestamp' => null,
 			);
 		}
 
-		return $this->availability( $product );
+		$avail = $this->availability( $product );
+		return array(
+			'stock_status' => (string) ( $avail['stock_status'] ?? 'instock' ),
+			'stock_label'  => (string) ( $avail['stock_label'] ?? 'Disponible' ),
+		);
 	}
 
 	/**
-	 * Appends canonical stock and preventa ETA labels to native item metadata.
+	 * Appends canonical stock labels to native item metadata.
 	 *
 	 * @internal
 	 *
@@ -334,25 +274,8 @@ final class StoreApiIntegration {
 		$availability = $this->availability( $product );
 		$item_data[]  = array(
 			'key'     => 'Estado',
-			'display' => $availability['stock_label'],
+			'display' => $availability['stock_label'] ?? 'Disponible',
 		);
-		if (
-			! empty( $availability['is_preventa'] )
-			&& is_string( $availability['eta'] ?? null )
-			&& '' !== trim( $availability['eta'] )
-		) {
-			$item_data[] = array(
-				'key'     => 'Llegada estimada a Akibara',
-				'display' => trim( $availability['eta'] ),
-			);
-		}
-
-		if ( ! empty( $availability['reservation_price_note'] ) ) {
-			$item_data[] = array(
-				'key'     => 'Precio futuro',
-				'display' => $availability['reservation_price_note'],
-			);
-		}
 
 		return $item_data;
 	}
@@ -376,7 +299,7 @@ final class StoreApiIntegration {
 			return $this->data_provider->product_availability( $product );
 		}
 
-		$key = $id . '|' . (string) $product->get_stock_status();
+		$key = $id . '|' . $product->get_stock_status();
 		if ( ! array_key_exists( $key, $this->availability_memo ) ) {
 			$this->availability_memo[ $key ] = $this->data_provider->product_availability( $product );
 		}

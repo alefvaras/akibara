@@ -67,11 +67,11 @@ final class FormLoginTemplateTest extends TestCase {
 
 		self::assertSame( 'Accede a Akibara', $defaults[ AccessWall::OPTION_TITLE ] );
 		self::assertSame(
-			'Elige cómo continuar para comprar, seguir tus pedidos y gestionar tus preventas.',
+			'Elige cómo continuar para comprar, seguir tus pedidos y gestionar tus puntos.',
 			$defaults[ AccessWall::OPTION_SUB ]
 		);
 		self::assertSame(
-			'Inicia sesión para seguir tus pedidos y gestionar tus preventas.',
+			'Inicia sesión para seguir tus pedidos y gestionar tus puntos.',
 			$defaults[ AccessWall::OPTION_SUB_LOGIN ]
 		);
 	}

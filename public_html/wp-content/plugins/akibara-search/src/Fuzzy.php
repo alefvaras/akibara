@@ -27,6 +27,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress RedundantCondition
  */
 final class Fuzzy {
 

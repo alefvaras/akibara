@@ -252,8 +252,8 @@ final class SeriesFactsTest extends TestCase {
 	private const ONE_PIECE = array(
 		'tomos'            => '107',
 		'instock'          => '31',
-		'preventa'         => '76',
-		'agotados'         => '0',
+		'preventa'         => '0',
+		'agotados'         => '76',
 		// Sin agotados, el `GROUP_CONCAT` de títulos no tiene nada que concatenar
 		// y MySQL devuelve NULL. Va explícito en la fila de referencia para que se
 		// vea que el caso "no hay lista" es el normal, no una omisión del doble.
@@ -581,12 +581,13 @@ final class SeriesFactsTest extends TestCase {
 	 */
 	public function test_does_not_repeat_the_result_count(): void {
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringNotContainsString( 'Tomos en catálogo', $text );
 		self::assertStringNotContainsString( '107', $text, 'El total vive en el contador de la toolbar, no acá.' );
 		// El desglose por estado sí está, y suma ese total sin afirmarlo.
 		self::assertStringContainsString( 'Disponible 31 tomos', $text );
-		self::assertStringContainsString( 'A pedido 76 tomos', $text );
+		self::assertStringContainsString( 'Agotado 76 tomos', $text );
 	}
 
 	/**
@@ -659,6 +660,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( PublicationStatus::ONGOING, '', PublicationStatus::ONGOING, '8' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringStartsWith( 'Edición Ivrea Argentina En publicación 8 tomos previstos Disponible', $text );
 		self::assertStringNotContainsString( 'Obra original', $text );
@@ -674,6 +676,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( PublicationStatus::ONGOING, '23', PublicationStatus::ONGOING, '8' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringStartsWith( 'Edición Ivrea Argentina En publicación 8 tomos previstos Disponible', $text );
 		self::assertStringNotContainsString( 'Obra original', $text );
@@ -690,6 +693,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( PublicationStatus::COMPLETE, '23', PublicationStatus::COMPLETE, '17' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringStartsWith(
 			'Edición Ivrea Argentina Completa en 17 tomos Obra original Finalizada en 23 tomos Disponible',
@@ -707,6 +711,7 @@ final class SeriesFactsTest extends TestCase {
 	 */
 	public function test_omits_the_publication_row_without_the_datum(): void {
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringNotContainsString( 'Edición Ivrea Argentina', $text );
 		self::assertStringNotContainsString( 'Obra original', $text );
@@ -724,6 +729,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( 'terminada', '23' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringNotContainsString( 'Edición Ivrea Argentina', $text );
 		self::assertStringNotContainsString( 'Obra original', $text );
@@ -741,6 +747,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( PublicationStatus::COMPLETE, '5' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Obra original Finalizada en 5 tomos', $text );
 	}
@@ -750,13 +757,12 @@ final class SeriesFactsTest extends TestCase {
 	 */
 	public function test_prints_the_real_counts(): void {
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		// El vocabulario sale de Stock\StockStatus::LABELS, la fuente única de
 		// las palabras que también rotulan las cards de abajo.
 		self::assertStringContainsString( 'Disponible 31 tomos', $text );
-		self::assertStringContainsString( 'A pedido 76 tomos', $text );
-		// Sin agotados el renglón no existe: su única función es cuadrar la suma.
-		self::assertStringNotContainsString( 'Agotado', $text );
+		self::assertStringContainsString( 'Agotado 76 tomos', $text );
 	}
 
 	/**
@@ -775,6 +781,7 @@ final class SeriesFactsTest extends TestCase {
 		) + self::ONE_PIECE;
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 12 tomos', $text );
 	}
@@ -795,7 +802,7 @@ final class SeriesFactsTest extends TestCase {
 		return array(
 			'tomos'            => '17',
 			'instock'          => '8',
-			'preventa'         => '5',
+			'preventa'         => '0',
 			'agotados'         => $count,
 			'agotados_titulos' => $titles,
 		) + self::ONE_PIECE;
@@ -818,6 +825,7 @@ final class SeriesFactsTest extends TestCase {
 		);
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		// Numérico, no lexicográfico: `ORDER BY post_title` habría publicado
 		// "11, 03, 06, 08" y el 11 primero es exactamente el error que hace
@@ -848,6 +856,7 @@ final class SeriesFactsTest extends TestCase {
 		);
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 4 tomos: 03, 06, 08 y 11', $text );
 	}
@@ -863,10 +872,10 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = $this->sold_out_row( "The Climber 03\x1eThe Climber 06", '2' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 2 tomos: 03 y 06', $text );
 		self::assertStringContainsString( 'Disponible 8 tomos', $text );
-		self::assertStringContainsString( 'A pedido 5 tomos', $text );
 	}
 
 	/**
@@ -881,6 +890,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = $this->sold_out_row( "One Piece 007\x1eOne Piece 024", '2' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( '007 y 024', $text );
 		self::assertStringNotContainsString( '7 y 24', $text );
@@ -914,6 +924,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = $this->sold_out_row( implode( "\x1e", $titles ), '19' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 19 tomos: 01, 02, 03, 04, 05, 06 y 13 más', $text );
 	}
@@ -932,6 +943,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = $this->sold_out_row( implode( "\x1e", $titles ), '7' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( '01, 02, 03, 04, 05, 06 y 07', $text );
 		self::assertStringNotContainsString( 'más', $text );
@@ -954,6 +966,7 @@ final class SeriesFactsTest extends TestCase {
 		);
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 4 tomos', $text );
 		self::assertStringNotContainsString( '03', $text );
@@ -1005,6 +1018,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = $this->sold_out_row( $concat, '60' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 60 tomos', $text );
 		self::assertStringNotContainsString( ':', $text );
@@ -1075,15 +1089,16 @@ final class SeriesFactsTest extends TestCase {
 	public function test_keeps_a_zero_count_for_a_real_state(): void {
 		$this->wpdb->row = array(
 			'instock'  => '0',
-			'preventa' => '107',
+			'agotados' => '107',
 		) + self::ONE_PIECE;
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		// "0 disponibles" NO es un hueco: es el dato (la serie entera está en
 		// preventa). Ocultarlo dejaría al lector suponiendo.
 		self::assertStringContainsString( 'Disponible 0 tomos', $text );
-		self::assertStringContainsString( 'A pedido 107 tomos', $text );
+		self::assertStringContainsString( 'Agotado 107 tomos', $text );
 	}
 
 	/**
@@ -1091,6 +1106,7 @@ final class SeriesFactsTest extends TestCase {
 	 */
 	public function test_prints_the_price_range(): void {
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Precios $9.500', $text );
 		self::assertStringContainsString( '$9.990', $text );
@@ -1105,7 +1121,7 @@ final class SeriesFactsTest extends TestCase {
 
 	/**
 	 * `wc_product_meta_lookup` guarda el precio en contexto `edit` (sin filtros)
-	 * y el descuento editorial de TaxonomyDiscount es filter-only: con una
+	 * y un descuento editorial en runtime es filter-only: con una
 	 * campaña vigente el rango de la lookup es el precio SIN descuento mientras
 	 * las cards de abajo muestran otro número. Se omite antes que contradecir a
 	 * la grilla.
@@ -1149,6 +1165,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( PublicationStatus::COMPLETE, '', PublicationStatus::ONGOING, '8' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Editoriales Ivrea Argentina, Panini Manga', $text );
 		self::assertStringNotContainsString( 'Edición Ivrea Argentina', $text );
@@ -1167,6 +1184,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->publication( PublicationStatus::COMPLETE, '', PublicationStatus::ONGOING, '8' );
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringNotContainsString( 'Edición ', $text );
 		self::assertStringStartsWith( 'Obra original Finalizada Disponible', $text );
@@ -1357,6 +1375,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = array( 'autores' => "Haro Aso\x1f501\x1eKotaro Takata\x1f502" ) + self::ONE_PIECE;
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Autores Haro Aso y Kotaro Takata', $text );
 	}
@@ -1376,6 +1395,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = array( 'autores' => implode( "\x1e", $pairs ) ) + self::ONE_PIECE;
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Autores Autor 01, Autor 02, Autor 03 y 7 más', $text );
 	}
@@ -1428,6 +1448,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = array( 'autores' => null ) + self::ONE_PIECE;
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringNotContainsString( 'Autor', $text );
 		self::assertStringContainsString( 'Editorial Ivrea Argentina', $text );
@@ -1559,6 +1580,7 @@ final class SeriesFactsTest extends TestCase {
 		);
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertStringContainsString( 'Agotado 4 tomos', $text );
 		self::assertStringNotContainsString( ':', $text, 'Sin la clave nueva, el renglón es el de antes.' );
@@ -1578,6 +1600,7 @@ final class SeriesFactsTest extends TestCase {
 		$this->wpdb->row = array( 'tomos' => '3', 'instock' => '3', 'preventa' => '0' ) + self::ONE_PIECE;
 
 		$text = $this->text( $this->render() );
+		self::assertNotEmpty( $text );
 
 		self::assertCount( 2, $this->wpdb->queries, 'Otro término, otra consulta.' );
 		self::assertArrayHasKey( 'akb_series_facts_v5_512', $this->transients );
@@ -1705,9 +1728,9 @@ final class SeriesFactsTest extends TestCase {
 		self::assertStringContainsString( 'COUNT(DISTINCT p.ID)', $sql );
 		self::assertStringNotContainsString( 'SUM(', $sql );
 		self::assertSame(
-			3,
+			2,
 			substr_count( $sql, 'COUNT(DISTINCT CASE WHEN' ),
-			'Los tres estados de stock se cuentan con DISTINCT sobre el id.'
+			'Los dos estados de stock se cuentan con DISTINCT sobre el id.'
 		);
 	}
 
@@ -1720,7 +1743,7 @@ final class SeriesFactsTest extends TestCase {
 
 		self::assertStringContainsString( 'wp_wc_product_meta_lookup l ON l.product_id = p.ID', $sql );
 		self::assertStringNotContainsString( '_stock_status', $sql, 'postmeta.meta_value no está indexado.' );
-		foreach ( array( 'instock', 'onbackorder', 'outofstock' ) as $status ) {
+		foreach ( array( 'instock', 'outofstock' ) as $status ) {
 			self::assertStringContainsString( "l.stock_status = '{$status}'", $sql );
 		}
 		self::assertStringContainsString( 'tr.term_taxonomy_id = 378', $sql );
@@ -1836,6 +1859,7 @@ final class SeriesFactsTest extends TestCase {
 			'woocommerce_product_set_stock'        => 'invalidate_product_object',
 			'save_post_product'                    => 'invalidate_product',
 			'before_delete_post'                   => 'invalidate_product',
+			'transition_post_status'               => 'invalidate_on_status_change',
 			'added_post_meta'                      => 'invalidate_on_product_meta_changed',
 			'updated_post_meta'                    => 'invalidate_on_product_meta_changed',
 			'deleted_post_meta'                    => 'invalidate_on_product_meta_changed',
@@ -2326,7 +2350,7 @@ final class SeriesFactsTest extends TestCase {
 	}
 
 	/**
-	 * Los conteos por estado ya los dicen los chips de «Arma tu pack», pegados a
+	 * Los conteos por estado ya los dicen los chips de disponibilidad, pegados a
 	 * la rejilla: repetirlos arriba es gastar la línea en lo que está dos líneas
 	 * más abajo.
 	 *
@@ -2620,5 +2644,95 @@ final class SeriesFactsTest extends TestCase {
 			->with( 'series facts unavailable' );
 
 		self::assertSame( '', $this->render() );
+	}
+
+	/**
+	 * @testdox Latest volume resolves numerically over ASCII order and out-of-stock volumes sort ascending.
+	 */
+	public function test_latest_volume_resolves_numerically_and_out_of_stock_sorts_ascending(): void {
+		// Caso 1: "One Piece 99" vs "One Piece 100" (en ASCII '9' > '1').
+		$row1 = array_merge(
+			self::ONE_PIECE,
+			array(
+				'ultimo_tomo'      => "One Piece 99\x1f1099\x1eOne Piece 100\x1f1100",
+				'agotados'         => 4,
+				'agotados_titulos' => "One Piece 100\x1eOne Piece 99\x1eOne Piece 2\x1eOne Piece 1",
+			)
+		);
+		$facts1 = \Akibara\Business\Modules\SeriesFacts\SeriesFactsShaper::shape( $row1 );
+
+		self::assertSame(
+			array( 'id' => 1100, 'numero' => 100 ),
+			$facts1['ultimo_tomo'],
+			'Debe elegir el tomo 100 (ID 1100) y no el 99 por orden lexicográfico.'
+		);
+		self::assertSame(
+			array( '1', '2', '99', '100' ),
+			$facts1['agotados_tomos'],
+			'Los tomos agotados deben ordenarse numéricamente de menor a mayor.'
+		);
+
+		// Caso 2: "Manga 9" vs "Manga 10".
+		$row2 = array_merge(
+			self::ONE_PIECE,
+			array(
+				'ultimo_tomo'      => "Manga 9\x1f9\x1eManga 10\x1f10",
+				'agotados'         => 2,
+				'agotados_titulos' => "Manga 10\x1eManga 9",
+			)
+		);
+		$facts2 = \Akibara\Business\Modules\SeriesFacts\SeriesFactsShaper::shape( $row2 );
+
+		self::assertSame(
+			array( 'id' => 10, 'numero' => 10 ),
+			$facts2['ultimo_tomo'],
+			'Debe elegir el tomo 10 y no el tomo 9.'
+		);
+		self::assertSame(
+			array( '9', '10' ),
+			$facts2['agotados_tomos'],
+			'Los tomos agotados deben salir ordenados numéricamente [9, 10].'
+		);
+	}
+
+	/**
+	 * @testdox Invalidate on status change drops series facts on publish/trash transitions and ignores non-product posts.
+	 */
+	public function test_status_change_invalidates_product_on_publish_or_trash_transitions(): void {
+		$module = new SeriesFacts();
+		$this->transients = array(
+			'akb_series_facts_v5_378' => array( 'tomos' => 107 ),
+		);
+		$this->wpdb->col = array( '378' );
+
+		$product_post = (object) array(
+			'ID'        => 4321,
+			'post_type' => 'product',
+		);
+
+		// 1. publish -> trash debe invalidar
+		$module->invalidate_on_status_change( 'trash', 'publish', $product_post );
+		self::assertArrayNotHasKey( 'akb_series_facts_v5_378', $this->transients );
+
+		// 2. trash -> publish debe invalidar
+		$this->transients['akb_series_facts_v5_378'] = array( 'tomos' => 107 );
+		$module->invalidate_on_status_change( 'publish', 'trash', $product_post );
+		self::assertArrayNotHasKey( 'akb_series_facts_v5_378', $this->transients );
+
+		// 3. draft -> pending no debe invalidar
+		$this->transients['akb_series_facts_v5_378'] = array( 'tomos' => 107 );
+		$queries_before = count( $this->wpdb->queries );
+		$module->invalidate_on_status_change( 'pending', 'draft', $product_post );
+		self::assertArrayHasKey( 'akb_series_facts_v5_378', $this->transients, 'Transición draft -> pending no toca el catálogo.' );
+		self::assertSame( $queries_before, count( $this->wpdb->queries ) );
+
+		// 4. Post que no es product no debe invalidar
+		$non_product = (object) array(
+			'ID'        => 9999,
+			'post_type' => 'post',
+		);
+		$module->invalidate_on_status_change( 'trash', 'publish', $non_product );
+		self::assertArrayHasKey( 'akb_series_facts_v5_378', $this->transients, 'Post que no es product no invalida series.' );
+		self::assertSame( $queries_before, count( $this->wpdb->queries ) );
 	}
 }

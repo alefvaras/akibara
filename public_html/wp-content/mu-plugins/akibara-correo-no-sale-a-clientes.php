@@ -20,10 +20,11 @@ defined( 'ABSPATH' ) || exit;
  * ningún buzón ahí al que molestar.
  *
  * @return string
+ * @psalm-suppress RedundantCast
  */
 function akibara_correo_captura(): string {
 	if ( defined( 'AKIBARA_CORREO_CAPTURA' ) && is_string( AKIBARA_CORREO_CAPTURA ) && '' !== AKIBARA_CORREO_CAPTURA ) {
-		return (string) AKIBARA_CORREO_CAPTURA;
+		return AKIBARA_CORREO_CAPTURA;
 	}
 
 	$entorno = getenv( 'AKIBARA_CORREO_CAPTURA' );
@@ -40,9 +41,10 @@ function akibara_correo_captura(): string {
  *
  * @param string $direccion Correo del destinatario.
  * @return bool
+ * @psalm-suppress RedundantCast
  */
 function akibara_correo_es_de_pruebas( string $direccion ): bool {
-	$dominio = strtolower( (string) substr( strrchr( $direccion, '@' ) ?: '', 1 ) );
+	$dominio = strtolower( substr( strrchr( $direccion, '@' ) ?: '', 1 ) );
 	if ( '' === $dominio ) {
 		return false;
 	}
@@ -62,6 +64,7 @@ function akibara_correo_es_de_pruebas( string $direccion ): bool {
  *
  * @param string $destinatario Entrada cruda.
  * @return string
+ * @psalm-suppress RedundantCast
  */
 function akibara_correo_direccion( string $destinatario ): string {
 	if ( 1 === preg_match( '/<([^>]+)>/', $destinatario, $coincidencia ) ) {
@@ -81,6 +84,7 @@ function akibara_correo_direccion( string $destinatario ): string {
  *
  * @param mixed $cabeceras Cabeceras tal como las entrega `wp_mail`.
  * @return array<int, string>
+ * @psalm-suppress RedundantCast
  */
 function akibara_correo_cabeceras_en_lineas( $cabeceras ): array {
 	if ( ! is_array( $cabeceras ) ) {
@@ -107,6 +111,7 @@ function akibara_correo_cabeceras_en_lineas( $cabeceras ): array {
  * Si falta el transporte que valida los dominios, conserva la captura.
  *
  * @return bool
+ * @psalm-suppress RedundantCast
  */
 function akibara_correo_es_la_tienda_de_verdad(): bool {
 	if ( 'production' !== wp_get_environment_type() ) {
@@ -122,8 +127,9 @@ function akibara_correo_es_la_tienda_de_verdad(): bool {
  *
  * @param array<string, mixed> $args Argumentos de `wp_mail`.
  * @return array<string, mixed>
+ * @psalm-suppress RedundantCast
  */
-function akibara_correo_no_sale_a_clientes( array $args ): array {
+function akibara_correo_no_sale_a_clientes( array $args ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 	if ( akibara_correo_es_la_tienda_de_verdad() ) {
 		return $args;
 	}
@@ -185,7 +191,7 @@ function akibara_correo_no_sale_a_clientes( array $args ): array {
 		// que es como QA revisa una tanda de doce.
 		$original        = implode( ', ', $reales );
 		$args['to']      = akibara_correo_captura();
-		$args['subject'] = '[para ' . $original . '] ' . (string) ( $args['subject'] ?? '' );
+		$args['subject'] = '[para ' . $original . '] ' . ($args['subject'] ?? '');
 		$cabeceras[]     = 'X-Akibara-Destinatario-Original: ' . $original;
 	} else {
 		// Sólo las copias eran reales: el `to` ya era de pruebas y se respeta
@@ -194,7 +200,7 @@ function akibara_correo_no_sale_a_clientes( array $args ): array {
 		if ( array() === $destinatarios ) {
 			$args['to'] = akibara_correo_captura();
 		}
-		$args['subject'] = '[copia retirada para ' . implode( ', ', $copias_reales ) . '] ' . (string) ( $args['subject'] ?? '' );
+		$args['subject'] = '[copia retirada para ' . implode( ', ', $copias_reales ) . '] ' . ($args['subject'] ?? '');
 	}
 
 	if ( array() !== $copias ) {

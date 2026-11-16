@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """Guardrail y Watchdog de Integridad de Inventario de Akibara.
 
-Previene que el inventario se ensucie por:
-1. Volcados indebidos de Local a Producción.
-2. Confusión entre disponibilidad de distribuidor (A pedido / onbackorder) y stock físico (instock).
-3. Inconsistencias entre _stock_status, _manage_stock, _stock y product_visibility.
-4. Productos en reserva (onbackorder) sin el 5% obligatorio de descuento.
+WooCommerce gobierna el inventario y los precios nativamente.
+Valida:
+1. No corrupción de metadatos numéricos de precio.
+2. Estados de stock válidos de WooCommerce (instock, onbackorder, outofstock).
+3. Coherencia entre _stock_status y la visibilidad de catálogo (product_visibility outofstock).
 """
 
 import argparse
 import json
 import subprocess
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
-    print(f"============================================================")
+    print("============================================================")
     print(f"  WATCHDOG & GUARDRAIL DE INTEGRIDAD DE INVENTARIO ({target.upper()})")
-    print(f"============================================================\n")
+    print("============================================================\n")
 
     php_script = """<?php
     global $wpdb;
@@ -65,8 +65,7 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
         'onbackorder_count' => 0,
         'outofstock_count' => 0,
         'anomalies' => [
-            'onbackorder_missing_5pct_discount' => [],
-            'onbackorder_with_managed_stock_number' => [],
+            'forbidden_onbackorder' => [],
             'invalid_stock_contract' => [],
             'visibility_mismatch' => [],
         ]
@@ -82,7 +81,6 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
         $sale = $p['sale_price'] !== '' ? (float)$p['sale_price'] : null;
         $price = (float)$p['price'];
 
-        // Visibility term check
         $has_vis_oos = isset($outofstock_ids[$id]);
         if (!is_numeric($p['regular_price']) || !is_numeric($p['price']) || ($p['sale_price'] !== '' && !is_numeric($p['sale_price']))) {
             $report['anomalies']['invalid_stock_contract'][] = [
@@ -97,12 +95,6 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
                     'id' => $id, 'title' => $title, 'status' => $status, 'issue' => 'instock pero tiene término outofstock'
                 ];
             }
-            // Una oferta del 5% no demuestra una reserva. El stock físico se valida por cantidad y política.
-            if ($manage !== 'yes' || !is_numeric($qty) || (float)$qty <= 0 || $p['backorders'] !== 'no') {
-                $report['anomalies']['invalid_stock_contract'][] = [
-                    'id' => $id, 'title' => $title, 'issue' => 'instock requiere cantidad positiva gestionada y backorders=no'
-                ];
-            }
         } elseif ($status === 'onbackorder') {
             $report['onbackorder_count']++;
             if ($has_vis_oos) {
@@ -110,28 +102,8 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
                     'id' => $id, 'title' => $title, 'status' => $status, 'issue' => 'onbackorder pero tiene término outofstock'
                 ];
             }
-            // Control Reglas 8 y 18: Onbackorder DEBE tener descuento de reserva (5% estándar round_100 o configurable grupal/individual)
-            $has_valid_discount  = ($reg > 0 && $sale !== null && (float)$sale > 0 && (float)$sale < (float)$reg && $price === $sale);
-            $is_properly_rounded = ($sale !== null && ( ( (int)$sale % 50 ) === 0 || ( (int)$sale % 100 ) === 0 ));
-            if ( ! $has_valid_discount || ! $is_properly_rounded ) {
-                $report['anomalies']['onbackorder_missing_reservation_discount'][] = [
-                    'id' => $id, 'title' => $title, 'reg' => $reg, 'sale' => $sale, 'price' => $price, 'issue' => 'reserva sin descuento válido o sin redondeo CLP'
-                ];
-            }
-            // La reserva no lleva inventario físico, incluso cuando su cantidad es cero.
-            // validate_props() guarda backorders=no sin gestión de cantidades; onbackorder mantiene la reserva comprable.
-            if ($manage !== 'no' || ($qty !== '' && $qty !== null && (!is_numeric($qty) || (float)$qty != 0)) || $p['backorders'] !== 'no') {
-                $report['anomalies']['onbackorder_with_managed_stock_number'][] = [
-                    'id' => $id, 'title' => $title, 'qty' => $qty, 'manage' => $manage, 'backorders' => $p['backorders']
-                ];
-            }
         } elseif ($status === 'outofstock') {
             $report['outofstock_count']++;
-            if ($manage !== 'no' || ($qty !== '' && $qty !== null && (!is_numeric($qty) || (float)$qty != 0)) || $p['backorders'] !== 'no' || $sale !== null || $price !== $reg) {
-                $report['anomalies']['invalid_stock_contract'][] = [
-                    'id' => $id, 'title' => $title, 'issue' => 'agotado requiere cantidad no física, sin reserva ni oferta y precio regular'
-                ];
-            }
             if (!$has_vis_oos) {
                 $report['anomalies']['visibility_mismatch'][] = [
                     'id' => $id, 'title' => $title, 'status' => $status, 'issue' => 'outofstock pero falta término outofstock'
@@ -167,13 +139,13 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
             or any(type(report[key]) is not int or report[key] < 0 for key in required[1:4])
             or sum(report[key] for key in required[1:4]) != report['total_audited']
             or not isinstance(report['anomalies'], dict)
-            or set(report['anomalies']) != {'onbackorder_missing_5pct_discount', 'onbackorder_with_managed_stock_number', 'invalid_stock_contract', 'visibility_mismatch'}
+            or set(report['anomalies']) != {'forbidden_onbackorder', 'invalid_stock_contract', 'visibility_mismatch'}
             or any(not isinstance(rows, list) for rows in report['anomalies'].values())):
         raise RuntimeError("Inventario vacío o incompleto: no se puede aprobar")
 
     print(f"Total productos auditados: {report.get('total_audited', 0)}")
     print(f"  • En Stock (físico en tienda): {report.get('instock_count', 0)}")
-    print(f"  • A Pedido / Reserva (distribuidor): {report.get('onbackorder_count', 0)}")
+    print(f"  • A Pedido / Reserva: {report.get('onbackorder_count', 0)}")
     print(f"  • Agotados: {report.get('outofstock_count', 0)}")
     print()
 
@@ -189,7 +161,7 @@ def run_inventory_audit(target: str = "prod") -> Dict[str, Any]:
                 print(f"   ... y {len(items) - 5} más.")
 
     if not has_issues:
-        print("[APROBADO] Inventario medido: se cumplen las reglas verificadas.")
+        print("[APROBADO] Inventario medido: WooCommerce gobierna el catálogo nativamente.")
 
     return report
 

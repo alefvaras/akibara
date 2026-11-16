@@ -106,34 +106,6 @@ final class DemandRankingTest extends TestCase {
 		self::assertSame( 8, $rows[0]['vol'] );
 	}
 
-	public function test_unowned_title_requests_rank_with_triple_weight_and_editorial(): void {
-		$rows = AdminDashboard::score_demand(
-			array(),
-			array(),
-			array(),
-			array(
-				array( 'query' => 'inuyasha kanzenban 01', 's90' => 1, 's30' => 1 ),
-			),
-			array(),
-			array(),
-			array(
-				'inuyasha kanzenban 01' => array(
-					'title'     => 'InuYasha (Edición Integral) 01',
-					'editorial' => 'Panini',
-					'intent'    => 'a_pedido',
-					'count'     => 3,
-				),
-			)
-		);
-
-		self::assertCount( 1, $rows );
-		self::assertSame( 'gap', $rows[0]['type'] );
-		self::assertSame( 'InuYasha (Edición Integral) 01', $rows[0]['query'] );
-		self::assertSame( 'Panini', $rows[0]['editorial'] );
-		self::assertSame( 3, $rows[0]['solicitudes'] );
-		self::assertSame( 3 * 3 + 2 * 1, $rows[0]['score'], 'Cada solicitud pesa x3 y cada búsqueda x2.' );
-	}
-
 	public function test_continuity_requires_a_streak_and_reads_the_next_volume(): void {
 		$resultado = AdminDashboard::continuity_from_maps(
 			array(

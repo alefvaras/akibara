@@ -639,7 +639,7 @@ final class SearchAdminPanelUxTest extends TestCase {
 		);
 
 		foreach ( $cases as $expected_hook => $hooks ) {
-			$admin_page_hooks = $hooks;
+			$GLOBALS['admin_page_hooks'] = $hooks;
 
 			$enqueued = $this->enqueue_on_hooks( array( $expected_hook, 'edit.php', 'toplevel_page_akibara-panel' ) );
 

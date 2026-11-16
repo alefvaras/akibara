@@ -35,7 +35,7 @@ class WC_Correios_Update_Credentials_Endpoint
 
             // Validate input parameters
             if (empty($store_id) || !is_string($store_id) || empty($credentials) || !is_array($credentials) || !isset($credentials['clientKey']) || !isset($credentials['clientSecret'])) {
-                bluex_log('error', 'Invalid parameters for update_credentials endpoint. StoreID: ' . print_r($store_id, true) . ' Credentials: ' . print_r($credentials, true));
+                bluex_log('error', 'Invalid parameters for update_credentials endpoint. StoreID: ' . print_r($store_id, true));
                 return new WP_REST_Response([
                     'success' => false,
                     'message' => __('Parámetros inválidos o faltantes (storeId, credentials with clientKey/clientSecret).', 'woocommerce-correios')

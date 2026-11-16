@@ -5,7 +5,7 @@
  * Mapa de vías de correo de la casa (no hay una cuarta):
  *
  *   1. Correos con plantilla y ajustes en WooCommerce → Correos: subclases de
- *      {@see AkibaraEmail} (stock, series, preventas). Es la vía preferida.
+ *      {@see AkibaraEmail} (stock, series). Es la vía preferida.
  *   2. Correos ad-hoc sin pantalla de ajustes (alta en lista de espera,
  *      recordatorio de transferencia): ESTA clase.
  *   3. Correos del programa de puntos: `Akibara\Rewards\Points\Emails`, que vive
@@ -30,6 +30,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.0
+ * @api
  */
 final class EmailTemplateGateway {
 

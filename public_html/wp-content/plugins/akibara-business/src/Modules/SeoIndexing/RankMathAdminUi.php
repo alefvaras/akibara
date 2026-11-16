@@ -19,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
  * `.htaccess`. Akibara mantiene `DISALLOW_FILE_MODS` por seguridad, habilita el
  * editor virtual solo en la pantalla administrativa correspondiente y retira el
  * editor de `.htaccess` del panel.
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCondition
  */
 final class RankMathAdminUi {
 

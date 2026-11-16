@@ -1,0 +1,57 @@
+# Akibara permite búsqueda, citas, grounding y entrenamiento de IA. La visibilidad
+# en Google y en asistentes de IA (ChatGPT, Claude, Gemini, Perplexity y otros) es
+# un objetivo comercial del sitio: todos los bots reciben las mismas reglas de
+# higiene que los buscadores. Política v16 (2026-08-08): idéntica a v15 sin el slug
+# /finalizar-compra/, que nunca existió en prod (el checkout real es /checkout/, page 9083).
+
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+
+# WordPress core
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /xmlrpc.php
+Disallow: /wp-cron.php
+
+# Private commerce pages
+Disallow: /carrito/
+Disallow: /checkout/
+Disallow: /mi-cuenta/
+
+# APIs and internal endpoints
+Disallow: /wp-json/
+Disallow: /trackback/
+
+# Internal search results
+Disallow: /?s=
+Disallow: /search/
+
+# Query-driven catalog variants and utility actions remain crawlable so
+# Akibara Business can return their noindex,follow directive.
+
+# Feeds
+Disallow: /*/feed/
+Disallow: /feed/
+Disallow: /comments/feed/
+
+# Storebot-Google valida el flujo de compra para Merchant Center: necesita
+# carrito y checkout. Esas páginas siguen noindex,follow via Akibara Business.
+User-agent: Storebot-Google
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /xmlrpc.php
+Disallow: /wp-cron.php
+Disallow: /wp-json/
+Allow: /wp-json/wc/store/
+Disallow: /trackback/
+Disallow: /mi-cuenta/
+Disallow: /?s=
+Disallow: /search/
+Disallow: /*/feed/
+Disallow: /feed/
+Disallow: /comments/feed/
+
+Sitemap: https://akibara.cl/sitemap_index.xml

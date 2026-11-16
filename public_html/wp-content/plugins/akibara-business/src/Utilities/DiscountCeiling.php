@@ -2,10 +2,7 @@
 /**
  * DiscountCeiling — el tope máximo de descuento de la tienda, en UN solo lugar.
  *
- * Hasta 1.110.0 el 15% estaba clavado DOS veces —`TaxonomyDiscount\Settings::MAX_PCT`
- * (descuento editorial) y `SeriesBundles\VolumeTierResolver::PCT_MAX` (Arma tu Pack)—
- * y el dueño no tenía dónde cambiarlo. Son el mismo número de negocio: un techo de
- * margen. Vive acá, fuera de los dos módulos, para que ninguno sea dueño del otro.
+ * El dueño lo configura como un techo de margen.
  *
  * Por qué hay techo duro: un % se aplica sobre el precio regular y, sumado al envío
  * gratis, puede vender BAJO COSTO. El campo del panel acota 1..90 y este sanitizado
@@ -22,6 +19,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.1
+ * @api
  */
 final class DiscountCeiling {
 

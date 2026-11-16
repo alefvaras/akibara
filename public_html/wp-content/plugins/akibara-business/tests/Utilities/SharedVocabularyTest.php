@@ -16,7 +16,6 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Utilities;
 
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
 use Akibara\Business\Utilities\StoreTime;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -53,7 +52,7 @@ final class SharedVocabularyTest extends TestCase {
 				'noviembre',
 				'diciembre',
 			),
-			array_map( static fn( int $n ): string => PedidoPolicy::mes( $n ), range( 1, 12 ) )
+			array_map( static fn( int $n ): string => StoreTime::mes( $n ), range( 1, 12 ) )
 		);
 	}
 
@@ -63,7 +62,7 @@ final class SharedVocabularyTest extends TestCase {
 	 * @dataProvider fuera_de_rango
 	 */
 	public function test_fuera_de_rango_devuelve_vacio( int $mes ): void {
-		self::assertSame( '', PedidoPolicy::mes( $mes ) );
+		self::assertSame( '', StoreTime::mes( $mes ) );
 	}
 
 	/**
@@ -89,7 +88,7 @@ final class SharedVocabularyTest extends TestCase {
 			if ( ! $file instanceof \SplFileInfo || 'php' !== $file->getExtension() ) {
 				continue;
 			}
-			if ( false !== strpos( $file->getPathname(), '/EstimatedDelivery/PedidoPolicy.php' ) ) {
+			if ( false !== strpos( $file->getPathname(), '/Utilities/StoreTime.php' ) ) {
 				continue;
 			}
 
@@ -105,7 +104,7 @@ final class SharedVocabularyTest extends TestCase {
 		self::assertSame(
 			array(),
 			$ofensores,
-			'Los meses completos se declaran SOLO en PedidoPolicy; se leen por PedidoPolicy::mes().'
+			'Los meses completos se declaran SOLO en StoreTime; se leen por StoreTime::mes().'
 		);
 	}
 

@@ -20,6 +20,8 @@ defined( 'ABSPATH' ) || exit;
  * Guest order linking prompt controller.
  *
  * @since 1.107.8
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class GuestOrderLinking {
 

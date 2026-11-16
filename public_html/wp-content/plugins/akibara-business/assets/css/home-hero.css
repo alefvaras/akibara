@@ -180,6 +180,7 @@
 	z-index: 4;
 	pointer-events: none;
 	--vop: calc(var(--akb-hero-vignette, 50) * 1%);
+
 	/*
 	 * Limita la proporción del color-mix a 96% para que factores mayores que uno no generen
 	 * porcentajes inválidos ni oculten la viñeta.
@@ -200,6 +201,7 @@
 }
 
 /* ---- Content: H1, lede, CTAs ---- */
+
 /* Base — sin modifier el contenido está ABSENT del DOM (PHP no lo emite).
  * Las clases de posición (--bottom-left, etc) definen left/top/transform. */
 .akb-hero__content {
@@ -218,6 +220,7 @@
 
 /* En mobile la banda halftone del filo va más fina. */
 @media (max-width: 768px) {
+
 	.akb-hero::after { height: 46px; opacity: 0.4; }
 }
 
@@ -227,39 +230,47 @@
 	top: clamp(18px, 8%, 80px);
 	left: clamp(18px, 5%, 72px);
 }
+
 .akb-hero__content--top-center {
 	top: clamp(18px, 8%, 80px);
 	left: 50%;
 	transform: translateX(-50%);
 }
+
 .akb-hero__content--top-right {
 	top: clamp(18px, 8%, 80px);
 	right: clamp(18px, 5%, 72px);
 }
+
 .akb-hero__content--middle-left {
 	top: 50%;
 	left: clamp(18px, 5%, 72px);
 	transform: translateY(-50%);
 }
+
 .akb-hero__content--middle-center {
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
 }
+
 .akb-hero__content--middle-right {
 	top: 50%;
 	right: clamp(18px, 5%, 72px);
 	transform: translateY(-50%);
 }
+
 .akb-hero__content--bottom-left {
 	bottom: clamp(18px, 8%, 80px);
 	left: clamp(18px, 5%, 72px);
 }
+
 .akb-hero__content--bottom-center {
 	bottom: clamp(18px, 8%, 80px);
 	left: 50%;
 	transform: translateX(-50%);
 }
+
 .akb-hero__content--bottom-right {
 	bottom: clamp(18px, 8%, 80px);
 	right: clamp(18px, 5%, 72px);
@@ -267,17 +278,21 @@
 
 /* ---- Alineación de texto dentro del bloque ---- */
 .akb-hero__content--align-left   { text-align: left; }
+
 .akb-hero__content--align-center { text-align: center; }
+
 .akb-hero__content--align-right  { text-align: right; }
 
 /* Cuando el contenido está alineado al centro, los CTAs también */
 .akb-hero__content--align-center .akb-hero__actions { justify-content: center; }
+
 .akb-hero__content--align-right  .akb-hero__actions { justify-content: flex-end; }
 
 /* El title con max-width 9ch tiene sentido solo cuando align-left.
  * En center/right anchamos para que el texto largo no se vea apretado. */
 .akb-hero__content--align-center .akb-hero__title,
-.akb-hero__content--align-right  .akb-hero__title { max-width: none; }
+.akb-hero__content--align-right  .akb-hero__title { max-width: none; padding-left: 0; }
+
 .akb-hero__content--align-center .akb-hero__lede,
 .akb-hero__content--align-right  .akb-hero__lede  { margin-left: auto; margin-right: auto; }
 
@@ -287,6 +302,7 @@
  */
 .akb-hero__eyebrow {
 	display: inline-block;
+
 	/*
 	 * El margen 14px mantiene separación óptica entre eyebrow y título. Como el stack está anclado
 	 * abajo, el margen desplaza el eyebrow sin mover el título.
@@ -300,6 +316,7 @@
 	border-radius: 0;
 	font-family: var(--font-heading, "Bebas Neue", sans-serif);
 	font-size: 0.78rem;
+
 	/* Bebas solo tiene corte 400: pedir 700 producía faux bold sintetizado. */
 	font-weight: 400;
 	font-synthesis: none;
@@ -319,6 +336,7 @@
 	font-size: 5.4rem; /*
 	font-size: 5.4rem;  * Escala del título ajustada a la condensación de la fuente Bebas.
 	font-size: 5.4rem;  */
+
 	/* Fallback 400, no 900: Bebas no tiene black — el 900 se sintetizaba y
 	   emborronaba el display más grande del sitio. El custom property permite
 	   override por-slide si algún día se carga una familia con pesos reales. */
@@ -327,6 +345,7 @@
 	line-height: 0.94;
 	letter-spacing: 0;
 	text-transform: uppercase;
+
 	/* Sombra dura proyectada (no blur): lenguaje neo-brutalista de la marca, no el
 	   blur suave tipo "hero de IA" que heredaba de .akb-hero__content. */
 	text-shadow: 3px 3px 0 var(--aki-black, #000);
@@ -342,14 +361,14 @@
 	width: 7px;
 	background: var(--aki-red, #E60012);
 	pointer-events: none;
+
 	/* Estampa de tinta vertical para el intro GSAP: crece desde arriba. En reposo
 	   --akb-hero-bar-scale = 1 (identidad, sin cambio visual); el intro la lleva
 	   0→1. transform-origin top = "se dibuja" de arriba hacia abajo (gesto manga). */
 	transform: scaleY(var(--akb-hero-bar-scale, 1));
 	transform-origin: top center;
 }
-.akb-hero__content--align-center .akb-hero__title,
-.akb-hero__content--align-right  .akb-hero__title { padding-left: 0; }
+
 .akb-hero__content--align-center .akb-hero__title::before,
 .akb-hero__content--align-right  .akb-hero__title::before { display: none; }
 
@@ -361,6 +380,7 @@
 	font-size: var(--text-base, 1rem);
 	font-weight: var(--akb-hero-lede-weight, 400);
 	line-height: 1.35;
+
 	/*
 	 * Evita palabras huérfanas en el título móvil cuando el navegador admite el balance de texto.
 	 */
@@ -368,11 +388,10 @@
 }
 
 .akb-hero__lede--glass {
-	background: rgba(0, 0, 0, 0.45);
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
+	background: rgba(0, 0, 0, 0.72);
 	padding: 8px 14px;
 	border-radius: 0;
+
 	/*
 	 * El texto usa blanco como valor inicial y respeta el color elegido desde el panel.
 	 */
@@ -383,6 +402,7 @@
 .akb-hero__lede--shadow {
 	text-shadow: 1px 1px 2px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5);
 	font-weight: calc(var(--akb-hero-lede-weight, 400) + 100); /* Un poco más grueso */
+
 	/* Ídem glass: default blanco, el picker del admin gana. */
 	color: var(--akb-hero-lede-color, var(--aki-white, #fff));
 }
@@ -461,6 +481,7 @@
 .akb-hero__action--manga {
 	border-color: color-mix(in srgb, var(--aki-white, #fff) 48%, transparent);
 	color: var(--aki-white, #fff);
+
 	/*
 	 * La sombra dura identifica exclusivamente la acción primaria.
 	 */
@@ -547,7 +568,9 @@
  * botón dedicado 44×44; elegir segmento no cambia la pausa.
  */
 @keyframes akb-hero-progress {
+
 	from { transform: scaleX(0); }
+
 	to   { transform: scaleX(1); }
 }
 
@@ -588,6 +611,7 @@
 	top: 50%;
 	height: 5px;
 	margin-top: -2.5px;
+
 	/*
 	 * El riel translúcido claro y su línea oscura mantienen visibles también los segmentos
 	 * inactivos sobre arte oscuro o claro. El fill de autoplay anima sobre ese riel estable.
@@ -704,7 +728,7 @@
 	padding: 0;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
 }
@@ -721,6 +745,7 @@
 	height: 56px;
 	padding: 0;
 	border: none;
+
 	/*
 	 * El paralelogramo vive en ::before; el botón conserva un anillo de foco sin clip-path.
 	 * isolation contiene el fondo con z-index negativo.
@@ -744,9 +769,7 @@
 	inset: 0;
 	z-index: -1;
 	clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-	background: color-mix(in srgb, var(--aki-black, #000) 80%, transparent);
-	backdrop-filter: blur(6px);
-	-webkit-backdrop-filter: blur(6px);
+	background: color-mix(in srgb, var(--aki-black, #000) 88%, transparent);
 	transition: background var(--transition-fast, 150ms);
 }
 
@@ -765,6 +788,7 @@
 }
 
 .akb-hero__arrow--prev { left: 18px; }
+
 .akb-hero__arrow--next { right: 18px; }
 
 /*
@@ -778,6 +802,7 @@
 .akb-hero__arrow:focus-visible {
 	outline: var(--aki-focus-outline, 2px solid var(--aki-white, #fff));
 	outline-offset: 2px;
+
 	/* Una sola forma del foco de la casa: sin el anillo global de box-shadow
 	   (tokens.css), que sin el clip-path ya no se recorta y se sumaba al
 	   outline como un segundo borde blanco y negro. */
@@ -796,6 +821,7 @@
  * para que ≤768 tenga UN solo dueño — el solape 601-900/≤768 anterior era la
  * causa raíz del recorte tablet (y presa fácil del reorden del minificador). */
 @media (max-width: 900px) and (min-width: 769px) {
+
 	.akb-hero__viewport {
 		aspect-ratio: 1200 / 750;
 		max-height: 560px;
@@ -819,6 +845,7 @@
  * para alojar el stack. Mantiene el encuadre de escritorio de --akb-hero-objpos-desktop.
  */
 @media (min-width: 901px) and (max-width: 1199px) {
+
 	.akb-hero__viewport {
 		aspect-ratio: 1200 / 750;
 		max-height: min(560px, var(--akb-hero-height-desktop, 700px));
@@ -826,6 +853,7 @@
 }
 
 @media (max-width: 768px) {
+
 	/*
 	 * En móvil, imagen y contenido forman una columna de altura natural. El track sale de posición
 	 * absoluta para extender el viewport y evitar que el hero colapse o se solape con la sección
@@ -856,6 +884,7 @@
 		inset: auto;
 		width: 100%;
 		flex: 0 0 auto;
+
 		/* Altura mobile: la imagen tiende a 108vw (look vertical) PERO acotada a
 		 * [40vh, 50vh] para que h1/lede/CTA queden arriba del fold y del bottom-nav.
 		 * CLAVE 1 — 108vw va como valor PREFERIDO del clamp, NO como piso: con 108vw
@@ -926,9 +955,7 @@
 		border-top: 0;
 		border-radius: 0;
 		border: 1px solid rgba(255,255,255,0.1);
-		background: color-mix(in srgb, var(--aki-black, #000) 62%, transparent);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+		background: color-mix(in srgb, var(--aki-black, #000) 78%, transparent);
 		text-shadow: 0 1px 8px color-mix(in srgb, var(--aki-black, #000) 70%, transparent);
 	}
 
@@ -945,9 +972,7 @@
 		border-top: 0;
 		border-radius: 0;
 		border: 1px solid rgba(255,255,255,0.1);
-		background: color-mix(in srgb, var(--aki-black, #000) 55%, transparent);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+		background: color-mix(in srgb, var(--aki-black, #000) 72%, transparent);
 		text-align: center;
 		text-shadow: 0 1px 8px color-mix(in srgb, var(--aki-black, #000) 70%, transparent);
 	}
@@ -1033,11 +1058,16 @@
 }
 
 @media (max-width: 380px) {
+
 	.akb-hero__title { font-size: 2.8rem; }
+
 	.akb-hero__lede  { font-size: var(--text-xs, 0.75rem); }
+
 	.akb-hero__action { font-size: var(--text-xs, 0.75rem); }
+
 	.akb-hero__action--manga,
 	.akb-hero__action--comics { font-size: 0.8rem; }
+
 	/* La brecha primario/secundario se mantiene también en viewports mínimos. */
 	.akb-hero__action--shop { font-size: 0.85rem; }
 }
@@ -1045,14 +1075,18 @@
 /* ---- Hide/show modifiers del indicador (ex flags de dots del admin;
  * el Renderer los ignora con autoplay activo — guard WCAG 2.2.2) ---- */
 @media (min-width: 769px) {
+
 	.akb-hero__progress--hide-desktop { display: none; }
 }
+
 @media (max-width: 768px) {
+
 	.akb-hero__progress--hide-mobile { display: none; }
 }
 
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-hero {
 		animation: none;
 		opacity: 1;
@@ -1089,6 +1123,7 @@
  * Renderer.
  */
 @media (max-width: 768px) {
+
 	/* Banda de respiro (fallback vh; el override svh vive en el @supports de
 	 * abajo — LiteSpeed dedupea propiedades repetidas en la MISMA regla). */
 	.akb-hero__slide[data-mobile-layout="below"] {
@@ -1105,6 +1140,7 @@
 		position: absolute;
 		left: 14px;
 		right: 14px;
+
 		/* bottom:12 MÍNIMO — con 10px el CTA pierde el fold por 1px en
 		 * iPhone SE (navTop 487). */
 		bottom: 12px;
@@ -1235,7 +1271,9 @@
 	 * GRANDE (~750) e inflaría imagen y banda; svh es ESTABLE al colapsar
 	 * toolbars (una @media min-height SÍ flapea al scrollear). */
 	@supports (height: 100svh) {
+
 		.akb-hero__slide[data-mobile-layout="below"] {
+
 			/* Banda continua: crece 1px por px de altura sobrante.
 			 * 596 = 42 announcement + 73 header + 421 imagen (108vw en 390)
 			 *     + 66 bottom-nav + 20 margen − 26 (caja cuelga: bottom 12
@@ -1267,7 +1305,9 @@
  * pliegue. Este bloque sigue al de 768px para ganar con igual especificidad.
  */
 @media (min-width: 601px) and (max-width: 768px) {
+
 	.akb-hero__img {
+
 		/* Fallback anidado a center 50% (no center 80%): si la var tablet no
 		 * llega por un bug, mejor fallar hacia arriba que decapitar. */
 		object-position: var(--akb-hero-objpos-tablet, var(--akb-hero-objpos-mobile, center 50%));
@@ -1306,6 +1346,7 @@
 	/* Overrides svh — MISMA anatomía @supports-aparte que el bloque phone
 	 * (el minificador LiteSpeed dedupea propiedades repetidas en una regla). */
 	@supports (height: 100svh) {
+
 		.akb-hero__slide[data-mobile-layout="below"] {
 			--akb-hero-band: clamp(0px, 100svh - 175px - clamp(475px, 71svh, 700px), 60px);
 		}
@@ -1322,6 +1363,7 @@
 /* Reduced transparency: el usuario pidió menos capas translúcidas — el scrim en
  * gradiente se retira y vuelve el panel sólido (la caja) como fallback legible. */
 @media (max-width: 768px) and (prefers-reduced-transparency: reduce) {
+
 	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content {
 		padding: 12px 14px 14px;
 		background: var(--aki-surface, #0f0f10);
@@ -1336,6 +1378,7 @@
 /* Windows High Contrast: los gradientes se eliminan por plataforma — panel con
  * colores del sistema para que el texto nunca flote sobre el arte sin fondo. */
 @media (max-width: 768px) and (forced-colors: active) {
+
 	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__content {
 		padding: 12px 14px 14px;
 		background: Canvas;
@@ -1353,6 +1396,7 @@
  * cascada contra el selector de atributo (0,3,0) de arriba. Acá gana por venir
  * después con la misma especificidad. */
 @media (max-width: 380px) {
+
 	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--manga,
 	.akb-hero__slide[data-mobile-layout="below"] .akb-hero__action--comics {
 		font-size: 0.85rem;

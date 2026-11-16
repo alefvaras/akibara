@@ -13,6 +13,7 @@
 	flex-direction: column;
 	gap: 14px;
 }
+
 .akb-facet {
 	counter-increment: akb-facet-idx;
 	border-bottom: 1px solid rgba( 255, 255, 255, 0.08 );
@@ -28,6 +29,7 @@
 	font-weight: 700; color: inherit; cursor: pointer; text-align: left;
 	font-family: inherit;
 }
+
 .akb-facet-title::before {
 	content: counter(akb-facet-idx, decimal-leading-zero) " // ";
 	color: var( --aki-red, #E60012 );
@@ -37,8 +39,10 @@
 	letter-spacing: 0.05em;
 	margin-right: 4px;
 }
+
 .akb-facet-title:hover { color: var( --aki-red-text, #ff4756 ); } /* rojo para TEXTO sobre oscuro (5,6:1); --aki-red mide 3,9:1 acá */
 .akb-facet-title:focus-visible { outline: 2px solid var( --aki-red, #E60012 ); outline-offset: 2px; }
+
 /*
  * Restablecer el fondo de los botones sin caja en todos sus estados interactivos.
  * GeneratePress aplica button:hover/:focus con #3f4047; una regla que sólo cambia el color no
@@ -48,13 +52,17 @@
 .akb-facet-title:hover, .akb-facet-title:focus,
 .akb-link:hover, .akb-link:focus,
 .akb-facets-close:hover, .akb-facets-close:focus { background: none; }
+
 .akb-facet-chevron {
 	width: 8px; height: 8px; flex: 0 0 auto; margin-left: 8px;
-	border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+	border-right: 2px solid currentcolor; border-bottom: 2px solid currentcolor;
 	transform: rotate( 45deg ); transition: transform 180ms ease;
 }
+
 .akb-facet.is-collapsed .akb-facet-chevron { transform: rotate( -45deg ); }
+
 .akb-facet-body[hidden] { display: none; }
+
 /*
  * Compensar los 6px de margin-inline negativo de las labels con margen y padding iguales en la
  * lista. overflow-y:auto también recorta el eje X: la compensación contiene hover, anillo y
@@ -64,16 +72,18 @@
  * el glow de 3px.
  */
 .akb-facet-list { list-style: none; margin: 0 -6px; padding: 0 6px; display: flex; flex-direction: column; gap: 5px; max-height: 260px; overflow-x: hidden; overflow-y: auto; }
+
 .akb-facet-item label {
 	display: flex; align-items: center; gap: 10px;
 	min-height: 38px; box-sizing: border-box;
 	margin-inline: -6px; padding: 7px 8px;
-	border: 1px solid transparent; border-radius: 0px;
+	border: 1px solid transparent; border-radius: 0;
 	font-size: 0.88rem; cursor: pointer;
 	transition: background-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ),
 		border-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ),
 		color 150ms cubic-bezier( 0.23, 1, 0.32, 1 );
 }
+
 /* Feedback al hover en la superficie más usada del sidebar, sin convertir la
  * selección en una banda roja pesada. El rojo queda en el control nativo. */
 .akb-facet-item:not( .is-ghost ) label:hover,
@@ -82,12 +92,15 @@
 	background: rgba( 255, 255, 255, 0.045 );
 	border-color: rgba( 255, 255, 255, 0.08 );
 }
+
 .akb-facet-item:not( .is-ghost ) label:hover .akb-facet-label { color: var( --aki-white, #fff ); }
+
 .akb-facet-item label:has( input:checked ) {
 	color: var( --aki-white, #fff );
 	background: transparent;
 	border-color: transparent;
 }
+
 /* Foco por teclado. Blanco = token de foco de la casa (--aki-focus-ring es
  * blanco+negro). Acá se usa OUTLINE, no el box-shadow de --aki-focus-ring, a
  * propósito: el canal box-shadow ya lo ocupa el glow rojo del estado :checked
@@ -97,6 +110,7 @@
 	outline: 2px solid var( --aki-white, #fff );
 	outline-offset: 2px;
 }
+
 /*
  * Personalizar el input nativo con appearance:none, conservando teclado, labels y estados del
  * navegador. En reposo, borde de 2px gray-400: --aki-input-border (#585858) sólo alcanza
@@ -115,14 +129,16 @@
 	place-content: center;
 	background: transparent;
 	border: 2px solid var( --akb-control-rest );
-	border-radius: 0px;
+	border-radius: 0;
 	box-shadow: 2px 2px 0 #000;
 	cursor: pointer;
 	transition: border-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ),
 		background-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ),
 		box-shadow 150ms cubic-bezier( 0.23, 1, 0.32, 1 );
 }
+
 .akb-facet-item input[type="radio"] { border-radius: 50%; }
+
 .akb-facet-item input[type="checkbox"]::before,
 .akb-facet-item input[type="radio"]::before {
 	content: "";
@@ -133,30 +149,40 @@
 	background: var( --aki-white, #fff );
 	clip-path: polygon( 14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62% );
 }
+
 .akb-facet-item input[type="radio"]::before {
 	width: 10px;
 	height: 10px;
 	clip-path: none;
 	border-radius: 50%;
 }
+
 .akb-facet-item:not( .is-ghost ) label:hover input:not( :checked ) {
 	border-color: var( --akb-control-hover );
 }
+
 .akb-facet-item input:checked {
 	background: var( --aki-red, #E60012 );
 	border-color: var( --akb-control-selected-border );
 	box-shadow: 2px 2px 0 #000, 0 0 0 2px color-mix( in srgb, var( --aki-red, #E60012 ) 24%, transparent );
 }
+
 .akb-facet-item input:checked::before { transform: scale( 1 ); }
+
 @media ( prefers-reduced-motion: reduce ) {
+
 	.akb-facet-item input[type="checkbox"],
 	.akb-facet-item input[type="radio"],
 	.akb-facet-item input[type="checkbox"]::before,
 	.akb-facet-item input[type="radio"]::before { transition: none; }
 }
+
 .akb-facet-item.is-ghost label { opacity: 0.46; cursor: not-allowed; }
+
 .akb-facet-item.is-ghost input { cursor: not-allowed; }
+
 .akb-facet-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .akb-facet-count {
 	flex: 0 0 auto;
 	min-width: 20px;
@@ -167,12 +193,13 @@
 	color: var( --aki-gray-300, #b0b0b0 );
 	background: rgba( 255, 255, 255, 0.05 );
 	border: 1px solid rgba( 255, 255, 255, 0.1 );
-	border-radius: 0px;
+	border-radius: 0;
 	box-shadow: 1px 1px 0 #000;
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 	text-align: center;
 }
+
 .akb-facet-item input:checked + .akb-facet-label { font-weight: 700; color: var( --aki-white, #fff ); }
 
 /* -- Facetas grandes (autor/serie): buscar + lista scrolleable -- */
@@ -189,20 +216,25 @@
 	color: inherit;
 	background: rgba( 0, 0, 0, 0.28 ); /* inset: más oscuro que el sidebar = "escribí acá" */
 }
+
 .akb-facet-search:focus { outline: 2px solid var( --aki-red, #E60012 ); outline-offset: -1px; border-color: transparent; }
+
 /*
  * Esta regla sustituye el padding-right de .akb-facet-list a igual especificidad. Sumar los
  * 6px de compensación de las labels y 4px de respiro frente al scroll; en el cajón, sumar 4px
  * y 4px. Un padding de sólo 4px deja la label fuera de la caja y recorta hover y contadores.
  */
 .akb-facet-list--scroll { max-height: 220px; overflow-y: auto; padding-right: 10px; }
+
 .akb-facet-noresults { list-style: none; padding: 6px 2px; font-size: 0.82rem; opacity: 0.6; }
+
 .akb-facet-search-status {
 	margin: 8px 0 0;
 	color: #a9a9a9;
 	font-size: 0.78rem;
 	line-height: 1.45;
 }
+
 .akb-facet-expand {
 	display: inline-flex;
 	align-items: center;
@@ -221,33 +253,40 @@
 	font-weight: 700;
 	cursor: pointer;
 }
+
 .akb-facet-expand:hover,
 .akb-facet-expand:focus {
 	border-color: var( --aki-red-text, #ff4756 );
 	background: rgba( 255, 255, 255, 0.05 );
 	color: var( --aki-white, #fff );
 }
+
 .akb-facet-expand:focus-visible {
 	outline: 2px solid var( --aki-white, #fff );
 	outline-offset: 2px;
 }
+
 .akb-facet-expand:disabled { cursor: wait; opacity: 0.65; }
 
 /* -- Chips -- */
 .akb-facet-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+
 /* Sin filtros aplicados el contenedor llega con `hidden`, y el `display:flex`
  * de arriba le ganaba al [hidden] del navegador: una caja vacía con 16 px de
  * margen entre la fila de orden y la rejilla en todos los listados. El tema lo
  * tapaba con una regla propia; el dueño de la regla es este fichero. El PJAX
  * quita el atributo al pintar chips. */
 .akb-facet-chips[hidden] { display: none; }
+
 /*
  * Hasta 768px, alinear los chips con el canalón var(--space-4) de .akb-shop-toolbar del tema.
  * Las portadas mantienen su retícula a sangre; desde 769px el contenedor ya alinea la columna.
  */
 @media ( max-width: 768px ) {
+
 	.akb-facet-chips { padding-inline: var( --space-4, 16px ); }
 }
+
 .akb-chip {
 	display: inline-flex; align-items: center; gap: 6px;
 	max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere;
@@ -256,6 +295,7 @@
 	padding: 3px 12px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
 	transition: background-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ), color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ), border-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 );
 }
+
 /*
  * El hover comunica la acción de quitar mediante rojo sólido y texto blanco. El blanco
  * heredado del theme sobre un tinte translúcido pierde contraste.
@@ -264,7 +304,9 @@
 	background: var( --aki-red, #E60012 ); color: #fff;
 	border-color: var( --aki-red, #E60012 );
 }
+
 .akb-chip:focus-visible { outline: 2px solid var( --aki-red, #E60012 ); outline-offset: 2px; }
+
 .akb-chip--clear { background: transparent; color: #a9a9a9; border-color: rgba( 255, 255, 255, 0.18 ); }
 
 /* -- Contador + empty -- */
@@ -274,6 +316,7 @@
 	font-size: 0.9rem;
 	line-height: 1.45;
 }
+
 .akb-search-correction[hidden] { display: none; }
 
 /*
@@ -349,18 +392,23 @@
 	margin: 0;
 	box-shadow: 0 8px 24px rgba( 0, 0, 0, 0.6 );
 }
+
 .akb-search-correction strong { color: #fff; font-weight: 700; }
+
 .akb-result-count { font-size: 0.9rem; color: #a9a9a9; margin: 0 0 8px; }
+
 /* Aquí vivía `.akb-result-count.is-idle { display: none }`, que escondía el
  * total en los archives sin filtrar. Se retiró junto con el estado en PHP: el
  * conteo es señal de surtido en cualquier superficie de catálogo, y la regla
  * dejaba a /tienda/ sin total mientras /manga/ sí lo mostraba (ver
  * frontend/facets-render.php). */
+
 /*
  * Tras PJAX, desplazar al inicio de resultados descontando mediante scroll-margin-top el
  * chrome fijo de anuncios y header, aproximadamente 130px.
  */
 .akb-result-count, ul.products { scroll-margin-top: 150px; }
+
 /* Total con un extra al lado (filtro `akb_search_result_count_extra`; hoy, el
  * atajo «Último tomo: N →» de las landings de serie). El tema le pone `nowrap`
  * a la línea del total: con un extra, eso empujaba la página en horizontal en
@@ -369,13 +417,21 @@
  * (`.akb-shop-toolbar .akb-result-count`) sin depender del orden de las hojas. */
 .akb-shop-toolbar .akb-result-count.akb-result-count--extra,
 .akb-result-count.akb-result-count--extra { white-space: normal; }
+
 .akb-result-count__total { white-space: nowrap; }
+
 .akb-empty-state { padding: 32px 16px; text-align: center; background: rgba( 255, 255, 255, 0.03 ); border-radius: 12px; overflow-wrap: anywhere; }
+
 .akb-empty-state[hidden] { display: none; }
+
 .akb-empty-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 6px; overflow-wrap: anywhere; }
+
 .akb-search-correction, .akb-relaxed, .woocommerce-products-header__title { overflow-wrap: anywhere; }
+
 .akb-empty-hint { color: #a9a9a9; font-size: 0.9rem; margin: 0; }
+
 .akb-link { position: relative; background: none; border: none; color: var( --aki-red-text, #ff4756 ); text-decoration: underline; cursor: pointer; padding: 0; font: inherit; }
+
 /* Zona táctil de «limpia todo» (UM-15 = AI-7): el botón va en línea dentro de
  * la pista y medía 75×23. Un ::after transparente de 6 px arriba y abajo lleva
  * el toque a ~35 px (sobre el mínimo de 24 de WCAG 2.5.8) sin mover el texto ni
@@ -388,26 +444,40 @@
  * .akb-chip (ahí el hover dice «quítame»). La serie va con borde rojo porque
  * lleva a su landing, la salida más fuerte; lo más buscado, neutro. */
 .akb-empty-suggest { display: grid; gap: 16px; max-width: 640px; margin: 20px auto 0; }
+
 .akb-empty-suggest__label { margin: 0 0 8px; color: #a9a9a9; font-size: 0.82rem; font-weight: 600; }
+
 .akb-empty-suggest__list { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
 .akb-empty-suggest__list > li { margin: 0; padding: 0; }
+
 .akb-empty-suggest__item {
 	display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; min-height: 36px;
 	padding: 6px 14px; border: 1px solid rgba( 255, 255, 255, 0.18 ); border-radius: 999px;
 	color: var( --aki-gray-200, #e0e0e0 ); font-size: 0.88rem; font-weight: 600; line-height: 1.2; text-decoration: none;
 	transition: background-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ), border-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ), color 150ms cubic-bezier( 0.23, 1, 0.32, 1 );
 }
+
 .akb-empty-suggest__item:hover { border-color: var( --aki-red-text, #ff4756 ); color: var( --aki-white, #fff ); }
+
 .akb-empty-suggest__item:focus-visible { outline: 2px solid var( --aki-white, #fff ); outline-offset: 2px; }
+
 .akb-empty-suggest__item--series { border-color: var( --aki-red, #E60012 ); background: rgba( 230, 0, 18, 0.12 ); color: var( --aki-white, #fff ); font-weight: 700; }
+
 .akb-empty-suggest__item--series:hover { background: var( --aki-red, #E60012 ); border-color: var( --aki-red, #E60012 ); }
+
 .akb-empty-suggest__meta { color: #a9a9a9; font-size: 0.8rem; font-weight: 500; }
+
 .akb-empty-suggest__item--series:hover .akb-empty-suggest__meta { color: var( --aki-white, #fff ); }
+
 @media ( max-width: 768px ) {
+
 	/* Táctil: 44 px reales (WCAG 2.5.8), como los chips de filtros. */
 	.akb-empty-suggest__item { min-height: 44px; }
 }
+
 @media ( prefers-reduced-motion: reduce ) {
+
 	.akb-empty-suggest__item { transition: none; }
 }
 
@@ -415,7 +485,9 @@
  * Todo CSS: el JS ya togglea .akb-pjax-loading (cero costo de budget). El spinner
  * es ::after del <ul> (opacity 1, nítido sobre la grilla atenuada). -- */
 .akb-pjax-loading ul.products { position: relative; pointer-events: none; }
+
 .akb-pjax-loading ul.products > li { opacity: 0.4; transition: opacity 150ms ease; }
+
 .akb-pjax-loading ul.products::after {
 	content: "";
 	position: absolute; top: 28px; left: 50%; margin-left: -19px;
@@ -426,16 +498,24 @@
 	animation: akb-spin 0.7s linear infinite;
 	z-index: 3;
 }
-@keyframes akb-spin { to { transform: rotate( 360deg ); } }
+
+@keyframes akb-spin {
+
+ to { transform: rotate( 360deg ); } }
+
 ul.products:focus { outline: none; }
+
 /* focusGrid() mueve el foco acá tras CADA swap y el destino es tabindex=-1: sin
  * ring para mouse/tap (el recuadro tras un click no aporta), CON ring para
  * teclado — cambiar un checkbox con Space destruye el control enfocado y quien
  * navega con teclado perdía toda referencia de dónde quedó. :focus-visible
  * sigue la modalidad del último input, así que separa los dos casos sola. */
 ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); }
+
 @media ( prefers-reduced-motion: reduce ) {
+
 	.akb-pjax-loading ul.products > li { transition: none; }
+
 	.akb-pjax-loading ul.products::after { animation: none; border-top-color: var( --aki-red, #E60012 ); opacity: 0.6; }
 }
 
@@ -444,6 +524,7 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 
 /* -- Footer "Ver N productos" (solo drawer mobile; desktop = instant, oculto) -- */
 .akb-facets-footer { display: none; }
+
 .akb-facets-apply {
 	width: 100%; box-sizing: border-box; padding: 14px 16px; border: none;
 	border-radius: 2px; background: var( --aki-red, #E60012 ); color: #fff;
@@ -453,18 +534,23 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 	box-shadow: 4px 4px 0 var( --aki-black, #121212 );
 	transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }
+
 .akb-facets-apply:active {
 	transform: translate( 2px, 2px );
 	box-shadow: 2px 2px 0 var( --aki-black, #121212 );
 }
+
 .akb-facets-apply.is-loading { opacity: 0.7; }
+
 /* Sin esto el hover global de GP (#3f4047) mezclaba con el rojo → maroon
  * turbio (#543840). El CTA primario se mantiene rojo, apenas más oscuro. */
 .akb-facets-apply:hover, .akb-facets-apply:focus { background: var( --aki-red-hover, #a50d26 ); }
 
 /* -- Drawer mobile -- */
 [data-akb-drawer-open] { display: none; }
+
 @media ( max-width: 768px ) {
+
 	/*
 	 * El control en reposo es secundario, como ordenar. Reservar el rojo para drawer abierto o
 	 * filtros aplicados.
@@ -472,7 +558,8 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 	[data-akb-drawer-open] {
 		display: inline-flex; align-items: center; justify-content: center; gap: 8px;
 		background: var( --aki-surface, #111 ); color: var( --aki-white, #fff );
-		border: 1px solid var( --aki-border, #2a2a2e );
+		border: 1px solid var( --aki-input-border, #5e5e5e );
+
 		/*
 		 * Igualar padding vertical de 10px y texto de 15px con el select de ordenar. Los anchos
 		 * difieren intencionalmente: flex 3 frente a 7 para dar espacio a «Orden predeterminado».
@@ -482,11 +569,13 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		transition: background-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 ),
 			border-color 150ms cubic-bezier( 0.23, 1, 0.32, 1 );
 	}
+
 	[data-akb-drawer-open][aria-expanded="true"],
 	[data-akb-drawer-open].akb-has-filters {
 		background: var( --aki-red, #E60012 );
 		border-color: var( --aki-red, #E60012 );
 	}
+
 	/* Badge sobre botón rojo: invertido (blanco/rojo) — rojo-sobre-rojo
 	 * desaparecía. La clase la pone main.js (updateFacetCount). */
 	[data-akb-drawer-open][aria-expanded="true"] .akb-filter-toggle__count,
@@ -494,6 +583,7 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		background: var( --aki-white, #fff );
 		color: var( --aki-red, #E60012 );
 	}
+
 	/*
 	 * quietFocus() suprime el anillo sólo al restaurar foco tras un gesto de puntero: iOS Safari
 	 * puede aplicar :focus-visible a focus() programático. Escape y Enter conservan el anillo de
@@ -505,7 +595,9 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		outline: none;
 		box-shadow: none;
 	}
+
 	.akb-facets {
+
 		/*
 		 * Organizar el drawer móvil como columna flex: cabecera y footer no encogen y sólo
 		 * .akb-facets-body desplaza. Evitar position:fixed dentro del contenedor transformado, cuyo
@@ -515,20 +607,25 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		box-sizing: border-box;
 		position: fixed; top: 0; left: 0; bottom: 0; width: min( 88vw, 340px );
 		display: flex; flex-direction: column; overflow: hidden; padding: 0;
+
 		/* Capa del tema (theme.json → custom.z): el cajón de filtros es un modal,
 		 * como el menú móvil; su velo, una por debajo. Eran 1000/999 sueltos: el
 		 * orden relativo no cambia (sobre las barras fijas, bajo el chat y el
 		 * carrito lateral), pero ya no hay un número suelto que mantener. */
-		background: var( --aki-surface, #fffdf7 ); z-index: var( --wp--custom--z--modal, 400 );
+		background: var( --aki-surface, #111 ); z-index: var( --wp--custom--z--modal, 400 );
 		transform: translateX( -100% ); transition: transform 220ms ease;
 		box-shadow: 4px 0 24px rgba( 0, 0, 0, 0.2 );
 	}
+
 	body.akb-drawer-open { overflow: hidden; }
+
 	.akb-drawer-open .akb-facets { transform: translateX( 0 ); }
+
 	.akb-drawer-open::before {
 		content: ''; position: fixed; inset: 0; background: rgba( 0, 0, 0, 0.5 );
 		z-index: calc( var( --wp--custom--z--modal, 400 ) - 1 );
 	}
+
 	/* Único bloque scrolleable del drawer; min-height:0 deja que flex lo encoja
 	 * por debajo de su contenido para que head/footer nunca se aplasten. */
 	.akb-facets-body {
@@ -536,13 +633,16 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto;
 		padding: 20px; -webkit-overflow-scrolling: touch;
 	}
+
 	/*
 	 * Asegurar objetivos táctiles de al menos 44px mediante min-height; el padding por sí solo
 	 * puede dejar el control en 40–43px.
 	 */
+
 	/* Las listas con overflow-y también recortan en el eje X. El margen negativo
 	 * de desktop sacaba 6px de cada lado y mordía checkbox + contador. */
 	.akb-facet-item label { margin-inline: 0; padding: 10px 0; min-height: 44px; }
+
 	/*
 	 * En el cajón, compensar 4px por lado con margen negativo y padding dentro de los 20px de
 	 * .akb-facets-body. Contener el anillo de foco de 4px y el glow de 3px sin mover texto,
@@ -550,9 +650,13 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 	 * scrollbar.
 	 */
 	.akb-facet-list { margin-inline: -4px; padding-inline: 4px; }
+
 	.akb-facet-list--scroll { padding-right: 8px; }
+
 	.akb-facet-title { padding: 12px 0; min-height: 44px; }
+
 	.akb-chip { min-height: 44px; }
+
 	/*
 	 * El footer es un hijo flex sin scroll ni position:fixed, anclado abajo por el layout. Fondo
 	 * elevado, borde y sombra superior lo separan del contenido.
@@ -564,20 +668,26 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		box-shadow: 0 -8px 20px rgba( 0, 0, 0, 0.45 );
 	}
 }
+
 @media ( prefers-reduced-motion: reduce ) {
+
 	.akb-facets { transition: none; }
+
 	.akb-pjax-loading ul.products { transition: none; }
 }
 
 /* Cabecera sticky del drawer (título + cerrar): solo en modo drawer mobile. */
 @media ( max-width: 768px ) {
+
 	.akb-facets-head {
 		display: flex; align-items: center; justify-content: space-between;
 		flex-shrink: 0; padding: 14px 20px;
-		background: var( --aki-surface, #fffdf7 );
+		background: var( --aki-surface, #111 );
 		border-bottom: 1px solid rgba( 255, 255, 255, 0.1 );
 	}
+
 	.akb-facets-head-title {
+
 		/*
 		 * Usar --font-heading (Bebas) para el header del drawer en mayúsculas y con tracking. La
 		 * fuente sólo tiene peso 400; aumentar el tamaño para compensar su altura-x sin sintetizar
@@ -587,13 +697,16 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
 		font-weight: 400; font-size: 1.2rem;
 		text-transform: uppercase; letter-spacing: 0.06em;
 	}
+
 	.akb-facets-close {
 		display: inline-flex; align-items: center; justify-content: center;
 		width: 44px; height: 44px; margin: -10px -10px -10px 0;
 		background: none; border: none; font-size: 1.25rem; line-height: 1;
 		color: inherit; cursor: pointer;
 	}
+
 	.akb-facets-close:focus-visible { outline: 2px solid var( --aki-red, #E60012 ); outline-offset: -2px; }
+
 	.akb-facets-close.akb-tap-focus:focus-visible { outline: none; box-shadow: none; }
 }
 
@@ -612,7 +725,7 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
     margin: 0 0 10px;
     padding: 8px 12px;
     background: var(--aki-surface-2, #1a1a1a);
-    border-left: 3px solid var(--aki-white, #ffffff);
+    border-left: 3px solid var(--aki-white, #fff);
     border-radius: 2px;
 }
 
@@ -645,7 +758,7 @@ ul.products:focus-visible { outline: none; box-shadow: var( --aki-focus-ring ); 
     font-size: 14px;
     font-weight: 700;
     text-decoration: underline;
-    text-decoration-color: var(--aki-white, #ffffff);
+    text-decoration-color: var(--aki-white, #fff);
     text-underline-offset: 4px;
     white-space: nowrap;
 }

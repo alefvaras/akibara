@@ -578,7 +578,6 @@ test( 'DS-9: los estados usan los tonos de la paleta con contraste AA sobre el f
 	assert.ok( contraste( paleta.warning, fondo ) >= 4.5 );
 	assert.ok( contraste( paleta[ 'primary-text' ], fondo ) >= 4.5 );
 	assert.doesNotMatch( css[ 'woocommerce.css' ], /#f87171|#4ade80|#fbbf24/i );
-	assert.match( css[ 'loop.css' ], /\.akb-badge--preorder \{[^}]*var\(--aki-status-preorder\)/ );
 } );
 
 // ─── DS-15 / DS-11 ───────────────────────────────────────────────────────

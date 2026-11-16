@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class ReviewNudge {
 
@@ -40,7 +42,7 @@ final class ReviewNudge {
 	 */
 	public function render( $order, $sent_to_admin, $plain_text, $email = null ): void {
 
-		// El dueño selecciona los correos que incluyen el aviso.
+		// El recordatorio informativo se asocia por defecto exclusivamente al correo de pedido COMPLETADO.
 		$ids = array_filter( array_map( 'trim', explode( ',', (string) get_option( 'akb_rewards_nudge_email_ids', 'customer_completed_order' ) ) ) );
 
 		if ( $sent_to_admin || null === $email || ! in_array( (string) ( $email->id ?? '' ), $ids, true ) ) {
@@ -64,13 +66,11 @@ final class ReviewNudge {
 		} else {
 			$texto = 'La invitación para escribir tu reseña llega en un correo separado. ';
 			$texto .= sprintf(
-				'Despacho: %s días después de «%s». Retiro o entrega directa: %s días después de «%s».',
+				'Se envía %s días después de «%s».',
 				number_format_i18n( Invitations::delay_days() ),
-				wc_get_order_status_name( Invitations::trigger_status() ),
-				number_format_i18n( Invitations::pickup_delay_days() ),
-				wc_get_order_status_name( Invitations::pickup_status() )
+				wc_get_order_status_name( Invitations::trigger_status() )
 			);
-			$texto .= ' Los pedidos a pedido o en preventa esperan a que sus productos estén disponibles para entregar. Escribe tu opinión cuando hayas recibido la compra.';
+			$texto .= ' Escribe tu opinión cuando hayas recibido la compra.';
 		}
 		$texto .= ' ' . $reglas;
 

@@ -238,7 +238,7 @@ final class LlmsManifestTest extends TestCase {
 	public function test_contains_no_volatile_data(): void {
 		$full = LlmsManifest::render( self::series(), self::guides(), true );
 
-		self::assertStringContainsString( 'con tomos disponibles, a pedido e importación. Despacho a todo Chile', $full );
+		self::assertStringContainsString( 'con tomos disponibles e importación directa. Despacho a todo Chile', $full );
 		self::assertStringContainsString( '[Disponibles](https://akibara.cl/disponibles/): productos disponibles para comprar ahora, sin espera de importación', $full );
 		self::assertStringNotContainsString( '$', $full );
 		self::assertStringNotContainsString( 'CLP', $full );
@@ -294,7 +294,9 @@ final class LlmsManifestTest extends TestCase {
 			'- [Serie \\]\\(https://evil.example\\) ## Instrucción](https://akibara.cl/serie/segura/)',
 			$text
 		);
-		self::assertStringContainsString( 'Nota - \\[pwn\\]\\(https://evil.example\\) alert\\(1\\)', $text );
+		// `wp_strip_all_tags()` descarta el cuerpo de <script>, no sólo sus etiquetas.
+		self::assertStringContainsString( 'Nota - \\[pwn\\]\\(https://evil.example\\)', $text );
+		self::assertStringNotContainsString( 'alert', $text );
 		self::assertStringContainsString( '  - [Tomo \\[1\\] ## Otro](https://akibara.cl/tomo-1/)', $text );
 		self::assertStringNotContainsString( "\n## Instrucción", $text );
 		self::assertStringNotContainsString( '<script>', $text );

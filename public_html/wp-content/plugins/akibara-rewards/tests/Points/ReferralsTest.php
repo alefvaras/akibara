@@ -154,11 +154,11 @@ final class ReferralsTest extends RewardsTestCase {
 		$this->user( 7, 'padrino@example.com' );
 		$this->wpdb->user_meta[42][ Referrals::META_REFERRED_BY ] = 7;
 		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => 'akb_rewards_referral_status' === $option ? 'shipping-progress' : $default_value
+			static fn( string $option, $default_value = false ) => 'akb_rewards_referral_status' === $option ? 'processing' : $default_value
 		);
 
 		$order = $this->make_order( 100, 42, 10000.0, 1900.0 );
-		$this->referrals->on_status_changed( 100, 'processing', 'completed', $order );
+		$this->referrals->on_status_changed( 100, 'pending', 'completed', $order );
 
 		$this->assertSame( 500, Ledger::balance( 7 ) );
 	}

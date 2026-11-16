@@ -11,14 +11,14 @@
 		return;
 	}
 
-	var createElement = wp.element.createElement;
-	var namespace = 'akibara_cart_checkout_blocks';
-	var checkoutFields = 'woocommerce/checkout-fields-block';
+	const createElement = wp.element.createElement;
+	const namespace = 'akibara_cart_checkout_blocks';
+	const checkoutFields = 'woocommerce/checkout-fields-block';
 
 	function metadata(name) {
 		return {
 			apiVersion: 3,
-			name: name,
+			name,
 			parent: [checkoutFields],
 			supports: {
 				html: false,
@@ -29,44 +29,19 @@
 	}
 
 	function extensionFromProps(props) {
-		var extensions = props && props.extensions
+		const extensions = props && props.extensions
 			|| props && props.cart && props.cart.extensions
 			|| {};
-		var extension = extensions && extensions[namespace];
+		// eslint-disable-next-line security/detect-object-injection
+		const extension = extensions && extensions[namespace];
 
 		return extension && Number(extension.schema_version) === 2
 			? extension
 			: null;
 	}
 
-	function PreventaSummary(props) {
-		var extension = extensionFromProps(props);
-		var preventa = extension && extension.preventa;
-		var count = Number(preventa && preventa.count);
-		if (!preventa || !isFinite(count) || count <= 0) {
-			return null;
-		}
-
-		return createElement(
-			'section',
-			{
-				className: 'akb-checkout-preventa'
-					+ (preventa.has_tba ? ' akb-checkout-preventa--tba' : '')
-			},
-			createElement(
-				'p',
-				{ className: 'akb-checkout-preventa__heading' },
-				createElement('strong', null, String(preventa.summary_label || 'Tu pedido incluye preventas')),
-				createElement('span', null, String(preventa.summary_value || 'Te avisamos en cuanto tengamos fechas'))
-			),
-			preventa.explanation
-				? createElement('p', { className: 'akb-checkout-preventa__copy' }, String(preventa.explanation))
-				: null
-		);
-	}
-
 	function icon(id) {
-		var paths = {
+		const paths = {
 			shipping: 'M3 6h11v9H3zM14 9h4l3 3v3h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
 			installments: 'M3 5h18v14H3zM3 9h18M7 15h4',
 			support: 'M5 13v-2a7 7 0 0 1 14 0v2M5 13H3v5h4v-5zm14 0h2v5h-4v-5zM17 18c0 2-2 3-5 3'
@@ -81,6 +56,7 @@
 				focusable: 'false'
 			},
 			createElement('path', {
+				// eslint-disable-next-line security/detect-object-injection
 				d: paths[id] || paths.support,
 				fill: 'none',
 				stroke: 'currentColor',
@@ -92,8 +68,8 @@
 	}
 
 	function trustList(props) {
-		var extension = extensionFromProps(props);
-		var signals = extension && Array.isArray(extension.trust_signals)
+		const extension = extensionFromProps(props);
+		const signals = extension && Array.isArray(extension.trust_signals)
 			? extension.trust_signals
 			: [];
 		if (!signals.length) {
@@ -139,8 +115,8 @@
 	// El maestro es una option y la baja una usermeta: ninguno viaja al
 	// navegador, así que gatear aquí sería adivinar.
 	function collectionNotice() {
-		var config = window.akbCheckoutInnerBlocks;
-		var copy = config ? String(config.collectionNotice || '').trim() : '';
+		const config = window.akbCheckoutInnerBlocks;
+		const copy = config ? String(config.collectionNotice || '').trim() : '';
 		if (!copy) {
 			return null;
 		}
@@ -157,8 +133,8 @@
 	// colección (depende sólo de la option). Cada mitad falla cerrada por su
 	// lado y el bloque sólo devuelve null cuando no hay ninguna de las dos.
 	function TrustSignals(props) {
-		var list = trustList(props);
-		var notice = collectionNotice();
+		const list = trustList(props);
+		const notice = collectionNotice();
 		if (!list && !notice) {
 			return null;
 		}
@@ -171,10 +147,6 @@
 		);
 	}
 
-	wc.blocksCheckout.registerCheckoutBlock({
-		metadata: metadata('akibara/checkout-preventa-summary'),
-		component: PreventaSummary
-	});
 	wc.blocksCheckout.registerCheckoutBlock({
 		metadata: metadata('akibara/checkout-trust-signals'),
 		component: TrustSignals

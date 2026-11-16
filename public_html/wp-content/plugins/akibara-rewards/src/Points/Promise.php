@@ -25,16 +25,46 @@ use Akibara\Rewards\Support\Options;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Promise {
 
 	/**
 	 * Puntos que se pueden prometer HOY por una base en pesos.
 	 *
-	 * @param float $base Base en pesos (IVA incluido).
+	 * @param float $base    Base en pesos (IVA incluido).
+	 * @param int   $user_id ID opcional del cliente para aplicar multiplicador de nivel.
 	 * @return int 0 si el programa no rige ahora o el carril está apagado.
 	 */
-	public static function points_for( float $base ): int {
-		return Accrual::program_open_now() ? Calculator::points_for( $base ) : 0;
+	public static function points_for( float $base, int $user_id = 0 ): int {
+		return Accrual::program_open_now() ? Calculator::points_for( $base, $user_id ) : 0;
+	}
+
+	/**
+	 * Promesa del carrito calculado, con el mismo canje y base que la acreditación.
+	 *
+	 * No calcula ni modifica totales: el consumidor entrega el carrito de WooCommerce.
+	 */
+	public static function for_cart( ?\WC_Cart $cart, int $user_id = 0 ): int {
+		if ( null === $cart ) {
+			return 0;
+		}
+		return self::points_for( Calculator::award_base_for_cart( $cart, self::cart_redeemed_gross( $cart ) ), $user_id );
+	}
+
+	/** El fee efectivo incluye impuestos; la intención de canje todavía no es un descuento. */
+	private static function cart_redeemed_gross( \WC_Cart $cart ): float {
+		foreach ( $cart->get_fees() as $fee ) {
+			if ( ! is_object( $fee ) || Redemption::FEE_NAME !== ( $fee->name ?? '' ) ) {
+				continue;
+			}
+			$total = (float) ( $fee->total ?? 0 ) + (float) ( $fee->tax ?? 0 );
+			if ( $total < 0 ) {
+				return -$total;
+			}
+		}
+		return 0.0;
 	}
 
 	/**

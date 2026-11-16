@@ -8,9 +8,9 @@
  * invitados nacería muerto en una página cacheada.
  *
  * Anchor público: #akb-bis-form — destino del CTA "Avísame cuando vuelva" de
- * las cards del loop, del builder de packs y de Mi colección. Los tres lo piden
+ * las cards del loop y de Mi colección. Los dos lo piden
  * por `CaptureForm::anchor()`, que aplica el filtro `akibara_bis_form_anchor`
- * UNA vez sobre el id real: dos de ellos escribían el literal '#akb-bis-form' a
+ * UNA vez sobre el id real: antes escribían el literal '#akb-bis-form' a
  * mano, así que renombrar el form dejaba dos CTA apuntando a la nada.
  *
  * @package Akibara\Business
@@ -28,6 +28,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class CaptureForm {
 
@@ -72,7 +75,7 @@ final class CaptureForm {
 
 		$product = wc_get_product( get_the_ID() );
 
-		// Estricto outofstock: la preventa (onbackorder) se COMPRA, no se espera.
+		// Estricto outofstock: sólo se muestra el formulario cuando el producto está agotado.
 		return $product && StockStatus::is_out_of_stock( $product );
 	}
 
@@ -115,12 +118,37 @@ final class CaptureForm {
 	}
 
 	/**
-	 * Assets solo donde el form existe (PDP agotado con captura activa).
+	 * ¿Corresponde encolar los assets de lista de espera?
+	 * Disponible tanto para PDP como para cards de catálogo/series con botón «Avísame cuando vuelva».
+	 *
+	 * @return bool
+	 */
+	public function should_enqueue(): bool {
+		if ( ! BackInStock::capture_enabled() ) {
+			return false;
+		}
+
+		if ( function_exists( 'is_admin' ) && is_admin() ) {
+			return false;
+		}
+
+		return is_product()
+			|| is_shop()
+			|| is_product_taxonomy()
+			|| is_front_page()
+			|| is_home()
+			|| is_archive()
+			|| is_search()
+			|| ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( \Akibara\Business\Modules\Wishlist\Endpoint::SLUG ) );
+	}
+
+	/**
+	 * Assets para PDP agotado y cards de listado con CTA «Avísame cuando vuelva».
 	 *
 	 * @return void
 	 */
 	public function enqueue_assets(): void {
-		if ( ! $this->should_render() ) {
+		if ( ! $this->should_enqueue() ) {
 			return;
 		}
 

@@ -11,18 +11,19 @@
 	// botón y la hoja no se aplica: revelarlo ahí sólo lo sacaba del `hidden`
 	// para que el CSS lo volviera a esconder. Si la ventana cruza el corte (una
 	// tablet que gira), se revelan al entrar.
-	var escritorio = window.matchMedia ? window.matchMedia( '(min-width: 769px)' ) : null;
+	const escritorio = window.matchMedia ? window.matchMedia( '(min-width: 769px)' ) : null;
 
-	var openTrigger = null;
-	var dialog = null;
-	var lockedScrollY = 0;
-	var bodyStyleBeforeLock = null;
+	let openTrigger = null;
+	let dialog = null;
+	let lockedScrollY = 0;
+	let bodyStyleBeforeLock = null;
 
 	function protectCovers( root ) {
-		var covers = ( root || document ).querySelectorAll( '.akb-product-cover-wrap, .akb-qv__media' );
-		for ( var i = 0; i < covers.length; i += 1 ) {
-			var cover = covers[ i ];
-			var image = cover.querySelector( 'img' );
+		const covers = ( root || document ).querySelectorAll( '.akb-product-cover-wrap, .akb-qv__media' );
+		for ( let i = 0; i < covers.length; i += 1 ) {
+			// eslint-disable-next-line security/detect-object-injection
+			const cover = covers[ i ];
+			const image = cover.querySelector( 'img' );
 			if ( ! image ) {
 				cover.classList.add( 'akb-cover--error' );
 				continue;
@@ -45,13 +46,13 @@
 
 			image.akbCoverGuarded = true;
 			image.addEventListener( 'error', function ( event ) {
-				var wrapper = event.currentTarget.closest( '.akb-product-cover-wrap, .akb-qv__media' );
+				const wrapper = event.currentTarget.closest( '.akb-product-cover-wrap, .akb-qv__media' );
 				if ( wrapper ) {
 					wrapper.classList.add( 'akb-cover--error' );
 				}
 			} );
 			image.addEventListener( 'load', function ( event ) {
-				var wrapper = event.currentTarget.closest( '.akb-product-cover-wrap, .akb-qv__media' );
+				const wrapper = event.currentTarget.closest( '.akb-product-cover-wrap, .akb-qv__media' );
 				if ( wrapper ) {
 					wrapper.classList.remove( 'akb-cover--error' );
 				}
@@ -111,19 +112,19 @@
 			return;
 		}
 
-		var focusable = focusableElements();
+		const focusable = focusableElements();
 		if ( 0 === focusable.length ) {
 			event.preventDefault();
 			dialog.focus();
 			return;
 		}
 
-		var first = focusable[ 0 ];
-		var last = focusable[ focusable.length - 1 ];
-		if ( event.shiftKey && ( document.activeElement === first || document.activeElement === dialog ) ) {
+		const first = focusable[ 0 ];
+		const last = focusable[ focusable.length - 1 ];
+		if ( event.shiftKey && ( document.documentElement.ownerDocument.activeElement === first || document.documentElement.ownerDocument.activeElement === dialog ) ) {
 			event.preventDefault();
 			last.focus();
-		} else if ( ! event.shiftKey && document.activeElement === last ) {
+		} else if ( ! event.shiftKey && document.documentElement.ownerDocument.activeElement === last ) {
 			event.preventDefault();
 			first.focus();
 		}
@@ -131,8 +132,9 @@
 
 	function revealTriggers( root ) {
 		if ( ! escritorio || escritorio.matches ) {
-			var triggers = ( root || document ).querySelectorAll( '.akb-qv-trigger[hidden]' );
-			for ( var i = 0; i < triggers.length; i += 1 ) {
+			const triggers = ( root || document ).querySelectorAll( '.akb-qv-trigger[hidden]' );
+			for ( let i = 0; i < triggers.length; i += 1 ) {
+				// eslint-disable-next-line security/detect-object-injection
 				triggers[ i ].removeAttribute( 'hidden' );
 			}
 		}
@@ -145,6 +147,7 @@
 			return dialog;
 		}
 		dialog = document.createElement( 'dialog' );
+		dialog.id = 'akb-qv-dialog';
 		dialog.className = 'akb-qv';
 		dialog.setAttribute( 'aria-labelledby', 'akb-qv-title' );
 		dialog.setAttribute( 'aria-describedby', 'akb-qv-synopsis' );
@@ -153,7 +156,7 @@
 		dialog.innerHTML =
 			'<div class="akb-qv__head">' +
 				'<h2 class="akb-qv__title" id="akb-qv-title"></h2>' +
-				'<button type="button" class="akb-qv__close" aria-label="Cerrar vista rápida">' +
+				'<button type="button" class="akb-qv__close" commandfor="akb-qv-dialog" command="close" aria-label="Cerrar vista rápida">' +
 					'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true" focusable="false"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>' +
 				'</button>' +
 			'</div>' +
@@ -168,9 +171,11 @@
 			'</div>';
 		document.body.appendChild( dialog );
 
-		dialog.querySelector( '.akb-qv__close' ).addEventListener( 'click', function () {
-			dialog.close();
-		} );
+		if ( typeof HTMLButtonElement === 'undefined' || ! ( 'commandForElement' in HTMLButtonElement.prototype ) ) {
+			dialog.querySelector( '.akb-qv__close' ).addEventListener( 'click', function () {
+				dialog.close();
+			} );
+		}
 
 		// Tap/click en el backdrop cierra (el propio <dialog> es el target ahí).
 		dialog.addEventListener( 'mousedown', function ( event ) {
@@ -198,7 +203,7 @@
 	}
 
 	function fill( selector, node ) {
-		var slot = dialog.querySelector( selector );
+		const slot = dialog.querySelector( selector );
 		slot.textContent = '';
 		if ( node ) {
 			slot.appendChild( node );
@@ -207,12 +212,12 @@
 	}
 
 	function openFromTrigger( trigger ) {
-		var card = trigger.closest( 'li.product' );
+		const card = trigger.closest( 'li.product' );
 		if ( ! card ) {
 			return;
 		}
 
-		var data;
+		let data;
 		try {
 			data = JSON.parse( trigger.getAttribute( 'data-akb-qv' ) || '{}' );
 		} catch ( parseError ) {
@@ -225,24 +230,24 @@
 		dialog.querySelector( '.akb-qv__title' ).textContent = data.title || '';
 		dialog.querySelector( '.akb-qv__synopsis' ).textContent = data.synopsis || '';
 
-		var link = dialog.querySelector( '.akb-qv__link' );
+		const link = dialog.querySelector( '.akb-qv__link' );
 		link.href = data.url || card.querySelector( 'a' ).href;
 
 		// Cover: clon de la imagen ya cargada en la card (mismo srcset AVIF).
-		var img = card.querySelector( '.akb-product-cover-wrap img' );
+		const img = card.querySelector( '.akb-product-cover-wrap img' );
 		fill( '.akb-qv__media', img ? img.cloneNode( true ) : null );
 		protectCovers( dialog );
 
-		// Clonar superficialmente badge, editorial, precio, disponibilidad y ETA desde la tarjeta. Los
-		// selectores deben coincidir con los renderers: .akb-badge (LoopEnhancer),
-		// .akb-editorial-eyebrow (theme inc/title-parser.php), .akb-eta-loop
-		// (EstimatedDelivery\BannerRenderer) y .akb-avail-hint (LoopEnhancer). Excluir el placeholder
-		// vacío para no reservar un hueco sin contenido dentro del sheet.
-		var meta = fill( '.akb-qv__meta', null );
-		var pieces = card.querySelectorAll(
-			'.akb-badge, .akb-editorial-eyebrow, .price, .akb-avail-hint:not(.akb-avail-hint--empty), .akb-eta-loop'
+		// Clonar superficialmente badge, editorial, precio y disponibilidad desde la tarjeta.
+		// Los selectores deben coincidir con los renderers: .akb-badge (LoopEnhancer),
+		// .akb-editorial-eyebrow (theme inc/title-parser.php) y .akb-avail-hint (LoopEnhancer).
+		// Excluir el placeholder vacío para no reservar un hueco sin contenido dentro del sheet.
+		const meta = fill( '.akb-qv__meta', null );
+		const pieces = card.querySelectorAll(
+			'.akb-badge, .akb-editorial-eyebrow, .price, .akb-avail-hint:not(.akb-avail-hint--empty)'
 		);
-		for ( var i = 0; i < pieces.length; i += 1 ) {
+		for ( let i = 0; i < pieces.length; i += 1 ) {
+			// eslint-disable-next-line security/detect-object-injection
 			meta.appendChild( pieces[ i ].cloneNode( true ) );
 		}
 
@@ -256,7 +261,7 @@
 		// data-product_id, así que ninguno de los selectores previos lo alcanzaba —
 		// el slot de acciones del sheet quedaba VACÍO justo en el estado donde el
 		// único paso útil es apuntarse al aviso.
-		var cta = card.querySelector( '.add_to_cart_button, .ajax_add_to_cart, .button[data-product_id], .akb-notify-link' );
+		const cta = card.querySelector( '.add_to_cart_button, .ajax_add_to_cart, .button[data-product_id], .akb-notify-link' );
 		fill( '.akb-qv__actions', cta ? cta.cloneNode( true ) : null );
 
 		openTrigger = trigger;
@@ -266,7 +271,7 @@
 	}
 
 	document.addEventListener( 'click', function ( event ) {
-		var trigger = event.target.closest ? event.target.closest( '.akb-qv-trigger' ) : null;
+		const trigger = event.target.closest ? event.target.closest( '.akb-qv-trigger' ) : null;
 		if ( ! trigger ) {
 			return;
 		}
@@ -301,7 +306,7 @@
 	} );
 
 	if ( escritorio ) {
-		var alCruzar = function ( event ) {
+		const alCruzar = function ( event ) {
 			if ( event.matches ) {
 				revealTriggers( document );
 			}

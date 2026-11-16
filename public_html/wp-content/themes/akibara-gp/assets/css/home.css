@@ -5,7 +5,6 @@
  * Selectores en uso por page 210:
  *   .akb-section           (wrapper genérico)
  *   .akb-section--alt      (variante con bg ligeramente distinto)
- *   .akb-preventas         (variante temática preventas)
  *   .akb-section__header   (h2 + link container)
  *   .akb-section__header h2
  *   .akb-section__header h2::before  (bullet rojo)
@@ -39,6 +38,7 @@ body.home .entry-content {
 
 .akb-section {
     padding-block: clamp(2.5rem, 6vw, 4.5rem);
+
     /* Padding lateral consistente: el wp:group es alignfull (sin margins
      * naturales), sin esto el contenido (h2, links "Ver todos →", grid de
      * productos) toca el viewport edge en mobile. La flecha "→" del link
@@ -52,10 +52,14 @@ body.home .entry-content {
     background: var(--aki-surface);
 }
 
-.akb-preventas {
-    background: var(--aki-surface);
-    border-top: 1px solid var(--aki-border);
-    border-bottom: 1px solid var(--aki-border);
+.akb-section:empty {
+    display: none;
+}
+
+.akb-section:has(> .wp-block-group__inner-container:empty),
+.akb-section:has(> .akb-section__header:only-child),
+.akb-section:has(> .wp-block-group__inner-container > .akb-section__header:only-child) {
+    display: none;
 }
 
 .akb-section__header {
@@ -88,10 +92,13 @@ body.home .entry-content {
     font-family: var(--font-heading);
     letter-spacing: 0.04em;
     font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 400;
+    font-synthesis: none;
     line-height: 1;
     color: var(--aki-white);
     flex: 1 1 auto;
     text-transform: uppercase;
+    text-wrap: balance;
 }
 
 .akb-section__header h2::before {
@@ -107,22 +114,25 @@ body.home .entry-content {
 .akb-section__sub {
     flex: 1 1 100%;
     margin: 0.25rem 0 0;
-    color: var(--aki-gray-400);
+    color: var(--aki-gray-300);
     font-size: var(--text-sm);
+    text-wrap: pretty;
 }
 
 .akb-section__link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
+    min-height: 44px;
+    min-width: 44px;
     padding: 0.45rem 0.85rem;
     margin-left: auto;
     border: 2px solid transparent;
     background: rgba(255, 255, 255, 0.02);
     box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.72);
     font-family: var(--font-heading);
-    font-size: 13px;
+    font-size: var(--text-sm);
+
     /* Bebas no tiene 800 ni italic: ambos se sintetizaban (trazo engordado +
        slant falso). El dinamismo lo da un skew real del contenedor. */
     font-weight: 400;
@@ -130,11 +140,9 @@ body.home .entry-content {
     font-synthesis: none;
     transform: skewX(-5deg);
     letter-spacing: 0.08em;
-    /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre el chip
-       casi-negro: AA pleno (1.4.3). --aki-red-bright puro daba 3.95 a 13px. El
-       borde/box-shadow del chip + la flecha → cubren 1.4.1 (uso de color). */
-    color: #FF2738;
-    color: color-mix(in srgb, var(--aki-red-bright) 88%, #fff);
+
+    /* Token de texto rojo legible sobre superficie oscura (#111): supera AA 4.5:1. */
+    color: var(--aki-red-text);
     text-decoration: none;
     text-transform: uppercase;
     line-height: 1;
@@ -150,6 +158,7 @@ body.home .entry-content {
 
 .akb-section__link:hover,
 .akb-section__link:focus-visible {
+
     /* Fill ROJO (no amarillo — amarillo = solo precio). El color de acción de la
        casa es el rojo; el amarillo queda solo como anillo de foco abajo. */
     color: var(--aki-white);
@@ -168,6 +177,7 @@ body.home .entry-content {
 }
 
 @media (max-width: 600px) {
+
     .akb-section {
         padding-block: 2rem;
     }
@@ -186,6 +196,7 @@ body.home .entry-content {
  * - Relleno vertical para no recortar la elevación y el foco de la tarjeta.
  */
 @media (max-width: 768px) {
+
     .akb-section .woocommerce ul.products,
     .akb-section .akb-home-series__grid {
         --akb-fila-canal: clamp(14px, 4vw, 32px);

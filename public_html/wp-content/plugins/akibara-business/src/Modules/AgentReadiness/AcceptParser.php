@@ -25,6 +25,9 @@ declare(strict_types=1);
 
 namespace Akibara\Business\Modules\AgentReadiness;
 
+/**
+ * @api
+ */
 final class AcceptParser {
 
 	/**
@@ -93,7 +96,7 @@ final class AcceptParser {
 
 		foreach ( explode( ',', $cabecera ) as $trozo ) {
 			$partes = explode( ';', $trozo );
-			$medio  = strtolower( trim( (string) array_shift( $partes ) ) );
+			$medio  = strtolower( trim( array_shift( $partes ) ) );
 
 			if ( ! str_contains( $medio, '/' ) ) {
 				continue;

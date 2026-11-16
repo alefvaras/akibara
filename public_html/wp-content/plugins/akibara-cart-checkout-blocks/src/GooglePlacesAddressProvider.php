@@ -13,6 +13,9 @@ use WC_Address_Provider;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class GooglePlacesAddressProvider extends WC_Address_Provider {
 
 	public const ID = 'akibara-google-places';

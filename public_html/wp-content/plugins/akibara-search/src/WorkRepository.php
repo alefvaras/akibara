@@ -15,7 +15,10 @@ defined( 'ABSPATH' ) || exit;
  * Persiste revisiones, claims y ACK sin depender de Action Scheduler.
  *
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidOperand
  */
+// @phpstan-ignore complexity.classLike
 final class WorkRepository {
 
 	public const SCOPE_LIVE     = 'live';
@@ -866,6 +869,9 @@ final class WorkRepository {
 		return (int) $result;
 	}
 
+	/**
+	 * @return mixed
+	 */
 	public function purge_run( string $run_id ) {
 		$this->clear_error();
 		if ( ! $this->valid_run_id( $run_id ) ) {

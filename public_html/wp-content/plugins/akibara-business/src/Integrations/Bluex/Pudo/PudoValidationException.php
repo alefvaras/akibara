@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * Carries a stable public error code without exposing provider responses.
  *
  * @since 1.96.0
+ * @api
  */
 final class PudoValidationException extends RuntimeException {
 

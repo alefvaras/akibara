@@ -18,7 +18,7 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Longitud y subcadena por caracteres, con `mbstring` opcional. */
+/** Longitud y subcadena por caracteres, con `mbstring` opcional. @api */
 final class Text {
 
 	/** Largo en caracteres UTF-8; cae a bytes si falta `mbstring`. */
@@ -58,6 +58,18 @@ final class Text {
 	 * @param string $fallback Literal que la plantilla tenía escrito.
 	 */
 	public static function one_line_option( string $option, string $fallback ): string {
+		// 1. Sobrescritura de alta prioridad desde array centralizado en wp-config.php (0 SQL)
+		if ( defined( 'AKB_SITE_COPYS' ) && is_array( AKB_SITE_COPYS ) && isset( AKB_SITE_COPYS[ $option ] ) ) {
+			return self::one_line( AKB_SITE_COPYS[ $option ], $fallback );
+		}
+
+		// 2. Sobrescritura opcional por constante directa (ej. AKB_COPY_SEARCH_PLACEHOLDER)
+		$const = strtoupper( $option );
+		if ( defined( $const ) ) {
+			return self::one_line( constant( $const ), $fallback );
+		}
+
+		// 3. Fallback retrocompatible con get_option (0 SQL si no existe en BD)
 		return self::one_line( get_option( $option, $fallback ), $fallback );
 	}
 

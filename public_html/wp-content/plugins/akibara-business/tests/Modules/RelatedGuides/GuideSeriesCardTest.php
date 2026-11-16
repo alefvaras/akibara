@@ -200,11 +200,11 @@ final class GuideSeriesCardTest extends TestCase {
 	 */
 	public function test_conteos_sin_agotados_y_sin_agregado(): void {
 		Functions\when( 'get_terms' )->justReturn( array( $this->serie( 477, 'the-climber', 'The Climber', 13 ) ) );
-		$this->hechos[1477] = array( 'tomos' => 9, 'instock' => 8, 'preventa' => 1, 'agotados' => 0 );
+		$this->hechos[1477] = array( 'tomos' => 9, 'instock' => 8, 'preventa' => 0, 'agotados' => 1 );
 		self::assertSame(
 			array(
 				array( 'label' => 'Disponible', 'texto' => '8 tomos' ),
-				array( 'label' => 'A pedido', 'texto' => '1 tomo' ),
+				array( 'label' => 'Agotado', 'texto' => '1 tomo' ),
 			),
 			$this->sut->card( null, 900007 )['estados'] ?? null
 		);

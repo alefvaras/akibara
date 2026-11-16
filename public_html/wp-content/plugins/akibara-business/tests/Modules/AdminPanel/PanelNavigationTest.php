@@ -148,4 +148,51 @@ final class PanelNavigationTest extends TestCase {
 			'«Algunos» invita a creer que el resto sí quedó escrito.'
 		);
 	}
+
+	/**
+	 * @testdox Todo enlace .akb-panel-nav__link (incluidos los 4 satélites) posee data-tab no vacío y data-nav-group
+	 */
+	public function test_all_nav_links_have_data_tab_and_data_nav_group_including_satellites(): void {
+		$panel = new AdminPanel();
+		$panel->add_section( 'sistema-uno', 'Sistema uno', static fn(): array => array(), null, false, '', 'sistema' );
+		$panel->add_section( 'venta-uno', 'Venta uno', static fn(): array => array(), null, false, '', 'venta' );
+
+		$navs = $this->split_navs( $this->render( $panel ) );
+
+		// Verificamos encabezado de grupo de satélites en nav y select
+		self::assertStringContainsString( 'data-nav-group="satelites"', $navs['nav'] );
+		self::assertStringContainsString( 'Pantallas Satélite', $navs['nav'] );
+		self::assertStringContainsString( '<optgroup label="Pantallas Satélite">', $navs['select'] );
+
+		// Extraer todos los tags <a> con clase akb-panel-nav__link
+		preg_match_all( '/<a\b[^>]*class="[^"]*akb-panel-nav__link[^"]*"[^>]*>/', $navs['nav'], $coincidencias );
+		self::assertNotEmpty( $coincidencias[0] );
+		// Al menos 2 secciones normales + 3 satélites = 5 enlaces
+		self::assertGreaterThanOrEqual( 5, count( $coincidencias[0] ) );
+
+		foreach ( $coincidencias[0] as $link_tag ) {
+			self::assertMatchesRegularExpression(
+				'/data-tab="[a-zA-Z0-9_-]+"/',
+				$link_tag,
+				"El enlace carece de data-tab no vacío: {$link_tag}"
+			);
+			self::assertMatchesRegularExpression(
+				'/data-nav-group="[a-zA-Z0-9_-]+"/',
+				$link_tag,
+				"El enlace carece de data-nav-group no vacío: {$link_tag}"
+			);
+		}
+
+		// Certificar que los 3 satélites están presentes con su data-tab y data-keywords
+		$satelites_esperados = array(
+			'satelite_rewards'        => 'puntos resenas fidelizacion',
+			'satelite_search'         => 'buscador indice facetas sinonimos',
+			'satelite_pricing_matrix' => 'matriz precios tarifas editoriales',
+		);
+
+		foreach ( $satelites_esperados as $tab => $keywords ) {
+			self::assertStringContainsString( sprintf( 'data-tab="%s"', $tab ), $navs['nav'] );
+			self::assertStringContainsString( sprintf( 'data-keywords="%s"', $keywords ), $navs['nav'] );
+		}
+	}
 }

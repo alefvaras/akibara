@@ -174,7 +174,7 @@ function akibara_gp_akb_products_noun( int $total ): string {
  * @param array<string, mixed> $facet Faceta del view-model.
  * @return void
  */
-function akibara_gp_akb_render_facet_group( array $facet ): void {
+function akibara_gp_akb_render_facet_group( array $facet ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 	$name  = (string) $facet['name'];
 	$param = (string) $facet['param'];
 	$ui    = (string) $facet['ui'];

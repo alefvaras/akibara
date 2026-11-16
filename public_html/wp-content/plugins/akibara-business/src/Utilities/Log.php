@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.98.0
+ * @api
  */
 final class Log {
 
@@ -37,7 +38,12 @@ final class Log {
 			return; // WooCommerce ausente (tests unitarios / bootstrap parcial).
 		}
 
-		wc_get_logger()->warning(
+		$logger = wc_get_logger();
+		if ( ! is_object( $logger ) || ! method_exists( $logger, 'warning' ) ) {
+			return;
+		}
+
+		$logger->warning(
 			$message,
 			array_merge( array( 'source' => 'akibara-' . $module ), $context )
 		);
@@ -59,7 +65,12 @@ final class Log {
 			return;
 		}
 
-		wc_get_logger()->info(
+		$logger = wc_get_logger();
+		if ( ! is_object( $logger ) || ! method_exists( $logger, 'info' ) ) {
+			return;
+		}
+
+		$logger->info(
 			$message,
 			array_merge( array( 'source' => 'akibara-' . $module ), $context )
 		);

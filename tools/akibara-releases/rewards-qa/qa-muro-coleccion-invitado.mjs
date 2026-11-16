@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36 AkibaraQA';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, userAgent: UA });
+const page = await ctx.newPage();
+const resp = await page.goto('https://akibara.cl/mi-cuenta/coleccion/', { waitUntil: 'load' });
+console.log('status', resp.status(), 'url', page.url());
+const bodyText = await page.locator('body').innerText();
+console.log('tiene "Continuar con Google"', bodyText.includes('Continuar con Google'));
+console.log('tiene "Iniciar sesión"', bodyText.includes('Iniciar sesión'));
+console.log('snippet', bodyText.slice(0, 500));
+await browser.close();

@@ -41,6 +41,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class PublishListener {
 
@@ -52,7 +55,7 @@ final class PublishListener {
 
 	/**
 	 * Sello temporal (timestamp UTC) de cuándo un tomo volvió a habilitarse como
-	 * comprable (`instock` u `onbackorder`). Permite a `DigestRunner` anunciar
+	 * comprable (`instock`). Permite a `DigestRunner` anunciar
 	 * un tomo de catálogo histórico que el dueño acaba de habilitar o reponer.
 	 */
 	public const META_RESTOCKED_AT = '_akb_sf_restocked_at';
@@ -128,12 +131,11 @@ final class PublishListener {
 	}
 
 	/**
-	 * Despierta el escaneo cuando un tomo pasa a estado comprable (`instock` u
-	 * `onbackorder`), por ejemplo cuando se publica inicialmente agotado y días
-	 * después se habilita a pedido o entra en stock.
+	 * Despierta el escaneo cuando un tomo pasa a estado disponible (`instock`),
+	 * por ejemplo cuando se publica inicialmente agotado y entra stock físico.
 	 *
 	 * @param int    $product_id ID del producto.
-	 * @param string $new_status Estado nuevo ('instock'|'onbackorder'|'outofstock').
+	 * @param string $new_status Estado nuevo ('instock'|'outofstock').
 	 * @return void
 	 */
 	public function on_stock_status_change( $product_id, $new_status ): void {
@@ -144,7 +146,7 @@ final class PublishListener {
 			return;
 		}
 
-		if ( StockStatus::IN_STOCK !== $new_status && StockStatus::ON_BACKORDER !== $new_status ) {
+		if ( StockStatus::IN_STOCK !== $new_status ) {
 			return;
 		}
 

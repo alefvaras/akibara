@@ -23,6 +23,8 @@ use Akibara\Search\Stopwords;
 
 /**
  * Vista y helpers para los ajustes y palancas del motor de búsqueda.
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class SettingsAdminView {
 
@@ -221,7 +223,7 @@ final class SettingsAdminView {
 	 * estándar), salvo el de las salidas, que exige su marcador de presencia; un
 	 * texto o una lista ausentes conservan el valor vigente.
 	 *
-	 * @return void
+	 * @return string
 	 */
 	public static function posted_settings_text( string $name, string $fallback, array $before, array &$avisos ): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- handle_save_settings() ya pasó por guard().

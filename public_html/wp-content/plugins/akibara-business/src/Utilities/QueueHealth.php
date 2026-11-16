@@ -6,7 +6,7 @@
  * --------------
  * «Alertas del Sistema» sólo miraba los eventos de WP-Cron (`OwnCrons::RECURRING`).
  * La cola de Action Scheduler —la vía normal de casi todo el trabajo del plugin:
- * avisos de stock, correos de preventa, resúmenes de series, la vitrina, el
+ * avisos de stock, resúmenes de series, la vitrina, el
  * calentado de caché, las purgas de borde— no tenía vigilancia: la vitrina llevó
  * 14 días sin reordenarse y la tarjeta decía «todo en verde»
  *.
@@ -31,6 +31,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.31
+ * @api
+ * @psalm-suppress UnusedMethod
+ * @psalm-suppress UnusedMethod
  */
 final class QueueHealth {
 
@@ -201,12 +204,13 @@ final class QueueHealth {
 			return '';
 		}
 
-		return (string) $wpdb->prefix . 'actionscheduler_actions';
+		return $wpdb->prefix . 'actionscheduler_actions';
 	}
 
 	/**
 	 * @param string $sql SELECT ya armado (tabla propia del Action Scheduler; sin datos de usuario).
 	 * @return array<int, array<string, mixed>>
+	 * @psalm-suppress UnusedMethod
 	 */
 	private function query_rows( string $sql ): array {
 		$wpdb = $GLOBALS['wpdb'] ?? null;

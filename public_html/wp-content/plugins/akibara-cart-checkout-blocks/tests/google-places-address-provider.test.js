@@ -486,9 +486,14 @@ function bootProvider(addressComponents, options = {}) {
 			throw new Error('The Google loader should be reused when importLibrary exists.');
 		},
 	};
-	if (autocompleteDom) {
-		document.documentElement = { clientHeight: window.innerHeight };
+	document.ownerDocument = document;
+	if (!document.documentElement) {
+		document.documentElement = {};
 	}
+	if (autocompleteDom) {
+		document.documentElement.clientHeight = window.innerHeight;
+	}
+	document.documentElement.ownerDocument = document;
 	const documentListeners = [];
 	document.addEventListener = function (type, listener, listenerOptions) {
 		documentListeners.push({ listener, options: listenerOptions, type });

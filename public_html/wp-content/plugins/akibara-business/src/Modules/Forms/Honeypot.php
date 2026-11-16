@@ -14,6 +14,9 @@ namespace Akibara\Business\Modules\Forms;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Honeypot {
 
 	private const FIELD = 'akb_hp_url';

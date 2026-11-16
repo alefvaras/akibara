@@ -368,7 +368,7 @@ final class WooCommerceHooksTest extends TestCase {
 	 * UC-4: el extracto de la ficha va DESPUÉS del botón de compra.
 	 *
 	 * WooCommerce lo registra en la prioridad 20, entre el precio y el formulario
-	 * (30); a 1366x768 empujaba el botón de la ficha a pedido a 823 px, bajo el
+	 * (30); a 1366x768 empujaba el botón de la ficha a 823 px, bajo el
 	 * pliegue. Tiene que quedar tras el formulario, las promesas (31) y el
 	 * «avísame»/favoritos (35), y no puede quedar duplicado en la 20.
 	 */
@@ -579,12 +579,12 @@ final class WooCommerceHooksTest extends TestCase {
 		// Con filtros en la base (get_pagenum_link conserva la consulta).
 		$args = akibara_gp_pagination_args(
 			array(
-				'base'   => 'https://akibara.test/serie/one-piece/page/%#%/?_buscar=one%20piece&_estado=preventa',
+				'base'   => 'https://akibara.test/serie/one-piece/page/%#%/?_buscar=one%20piece&_orden=desc',
 				'format' => '',
 			)
 		);
-		self::assertSame( 'https://akibara.test/serie/one-piece/?_buscar=one%20piece&_estado=preventa', $this->enlace_de_pagina( $args, 1 ) );
-		self::assertSame( 'https://akibara.test/serie/one-piece/page/3/?_buscar=one%20piece&_estado=preventa', $this->enlace_de_pagina( $args, 3 ) );
+		self::assertSame( 'https://akibara.test/serie/one-piece/?_buscar=one%20piece&_orden=desc', $this->enlace_de_pagina( $args, 1 ) );
+		self::assertSame( 'https://akibara.test/serie/one-piece/page/3/?_buscar=one%20piece&_orden=desc', $this->enlace_de_pagina( $args, 3 ) );
 	}
 
 	/**

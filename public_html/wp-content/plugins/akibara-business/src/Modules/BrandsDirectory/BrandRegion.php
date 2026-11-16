@@ -30,6 +30,9 @@ use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class BrandRegion {
 
 	public const REGION_ARGENTINA = 'argentina';
@@ -51,7 +54,6 @@ final class BrandRegion {
 		'devir'           => self::REGION_ESPANA,
 		'milky-way'       => self::REGION_ESPANA,
 		'arechi-manga'    => self::REGION_ESPANA,
-		'norma-editorial' => self::REGION_ESPANA,
 		'tomodomo'        => self::REGION_ESPANA,
 		'kodai'           => self::REGION_ESPANA,
 		'letrablanka'     => self::REGION_ESPANA,
@@ -107,7 +109,7 @@ final class BrandRegion {
 				// tienen ediciones nacionales distintas. El slug con sufijo resuelve antes;
 				// sin esa pista se conserva Otros. Planeta sí mantiene su pista de nombre
 				// porque el mapa del catálogo no contiene una edición argentina gemela.
-				'name_hints'  => array( 'espa', 'milky', 'arechi', 'norma', 'planeta', 'distrito' ),
+				'name_hints'  => array( 'espa', 'milky', 'arechi', 'planeta', 'distrito' ),
 			),
 			self::REGION_OTROS     => array(
 				'label'       => 'Otros',

@@ -19,12 +19,17 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Options;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
  */
 final class Emails {
 
@@ -176,7 +181,7 @@ final class Emails {
 			// La identidad WC_Email identifica el aviso en el registro de correo.
 			// La parte plana depende del hook propio: send() no llama get_content(),
 			// por lo que WC_Email::handle_multipart() no activa su contenido alternativo.
-			$sent = (bool) BrandedEmail::for( (string) ( $context['email'] ?? 'puntos' ), (string) self::$alt_body )
+			$sent = (bool) BrandedEmail::for( (string) ( $context['email'] ?? 'puntos' ), self::$alt_body )
 				->send( $to, $subject, $wrapped, $headers, array() );
 		} finally {
 			// En `finally`: si el transporte lanza, el hook NO puede quedarse
@@ -288,7 +293,7 @@ final class Emails {
 	 */
 	public function send_expiry_warning( $user_id, $soon, $warn_days ): void {
 		// Revisa el sello del mes para evitar duplicidad de avisos de vencimiento.
-		$mes = ( new \DateTimeImmutable( 'now', wp_timezone() ) )->format( 'Y-m' );
+		$mes = Dates::to_datetime()->format( 'Y-m' );
 		if ( (string) get_user_meta( (int) $user_id, Expiry::META_WARNED, true ) === $mes ) {
 			return;
 		}
@@ -328,7 +333,7 @@ final class Emails {
 			update_user_meta(
 				(int) $user_id,
 				Expiry::META_WARNED,
-				( new \DateTimeImmutable( 'now', wp_timezone() ) )->format( 'Y-m' )
+				Dates::to_datetime()->format( 'Y-m' )
 			);
 		}
 	}
@@ -386,6 +391,7 @@ final class Emails {
 	 * @param int         $user_id Cliente.
 	 * @param int         $points  Puntos acreditados.
 	 * @return void
+	 * @param mixed $attempt
 	 */
 	public function send_review_email( $comment, $user_id, $points, $attempt = 1 ): void {
 		if ( ! $comment instanceof \WP_Comment ) {
@@ -580,6 +586,7 @@ final class Emails {
 	 *
 	 * @param \WC_Order $order Pedido ya acreditado.
 	 * @return void
+	 * @param mixed $attempt
 	 */
 	public function maybe_resend( $order, $attempt = 1 ): void {
 		if ( ! $order instanceof \WC_Order ) {

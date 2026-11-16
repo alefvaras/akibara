@@ -11,6 +11,9 @@ namespace Akibara\Business\Modules\PricingMatrix;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class PricingMath {
 
 	public const MODE_ROUND_100 = 'round_100';
@@ -49,7 +52,7 @@ final class PricingMath {
 	}
 
 	/**
-	 * Calcula el precio de oferta A Pedido / Reserva en CLP sin decimales.
+	 * Calcula el precio de oferta en CLP sin decimales.
 	 *
 	 * @param int      $regular_price Precio regular en CLP.
 	 * @param float    $discount_pct  Porcentaje de descuento (ej. 5.0 para 5%).
@@ -67,7 +70,12 @@ final class PricingMath {
 			return 0;
 		}
 
-		if ( self::MODE_MANUAL === $rounding_mode && null !== $manual_price && $manual_price > 0 && $manual_price < $regular_price ) {
+		// 0 explícito indica sin oferta
+		if ( 0 === $manual_price ) {
+			return 0;
+		}
+
+		if ( null !== $manual_price && $manual_price > 0 && $manual_price < $regular_price ) {
 			return $manual_price;
 		}
 

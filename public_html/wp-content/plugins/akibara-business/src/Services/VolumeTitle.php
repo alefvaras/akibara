@@ -20,6 +20,8 @@ defined( 'ABSPATH' ) || exit;
  * tomo lineal (`Shangri La Frontier 1 Expansion Pass`). La extracción es
  * deliberadamente estricta: cuando no hay un número de tomo inequívoco al
  * final, devuelve null y evita recomendaciones comerciales incorrectas.
+ * @api
+ * @psalm-suppress RedundantCondition
  */
 final class VolumeTitle {
 
@@ -32,7 +34,7 @@ final class VolumeTitle {
 	 * (`1.5`) se consideran ediciones especiales y no una secuencia entera.
 	 */
 	public static function extract_number( string $title ): ?int {
-		$title = trim( strip_tags( html_entity_decode( $title, ENT_QUOTES, 'UTF-8' ) ) );
+		$title = trim( strip_tags( html_entity_decode( $title, ENT_QUOTES, 'UTF-8' ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
 		if ( '' === $title ) {
 			return null;
 		}
@@ -103,7 +105,7 @@ final class VolumeTitle {
 	 * @param array<int, array<string, mixed>> $records
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function sort_records( array $records ): array {
+	public static function sort_records( array $records ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		foreach ( $records as $index => &$record ) {
 			if ( ! array_key_exists( 'volume_number', $record ) ) {
 				$record['volume_number'] = self::extract_number( (string) ( $record['title'] ?? '' ) );

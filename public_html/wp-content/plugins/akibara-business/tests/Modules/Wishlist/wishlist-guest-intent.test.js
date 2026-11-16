@@ -1,76 +1,168 @@
 'use strict';
 
-/*
- * Favoritos de un invitado: el clic no puede perderse en el camino al acceso.
- *
- * WooCommerce SÍ devuelve al producto tras entrar —el `redirect_to` acaba como
- * `<input name="redirect">` en su formulario, medido en producción el
- * 2026-08-23—, pero el tomo no quedaba guardado: el cliente volvía a la misma
- * ficha, con el corazón vacío, y tenía que darse cuenta solo de que su clic se
- * había perdido. Estas pruebas fijan la propiedad —la intención sobrevive al
- * acceso—, no el mecanismo concreto que hoy la cumple.
+/**
+ * Comportamiento del recordatorio de intención del invitado en wishlist.js
+ * ejecutado sobre el árbol DOM real mediante `tools/testing/dom-harness.js`.
  */
 
-const assert = require( 'node:assert/strict' );
-const fs = require( 'node:fs' );
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { createDOM } = require('../../../../../../../tools/testing/dom-harness.js');
 
-const source = fs.readFileSync( require.resolve( '../../../assets/js/wishlist.js' ), 'utf8' );
+const SCRIPT_REL = 'public_html/wp-content/plugins/akibara-business/assets/js/wishlist.js';
 
-assert.match(
-	source,
-	/rememberIntent\(\s*productId\s*\)/,
-	'el invitado tiene que dejar anotado QUÉ quería guardar antes de irse a acceder'
-);
+function baseConfig(overrides = {}) {
+	return Object.assign(
+		{
+			ajaxUrl: 'https://akibara.cl/wp-admin/admin-ajax.php',
+			nonce: 'nonce-123',
+			isLogged: false,
+			isLoggedIn: false,
+			savedIds: [],
+			guestPrompt: true,
+			guestStyle: 'https://akibara.cl/guest.css',
+			loginUrl: 'https://akibara.cl/mi-cuenta/',
+			labels: {
+				save: 'Guardar',
+				saved: 'Guardado',
+				addAria: 'Guardar en favoritos',
+				savedAria: 'Quitar de favoritos',
+				addAriaNamed: 'Guardar «%s» en favoritos',
+				savedAriaNamed: 'Quitar «%s» de favoritos',
+				announceAdded: '«%s» guardado en favoritos',
+				announceRemoved: '«%s» quitado de favoritos',
+				guestTitle: 'Guarda tus favoritos',
+				guestBody: 'Inicia sesión para guardar {producto}.',
+				guestCta: 'Iniciar sesión',
+				guestDismiss: 'Seguir mirando',
+				guestClose: 'Cerrar',
+				guestMarker: '{producto}',
+			},
+		},
+		overrides
+	);
+}
 
-assert.match(
-	source,
-	/redirect_to=/,
-	'y tiene que volver al mismo sitio del que salió'
-);
+test('Un invitado que abre el diálogo y lo descarta no deja intención pendiente en sessionStorage', () => {
+	const dom = createDOM({
+		html: '<button type="button" class="akb-wl-toggle" data-product-id="4210" data-name="Chainsaw Man 01" aria-pressed="false" aria-haspopup="dialog"></button>',
+		globals: {
+			akbWishlist: baseConfig({ guestPrompt: true }),
+		},
+	});
 
-// El orden importa: si se anota DESPUÉS de cambiar `location.href`, la
-// navegación puede llevarse la página antes de que se escriba nada. Desde UM-9
-// el invitado primero ve un aviso en la página; la navegación sale de
-// `goToLogin()`, que es el único sitio que anota y navega.
-const irAlAcceso = source.match( /function goToLogin\(productId\) \{([\s\S]*?)\n\t\}/ );
-assert.ok( irAlAcceso, 'goToLogin existe' );
-const posAnota = irAlAcceso[ 1 ].search( /rememberIntent\(\s*productId\s*\)/ );
-const posSalto = irAlAcceso[ 1 ].search( /window\.location\.href\s*=\s*loginHref\(\)/ );
-assert.ok( posAnota > -1 && posSalto > -1, 'ambas piezas existen' );
-assert.ok(
-	posAnota < posSalto,
-	'la intención se anota ANTES de navegar; después es una carrera que se pierde'
-);
+	try {
+		dom.loadScript(SCRIPT_REL);
+		dom.click('.akb-wl-toggle');
 
-// Abrir el aviso NO anota nada: si el cliente elige «Seguir mirando» y más tarde
-// entra por otro camino, guardarle el tomo sería una sorpresa.
-const aviso = source.match( /function promptGuest\(productId, trigger\) \{([\s\S]*?)\n\t\}/ );
-assert.ok( aviso, 'promptGuest existe' );
-assert.doesNotMatch( aviso[ 1 ], /rememberIntent/, 'mostrar el aviso no anota la intención' );
-assert.match( aviso[ 1 ], /goToLogin\(productId\)/, 'sin <dialog> o con el aviso apagado, navega como siempre' );
-assert.match( source, /akb-wl-login__cta'\)\.addEventListener\('click', function \(e\) \{\s*e\.preventDefault\(\);\s*goToLogin\(guestProductId\);/, 'el botón de entrar pasa por goToLogin' );
+		const dialog = dom.document.querySelector('dialog.akb-wl-login');
+		assert.ok(dialog, 'El diálogo de invitado debe crearse al pulsar el corazón.');
+		assert.equal(
+			dom.window.sessionStorage.getItem('akbWishlistPending'),
+			null,
+			'Abrir el aviso todavía no guarda la intención de login.'
+		);
 
-// Caducidad: completar un guardado que la persona ya no recuerda haber pedido
-// es una sorpresa, no una ayuda.
-assert.match(
-	source,
-	/Date\.now\(\)\s*-\s*Number\(\s*data\.at\s*\)\s*\)\s*>\s*\d+/,
-	'la intención guardada tiene que caducar'
-);
+		dom.click('.akb-wl-login__dismiss');
+		assert.equal(
+			dom.window.sessionStorage.getItem('akbWishlistPending'),
+			null,
+			'Descartar el aviso con «Seguir mirando» deja sessionStorage limpio.'
+		);
+	} finally {
+		dom.teardown();
+	}
+});
 
-// Y nunca puede convertirse en un "quitar": si el tomo ya está guardado, repetir
-// el toggle lo sacaría de la lista.
-assert.match(
-	source,
-	/classList\.contains\(\s*'is-saved'\s*\)/,
-	'antes de completar la intención hay que comprobar que el tomo NO esté ya guardado'
-);
+test('Pulsar el CTA «Iniciar sesión» del diálogo persiste productId y timestamp en sessionStorage antes de navegar', () => {
+	const dom = createDOM({
+		html: '<button type="button" class="akb-wl-toggle" data-product-id="4210" data-name="Chainsaw Man 01" aria-pressed="false"></button>',
+		globals: {
+			akbWishlist: baseConfig({ guestPrompt: true }),
+		},
+	});
 
-// El almacenamiento puede estar bloqueado (modo privado): eso degrada, no rompe.
-assert.match(
-	source,
-	/try\s*\{[\s\S]*?sessionStorage[\s\S]*?\}\s*catch/,
-	'el acceso al almacenamiento va protegido'
-);
+	try {
+		dom.loadScript(SCRIPT_REL);
+		dom.click('.akb-wl-toggle');
+		dom.click('.akb-wl-login__cta');
 
-console.log( 'wishlist-guest-intent: ok' );
+		const raw = dom.window.sessionStorage.getItem('akbWishlistPending');
+		assert.ok(raw, 'El CTA de acceso debe registrar akbWishlistPending.');
+		const parsed = JSON.parse(raw);
+		assert.equal(parsed.productId, 4210);
+		assert.equal(typeof parsed.at, 'number');
+	} finally {
+		dom.teardown();
+	}
+});
+
+test('Al volver autenticado con una intención vigente (< 30 min), se ejecuta intent=add y se consume la clave', async () => {
+	const requests = [];
+	const dom = createDOM({
+		html: '<button type="button" class="akb-wl-toggle" data-product-id="4210" data-name="Chainsaw Man 01" aria-pressed="false"></button>',
+		globals: {
+			akbWishlist: baseConfig({ isLogged: true, isLoggedIn: true, savedIds: [] }),
+			fetch: async (url, opts) => {
+				requests.push({ url, body: opts.body });
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						success: true,
+						data: { state: 'added', product_id: 4210, count: 1, saved_ids: [4210] },
+					}),
+				};
+			},
+		},
+	});
+
+	try {
+		dom.window.sessionStorage.setItem(
+			'akbWishlistPending',
+			JSON.stringify({ productId: 4210, at: Date.now() - 5000 })
+		);
+		dom.loadScript(SCRIPT_REL);
+		await new Promise((r) => setTimeout(r, 20));
+
+		assert.equal(requests.length, 1, 'Debe disparar un único POST para completar la intención.');
+		const params = new URLSearchParams(requests[0].body);
+		assert.equal(params.get('product_id'), '4210');
+		assert.equal(params.get('intent'), 'add');
+		assert.equal(dom.window.sessionStorage.getItem('akbWishlistPending'), null);
+
+		const btn = dom.document.querySelector('.akb-wl-toggle');
+		assert.equal(btn.classList.contains('is-saved'), true);
+		assert.equal(btn.getAttribute('aria-pressed'), 'true');
+	} finally {
+		dom.teardown();
+	}
+});
+
+test('Una intención vencida (> 30 min) se descarta sin disparar peticiones AJAX', async () => {
+	let fetchCalled = false;
+	const dom = createDOM({
+		html: '<button type="button" class="akb-wl-toggle" data-product-id="4210" data-name="Chainsaw Man 01" aria-pressed="false"></button>',
+		globals: {
+			akbWishlist: baseConfig({ isLogged: true, isLoggedIn: true, savedIds: [] }),
+			fetch: async () => {
+				fetchCalled = true;
+				throw new Error('No debe llamarse');
+			},
+		},
+	});
+
+	try {
+		dom.window.sessionStorage.setItem(
+			'akbWishlistPending',
+			JSON.stringify({ productId: 4210, at: Date.now() - 1800001 })
+		);
+		dom.loadScript(SCRIPT_REL);
+		await new Promise((r) => setTimeout(r, 10));
+
+		assert.equal(fetchCalled, false, 'Intención mayor a 30 minutos no debe ejecutarse.');
+		assert.equal(dom.window.sessionStorage.getItem('akbWishlistPending'), null);
+	} finally {
+		dom.teardown();
+	}
+});

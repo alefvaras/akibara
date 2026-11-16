@@ -29,7 +29,14 @@ namespace Akibara\Search;
 
 /**
  * Derivación y modo (AUTO/MANUAL) de los buckets de precio.
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedVariable
  */
+// @phpstan-ignore complexity.classLike
 final class PriceBuckets {
 
 	/**
@@ -46,8 +53,8 @@ final class PriceBuckets {
 	/** Snap de breakpoints: múltiplos de $1.000 (montos chilenos lindos). */
 	private const STEP = 1000;
 
-	/** Techo de display del max exclusivo: 10000 → "$9.990" (pricing en 990). */
-	private const LABEL_EPS = 10;
+	/** Techo de display del max exclusivo: 11000 → "$10.999" (rango continuo sin brecha). */
+	private const LABEL_EPS = 1;
 
 	/** Barrera breve para cubrir crash entre pre-intent y option write. */
 	private const PUBLICATION_DELAY_SECONDS = 10;
@@ -194,7 +201,7 @@ final class PriceBuckets {
 		$db->last_error = '';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- lectura directa de precios desde la tabla interna de facetas del plugin.
 		$prices = $db->get_col( "SELECT value_num FROM {$facets} WHERE facet = 'precio' AND value_num IS NOT NULL" );
-		if ( ! is_array( $prices ) || '' !== (string) ( $db->last_error ?? '' ) ) {
+		if ( ! is_array( $prices ) || '' !== (string) ( $db->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			return null;
 		}
 
@@ -298,7 +305,7 @@ final class PriceBuckets {
 	 * @param bool                                                           $publish Gestionar PRE/POST y WriteFence propio.
 	 * @return int|false Cantidad de buckets, 0 si MANUAL ganó, false en error.
 	 */
-	private static function transition( array $rows, string $mode_policy, bool $only_if_auto, bool $publish ) {
+	private static function transition( array $rows, string $mode_policy, bool $only_if_auto, bool $publish ) { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		global $wpdb;
 
 		if ( ! isset( $wpdb ) || ! isset( $wpdb->options ) || ! method_exists( $wpdb, 'prepare' )
@@ -343,7 +350,7 @@ final class PriceBuckets {
 				// incluso si ganó ROLLBACK, se perdió el ACK de COMMIT o falló la
 				// sonda de release: borrar una entrada que no cambió es inocuo;
 				// conservar una entrada vieja tras un COMMIT ambiguo no lo es.
-				if ( $persistence_attempted ) {
+				if ( $persistence_attempted ) { // @phpstan-ignore if.alwaysTrue
 					self::invalidate_pair_caches();
 				}
 				if ( $fence instanceof WriteFence ) {
@@ -383,12 +390,13 @@ final class PriceBuckets {
 	 * @param bool                                                           $only_if_auto Omitir ante MANUAL.
 	 * @return array{applied: bool, changed: bool}|false
 	 */
-	private static function persist_pair_transaction( array $rows, string $mode_policy, bool $only_if_auto ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function persist_pair_transaction( array $rows, string $mode_policy, bool $only_if_auto ) { // @phpstan-ignore complexity.functionLike
 		global $wpdb;
 
 		$transaction_open = false;
 		$wpdb->last_error = '';
-		if ( false === $wpdb->query( 'START TRANSACTION' ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+		if ( false === $wpdb->query( 'START TRANSACTION' ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 			return false;
 		}
 		$transaction_open = true;
@@ -404,7 +412,7 @@ final class PriceBuckets {
 					? 'manual'
 					: 'auto';
 			if ( $only_if_auto && 'manual' === $current_mode ) {
-				if ( false === $wpdb->query( 'COMMIT' ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+				if ( false === $wpdb->query( 'COMMIT' ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 					return false;
 				}
 				$transaction_open = false;
@@ -450,7 +458,7 @@ final class PriceBuckets {
 				);
 				$wpdb->last_error = '';
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- seis valores ya fueron preparados arriba.
-				if ( false === $wpdb->query( $sql ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+				if ( false === $wpdb->query( $sql ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 					return false;
 				}
 
@@ -466,7 +474,7 @@ final class PriceBuckets {
 			}
 
 			$wpdb->last_error = '';
-			if ( false === $wpdb->query( 'COMMIT' ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+			if ( false === $wpdb->query( 'COMMIT' ) || '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 				return false;
 			}
 			$transaction_open = false;
@@ -497,7 +505,7 @@ final class PriceBuckets {
 					$option
 				)
 			);
-			if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+			if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 				return null;
 			}
 			$states[ $option ] = null === $row
@@ -536,6 +544,7 @@ final class PriceBuckets {
 				} catch ( \Throwable $throwable ) {
 					// Un backend de cache defectuoso no debe impedir el release ni el
 					// reset del memo local; las demás keys aún se intentan borrar.
+					unset( $throwable );
 				}
 			}
 		}

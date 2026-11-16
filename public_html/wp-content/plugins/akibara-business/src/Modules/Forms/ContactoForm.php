@@ -13,6 +13,10 @@ namespace Akibara\Business\Modules\Forms;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress UnusedVariable
+ */
 final class ContactoForm {
 
 	public const SHORTCODE = 'akb_form_contacto';

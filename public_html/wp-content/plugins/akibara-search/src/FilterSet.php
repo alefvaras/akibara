@@ -18,6 +18,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class FilterSet {
 
@@ -198,7 +200,7 @@ final class FilterSet {
 	 * @return string|null
 	 */
 	public function context_facet(): ?string {
-		return empty( $this->context ) ? null : (string) array_key_first( $this->context );
+		return empty( $this->context ) ? null : array_key_first( $this->context );
 	}
 
 	/**

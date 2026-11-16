@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Keeps request concurrency independent from WooCommerce's whole-session save.
  *
  * @since 1.96.0
+ * @api
  */
 interface PudoMutationRepository {
 

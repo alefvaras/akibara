@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-business-production-release",
+  "release_id": "akibara-business-1.99.10",
+  "seal_state": "sealed",
+  "promotion_sequence": [
+    "docker-local",
+    "production"
+  ],
+  "components": {
+    "business": {
+      "kind": "plugin",
+      "slug": "akibara-business",
+      "source_root": "public_html/wp-content/plugins/akibara-business",
+      "preimage": {
+        "version": "1.99.9",
+        "archive": "dist/akibara-business-1.99.9.zip",
+        "archive_sha256": "de607471f63cc1fe8091dbf44c1374dae01804664da98dd43df8030eb5b6114d",
+        "inventory": "dist/akibara-business-1.99.9.files.sha256",
+        "inventory_sha256": "95bf51d1104e94836101e201e8ded592a4728b28f866189d7d83901bdc142c03",
+        "runtime_files": 221
+      },
+      "remote_baseline": {
+        "version": "1.99.9",
+        "inventory": "dist/akibara-business-1.99.9.files.sha256",
+        "inventory_sha256": "95bf51d1104e94836101e201e8ded592a4728b28f866189d7d83901bdc142c03",
+        "runtime_files": 221
+      },
+      "candidate": {
+        "version": "1.99.10",
+        "archive": "dist/akibara-business-1.99.10.zip",
+        "archive_sha256": "7b397d2c5c2518cfafa0a138b7ee6a7801a91e6a891609d14fbfbf9213763134",
+        "inventory": "dist/akibara-business-1.99.10.files.sha256",
+        "inventory_sha256": "5172c0291ac7c92606a1f4984d3d71e14e907301fe58ced7567da943c0774522",
+        "runtime_files": 221
+      },
+      "modified_runtime_files": [
+        "akibara-business/akibara-business.php",
+        "akibara-business/src/Modules/ProductSchemaShopping/ProductSchemaShopping.php",
+        "akibara-business/src/Modules/SeoEnhancements/SeoEnhancements.php"
+      ],
+      "added_runtime_files": [],
+      "removed_runtime_files": [],
+      "source_inputs": [
+        {
+          "path": "akibara-business/akibara-business.php",
+          "sha256": "91aab77014c3c66785c1cef9dc8644ab184ae83c7ec47a3408d5cdd1d39a093f"
+        },
+        {
+          "path": "akibara-business/src/Modules/ProductSchemaShopping/ProductSchemaShopping.php",
+          "sha256": "cf83aef5aaed391afbb102799ac475455e81a42c1bc631a7753aa558c0977879"
+        },
+        {
+          "path": "akibara-business/src/Modules/SeoEnhancements/SeoEnhancements.php",
+          "sha256": "1e602f4a2abacdd6339a7cab442c5ce90e986197e0759fe01c5d001970a1a58e"
+        }
+      ]
+    }
+  },
+  "production_invariants": {
+    "protected_components": [
+      {
+        "kind": "plugin",
+        "slug": "akibara-cart-checkout-blocks"
+      },
+      {
+        "kind": "plugin",
+        "slug": "akibara-search"
+      },
+      {
+        "kind": "plugin",
+        "slug": "bluex-for-woocommerce"
+      },
+      {
+        "kind": "theme",
+        "slug": "akibara-gp"
+      }
+    ],
+    "required_active_plugins": [
+      "akibara-business",
+      "akibara-cart-checkout-blocks",
+      "akibara-search",
+      "bluex-for-woocommerce",
+      "litespeed-cache",
+      "seo-by-rank-math",
+      "woocommerce"
+    ],
+    "required_active_theme": "akibara-gp",
+    "runtime_outside_business_must_remain_byte_identical": true,
+    "commerce_fingerprint_must_remain_identical": true,
+    "search_fingerprint_must_remain_identical": true,
+    "remote_backups_allowed": false,
+    "graphify_during_release_allowed": false,
+    "cloudflare_zone_name": "akibara.cl",
+    "cloudflare_zone_id": "b298201b3a38d017bc8413d9fd7414cd",
+    "cloudflare_purge_required": true,
+    "cloudflare_purge_transport": "official-mcp-handoff",
+    "cloudflare_witness_max_age_seconds": 900,
+    "cloudflare_purge_payload": {
+      "purge_everything": true
+    },
+    "live_cache_purge_order": [
+      "litespeed",
+      "cloudflare"
+    ],
+    "manga_archive_copy": {
+      "source": "woocommerce_product_category_description",
+      "canonical_clean_first_page": "first_paragraph_above_rest_after_main_content",
+      "query_or_page_2": "suppressed",
+      "allowed_html": [
+        "p",
+        "a",
+        "strong",
+        "em",
+        "br",
+        "ul",
+        "ol",
+        "li"
+      ],
+      "faq_schema_added": false,
+      "required_viewports": [
+        "375x812",
+        "1440x1000"
+      ]
+    }
+  },
+  "exclusive_targets": [
+    "public_html/wp-content/plugins/akibara-business"
+  ]
+}

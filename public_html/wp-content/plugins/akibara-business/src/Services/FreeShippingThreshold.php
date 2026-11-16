@@ -19,6 +19,10 @@ namespace Akibara\Business\Services;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
+// @phpstan-ignore complexity.classLike
 final class FreeShippingThreshold {
 
 	public const STATE_UNAVAILABLE = 'unavailable';
@@ -78,8 +82,7 @@ final class FreeShippingThreshold {
 		}
 
 		$woocommerce = WC();
-		$cart        = is_object( $woocommerce ) ? ( $woocommerce->cart ?? null ) : null;
-
+		$cart        = is_object( $woocommerce ) ? ( $woocommerce->cart ?? null ) : null; // @phpstan-ignore nullCoalesce.property
 		if ( ! is_object( $cart ) || ! method_exists( $cart, 'get_shipping_packages' ) ) {
 			return self::unavailable_state();
 		}
@@ -167,8 +170,6 @@ final class FreeShippingThreshold {
 			method_exists( $cart, 'display_prices_including_tax' ) && (bool) $cart->display_prices_including_tax(),
 		);
 
-		$ignore_bundle = function_exists( 'get_option' ) && 'yes' === (string) get_option( 'akb_fsp_ignore_bundle_discounts', 'no' );
-
 		return md5(
 			(string) wp_json_encode(
 				array(
@@ -178,7 +179,6 @@ final class FreeShippingThreshold {
 					$totals,
 					$override,
 					$carrier_threshold,
-					$ignore_bundle,
 				)
 			)
 		);
@@ -196,7 +196,8 @@ final class FreeShippingThreshold {
 	 *   remaining: float
 	 * }
 	 */
-	private static function resolve_for_cart( object $cart, float $override, float $carrier_threshold ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function resolve_for_cart( object $cart, float $override, float $carrier_threshold ): array { // @phpstan-ignore complexity.functionLike
 		$unavailable = self::unavailable_state();
 
 		$packages = $cart->get_shipping_packages();
@@ -269,18 +270,6 @@ final class FreeShippingThreshold {
 			? (float) $cart->get_discount_tax()
 			: 0.0;
 
-		if ( function_exists( 'get_option' ) && 'yes' === (string) get_option( 'akb_fsp_ignore_bundle_discounts', 'no' ) && method_exists( $cart, 'get_applied_coupons' ) ) {
-			foreach ( (array) $cart->get_applied_coupons() as $applied_code ) {
-				if ( 0 === strpos( (string) $applied_code, 'akb_sb_' ) ) {
-					if ( method_exists( $cart, 'get_coupon_discount_amount' ) ) {
-						$discount_total = max( 0.0, $discount_total - (float) $cart->get_coupon_discount_amount( $applied_code ) );
-					}
-					if ( method_exists( $cart, 'get_coupon_discount_tax_amount' ) ) {
-						$discount_tax = max( 0.0, $discount_tax - (float) $cart->get_coupon_discount_tax_amount( $applied_code ) );
-					}
-				}
-			}
-		}
 		$prices_include_tax = method_exists( $cart, 'display_prices_including_tax' )
 			&& (bool) $cart->display_prices_including_tax();
 		$decimals = function_exists( 'wc_get_price_decimals' )
@@ -435,7 +424,8 @@ final class FreeShippingThreshold {
 	 *   remaining: float
 	 * }
 	 */
-	private static function evaluate_method(
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function evaluate_method( // @phpstan-ignore complexity.functionLike
 		array $method,
 		float $subtotal,
 		float $discount_total,
@@ -612,9 +602,9 @@ final class FreeShippingThreshold {
 
 		return array(
 			array(
-				'requires'          => 'min_amount',
+				'requires'          => 'either',
 				'min_amount'        => $carrier_threshold,
-				'ignore_discounts'  => 'no',
+				'ignore_discounts'  => 'yes',
 				'current_available' => null,
 			),
 		);

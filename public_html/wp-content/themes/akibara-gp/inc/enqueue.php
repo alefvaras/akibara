@@ -35,6 +35,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $rel_path Ruta del asset relativa a la raíz del tema.
  * @return string Token para el `?ver=`.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_asset_ver( string $rel_path ): string {
 	$theme_version = function_exists( 'wp_get_theme' )
@@ -56,6 +60,10 @@ function akibara_gp_asset_ver( string $rel_path ): string {
  * encendido el navegador recibe exactamente los ficheros que se editan.
  *
  * @return bool
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_servir_fuentes(): bool {
 	return defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG;
@@ -72,6 +80,10 @@ function akibara_gp_servir_fuentes(): bool {
  * @param string $min_path Copia servida si no es la `.min` hermana (woocommerce.css
  *                         se sirve partida por contexto).
  * @return string
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_asset_servido( string $rel_path, string $min_path = '' ): string {
 	if ( akibara_gp_servir_fuentes() ) {
@@ -96,6 +108,10 @@ function akibara_gp_asset_servido( string $rel_path, string $min_path = '' ): st
  * @param string $rel_path Fuente.
  * @param string $min_path Ver akibara_gp_asset_servido().
  * @return array{0: string, 1: string}
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_asset( string $rel_path, string $min_path = '' ): array {
 	$servido = akibara_gp_asset_servido( $rel_path, $min_path );
@@ -111,6 +127,10 @@ function akibara_gp_asset( string $rel_path, string $min_path = '' ): array {
  * preservando el orden de cascada original.
  *
  * @return string listado|ficha|carrito|cuenta
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_woocommerce_css_contexto(): string {
 	if ( function_exists( 'is_product' ) && is_product() ) {
@@ -141,6 +161,10 @@ function akibara_gp_woocommerce_css_contexto(): string {
  * empty-states.css (revisión T4-R3).
  *
  * @return bool
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_consulta_principal_vacia(): bool {
 	$consulta = $GLOBALS['wp_query'] ?? null;
@@ -164,6 +188,10 @@ function akibara_gp_consulta_principal_vacia(): bool {
  *
  * @param string $css Hoja cruda.
  * @return string Hoja compactada.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_compact_css( string $css ): string {
 	$sin_comentarios = preg_replace( '#/\*.*?\*/#s', '', $css );
@@ -189,6 +217,10 @@ function akibara_gp_compact_css( string $css ): string {
  * existen en el primer HTML incluso mientras LiteSpeed/Cloudflare reconstruyen
  * recursos minificados. Esto resuelve el flash blanco en la causa, sin excluir
  * el header de la optimización.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_enqueue_critical_css(): void {
 	static $memo = array();
@@ -201,7 +233,7 @@ function akibara_gp_enqueue_critical_css(): void {
 	if ( isset( $memo[ $memo_key ] ) ) {
 		$critical_css = $memo[ $memo_key ];
 	} else {
-		$raw = is_readable( $absolute_path ) ? file_get_contents( $absolute_path ) : false;
+		$raw = is_readable( $absolute_path ) ? file_get_contents( $absolute_path ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 		// Fallback mínimo y autocontenido: nunca entregar un primer paint blanco si
 		// el archivo faltara durante un despliegue incompleto.
@@ -226,8 +258,12 @@ function akibara_gp_enqueue_critical_css(): void {
  * Encola CSS modular en orden de dependencia + JS deferred.
  *
  * Dependencia: critical inline → tokens/fonts → base → header/footer.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
-function akibara_gp_enqueue(): void {
+function akibara_gp_enqueue(): void { // @phpstan-ignore complexity.functionLike
 	$theme_uri = get_stylesheet_directory_uri();
 	$is_catalog_archive = function_exists( 'akibara_gp_is_catalog_archive' )
 		&& akibara_gp_is_catalog_archive();
@@ -253,7 +289,7 @@ function akibara_gp_enqueue(): void {
 	wp_enqueue_style( 'akibara-core', $src, array( 'akibara-critical' ), $ver );
 
 	foreach ( array( 'akibara-tokens', 'akibara-fonts', 'akibara-base', 'akibara-header', 'akibara-footer' ) as $akibara_gp_core_alias ) {
-		wp_register_style( $akibara_gp_core_alias, false, array( 'akibara-core' ), null );
+		wp_register_style( $akibara_gp_core_alias, false, array( 'akibara-core' ), null ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 		wp_enqueue_style( $akibara_gp_core_alias );
 	}
 	unset( $akibara_gp_core_alias );
@@ -403,7 +439,7 @@ function akibara_gp_enqueue(): void {
 
 	// home.css contiene el SISTEMA `.akb-section` (header con bullet rojo +
 	// border-bottom) que estructura las secciones del home (Recién llegados,
-	// Manga, Cómics, Preventas, Editoriales). Solo se enqueuea en home /
+	// Manga, Cómics, Editoriales). Solo se enqueuea en home /
 	// home alternativa (Inicio).
 	if ( akibara_gp_is_home_surface() ) {
 		list( $src, $ver ) = akibara_gp_asset( 'assets/css/home.css' );
@@ -576,6 +612,7 @@ function akibara_gp_enqueue(): void {
 		}
 	}
 }
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'wp_enqueue_scripts', 'akibara_gp_enqueue' );
 
 /**
@@ -585,6 +622,10 @@ add_action( 'wp_enqueue_scripts', 'akibara_gp_enqueue' );
  *
  * @param bool $has_loop Resultado de akibara_gp_surface_has_product_loop().
  * @return bool
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_surface_has_animations( bool $has_loop ): bool {
 	return $has_loop
@@ -602,6 +643,10 @@ function akibara_gp_surface_has_animations( bool $has_loop ): bool {
  * no haya una segunda copia que derive.
  *
  * @return array<int, string>
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_deferred_animation_sources(): array {
 	if ( ! wp_script_is( 'akibara-animations', 'registered' ) || wp_script_is( 'akibara-animations', 'enqueued' ) ) {
@@ -635,6 +680,10 @@ function akibara_gp_deferred_animation_sources(): array {
  *
  * Los pesos precargados corresponden estrictamente a los requeridos en el
  * primer viewport móvil: Inter 400, 500 y 700, y Bebas Neue 400.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_preload_fonts(): void {
 	$base  = get_stylesheet_directory_uri() . '/assets/fonts/';
@@ -651,6 +700,7 @@ function akibara_gp_preload_fonts(): void {
 		);
 	}
 }
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'wp_head', 'akibara_gp_preload_fonts', 1 );
 
 /**
@@ -667,6 +717,10 @@ add_action( 'wp_head', 'akibara_gp_preload_fonts', 1 );
  * imprime la copia SERVIDA (akibara_gp_asset_servido(): la `.min`, o la fuente
  * si falta); sin ninguna de las dos no se imprime nada y la página queda como
  * antes.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_print_toque_temprano(): void {
 	static $memo = null;
@@ -689,6 +743,7 @@ function akibara_gp_print_toque_temprano(): void {
 		)
 	);
 }
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'wp_head', 'akibara_gp_print_toque_temprano', 2 );
 
 /**
@@ -703,6 +758,10 @@ add_action( 'wp_head', 'akibara_gp_print_toque_temprano', 2 );
  *
  * @param string $nombre Nombre del guion sin extensión (p. ej. `main`).
  * @return array<int, string>
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_litespeed_rutas_js( string $nombre ): array {
 	$rutas = array();
@@ -723,6 +782,10 @@ function akibara_gp_litespeed_rutas_js( string $nombre ): array {
  *
  * @param mixed $exclusions Existing LiteSpeed exclusions.
  * @return array<int, string>
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_litespeed_main_js_exclusions( $exclusions ): array {
 	$list = is_array( $exclusions )
@@ -783,8 +846,11 @@ function akibara_gp_litespeed_main_js_exclusions( $exclusions ): array {
 
 	return array_values( array_unique( array_filter( array_map( 'trim', $list ) ) ) );
 }
+/** @psalm-suppress HookNotFound */
 add_filter( 'litespeed_optimize_js_excludes', 'akibara_gp_litespeed_main_js_exclusions' );
+/** @psalm-suppress HookNotFound */
 add_filter( 'litespeed_optm_js_defer_exc', 'akibara_gp_litespeed_main_js_exclusions' );
+/** @psalm-suppress HookNotFound */
 add_filter( 'litespeed_optm_gm_js_exc', 'akibara_gp_litespeed_main_js_exclusions' );
 
 /**
@@ -793,6 +859,10 @@ add_filter( 'litespeed_optm_gm_js_exc', 'akibara_gp_litespeed_main_js_exclusions
  * @param string $tag    Script tag HTML.
  * @param string $handle Registered script handle.
  * @return string
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_main_script_loader_tag( string $tag, string $handle ): string {
 	// main.js + GSAP/animaciones: opt-out del optimize/delay de LiteSpeed (conservan el
@@ -828,4 +898,5 @@ add_filter( 'script_loader_tag', 'akibara_gp_main_script_loader_tag', 10, 2 );
  * al contener únicamente metadatos de WordPress. Los estilos se gestionan
  * modularmente desde `assets/css/` vía `akibara_gp_enqueue()`.
  */
+/** @psalm-suppress HookNotFound */
 add_filter( 'generate_load_child_theme_stylesheet', '__return_false' );

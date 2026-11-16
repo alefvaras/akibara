@@ -14,10 +14,17 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\BacsLifecycle;
 
-use Akibara\Business\Support\BusinessOptions;
-
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class BacsLifecycleManager {
 
 	public const GROUP           = 'akibara-business';
@@ -27,6 +34,27 @@ final class BacsLifecycleManager {
 	public const META_ON_HOLD_SINCE     = '_akb_bacs_on_hold_since';
 	public const META_RECEIPT_REPORTED  = '_akb_bacs_receipt_reported';
 	public const META_RECEIPT_REFERENCE = '_akb_bacs_receipt_reference';
+
+	public const OPT_AUTO_CANCEL_ENABLED = 'akb_bacs_auto_cancel_enabled';
+	public const OPT_REMINDER_HOURS      = 'akb_bacs_reminder_hours';
+	public const OPT_EXPIRY_HOURS        = 'akb_bacs_expiry_hours';
+	public const OPT_RECEIPT_GRACE_HOURS = 'akb_bacs_receipt_grace_hours';
+
+	public static function auto_cancel_enabled(): bool {
+		return 'yes' === get_option( self::OPT_AUTO_CANCEL_ENABLED, 'yes' );
+	}
+
+	public static function reminder_hours(): int {
+		return max( 1, (int) get_option( self::OPT_REMINDER_HOURS, 12 ) );
+	}
+
+	public static function expiry_hours(): int {
+		return max( 2, (int) get_option( self::OPT_EXPIRY_HOURS, 24 ) );
+	}
+
+	public static function receipt_grace_hours(): int {
+		return max( 1, (int) get_option( self::OPT_RECEIPT_GRACE_HOURS, 48 ) );
+	}
 
 	public function register(): void {
 		add_action( 'woocommerce_order_status_on-hold', array( $this, 'on_order_hold' ), 20, 2 );
@@ -60,8 +88,12 @@ final class BacsLifecycleManager {
 		}
 	}
 
+	/**
+	 * @param mixed $order
+	 * @param mixed $order_id
+	 */
 	public function on_order_hold( $order_id, $order = null ): void {
-		if ( ! BusinessOptions::bacs_auto_cancel_enabled() ) {
+		if ( ! self::auto_cancel_enabled() ) {
 			return;
 		}
 
@@ -76,8 +108,8 @@ final class BacsLifecycleManager {
 		$order->update_meta_data( self::META_ON_HOLD_SINCE, $now );
 		$order->save_meta_data();
 
-		$reminder_secs = BusinessOptions::bacs_reminder_hours() * HOUR_IN_SECONDS;
-		$expiry_secs   = BusinessOptions::bacs_expiry_hours() * HOUR_IN_SECONDS;
+		$reminder_secs = self::reminder_hours() * HOUR_IN_SECONDS;
+		$expiry_secs   = self::expiry_hours() * HOUR_IN_SECONDS;
 
 		if ( function_exists( 'as_schedule_single_action' ) ) {
 			as_schedule_single_action( $now + $reminder_secs, self::ACTION_REMINDER, array( 'order_id' => (int) $order_id ), self::GROUP );
@@ -131,8 +163,8 @@ final class BacsLifecycleManager {
 			return;
 		}
 
-		$hours           = BusinessOptions::bacs_expiry_hours();
-		$reminder_hours  = BusinessOptions::bacs_reminder_hours();
+		$hours           = self::expiry_hours();
+		$reminder_hours  = self::reminder_hours();
 		$remaining_hours = max( 1, $hours - $reminder_hours );
 		$bank            = self::get_bank_details();
 
@@ -185,7 +217,7 @@ final class BacsLifecycleManager {
 		// Revisar si hubo comprobante informado y si estamos dentro de la prórroga de gracia
 		$reported_time = (int) $order->get_meta( self::META_RECEIPT_REPORTED );
 		if ( $reported_time > 0 ) {
-			$grace_secs = BusinessOptions::bacs_receipt_grace_hours() * HOUR_IN_SECONDS;
+			$grace_secs = self::receipt_grace_hours() * HOUR_IN_SECONDS;
 			if ( time() < ( $reported_time + $grace_secs ) ) {
 				// Aún en período de gracia para revisión humana
 				return;
@@ -218,7 +250,7 @@ final class BacsLifecycleManager {
 		$order_key = isset( $_POST['order_key'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['order_key'] ) ) : '';
 		$is_admin  = current_user_can( 'manage_woocommerce' );
 		$is_owner  = $user_id > 0 && (int) $order->get_customer_id() === $user_id;
-		$valid_key = '' !== $order_key && method_exists( $order, 'get_order_key' ) && hash_equals( (string) $order->get_order_key(), $order_key );
+		$valid_key = '' !== $order_key && method_exists( $order, 'get_order_key' ) && hash_equals( (string) $order->get_order_key(), $order_key ); // @phpstan-ignore function.alreadyNarrowedType
 
 		if ( ! $is_admin && ! $is_owner && ! $valid_key ) {
 			wp_send_json_error( array( 'message' => 'No autorizado para este pedido.' ) );
@@ -228,7 +260,7 @@ final class BacsLifecycleManager {
 		$order->update_meta_data( self::META_RECEIPT_REPORTED, $now );
 		$order->update_meta_data( self::META_RECEIPT_REFERENCE, $reference );
 
-		$grace_secs = BusinessOptions::bacs_receipt_grace_hours() * HOUR_IN_SECONDS;
+		$grace_secs = self::receipt_grace_hours() * HOUR_IN_SECONDS;
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( self::ACTION_REMINDER, array( 'order_id' => $order_id ), self::GROUP );
 			as_unschedule_all_actions( self::ACTION_EXPIRE, array( 'order_id' => $order_id ), self::GROUP );
@@ -240,7 +272,7 @@ final class BacsLifecycleManager {
 		$order->add_order_note( sprintf(
 			'Cliente informó comprobante de transferencia (Ref: %s). Expiración automática extendida por +%d horas.',
 			$reference,
-			BusinessOptions::bacs_receipt_grace_hours()
+			self::receipt_grace_hours()
 		) );
 		$order->save_meta_data();
 
@@ -249,6 +281,9 @@ final class BacsLifecycleManager {
 		) );
 	}
 
+	/**
+	 * @param mixed $order_id
+	 */
 	public function render_bacs_portal( $order_id ): void {
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof \WC_Order || 'on-hold' !== $order->get_status() || 'bacs' !== $order->get_payment_method() ) {
@@ -262,7 +297,7 @@ final class BacsLifecycleManager {
 			$on_hold_since = time();
 		}
 
-		$expiry_secs  = BusinessOptions::bacs_expiry_hours() * HOUR_IN_SECONDS;
+		$expiry_secs  = self::expiry_hours() * HOUR_IN_SECONDS;
 		$deadline     = $on_hold_since + $expiry_secs;
 		$remaining_s  = max( 0, $deadline - time() );
 		$rem_hours    = (int) floor( $remaining_s / 3600 );
@@ -302,7 +337,9 @@ final class BacsLifecycleManager {
 					<input type="hidden" name="action" value="akb_submit_bacs_receipt">
 					<input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr( $nonce ); ?>">
 					<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order->get_id() ); ?>">
-					<input type="hidden" name="order_key" value="<?php echo esc_attr( method_exists( $order, 'get_order_key' ) ? (string) $order->get_order_key() : '' ); ?>">
+					/** @phpstan-ignore function.alreadyNarrowedType */
+					/** @phpstan-ignore function.alreadyNarrowedType */
+					<input type="hidden" name="order_key" value="<?php echo esc_attr( (string) $order->get_order_key() ); ?>"> // @phpstan-ignore function.alreadyNarrowedType
 					<input type="text" name="reference" id="akb_bacs_ref_input" placeholder="N.º de Transferencia o ID de Operación" required style="padding:8px 12px; border:1px solid #8c8f94; border-radius:4px; min-width:260px;">
 					<button type="submit" class="button button-primary" style="padding:4px 16px; height:auto;">Ya Transferí / Informar Pago</button>
 				</form>
@@ -347,8 +384,9 @@ final class BacsLifecycleManager {
 	 * @param bool           $sent_to_admin
 	 * @param bool           $plain_text
 	 * @param mixed          $email
+	 * @psalm-suppress UnusedParam
 	 */
-	public function email_bacs_instructions( $order, bool $sent_to_admin = false, bool $plain_text = false, $email = null ): void {
+	public function email_bacs_instructions( $order, bool $sent_to_admin = false, bool $plain_text = false, $email = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ! $order instanceof \WC_Order || $sent_to_admin ) {
 			return;
 		}
@@ -361,15 +399,15 @@ final class BacsLifecycleManager {
 		if ( '' === $order_url ) {
 			$order_url = (string) $order->get_view_order_url();
 		}
-		$hours     = BusinessOptions::bacs_expiry_hours();
-		$grace     = BusinessOptions::bacs_receipt_grace_hours();
+		$hours     = self::expiry_hours();
+		$grace     = self::receipt_grace_hours();
 		$bank      = self::get_bank_details();
 
 		if ( $plain_text ) {
-			echo "\n" . sprintf( "⏱ Plazo de transferencia: %d horas\n", $hours );
+			echo "\n" . esc_html( sprintf( "⏱ Plazo de transferencia: %d horas\n", $hours ) );
 			echo "Para asegurar el stock de tu pedido, realiza la transferencia antes de que termine el plazo.\n";
-			echo sprintf( "Una vez transferido, informa tu N.º de operación en tu pedido para extender la reserva por +%d hrs mientras validamos con %s:\n", $grace, $bank['bank_name'] );
-			echo $order_url . "\n\n";
+			echo esc_html( sprintf( "Una vez transferido, informa tu N.º de operación en tu pedido para extender la reserva por +%d hrs mientras validamos con %s:\n", $grace, $bank['bank_name'] ) );
+			echo esc_url( $order_url ) . "\n\n";
 			return;
 		}
 

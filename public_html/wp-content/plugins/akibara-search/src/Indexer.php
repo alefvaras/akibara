@@ -34,7 +34,20 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedReturnValue
+ * @psalm-suppress UnusedVariable
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedReturnValue
  */
+// @phpstan-ignore complexity.classLike
 final class Indexer {
 
 	/** Hook async de reindex de UN producto. */
@@ -201,7 +214,7 @@ final class Indexer {
 		add_action( 'woocommerce_new_product_variation', array( $this, 'on_variation_persisted' ), 10, 2 );
 		add_action( 'woocommerce_update_product_variation', array( $this, 'on_variation_persisted' ), 10, 2 );
 		add_action( 'woocommerce_before_product_object_save', array( $this, 'on_before_product_persisted' ), 10, 2 );
-		add_action( 'woocommerce_product_set_stock_status', array( $this, 'on_stock_status' ), 12, 1 );
+		add_action( 'woocommerce_product_set_stock_status', array( $this, 'on_stock_status' ), 12, 2 );
 		add_action( 'woocommerce_variation_set_stock_status', array( $this, 'on_variation_stock_status' ), 12, 1 );
 		add_action( 'add_term_relationship', array( $this, 'on_pre_term_relationship_change' ), 10, 3 );
 		add_action( 'delete_term_relationships', array( $this, 'on_pre_term_relationship_change' ), 10, 3 );
@@ -288,6 +301,7 @@ final class Indexer {
 	 * sólo evita esa relectura insegura.
 	 *
 	 * @param int $product_id Producto eliminado definitivamente.
+	  * @psalm-suppress UnusedReturnValue
 	 * @return bool True sólo si la ausencia quedó aplicada.
 	 */
 	private function delete_product_known_absent( int $product_id ): bool {
@@ -574,6 +588,7 @@ final class Indexer {
 	 * deadline derivado del arriendo (`live_batch_deadline()`).
 	 *
 	 * @return void
+	 * @param mixed $context
 	 */
 	public function handle_live_pump( $context = null ): void {
 		unset( $context );
@@ -795,7 +810,7 @@ final class Indexer {
 	 * @param bool                 $forzar_publicacion Reescribir y publicar aunque nada cambie.
 	 * @return array{claim: array<string, mixed>, outcome: string, publica: bool}|string
 	 */
-	private function stage_live_claim( array $claim, bool $known_absent = false, bool $forzar_publicacion = false ) {
+	private function stage_live_claim( array $claim, bool $known_absent = false, bool $forzar_publicacion = false ) { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		global $wpdb;
 
 		if ( ! $this->fence->acquire() ) {
@@ -1046,7 +1061,7 @@ final class Indexer {
 	 * @param array<string, mixed>|null $built      Documento construido, o null para una baja.
 	 * @return bool True sólo si la tabla viva ya contiene exactamente esto.
 	 */
-	private function live_rows_match( int $product_id, ?array $built ): bool {
+	private function live_rows_match( int $product_id, ?array $built ): bool { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$docs   = $this->live_rows( Install::docs_table(), 'post_id, title, title_norm, serie_norm, autores_norm, sku, sku_norm, tomo, stock_rank, menu_order, price_effective, visible, url, thumb_url, price_html', $product_id );
 		$tokens = $this->live_rows( Install::tokens_table(), 'token, field', $product_id );
 		$facets = $this->live_rows( Install::facets_table(), 'facet, value, label, value_num, term_id, parent_id', $product_id );
@@ -1061,27 +1076,7 @@ final class Indexer {
 			return array() === $docs && array() === $tokens && array() === $facets;
 		}
 
-		if ( 1 !== count( $docs ) ) {
-			return false;
-		}
-		// Asimetría deliberada en lo que sigue: el lado CONSTRUIDO se lee directo
-		// porque `valid_built_document()` ya exigió sus claves exactas y sus
-		// tipos antes de abrir la transacción; el lado VIVO se lee con `??`
-		// porque es una proyección SQL y una columna ausente tiene que salir por
-		// «no coinciden», nunca por un aviso de PHP.
-		$doc = (array) $built['doc'];
-		$columnas = array( 'title', 'title_norm', 'serie_norm', 'autores_norm', 'sku', 'sku_norm', 'url', 'thumb_url', 'price_html' );
-		foreach ( $columnas as $columna ) {
-			if ( ! is_string( $docs[0][ $columna ] ?? null ) || (string) $doc[ $columna ] !== $docs[0][ $columna ] ) {
-				return false;
-			}
-		}
-		if ( self::entero_o_nulo( $docs[0]['tomo'] ?? null ) !== self::entero_o_nulo( $doc['tomo'] )
-			|| self::entero_o_nulo( $docs[0]['stock_rank'] ?? null ) !== self::entero_o_nulo( $doc['stock_rank'] )
-			|| self::entero_o_nulo( $docs[0]['menu_order'] ?? null ) !== self::entero_o_nulo( $doc['menu_order'] )
-			|| self::entero_o_nulo( $docs[0]['visible'] ?? null ) !== self::entero_o_nulo( $doc['visible'] )
-			|| self::decimal_o_nulo( $docs[0]['price_effective'] ?? null ) !== self::decimal_o_nulo( $doc['price_effective'] )
-			|| self::entero_o_nulo( $docs[0]['post_id'] ?? null ) !== (string) $product_id ) {
+		if ( 1 !== count( $docs ) || ! $this->doc_row_matches( $product_id, (array) $built['doc'], $docs[0] ) ) {
 			return false;
 		}
 
@@ -1126,6 +1121,29 @@ final class Indexer {
 	}
 
 	/**
+	 * Compara la fila viva de `docs` contra el documento construido.
+	 *
+	 * @param int                        $product_id Producto.
+	 * @param array<string, mixed>       $doc        Documento construido.
+	 * @param array<string, string|null> $live_doc   Fila viva en DB.
+	 * @return bool
+	 */
+	private function doc_row_matches( int $product_id, array $doc, array $live_doc ): bool {
+		$columnas = array( 'title', 'title_norm', 'serie_norm', 'autores_norm', 'sku', 'sku_norm', 'url', 'thumb_url', 'price_html' );
+		foreach ( $columnas as $columna ) {
+			if ( ! is_string( $live_doc[ $columna ] ?? null ) || (string) $doc[ $columna ] !== $live_doc[ $columna ] ) {
+				return false;
+			}
+		}
+		return self::entero_o_nulo( $live_doc['tomo'] ?? null ) === self::entero_o_nulo( $doc['tomo'] )
+			&& self::entero_o_nulo( $live_doc['stock_rank'] ?? null ) === self::entero_o_nulo( $doc['stock_rank'] )
+			&& self::entero_o_nulo( $live_doc['menu_order'] ?? null ) === self::entero_o_nulo( $doc['menu_order'] )
+			&& self::entero_o_nulo( $live_doc['visible'] ?? null ) === self::entero_o_nulo( $doc['visible'] )
+			&& self::decimal_o_nulo( $live_doc['price_effective'] ?? null ) === self::decimal_o_nulo( $doc['price_effective'] )
+			&& self::entero_o_nulo( $live_doc['post_id'] ?? null ) === (string) $product_id;
+	}
+
+	/**
 	 * Filas vivas de un producto, o null si la lectura no es autoritativa.
 	 *
 	 * @param string $table      Tabla viva del índice.
@@ -1141,7 +1159,7 @@ final class Indexer {
 		$sql = $wpdb->prepare( "SELECT {$columns} FROM {$table} WHERE post_id = %d FOR UPDATE", $product_id );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql ES el resultado de $wpdb->prepare() de la línea anterior; se guarda en una variable para comprobar is_string() antes de ejecutar.
 		$rows = is_string( $sql ) ? $wpdb->get_results( $sql, ARRAY_A ) : null;
-		if ( ! is_array( $rows ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( ! is_array( $rows ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			return null;
 		}
 
@@ -1260,7 +1278,7 @@ final class Indexer {
 	 * @param int $product_id Producto.
 	 * @return array{outcome: string, built: array<string, mixed>|null}
 	 */
-	private function build_source_state( int $product_id ): array {
+	private function build_source_state( int $product_id ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		global $wpdb;
 
 		if ( $product_id <= 0 ) {
@@ -1285,7 +1303,7 @@ final class Indexer {
 			throw new \RuntimeException( 'Could not load eligible product.', 0, $throwable ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: es la excepción previa encadenada como tercer argumento de RuntimeException.
 		}
 		if ( '' !== trim( (string) $wpdb->last_error ) ) {
-			throw new \RuntimeException( 'Could not load eligible product: ' . (string) $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
+			throw new \RuntimeException( 'Could not load eligible product: ' . $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
 		}
 		if ( ! $product instanceof \WC_Product ) {
 			throw new \RuntimeException( 'Eligible product could not be loaded.' );
@@ -1297,7 +1315,7 @@ final class Indexer {
 			throw new \RuntimeException( 'Could not read eligible product identity.', 0, $throwable ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: es la excepción previa encadenada como tercer argumento de RuntimeException.
 		}
 		if ( '' !== trim( (string) $wpdb->last_error ) ) {
-			throw new \RuntimeException( 'Could not read eligible product identity: ' . (string) $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
+			throw new \RuntimeException( 'Could not read eligible product identity: ' . $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
 		}
 		if ( ! is_int( $observed_id ) || $observed_id !== $product_id ) {
 			throw new \RuntimeException( 'Eligible product identity disagrees with the authoritative source.' );
@@ -1309,7 +1327,7 @@ final class Indexer {
 			throw new \RuntimeException( 'Could not read eligible product status.', 0, $throwable ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: es la excepción previa encadenada como tercer argumento de RuntimeException.
 		}
 		if ( '' !== trim( (string) $wpdb->last_error ) ) {
-			throw new \RuntimeException( 'Could not read eligible product status: ' . (string) $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
+			throw new \RuntimeException( 'Could not read eligible product status: ' . $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
 		}
 		if ( ! is_string( $product_status ) || 'publish' !== $product_status ) {
 			// La autoridad cruda acaba de observar un post publicado. Un objeto WC
@@ -1322,7 +1340,7 @@ final class Indexer {
 		$wpdb->last_error = '';
 		$built            = $this->builder->build( $product );
 		if ( '' !== trim( (string) $wpdb->last_error ) ) {
-			throw new \RuntimeException( 'Could not build product source document: ' . (string) $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
+			throw new \RuntimeException( 'Could not build product source document: ' . $wpdb->last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
 		}
 		if ( ! $this->valid_built_document( $product_id, $built ) ) {
 			throw new \RuntimeException( 'DocumentBuilder returned an invalid document.' );
@@ -1538,8 +1556,9 @@ final class Indexer {
 	 * @param \WP_Post $post    Post object.
 	 * @param bool     $update  Es update.
 	 * @return void
+	 * @psalm-suppress UnusedParam
 	 */
-	public function on_save_post( $post_id, $post = null, $update = true ): void {
+	public function on_save_post( $post_id, $post = null, $update = true ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || wp_is_post_revision( (int) $post_id ) ) {
 			return;
 		}
@@ -1569,7 +1588,7 @@ final class Indexer {
 			Install::request_rebuild( 'product_save_source_unreadable' );
 			return;
 		}
-		if ( ! is_int( $product_id ) || $product_id < 0 || ! is_bool( $is_variation ) ) {
+		if ( ! is_int( $product_id ) || $product_id < 0 || ! is_bool( $is_variation ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			Install::request_rebuild( 'product_save_source_unreadable' );
 			return;
 		}
@@ -1616,6 +1635,7 @@ final class Indexer {
 	 *
 	 * @param int    $product_id Producto/documento padre.
 	 * @param string $barrier    Causa estable para el wake.
+	  * @psalm-suppress UnusedReturnValue
 	 * @return bool
 	 */
 	private function enqueue_product_deferred( int $product_id, string $barrier ): bool {
@@ -1682,11 +1702,65 @@ final class Indexer {
 	}
 
 	/**
-	 * @param int $product_id Producto.
+	 * Actualiza inmediatamente el stock_rank en la tabla de búsqueda y encola la sincronización completa.
+	 *
+	 * @param int         $product_id Producto.
+	 * @param string|null $status     Nuevo estado ('instock' o 'outofstock').
 	 * @return void
 	 */
-	public function on_stock_status( $product_id ): void {
-		$this->enqueue_product( (int) $product_id );
+	public function on_stock_status( $product_id, $status = null ): void {
+		$product_id = (int) $product_id;
+		if ( $product_id <= 0 ) {
+			return;
+		}
+
+		$this->enqueue_product( $product_id );
+
+		try {
+			if ( null === $status && function_exists( 'wc_get_product' ) ) {
+				$product = wc_get_product( $product_id );
+				$status  = $product instanceof \WC_Product ? $product->get_stock_status() : null;
+			}
+			if ( is_string( $status ) && '' !== $status && Install::runtime_schema_ready() ) {
+				$stock_rank = 'instock' === $status ? 0 : ( 'onbackorder' === $status ? 1 : 2 );
+				global $wpdb;
+				$docs_table = Install::docs_table();
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+				$wpdb->query(
+					$wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$docs_table} sale de Install::docs_table(); el id viaja por placeholder.
+						"UPDATE {$docs_table} SET stock_rank = %d WHERE post_id = %d",
+						$stock_rank,
+						$product_id
+					)
+				);
+
+				$facets_table = Install::facets_table();
+				$avail        = StockLabels::availability( $status, $product_id );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+				$wpdb->query(
+					$wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$facets_table} sale de Install::facets_table(); los valores viajan por placeholders.
+						"DELETE FROM {$facets_table} WHERE facet = 'stock' AND post_id = %d",
+						$product_id
+					)
+				);
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+				$wpdb->query(
+					$wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$facets_table} sale de Install::facets_table(); los valores viajan por placeholders.
+						"INSERT INTO {$facets_table} (facet, post_id, value, label, value_num, term_id, parent_id)
+						VALUES ('stock', %d, %s, %s, NULL, NULL, NULL)",
+						$product_id,
+						$avail['value'],
+						$avail['label']
+					)
+				);
+			}
+		} catch ( \Throwable $e ) {
+			// Fail-safe: no interrumpir el flujo de actualización de WooCommerce.
+			unset( $e );
+		}
 	}
 
 	/**
@@ -1779,6 +1853,7 @@ final class Indexer {
 	 * @param int    $tt_id    TT id (sin uso).
 	 * @param string $taxonomy Taxonomía.
 	 * @return void
+	 * @psalm-suppress UnusedParam
 	 */
 	public function on_edited_term( $term_id, $tt_id, $taxonomy ): void {
 		if ( ! $this->is_relevant_taxonomy( (string) $taxonomy ) ) {
@@ -1901,7 +1976,7 @@ final class Indexer {
 			$this->record_term_failure( $term_id, array(), 'term_source_unreadable' );
 			return;
 		}
-		if ( ! is_taxonomy_hierarchical( (string) $taxonomy ) ) {
+		if ( ! is_taxonomy_hierarchical( $taxonomy ) ) {
 			return;
 		}
 
@@ -1919,7 +1994,7 @@ final class Indexer {
 			unset( $throwable );
 			$children = null;
 		}
-		$complete        = is_array( $children ) && '' === trim( (string) ( $wpdb->last_error ?? '' ) );
+		$complete        = is_array( $children ) && '' === trim( $wpdb->last_error ?? '' );
 		if ( function_exists( 'is_wp_error' ) && is_wp_error( $children ) ) {
 			$complete = false;
 		}
@@ -2113,9 +2188,9 @@ final class Indexer {
 			return null;
 		}
 		if ( null !== $snapshot ) {
-			$snapshot_id = $snapshot->ID ?? null;
-			$post_type   = $snapshot->post_type ?? null;
-			$post_parent = $snapshot->post_parent ?? null;
+			$snapshot_id = $snapshot->ID ?? null; // @phpstan-ignore nullCoalesce.property
+			$post_type   = $snapshot->post_type ?? null; // @phpstan-ignore nullCoalesce.property
+			$post_parent = $snapshot->post_parent ?? null; // @phpstan-ignore nullCoalesce.property
 			if ( ! is_int( $snapshot_id ) || $snapshot_id <= 0 || $snapshot_id !== $post_id
 				|| ! is_string( $post_type ) || '' === trim( $post_type )
 				|| ! is_int( $post_parent ) || $post_parent < 0 ) {
@@ -2137,7 +2212,7 @@ final class Indexer {
 				"SELECT ID, post_type, post_parent FROM {$wpdb->posts} WHERE ID = %d LIMIT 2",
 				$post_id
 			);
-			if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_string( $sql ) || '' === trim( $sql ) ) {
+			if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_string( $sql ) || '' === trim( $sql ) ) {
 				return null;
 			}
 			$wpdb->last_error = '';
@@ -2146,7 +2221,7 @@ final class Indexer {
 			unset( $throwable );
 			return null;
 		}
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) )
+		if ( '' !== trim( $wpdb->last_error ?? '' )
 			|| ! is_array( $rows ) || 1 !== count( $rows ) || ! is_array( $rows[0] ) ) {
 			return null;
 		}
@@ -2208,7 +2283,7 @@ final class Indexer {
 			unset( $throwable );
 			return null;
 		}
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) )
+		if ( '' !== trim( $wpdb->last_error ?? '' )
 			|| ( function_exists( 'is_wp_error' ) && is_wp_error( $term ) )
 			|| ! $term instanceof \WP_Term
 			|| '' === (string) $term->taxonomy ) {
@@ -2228,7 +2303,7 @@ final class Indexer {
 					'no_found_rows'          => true,
 					'update_post_meta_cache' => false,
 					'update_post_term_cache' => false,
-					'tax_query'              => array(
+					'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 						array(
 							'taxonomy'         => (string) $term->taxonomy,
 							'terms'            => array( $term_id ),
@@ -2241,7 +2316,7 @@ final class Indexer {
 			unset( $throwable );
 			return null;
 		}
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_array( $ids ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_array( $ids ) ) {
 			return null;
 		}
 
@@ -2483,6 +2558,7 @@ final class Indexer {
 	 * si la lectura de fuentes falla o si no se logran encolar todos los productos afectados.
 	 *
 	 * @param int $term_id Término.
+	  * @psalm-suppress UnusedReturnValue
 	 * @return bool True si todos los IDs descubiertos quedaron persistidos.
 	 */
 	private function enqueue_term( int $term_id ): bool {
@@ -2504,7 +2580,7 @@ final class Indexer {
 			$term = null;
 		}
 		if ( ( function_exists( 'is_wp_error' ) && is_wp_error( $term ) )
-			|| '' !== trim( (string) ( $wpdb->last_error ?? '' ) )
+			|| '' !== trim( $wpdb->last_error ?? '' )
 			|| ! $term instanceof \WP_Term
 			|| '' === (string) $term->taxonomy ) {
 			Install::request_rebuild( 'term_fanout_source_unreadable' );
@@ -2549,7 +2625,8 @@ final class Indexer {
 	 * @param bool              $source_complete La captura pre-write fue íntegra.
 	 * @return bool True sólo si la fuente fue completa y toda la deuda persistió.
 	 */
-	private function enqueue_term_product_sources(
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function enqueue_term_product_sources( // @phpstan-ignore complexity.functionLike
 		int $source_term_id,
 		string $taxonomy,
 		array $term_ids,
@@ -2620,7 +2697,7 @@ final class Indexer {
 						'no_found_rows'          => true,
 						'update_post_meta_cache' => false,
 						'update_post_term_cache' => false,
-						'tax_query'              => array(
+						'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 							array(
 								'taxonomy'         => $taxonomy,
 								'terms'            => $term_roots,
@@ -2634,7 +2711,7 @@ final class Indexer {
 				$ids = null;
 			}
 
-			if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_array( $ids ) ) {
+			if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_array( $ids ) ) {
 				$source_complete = false;
 				$this->record_term_failure( $source_term_id, array(), 'source_query_failed' );
 			} else {

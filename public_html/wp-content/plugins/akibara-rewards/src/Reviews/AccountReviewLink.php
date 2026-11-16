@@ -10,6 +10,10 @@ use Akibara\Rewards\Support\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class AccountReviewLink {
 
 	/** Registra los accesos en la lista y el detalle de pedidos. */
@@ -18,7 +22,10 @@ final class AccountReviewLink {
 		add_action( 'woocommerce_view_order', array( $this, 'view_order' ), 20 );
 	}
 
-	/** Añade el acceso únicamente si el cliente puede recuperar su invitación. */
+	/**
+	 * Añade el acceso únicamente si el cliente puede recuperar su invitación.
+	 * @param mixed $order
+	 */
 	public function order_actions( array $actions, $order ): array {
 		$url = $this->url_for_order( $order );
 		if ( '' !== $url ) {
@@ -27,7 +34,10 @@ final class AccountReviewLink {
 		return $actions;
 	}
 
-	/** Muestra el mismo acceso en el detalle del pedido propio. */
+	/**
+	 * Muestra el mismo acceso en el detalle del pedido propio.
+	 * @param mixed $order_id
+	 */
 	public function view_order( $order_id ): void {
 		$url = $this->url_for_order( wc_get_order( (int) $order_id ) );
 		if ( '' !== $url ) {
@@ -35,7 +45,10 @@ final class AccountReviewLink {
 		}
 	}
 
-	/** Lee un token vigente sin emitir enlaces ni modificar el pedido. */
+	/**
+	 * Lee un token vigente sin emitir enlaces ni modificar el pedido.
+	 * @param mixed $order
+	 */
 	public function url_for_order( $order ): string {
 		$user_id = (int) get_current_user_id();
 		if ( $user_id <= 0 || ! $order instanceof \WC_Order
@@ -47,8 +60,8 @@ final class AccountReviewLink {
 		global $wpdb;
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				'SELECT order_id, token, expires_at, used_at FROM ' . Schema::review_forms_table()
-				. ' WHERE order_id = %d AND used_at IS NULL AND expires_at >= %s ORDER BY id DESC LIMIT 1',
+				'SELECT order_id, token, expires_at, used_at FROM %i WHERE order_id = %d AND used_at IS NULL AND expires_at >= %s ORDER BY id DESC LIMIT 1',
+				Schema::review_forms_table(),
 				(int) $order->get_id(),
 				gmdate( 'Y-m-d H:i:s' )
 			),
@@ -66,6 +79,6 @@ final class AccountReviewLink {
 
 	/** Texto coherente con el carril vigente. */
 	private function label(): string {
-		return Options::reviews_lane_on() ? 'Reseñar y obtener puntos' : 'Escribir mi reseña';
+		return Options::reviews_lane_on() ? 'Reseñar y obtener Puntos Akibara' : 'Escribir mi reseña';
 	}
 }

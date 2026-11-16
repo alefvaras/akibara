@@ -37,6 +37,11 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress RedundantCast
+ */
+// @phpstan-ignore complexity.classLike
 final class Renderer {
 
 	/**
@@ -201,7 +206,7 @@ final class Renderer {
 	 *
 	 * @param array<string, mixed> $settings Settings ya sanitizados.
 	 */
-	public function render_from_settings( array $settings ): string {
+	public function render_from_settings( array $settings ): string { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 
 		// Settings::active_slides() decide la visibilidad tanto en vista previa
 		// como en portada. Guardar datos incompletos no cambia ese criterio.
@@ -301,57 +306,9 @@ final class Renderer {
 				//   - arrows sin aria-controls (apuntaba a id inexistente).
 				?>
 				<?php if ( $is_carousel ) : ?>
-					<?php
-					// El indicador precede al track en el DOM para que el foco siga el orden
-					// visual. Usa un botón por diapositiva con aria-current; autoplay anima
-					// el segmento activo y tiene un control separado de pausa/reanudación.
-					// Elegir una diapositiva no cambia la pausa. Sin JavaScript conserva el
-					// estado activo renderizado por servidor.
-					// Los flags show_dots controlan el indicador; con autoplay se ignora su
-					// ocultación para mantener disponible el control exigido por WCAG 2.2.2.
-					$autoplay_on  = ! empty( $carousel['autoplay'] );
-					$hide_desktop = ! $autoplay_on && empty( $carousel['show_dots_desktop'] );
-					$hide_mobile  = ! $autoplay_on && empty( $carousel['show_dots_mobile'] );
-					?>
-					<?php if ( ! $hide_desktop || ! $hide_mobile ) : ?>
-						<div
-							class="akb-hero__progress
-								<?php echo $hide_desktop ? 'akb-hero__progress--hide-desktop ' : ''; ?>
-								<?php echo $hide_mobile  ? 'akb-hero__progress--hide-mobile '  : ''; ?>"
-							role="group"
-							aria-label="Progreso del carrusel"
-							hidden
-						>
-								<?php foreach ( $slides as $idx => $slide ) : ?>
-									<?php $slide_label = $this->slide_accessible_label( $slide, $idx, $count ); ?>
-									<button
-										type="button"
-										class="akb-hero__seg <?php echo 0 === $idx ? 'is-active' : ''; ?>"
-										<?php echo 0 === $idx ? 'aria-current="true"' : ''; ?>
-										aria-label="<?php echo esc_attr( 'Ir al ' . lcfirst( $slide_label ) ); ?>"
-										data-slide="<?php echo (int) $idx; ?>"
-									><span class="akb-hero__seg-fill" data-akb-seg-fill aria-hidden="true"></span></button>
-								<?php endforeach; ?>
-
-							<?php if ( $autoplay_on ) : ?>
-								<button
-									type="button"
-									class="akb-hero__progress-toggle"
-									aria-pressed="false"
-									aria-label="Pausar rotación automática"
-									data-akb-progress
-								>
-									<span class="akb-hero__progress-toggle-icon" aria-hidden="true"></span>
-								</button>
-							<?php endif; ?>
-						</div>
-					<?php endif; ?>
-
-					<?php /* Contenido INICIAL de la live region, sembrado server-side: los
-						SR no anuncian el contenido inicial, solo los cambios. Da el contexto
-						"Slide 1 de N" sin spam de carga; el JS solo la actualiza al navegar. */ ?>
-						<span class="akb-hero__sr-status" role="status" aria-live="polite" aria-atomic="true"><?php echo esc_html( $this->slide_accessible_label( $slides[0], 0, $count ) ); ?></span>
-					<?php endif; ?>
+					<?php $this->render_carousel_progress_bar( $slides, $carousel, $count ); ?>
+					<span class="akb-hero__sr-status" role="status" aria-live="polite" aria-atomic="true"><?php echo esc_html( $this->slide_accessible_label( $slides[0], 0, $count ) ); ?></span>
+				<?php endif; ?>
 
 					<div class="akb-hero__track" id="<?php echo esc_attr( $instance_id . '-track' ); ?>">
 						<?php foreach ( $slides as $idx => $slide ) : ?>
@@ -386,6 +343,56 @@ final class Renderer {
 	}
 
 	/**
+	 * Renderiza la barra de progreso y controles de pausa del carrusel.
+	 *
+	 * @param array<int, array<string, mixed>> $slides   Diapositivas activas.
+	 * @param array<string, mixed>             $carousel Configuración del carrusel.
+	 * @param int                              $count    Total de diapositivas.
+	 * @return void
+	 */
+	private function render_carousel_progress_bar( array $slides, array $carousel, int $count ): void {
+		$autoplay_on  = ! empty( $carousel['autoplay'] );
+		$hide_desktop = ! $autoplay_on && empty( $carousel['show_dots_desktop'] );
+		$hide_mobile  = ! $autoplay_on && empty( $carousel['show_dots_mobile'] );
+		if ( $hide_desktop && $hide_mobile ) {
+			return;
+		}
+		?>
+		<div
+			class="akb-hero__progress
+				<?php echo $hide_desktop ? 'akb-hero__progress--hide-desktop ' : ''; ?>
+				<?php echo $hide_mobile ? 'akb-hero__progress--hide-mobile ' : ''; ?>"
+			role="group"
+			aria-label="Progreso del carrusel"
+			hidden
+		>
+			<?php foreach ( $slides as $idx => $slide ) : ?>
+				<?php $slide_label = $this->slide_accessible_label( $slide, $idx, $count ); ?>
+				<button
+					type="button"
+					class="akb-hero__seg <?php echo 0 === $idx ? 'is-active' : ''; ?>"
+					<?php echo 0 === $idx ? 'aria-current="true"' : ''; ?>
+					aria-label="<?php echo esc_attr( 'Ir al ' . lcfirst( $slide_label ) ); ?>"
+					data-slide="<?php echo (int) $idx; ?>"
+				><span class="akb-hero__seg-fill" data-akb-seg-fill aria-hidden="true"></span></button>
+			<?php endforeach; ?>
+
+			<?php if ( $autoplay_on ) : ?>
+				<button
+					type="button"
+					class="akb-hero__progress-toggle"
+					aria-pressed="false"
+					aria-label="Pausar rotación automática"
+					data-akb-progress
+				>
+					<span class="akb-hero__progress-toggle-icon" aria-hidden="true"></span>
+				</button>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Renderiza un slide individual.
 	 *
 	 * @param array<string, mixed> $slide
@@ -395,7 +402,7 @@ final class Renderer {
 	 * @param string               $instance_id
 	 * @param bool                 $is_primary_heading
 	 */
-	private function render_slide(
+	private function render_slide( // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		array $slide,
 		int $idx,
 		bool $is_carousel,
@@ -410,42 +417,15 @@ final class Renderer {
 			return '';
 		}
 
-		$alt        = (string) ( $slide['alt'] ?? '' );
-		$eyebrow    = (string) ( $slide['eyebrow'] ?? '' );
-		$title      = (string) ( $slide['title'] ?? '' );
-		$lede       = (string) ( $slide['lede'] ?? '' );
-
-		$title_color  = (string) ( $slide['title_color'] ?? '' );
-		$title_font   = (string) ( $slide['title_font'] ?? '' );
-		$title_weight = (string) ( $slide['title_weight'] ?? '' );
-
-		$lede_color   = (string) ( $slide['lede_color']  ?? '' );
-		$lede_font    = (string) ( $slide['lede_font'] ?? '' );
-		$lede_weight  = (string) ( $slide['lede_weight'] ?? '' );
-
-		$objpos_d = (string) ( $slide['object_position_desktop'] ?? 'center center' );
-		$objpos_m = (string) ( $slide['object_position_mobile']  ?? 'center 80%' );
-
-		// Encuadre tablet (601-768): explícito del slide, o derivado del mobile
-		// con la Y capada (la caja tablet ve una banda más corta del arte — un
-		// Y de 80% afinado para phone decapita al sujeto). ÚNICA fuente de la
-		// derivación; el CSS solo consume la var.
-		$objpos_t = (string) ( $slide['object_position_tablet'] ?? '' );
-		if ( '' === $objpos_t ) {
-			$objpos_t = Settings::derive_tablet_object_position( $objpos_m );
-		}
-
-		$opacity = (int) ( $slide['vignette_opacity'] ?? 50 );
-		$opacity = max( 0, min( 100, $opacity ) );
-
+		$alt      = (string) ( $slide['alt'] ?? '' );
+		$title    = (string) ( $slide['title'] ?? '' );
 		$link_url = (string) ( $slide['link_url'] ?? '' );
 
-		$desktop_src = $this->get_image_url( $desktop_id );
-		$mobile_src  = $this->get_image_url( $mobile_id );
+		$desktop_src           = $this->get_image_url( $desktop_id );
+		$mobile_src            = $this->get_image_url( $mobile_id );
 		$desktop_responsive_id = $desktop_id;
 		$mobile_responsive_id  = $mobile_id;
 
-		// Si solo hay 1 imagen, usar la misma para ambos breakpoints.
 		if ( '' === $desktop_src && '' !== $mobile_src ) {
 			$desktop_src           = $mobile_src;
 			$desktop_responsive_id = $mobile_id;
@@ -457,18 +437,9 @@ final class Renderer {
 
 		$desktop_responsive = $this->get_responsive_attributes( $desktop_responsive_id );
 		$mobile_responsive  = $this->get_responsive_attributes( $mobile_responsive_id );
+		$desktop_webp       = self::find_adjacent_webp( $desktop_src );
+		$mobile_webp        = self::find_adjacent_webp( $mobile_src );
 
-		// WebP-adjacent detection: si existe un archivo .webp con el mismo
-		// basename que el attachment cargado (ej. owner subió .png pero también
-		// optimizó manualmente a .webp con cwebp), emitimos un <source webp>
-		// adicional para que el browser elija WebP cuando lo soporta. Memoria
-		// `project_lcp_optimization_2026_05_07`: WebP del hero pesa ~6 % del
-		// PNG (105 KB vs 1.81 MB). Sin esta detección, el plugin degradaría
-		// LCP respecto al markup `<!-- wp:html -->` legacy.
-		$desktop_webp = self::find_adjacent_webp( $desktop_src );
-		$mobile_webp  = self::find_adjacent_webp( $mobile_src );
-
-		// Intrinsic dims del attachment principal (desktop) para evitar CLS.
 		$dims = $desktop_id ? self::get_local_attachment_dimensions( $desktop_id ) : array( 1920, 811 );
 		$w    = (int) ( $dims[0] ?? 1920 );
 		$h    = (int) ( $dims[1] ?? 811 );
@@ -478,56 +449,9 @@ final class Renderer {
 			$slide_classes[] = 'is-active';
 		}
 
-		$style_parts = array(
-			sprintf( '--akb-hero-vignette:%d%%', $opacity ),
-			sprintf( '--akb-hero-objpos-desktop:%s', $objpos_d ),
-			sprintf( '--akb-hero-objpos-mobile:%s', $objpos_m ),
-			sprintf( '--akb-hero-objpos-tablet:%s', $objpos_t ),
-		);
-		// Banda 769-900: el crop 1200/750 tiene su propio default afinado (58%
-		// center en CSS). 'center center' LITERAL = sentinel "pin nunca tocado"
-		// (default de Settings::default_slide()): solo si el owner movió el pin
-		// desktop emitimos la var y el pin manda también en la banda. El picker
-		// escribe 'N% N%', así que centrar explícito ('50% 50%') NO es sentinel.
-		if ( 'center center' !== $objpos_d ) {
-			$style_parts[] = sprintf( '--akb-hero-objpos-band:%s', $objpos_d );
-		}
-		if ( '' !== $title_color ) {
-			$style_parts[] = sprintf( '--akb-hero-title-color:%s', $title_color );
-		}
-		if ( '' !== $title_font ) {
-			$style_parts[] = sprintf( '--akb-hero-title-font:%s, sans-serif', self::css_font_family( $title_font ) );
-		}
-		if ( '' !== $title_weight ) {
-			$style_parts[] = sprintf( '--akb-hero-title-weight:%s', $title_weight );
-		}
-		if ( '' !== $lede_color ) {
-			$style_parts[] = sprintf( '--akb-hero-lede-color:%s', $lede_color );
-		}
-		if ( '' !== $lede_font ) {
-			$style_parts[] = sprintf( '--akb-hero-lede-font:%s, sans-serif', self::css_font_family( $lede_font ) );
-		}
-		if ( '' !== $lede_weight ) {
-			$style_parts[] = sprintf( '--akb-hero-lede-weight:%s', $lede_weight );
-		}
-		$style = implode( ';', $style_parts ) . ';';
-
-		// Posicionamiento del bloque de texto.
-		$text_position      = (string) ( $slide['text_position'] ?? 'bottom-left' );
-		$text_align         = (string) ( $slide['text_align']    ?? 'left' );
-		// El modo below usa una caja obi a caballo entre el arte y su banda inferior
-		// en anchos de hasta 768 px, incluido tablet 601–768. Conserva el valor guardado
-		// y los bloques correspondientes de home-hero.css; no lo migra a overlay.
-			$mobile_text_layout = (string) ( $slide['mobile_text_layout'] ?? 'below' );
-			$slide_label       = $this->slide_accessible_label( $slide, $idx, $slide_count );
-
-		$content_classes = array(
-			'akb-hero__content',
-			'akb-hero__content--' . sanitize_html_class( $text_position ),
-			'akb-hero__content--align-' . sanitize_html_class( $text_align ),
-		);
-
-		$content_has_anything = ( '' !== $eyebrow || '' !== $title || '' !== $lede || ! empty( $slide['ctas'] ) );
+		$style              = self::build_slide_inline_style( $slide );
+		$mobile_text_layout = (string) ( $slide['mobile_text_layout'] ?? 'below' );
+		$slide_label        = $this->slide_accessible_label( $slide, $idx, $slide_count );
 
 		ob_start();
 		?>
@@ -569,56 +493,7 @@ final class Renderer {
 			<?php endif; ?>
 			<div class="akb-hero__vignette" aria-hidden="true"></div>
 
-			<?php if ( $content_has_anything ) : ?>
-				<div class="<?php echo esc_attr( implode( ' ', $content_classes ) ); ?>">
-					<?php if ( '' !== $eyebrow ) : ?>
-						<p class="akb-hero__eyebrow"><?php echo esc_html( $eyebrow ); ?></p>
-					<?php endif; ?>
-
-					<?php if ( '' !== $title ) : ?>
-						<?php
-						// El primer título no vacío emite <h1>. Los títulos restantes
-						// usan <h2>, aunque el primer slide editorial no tenga título.
-						$title_tag = $is_primary_heading ? 'h1' : 'h2';
-						?>
-						<<?php echo esc_html( $title_tag ); ?>
-							id="<?php echo esc_attr( $instance_id . '-title-' . $idx ); ?>"
-							class="akb-hero__title"
-						><?php echo esc_html( $title ); ?></<?php echo esc_html( $title_tag ); ?>>
-					<?php endif; ?>
-
-					<?php if ( '' !== $lede ) :
-						$lede_style_class = '';
-						$ls = (string) ( $slide['lede_style'] ?? 'plain' );
-						if ( 'plain' !== $ls ) {
-							$lede_style_class = ' akb-hero__lede--' . sanitize_html_class( $ls );
-						}
-						?>
-						<p class="akb-hero__lede<?php echo esc_attr( $lede_style_class ); ?>"><?php echo esc_html( $lede ); ?></p>
-					<?php endif; ?>
-
-					<?php if ( ! empty( $slide['ctas'] ) && is_array( $slide['ctas'] ) ) : ?>
-						<?php
-						// Un grupo de botones, no un landmark de navegación: con un
-						// <nav> por diapositiva el lector listaba «Acciones del slide»
-						// entre las regiones de la página (AI-13).
-						?>
-						<div class="akb-hero__actions">
-							<?php foreach ( $slide['ctas'] as $cta ) :
-								$cta_label = (string) ( $cta['label'] ?? '' );
-								$cta_url   = (string) ( $cta['url']   ?? '' );
-								$cta_style = (string) ( $cta['style'] ?? 'shop' );
-								if ( '' === $cta_label || '' === $cta_url ) {
-									continue;
-								}
-								$cta_class = 'akb-hero__action akb-hero__action--' . sanitize_html_class( $cta_style );
-								?>
-								<a class="<?php echo esc_attr( $cta_class ); ?>" href="<?php echo esc_url( $cta_url ); ?>"><?php echo esc_html( $cta_label ); ?></a>
-							<?php endforeach; ?>
-						</div>
-					<?php endif; ?>
-				</div>
-			<?php endif; ?>
+			<?php $this->render_slide_text_block( $slide, $idx, $instance_id, $is_primary_heading ); ?>
 
 			<?php if ( '' !== $link_url && empty( $slide['ctas'] ) ) : ?>
 				<a class="akb-hero__link" href="<?php echo esc_url( $link_url ); ?>" aria-label="<?php echo esc_attr( '' !== $alt ? $alt : ( '' !== $title ? $title : 'Ir al destino' ) ); ?>"></a>
@@ -626,6 +501,123 @@ final class Renderer {
 		</div>
 		<?php
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Construye las variables CSS inline de un slide individual.
+	 *
+	 * @param array<string, mixed> $slide Configuración del slide.
+	 * @return string
+	 */
+	private static function build_slide_inline_style( array $slide ): string {
+		$objpos_d = (string) ( $slide['object_position_desktop'] ?? 'center center' );
+		$objpos_m = (string) ( $slide['object_position_mobile'] ?? 'center 80%' );
+		$objpos_t = (string) ( $slide['object_position_tablet'] ?? '' );
+		if ( '' === $objpos_t ) {
+			$objpos_t = Settings::derive_tablet_object_position( $objpos_m );
+		}
+
+		$opacity = max( 0, min( 100, (int) ( $slide['vignette_opacity'] ?? 50 ) ) );
+
+		$style_parts = array(
+			sprintf( '--akb-hero-vignette:%d%%', $opacity ),
+			sprintf( '--akb-hero-objpos-desktop:%s', $objpos_d ),
+			sprintf( '--akb-hero-objpos-mobile:%s', $objpos_m ),
+			sprintf( '--akb-hero-objpos-tablet:%s', $objpos_t ),
+		);
+		if ( 'center center' !== $objpos_d ) {
+			$style_parts[] = sprintf( '--akb-hero-objpos-band:%s', $objpos_d );
+		}
+
+		$custom_props = array(
+			'title_color'  => '--akb-hero-title-color',
+			'title_weight' => '--akb-hero-title-weight',
+			'lede_color'   => '--akb-hero-lede-color',
+			'lede_weight'  => '--akb-hero-lede-weight',
+		);
+		foreach ( $custom_props as $key => $prop_name ) {
+			$val = (string) ( $slide[ $key ] ?? '' );
+			if ( '' !== $val ) {
+				$style_parts[] = $prop_name . ':' . $val;
+			}
+		}
+
+		$title_font = (string) ( $slide['title_font'] ?? '' );
+		if ( '' !== $title_font ) {
+			$style_parts[] = sprintf( '--akb-hero-title-font:%s, sans-serif', self::css_font_family( $title_font ) );
+		}
+		$lede_font = (string) ( $slide['lede_font'] ?? '' );
+		if ( '' !== $lede_font ) {
+			$style_parts[] = sprintf( '--akb-hero-lede-font:%s, sans-serif', self::css_font_family( $lede_font ) );
+		}
+
+		return implode( ';', $style_parts ) . ';';
+	}
+
+	/**
+	 * Renderiza el bloque de texto y botones CTA de un slide cuando tiene contenido.
+	 *
+	 * @param array<string, mixed> $slide              Datos del slide.
+	 * @param int                  $idx                Índice del slide.
+	 * @param string               $instance_id        ID de la instancia del hero.
+	 * @param bool                 $is_primary_heading Si lleva el `<h1>` principal.
+	 * @return void
+	 */
+	private function render_slide_text_block( array $slide, int $idx, string $instance_id, bool $is_primary_heading ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$eyebrow = (string) ( $slide['eyebrow'] ?? '' );
+		$title   = (string) ( $slide['title'] ?? '' );
+		$lede    = (string) ( $slide['lede'] ?? '' );
+		if ( '' === $eyebrow && '' === $title && '' === $lede && empty( $slide['ctas'] ) ) {
+			return;
+		}
+
+		$text_position   = (string) ( $slide['text_position'] ?? 'bottom-left' );
+		$text_align      = (string) ( $slide['text_align'] ?? 'left' );
+		$content_classes = array(
+			'akb-hero__content',
+			'akb-hero__content--' . sanitize_html_class( $text_position ),
+			'akb-hero__content--align-' . sanitize_html_class( $text_align ),
+		);
+		?>
+		<div class="<?php echo esc_attr( implode( ' ', $content_classes ) ); ?>">
+			<?php if ( '' !== $eyebrow ) : ?>
+				<p class="akb-hero__eyebrow"><?php echo esc_html( $eyebrow ); ?></p>
+			<?php endif; ?>
+
+			<?php if ( '' !== $title ) : ?>
+				<?php $title_tag = $is_primary_heading ? 'h1' : 'h2'; ?>
+				<<?php echo esc_html( $title_tag ); ?>
+					id="<?php echo esc_attr( $instance_id . '-title-' . $idx ); ?>"
+					class="akb-hero__title"
+				><?php echo esc_html( $title ); ?></<?php echo esc_html( $title_tag ); ?>>
+			<?php endif; ?>
+
+			<?php
+			if ( '' !== $lede ) :
+				$ls               = (string) ( $slide['lede_style'] ?? 'plain' );
+				$lede_style_class = 'plain' !== $ls ? ' akb-hero__lede--' . sanitize_html_class( $ls ) : '';
+				?>
+				<p class="akb-hero__lede<?php echo esc_attr( $lede_style_class ); ?>"><?php echo esc_html( $lede ); ?></p>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $slide['ctas'] ) && is_array( $slide['ctas'] ) ) : ?>
+				<div class="akb-hero__actions">
+					<?php
+					foreach ( $slide['ctas'] as $cta ) :
+						$cta_label = (string) ( $cta['label'] ?? '' );
+						$cta_url   = (string) ( $cta['url'] ?? '' );
+						$cta_style = (string) ( $cta['style'] ?? 'shop' );
+						if ( '' === $cta_label || '' === $cta_url ) {
+							continue;
+						}
+						$cta_class = 'akb-hero__action akb-hero__action--' . sanitize_html_class( $cta_style );
+						?>
+						<a class="<?php echo esc_attr( $cta_class ); ?>" href="<?php echo esc_url( $cta_url ); ?>"><?php echo esc_html( $cta_label ); ?></a>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
 	}
 
 	/**

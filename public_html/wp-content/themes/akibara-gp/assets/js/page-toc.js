@@ -8,27 +8,28 @@
  * y `#rank-math-toc` (bloque oficial de Rank Math en posts). Ambos enlazan
  * anclas `#id` a encabezados con ese id, así que el spy funciona igual.
  *
- * @package akibara-gp
+ * @package
  */
 ( function () {
 	'use strict';
 
-	var toc = document.querySelector( '.akb-page__toc, #rank-math-toc' );
+	const toc = document.querySelector( '.akb-page__toc, #rank-math-toc' );
 	if ( ! toc || ! ( 'IntersectionObserver' in window ) ) {
 		return;
 	}
 
-	var links = Array.prototype.slice.call( toc.querySelectorAll( 'a[href^="#"]' ) );
+	const links = Array.prototype.slice.call( toc.querySelectorAll( 'a[href^="#"]' ) );
 	if ( ! links.length ) {
 		return;
 	}
 
-	var byId = {};
-	var targets = [];
+	const byId = {};
+	const targets = [];
 	links.forEach( function ( a ) {
-		var id = decodeURIComponent( a.getAttribute( 'href' ).slice( 1 ) );
-		var el = id ? document.getElementById( id ) : null;
+		const id = decodeURIComponent( a.getAttribute( 'href' ).slice( 1 ) );
+		const el = id ? document.getElementById( id ) : null;
 		if ( el ) {
+			// eslint-disable-next-line security/detect-object-injection
 			byId[ id ] = a;
 			targets.push( el );
 		}
@@ -37,7 +38,7 @@
 		return;
 	}
 
-	var current = null;
+	let current = null;
 	function setCurrent( link ) {
 		if ( link === current ) {
 			return;
@@ -51,9 +52,9 @@
 		current = link;
 	}
 
-	var io = new IntersectionObserver( function ( entries ) {
+	const io = new IntersectionObserver( function ( entries ) {
 		// De las secciones que están intersectando la banda activa, marcar la más alta.
-		var visible = entries.filter( function ( e ) { return e.isIntersecting; } );
+		const visible = entries.filter( function ( e ) { return e.isIntersecting; } );
 		if ( ! visible.length ) {
 			return;
 		}

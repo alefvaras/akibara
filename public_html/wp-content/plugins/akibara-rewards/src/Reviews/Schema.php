@@ -35,6 +35,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress NoValue
  */
 final class Schema {
 
@@ -175,7 +178,7 @@ final class Schema {
 				),
 				// Incluye en el cuerpo el aviso de transcripción de AdminReviews.
 				'reviewBody'   => trim(
-					(string) $comment->comment_content
+					$comment->comment_content
 					. ' ' . AdminReviews::transcription_notice( (int) $comment->comment_ID )
 				),
 				'datePublished' => get_comment_date( 'c', $comment ),

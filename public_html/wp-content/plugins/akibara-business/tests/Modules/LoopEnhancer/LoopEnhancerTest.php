@@ -15,7 +15,6 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\LoopEnhancer;
 
-use Akibara\Business\Modules\EstimatedDelivery\BannerRenderer;
 use Akibara\Business\Modules\LoopEnhancer\LoopEnhancer;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Brain\Monkey;
@@ -146,21 +145,19 @@ final class LoopEnhancerTest extends TestCase {
 	}
 
 	/**
-	 * `outofstock` y `onbackorder` son las dos ramas reales del catálogo (82 y 479
-	 * cards); ninguna lleva la palabra en este slot.
+	 * `outofstock` es la rama no-instock real del catálogo en modelo binario.
 	 *
 	 * @return array<string, array{string}>
 	 */
 	public function non_instock_statuses(): array {
 		return array(
 			'agotado'  => array( StockStatus::OUT_OF_STOCK ),
-			'preventa' => array( StockStatus::ON_BACKORDER ),
+			'a_pedido' => array( StockStatus::ON_BACKORDER ),
 		);
 	}
 
 	/**
-	 * Estricto instock, no `is_in_stock()`: WooCommerce considera `onbackorder`
-	 * como "en stock", y un status desconocido no debe prometer disponibilidad.
+	 * Estricto instock, no `is_in_stock()`: un status desconocido no debe prometer disponibilidad.
 	 *
 	 * @testdox Should fail closed to the placeholder for an unknown stock status.
 	 */
@@ -221,21 +218,11 @@ final class LoopEnhancerTest extends TestCase {
 	}
 
 	/**
-	 * Contrato de ORDEN en el DOM, no de estilo: loop.css colapsa el placeholder
-	 * con `.akb-avail-hint--empty:has(~ .akb-eta-loop)`, que exige que la píldora
-	 * de ETA salga DESPUÉS del hint. Empatados en 11 el orden lo decidía el orden
-	 * de instanciación de módulos en Plugin.php — reordenarlos apagaba el colapso
-	 * sin error y sin test rojo, solo con la grilla desalineada.
-	 *
-	 * @testdox Should keep the availability hint before the delivery pill on the same loop hook.
+	 * @testdox Should keep the availability hint on the shop loop after title.
 	 */
-	public function test_hint_and_eta_pill_keep_their_relative_hook_order(): void {
+	public function test_availability_hint_hook_registered(): void {
 		$enhancer = new LoopEnhancer();
 		$enhancer->register();
-
-		// El BannerRenderer real pide un DateCalculator que register() no toca.
-		$banner = ( new ReflectionClass( BannerRenderer::class ) )->newInstanceWithoutConstructor();
-		$banner->register();
 
 		self::assertTrue(
 			Actions\has(
@@ -244,14 +231,6 @@ final class LoopEnhancerTest extends TestCase {
 				11
 			),
 			'El hint va en 11 (después del precio, que WC rinde en 10).'
-		);
-		self::assertTrue(
-			Actions\has(
-				'woocommerce_after_shop_loop_item_title',
-				array( $banner, 'render_loop_item' ),
-				12
-			),
-			'La píldora de ETA va en 12, NO empatada en 11: el `~` del CSS depende de ese orden.'
 		);
 	}
 }

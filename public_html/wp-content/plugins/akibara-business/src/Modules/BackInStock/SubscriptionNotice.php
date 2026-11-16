@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.99.0
+ * @api
  */
 final class SubscriptionNotice {
 

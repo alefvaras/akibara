@@ -8,7 +8,7 @@
  * El formulario requiere JavaScript. RateLimit protege por IP compartida
  * también a clientes autenticados y sólo exime a staff; su tope de 12/hora lo define
  * RateLimit::MAX_POR_TIPO['bis']. Las audiencias son distintas de SeriesFollow
- * (compradores de serie) y OrderPreventa (pedidos reservables).
+ * (compradores de serie).
  *
  * @package Akibara\Business
  */
@@ -23,12 +23,15 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantFunctionCall
  */
 final class BackInStock {
 
-	public const OPTION_CAPTURE          = 'akb_bis_capture_enabled';
-	public const OPTION_DISPATCH         = 'akb_bis_dispatch_enabled';
-	public const OPTION_NOTIFY_BACKORDER = 'akb_bis_notify_on_backorder';
+	public const OPTION_CAPTURE  = 'akb_bis_capture_enabled';
+	public const OPTION_DISPATCH = 'akb_bis_dispatch_enabled';
 
 	/** @var SubscriberRepository */
 	private SubscriberRepository $repository;
@@ -67,17 +70,10 @@ final class BackInStock {
 
 		add_filter( 'woocommerce_email_classes', array( $this, 'register_email' ) );
 
-		// Los CTAs "Avísame cuando vuelva" del loop (LoopEnhancer) y del
-		// builder (SeriesBundles) gatean por estos filters (default false
-		// post-cutover): este módulo es quien los enciende con la captura.
+		// Los CTAs "Avísame cuando vuelva" del loop (LoopEnhancer)
+		// gatean por este filter (default false post-cutover):
+		// este módulo es quien los enciende con la captura.
 		add_filter( 'akibara_loop_waitlist_active', array( self::class, 'filter_waitlist_active' ) );
-		add_filter( 'akb_sb_waitlist_active', array( self::class, 'filter_waitlist_active' ) );
-
-		// Las primeras versiones del módulo guardaban los flags como "1"/"0".
-		// WC_Admin_Settings usa "yes"/"no" para checkboxes; normalizamos una sola
-		// vez al entrar al admin para que la UI refleje el estado real sin alterar
-		// el comportamiento del frontend durante el despliegue.
-		add_action( 'admin_init', array( self::class, 'normalize_legacy_flag_options' ), 5 );
 
 		// Fila custom del form WC: conserva el ranking de demanda debajo de los
 		// interruptores operables, en vez de empujarlos después de una tabla larga.
@@ -121,14 +117,6 @@ final class BackInStock {
 				'desc'     => 'Enviar el email cuando el producto vuelva a stock',
 				'desc_tip' => 'Al desactivarlo se siguen detectando reposiciones, pero no se envían correos. Úsalo como corte seguro durante mantenimiento.',
 				'default'  => 'no',
-			),
-			array(
-				'title'    => 'Avisar también en «A pedido» y «Preventa»',
-				'id'       => self::OPTION_NOTIFY_BACKORDER,
-				'type'     => 'checkbox',
-				'desc'     => 'Enviar el correo cuando un producto agotado se habilite para pedir o reservar',
-				'desc_tip' => 'Recomendado: si un tomo agotado se vuelve a habilitar como «A pedido» o «Preventa», se avisa de inmediato indicando el estado comercial y el plazo estimado. Si lo desactivas, solo se avisará cuando entre a stock físico inmediato.',
-				'default'  => 'yes',
 			),
 			array(
 				'type' => 'sectionend',
@@ -297,10 +285,6 @@ final class BackInStock {
 			return array( 'Despublicado', '#b32d2e' );
 		}
 
-		if ( StockStatus::ON_BACKORDER === StockStatus::of( $product ) ) {
-			return array( StockStatus::palabra( StockStatus::ON_BACKORDER ), '#996800' );
-		}
-
 		return StockStatus::is_instock( $product )
 			? array( 'Disponible', '#006505' )
 			: array( 'Agotado', '#666' );
@@ -401,61 +385,17 @@ final class BackInStock {
 	}
 
 	/**
-	 * ¿Avisar también cuando el producto agotado pase a «A pedido» o «Preventa»?
-	 *
-	 * @since 1.118.1
-	 *
-	 * @return bool
-	 */
-	public static function notify_on_backorder_enabled(): bool {
-		$value   = get_option( self::OPTION_NOTIFY_BACKORDER, 'yes' );
-		$enabled = ! in_array( $value, array( false, 0, '0', 'no', 'off' ), true );
-
-		/**
-		 * Habilita el aviso de lista de espera cuando un producto agotado pasa
-		 * a `onbackorder` («A pedido» o «Preventa»), además de `instock`.
-		 *
-		 * @since 1.118.1
-		 *
-		 * @param bool $enabled Default: option akb_bis_notify_on_backorder (true).
-		 */
-		return (bool) apply_filters( 'akb_bis_notify_on_backorder', $enabled );
-	}
-
-	/**
 	 * ¿Este estado de stock crudo dispara el aviso de lista de espera?
 	 *
+	 * Solo el stock físico real (`instock`) despierta la lista de espera.
+	 *
 	 * @since 1.118.1
 	 *
-	 * @param string $status Estado crudo ('instock'|'onbackorder'|'outofstock').
+	 * @param string $status Estado crudo ('instock'|'outofstock').
 	 * @return bool
 	 */
 	public static function is_notifiable_status( string $status ): bool {
-		if ( StockStatus::IN_STOCK === $status ) {
-			return true;
-		}
-
-		if ( StockStatus::ON_BACKORDER === $status ) {
-			return self::notify_on_backorder_enabled();
-		}
-
-		return false;
-	}
-
-	/**
-	 * Migra el formato legacy de flags al contrato yes/no de WC_Admin_Settings.
-	 *
-	 * @return void
-	 */
-	public static function normalize_legacy_flag_options(): void {
-		foreach ( array( self::OPTION_CAPTURE, self::OPTION_DISPATCH, self::OPTION_NOTIFY_BACKORDER ) as $option ) {
-			$value = get_option( $option, null );
-			if ( '1' === $value || 1 === $value || true === $value || 'on' === $value ) {
-				update_option( $option, 'yes', false );
-			} elseif ( '0' === $value || 0 === $value ) {
-				update_option( $option, 'no', false );
-			}
-		}
+		return StockStatus::IN_STOCK === $status;
 	}
 
 	/**

@@ -13,14 +13,12 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\SeriesFollow;
 
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\SeriesFollow\GlobalToggle;
 use Akibara\Business\Modules\SeriesFollow\Install;
 use Akibara\Business\Modules\SeriesFollow\SeriesFollow;
 use Akibara\Business\Modules\SeriesFollow\SeriesFollowEmail;
 use Akibara\Business\Modules\SeriesFollow\UnfollowHandler;
-use Akibara\Business\Tests\Support\SeriesFollowFixedEta;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -64,9 +62,7 @@ final class ModuleWiringTest extends TestCase {
 		);
 
 		$this->modulo = new SeriesFollow(
-			new CustomerCollection( $GLOBALS['wpdb'] ),
-			new SeriesFollowFixedEta(),
-			new PedidoPolicy()
+			new CustomerCollection( $GLOBALS['wpdb'] )
 		);
 	}
 

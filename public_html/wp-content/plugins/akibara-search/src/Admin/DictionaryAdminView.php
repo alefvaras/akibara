@@ -17,6 +17,8 @@ use Akibara\Search\Synonyms;
 
 /**
  * Vistas administrativas para sinónimos y palabras ignoradas.
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class DictionaryAdminView {
 
@@ -34,7 +36,7 @@ final class DictionaryAdminView {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- sólo precarga texto en un formulario; el guardado tiene su propio nonce.
 		$prefill = isset( $_GET[ SearchAdminSection::PARAM_PREFILL ] ) ? sanitize_text_field( wp_unslash( (string) $_GET[ SearchAdminSection::PARAM_PREFILL ] ) ) : '';
-		$prefill = trim( mb_substr( $prefill, 0, (int) Synonyms::MAX_TERM_LENGTH ) );
+		$prefill = trim( mb_substr( $prefill, 0, Synonyms::MAX_TERM_LENGTH ) );
 		if ( '' !== $prefill ) {
 			$lines[] = $prefill . ', ';
 		}

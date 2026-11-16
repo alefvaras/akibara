@@ -7,7 +7,7 @@
  * muestra, y por eso el bloque hoy calla justo en la pregunta que el lector trae
  * desde Google: «¿la serie está completa?». No es una omisión que se pueda
  * arreglar consultando mejor — es que la respuesta NO ESTÁ en el catálogo. Con
- * 17 de 23 tomos publicados, `disponible + preventa + agotado` da 17 igual que
+ * 17 de 23 tomos publicados, `disponible + agotado` da 17 igual que
  * si la obra hubiera terminado en 17: los dos escenarios son indistinguibles
  * desde la base de datos.
  *
@@ -65,6 +65,7 @@ defined( 'ABSPATH' ) || exit;
  * Estado de publicación de una serie: contrato del dato y composición del texto.
  *
  * @since 1.100.0
+ * @api
  */
 final class PublicationStatus {
 
@@ -179,16 +180,6 @@ final class PublicationStatus {
 	 * NUEVO — es el mismo escrito distinto. Rechazarlo dejaría el renglón mudo en
 	 * una serie que sí tiene el dato, que es el peor de los dos errores: el
 	 * conjunto sigue cerrado, lo que se acepta es la ortografía.
-	 *
-	 * @param mixed $raw Valor del formulario o de `wp_termmeta`.
-	 * @return string Clave válida de `WORK_STATES`, o '' si no lo es.
-	 */
-	public static function sanitize_state( $raw ): string {
-		return self::sanitize_work_state( $raw );
-	}
-
-	/**
-	 * Normaliza un estado de la obra original.
 	 *
 	 * @param mixed $raw Valor del formulario o de `wp_termmeta`.
 	 * @return string Clave válida, o cadena vacía.

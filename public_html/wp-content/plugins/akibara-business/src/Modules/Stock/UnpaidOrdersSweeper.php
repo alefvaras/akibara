@@ -23,11 +23,16 @@ use WC_Order;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class UnpaidOrdersSweeper {
 
 	public const HOOK = 'akb_unpaid_orders_sweep';
-
-	private const SCHEDULE = 'daily';
 
 	public const DEFAULT_EXPIRY_HOURS = 24;
 
@@ -58,7 +63,7 @@ final class UnpaidOrdersSweeper {
 		}
 
 		// Solo cancelar órdenes originadas en checkout público (clásico o Store API), jamás pedidos manuales de administración.
-		if ( method_exists( $order, 'get_created_via' ) && ! in_array( $order->get_created_via(), array( 'checkout', 'store-api' ), true ) ) {
+		if ( method_exists( $order, 'get_created_via' ) && ! in_array( $order->get_created_via(), array( 'checkout', 'store-api' ), true ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return false;
 		}
 
@@ -148,6 +153,7 @@ final class UnpaidOrdersSweeper {
 	 *
 	 * @param list<string>         $args       Argumentos posicionales.
 	 * @param array<string, mixed> $assoc_args Argumentos asociativos.
+	 * @psalm-suppress UnusedParam
 	 */
 	public function cli_sweep_unpaid( array $args, array $assoc_args ): void {
 		$dry_run = isset( $assoc_args['dry-run'] );

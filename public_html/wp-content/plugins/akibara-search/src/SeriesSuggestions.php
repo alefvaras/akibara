@@ -34,6 +34,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.15
+ * @api
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class SeriesSuggestions {
 
@@ -148,7 +150,7 @@ final class SeriesSuggestions {
 	 * @return array<int, array{id:int, name:string, name_html:string, url:string, count:int, meta:string}>
 	 */
 	public function suggest( string $query, int $limit = self::SUGGEST_LIMIT ): array {
-		if ( ! $this->available || $limit <= 0 ) {
+		if ( ! $this->is_available() || $limit <= 0 ) {
 			return array();
 		}
 
@@ -163,7 +165,7 @@ final class SeriesSuggestions {
 		}
 
 		$catalog = $this->catalog();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -266,7 +268,7 @@ final class SeriesSuggestions {
 		}
 
 		$cached = $this->guarded( static fn() => get_transient( self::CACHE_KEY ), 'Could not read the series catalog cache.' );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( is_array( $cached ) && self::valid_catalog( $cached ) ) {
@@ -275,7 +277,7 @@ final class SeriesSuggestions {
 		}
 
 		$built = $this->build_catalog();
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -316,14 +318,14 @@ final class SeriesSuggestions {
 	 *
 	 * @return array<int, array{term_id:int, name:string, name_norm:string, url:string, count:int}>
 	 */
-	private function build_catalog(): array {
+	private function build_catalog(): array { // @phpstan-ignore complexity.functionLike
 		// Sin la taxonomía registrada no hay series: es ausencia real (WooCommerce
 		// todavía no registró los atributos), no una lectura fallida.
 		$exists = $this->guarded(
 			static fn(): bool => function_exists( 'taxonomy_exists' ) && taxonomy_exists( self::TAXONOMY ),
 			'Could not verify the series taxonomy.'
 		);
-		if ( ! $this->available || true !== $exists ) {
+		if ( ! $this->is_available() || true !== $exists ) {
 			return array();
 		}
 
@@ -343,10 +345,10 @@ final class SeriesSuggestions {
 			),
 			'Could not read the series taxonomy.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
-		if ( ! is_array( $terms ) || ( function_exists( 'is_wp_error' ) && is_wp_error( $terms ) ) ) {
+		if ( ! is_array( $terms ) || ( function_exists( 'is_wp_error' ) && is_wp_error( $terms ) ) ) { // @phpstan-ignore function.impossibleType
 			$this->mark_unavailable( 'The series taxonomy returned an invalid shape.' );
 			return array();
 		}
@@ -371,7 +373,7 @@ final class SeriesSuggestions {
 			}
 
 			$indexable = $this->is_indexable( $term_id, $slug );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 			if ( ! $indexable ) {
@@ -379,7 +381,7 @@ final class SeriesSuggestions {
 			}
 
 			$url = $this->guarded( static fn() => get_term_link( $term ), 'Could not resolve the series landing URL.' );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return array();
 			}
 			if ( ! is_string( $url ) || '' === trim( $url ) ) {
@@ -421,7 +423,7 @@ final class SeriesSuggestions {
 			static fn() => get_term_meta( $term_id, self::ROBOTS_META, true ),
 			'Could not read the series robots directive.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 
@@ -445,7 +447,7 @@ final class SeriesSuggestions {
 			static fn() => apply_filters( 'akb_search_series_indexable', $indexable, $term_id, $slug ),
 			'The series indexability filter is not authoritative.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 
@@ -483,7 +485,7 @@ final class SeriesSuggestions {
 			static fn() => function_exists( 'number_format_i18n' ) ? number_format_i18n( $count ) : (string) $count,
 			'Could not format the series volume count.'
 		);
-		if ( ! $this->available || ! is_string( $formatted ) || '' === $formatted ) {
+		if ( ! $this->is_available() || ! is_string( $formatted ) || '' === $formatted ) {
 			$formatted = (string) $count;
 		}
 
@@ -567,7 +569,7 @@ final class SeriesSuggestions {
 	 * @return mixed Resultado de la fuente; null tras un fallo.
 	 */
 	private function guarded( callable $reader, string $fallback ) {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		try {

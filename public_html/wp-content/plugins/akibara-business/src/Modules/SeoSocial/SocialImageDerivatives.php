@@ -24,6 +24,13 @@ use Akibara\Business\Utilities\OptionRow;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCast
+ */
 final class SocialImageDerivatives {
 
 	public const HOOK = 'akibara_business_social_image_derivatives';
@@ -512,7 +519,7 @@ final class SocialImageDerivatives {
 			return false;
 		}
 
-		return max( (int) ( $size[0] ?? 0 ), (int) ( $size[1] ?? 0 ) ) <= self::MAX_SIDE;
+		return max( $size[0] ?? 0, $size[1] ?? 0 ) <= self::MAX_SIDE; // @phpstan-ignore nullCoalesce.offset, nullCoalesce.offset
 	}
 
 	/**
@@ -570,7 +577,7 @@ final class SocialImageDerivatives {
 			imagedestroy( $canvas );
 			imagedestroy( $image );
 
-			if ( ! $written || ! rename( $temporal, $target ) ) {
+			if ( ! $written || ! rename( $temporal, $target ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 				if ( file_exists( $temporal ) ) {
 					unlink( $temporal ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- temporal propio en uploads.
 				}

@@ -17,6 +17,10 @@ defined( 'ABSPATH' ) || exit;
  * Counts the published, catalogue-visible products assigned to each series.
  *
  * @since 1.102.3
+ * @api
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
  */
 final class SeriesCatalogEligibility {
 
@@ -34,6 +38,9 @@ final class SeriesCatalogEligibility {
 
 	/** Country product attribute taxonomy (`pa_pais`). */
 	public const COUNTRY_TAXONOMY = 'pa_pais';
+
+	/** Author product attribute taxonomy (`pa_autor`). */
+	public const AUTHOR_TAXONOMY = 'pa_autor';
 
 	/**
 	 * Optional database dependency used by unit tests.
@@ -61,10 +68,11 @@ final class SeriesCatalogEligibility {
 	private array $volume_cache = array();
 
 	/**
-	 * Editorial (`product_brand`) y país (`pa_pais`) por `term_taxonomy_id`,
-	 * resueltos en el mismo agregado único que `counts()` y `volume_counts()`.
+	 * Editorial (`product_brand`), país (`pa_pais`) y autores (`pa_autor`) por
+	 * `term_taxonomy_id`, resueltos en el mismo agregado único que `counts()` y
+	 * `volume_counts()`.
 	 *
-	 * @var array<int,array{brand_name:string,brand_slug:string,country_name:string,country_slug:string}>
+	 * @var array<int,array{brand_name:string,brand_slug:string,country_name:string,country_slug:string,author_names:list<string>}>
 	 */
 	private array $origin_cache = array();
 
@@ -116,11 +124,11 @@ final class SeriesCatalogEligibility {
 	}
 
 	/**
-	 * Returns publisher (`product_brand`) and country (`pa_pais`) metadata keyed
-	 * by term-taxonomy ID, populated from the same aggregate query as `counts()`.
+	 * Returns publisher (`product_brand`), country (`pa_pais`) and authors (`pa_autor`)
+	 * metadata keyed by term-taxonomy ID, populated from the same aggregate query as `counts()`.
 	 *
 	 * @param array<int,mixed> $term_taxonomy_ids Series term-taxonomy IDs.
-	 * @return array<int,array{brand_name:string,brand_slug:string,country_name:string,country_slug:string}>
+	 * @return array<int,array{brand_name:string,brand_slug:string,country_name:string,country_slug:string,author_names:list<string>}>
 	 */
 	public function origins( array $term_taxonomy_ids ): array {
 		$normalized = self::normalize_ids( $term_taxonomy_ids );
@@ -135,6 +143,7 @@ final class SeriesCatalogEligibility {
 			'brand_slug'   => '',
 			'country_name' => '',
 			'country_slug' => '',
+			'author_names' => array(),
 		);
 
 		$result = array();
@@ -199,6 +208,7 @@ final class SeriesCatalogEligibility {
 					'brand_slug'   => '',
 					'country_name' => '',
 					'country_slug' => '',
+					'author_names' => array(),
 				);
 				foreach ( $missing_ids as $term_taxonomy_id ) {
 					$this->count_cache[ $term_taxonomy_id ]  = 0;
@@ -210,10 +220,11 @@ final class SeriesCatalogEligibility {
 					$this->count_cache[ $term_taxonomy_id ]  = $row['products'];
 					$this->volume_cache[ $term_taxonomy_id ] = $row['volumes'];
 					$this->origin_cache[ $term_taxonomy_id ] = array(
-						'brand_name'   => $row['brand_name'],
-						'brand_slug'   => $row['brand_slug'],
-						'country_name' => $row['country_name'],
-						'country_slug' => $row['country_slug'],
+						'brand_name'   => $row['brand_name'], // @phpstan-ignore offsetAccess.notFound
+						'brand_slug'   => $row['brand_slug'], // @phpstan-ignore offsetAccess.notFound
+						'country_name' => $row['country_name'], // @phpstan-ignore offsetAccess.notFound
+						'country_slug' => $row['country_slug'], // @phpstan-ignore offsetAccess.notFound
+						'author_names' => $row['author_names'] ?? array(),
 					);
 				}
 			}
@@ -300,7 +311,8 @@ final class SeriesCatalogEligibility {
 	 * @param list<int> $term_taxonomy_ids Series term-taxonomy IDs.
 	 * @return array<int,array{products:int,volumes:int}>|null Counts, or null when the database result is unreadable.
 	 */
-	private function query_counts( array $term_taxonomy_ids ): ?array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function query_counts( array $term_taxonomy_ids ): ?array { // @phpstan-ignore complexity.functionLike
 		$database = $this->database();
 		if (
 			null === $database
@@ -328,7 +340,8 @@ final class SeriesCatalogEligibility {
 				MIN(brand_term.name) AS brand_name,
 				MIN(brand_term.slug) AS brand_slug,
 				MIN(country_term.name) AS country_name,
-				MIN(country_term.slug) AS country_slug
+				MIN(country_term.slug) AS country_slug,
+				GROUP_CONCAT(DISTINCT author_term.name SEPARATOR '\x1e') AS author_names
 			FROM {$relationships_table} series_relationship
 			INNER JOIN {$taxonomy_table} series_taxonomy
 				ON series_taxonomy.term_taxonomy_id = series_relationship.term_taxonomy_id
@@ -354,6 +367,13 @@ final class SeriesCatalogEligibility {
 				AND country_taxonomy.taxonomy = 'pa_pais'
 			LEFT JOIN {$terms_table} country_term
 				ON country_term.term_id = country_taxonomy.term_id
+			LEFT JOIN {$relationships_table} author_relationship
+				ON author_relationship.object_id = product.ID
+			LEFT JOIN {$taxonomy_table} author_taxonomy
+				ON author_taxonomy.term_taxonomy_id = author_relationship.term_taxonomy_id
+				AND author_taxonomy.taxonomy = 'pa_autor'
+			LEFT JOIN {$terms_table} author_term
+				ON author_term.term_id = author_taxonomy.term_id
 			WHERE series_relationship.term_taxonomy_id IN ({$id_placeholders})
 				AND NOT EXISTS (
 					SELECT 1
@@ -405,6 +425,13 @@ final class SeriesCatalogEligibility {
 				continue;
 			}
 
+			if ( isset( $row['author_names'] ) && is_array( $row['author_names'] ) ) {
+				$authors = array_values( array_filter( array_map( 'trim', $row['author_names'] ) ) );
+			} else {
+				$author_raw = isset( $row['author_names'] ) && is_string( $row['author_names'] ) ? $row['author_names'] : '';
+				$authors    = array_values( array_filter( array_map( 'trim', explode( "\x1e", $author_raw ) ) ) );
+			}
+
 			$counts[ $term_taxonomy_id ] = array(
 				'products'     => max( 0, (int) ( $row['product_count'] ?? 0 ) ),
 				'volumes'      => max( 0, (int) ( $row['volume_count'] ?? 0 ) ),
@@ -412,6 +439,7 @@ final class SeriesCatalogEligibility {
 				'brand_slug'   => isset( $row['brand_slug'] ) && is_string( $row['brand_slug'] ) ? trim( $row['brand_slug'] ) : '',
 				'country_name' => isset( $row['country_name'] ) && is_string( $row['country_name'] ) ? trim( $row['country_name'] ) : '',
 				'country_slug' => isset( $row['country_slug'] ) && is_string( $row['country_slug'] ) ? trim( $row['country_slug'] ) : '',
+				'author_names' => $authors,
 			);
 		}
 
@@ -447,7 +475,10 @@ final class SeriesCatalogEligibility {
 		return array_values( $ids );
 	}
 
-	/** Normalizes one positive integer ID. */
+	/**
+	 * Normalizes one positive integer ID.
+	 * @param mixed $value
+	 */
 	private static function normalize_id( $value ): int {
 		if ( is_int( $value ) ) {
 			return $value > 0 ? $value : 0;

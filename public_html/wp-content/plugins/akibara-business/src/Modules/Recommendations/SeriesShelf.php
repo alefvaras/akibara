@@ -19,6 +19,9 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class SeriesShelf {
 
 	/** Taxonomía de las series. */

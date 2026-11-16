@@ -27,6 +27,9 @@ use Akibara\Business\Modules\BrandsDirectory\Shortcode;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class BrandsHubUrl {
 
 	/**

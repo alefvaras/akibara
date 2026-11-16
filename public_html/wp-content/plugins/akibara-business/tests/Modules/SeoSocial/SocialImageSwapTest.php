@@ -107,10 +107,7 @@ final class SocialImageSwapTest extends TestCase {
 		Functions\when( 'delete_transient' )->justReturn( true );
 		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
-		// RecompressorTest define `wp_getimagesize` con un alias que sobrevive
-		// a su tearDown (Brain Monkey limpia la expectativa, no el símbolo):
-		// en orden natural las medidas del og:image salían de SU fixture.
-		// Aquí la función mide el fichero de verdad, como en WordPress.
+		// Mide el fichero de verdad cuando alguna prueba previa dejó un stub global de `wp_getimagesize`.
 		Functions\when( 'wp_getimagesize' )->alias(
 			static fn( string $path ) => @getimagesize( $path ) // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		);

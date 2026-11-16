@@ -1,16 +1,12 @@
 <?php
 /**
- * Arrival — captura del primer cambio de estado `onbackorder → instock` por producto.
+ * Arrival — captura de primera llegada física a bodega (`instock`) por producto.
  *
  * Registra de forma persistente los hitos cronológicos de ciclo de vida del producto:
- *   - `_akb_onbackorder_at`: instante en que el producto entró por primera vez a preventa.
- *   - `_akb_first_instock_at`: instante de primera llegada física a bodega (`onbackorder → instock`).
+ *   - `_akb_first_instock_at`: instante de primera llegada física a bodega.
  *
- * Ambas marcas temporales representan datos fuente históricos inmutables (se escriben una
- * sola vez por producto y nunca son alteradas por reconstrucciones de índices).
- *
- * Poblamiento inicial (`seed_pending()`): sincronizado automáticamente durante la reconciliación
- * periódica del Reconciler para productos que ya se encontraban en preventa.
+ * Representa un dato fuente histórico inmutable (se escribe una sola vez por producto
+ * y nunca es alterado por reconstrucciones de índices).
  *
  * @package Akibara\Search
  */
@@ -23,13 +19,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.60.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class Arrival {
 
-	/** Meta: primer momento observado en preventa (timestamp UTC). */
-	public const META_ONBACKORDER_AT = '_akb_onbackorder_at';
-
-	/** Meta: primera llegada real onbackorder→instock (timestamp UTC). */
+	/** Meta: primera llegada real instock (timestamp UTC). */
 	public const META_FIRST_INSTOCK_AT = '_akb_first_instock_at';
 
 	/** Cap de productos backfilleados por corrida del Reconciler. */
@@ -50,7 +45,7 @@ final class Arrival {
 	 * Transición de stock observada.
 	 *
 	 * @param int|string $product_id Producto.
-	 * @param string     $status     Nuevo stock status (instock|outofstock|onbackorder).
+	 * @param string     $status     Nuevo stock status (instock|outofstock).
 	 * @return void
 	 */
 	public static function on_stock_status( $product_id, $status ): void {
@@ -59,15 +54,7 @@ final class Arrival {
 			return;
 		}
 
-		if ( 'onbackorder' === $status ) {
-			if ( '' === (string) get_post_meta( $product_id, self::META_ONBACKORDER_AT, true ) ) {
-				update_post_meta( $product_id, self::META_ONBACKORDER_AT, (string) time() );
-			}
-			return;
-		}
-
 		if ( 'instock' === $status
-			&& '' !== (string) get_post_meta( $product_id, self::META_ONBACKORDER_AT, true )
 			&& '' === (string) get_post_meta( $product_id, self::META_FIRST_INSTOCK_AT, true )
 		) {
 			update_post_meta( $product_id, self::META_FIRST_INSTOCK_AT, (string) time() );
@@ -75,45 +62,11 @@ final class Arrival {
 	}
 
 	/**
-	 * Backfill: marca `_akb_onbackorder_at` en productos publicados que YA
-	 * están en preventa pero no tienen la meta (los que entraron a preventa
-	 * antes de que este módulo existiera — el caso masivo es el cutover).
-	 * Cap por corrida; converge en pocas corridas diarias y después cuesta un
-	 * SELECT vacío. API de WP (cache-aware), no SQL directo a postmeta.
+	 * Backfill: en modelo binario estricto (instock/outofstock) no hay preventas pendientes.
 	 *
 	 * @return int Productos marcados en esta corrida.
 	 */
 	public static function seed_pending(): int {
-		if ( ! function_exists( 'get_posts' ) ) {
-			return 0;
-		}
-
-		$ids = get_posts(
-			array(
-				'post_type'      => 'product',
-				'post_status'    => 'publish',
-				'posts_per_page' => self::SEED_CAP,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- corrida diaria async del Reconciler, capada.
-				'meta_query'     => array(
-					array(
-						'key'   => '_stock_status',
-						'value' => 'onbackorder',
-					),
-					array(
-						'key'     => self::META_ONBACKORDER_AT,
-						'compare' => 'NOT EXISTS',
-					),
-				),
-			)
-		);
-
-		$now = (string) time();
-		foreach ( $ids as $id ) {
-			update_post_meta( (int) $id, self::META_ONBACKORDER_AT, $now );
-		}
-
-		return count( $ids );
+		return 0;
 	}
 }

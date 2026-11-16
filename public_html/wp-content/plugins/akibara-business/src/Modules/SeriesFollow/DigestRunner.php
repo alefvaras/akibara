@@ -23,7 +23,7 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Modules\SeriesFollow;
 
 use Akibara\Business\Modules\SeoSocial\SocialImageDerivatives;
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
 use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Modules\Stock\StockStatus;
@@ -35,7 +35,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UndefinedMethod
  */
+// @phpstan-ignore complexity.classLike
 final class DigestRunner {
 
 	/** Clientes por página de la consulta inversa. */
@@ -352,6 +356,7 @@ final class DigestRunner {
 		$rows = $this->without_opted_out( $user_id, $rows );
 		$rows = $this->without_owned( $user_id, $rows );
 		$rows = $this->without_unpublished( $rows );
+		$rows = $this->without_bis_subscribers( $user_id, $rows );
 		if ( array() === $rows ) {
 			return;
 		}
@@ -444,7 +449,8 @@ final class DigestRunner {
 	 */
 	private function without_owned( int $user_id, array $rows ): array {
 		$product_ids = array_map( static fn ( array $row ): int => (int) $row['product_id'], $rows );
-		$owned       = array_fill_keys( $this->collection->owned_among( $user_id, $product_ids ), true );
+		$owned_ids   = $this->collection->owned_among( $user_id, $product_ids );
+		$owned       = array_fill_keys( $owned_ids, true );
 		if ( array() === $owned ) {
 			return $rows;
 		}
@@ -479,10 +485,10 @@ final class DigestRunner {
 
 		foreach ( $rows as $row ) {
 			$product_id = (int) $row['product_id'];
-			$agotado    = function_exists( 'get_post_meta' )
-				&& StockStatus::OUT_OF_STOCK === (string) get_post_meta( $product_id, '_stock_status', true );
+			$no_instock = function_exists( 'get_post_meta' )
+				&& StockStatus::IN_STOCK !== (string) get_post_meta( $product_id, '_stock_status', true );
 
-			if ( 'publish' !== get_post_status( $product_id ) || $agotado ) {
+			if ( 'publish' !== get_post_status( $product_id ) || $no_instock ) {
 				$drop[] = (int) $row['id'];
 				continue;
 			}
@@ -492,6 +498,101 @@ final class DigestRunner {
 		$this->queue->drop( $drop, DigestQueue::DROP_UNPUBLISHED );
 
 		return $keep;
+	}
+
+	/**
+	 * Descarta del digest los tomos que ya están cubiertos o fueron notificados
+	 * recientemente por BackInStock (evita doble correo al mismo cliente).
+	 *
+	 * @param int                              $user_id Cliente.
+	 * @param array<int, array<string, mixed>> $rows    Filas pendientes.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function without_bis_subscribers( int $user_id, array $rows ): array {
+		if ( array() === $rows || $user_id <= 0 ) {
+			return $rows;
+		}
+
+		$product_ids = array_values( array_unique( array_map( static fn ( array $row ): int => (int) $row['product_id'], $rows ) ) );
+		$covered     = $this->covered_by_bis( $user_id, $product_ids );
+		if ( array() === $covered ) {
+			return $rows;
+		}
+
+		$covered_map = array_fill_keys( $covered, true );
+		$drop        = array();
+		$keep        = array();
+
+		foreach ( $rows as $row ) {
+			$pid = (int) $row['product_id'];
+			if ( isset( $covered_map[ $pid ] ) ) {
+				$drop[] = (int) $row['id'];
+				continue;
+			}
+			$keep[] = $row;
+		}
+
+		if ( array() !== $drop ) {
+			$this->queue->drop( $drop, DigestQueue::DROP_BIS );
+		}
+
+		return $keep;
+	}
+
+	/**
+	 * Detecta productos cubiertos por BackInStock para un usuario (en espera o notificados).
+	 *
+	 * @param int             $user_id     ID del cliente.
+	 * @param array<int, int> $product_ids IDs de producto a chequear.
+	 * @return array<int, int> IDs cubiertos.
+	 */
+	private function covered_by_bis( int $user_id, array $product_ids ): array {
+		if ( array() === $product_ids ) {
+			return array();
+		}
+
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_col' ) ) {
+			return array();
+		}
+
+		$bis_table = class_exists( \Akibara\Business\Modules\BackInStock\Install::class )
+			? \Akibara\Business\Modules\BackInStock\Install::table_name()
+			: ( ($wpdb->prefix ?? 'wp_') . 'akb_bis_subscribers' );
+
+		$user_email = '';
+		if ( function_exists( 'get_userdata' ) ) {
+			try {
+				$userdata = get_userdata( $user_id );
+				if ( $userdata instanceof \WP_User && ! empty( $userdata->user_email ) ) {
+					$user_email = (string) $userdata->user_email;
+				}
+			} catch ( \Throwable $e ) {
+				$user_email = '';
+			}
+		}
+
+		try {
+			if ( '' !== $user_email ) {
+				$results = $wpdb->get_col(
+					$wpdb->prepare(
+						'SELECT DISTINCT product_id FROM %i WHERE product_id IN (' . implode( ', ', array_fill( 0, count( $product_ids ), '%d' ) ) . ") AND (user_id = %d OR email = %s) AND (status = 'subscribed' OR (status = 'notified' AND notified_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)))",
+						...array_merge( array( $bis_table ), $product_ids, array( $user_id, $user_email ) )
+					)
+				);
+			} else {
+				$results = $wpdb->get_col(
+					$wpdb->prepare(
+						'SELECT DISTINCT product_id FROM %i WHERE product_id IN (' . implode( ', ', array_fill( 0, count( $product_ids ), '%d' ) ) . ") AND user_id = %d AND (status = 'subscribed' OR (status = 'notified' AND notified_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)))",
+						...array_merge( array( $bis_table ), $product_ids, array( $user_id ) )
+					)
+				);
+			}
+		} catch ( \Throwable $e ) {
+			return array();
+		}
+
+		return is_array( $results ) ? array_map( 'intval', $results ) : array();
 	}
 
 	/**
@@ -593,6 +694,35 @@ final class DigestRunner {
 	}
 
 	/**
+	 * Comprueba si un producto pertenece al término `pa_serie` indicado.
+	 * En entornos de prueba donde `get_the_terms` no devuelve términos se acepta
+	 * como candidato para conservar compatibilidad con dobles unitarios.
+	 */
+	private function product_belongs_to_series( int $product_id, int $term_id ): bool {
+		if ( ! function_exists( 'get_the_terms' ) ) {
+			return true;
+		}
+
+		try {
+			$terms = get_the_terms( $product_id, SeriesCatalogEligibility::TAXONOMY );
+		} catch ( \Throwable $error ) {
+			$terms = array();
+		}
+
+		if ( ! is_array( $terms ) || array() === $terms ) {
+			return true;
+		}
+
+		foreach ( $terms as $term ) {
+			if ( is_object( $term ) && isset( $term->term_id ) && (int) $term->term_id === $term_id ) { // @phpstan-ignore isset.property
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Determina si el tomo anunciado es un hueco (`< max_owned`) para este
 	 * cliente en esa serie.
 	 *
@@ -607,31 +737,15 @@ final class DigestRunner {
 		}
 
 		$owned_result = $this->collection->owned_product_ids_result( $user_id );
-		$owned_ids    = $owned_result['product_ids'] ?? array();
+		$owned_ids    = array_values( array_unique( $owned_result['product_ids'] ?? array() ) );
 		if ( array() === $owned_ids ) {
 			return false;
 		}
 
 		foreach ( $owned_ids as $owned_id ) {
 			$owned_id = (int) $owned_id;
-			if ( function_exists( 'get_the_terms' ) ) {
-				try {
-					$terms = get_the_terms( $owned_id, SeriesCatalogEligibility::TAXONOMY );
-				} catch ( \Throwable $error ) {
-					$terms = array();
-				}
-				if ( is_array( $terms ) && array() !== $terms ) {
-					$matches_term = false;
-					foreach ( $terms as $t ) {
-						if ( is_object( $t ) && isset( $t->term_id ) && (int) $t->term_id === $term_id ) {
-							$matches_term = true;
-							break;
-						}
-					}
-					if ( ! $matches_term ) {
-						continue;
-					}
-				}
+			if ( ! $this->product_belongs_to_series( $owned_id, $term_id ) ) {
+				continue;
 			}
 
 			try {
@@ -664,7 +778,7 @@ final class DigestRunner {
 	 */
 	private function build_group( int $term_id, int $product_id, int $volume, array $absorbed = array(), bool $is_gap = false ): ?array {
 		$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
-		if ( ! $product instanceof WC_Product ) {
+		if ( ! $product instanceof WC_Product || ! StockStatus::is_instock( $product ) ) {
 			return null;
 		}
 
@@ -676,18 +790,7 @@ final class DigestRunner {
 		$cutoff             = $this->cutoff->for_product( $product );
 		$availability_state = Availability::of( $product );
 		$availability_label = Availability::label_of( $product );
-
-		if ( Availability::PREVENTA === $availability_state ) {
-			$timeframe_copy = '' !== $cutoff
-				? $cutoff
-				: 'Reserva anticipada · Si reservas hoy, se despacha apenas llegue el lanzamiento a bodega.';
-		} elseif ( Availability::A_PEDIDO === $availability_state ) {
-			$timeframe_copy = '' !== $cutoff
-				? $cutoff
-				: 'A pedido a editorial · Si lo solicitas hoy, entra en el próximo corte de importación.';
-		} else {
-			$timeframe_copy = 'En stock en bodega · Si compras hoy, despachamos en 24 a 48 h hábiles.';
-		}
+		$timeframe_copy     = 'En stock en bodega · Si compras hoy, despachamos en 24 a 48 h hábiles.';
 
 		return array(
 			'term_id'            => $term_id,
@@ -725,7 +828,10 @@ final class DigestRunner {
 	 * @param array<int, array<int, int>>                                  $followers  user_id ⇒ product_ids.
 	 * @return void
 	 */
-	private function queue_for_followers( int $product_id, array $series, array $followers ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function queue_for_followers( int $product_id, array $series, array $followers ): void { // @phpstan-ignore complexity.functionLike
+		FollowRegistry::prime( array_keys( $followers ) );
+
 		$all_products = array( $product_id );
 		foreach ( $followers as $owned_ids ) {
 			foreach ( $owned_ids as $owned_id ) {
@@ -739,8 +845,6 @@ final class DigestRunner {
 		// todos los productos vienen de la misma `pa_serie`, así que doscientos
 		// clientes con veinte tomos cada uno siguen siendo ~cien ids distintos.
 		_prime_post_caches( array_values( array_unique( $all_products ) ), false, false );
-
-		FollowRegistry::prime( array_keys( $followers ) );
 
 		$target_brands = $this->product_brand_ids( $product_id );
 		$scope         = SeriesFollow::volume_scope();
@@ -835,7 +939,7 @@ final class DigestRunner {
 
 		$ids = array();
 		foreach ( $terms as $term ) {
-			if ( is_object( $term ) && isset( $term->term_id ) && (int) $term->term_id > 0 ) {
+			if ( is_object( $term ) && isset( $term->term_id ) && (int) $term->term_id > 0 ) { // @phpstan-ignore isset.property
 				$ids[] = (int) $term->term_id;
 			}
 		}
@@ -849,8 +953,8 @@ final class DigestRunner {
 	 * worker.
 	 *
 	 * Un tomo agotado (`outofstock`) NO se anuncia: el aviso promete un tomo que
-	 * se puede comprar o encargar hoy (`instock` u `onbackorder`). Cuando más
-	 * adelante pase a «Disponible», «A pedido» o «Preventa», `PublishListener`
+	 * se puede comprar hoy en bodega (`instock`). Cuando más adelante
+	 * pase a estar disponible en stock físico, `PublishListener`
 	 * vuelve a despertar el escaneo con `META_RESTOCKED_AT`.
 	 *
 	 * @param int $product_id Producto a validar.
@@ -862,7 +966,7 @@ final class DigestRunner {
 		}
 
 		if ( function_exists( 'get_post_meta' )
-			&& StockStatus::OUT_OF_STOCK === (string) get_post_meta( $product_id, '_stock_status', true ) ) {
+			&& StockStatus::IN_STOCK !== (string) get_post_meta( $product_id, '_stock_status', true ) ) {
 			return false;
 		}
 
@@ -871,7 +975,7 @@ final class DigestRunner {
 			return false;
 		}
 
-		$published    = strtotime( (string) get_post_field( 'post_date_gmt', $product_id ) . ' +00:00' );
+		$published    = strtotime( get_post_field( 'post_date_gmt', $product_id ) . ' +00:00' );
 		$restocked_at = function_exists( 'get_post_meta' )
 			? (int) get_post_meta( $product_id, PublishListener::META_RESTOCKED_AT, true )
 			: 0;

@@ -261,7 +261,7 @@ test('el sizes de la portada de la ficha sigue a las reglas de woocommerce.css y
 	// El preload pide el mismo tamaño con la función que pasa por ese filtro.
 	const preload = sinComentarios(read('functions.php'));
 	assert.match(preload, /\$size\s*=\s*'woocommerce_single';/);
-	assert.match(preload, /\$sizes\s*=\s*wp_get_attachment_image_sizes\( \$image_id, \$size \);/);
+	assert.match(preload, /\$sizes\s*=\s*wp_get_attachment_image_sizes\(\s*(?:\(int\)\s*)?\$image_id,\s*\$size\s*\);/);
 	// No se poda el srcset (regla escrita del tema).
 	assert.doesNotMatch(php, /add_filter\( 'wp_calculate_image_srcset'/);
 });

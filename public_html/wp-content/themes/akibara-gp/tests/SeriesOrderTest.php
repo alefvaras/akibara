@@ -153,7 +153,7 @@ final class SeriesOrderTest extends TestCase {
 	}
 
 	/**
-	 * @testdox En serie se renombran solo las dos salidas que el lector necesita entender.
+	 * @testdox En serie se renombran las dos salidas y «Número de tomo» encabeza el selector.
 	 */
 	public function test_series_labels_name_the_result(): void {
 		$this->on_series( true );
@@ -165,9 +165,9 @@ final class SeriesOrderTest extends TestCase {
 		// El resto del selector es el mismo de siempre.
 		self::assertSame( 'Menor precio', $options['price'] );
 		self::assertSame(
-			array_keys( $this->plugin_options() ),
+			array( 'title', 'menu_order', 'date', 'popularity', 'price', 'price-desc' ),
 			array_keys( $options ),
-			'Renombrar no debe reordenar el selector.'
+			'«Número de tomo» encabeza el selector en las landings de serie sin búsqueda.'
 		);
 	}
 
@@ -200,22 +200,22 @@ final class SeriesOrderTest extends TestCase {
 	}
 
 	/**
-	 * @testdox La plantilla repone "Novedades primero" después del unset de WooCommerce.
+	 * @testdox La plantilla repone "Novedades primero" inmediatamente después de "Número de tomo" tras el unset de WooCommerce.
 	 */
 	public function test_menu_order_is_restored_after_woocommerce_drops_it(): void {
 		$this->on_series( true );
 
 		// Lo que la plantilla recibe realmente cuando el defecto es `title`.
-		$after_unset = $this->plugin_options();
+		$after_unset = akibara_gp_series_orderby_options( $this->plugin_options() );
 		unset( $after_unset['menu_order'] );
 
 		$restored = akibara_gp_series_orderby_restore_menu_order( $after_unset );
 
 		self::assertSame( 'Novedades primero', $restored['menu_order'] );
 		self::assertSame(
-			'menu_order',
-			array_key_first( $restored ),
-			'Vuelve a su hueco original: el selector no debe reordenarse por cambiar el defecto.'
+			array( 'title', 'menu_order', 'date', 'popularity', 'price', 'price-desc' ),
+			array_keys( $restored ),
+			'«Número de tomo» encabeza la lista y «Novedades primero» le sigue en segundo lugar.'
 		);
 		self::assertCount( count( $this->plugin_options() ), $restored );
 	}

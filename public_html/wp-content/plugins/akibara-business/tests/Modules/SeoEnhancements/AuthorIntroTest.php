@@ -121,7 +121,7 @@ final class AuthorIntroTest extends TestCase {
 		);
 
 		self::assertSame(
-			'<p>Tite Kubo en Akibara: 1 tomo de la serie <a href="https://akibara.cl/serie/bleach/">Bleach</a>, editado por Panini. Cada serie tiene su propia guía con sus tomos, disponibles o a pedido.</p>',
+			'<p>Tite Kubo en Akibara: 1 tomo de la serie <a href="https://akibara.cl/serie/bleach/">Bleach</a>, editado por Panini. Cada serie tiene su propia guía con sus tomos y su disponibilidad en tienda.</p>',
 			$html
 		);
 	}
@@ -297,7 +297,7 @@ final class AuthorIntroTest extends TestCase {
 			'Osamu Tezuka',
 			30,
 			array( array( 'name' => 'Astro Boy', 'url' => '' ) ),
-			array( 'Planeta', 'Ivrea', 'Panini', 'Milky Way', 'Norma' )
+			array( 'Planeta', 'Ivrea', 'Panini', 'Milky Way', 'Distrito Manga' )
 		);
 
 		self::assertStringContainsString( 'editados por Planeta, Ivrea, Panini y 2 más.', $html );

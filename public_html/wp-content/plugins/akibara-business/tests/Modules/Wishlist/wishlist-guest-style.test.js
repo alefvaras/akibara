@@ -1,62 +1,99 @@
 'use strict';
 
-/*
- * La hoja del aviso del corazón para invitados la pide el script, y sólo si el
- * aviso existe para este visitante (QA integral 2026-09-24, QA-RC-4).
- *
- * Iba en wishlist.css, que se sirve bloqueante en cada página con corazones; el
- * aviso está apagado de fábrica y sólo lo ve un invitado que toca un corazón.
+/**
+ * Carga diferida de `wishlist-guest-prompt.css` desde `wishlist.js`
+ * verificada con el DOM Test Harness oficial (`createDOM`).
  */
 
-const assert = require( 'node:assert/strict' );
-const fs = require( 'node:fs' );
-const test = require( 'node:test' );
-const vm = require( 'node:vm' );
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { createDOM } = require('../../../../../../../tools/testing/dom-harness.js');
 
-const source = fs.readFileSync( require.resolve( '../../../assets/js/wishlist.js' ), 'utf8' );
+const SCRIPT_REL = 'public_html/wp-content/plugins/akibara-business/assets/js/wishlist.js';
 const HOJA = 'https://akibara.test/wp-content/plugins/akibara-business/assets/css/wishlist-guest-prompt.css?ver=abc';
 
-function arrancar( cfg, { conDialog = true } = {} ) {
-	const enHead = [];
-	const porId = {};
-	const ctx = {
-		akbWishlist: Object.assign( { isLogged: false, guestPrompt: true, loginUrl: '/mi-cuenta/', labels: {}, guestStyle: HOJA }, cfg ),
-		HTMLDialogElement: conDialog ? Object.assign( function () {}, { prototype: { showModal() {} } } ) : undefined,
-		location: { href: 'http://localhost:8080/tienda/' },
-		sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-		document: {
-			readyState: 'complete',
-			addEventListener() {},
-			getElementById: ( id ) => porId[ id ] || null,
-			createElement: ( tag ) => ( { tagName: tag.toUpperCase() } ),
-			head: {
-				appendChild: ( el ) => {
-					enHead.push( el );
-					porId[ el.id ] = el;
+function runWithConfig(overrides = {}) {
+	const dom = createDOM({
+		html: '<button type="button" class="akb-wl-toggle" data-product-id="1"></button>',
+		globals: {
+			akbWishlist: Object.assign(
+				{
+					ajaxUrl: '/wp-admin/admin-ajax.php',
+					nonce: 'n',
+					isLogged: false,
+					isLoggedIn: false,
+					savedIds: [],
+					guestPrompt: true,
+					guestStyle: HOJA,
+					loginUrl: '/mi-cuenta/',
+					labels: {},
 				},
-			},
-			body: { appendChild() {} },
-			documentElement: { classList: { add() {}, remove() {} } },
+				overrides
+			),
 		},
-		encodeURIComponent,
-	};
-	ctx.window = ctx;
-	vm.runInNewContext( source, ctx );
-	return { enHead, ctx };
+	});
+
+	dom.loadScript(SCRIPT_REL);
+	return dom;
 }
 
-test( 'invitado con el aviso encendido: pide la hoja una vez, sin bloquear el pintado', () => {
-	const { enHead } = arrancar( {} );
-	assert.equal( enHead.length, 1 );
-	assert.equal( enHead[ 0 ].tagName, 'LINK' );
-	assert.equal( enHead[ 0 ].rel, 'stylesheet' );
-	assert.equal( enHead[ 0 ].id, 'akb-wishlist-guest-css' );
-	assert.equal( enHead[ 0 ].href, HOJA );
-} );
+test('Invitado con guestPrompt activo y soporte de <dialog> inyecta el <link id="akb-wishlist-guest-css"> una sola vez', () => {
+	const dom = runWithConfig();
+	try {
+		const links = dom.document.head.querySelectorAll('link#akb-wishlist-guest-css');
+		assert.equal(links.length, 1);
+		assert.equal(links[0].getAttribute('rel'), 'stylesheet');
+		assert.equal(links[0].getAttribute('href'), HOJA);
 
-test( 'sin aviso para este visitante no se pide nada', () => {
-	assert.equal( arrancar( { guestPrompt: false } ).enHead.length, 0, 'aviso apagado (de fábrica)' );
-	assert.equal( arrancar( { isLogged: true } ).enHead.length, 0, 'con sesión el corazón guarda directo' );
-	assert.equal( arrancar( {}, { conDialog: false } ).enHead.length, 0, 'sin <dialog> se navega al acceso como siempre' );
-	assert.equal( arrancar( { guestStyle: '' } ).enHead.length, 0, 'sin la dirección de la hoja no se inventa una' );
-} );
+		// Re-ejecutar el script es idempotente: no duplica el <link>.
+		dom.loadScript(SCRIPT_REL);
+		assert.equal(dom.document.head.querySelectorAll('link#akb-wishlist-guest-css').length, 1);
+	} finally {
+		dom.teardown();
+	}
+});
+
+test('Cliente autenticado no descarga la hoja CSS del aviso de invitado', () => {
+	const dom = runWithConfig({ isLogged: true, isLoggedIn: true });
+	try {
+		assert.equal(dom.document.head.querySelectorAll('link#akb-wishlist-guest-css').length, 0);
+	} finally {
+		dom.teardown();
+	}
+});
+
+test('Con guestPrompt desactivado no se descarga la hoja CSS del aviso', () => {
+	const dom = runWithConfig({ guestPrompt: false });
+	try {
+		assert.equal(dom.document.head.querySelectorAll('link#akb-wishlist-guest-css').length, 0);
+	} finally {
+		dom.teardown();
+	}
+});
+
+test('Sin soporte de HTMLDialogElement no se descarga la hoja CSS del aviso', () => {
+	const dom = createDOM({
+		html: '<button type="button" class="akb-wl-toggle" data-product-id="1"></button>',
+		globals: {
+			HTMLDialogElement: undefined,
+			akbWishlist: {
+				ajaxUrl: '/wp-admin/admin-ajax.php',
+				nonce: 'n',
+				isLogged: false,
+				isLoggedIn: false,
+				savedIds: [],
+				guestPrompt: true,
+				guestStyle: HOJA,
+				loginUrl: '/mi-cuenta/',
+				labels: {},
+			},
+		},
+	});
+
+	try {
+		dom.loadScript(SCRIPT_REL);
+		assert.equal(dom.document.head.querySelectorAll('link#akb-wishlist-guest-css').length, 0);
+	} finally {
+		dom.teardown();
+	}
+});

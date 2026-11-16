@@ -8,8 +8,7 @@
  * (NativeCart lo escucha para refresh/auto-open del drawer).
  *
  * Accesibilidad: el resultado se anuncia en una región role="status" dedicada
- * (no con aria-live sobre el propio botón). Copy según estado de stock:
- * "Reservando…/Reservado" en preventa, "Agregando…/Agregado" en stock.
+ * (no con aria-live sobre el propio botón). Copy: "Agregando…/Agregado".
  *
  * Solo productos simples (todo el catálogo). Rechazo del servidor (stock, ya
  * en el carrito) → motivo presentado junto al botón activo o en la barra de compra
@@ -22,21 +21,21 @@
 (function () {
 	'use strict';
 
-	var form = document.querySelector('form.cart');
+	const form = document.querySelector('form.cart');
 	if (!form) return;
-	var btn = form.querySelector('.single_add_to_cart_button');
-	var pidField = form.querySelector('[name="add-to-cart"]');
+	const btn = form.querySelector('.single_add_to_cart_button');
+	const pidField = form.querySelector('[name="add-to-cart"]');
 	if (!btn || !pidField || !pidField.value) return;
 
-	var stickyBar = document.getElementById('akb-sticky-atc');
-	var stickyBtn = document.getElementById('akb-sticky-atc-btn');
-	var busy = false;
+	const stickyBar = document.getElementById('akb-sticky-atc');
+	const stickyBtn = document.getElementById('akb-sticky-atc-btn');
+	let busy = false;
 
 	// UN solo reinicio pendiente. Con uno por envío, el del alta anterior (2 s)
 	// caía en medio del rechazo siguiente y escondía su motivo a 1,3 s de
 	// aparecer en vez de a los 6 (medido en el espejo: agregar, cerrar el cajón
 	// y volver a pulsar antes de 2 s).
-	var temporizador = 0;
+	let temporizador = 0;
 	function programarReset(ms, soloSi) {
 		clearTimeout(temporizador);
 		temporizador = setTimeout(function () {
@@ -44,15 +43,11 @@
 		}, ms);
 	}
 
-	// Preventa: el CTA dice "Reservar en Preventa" (filtros del plugin). Ajusta
-	// el copy de los estados para que coincida con el lenguaje del botón.
-	var isPreorder = /reserv/i.test(btn.textContent || '');
-	var labels = isPreorder
-		? { adding: 'Reservando…', done: 'Reservado ✓', sr: 'Producto reservado en preventa' }
-		: { adding: 'Agregando…', done: 'Agregado ✓', sr: 'Producto agregado al carrito' };
+	// Copy de los estados para el botón y lectores de pantalla.
+	const labels = { adding: 'Agregando…', done: 'Agregado ✓', sr: 'Producto agregado al carrito' };
 
 	// Región de estado dedicada para lectores de pantalla.
-	var live = document.createElement('div');
+	const live = document.createElement('div');
 	live.className = 'screen-reader-text';
 	live.setAttribute('role', 'status');
 	live.setAttribute('aria-live', 'polite');
@@ -60,16 +55,16 @@
 	form.appendChild(live);
 	function announce(msg) { live.textContent = ''; live.textContent = msg; }
 
-	var originalText = btn.textContent;
-	var stickyOriginal = stickyBtn ? stickyBtn.textContent : '';
+	const originalText = btn.textContent;
+	const stickyOriginal = stickyBtn ? stickyBtn.textContent : '';
 
 	// A dónde lleva el botón mientras está en «Ver carrito» ('' = compra normal).
-	var destinoCarrito = '';
+	let destinoCarrito = '';
 
 	// Sin respuesta del servidor (red caída, 500, algo que no es JSON). El mismo
 	// texto que la tarjeta (MOTIVO_SIN_RESPUESTA de atc-guard.js): la ficha y el
 	// listado dicen lo mismo ante el mismo fallo.
-	var MOTIVO_SIN_RESPUESTA = 'No se pudo conectar, reintenta';
+	const MOTIVO_SIN_RESPUESTA = 'No se pudo conectar, reintenta';
 
 	// El rótulo que WooCommerce usa para ir al carrito: el mismo que ponen las
 	// tarjetas (atc-guard.js), así que la ficha y el listado dicen lo mismo.
@@ -122,6 +117,7 @@
 	 * «Ver carrito» y llevan ahí (el de la barra pulsa el real, que envía el form,
 	 * y el envío navega). Los dos y no sólo el que falló: los dos repetirían el
 	 * mismo rechazo, y un «Añadir» que lleva al carrito sería mentira.
+	 * @param {*} url
 	 */
 	function verCarrito(url) {
 		destinoCarrito = url;
@@ -138,7 +134,7 @@
 	// y avisos obsoletos para permitir nuevos intentos de compra.
 	if (window.jQuery) {
 		window.jQuery(document.body).on('wc_fragment_refresh removed_from_cart', function () {
-			var enError = [btn, stickyBtn].some(function (b) {
+			const enError = [btn, stickyBtn].some(function (b) {
 				return !!b && b.classList.contains('is-error');
 			});
 			if (!destinoCarrito && !enError && !motivoALaVista()) return;
@@ -171,9 +167,12 @@
 	 * Se construye con nodos, nunca con innerHTML: el aviso de WooCommerce trae
 	 * markup y es filtrable por terceros, así que el servidor lo manda ya en
 	 * texto plano y el enlace se arma acá.
+	 * @param {*} texto
+	 * @param {*} cartUrl
+	 * @param {*} enBarra
 	 */
 	function mostrarMotivo(texto, cartUrl, enBarra) {
-		var caja = enBarra
+		let caja = enBarra
 			? stickyBar.querySelector('.akb-sticky-atc__motivo')
 			: form.querySelector('.akb-atc-motivo');
 		if (!caja) {
@@ -189,7 +188,7 @@
 		caja.textContent = '';
 		caja.appendChild(document.createTextNode(texto + ' '));
 		if (cartUrl) {
-			var a = document.createElement('a');
+			const a = document.createElement('a');
 			a.href = cartUrl;
 			a.textContent = rotuloCarrito();
 			caja.appendChild(a);
@@ -210,9 +209,9 @@
 		clearTimeout(temporizador);
 		ocultarMotivos();
 
-		var qty = form.querySelector('input.qty');
-		var cantidad = qty && qty.value ? qty.value : '1';
-		var data = new FormData();
+		const qty = form.querySelector('input.qty');
+		const cantidad = qty && qty.value ? qty.value : '1';
+		const data = new FormData();
 		data.append('product_id', pidField.value);
 		data.append('quantity', cantidad);
 
@@ -232,16 +231,16 @@
 					busy = false;
 
 					// El estado de error visual aplica al botón activo con el motivo adyacente.
-					var enBarra = barraALaVista();
+					const enBarra = barraALaVista();
 					restaurar(enBarra ? btn : stickyBtn);
 					setState('is-error', 'No se pudo agregar', [enBarra ? stickyBtn : btn]);
 
 					// Parámetros del producto para consultar el código de rechazo:
-					var intento = '&product_id=' + encodeURIComponent(pidField.value) + '&quantity=' + encodeURIComponent(cantidad);
+					const intento = '&product_id=' + encodeURIComponent(pidField.value) + '&quantity=' + encodeURIComponent(cantidad);
 					fetch('/?wc-ajax=akb_get_cart&drain_notices=1' + intento, { credentials: 'same-origin' })
 						.then(function (r) { return r.json(); })
 						.then(function (cart) {
-							var motivo = cart && cart.data && cart.data.errors && cart.data.errors[0];
+							const motivo = cart && cart.data && cart.data.errors && cart.data.errors[0];
 							if (!motivo) {
 								// Sin motivo que mostrar, la recarga sigue siendo la única
 								// forma de que el cliente vea algo. Último recurso, no el
@@ -249,7 +248,7 @@
 								form.submit();
 								return;
 							}
-							var urlCarrito = cart.data.cart_url || '';
+							const urlCarrito = cart.data.cart_url || '';
 							if ('ya_en_carrito' === cart.data.motivo && urlCarrito) {
 								// El botón ya es el enlace: el motivo va sin el suyo.
 								verCarrito(urlCarrito);
@@ -267,7 +266,11 @@
 				if (res.fragments) {
 					Object.keys(res.fragments).forEach(function (sel) {
 						document.querySelectorAll(sel).forEach(function (el) {
-							el.outerHTML = res.fragments[sel];
+							// eslint-disable-next-line security/detect-object-injection
+							const doc = new DOMParser().parseFromString(res.fragments[sel] || '', 'text/html');
+							if (doc.body.firstElementChild) {
+								el.replaceWith(doc.body.firstElementChild);
+							}
 						});
 					});
 				}
@@ -292,7 +295,7 @@
 				// manteniendo sincronización temporal y posibilidad de reintento directo.
 				btn.removeAttribute('aria-disabled');
 				busy = false;
-				var enBarra = barraALaVista();
+				const enBarra = barraALaVista();
 				restaurar(enBarra ? btn : stickyBtn);
 				setState('is-error', 'Reintentar', [enBarra ? stickyBtn : btn]);
 				mostrarMotivo(MOTIVO_SIN_RESPUESTA, '', enBarra);

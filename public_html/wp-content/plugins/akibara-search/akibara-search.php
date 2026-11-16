@@ -3,7 +3,7 @@
  * Plugin Name:       Akibara Search
  * Plugin URI:        https://akibara.cl
  * Description:       Buscador y facetas propios de Akibara — índice invertido, autocomplete y filtrado facetado nativos (JS sin jQuery). Reemplazo standalone de FacetWP + Relevanssi. Reusa las tablas akb_search_* del índice.
- * Version:           0.1.86
+ * Version:           0.1.96
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Requires Plugins:  woocommerce
@@ -22,7 +22,7 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AKIBARA_SEARCH_VERSION', '0.1.86' );
+define( 'AKIBARA_SEARCH_VERSION', '0.1.96' );
 define( 'AKIBARA_SEARCH_FILE', __FILE__ );
 define( 'AKIBARA_SEARCH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AKIBARA_SEARCH_URL', plugin_dir_url( __FILE__ ) );
@@ -265,27 +265,6 @@ if ( ! function_exists( 'akibara_search_demand_gaps' ) ) {
 			}
 
 			return $out;
-		} catch ( \Throwable $exception ) {
-			return array();
-		}
-	}
-}
-
-if ( ! function_exists( 'akibara_search_title_requests' ) ) {
-	/**
-	 * Puente para el ranking «Lo más solicitado» de akibara-business: títulos
-	 * SOLICITADOS POR CLIENTES en la ventana dada.
-	 *
-	 * @param int $days Ventana en días (default 90).
-	 * @return array<string, array{title: string, editorial: string, intent: string, count: int}>
-	 */
-	function akibara_search_title_requests( int $days = 90 ): array {
-		if ( ! class_exists( '\\Akibara\\Search\\TitleRequests' ) ) {
-			return array();
-		}
-
-		try {
-			return \Akibara\Search\TitleRequests::demand_signals( $days );
 		} catch ( \Throwable $exception ) {
 			return array();
 		}

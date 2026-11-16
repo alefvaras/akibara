@@ -17,6 +17,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.16.1
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class PriceFilters {
 
@@ -44,6 +48,11 @@ final class PriceFilters {
 		add_action( 'woocommerce_before_calculate_totals', array( $this, 'apply_to_cart' ), 20, 1 );
 	}
 
+	/**
+	 * @param mixed $price
+	 * @param mixed $product
+	 * @return mixed
+	 */
 	public function filter_price( $price, $product ) {
 		if ( ! $product instanceof \WC_Product ) {
 			return $price;
@@ -52,6 +61,11 @@ final class PriceFilters {
 		return null === $final ? $price : (string) $final;
 	}
 
+	/**
+	 * @param mixed $product
+	 * @param mixed $sale
+	 * @return mixed
+	 */
 	public function filter_sale_price( $sale, $product ) {
 		if ( ! $product instanceof \WC_Product ) {
 			return $sale;
@@ -60,6 +74,11 @@ final class PriceFilters {
 		return null === $final ? $sale : (string) $final;
 	}
 
+	/**
+	 * @param mixed $is_on_sale
+	 * @param mixed $product
+	 * @return mixed
+	 */
 	public function filter_is_on_sale( $is_on_sale, $product ) {
 		if ( ! $product instanceof \WC_Product ) {
 			return $is_on_sale;
@@ -68,7 +87,14 @@ final class PriceFilters {
 		return null === $final ? $is_on_sale : true;
 	}
 
-	public function filter_variation_prices( $price, $variation, $parent ) {
+	/**
+	 * @param mixed $parent
+	 * @param mixed $price
+	 * @param mixed $variation
+	 * @return mixed
+	 * @psalm-suppress UnusedParam
+	 */
+	public function filter_variation_prices( $price, $variation, $parent ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ! $variation instanceof \WC_Product ) {
 			return $price;
 		}
@@ -76,7 +102,14 @@ final class PriceFilters {
 		return null === $final ? $price : (string) $final;
 	}
 
-	public function filter_variation_prices_hash( $hash, $product, $for_display ) {
+	/**
+	 * @param mixed $for_display
+	 * @param mixed $hash
+	 * @param mixed $product
+	 * @return mixed
+	 * @psalm-suppress UnusedParam
+	 */
+	public function filter_variation_prices_hash( $hash, $product, $for_display ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( $product instanceof \WC_Product ) {
 			$pct = $this->resolver->get_applied_pct( $product );
 			if ( $pct > 0 ) {
@@ -90,6 +123,11 @@ final class PriceFilters {
 		return $hash;
 	}
 
+	/**
+	 * @param mixed $html
+	 * @param mixed $product
+	 * @return mixed
+	 */
 	public function filter_price_html( $html, $product ) {
 		if ( ! $product instanceof \WC_Product ) {
 			return $html;
@@ -112,8 +150,8 @@ final class PriceFilters {
 		$args_final = array( 'price' => $final );
 
 		return wc_format_sale_price(
-			wc_get_price_to_display( $product, $args ),
-			wc_get_price_to_display( $product, $args_final )
+			(string) wc_get_price_to_display( $product, $args ),
+			(string) wc_get_price_to_display( $product, $args_final )
 		) . $product->get_price_suffix();
 	}
 
@@ -153,7 +191,7 @@ final class PriceFilters {
 			if ( null === $final ) {
 				continue;
 			}
-			$product->set_price( $final );
+			$product->set_price( (string) $final );
 		}
 	}
 }

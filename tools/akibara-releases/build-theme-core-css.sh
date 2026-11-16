@@ -53,7 +53,9 @@ trap 'rm -f "${tmp}"' EXIT
 	echo " * Edita los ficheros de origen y vuelve a ejecutar el script."
 	echo " */"
 	for name in "${sources[@]}"; do
+		echo
 		echo "/* --- ${name}.css --- */"
+		echo
 		cat "${css_dir}/${name}.css"
 		echo
 	done

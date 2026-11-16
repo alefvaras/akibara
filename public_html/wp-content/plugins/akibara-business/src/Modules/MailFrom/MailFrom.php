@@ -39,6 +39,11 @@ namespace Akibara\Business\Modules\MailFrom;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class MailFrom {
 
 	public const FROM_EMAIL = 'contacto@akibara.cl';
@@ -57,8 +62,9 @@ final class MailFrom {
 	 * por código vía el filter `akibara_mail_from_email`.
 	 *
 	 * @param string $email Email actual (default WP: `wordpress@<dominio>`); ignorado.
+	 * @psalm-suppress UnusedParam
 	 */
-	public function filter_from_email( string $email ): string {
+	public function filter_from_email( string $email ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 		/**
 		 * Filtra el remitente (From) forzado para TODO wp_mail() del sitio.
 		 *
@@ -78,8 +84,9 @@ final class MailFrom {
 	 * `akibara_mail_from_name`.
 	 *
 	 * @param string $name Nombre actual (default WP: "WordPress"); ignorado.
+	 * @psalm-suppress UnusedParam
 	 */
-	public function filter_from_name( string $name ): string {
+	public function filter_from_name( string $name ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
 		/**
 		 * Filtra el nombre del remitente (From name) forzado para TODO wp_mail().
 		 *

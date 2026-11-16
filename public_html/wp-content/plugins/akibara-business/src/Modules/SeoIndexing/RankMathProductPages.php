@@ -26,6 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * muere. Esta clase sólo se instancia cuando el padre existe (Rank Math activo).
  *
  * @since 1.116.32
+ * @api
  */
 final class RankMathProductPages extends \RankMath\Sitemap\Providers\Post_Type {
 

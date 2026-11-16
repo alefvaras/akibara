@@ -47,5 +47,7 @@ assert.equal( lineCounter( 'Envío gratis | akibara.cl/envios/', 40 ).longest, 1
 assert.equal( lineCounter( 'Ivrea | HTTPS://akibara.cl/marca/ivrea/', 40 ).longest, 5, 'esquema en mayúsculas' );
 assert.equal( lineCounter( 'Retiro | /retiro sin costo/', 40 ).longest, 27, 'una ruta con espacios no es una dirección: se ve, y cuenta' );
 assert.equal( lineCounter( 'Ver más | envios', 40 ).longest, 16, 'una palabra suelta no es una dirección' );
+assert.equal( lineCounter( 'Semana Ivrea: [akb_descuento_pct] | [akb_descuento_url]', 80 ).longest, 33, '| [akb_descuento_url] no cuenta dentro de los 80 caracteres' );
+assert.equal( lineCounter( 'Semana Ivrea: [akb_descuento_pct] | [akb_descuento_url stock="si"]', 80 ).longest, 33, '| [akb_descuento_url stock="si"] tampoco cuenta' );
 
 console.log( 'line-counter: ok' );

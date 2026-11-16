@@ -16,6 +16,9 @@ namespace Akibara\Business\Modules\PricingMatrix;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class PricingMatrix {
 
 	/**
@@ -24,8 +27,7 @@ final class PricingMatrix {
 	 * @return void
 	 */
 	public function register(): void {
-		// Asegurar carga de clases con alias globales (\AKB_Order_Lock_Guard y \AKB_Batch_Guard).
-		class_exists( OrderLockGuard::class );
+		// Asegurar carga de clases con alias globales (\AKB_Batch_Guard).
 		class_exists( BatchGuard::class );
 
 		( new ReactiveStockPriceHooks() )->register();

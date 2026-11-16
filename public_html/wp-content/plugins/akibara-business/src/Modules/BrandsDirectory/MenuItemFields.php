@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.98.0
+ * @api
  */
 final class MenuItemFields {
 
@@ -54,7 +55,7 @@ final class MenuItemFields {
 		}
 
 		$item_id = (int) $item_id;
-		$classes = is_array( $item->classes ) ? array_map( 'strval', $item->classes ) : array();
+		$classes = is_array( $item->classes ) ? array_map( 'strval', $item->classes ) : array(); // @phpstan-ignore property.notFound
 
 		$is_mega  = in_array( MenuInjector::TRIGGER_CLASS, $classes, true );
 		$is_label = in_array( self::CLASS_LABEL, $classes, true );

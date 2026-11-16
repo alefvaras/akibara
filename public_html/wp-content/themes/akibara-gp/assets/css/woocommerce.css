@@ -74,10 +74,11 @@ body.single-product .entry-content {
 }
 
 .woocommerce-breadcrumb a {
+    position: relative;
     color: var(--aki-gray-200);
     text-decoration: underline;
-    text-decoration-color: currentColor;
-    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+    text-decoration-color: currentcolor;
+    text-decoration-color: color-mix(in srgb, currentcolor 55%, transparent);
     text-decoration-thickness: 2px;
     text-underline-offset: 0.18em;
     text-decoration-skip-ink: auto;
@@ -86,14 +87,14 @@ body.single-product .entry-content {
 
 .woocommerce-breadcrumb a:hover {
     color: var(--aki-yellow);
-    text-decoration-color: currentColor;
+    text-decoration-color: currentcolor;
 }
 
 /* El anillo lo pinta `--aki-focus-ring` (tokens.css) sobre `a:focus-visible`.
    Este outline amarillo se sumaba encima y dejaba DOS anillos amarillos
    separados por el negro — medidos 3 en la miga de pan de la ficha. */
 .woocommerce-breadcrumb a:focus-visible {
-    text-decoration-color: currentColor;
+    text-decoration-color: currentcolor;
 }
 
 .woocommerce .woocommerce-breadcrumb a,
@@ -108,9 +109,6 @@ body.single-product .entry-content {
  * subrayado y el anillo de foco (box-shadow del propio enlace) se mantienen
  * visualmente intactos. Se evita padding para no deformar el outline de foco,
  * y se acota a 30 px para prevenir solapamientos si la miga quiebra en dos líneas. */
-.woocommerce-breadcrumb a {
-    position: relative;
-}
 
 .woocommerce-breadcrumb a::after {
     content: "";
@@ -119,6 +117,7 @@ body.single-product .entry-content {
 }
 
 /* ─── Page title (h1 catálogo, page title) ─────────────────────── */
+
 /* Eyebrow para single product */
 span.akb-editorial-eyebrow.akb-editorial-eyebrow--single {
     display: block;
@@ -130,6 +129,7 @@ span.akb-editorial-eyebrow.akb-editorial-eyebrow--single {
     margin-top: 12px; /* Separación crítica de los badges (DISPONIBLE, Oferta) */
     margin-bottom: var(--space-2);
 }
+
 .woocommerce-products-header__title,
 .product_title,
 .woocommerce h1.entry-title,
@@ -166,6 +166,7 @@ body.akb-distrito .woocommerce-products-header::before {
     color: var(--aki-white);
     margin: 0 0 var(--space-2);
 }
+
 /* width:fit-content: el H1 de archive hereda skewX(-5deg) y sombra del bloque
  * global de encabezados; al definir border-left, fit-content contiene la caja
  * proyectada y previene desbordamiento horizontal (scroll-x) en viewports estrechos (~360px). */
@@ -181,7 +182,7 @@ body.akb-distrito .woocommerce-products-header__title {
  * en todas las superficies: PDP H1, Sticky ATC, Carrito, Checkout y Pedidos. */
 .akb-vol {
     font-family: var(--font-accent, 'Bebas Neue', sans-serif);
-    color: #ffffff;
+    color: #fff;
     background: var(--aki-red);
     font-weight: 400;
     font-synthesis: none;
@@ -250,6 +251,7 @@ body.archive.woocommerce-page .woocommerce-products-header {
     text-underline-offset: 0.2em;
     transition: color var(--transition-base);
 }
+
 .term-description a:hover,
 .term-description a:focus-visible,
 .archive-description a:hover,
@@ -264,11 +266,13 @@ body.archive.woocommerce-page .woocommerce-products-header {
  * empujando precio + add-to-cart bajo el fold. Con max-height 50vh la
  * imagen baja a ~332px y precio queda visible al primer view. */
 @media (max-width: 768px) {
+
     .woocommerce div.product .woocommerce-product-gallery,
     .woocommerce div.product .woocommerce-product-gallery__wrapper {
         max-height: 50vh;
         overflow: hidden;
     }
+
     .woocommerce div.product .woocommerce-product-gallery img,
     .woocommerce div.product .woocommerce-product-gallery__image img {
         max-height: 50vh;
@@ -309,6 +313,7 @@ body.woocommerce-cart h1.entry-title {
     max-width: var(--container-max);
     margin-inline: auto;
 }
+
 .akb-page-title h1,
 body.woocommerce-account .entry-header .entry-title {
     width: fit-content;
@@ -373,6 +378,7 @@ body.woocommerce-cart .entry-header {
     flex-wrap: wrap;
     align-items: center;
     column-gap: 0.5em;
+    margin: var(--space-4) 0;
 }
 
 /* Look editorial limpio en oferta (PDP): precio VIGENTE blanco nítido y <del>
@@ -394,6 +400,7 @@ body.woocommerce-cart .entry-header {
 .woocommerce.single-product div.product .summary span.price del,
 .woocommerce.single-product div.product .summary span.price del .amount {
     color: var(--aki-gray-500);
+
     /* opacity 1, no .6: gray-500 atenuado rendía ~2.76:1 (falla AA 4.5:1). El
        "apagado" del tachado lo da el color, no una opacity apilada. */
     opacity: 1;
@@ -413,7 +420,7 @@ body.woocommerce-cart .entry-header {
     right: 0;
     top: 50%;
     height: 2px;
-    background-color: currentColor;
+    background-color: currentcolor;
     transform: translateY(-50%);
     pointer-events: none;
 }
@@ -429,12 +436,13 @@ body.woocommerce-cart .entry-header {
     border-bottom: 1px solid var(--aki-border);
     display: flex;
     gap: var(--space-6);
-    padding: 0;
-    margin: 0 0 var(--space-6) 0;
+    padding: 6px 0 0 4px;
+    margin: 0 0 var(--space-6);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 }
+
 .woocommerce div.product .woocommerce-tabs ul.tabs::-webkit-scrollbar {
     display: none;
 }
@@ -497,13 +505,15 @@ body.woocommerce-cart .entry-header {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    margin: 0 0 var(--space-4);
+    margin-block: 0 var(--space-4);
     font-family: var(--font-heading);
     font-size: clamp(1.375rem, 1rem + 1.2vw, 2rem);
-    line-height: 1;
+    line-height: 1.08;
     letter-spacing: 0.04em;
     color: var(--aki-white);
     text-transform: uppercase;
+    text-wrap: balance;
+    transform: none;
 }
 
 .woocommerce div.product .woocommerce-tabs .panel h2::before,
@@ -528,21 +538,25 @@ body.woocommerce-cart .entry-header {
     text-underline-offset: 0.2em;
     transition: color var(--transition-base);
 }
+
 .woocommerce div.product .woocommerce-tabs .panel a:hover,
 .woocommerce div.product .woocommerce-tabs .panel a:focus-visible {
     color: var(--aki-white);
 }
 
 @media (max-width: 768px) {
+
     .woocommerce div.product .woocommerce-tabs ul.tabs {
         gap: var(--space-4);
         margin-bottom: var(--space-4);
         justify-content: space-between;
     }
+
     .woocommerce div.product .woocommerce-tabs ul.tabs li a {
         font-size: 13px;
         letter-spacing: 0.02em;
     }
+
     .woocommerce div.product .woocommerce-tabs .panel {
         padding: var(--space-4);
     }
@@ -561,6 +575,7 @@ body.woocommerce-cart .entry-header {
 }
 
 .woocommerce div.product .product_meta a {
+    position: relative;
     color: var(--aki-white);
     background: var(--aki-surface-1);
     border: 1px solid var(--aki-border);
@@ -583,9 +598,6 @@ body.woocommerce-cart .entry-header {
 /* Zona táctil de las etiquetas de metadatos (WCAG 2.5.8): miden 22 px de alto
  * con 8 px de separación entre filas. El pseudo-elemento ::after amplía el área
  * interactiva a 30 px verticales sin alterar el layout visual ni solapar filas adyacentes. */
-.woocommerce div.product .product_meta a {
-    position: relative;
-}
 
 .woocommerce div.product .product_meta a::after {
     content: "";
@@ -685,25 +697,30 @@ body.woocommerce-cart .entry-header {
 .akb-account-disclosure .lost_password a,
 .woocommerce-ResetPassword a,
 .woocommerce-LostPassword a {
+
     /* Enlaces de autenticación sobre superficies oscuras (surface-2 / #1A1A1A):
        --aki-red-text garantiza contraste >= 5:1 (conforme a WCAG AA para texto pequeño)
        manteniendo la coherencia de identidad de marca. */
     color: var(--aki-red-text);
 }
+
 /* Móvil: descarte de colisiones con botón flotante de WhatsApp (joinchat).
    Alinea el enlace de recuperación a la izquierda y oculta el botón flotante
    mientras los campos de autenticación tienen foco activo mediante :has(:focus). */
 @media (max-width: 768px) {
+
     .woocommerce-account .akb-account-disclosure .woocommerce-LostPassword.lost_password,
     .woocommerce-account .woocommerce-LostPassword.lost_password {
         text-align: left;
     }
+
     body.woocommerce-account:has(.woocommerce-form-login :focus, .woocommerce-form-register :focus) .joinchat {
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.15s;
     }
 }
+
 /* Ocultar el medidor nativo de WC SOLO en edit-account, donde existe el
    medidor propio legible (#akb-pwd-strength via MyAccountUx). En registro y
    lost/reset-password el medidor nativo DEBE quedar visible: WC deshabilita el
@@ -820,27 +837,6 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     box-shadow: var(--aki-focus-ring);
 }
 
-/* BlueX shipping methods box — el plugin `bluex-for-woocommerce` inyecta
- * `.woocommerce-checkout-section` con bg:#fff hardcoded → choca con dark theme
- * (los labels son blancos sobre blanco, invisibles). Forzamos surface-2. */
-.woocommerce-checkout-section {
-    background: var(--aki-surface-2);
-    border: 1px solid var(--aki-border);
-    border-radius: var(--radius-md);
-    color: var(--aki-light);
-    padding: var(--space-4) var(--space-5);
-}
-
-.woocommerce-checkout-section label,
-.woocommerce-checkout-section .form-row label {
-    color: var(--aki-light);
-}
-
-.woocommerce-checkout-section strong,
-.woocommerce-checkout-section b {
-    color: var(--aki-white);
-}
-
 /* Payment method description boxes (.payment_box) — WC core los pinta con
  * background-color:#dcd7e2 (lavanda) que en dark theme rompe contraste y
  * la flecha apuntando arriba (border-color: #dcd7e2) queda visible como
@@ -885,7 +881,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
 
 .woocommerce-ordering select {
     background: var(--aki-surface-2);
-    border: 1px solid var(--aki-border);
+    border: 1px solid var(--aki-input-border);
     border-radius: 0;
     padding: var(--space-2);
 }
@@ -905,7 +901,8 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     padding: var(--space-4);
     border-radius: 0;
     border: 2px solid var(--aki-black);
-    box-shadow: 6px 6px 0px var(--aki-black);
+    box-shadow: 6px 6px 0 var(--aki-black);
+
     /* Sin uppercase ni bold total: los errores largos de checkout en caps
      * sostenidas pierden legibilidad en 390px. La identidad brutalista la
      * dan borde+sombra, no las mayúsculas. */
@@ -929,6 +926,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
 .woocommerce-info a,
 .woocommerce-message a,
 .woocommerce-error a {
+
     /* red-bright (4.78:1) — el --aki-red puro da 3.93:1 sobre el surface oscuro (falla AA). */
     color: var(--aki-red-bright);
     text-decoration: underline;
@@ -974,10 +972,15 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     border-radius: 0 !important;
     box-shadow: 6px 6px 0 var(--aki-black);
 }
+
 .wc-block-components-notice-banner.is-info { border-left-color: var(--aki-gray-400) !important; }
+
 .wc-block-components-notice-banner.is-success { border-left-color: var(--aki-green-deep) !important; }
+
 .wc-block-components-notice-banner.is-error { border-left-color: var(--aki-red) !important; }
-.wc-block-components-notice-banner svg { fill: currentColor; color: var(--aki-gray-400); }
+
+.wc-block-components-notice-banner svg { fill: currentcolor; color: var(--aki-gray-400); }
+
 .wc-block-components-notice-banner a { color: var(--aki-red-bright); text-decoration: underline; }
 
 /* ─── Checkout page ────────────────────────────────────────────── */
@@ -1003,6 +1006,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * El theme no carga woocommerce-smallscreen.css, así que reponemos su apilado
  * estándar (full width + sin float) bajo 640px. Cubre checkout y direcciones. */
 @media (max-width: 640px) {
+
     .woocommerce form .form-row-first,
     .woocommerce form .form-row-last {
         width: 100%;
@@ -1016,16 +1020,20 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * Padding tight + font-size más chico para que la tabla 2-col
  * (Producto | Subtotal) quepa sin desbordar el container. */
 @media (max-width: 768px) {
+
     .woocommerce-checkout #order_review {
         padding: var(--space-3);
     }
+
     .woocommerce-checkout #order_review table.shop_table {
         font-size: var(--text-sm);
     }
+
     .woocommerce-checkout #order_review table.shop_table th,
     .woocommerce-checkout #order_review table.shop_table td {
         padding: var(--space-2) var(--space-1);
     }
+
     /* CTA primario "REALIZAR EL PEDIDO" full width en mobile.
      * WC core lo renderiza inline-flex (~300px) y el parent
      * `#payment div.form-row` tiene `padding: 1em` (specificity (0,1,2,1)
@@ -1034,6 +1042,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     .woocommerce-checkout #payment div.form-row.place-order {
         padding: var(--space-3) 0 0;
     }
+
     .woocommerce-checkout #place_order {
         display: flex;
         width: 100%;
@@ -1085,6 +1094,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * pinte el anillo de foco de la casa sin duplicación visual, preservando el outline
  * en modo de alto contraste asistivo. */
 @media (forced-colors: none) {
+
     .woocommerce-checkout #place_order:focus-visible {
         outline: none !important;
     }
@@ -1094,6 +1104,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
    renderea a content-width (~188px), subdimensionado para la accion de mayor
    intencion del checkout. >=50% de la columna. (Mobile ya es full-width arriba.) */
 @media (min-width: 769px) {
+
     .woocommerce-checkout #place_order {
         min-width: 50%;
         min-height: var(--touch-target-min);
@@ -1122,6 +1133,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
 .coupon input[name="coupon_code"] {
     flex: 1 1 200px;
     min-width: 0;
+
     /* WC core pinta border lavanda con `.woocommerce #content table.cart
      * td.actions .coupon .input-text` (specificity 0,0,5,2 con var(--base)).
      * Reescribimos con ID selector (0,1,1,1) — gana sin !important. */
@@ -1146,16 +1158,19 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
 .woocommerce-page form .form-row select {
     background: var(--aki-surface-2);
     color: var(--aki-white);
+
     /* Borde ≥3:1 sobre surface-2 (#1A1A1A): el input vacío se veía como hueco
        negro (WCAG 1.4.11). 2px para que el límite del campo se perciba en dark. */
     border: 2px solid var(--aki-input-border);
     border-radius: 0;
+
     /* WC core fija `padding: .5em; height: auto; line-height: normal` que
      * achica los inputs a ~31px (font-size base 13px). Mobile WCAG/Apple
      * HIG exige 44px tap target. Re-aplicamos los valores del DS para
      * recuperar el touch target sin desfaz visual. */
     height: var(--touch-target-min);
     padding: 0 var(--space-3);
+
     /* >=16px evita el zoom automatico de iOS Safari al enfocar el input
      * (el cuello de friccion del checkout en mobile). */
     font-size: max(16px, var(--text-sm));
@@ -1170,6 +1185,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
 .woocommerce-page form .form-row textarea:focus,
 .woocommerce-page form .form-row select:focus {
     outline: none;
+
     /* Anillo de foco estandarizado del sistema de diseño (tokens.css) con contraste óptimo en dark theme. */
     border-color: var(--aki-white);
     box-shadow: var(--aki-focus-ring);
@@ -1194,11 +1210,13 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * top-right del bloque.
  */
 @media (max-width: 768px) {
+
     .woocommerce-cart-form table.shop_table_responsive,
     .woocommerce-cart table.cart {
         border: 0;
         background: transparent;
     }
+
     /* Card mobile = grid 2-col: thumbnail izquierda (80px), contenido
      * derecha (name/price/quantity), subtotal full-width abajo. Patrón
      * estándar e-commerce mobile (Amazon, MercadoLibre, SHEIN, Shopify
@@ -1222,6 +1240,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         padding: var(--space-4);
         margin-bottom: var(--space-3);
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td,
     .woocommerce-cart table.cart tbody tr.cart_item td {
         display: flex;
@@ -1232,6 +1251,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         text-align: left;
         font-size: var(--text-sm);
     }
+
     /* Producto name: col derecha row 1, bold, sin label, padding-right
      * para no chocar con la X absolute top-right del card. */
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-name,
@@ -1242,10 +1262,12 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         color: var(--aki-white);
         padding-right: 48px;
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-name::before,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-name::before {
         display: none;
     }
+
     /* X eliminar: absolute top-right del card. No participa del grid. */
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-remove,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-remove {
@@ -1256,10 +1278,12 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         margin: 0;
         display: block;
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-remove::before,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-remove::before {
         display: none;
     }
+
     /* Thumbnail: col izquierda, abarca toda la altura del card. */
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail {
@@ -1269,30 +1293,36 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         margin: 0;
         border: 0;
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail::before,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail::before {
         display: none;
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail a,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail a {
         display: block;
         width: 80px;
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-thumbnail img,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail img {
         display: block;
         width: 80px;
         height: auto;
     }
+
     /* Price/quantity: col derecha, label-value inline. */
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-price,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-price {
         grid-area: price;
     }
+
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-quantity,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-quantity {
         grid-area: quantity;
     }
+
     /* Subtotal: full-width abajo, bold, separador superior. */
     .woocommerce-cart-form table.shop_table_responsive tbody tr.cart_item td.product-subtotal,
     .woocommerce-cart table.cart tbody tr.cart_item td.product-subtotal {
@@ -1303,6 +1333,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         padding-top: var(--space-2);
         margin-top: var(--space-2);
     }
+
     /* Hide the "Actions" row (cupón + Update cart) que viene como tr
      * separada — se renderea OK como bloque sin tarjeta. */
     .woocommerce-cart-form table.shop_table_responsive tbody tr:not(.cart_item),
@@ -1310,12 +1341,14 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         display: block;
         padding: var(--space-3) 0;
     }
+
     /* Hide thead en mobile (WC lo hace via shop_table_responsive class
      * pero en algunos themes se override). */
     .woocommerce-cart-form table.shop_table_responsive thead,
     .woocommerce-cart table.cart thead {
         display: none;
     }
+
     /* WC core mobile inserta `td::before { content: attr(data-title) ": " }`
      * para mostrar la label de cada celda. Plugins (WPC EDD) que añaden
      * <tr><td colspan> sin data-title producen un orphan ": " visible.
@@ -1326,6 +1359,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     .woocommerce-cart table.cart tbody td[data-title=""]::before {
         display: none;
     }
+
     /* Primary action "FINALIZAR COMPRA" full width en mobile.
      * WC core renderiza <a class="checkout-button"> como inline-flex (~190px).
      * Tap target del CTA principal debe ocupar el ancho del container. */
@@ -1344,6 +1378,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * para que no destrone el 96px del bloque mobile (que vive en @media
  * max-width 768 más arriba en el archivo y matchearía la cascada). */
 @media (min-width: 769px) {
+
     .woocommerce-cart table.cart tbody tr.cart_item td.product-thumbnail img,
     .woocommerce-cart-form table.shop_table tbody tr.cart_item td.product-thumbnail img {
         width: 72px;
@@ -1524,10 +1559,12 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * Acciones), lo que dificulta referenciarlo en soporte.
  * Specificity (0,0,3,2) > core (0,0,2,2) sin !important. */
 @media (max-width: 768px) {
+
     .woocommerce-orders-table.shop_table_responsive {
         border: 0;
         background: transparent;
     }
+
     .woocommerce-orders-table.shop_table_responsive tbody tr {
         display: block;
         background: var(--aki-surface);
@@ -1536,6 +1573,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         padding: var(--space-3);
         margin-bottom: var(--space-3);
     }
+
     .woocommerce-orders-table.shop_table_responsive tbody th[data-title],
     .woocommerce-orders-table.shop_table_responsive tbody td[data-title] {
         display: flex;
@@ -1547,6 +1585,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         text-align: right;
         font-size: var(--text-sm);
     }
+
     .woocommerce-orders-table.shop_table_responsive tbody th[data-title]::before,
     .woocommerce-orders-table.shop_table_responsive tbody td[data-title]::before {
         content: attr(data-title) ":";
@@ -1554,6 +1593,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
         color: var(--aki-white);
         text-align: left;
     }
+
     .woocommerce-orders-table.shop_table_responsive thead {
         display: none;
     }
@@ -1571,6 +1611,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * Mobile: el ::before del cell pinta "Estado:" en white (rule específica
  * arriba con specificity 0,0,3,2 > nuestra 0,0,3,1) — solo el text node
  * del cell toma el color semántico, el label queda neutro. */
+
 /* Mismo semáforo que las cards (tokens --aki-status-*, tokens.css): rojo de texto
    = atención, verde = ok, gris = en curso. Cero azul/morado. */
 .woocommerce-orders-table__row--status-cancelled td.woocommerce-orders-table__cell-order-status,
@@ -1603,97 +1644,80 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
  * 1024 — son breakpoints distintos por dominio: header tiene mainnav
  * desktop hasta 1024, WC tablet layout colapsa a stacked en 768). */
 @media (max-width: 768px) {
+
     .woocommerce-MyAccount-navigation {
         margin-bottom: var(--space-4);
     }
+
     .woocommerce-MyAccount-navigation ul {
         display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
-        /* scroll-snap-type proximity: alineación suave al deslizar horizontalmente sin bloquear el desplazamiento. */
-        scroll-snap-type: x proximity;
+        flex-wrap: wrap;
         gap: var(--space-1);
-        padding: var(--space-2);
+        padding: 0;
+        overflow: visible;
         background: transparent;
         border: 0;
         border-radius: 0;
-        scrollbar-width: none; /* Firefox */
-        -webkit-overflow-scrolling: touch;
+        box-shadow: none;
     }
-    .woocommerce-MyAccount-navigation ul::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
-    }
-    /* Indicador visual de desbordamiento horizontal: elemento sticky al extremo
-     * derecho que proyecta un degradado de desvanecimiento hacia el fondo mientras
-     * existan pestañas adicionales por desplazar. Al alcanzar el final de la fila,
-     * fluye naturalmente sin ocultar la última opción. */
-    .woocommerce-MyAccount-navigation ul::after {
-        content: "";
-        position: sticky;
-        right: 0;
-        flex: 0 0 40px;
-        align-self: stretch;
-        background: linear-gradient(90deg, rgba(18, 18, 18, 0), var(--aki-black) 80%);
-        pointer-events: none;
-    }
+
     .woocommerce-MyAccount-navigation ul li {
-        flex-shrink: 0;
+        flex: 1 0 auto;
         border-bottom: 0;
         margin: 0;
-        scroll-snap-align: start;
     }
+
+    .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout {
+        flex: 0 0 auto;
+    }
+
     .woocommerce-MyAccount-navigation ul li a {
         display: inline-flex;
         align-items: center;
-        min-height: var(--touch-target-min); /* 44px touch (antes ~36px, fallaba WCAG 2.5.8) */
-        padding: 0 var(--space-4);
+        justify-content: center;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: var(--touch-target-min); /* 44px touch WCAG 2.5.5 */
+        padding: var(--space-2) var(--space-3);
         white-space: nowrap;
+        text-align: center;
         background: var(--aki-surface-2);
         border: 1px solid var(--aki-border);
-        border-radius: 0; /* marca: radius 0 (antes pill 999px) */
+        border-radius: 0; /* marca: radius 0 */
         font-size: var(--text-sm);
     }
+
+    .woocommerce-MyAccount-navigation ul li a:hover {
+        transform: none;
+    }
+
     .woocommerce-MyAccount-navigation ul li a:focus-visible {
         outline: var(--aki-focus-outline);
         outline-offset: var(--aki-focus-offset);
     }
+
     /* Active state — pill rojo brand */
     .woocommerce-MyAccount-navigation ul li.is-active a {
         background: var(--aki-red);
         color: var(--aki-white);
         border-color: var(--aki-red);
     }
-    /* Override de la barra roja izquierda — no aplica en tabs horizontales */
+
+    /* Override de la barra roja izquierda — no aplica en tabs envolventes */
     .woocommerce-MyAccount-navigation ul li.is-active a::before {
         display: none;
     }
+
     /* Logout — variante outline para diferenciar de tabs de sección */
     .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout a {
         background: transparent;
         color: var(--aki-gray-300);
+        border-color: var(--aki-border);
     }
+
     .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--customer-logout a:hover {
         color: var(--aki-red);
         background: var(--aki-surface-2);
-    }
-
-    /* Fade lateral derecho — indicador visual de overflow horizontal.
-     * Las tabs scrollean a la derecha (overflow-x:auto + scrollbar
-     * oculto). Sin esto el usuario no sabe que hay más tabs detrás
-     * del borde derecho. Width 32px = ~3 chars de la próxima pill. */
-    .woocommerce-MyAccount-navigation {
-        position: relative;
-    }
-    .woocommerce-MyAccount-navigation::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 32px;
-        background: linear-gradient(to right, rgba(0, 0, 0, 0), var(--aki-black));
-        pointer-events: none;
     }
 }
 
@@ -1707,11 +1731,13 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     flex-direction: column;
     gap: var(--space-4);
 }
+
 .akb-dashboard__greeting {
     margin: 0 0 var(--space-2);
     font-size: var(--text-lg);
     color: var(--aki-white);
 }
+
 .akb-dashboard__actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1719,6 +1745,7 @@ body .select2-container--default .select2-search--dropdown .select2-search__fiel
     margin: 0;
     padding: 0;
 }
+
 /* Specificity: el bloque WC `.woocommerce-MyAccount-content a:not(.button)`
  * (0,2,1) impone text-decoration: underline a todo `<a>` dentro del content
  * area. Para nuestros cards y logout necesitamos override empatado-o-superior
@@ -1741,6 +1768,7 @@ a.akb-dashboard__card {
                 transform var(--transition-fast),
                 box-shadow var(--transition-fast);
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__card:hover,
 a.akb-dashboard__card:hover {
     border-color: var(--aki-red);
@@ -1750,6 +1778,7 @@ a.akb-dashboard__card:hover {
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0 var(--aki-black);
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__card:focus-visible,
 a.akb-dashboard__card:focus-visible {
     border-color: var(--aki-red);
@@ -1759,12 +1788,14 @@ a.akb-dashboard__card:focus-visible {
     outline: var(--aki-focus-outline);
     outline-offset: 2px;
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__card:active,
 a.akb-dashboard__card:active {
     transform: translate(1px, 1px);
     box-shadow: 2px 2px 0 var(--aki-black);
     transition: transform 50ms ease, box-shadow 50ms ease;
 }
+
 .akb-dashboard__card-title {
     font-family: var(--font-heading);
     font-size: 1.35rem;
@@ -1773,28 +1804,33 @@ a.akb-dashboard__card:active {
     text-transform: uppercase;
     color: var(--aki-white);
 }
+
 .akb-dashboard__card-desc {
     font-size: var(--text-sm);
     color: var(--aki-gray-300);
     line-height: 1.4;
 }
+
 /* Card PRIMARIA (Pedidos): full-width + barra roja → jerarquía sobre las otras 3. */
 .akb-dashboard__card--primary {
     grid-column: 1 / -1;
     border-left: 5px solid var(--aki-red);
 }
+
 /* Dato real (conteo de pedidos): blanco semibold, NO amarillo (no es precio). */
 .akb-dashboard__card-meta {
     margin-top: var(--space-1);
     color: var(--aki-white);
     font-weight: var(--weight-semibold);
 }
+
 /* Chevron rojo PERMANENTE = affordance de clic visible en touch (antes el único
    cue era border-color:hover, invisible al tacto). */
 .akb-dashboard__card {
     position: relative;
     padding-right: calc(var(--space-4) + 18px);
 }
+
 .akb-dashboard__card::after {
     content: "\203A"; /* › */
     position: absolute;
@@ -1806,15 +1842,20 @@ a.akb-dashboard__card:active {
     line-height: 1;
     opacity: 0.55;
 }
+
 .akb-dashboard__card:hover::after,
 .akb-dashboard__card:focus-visible::after {
     opacity: 1;
 }
+
 @media (prefers-reduced-motion: no-preference) {
+
     .akb-dashboard__card::after { transition: opacity var(--transition-fast), transform var(--transition-fast); }
+
     .akb-dashboard__card:hover::after,
     .akb-dashboard__card:focus-visible::after { transform: translateY(-50%) translateX(3px); }
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__logout,
 a.akb-dashboard__logout {
     align-self: flex-start;
@@ -1839,6 +1880,7 @@ a.akb-dashboard__logout {
                 transform var(--transition-fast),
                 box-shadow var(--transition-fast);
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__logout:hover,
 a.akb-dashboard__logout:hover {
     color: var(--aki-red);
@@ -1847,6 +1889,7 @@ a.akb-dashboard__logout:hover {
     transform: translate(-1px, -1px);
     box-shadow: 4px 4px 0 var(--aki-black);
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__logout:focus-visible,
 a.akb-dashboard__logout:focus-visible {
     color: var(--aki-red);
@@ -1855,12 +1898,15 @@ a.akb-dashboard__logout:focus-visible {
     outline: var(--aki-focus-outline);
     outline-offset: 2px;
 }
+
 .woocommerce-MyAccount-content a.akb-dashboard__logout:active,
 a.akb-dashboard__logout:active {
     transform: translate(1px, 1px);
     box-shadow: 1px 1px 0 var(--aki-black);
 }
+
 @media (max-width: 480px) {
+
     .akb-dashboard__actions { grid-template-columns: 1fr; }
 }
 
@@ -1874,6 +1920,7 @@ a.akb-dashboard__logout:active {
     flex-direction: column;
     gap: var(--space-3);
 }
+
 .akb-orders-card {
     display: grid;
     grid-template-columns: 88px 1fr;
@@ -1884,6 +1931,7 @@ a.akb-dashboard__logout:active {
     box-shadow: 4px 4px 0 var(--aki-black);
     border-radius: 0;
 }
+
 .akb-orders-card__thumb {
     position: relative;
     width: 88px;
@@ -1894,12 +1942,14 @@ a.akb-dashboard__logout:active {
     overflow: hidden;
     flex-shrink: 0;
 }
+
 .akb-orders-card__thumb-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
+
 .akb-orders-card__thumb-badge {
     position: absolute;
     bottom: 4px;
@@ -1912,18 +1962,21 @@ a.akb-dashboard__logout:active {
     border-radius: 0; /* marca: radius 0 */
     line-height: 1;
 }
+
 .akb-orders-card__body {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
     min-width: 0; /* evita overflow del header child */
 }
+
 .akb-orders-card__header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-2);
 }
+
 .woocommerce-MyAccount-content a.akb-orders-card__number,
 a.akb-orders-card__number {
     font-family: var(--font-heading);
@@ -1934,16 +1987,19 @@ a.akb-orders-card__number {
     color: var(--aki-white);
     text-decoration: none;
 }
+
 .woocommerce-MyAccount-content a.akb-orders-card__number:hover,
 a.akb-orders-card__number:hover {
     color: var(--aki-red);
     text-decoration: none;
 }
+
 .akb-orders-card__date {
     font-size: var(--text-xs);
     color: var(--aki-gray-400);
     white-space: nowrap;
 }
+
 .akb-orders-card__meta {
     display: flex;
     align-items: center;
@@ -1951,6 +2007,7 @@ a.akb-orders-card__number:hover {
     gap: var(--space-2);
     flex-wrap: wrap;
 }
+
 .akb-orders-card__status {
     display: inline-flex;
     align-items: center;
@@ -1964,6 +2021,7 @@ a.akb-orders-card__number:hover {
     color: var(--aki-gray-200);
     border: 1px solid var(--aki-black);
 }
+
 /* Paleta de estados semánticos brand-safe y accesible:
    - completed: verde de éxito (--aki-status-ok).
    - processing / on-hold / pending: gris neutro de alto contraste.
@@ -1973,6 +2031,7 @@ a.akb-orders-card__number:hover {
     color: var(--aki-status-ok);
     border-color: color-mix(in srgb, var(--aki-status-ok) 30%, transparent);
 }
+
 .akb-orders-card__status--processing,
 .akb-orders-card__status--on-hold,
 .akb-orders-card__status--pending {
@@ -1980,6 +2039,7 @@ a.akb-orders-card__number:hover {
     color: var(--aki-gray-200);
     border-color: var(--aki-border);
 }
+
 .akb-orders-card__status--cancelled,
 .akb-orders-card__status--failed,
 .akb-orders-card__status--refunded {
@@ -1987,30 +2047,36 @@ a.akb-orders-card__number:hover {
     color: var(--aki-status-alert);
     border-color: color-mix(in srgb, var(--aki-status-alert) 30%, transparent);
 }
+
 .akb-orders-card__total {
     font-size: var(--text-sm);
     color: var(--aki-white);
     font-weight: var(--weight-semibold);
 }
+
 .akb-orders-card__items {
     color: var(--aki-gray-400);
     font-weight: var(--weight-normal);
     font-size: var(--text-xs);
 }
+
 .akb-orders-card__extra {
     font-size: var(--text-xs);
     color: var(--aki-gray-300);
     line-height: 1.4;
 }
+
 .akb-orders-card__extra-label {
     color: var(--aki-gray-400);
 }
+
 .akb-orders-card__actions {
     display: flex;
     gap: var(--space-2);
     flex-wrap: wrap;
     margin-top: var(--space-1);
 }
+
 .woocommerce-MyAccount-content a.akb-orders-card__action,
 a.akb-orders-card__action {
     display: inline-flex;
@@ -2033,14 +2099,17 @@ a.akb-orders-card__action {
                 transform var(--transition-fast),
                 box-shadow var(--transition-fast);
 }
+
 .akb-orders-card__action:active {
     transform: translate(1px, 1px);
     box-shadow: 1px 1px 0 var(--aki-black);
 }
+
 .akb-orders-card__action--primary {
     background: var(--aki-red);
     color: var(--aki-white);
 }
+
 .akb-orders-card__action--primary:hover {
     background: var(--aki-red-hover);
     color: var(--aki-white);
@@ -2048,6 +2117,7 @@ a.akb-orders-card__action {
     box-shadow: 4px 4px 0 var(--aki-black);
     text-decoration: none;
 }
+
 .akb-orders-card__action--primary:focus-visible {
     background: var(--aki-red-hover);
     color: var(--aki-white);
@@ -2055,10 +2125,12 @@ a.akb-orders-card__action {
     outline: var(--aki-focus-outline);
     outline-offset: 2px;
 }
+
 .akb-orders-card__action--secondary {
     background: transparent;
     color: var(--aki-gray-200);
 }
+
 .akb-orders-card__action--secondary:hover {
     color: var(--aki-white);
     border-color: var(--aki-red);
@@ -2066,6 +2138,7 @@ a.akb-orders-card__action {
     box-shadow: 4px 4px 0 var(--aki-black);
     text-decoration: none;
 }
+
 .akb-orders-card__action--secondary:focus-visible {
     color: var(--aki-white);
     border-color: var(--aki-red);
@@ -2083,6 +2156,7 @@ a.akb-orders-card__action {
     box-shadow: 4px 4px 0 var(--aki-black);
     border-radius: 0;
 }
+
 .akb-orders-empty__title {
     font-family: var(--font-heading);
     font-size: 1.6rem;
@@ -2091,11 +2165,13 @@ a.akb-orders-card__action {
     color: var(--aki-white);
     margin: 0 0 var(--space-2);
 }
+
 .akb-orders-empty__desc {
     font-size: var(--text-sm);
     color: var(--aki-gray-300);
     margin: 0 0 var(--space-4);
 }
+
 .woocommerce-MyAccount-content a.akb-orders-empty__cta,
 a.akb-orders-empty__cta {
     display: inline-flex;
@@ -2118,6 +2194,7 @@ a.akb-orders-empty__cta {
                 transform var(--transition-fast),
                 box-shadow var(--transition-fast);
 }
+
 .woocommerce-MyAccount-content a.akb-orders-empty__cta:hover,
 a.akb-orders-empty__cta:hover {
     background: var(--aki-red-hover);
@@ -2126,6 +2203,7 @@ a.akb-orders-empty__cta:hover {
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0 var(--aki-black);
 }
+
 .woocommerce-MyAccount-content a.akb-orders-empty__cta:active,
 a.akb-orders-empty__cta:active {
     transform: translate(2px, 2px);
@@ -2138,6 +2216,7 @@ a.akb-orders-empty__cta:active {
     color: var(--aki-gray-300);
     margin: 0 0 var(--space-4);
 }
+
 .woocommerce-MyAccount-content .akb-orders-claim a,
 .akb-orders-claim a {
     color: var(--aki-gray-300);
@@ -2145,6 +2224,7 @@ a.akb-orders-empty__cta:active {
     text-underline-offset: 3px;
     font-weight: var(--weight-normal, 400);
 }
+
 .woocommerce-MyAccount-content .akb-orders-claim a:hover,
 .akb-orders-claim a:hover {
     color: var(--aki-white);
@@ -2157,6 +2237,7 @@ a.akb-orders-empty__cta:active {
     gap: var(--space-3);
     margin-top: var(--space-4);
 }
+
 .woocommerce-MyAccount-content a.akb-orders-pagination__btn,
 a.akb-orders-pagination__btn {
     display: inline-flex;
@@ -2180,14 +2261,18 @@ a.akb-orders-pagination__btn {
     font-size: var(--text-sm);
     line-height: 1.5;
 }
+
 .akb-addresses {
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--space-3);
 }
+
 @media (min-width: 769px) {
+
     .akb-addresses { grid-template-columns: 1fr 1fr; }
 }
+
 .akb-address-card {
     display: flex;
     flex-direction: column;
@@ -2197,18 +2282,21 @@ a.akb-orders-pagination__btn {
     border: 1px solid var(--aki-border);
     border-radius: var(--radius-md);
 }
+
 .akb-address-card__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
 }
+
 .akb-address-card__title {
     margin: 0;
     font-size: var(--text-base);
     font-weight: var(--weight-semibold);
     color: var(--aki-white);
 }
+
 .akb-address-card__badge {
     display: inline-flex;
     padding: 2px 8px;
@@ -2221,6 +2309,7 @@ a.akb-orders-pagination__btn {
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
+
 .akb-address-card__address {
     margin: 0;
     font-style: normal;
@@ -2228,11 +2317,13 @@ a.akb-orders-pagination__btn {
     line-height: 1.6;
     font-size: var(--text-sm);
 }
+
 .akb-address-card__empty {
     margin: 0;
     color: var(--aki-gray-400);
     font-size: var(--text-sm);
 }
+
 /* CTA primario rojo de marca (es la ÚNICA acción de la vista de direcciones;
    antes era ghost outline 40px → leía secundaria + fallaba touch ≥44px). */
 .woocommerce-MyAccount-content a.akb-address-card__edit,
@@ -2252,6 +2343,7 @@ a.akb-address-card__edit {
     text-decoration: none;
     transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
+
 .woocommerce-MyAccount-content a.akb-address-card__edit:hover,
 .woocommerce-MyAccount-content a.akb-address-card__edit:focus-visible,
 a.akb-address-card__edit:hover,
@@ -2260,8 +2352,10 @@ a.akb-address-card__edit:focus-visible {
     color: var(--aki-white);
     text-decoration: none;
 }
+
 /* Press físico (no fade), respetando reduced-motion. */
 @media (prefers-reduced-motion: no-preference) {
+
     a.akb-address-card__edit:active {
         transform: translate(2px, 2px);
         box-shadow: 1px 1px 0 var(--aki-black);
@@ -2277,39 +2371,48 @@ a.akb-address-card__edit:focus-visible {
     flex-direction: column;
     gap: var(--space-4);
 }
+
 .akb-edit-account__section {
     padding: var(--space-4);
     background: var(--aki-surface);
     border: 1px solid var(--aki-border);
     border-radius: var(--radius-md);
 }
+
 .akb-edit-account__section-title {
     margin: 0 0 var(--space-3);
     font-size: var(--text-base);
     font-weight: var(--weight-semibold);
     color: var(--aki-white);
 }
+
 .akb-edit-account__section-hint {
     margin: 0 0 var(--space-3);
     font-size: var(--text-xs);
     color: var(--aki-gray-400);
     line-height: 1.4;
 }
+
 .akb-edit-account__row--split {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-3);
 }
+
 .akb-edit-account__row--split .form-row {
     margin: 0;
     width: auto;
 }
+
 @media (max-width: 480px) {
+
     .akb-edit-account__row--split { grid-template-columns: 1fr; }
 }
+
 .akb-edit-account__submit-wrap {
     margin: 0;
 }
+
 .akb-edit-account__submit {
     display: inline-flex;
     align-items: center;
@@ -2325,6 +2428,7 @@ a.akb-address-card__edit:focus-visible {
     cursor: pointer;
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
+
 .akb-edit-account__submit:hover,
 .akb-edit-account__submit:focus-visible {
     background: var(--aki-red-hover);
@@ -2349,26 +2453,30 @@ a.akb-address-card__edit:focus-visible {
     color: var(--aki-gray-400);
     transition: background var(--transition-fast), color var(--transition-fast);
 }
+
 .akb-pwd-strength:empty {
     display: none;
 }
+
 .akb-pwd-strength--weak {
     background: color-mix(in srgb, var(--aki-status-alert) 12%, transparent);
     color: var(--aki-status-alert);
 }
+
 .akb-pwd-strength--medium {
     background: color-mix(in srgb, var(--aki-status-warn) 12%, transparent);
     color: var(--aki-status-warn);
 }
+
 .akb-pwd-strength--strong {
     background: color-mix(in srgb, var(--aki-status-ok) 14%, transparent);
     color: var(--aki-status-ok);
 }
 
 /* ─── Order Timeline (/mi-cuenta/view-order/{id}/) ─────────────────
- * Progress visual con 4-5 nodos según estado. Hook
+ * Progress visual según estado. Hook
  * woocommerce_order_details_before_order_table priority 5 — antes de
- * la tabla de productos. Nodo "En preventa" se inyecta cuando aplica. */
+ * la tabla de productos. */
 .akb-timeline {
     margin: 0 0 var(--space-5);
     padding: var(--space-4);
@@ -2376,6 +2484,7 @@ a.akb-address-card__edit:focus-visible {
     border: 1px solid var(--aki-border);
     border-radius: var(--radius-md);
 }
+
 .akb-timeline__steps {
     list-style: none;
     margin: 0;
@@ -2384,6 +2493,7 @@ a.akb-address-card__edit:focus-visible {
     flex-direction: column;
     gap: 0;
 }
+
 .akb-timeline__step {
     display: grid;
     grid-template-columns: 32px 1fr;
@@ -2391,6 +2501,7 @@ a.akb-address-card__edit:focus-visible {
     padding: var(--space-2) 0;
     position: relative;
 }
+
 .akb-timeline__step:not(:last-child)::after {
     content: '';
     position: absolute;
@@ -2400,9 +2511,11 @@ a.akb-address-card__edit:focus-visible {
     width: 2px;
     background: var(--aki-border);
 }
+
 .akb-timeline__step--done:not(:last-child)::after {
     background: var(--aki-red);
 }
+
 .akb-timeline__step-marker {
     width: 32px;
     height: 32px;
@@ -2418,17 +2531,20 @@ a.akb-address-card__edit:focus-visible {
     flex-shrink: 0;
     z-index: 1;
 }
+
 .akb-timeline__step--done .akb-timeline__step-marker {
     background: var(--aki-red);
     border-color: var(--aki-red);
     color: var(--aki-white);
 }
+
 .akb-timeline__step--current .akb-timeline__step-marker {
     background: var(--aki-surface);
     border-color: var(--aki-red);
     color: var(--aki-red);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--aki-status-alert) 15%, transparent);
 }
+
 .akb-timeline__step-label {
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
@@ -2436,10 +2552,12 @@ a.akb-address-card__edit:focus-visible {
     line-height: 1.2;
     align-self: center;
 }
+
 .akb-timeline__step--done .akb-timeline__step-label,
 .akb-timeline__step--current .akb-timeline__step-label {
     color: var(--aki-white);
 }
+
 .akb-timeline__step-hint {
     grid-column: 2;
     font-size: var(--text-xs);
@@ -2447,32 +2565,39 @@ a.akb-address-card__edit:focus-visible {
     line-height: 1.4;
     margin-top: 2px;
 }
+
 .akb-timeline--terminal {
     text-align: center;
     padding: var(--space-5) var(--space-4);
 }
+
 .akb-timeline--cancelled,
 .akb-timeline--failed {
     border-color: color-mix(in srgb, var(--aki-status-alert) 30%, transparent);
     background: color-mix(in srgb, var(--aki-status-alert) 5%, transparent);
 }
+
 .akb-timeline--refunded {
     border-color: color-mix(in srgb, var(--aki-status-warn) 30%, transparent);
     background: color-mix(in srgb, var(--aki-status-warn) 5%, transparent);
 }
+
 .akb-timeline__terminal-title {
     margin: 0 0 var(--space-2);
     font-size: var(--text-lg);
     font-weight: var(--weight-semibold);
     color: var(--aki-white);
 }
+
 .akb-timeline--cancelled .akb-timeline__terminal-title,
 .akb-timeline--failed .akb-timeline__terminal-title {
     color: var(--aki-status-alert);
 }
+
 .akb-timeline--refunded .akb-timeline__terminal-title {
     color: var(--aki-status-warn);
 }
+
 .akb-timeline__terminal-desc {
     margin: 0;
     font-size: var(--text-sm);
@@ -2493,9 +2618,11 @@ a.akb-address-card__edit:focus-visible {
  * navigation` (0,2,0); este selector matchea exact y nuestro source
  * order es later → wins sin !important. */
 @media (min-width: 769px) {
+
     .woocommerce-account .woocommerce-MyAccount-navigation {
         width: 240px;
     }
+
     .woocommerce-account .woocommerce-MyAccount-content {
         width: calc(100% - 240px - var(--space-6));
     }
@@ -2544,6 +2671,7 @@ a.akb-address-card__edit:focus-visible {
     color: var(--aki-white);
     font-family: var(--font-heading);
     font-size: var(--text-base);
+
     /* Bebas Neue se renderiza estrictamente en peso 400 nominal para evitar síntesis artificial de negrita. */
     font-weight: 400;
     font-synthesis: none;
@@ -2572,7 +2700,7 @@ a.akb-address-card__edit:focus-visible {
     background: var(--aki-red);
     color: var(--aki-white);
     transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0px var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
 }
 
 /* Foco de teclado accesible: anillo de foco de la marca (--aki-focus-ring)
@@ -2588,7 +2716,7 @@ a.akb-address-card__edit:focus-visible {
     background: var(--aki-red);
     color: var(--aki-white);
     cursor: default;
-    box-shadow: 4px 4px 0px var(--aki-black);
+    box-shadow: 4px 4px 0 var(--aki-black);
 }
 
 .woocommerce nav.woocommerce-pagination ul li > span.dots {
@@ -2604,10 +2732,12 @@ a.akb-address-card__edit:focus-visible {
 /* Paginador mobile a 44px (WCAG 2.5.5 / target táctil estándar de Akibara).
  * box-sizing: border-box y flex-wrap aseguran envoltura fluida en viewports estrechos sin desbordamiento. */
 @media (max-width: 480px) {
+
     .woocommerce nav.woocommerce-pagination ul {
         gap: 4px;
         flex-wrap: wrap;
     }
+
     .woocommerce nav.woocommerce-pagination ul li > a,
     .woocommerce nav.woocommerce-pagination ul li > span {
         box-sizing: border-box;
@@ -2616,11 +2746,118 @@ a.akb-address-card__edit:focus-visible {
         padding: 0 var(--space-1);
         font-size: var(--text-sm);
     }
+
     .woocommerce nav.woocommerce-pagination ul li > span.dots {
         box-sizing: border-box;
         min-width: 24px;
         height: 44px;
         padding: 0 2px;
+    }
+}
+
+/* ── Salto por rangos de tomos en series (pa_serie > 24 tomos) ─── */
+.akb-series-range-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin: var(--space-4) auto var(--space-3);
+    text-align: center;
+    max-width: var(--container-max);
+    padding: 0 var(--space-4);
+    box-sizing: border-box;
+}
+
+.akb-series-range-nav__label {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--aki-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: var(--space-1);
+}
+
+.akb-series-range-list,
+.akb-series-range-nav__list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.akb-series-range-item,
+.akb-series-range-nav__item {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.akb-series-range-link,
+.akb-series-range-nav__pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    padding: 0 var(--space-3);
+    border: 2px solid var(--aki-border);
+    border-radius: 0;
+    background: var(--aki-surface-1);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: var(--text-base);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    box-shadow: 2px 2px 0 var(--aki-black);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.akb-series-range-link:hover,
+.akb-series-range-nav__pill:hover {
+    border-color: var(--aki-white);
+    background: var(--aki-surface-2);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--aki-black);
+}
+
+.akb-series-range-link:focus-visible,
+.akb-series-range-nav__pill:focus-visible {
+    outline: none;
+    border-color: var(--aki-white);
+    box-shadow: var(--aki-focus-ring);
+}
+
+.akb-series-range-link.is-active,
+.akb-series-range-link[aria-current="page"],
+.akb-series-range-nav__pill.is-active,
+.akb-series-range-nav__pill[aria-current="page"] {
+    border-color: var(--aki-black);
+    background: var(--aki-red);
+    color: var(--aki-white);
+    cursor: default;
+    box-shadow: 3px 3px 0 var(--aki-black);
+    transform: none;
+}
+
+@media (max-width: 480px) {
+
+    .akb-series-range-list,
+    .akb-series-range-nav__list {
+        gap: 6px;
+    }
+
+    .akb-series-range-link,
+    .akb-series-range-nav__pill {
+        font-size: var(--text-sm);
+        padding: 0 var(--space-2);
+        min-height: 44px;
     }
 }
 
@@ -2647,6 +2884,7 @@ a.akb-address-card__edit:focus-visible {
  * redundante y confunde — dos formas de "ver carrito" simultáneas en
  * la misma pantalla.
  */
+
 /* Standalone selectors (sin requerir `.woocommerce` ancestor) — porque en HOME
  * los carousels de productos viven en `.akb-section` o shortcodes custom SIN
  * wrapper `.woocommerce`. Las clases son específicas de WC, no hay risk de
@@ -2704,8 +2942,10 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @media (max-width: 768px) {
+
     body.left-sidebar.woocommerce-page #main-content {
         display: block;
+
         /* Sin padding lateral en mobile: el sidebar está hidden (regla
          * abajo) así que el container debe aprovechar 100% del viewport.
          * Antes tenía padding-left/right var(--space-4) que perdía 32px
@@ -2713,6 +2953,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         padding-left: 0;
         padding-right: 0;
     }
+
     body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         display: none;
     }
@@ -2735,13 +2976,13 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
  * margen automático no deja canalón. Con `max(20px, (100% - contenedor) / 2)` la
  * columna mide lo mismo que antes a partir de 1440 (el contenedor) y conserva
  * 20 px por lado por debajo. Las bandas (hero, resumen, ficha de la serie, guía,
- * intro del autor) siguen a sangre como a 1440; la caja «Completa tu colección»
- * de akibara-business (.akb-sb-landing) toma este canalón en su propia hoja.
+ * intro del autor) siguen a sangre como a 1440.
  * Móvil (≤ 768) no se toca: ahí las portadas van a sangre a propósito. El
  * `sizes` de estas portadas (akibara_gp_catalog_image_sizes(),
  * inc/performance.php) descuenta estos 40 px; tests/catalog-cover-sizes.test.js
  * lo recalcula desde esta regla. */
 @media (min-width: 769px) {
+
     body.archive.tax-pa_serie .entry-content > :is(.woocommerce-breadcrumb, .woocommerce-products-header, .akb-shop-toolbar, .akb-facet-chips, ul.products, .akb-empty-state, .woocommerce-pagination),
     body.archive.tax-pa_autor .entry-content > :is(.woocommerce-breadcrumb, .woocommerce-products-header, .akb-shop-toolbar, .akb-facet-chips, ul.products, .akb-empty-state, .woocommerce-pagination) {
         width: auto;
@@ -2775,12 +3016,14 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @media (max-width: 768px) {
+
     .akb-skip-filtros {
         display: none;
     }
 }
 
 @media (min-width: 769px) {
+
     .akb-shop-toolbar {
         position: relative;
     }
@@ -2807,6 +3050,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @media (min-width: 769px) {
+
     .akb-shop-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -2814,12 +3058,14 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         justify-content: flex-start;
         gap: var(--space-3);
         width: 100%;
+
         /* Reserva el alto del control de orden para que el conteo no cambie de
          * eje vertical al filtrar. NO se aplica al estado sin resultados
          * (`--empty`): ahí WooCommerce no renderiza el control y reservar su
          * alto solo dejaría aire muerto sobre el aviso de "sin resultados". */
         min-height: 44px;
         margin: 0 0 var(--space-3);
+
         /* Alinea el ancho máximo y centrado con la cuadrícula del catálogo (1400px)
          * para asegurar continuidad visual vertical entre el toolbar y las portadas. */
         max-width: 1400px;
@@ -2862,6 +3108,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     .akb-shop-toolbar .akb-result-count {
         order: 0;
         flex: 0 0 auto;
+
         /* Único margen auto de la fila: absorbe todo el espacio libre y ancla el
          * control de orden contra el borde derecho. El conteo encabeza (qué hay)
          * y el control cierra (cómo se ordena), que es la convención de catálogo
@@ -2918,6 +3165,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
  * Si cualquiera de estas condiciones no se cumple (o si el H1 es extenso y desborda 26rem),
  * flex-wrap degrada naturalmente a disposición vertical apilada. */
 @media (min-width: 1025px) {
+
     body.archive.woocommerce-page .woocommerce-archive-wrapper .entry-content:has(> .woocommerce-products-header > .page-title:only-child):has(> .woocommerce-products-header + .akb-shop-toolbar):not(:has(> .akb-shop-toolbar .woocommerce-notices-wrapper > *, > .akb-shop-toolbar .akb-search-correction:not([hidden]), > .akb-shop-toolbar .akb-relaxed:not([hidden]))) {
         display: flex;
         flex-wrap: wrap;
@@ -2967,12 +3215,14 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @media (max-width: 768px) {
+
     .akb-shop-toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2);
         align-items: stretch;
         margin: 0 0 var(--space-3);
+
         /* Canalón lateral mobile consistente con el encabezado (.woocommerce-products-header).
          * padding-inline: 16px garantiza que los textos y botones mantengan margen seguro respecto al viewport. */
         padding-inline: var(--space-4);
@@ -3073,8 +3323,10 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         width: 100%;
         height: 100%;
         min-height: 44px;
+
         /* Padding compacto y reservas para glifos SVG: izquierda para icono de orden, derecha para chevron selector. */
         padding: 10px 26px 10px 30px;
+
         /* Truncamiento elíptico en caso de texto largo en viewports ultra estrechos. */
         white-space: nowrap;
         overflow: hidden;
@@ -3084,10 +3336,11 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         background-repeat: no-repeat;
         background-position: left 8px center, right 8px center;
         background-size: 14px, 14px;
-        border: 1px solid var(--aki-border);
+        border: 1px solid var(--aki-input-border);
         border-radius: 8px;
         color: var(--aki-white);
         font-family: inherit;
+
         /* font-size: 16px previene el zoom automático involuntario de iOS Safari al enfocar.
          * font-weight: 500 alineado con los pesos precargados del sistema. */
         font-size: 16px;
@@ -3105,7 +3358,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     gap: var(--space-2);
     min-height: 44px;
     padding: 10px 16px;
-    border: 1px solid var(--aki-border);
+    border: 1px solid var(--aki-input-border);
     background: var(--aki-surface);
     color: var(--aki-white);
     border-radius: 8px;
@@ -3147,6 +3400,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @media (max-width: 768px) {
+
     .akb-filter-toggle {
         display: inline-flex;
         margin: 0 0 var(--space-3);
@@ -3173,7 +3427,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     text-align: center;
     background: var(--aki-surface-1);
     border: 1px dashed var(--aki-border);
-    border-radius: 0px;
+    border-radius: 0;
     margin: var(--space-4) 0;
     color: var(--aki-gray-200);
 }
@@ -3466,12 +3720,14 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 .woocommerce-checkout-review-order-table .order-total th {
     font-size: var(--text-lg);
 }
+
 .woocommerce .cart_totals .order-total .amount,
 .woocommerce-page .cart_totals .order-total .amount,
 .woocommerce-checkout-review-order-table .order-total .amount {
     font-size: 1.5em;
     line-height: 1.1;
 }
+
 .woocommerce .cart_totals .cart-subtotal .amount,
 .woocommerce-checkout-review-order-table .cart-subtotal .amount {
     font-size: 0.95em;
@@ -3511,6 +3767,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
  *   - `.woocommerce-product-rating a` — link "ver N valoraciones".
  *   - Mensajes "No hay valoraciones aún" + "Solo usuarios registrados".
  */
+
 /* Container de las stars: hereda el `a{color:--accent}` de GP (azul cyan
  * #1e73be). Por default las estrellas filled ::before solo cubren la cara
  * visible, pero el strong/text crudo del span queda visible si el width
@@ -3521,6 +3778,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
  * porque en HOME los carousels de productos viven en `.akb-section` o
  * shortcodes custom SIN wrapper `.woocommerce`. Sin esto, las stars salen
  * azul cyan en home aunque las reglas sí apliquen en /tienda/ y PDP. */
+
 /* Estrellas en ROJO de marca, no amarillo: el amarillo es EXCLUSIVO del dinero
  * (precio) y una misma página mostraba estrellas amarillas en el summary y rojas
  * en #reviews (reviews-p5-v4.css ya usa red-bright). Un solo sistema: track/idle
@@ -3542,6 +3800,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 
 .woocommerce .comment-form-rating .stars a,
 .woocommerce-page .comment-form-rating .stars a {
+
     /* Input de selección: idle gris (como las estrellas vacías del display),
        hover/activo rojo — el sistema filled=rojo / empty=atenuado en todas partes. */
     color: var(--aki-gray-400);
@@ -3562,16 +3821,20 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     color: var(--aki-gray-300);
 }
 
-/* Lectura larga en PDP: 65–75 caracteres por línea y bloque centrado, con el
- * texto internamente alineado a la izquierda. Evita párrafos de más de 1300px. */
-.single-product .woocommerce-Tabs-panel--description > * {
-    max-width: 72ch;
+/* Lectura larga y ficha técnica en PDP: ancho equivalente fijo (~768px) y
+ * bloque centrado en descripción e información adicional para alinear títulos,
+ * grilla de ficha, párrafos y tabla de atributos sin saltos entre pestañas. */
+.single-product .woocommerce-Tabs-panel--description > *,
+.single-product .woocommerce-Tabs-panel--additional_information > * {
+    box-sizing: border-box;
+    max-width: 48rem;
     margin-inline: auto;
 }
 
 /* Los asteriscos requeridos de WooCommerce usan #a00 por defecto; sobre #111
  * quedan en 2.44:1. El token de texto rojo mantiene la semántica y pasa AA. */
-.woocommerce-account .woocommerce-MyAccount-content .form-row .required {
+.woocommerce form .form-row .required,
+.woocommerce-page form .form-row .required {
     color: var(--aki-red-text);
 }
 
@@ -3618,10 +3881,12 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @keyframes akb-spin {
+
     to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .woocommerce .blockUI.blockOverlay::before,
     .woocommerce-cart .blockUI.blockOverlay::before,
     .woocommerce-checkout .blockUI.blockOverlay::before {
@@ -3641,6 +3906,50 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
  * Selectores: aplican a la tabla shop_attributes Y a los términos comma-
  * separated dentro de cada celda (que también son <a>).
  */
+.woocommerce div.product table.shop_attributes {
+    width: 100%;
+    box-sizing: border-box;
+    border-collapse: collapse;
+    border: 2px solid var(--aki-black);
+    border-radius: 0;
+    background: var(--aki-surface);
+    box-shadow: 4px 4px 0 var(--aki-black);
+    margin-block: 0;
+}
+
+.woocommerce div.product table.shop_attributes tr th,
+.woocommerce div.product table.shop_attributes tr td {
+    border: 1px solid var(--aki-border);
+    padding: var(--space-3) var(--space-4);
+    vertical-align: top;
+    text-align: left;
+    line-height: 1.45;
+    font-style: normal;
+}
+
+.woocommerce div.product table.shop_attributes tr th {
+    width: clamp(6.5rem, 32%, 13rem);
+    background: var(--aki-surface-2);
+    color: var(--aki-white);
+    font-family: var(--font-heading);
+    font-size: 1.0625rem;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.woocommerce div.product table.shop_attributes tr td {
+    background: var(--aki-surface);
+    color: var(--aki-light);
+    overflow-wrap: anywhere;
+}
+
+.woocommerce div.product table.shop_attributes tr td p {
+    margin: 0;
+    padding: 0;
+}
+
 .woocommerce .woocommerce-product-attributes.shop_attributes a,
 .woocommerce-page .woocommerce-product-attributes.shop_attributes a {
     color: var(--aki-red-text);
@@ -3699,6 +4008,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 
 /* Disposición en cuadrícula fluida para resumen del pedido a partir de viewports medianos (>= 768px). */
 @media (min-width: 768px) {
+
     .woocommerce-order ul.woocommerce-order-overview {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
@@ -3720,7 +4030,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     color: var(--aki-light);
     font-size: var(--text-sm);
     line-height: 1.4;
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* WooCommerce le quita el borde a la última (`ul.order_details li:last-of-type`,
@@ -3847,7 +4157,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 
 .woocommerce-order-details .akb-pickup-coord a {
     color: var(--aki-red-text) !important;
-    -webkit-text-fill-color: currentColor !important;
+    -webkit-text-fill-color: currentcolor !important;
     text-underline-offset: 3px;
 }
 
@@ -3926,6 +4236,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 .woocommerce .woocommerce-info a,
 .woocommerce .woocommerce-message a,
 .woocommerce .woocommerce-error a {
+
     /* Enlaces transaccionales de alto contraste (WCAG AA >= 4.5:1):
      * --aki-red-bright garantiza ratio 5.17:1 sobre superficies oscuras. */
     color: var(--aki-red-bright);
@@ -3940,6 +4251,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 .woocommerce-checkout #payment .payment_box a:hover,
 .woocommerce .woocommerce-info a:hover,
 .woocommerce .woocommerce-message a:hover {
+
     /* Hover: white (19.80:1 AAA) — inversión visual estándar; underline preserva
      * affordance para usuarios color-blind. --aki-red-hover (2.94:1) era peor. */
     color: var(--aki-white);
@@ -3952,12 +4264,14 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     gap: var(--space-3);
     margin: var(--space-6) 0;
 }
+
 .product-faq {
     background: var(--aki-surface-2);
     border: 1px solid var(--aki-border);
     border-radius: var(--radius-md);
     overflow: hidden;
 }
+
 .product-faq__q {
     padding: var(--space-4);
     font-weight: var(--weight-bold);
@@ -3969,10 +4283,12 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     justify-content: space-between;
     align-items: center;
 }
+
 /* Oculta el marker nativo en WebKit antiguos */
 .product-faq__q::-webkit-details-marker {
     display: none;
 }
+
 .product-faq__q::after {
     content: "+";
     color: var(--aki-red);
@@ -3980,19 +4296,23 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     line-height: 1;
     transition: transform var(--transition-fast);
 }
+
 .product-faq[open] .product-faq__q::after {
     transform: rotate(45deg);
 }
+
 /* Foco de teclado accesible para summary de FAQs: anillo de foco interior (inset)
  * para evitar recorte por overflow:hidden en el contenedor con bordes redondeados. */
 .product-faq__q:focus:not(:focus-visible) {
     outline: none;
 }
+
 .product-faq__q:focus-visible {
     outline: none;
     outline-offset: -2px;
     box-shadow: inset 0 0 0 3px var(--aki-yellow), inset 0 0 0 6px var(--aki-black);
 }
+
 .product-faq__a {
     padding: 0 var(--space-4) var(--space-4);
     color: var(--aki-gray-200);
@@ -4000,10 +4320,13 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     margin-top: var(--space-2);
     padding-top: var(--space-3);
 }
+
 .product-faq__a p:last-child {
     margin-bottom: 0;
 }
+
 .product-faq__a a {
+
     /* Texto normal sobre surface-2: red-bright quedaba en 4.40:1. */
     color: var(--aki-red-text);
     text-decoration: underline;
@@ -4011,6 +4334,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     text-underline-offset: 0.2em;
     transition: color var(--transition-base);
 }
+
 .product-faq__a a:hover {
     color: var(--aki-white);
 }
@@ -4028,6 +4352,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 /* Micro-interacciones: Zoom en portadas de manga */
 .woocommerce ul.products li.product .woocommerce-loop-product__link {
     display: block;
+
     /* overflow:hidden vivía acá, pero este link es el padre INMEDIATO de
        .akb-product-cover-wrap, cuyo margin negativo (loop.css) sangra la
        portada hasta el borde del <li> compensando su padding. Clipear en
@@ -4037,12 +4362,14 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 .woocommerce ul.products li.product .woocommerce-loop-product__link img {
+
     /* El token ya trae la timing function; sumarle `ease-out` invalidaba la
      * declaracion y el zoom del listado nunca animaba. */
     transition: transform var(--transition-slow, 400ms ease-out);
 }
 
 .woocommerce ul.products li.product:hover .woocommerce-loop-product__link img {
+
     /* Tope 1.02 (igual que loop.css): la portada ya llena la caja con `cover` y
        la jaula `.akb-product-cover-wrap` (overflow:hidden) contiene el zoom;
        más de 1.02 se come más borde de lo que el micro-zoom necesita. */
@@ -4052,6 +4379,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 /* Respeto estricto a preferencia de reducción de movimiento (prefers-reduced-motion: reduce),
    anulando el micro-zoom de la imagen de producto. */
 @media (prefers-reduced-motion: reduce) {
+
     .woocommerce ul.products li.product:hover .woocommerce-loop-product__link img {
         transform: none;
     }
@@ -4078,14 +4406,17 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     letter-spacing: 0.05em;
 }
 
-/* ─── Product Buttons: Preventa & Agotado ─────────────────────────── */
+/* ─── Product Buttons: Agotado ─────────────────────────── */
+
 /* Botón Agotado (Vía Muerta) - Especificidad Alta */
+
 /* NOTA: se usa `.woocommerce` (no `body.woocommerce`) porque el shortcode
  * [products] del home envuelve su salida en <div class="woocommerce"> pero el
  * <body> del home NO recibe la clase `woocommerce` (WC solo la añade en
- * archives/single/cart). Con `body.woocommerce` el botón de preventa/agotado
+ * archives/single/cart). Con `body.woocommerce` el botón de agotado
  * quedaba sin estilo en el home y distinto al del menú. */
-/* :not(.akb-notify-link): con YITH activo el botón de la card agotada es un
+
+/* :not(.akb-notify-link): con waitlist activa el botón de la card agotada es un
  * CTA VIVO "Avísame cuando vuelva" (LoopEnhancer::notify_link_loop) — la vía
  * muerta queda solo como fallback sin waitlist. */
 .woocommerce ul.products li.product:has(.akb-badge--out_of_stock) .button:not(.akb-notify-link),
@@ -4097,12 +4428,10 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     box-shadow: none !important;
 }
 
-/* Los botones de reserva/preventa y productos a pedido comparten el estilo
- * unificado de los tokens de compra (--aki-buy-*), distinguiéndose a nivel de texto e insignia. */
-
 /* Suprime el contorno nativo de búsqueda en forced-colors: none para dar paso
  * al anillo de foco de la casa (--aki-focus-ring), preservando el contorno en alto contraste asistivo. */
 @media (forced-colors: none) {
+
     input[type="search"]:not(.akibara-search__input, .akb-brands-filterbar__input):focus {
         outline: none !important;
     }
@@ -4114,6 +4443,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
  * botones a tamaño completo se ven desproporcionados. Se achican
  * selectivamente dentro de .woocommerce-cart. */
 .woocommerce-cart ul.products li.product .akb-badge {
+
     /* 0.6875rem = 11px: proporcional al card compacto pero legible
      * (0.6rem eran 9.6px, bajo umbral de legibilidad). */
     font-size: 0.6875rem;
@@ -4182,6 +4512,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 
 .woocommerce-cart ul.products li.product .button,
 .woocommerce-cart ul.products li.product .add_to_cart_button {
+
     /* 0.75rem + min-height 44px: el cross-sell del carrito es el CTA más
      * cercano a conversión — target táctil completo, no ~28px. */
     font-size: 0.75rem !important;
@@ -4213,6 +4544,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     color: var(--aki-white) !important;
     box-shadow: none !important;
 }
+
 .woocommerce-cart td.actions .coupon button[name="apply_coupon"]:hover,
 .woocommerce-cart td.actions .coupon button[name="apply_coupon"]:focus-visible,
 .woocommerce-cart td.actions button[name="update_cart"]:hover,
@@ -4222,6 +4554,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     border-color: var(--aki-gray-400) !important;
     color: var(--aki-white) !important;
 }
+
 .woocommerce-cart td.actions button[name="update_cart"]:disabled,
 .woocommerce-cart td.actions button[name="update_cart"][disabled] {
     opacity: 0.5;
@@ -4257,7 +4590,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     padding: var(--space-2) var(--space-4);
     background: var(--aki-surface);
     border-top: 2px solid var(--aki-border);
-    box-shadow: -4px -4px 0px var(--aki-black);
+    box-shadow: -4px -4px 0 var(--aki-black);
     transform: translateY(8px);
     opacity: 0;
     visibility: hidden;
@@ -4275,120 +4608,11 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     visibility: visible;
 }
 
-/* Barra de progreso viva de 3px (Opción 1: Barra Unificada) */
-.akb-sticky-atc__progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 3px;
-    width: 0%;
-    opacity: 0;
-    background-color: var(--aki-warning);
-    transition: width 240ms ease, background-color 240ms ease, opacity 180ms ease;
-    z-index: 2;
-}
-
-.akb-sticky-atc.is-pack-mode .akb-sticky-atc__progress {
-    opacity: 1;
-}
-
-/* Modo Pack Activo: Fondo carbón oscuro (#141417) de alto contraste */
-.akb-sticky-atc.is-pack-mode {
-    background: #141417;
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
-}
-
 .akb-sticky-atc__price-row {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
-}
-
-/* Botón de reseteo rápido [✕] */
-.akb-sticky-atc__reset {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    min-height: 24px;
-    padding: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    color: var(--aki-white);
-    border: none;
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background 150ms ease, transform 150ms ease;
-    touch-action: manipulation;
-}
-
-.akb-sticky-atc__reset:hover {
-    background: var(--aki-red);
-    color: #ffffff;
-    transform: scale(1.1);
-}
-
-.akb-sticky-atc__reset:active {
-    transform: scale(0.95);
-}
-
-.akb-sticky-atc__reset[hidden] {
-    display: none !important;
-}
-
-/* Badge de descuento [-8%], [-10%] */
-.akb-sticky-atc__badge {
-    display: inline-block;
-    padding: 1px 5px;
-    background: var(--aki-red);
-    color: #ffffff;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    border-radius: 2px;
-    line-height: 1.2;
-    vertical-align: middle;
-}
-
-.akb-sticky-atc__badge[hidden] {
-    display: none !important;
-}
-
-/* Subtexto CRO e incentivo */
-.akb-sticky-atc__subtext {
-    display: block;
-    font-size: 0.72rem;
-    line-height: 1.25;
-    color: var(--aki-gray-300);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 230px;
-}
-
-.akb-sticky-atc__subtext[hidden] {
-    display: none !important;
-}
-
-.akb-sticky-atc.is-pack-mode .akb-sticky-atc__subtext {
-    color: #d1d5db;
-}
-
-/* Micro-animación de pulso al actualizar selección */
-.akb-sticky-atc__info.is-pulsing {
-    animation: akb-pulse-short 180ms ease;
-}
-
-@keyframes akb-pulse-short {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.04); }
-    100% { transform: scale(1); }
 }
 
 /* El nombre del tomo sólo acompaña a la barra en escritorio (bloque ≥1025). */
@@ -4411,8 +4635,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 .akb-sticky-atc__price del {
-    color: var(--aki-gray-500);
-    opacity: 0.6;
+    color: var(--aki-gray-300);
     font-weight: 400;
     font-size: var(--text-sm);
     text-decoration: none;
@@ -4428,7 +4651,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     right: 0;
     top: 50%;
     height: 1.5px;
-    background-color: currentColor;
+    background-color: currentcolor;
     transform: translateY(-50%);
     pointer-events: none;
 }
@@ -4438,21 +4661,10 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     background: none;
 }
 
-/* Metadatos de fecha estimada de llegada (ETA) para tomos en preventa y a pedido,
- * generados por akibara-business (akb_eta_linea_corta) y medidos dinámicamente por franja-inferior.js. */
 .akb-sticky-atc__info {
     display: flex;
     flex-direction: column;
     min-width: 0;
-}
-
-.akb-sticky-atc__eta {
-    margin-top: 2px;
-    color: var(--aki-white);
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1.3;
-    white-space: nowrap;
 }
 
 .akb-sticky-atc__btn {
@@ -4502,6 +4714,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 }
 
 @media (max-width: 1024px) {
+
     body.single-product .akb-sticky-atc {
         display: flex;
         box-sizing: border-box;
@@ -4510,6 +4723,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         padding: 6px 12px;
         gap: 8px;
     }
+
     body.single-product .akb-sticky-atc .akb-sticky-atc__btn {
         flex: 0 0 auto;
         white-space: nowrap;
@@ -4519,18 +4733,16 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
         padding: 0 12px;
         font-size: 15px;
     }
+
     body.single-product .akb-sticky-atc .akb-sticky-atc__subtext {
         max-width: 180px;
     }
-    /* En móvil, el botón duplicado del medio se oculta: la barra fija inferior es la única que manda */
-    body.single-product [data-akb-sb-builder] [data-akb-sb-add] {
-        display: none !important;
-    }
+
     /* Joinchat se desplaza por encima de la barra para no obstaculizar la compra */
-    body.single-product:has(.akb-sticky-atc.is-visible) .joinchat,
-    body.single-product:has(.akb-sticky-atc.is-pack-mode) .joinchat {
+    body.single-product:has(.akb-sticky-atc.is-visible) .joinchat {
         bottom: calc(var(--franja-inferior-peor, 134px) + 12px) !important;
     }
+
     /* footer.css ya reserva el bottom-nav; en PDP se reserva la franja
      * entera (bottom-nav + barra de compra, tokens.css) para que el final
      * del footer no quede tapado cuando la barra está visible (al fondo de
@@ -4549,6 +4761,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
     body.single-product {
         padding-bottom: max(calc(var(--franja-inferior-peor, 134px) + env(safe-area-inset-bottom, 0px)), var(--akb-franja-inferior, 0px));
     }
+
     /* Ficha agotada: sticky-atc.php no pinta la barra si el producto no es
      * comprable o no tiene stock, así que ahí la franja es sólo el bottom-nav
      * y el peor caso dejaba 67,5px de banda vacía bajo el footer. Se escribe
@@ -4563,6 +4776,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 /* Tablet (768-1024px): eleva el botón de WhatsApp por encima de la barra de compra
  * fija cuando está presente para prevenir superposición de controles interactivos. */
 @media (min-width: 768px) and (max-width: 1024px) {
+
     body.single-product:has(.akb-sticky-atc) .joinchat {
         bottom: calc(var(--franja-inferior-peor, 134px) + 12px);
     }
@@ -4571,6 +4785,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 /* Escritorio (>= 1025px): barra de compra fija anclada al borde inferior de la pantalla,
  * alineando el título del tomo a la izquierda y el precio junto al botón de compra a la derecha. */
 @media (min-width: 1025px) {
+
     body.single-product .akb-sticky-atc {
         --akb-sticky-pad-x: max(var(--space-6), calc((100vw - var(--container-max)) / 2 + var(--space-4)));
         display: flex;
@@ -4623,6 +4838,7 @@ body.left-sidebar.woocommerce-page #main-content > #left-sidebar {
 /* Viewports con altura reducida (max-height: 500px): oculta la barra de compra fija
  * para garantizar suficiente área de lectura y navegación en dispositivos apaisados o con zoom asistivo alto. */
 @media (max-height: 500px) {
+
     body.single-product .akb-sticky-atc {
         display: none;
     }
@@ -4713,10 +4929,12 @@ body:has(form.cart[inert]) .akb-sticky-atc__btn {
  * .cart-collaterals: el CTA "Finalizar compra" quedaba a ~1.9k px tras
  * el discovery. En mobile el camino canónico (totales → pagar) va primero. */
 @media (max-width: 768px) {
+
     .woocommerce-cart .cart-collaterals {
         display: flex;
         flex-direction: column;
     }
+
     .woocommerce-cart .cart-collaterals .cart_totals {
         order: -1;
     }
@@ -4767,6 +4985,7 @@ body:has(form.cart[inert]) .akb-sticky-atc__btn {
    dejaba dos anillos amarillos separados por el negro. */
 
 .akb-qty-btn--minus { border-right: 0; }
+
 .akb-qty-btn--plus  { border-left: 0; }
 
 /* ─── V16: cross-sells del carrito con grilla propia ───────────────
@@ -4775,6 +4994,7 @@ body:has(form.cart[inert]) .akb-sticky-atc__btn {
  * Rebalanceamos el bloque para que 1-3 recomendaciones ocupen mejor el ancho.
  */
 @media (min-width: 769px) {
+
     .woocommerce-cart .cross-sells ul.products {
         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         justify-content: start;
@@ -4815,6 +5035,7 @@ ul.woocommerce-shipping-methods {
     margin: 0;
     padding: 0;
 }
+
 ul#shipping_method li,
 ul.woocommerce-shipping-methods li {
     display: flex;
@@ -4827,22 +5048,26 @@ ul.woocommerce-shipping-methods li {
     border-radius: 0;
     cursor: pointer;
 }
+
 ul#shipping_method li:hover,
 ul.woocommerce-shipping-methods li:hover {
     border-color: var(--aki-gray-400);
 }
+
 ul#shipping_method li:has(input[type="radio"]:checked),
 ul.woocommerce-shipping-methods li:has(input[type="radio"]:checked) {
     border-color: var(--aki-border);
     border-left: 4px solid var(--aki-red);
     background: var(--aki-surface-2);
 }
+
 ul#shipping_method li label,
 ul.woocommerce-shipping-methods li label {
     flex: 1 1 auto;
     margin: 0;
     cursor: pointer;
 }
+
 ul#shipping_method li input[type="radio"]:focus-visible,
 ul.woocommerce-shipping-methods li input[type="radio"]:focus-visible {
     outline: var(--aki-focus-outline);
@@ -4896,6 +5121,7 @@ ul#shipping_method li small {
 /* Fila «cantidad + comprar» en mobile: el botón de compra ocupa fluidamente
  * el espacio restante disponible para maximizar la superficie táctil del CTA principal. */
 @media (max-width: 768px) {
+
 	.woocommerce div.product form.cart {
 		display: flex;
 		flex-wrap: wrap;
@@ -4910,6 +5136,7 @@ ul#shipping_method li small {
 	.woocommerce div.product form.cart .single_add_to_cart_button {
 		flex: 1 1 auto;
 		min-width: 0;
+
 		/* El gap ya separa: el margen heredado sumaría al hueco. */
 		margin-left: 0;
 	}
@@ -4918,6 +5145,7 @@ ul#shipping_method li small {
 /* Portada de ficha en desktop (>= 769px): límite de 500px para preservar
  * la fidelidad de resolución nativa de los assets y evitar degradación visual por escalado excesivo. */
 @media (min-width: 769px) {
+
 	.woocommerce div.product .woocommerce-product-gallery {
 		max-width: 500px;
 	}
@@ -4951,6 +5179,7 @@ ul#shipping_method li small {
 /* Sólo con puntero que flota: en el teléfono el :hover se queda pegado tras el
  * toque y el botón quedaba blanco. */
 @media (hover: hover) {
+
 	.woocommerce .product .single_add_to_cart_button.is-ver-carrito:hover,
 	.akb-sticky-atc__btn.is-ver-carrito:hover {
 		background: var(--aki-white);
@@ -4972,12 +5201,18 @@ form.checkout .form-row,
 
 /* Aviso de escasez de inventario (akibara-business): alerta ámbar (--aki-warning)
  * de alto contraste que sobreescribe los estilos de stock de WooCommerce core. */
+.woocommerce div.product .summary p.stock {
+    margin: 0 0 var(--space-3);
+    line-height: 1.4;
+}
+
 .woocommerce div.product p.stock.akb-stock-low {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    margin: var(--space-2) 0 0;
-    padding: 4px 10px;
+    margin: 0 0 var(--space-3);
+    padding: 6px 12px;
+    line-height: 1.2;
     color: var(--aki-warning);
     background: rgba(245, 158, 11, 0.08);
     border: 1px solid var(--aki-warning);
@@ -5002,6 +5237,10 @@ form.checkout .form-row,
     width: auto;
     height: auto;
     border-radius: 0;
+}
+
+.woocommerce div.product .summary form.cart {
+    margin: 0 0 var(--space-4);
 }
 
 /* Mensaje explicativo de límite de cantidad alcanzado (emitido por main.js):
@@ -5077,6 +5316,7 @@ body:has(form.cart .akb-atc-motivo:not([hidden])):not(:has(#akb-sticky-atc.is-vi
 /* Tabla de seguimiento de Blue Express en mobile: preserva la visibilidad
  * del encabezado con el código de seguimiento sobreescribiendo el display:none genérico de WooCommerce. */
 @media (max-width: 768px) {
+
     /* Mantiene especificidad suficiente frente a reglas de smallscreen de WooCommerce */
     .woocommerce table.wc-correios-tracking__table thead,
     .woocommerce-page table.wc-correios-tracking__table thead {
@@ -5098,17 +5338,20 @@ body:has(form.cart .akb-atc-motivo:not([hidden])):not(:has(#akb-sticky-atc.is-vi
 .woocommerce div.product .woocommerce-product-gallery__image {
     position: relative;
 }
+
 .akb-cover-cage.akb-cover--error img,
 .woocommerce-product-gallery__image.akb-cover--error img {
     display: block;
     opacity: 0;
     height: 100% !important;
 }
+
 .woocommerce div.product .woocommerce-product-gallery__image.akb-cover--error {
     aspect-ratio: 2 / 3;
     max-height: 50vh;
     background: var(--aki-surface-3);
 }
+
 .akb-cover-cage.akb-cover--error::after,
 .woocommerce-product-gallery__image.akb-cover--error::after {
     position: absolute;
@@ -5123,6 +5366,7 @@ body:has(form.cart .akb-atc-motivo:not([hidden])):not(:has(#akb-sticky-atc.is-vi
     text-align: center;
     content: "Portada no disponible";
 }
+
 .woocommerce-product-gallery__image.akb-cover--error::after {
     font-size: 14px;
     padding: 16px;

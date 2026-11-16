@@ -4,6 +4,7 @@
 
 .woocommerce-customer-details--rut::before {
 	content: "🪪";
+
 	/* margin-right menor que el `1rem` de phone/email porque el emoji 🪪 tiene
 	 * más padding interno y compensa visualmente para alinear el texto. */
 	margin-right: 0.5rem;

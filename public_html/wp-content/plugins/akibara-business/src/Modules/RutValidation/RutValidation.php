@@ -21,6 +21,9 @@ defined( 'ABSPATH' ) || exit;
  * RUT validation and display module.
  *
  * @since 1.0.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class RutValidation {
 

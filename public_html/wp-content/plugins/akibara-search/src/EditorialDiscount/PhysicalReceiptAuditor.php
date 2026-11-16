@@ -26,7 +26,11 @@ defined( 'ABSPATH' ) || exit;
  *
  * Extraído de EditorialDiscountPublication para aislar la verificación de cobertura de docs,
  * detección de divergencia de precios y aplazamiento de trabajo en vuelo.
+ * @api
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UnusedVariable
  */
+// @phpstan-ignore complexity.classLike
 final class PhysicalReceiptAuditor {
 
 	/**
@@ -159,7 +163,7 @@ final class PhysicalReceiptAuditor {
 		$raw              = $wpdb->get_var(
 			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", EditorialDiscountPublication::OPTION_RECEIPT )
 		);
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ( null !== $raw && ! is_string( $raw ) ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || ( null !== $raw && ! is_string( $raw ) ) ) {
 			return null;
 		}
 		if ( null === $raw || '' === $raw ) {
@@ -217,7 +221,7 @@ final class PhysicalReceiptAuditor {
 		$wpdb->last_error = '';
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- identificador interno, sin valores de usuario.
 		$raw_doc_ids = $wpdb->get_col( 'SELECT post_id FROM ' . Install::docs_table() );
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_array( $raw_doc_ids ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_array( $raw_doc_ids ) ) {
 			return null;
 		}
 		$doc_ids = array_map( 'intval', $raw_doc_ids );
@@ -315,7 +319,7 @@ final class PhysicalReceiptAuditor {
 		wp_cache_delete( EditorialDiscountPublication::OPTION_RECEIPT, 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 		EditorialDiscountPublication::invalidate_runtime_memo();
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || 1 !== (int) $result ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || 1 !== (int) $result ) {
 			return null;
 		}
 
@@ -375,7 +379,7 @@ final class PhysicalReceiptAuditor {
 		$wpdb->last_error = '';
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- identificador interno, sin valores de usuario.
 		$rows = $wpdb->get_results( 'SELECT post_id, price_effective, price_html FROM ' . Install::docs_table(), ARRAY_A );
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_array( $rows ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_array( $rows ) ) {
 			return null;
 		}
 		$indexed = array();
@@ -400,7 +404,7 @@ final class PhysicalReceiptAuditor {
 			if ( abs( (float) $indexed[ $product_id ]['price_effective'] - $fresh['price_effective'] ) > 0.01
 				|| (string) $indexed[ $product_id ]['price_html'] !== $fresh['price_html'] ) {
 				$aplazar = $this->live_work_defers_rebuild( $product_id );
-				if ( null === $aplazar || true === $aplazar ) {
+				if ( null === $aplazar || $aplazar ) {
 					return null;
 				}
 				self::clear_defer_clock();
@@ -440,7 +444,7 @@ final class PhysicalReceiptAuditor {
 			unset( $throwable );
 			return null;
 		}
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_array( $fresh ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_array( $fresh ) ) {
 			return null;
 		}
 		return $fresh;
@@ -528,7 +532,7 @@ final class PhysicalReceiptAuditor {
 		}
 		$momento = strtotime( $hasta . ' UTC' );
 
-		return false !== $momento && (int) $momento <= time();
+		return false !== $momento && $momento <= time();
 	}
 
 	/**

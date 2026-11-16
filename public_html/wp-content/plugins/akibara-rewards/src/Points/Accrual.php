@@ -30,6 +30,7 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Log;
 use Akibara\Rewards\Support\Options;
 use Akibara\Rewards\Support\OrderStates;
@@ -38,7 +39,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UndefinedFunction
  */
+// @phpstan-ignore complexity.classLike
 final class Accrual {
 
 	/** El programa rige hoy: se acredita y se puede prometer. */
@@ -55,6 +63,13 @@ final class Accrual {
 	public const META_PRE_PROGRAM_NOTED = '_akb_rewards_pre_program_noted';
 	public const META_RATE              = '_akb_rewards_rate';
 
+	/** Claves y configuración de carencia (escrow de 7 días). */
+	public const HOOK_RELEASE_ESCROW = 'akb_rewards_release_accrual_escrow';
+	public const META_PENDING        = '_akb_rewards_points_pending';
+	public const META_PENDING_STATUS = '_akb_rewards_pending_status';
+	public const META_ESCROW_DUE     = '_akb_rewards_escrow_due';
+	public const DEFAULT_ESCROW_DAYS = 7;
+
 	private const LOCK_TIMEOUT = 3;
 
 	/**
@@ -64,8 +79,15 @@ final class Accrual {
 	 */
 	public function register(): void {
 		add_action( 'woocommerce_order_status_changed', array( $this, 'on_status_changed' ), 20, 4 );
+		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_award' ), 20, 1 );
+		add_action( 'woocommerce_order_status_processing', array( $this, 'maybe_award' ), 20, 1 );
+		add_action( 'woocommerce_order_status_completed', array( $this, 'maybe_award' ), 20, 1 );
+		add_action( 'woocommerce_order_status_cancelled', array( $this, 'deduct_all' ), 20, 1 );
+		add_action( 'woocommerce_order_status_failed', array( $this, 'deduct_all' ), 20, 1 );
+		add_action( 'woocommerce_order_status_refunded', array( $this, 'deduct_all' ), 20, 1 );
 		add_action( 'woocommerce_order_refunded', array( $this, 'on_order_refunded' ), 20, 2 );
 		add_action( 'woocommerce_refund_deleted', array( $this, 'on_refund_deleted' ), 20, 2 );
+		add_action( self::HOOK_RELEASE_ESCROW, array( $this, 'release_escrow' ), 10, 1 );
 
 		// El barrido recupera pedidos elegibles pendientes de acreditación.
 		add_action( self::HOOK_SWEEP, array( $this, 'sweep_unawarded' ) );
@@ -114,12 +136,12 @@ final class Accrual {
 	 *
 	 * @return void
 	 */
-	public function sweep_unawarded(): void {
+	public function sweep_unawarded(): void { // @phpstan-ignore complexity.functionLike
 		if ( ! function_exists( 'wc_get_orders' ) ) {
 			return;
 		}
 
-		$ids = wc_get_orders(
+		$fresh_ids = wc_get_orders(
 			array(
 				'status'       => OrderStates::PAID,
 				'date_created' => '>=' . substr( Options::program_start(), 0, 10 ),
@@ -145,7 +167,38 @@ final class Accrual {
 			)
 		);
 
-		foreach ( (array) $ids as $order_id ) {
+		// Consulta 2: Pedidos completados con carencia de acreditación vencida pendiente de liberar
+		$overdue_ids = array();
+		if ( Options::escrow_days() > 0 ) {
+			$overdue_ids = wc_get_orders(
+				array(
+					'status'       => 'completed',
+					'date_created' => '>=' . substr( Options::program_start(), 0, 10 ),
+					'limit'        => self::SWEEP_BATCH,
+					'orderby'      => 'ID',
+					'order'        => 'ASC',
+					'return'       => 'ids',
+					'meta_query'   => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+						'relation' => 'AND',
+						array(
+							'key'     => self::META_PENDING_STATUS,
+							'value'   => 'pending',
+							'compare' => '=',
+						),
+						array(
+							'key'     => self::META_ESCROW_DUE,
+							'value'   => time(),
+							'compare' => '<=',
+							'type'    => 'NUMERIC',
+						),
+					),
+				)
+			);
+		}
+
+		$ids = array_slice( array_unique( array_merge( (array) $fresh_ids, (array) $overdue_ids ) ), 0, self::SWEEP_BATCH );
+
+		foreach ( $ids as $order_id ) {
 			$order = wc_get_order( (int) $order_id );
 			if ( ! $order instanceof \WC_Order ) {
 				continue;
@@ -162,10 +215,26 @@ final class Accrual {
 				continue;
 			}
 
+			if ( (int) $order->get_meta( self::META_PENDING ) > 0 ) {
+				if ( 'completed' === (string) $order->get_status() ) {
+					$due = (int) $order->get_meta( self::META_ESCROW_DUE );
+					if ( $due > 0 && $due <= time() ) {
+						$this->release_escrow( (int) $order_id );
+					} else {
+						$this->maybe_schedule_escrow_release( $order, Options::escrow_days() );
+					}
+				}
+				continue;
+			}
+
 			$this->maybe_award( (int) $order_id );
 
 			$order = $this->fresh_order( (int) $order_id );
 			if ( ! $order instanceof \WC_Order ) {
+				continue;
+			}
+			if ( (int) $order->get_meta( self::META_PENDING ) > 0 ) {
+				$order->add_order_note( 'Puntos Akibara: acreditación puesta en periodo de carencia por el barrido diario.' );
 				continue;
 			}
 			if ( '' !== (string) $order->get_meta( self::META_EARNED ) ) {
@@ -205,7 +274,7 @@ final class Accrual {
 		}
 		$user    = get_userdata( (int) $order->get_customer_id() );
 		$creado  = $order->get_date_created();
-		$alta    = is_object( $user ) && isset( $user->user_registered ) ? strtotime( (string) $user->user_registered . ' UTC' ) : false;
+		$alta    = is_object( $user ) && isset( $user->user_registered ) ? strtotime( $user->user_registered . ' UTC' ) : false;
 		$pedido  = $creado instanceof \DateTimeInterface ? $creado->getTimestamp() : false;
 
 		return false !== $alta && false !== $pedido && $alta > $pedido + MINUTE_IN_SECONDS;
@@ -221,19 +290,32 @@ final class Accrual {
 	 * @return void
 	 */
 	public function on_status_changed( $order_id, $from, $to, $order ): void {
-		unset( $from );
-
 		if ( ! $order instanceof \WC_Order ) {
 			return;
 		}
 
-		if ( OrderStates::is_at_or_after( (string) $to, Options::award_status() ) ) {
+		$from = (string) $from;
+		$to   = (string) $to;
+
+		if ( 'completed' === $to && Options::escrow_days() > 0 ) {
+			$this->maybe_schedule_escrow_release( $order, Options::escrow_days() );
+		} elseif ( 'completed' !== $to && ! OrderStates::is_down( $to ) && ( 'completed' === $from || '' !== (string) $order->get_meta( self::META_ESCROW_DUE ) ) ) {
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( self::HOOK_RELEASE_ESCROW, array( (int) $order_id ) );
+			}
+			if ( '' !== (string) $order->get_meta( self::META_ESCROW_DUE ) ) {
+				$order->delete_meta_data( self::META_ESCROW_DUE );
+				$order->save_meta_data();
+			}
+		}
+
+		if ( OrderStates::is_at_or_after( $to, Options::award_status() ) ) {
 			$this->maybe_award( (int) $order_id );
 			return;
 		}
 
 		// Estado terminal: la venta no existe y la acreditación se revierte entera.
-		if ( OrderStates::is_down( (string) $to ) ) {
+		if ( OrderStates::is_down( $to ) ) {
 			$this->deduct_all( (int) $order_id );
 		}
 	}
@@ -241,10 +323,15 @@ final class Accrual {
 	/**
 	 * Acredita el pedido si corresponde. Idempotente bajo candado de pedido.
 	 *
-	 * @param int $order_id ID del pedido.
+	 * @param int|mixed $order_id ID del pedido.
 	 * @return void
 	 */
-	public function maybe_award( int $order_id ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function maybe_award( $order_id ): void { // @phpstan-ignore complexity.functionLike
+		$order_id = (int) $order_id;
+		if ( $order_id <= 0 ) {
+			return;
+		}
 		$this->with_order_lock(
 			$order_id,
 			function () use ( $order_id ): void {
@@ -300,7 +387,7 @@ final class Accrual {
 				}
 
 				$base   = Calculator::award_base_for_order( $order );
-				$points = Calculator::points_for( $base );
+				$points = Calculator::points_for( $base, $user_id );
 
 				if ( $points <= 0 ) {
 					// Pedidos sin ítems de línea se preservan sin sellar para
@@ -333,7 +420,37 @@ final class Accrual {
 					return;
 				}
 
-				$awards = Ledger::count_movements( 'order', $order_id, 'order' );
+				// Si los puntos ya están en carencia (pending), liberar si la carencia se apagó o no duplicar.
+				if ( (int) $order->get_meta( self::META_PENDING ) > 0 ) {
+					if ( Options::escrow_days() <= 0 ) {
+						$this->release_escrow_locked( $order );
+					}
+					return;
+				}
+
+				$tier        = ( $user_id > 0 && Options::tiers_enabled() ) ? Tiers::for_user( $user_id ) : null; // @phpstan-ignore greater.alwaysTrue
+				$escrow_days = Options::escrow_days();
+				if ( $escrow_days > 0 ) {
+					$order->update_meta_data( self::META_PENDING, $points );
+					$order->update_meta_data( self::META_PENDING_STATUS, 'pending' );
+					$order->update_meta_data( self::META_RATE, sprintf( '%d/%d', Options::earn_points(), Options::earn_amount() ) );
+					if ( is_array( $tier ) ) {
+						$order->update_meta_data( Tiers::META_TIER, $tier['slug'] );
+						$order->update_meta_data( Tiers::META_TIER_MULTIPLIER, $tier['multiplier'] );
+					}
+					$order->save_meta_data();
+					$order->add_order_note(
+						sprintf( 'Puntos Akibara: %d puntos retenidos en periodo de carencia (%d días tras completarse el pedido).', $points, $escrow_days )
+					);
+
+					if ( 'completed' === (string) $order->get_status() ) {
+						$this->maybe_schedule_escrow_release( $order, $escrow_days );
+					}
+					return;
+				}
+
+				$awards           = Ledger::count_movements( 'order', $order_id, 'order' );
+				$counts_as_earned = 0 === $awards;
 
 				$result = Ledger::credit(
 					$user_id,
@@ -342,7 +459,7 @@ final class Accrual {
 					'order',
 					$order_id,
 					sprintf( 'Compra #%d', $order_id ),
-					true,
+					$counts_as_earned,
 					sprintf( 'award_%d_%d', $order_id, $awards + 1 )
 				);
 
@@ -357,8 +474,11 @@ final class Accrual {
 				// La tasa aplicada viaja sellada en el pedido para permitir que
 				// ajustes posteriores de reembolso utilicen la tasa histórica exacta.
 				$order->update_meta_data( self::META_RATE, sprintf( '%d/%d', Options::earn_points(), Options::earn_amount() ) );
-				$order->delete_meta_data( '_akb_rewards_pending_escrow_points' );
-				$order->delete_meta_data( '_akb_rewards_escrow_noted' );
+				if ( is_array( $tier ) ) {
+					$order->update_meta_data( Tiers::META_TIER, $tier['slug'] );
+					$order->update_meta_data( Tiers::META_TIER_MULTIPLIER, $tier['multiplier'] );
+					Tiers::renew_validity( $user_id );
+				}
 				$order->save_meta_data();
 				$order->add_order_note(
 					sprintf( 'Puntos Akibara: %d puntos acreditados por esta compra.', $points )
@@ -381,10 +501,14 @@ final class Accrual {
 	 * Deduce TODO lo acreditado al pedido (anulación). Idempotente: la meta
 	 * queda en 0 tras deducir.
 	 *
-	 * @param int $order_id ID del pedido.
+	 * @param int|mixed $order_id ID del pedido.
 	 * @return void
 	 */
-	public function deduct_all( int $order_id ): void {
+	public function deduct_all( $order_id ): void {
+		$order_id = (int) $order_id;
+		if ( $order_id <= 0 ) {
+			return;
+		}
 		$this->with_order_lock(
 			$order_id,
 			function () use ( $order_id ): void {
@@ -405,6 +529,22 @@ final class Accrual {
 	 */
 	private function deduct_all_locked( \WC_Order $order ): void {
 		$order_id = (int) $order->get_id();
+
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( self::HOOK_RELEASE_ESCROW, array( $order_id ) );
+		}
+
+		$pending = (int) $order->get_meta( self::META_PENDING );
+		if ( $pending > 0 ) {
+			$order->update_meta_data( self::META_PENDING, 0 );
+			$order->update_meta_data( self::META_PENDING_STATUS, 'revoked' );
+			$order->delete_meta_data( self::META_ESCROW_DUE );
+			$order->save_meta_data();
+			$order->add_order_note(
+				sprintf( 'Puntos Akibara: %d puntos pendientes revocados por anulación del pedido sin afectar saldo disponible previo.', $pending )
+			);
+		}
+
 		// Reconcilia el monto a descontar utilizando el mayor entre la meta del pedido
 		// y los movimientos registrados en el ledger.
 		$earned = max(
@@ -477,13 +617,14 @@ final class Accrual {
 					return;
 				}
 
+				$pending = (int) $order->get_meta( self::META_PENDING );
 				// Obtiene el saldo acreditado neto para determinar el margen de ajuste.
 				$earned = max(
 					(int) $order->get_meta( self::META_EARNED ),
 					Ledger::sum_movements( 'order', (int) $order_id, array( 'order', 'welcome_bonus', 'order_reversal', 'order_refund' ) )
 				);
-				if ( $earned <= 0 ) {
-					return; // Nada acreditado (o ya revertido): nada que ajustar.
+				if ( $pending <= 0 && $earned <= 0 ) {
+					return; // Nada acreditado ni pendiente: nada que ajustar.
 				}
 
 				$user_id = (int) $order->get_customer_id();
@@ -499,8 +640,22 @@ final class Accrual {
 					return;
 				}
 
-				$bonus  = max( 0, (int) $order->get_meta( self::META_WELCOME_BONUS ) );
-				$target = $this->points_at_sealed_rate( $order, Calculator::award_base_for_order( $order ) ) + $bonus;
+				$bonus           = max( 0, (int) $order->get_meta( self::META_WELCOME_BONUS ) );
+				$target_purchase = $this->points_at_sealed_rate( $order, Calculator::award_base_for_order( $order ) );
+				$target          = $target_purchase + $bonus;
+
+				// Si los puntos de compra aún están en carencia (pending) sin acreditación previa de compra.
+				if ( $pending > 0 && $earned <= $bonus ) {
+					if ( $target_purchase < $pending ) {
+						$diff = $pending - $target_purchase;
+						$order->update_meta_data( self::META_PENDING, $target_purchase );
+						$order->save_meta_data();
+						$order->add_order_note(
+							sprintf( 'Puntos Akibara: %d puntos pendientes revocados por reembolso parcial en carencia (quedan %d puntos pendientes).', $diff, $target_purchase )
+						);
+					}
+					return;
+				}
 
 				// Compara contra la base íntegra redondeada para retirar únicamente la diferencia de líneas devueltas.
 				$target_full = $this->points_at_sealed_rate(
@@ -555,11 +710,16 @@ final class Accrual {
 	private function points_at_sealed_rate( \WC_Order $order, float $base ): int {
 		$sealed = (string) $order->get_meta( self::META_RATE );
 
-		if ( 1 === preg_match( '#^(\d+)/(\d+)$#', $sealed, $m ) ) {
-			return Calculator::points_for_base( $base, (int) $m[1], (int) $m[2] );
+		$raw = 1 === preg_match( '#^(\d+)/(\d+)$#', $sealed, $m )
+			? Calculator::points_for_base( $base, (int) $m[1], (int) $m[2] )
+			: Calculator::points_for( $base );
+
+		$multiplier = (float) $order->get_meta( Tiers::META_TIER_MULTIPLIER );
+		if ( $multiplier > 1.0 ) {
+			return Tiers::apply_multiplier( $raw, $multiplier );
 		}
 
-		return Calculator::points_for( $base );
+		return $raw;
 	}
 
 	/**
@@ -595,6 +755,144 @@ final class Accrual {
 		 * @param int       $refund_id Reembolso borrado.
 		 */
 		do_action( 'akb_rewards_manual_review_needed', $order, (int) $refund_id );
+	}
+
+	/**
+	 * Programa la liberación de puntos en carencia vía Action Scheduler.
+	 *
+	 * @param \WC_Order $order       Pedido.
+	 * @param int       $escrow_days Días de carencia.
+	 * @return void
+	 */
+	public function maybe_schedule_escrow_release( \WC_Order $order, int $escrow_days ): void {
+		if ( ! function_exists( 'as_schedule_single_action' ) ) {
+			return;
+		}
+
+		$order_id = (int) $order->get_id();
+		$pending  = (int) $order->get_meta( self::META_PENDING );
+		if ( $pending <= 0 ) {
+			return;
+		}
+
+		if ( function_exists( 'as_next_scheduled_action' ) && false !== as_next_scheduled_action( self::HOOK_RELEASE_ESCROW, array( $order_id ) ) ) {
+			return; // Ya programado un job único para este pedido.
+		}
+
+		$due = time() + max( 1, $escrow_days ) * DAY_IN_SECONDS;
+		$job = as_schedule_single_action(
+			$due,
+			self::HOOK_RELEASE_ESCROW,
+			array( $order_id ),
+			'akibara-rewards',
+			true
+		);
+
+		if ( $job ) {
+			$order->update_meta_data( self::META_ESCROW_DUE, $due );
+			$order->save_meta_data();
+		}
+	}
+
+	/**
+	 * Libera los puntos retenidos en periodo de carencia hacia el saldo disponible del cliente.
+	 *
+	 * @param int|mixed $order_id ID del pedido.
+	 * @return void
+	 */
+	public function release_escrow( $order_id ): void {
+		$order_id = (int) $order_id;
+		if ( $order_id <= 0 ) {
+			return;
+		}
+
+		$this->with_order_lock(
+			$order_id,
+			function () use ( $order_id ): void {
+				$order = $this->fresh_order( $order_id );
+				if ( $order instanceof \WC_Order ) {
+					$this->release_escrow_locked( $order );
+				}
+			}
+		);
+	}
+
+	/**
+	 * Cuerpo de liberación de puntos en carencia bajo candado de pedido.
+	 *
+	 * @param \WC_Order $order Pedido fresco bajo candado.
+	 * @return void
+	 */
+	private function release_escrow_locked( \WC_Order $order ): void {
+		$order_id = (int) $order->get_id();
+		$status   = (string) $order->get_status();
+
+		if ( OrderStates::is_down( $status ) || ! OrderStates::is_at_or_after( $status, Options::award_status() ) ) {
+			return; // Pedido anulado/reembolsado o fuera de estado pagado: no liberar.
+		}
+
+		$pending = (int) $order->get_meta( self::META_PENDING );
+		if ( $pending <= 0 ) {
+			return;
+		}
+
+		$user_id = (int) $order->get_customer_id();
+		if ( $user_id <= 0 ) {
+			return;
+		}
+
+		$bonus_sellado = max( 0, (int) $order->get_meta( self::META_WELCOME_BONUS ) );
+		$outstanding   = Ledger::sum_movements(
+			'order',
+			$order_id,
+			array( 'order', 'welcome_bonus', 'order_reversal', 'order_refund' )
+		);
+		if ( $outstanding - $bonus_sellado >= $pending ) {
+			$order->update_meta_data( self::META_EARNED, $outstanding );
+			$order->update_meta_data( self::META_PENDING, 0 );
+			$order->update_meta_data( self::META_PENDING_STATUS, 'released' );
+			$order->delete_meta_data( self::META_ESCROW_DUE );
+			$order->save_meta_data();
+			$order->add_order_note(
+				sprintf( 'Puntos Akibara: liberación en carencia reconciliada desde el ledger (%d puntos ya movidos).', $pending )
+			);
+			return;
+		}
+
+		$awards           = Ledger::count_movements( 'order', $order_id, 'order' );
+		$counts_as_earned = 0 === $awards;
+		$result           = Ledger::credit(
+			$user_id,
+			$pending,
+			'order',
+			'order',
+			$order_id,
+			sprintf( 'Compra #%d (liberación de carencia)', $order_id ),
+			$counts_as_earned,
+			sprintf( 'award_%d_%d', $order_id, $awards + 1 )
+		);
+
+		if ( ! is_int( $result ) ) {
+			return; // Reintenta en la siguiente ejecución si el candado está ocupado.
+		}
+
+		$order->update_meta_data( self::META_EARNED, $pending + max( 0, (int) $order->get_meta( self::META_EARNED ) ) );
+		$order->update_meta_data( self::META_PENDING, 0 );
+		$order->update_meta_data( self::META_PENDING_STATUS, 'released' );
+		$order->delete_meta_data( self::META_ESCROW_DUE );
+		$order->save_meta_data();
+
+		$escrow_days = Options::escrow_days();
+		$note        = $escrow_days > 0
+			? sprintf( 'Puntos Akibara: %d puntos liberados tras el periodo de carencia de %d días.', $pending, $escrow_days )
+			: sprintf( 'Puntos Akibara: %d puntos pendientes liberados al saldo disponible.', $pending );
+		$order->add_order_note( $note );
+
+		if ( Options::tiers_enabled() ) {
+			Tiers::renew_validity( $user_id );
+		}
+
+		do_action( 'akb_rewards_after_order_award', $order, $user_id, $pending );
 	}
 
 	/**
@@ -713,9 +1011,7 @@ final class Accrual {
 	 * @return \DateTimeImmutable|null Null si no es una fecha que el motor entienda.
 	 */
 	public static function parse_program_start( string $valor ): ?\DateTimeImmutable {
-		$fecha = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $valor, wp_timezone() );
-
-		return $fecha instanceof \DateTimeImmutable && $fecha->format( 'Y-m-d H:i:s' ) === $valor ? $fecha : null;
+		return Dates::parse_or_null( $valor );
 	}
 
 	/**

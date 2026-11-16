@@ -1,0 +1,96 @@
+{
+  "manifest_version": 1,
+  "generated_on": "2026-07-24",
+  "environment": "docker-local",
+  "purpose": "Remove only redundant per-product Rank Math schema overrides after the official global WooCommerce Product default is verified.",
+  "rank_math": {
+    "version": "1.0.274.1",
+    "global_option": "rank-math-options-titles",
+    "global_default_key": "pt_product_default_rich_snippet",
+    "global_default_value": "product",
+    "ui_audit": {
+      "database_tool_delete_old_schema_available": false,
+      "bulk_set_schema_default_visible": true,
+      "bulk_set_schema_default_available_on_installed_free_plan": false,
+      "reason_for_sql_exception": "The current UI has no safe free bulk operation that removes only redundant defaults. The historical database tool is absent and its broad rank_math_snippet* scope would include protected GTIN metadata."
+    }
+  },
+  "snapshot": {
+    "published_products": 1503,
+    "published_product_identity_sha256": "e7bf513557e8a31c1dec5d1e42d3a84fb3ffab4b0907771ebd3ec86b76d56ae3",
+    "published_product_identity_format": "ID|post_name ordered by ID with LF separators",
+    "candidate_rows": 1501,
+    "candidate_posts": 1501,
+    "candidate_identity_sha256": "a738bd010598c54e86629291b5e0c35fb92730435cf71be8aa2fbb4c6c77f553",
+    "candidate_identity_format": "post_id|post_name|meta_key|meta_value ordered by post_id with LF separators",
+    "candidate_post_ids_sha256": "013a90695a6212b43c4fc72d19da6e810c85fc266e26a8b3bb692308c96e99dc",
+    "candidate_min_post_id": 12945,
+    "candidate_max_post_id": 25543,
+    "legacy_detail_rows": {
+      "rank_math_snippet_name": 0,
+      "rank_math_snippet_desc": 0
+    },
+    "partition_before": {
+      "legacy_default_only": 1501,
+      "modern_schema_only": 1,
+      "global_default_only": 1,
+      "legacy_and_modern_overlap": 0
+    },
+    "partition_after_expected": {
+      "legacy_default_only": 0,
+      "modern_schema_only": 1,
+      "global_default_only": 1502,
+      "legacy_and_modern_overlap": 0
+    },
+    "protected_explicit_legacy": [
+      {
+        "post_id": 210,
+        "post_type": "page",
+        "post_name": "home-1",
+        "meta_key": "rank_math_rich_snippet",
+        "meta_value": "off",
+        "reason": "Explicit non-product schema choice; outside the product-default cleanup."
+      }
+    ],
+    "protected_modern_schema": [
+      {
+        "post_id": 21761,
+        "post_type": "product",
+        "post_name": "akira-6-ovni-press",
+        "schema_meta_key": "rank_math_schema_WooCommerceProduct",
+        "schema_type": "WooCommerceProduct",
+        "is_primary": true,
+        "valid_shortcuts": 1
+      }
+    ],
+    "existing_global_default_product": [
+      {
+        "post_id": 24774,
+        "post_name": "blue-period-15-panini-argentina"
+      }
+    ],
+    "protected_gtin": {
+      "rank_math_snippet_product_gtin_rows": 1503,
+      "rank_math_snippet_product_gtin_sha256": "a9dbbfbf1043f983f6a307938b9eeaca3d42993c2c42ce066c10dcff64a33402",
+      "rank_math_gtin_code_rows": 1168,
+      "rank_math_gtin_code_sha256": "2596a871e4d20ffd9a0ec5803f61cc9cc8b03baea93c1ed066d563d2b83cfd90"
+    }
+  },
+  "delete_scope": {
+    "table": "wp_postmeta",
+    "post_type": "product",
+    "post_status": "publish",
+    "meta_key": "rank_math_rich_snippet",
+    "meta_value": "product",
+    "modern_schema_must_be_absent": true
+  },
+  "never_delete": [
+    "rank_math_snippet_product_gtin",
+    "rank_math_gtin_code",
+    "rank_math_schema_*",
+    "rank_math_shortcode_schema_*",
+    "rank_math_rich_snippet values other than product",
+    "Rank Math options",
+    "metadata belonging to non-product post types"
+  ]
+}

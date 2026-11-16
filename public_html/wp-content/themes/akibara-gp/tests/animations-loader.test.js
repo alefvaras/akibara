@@ -209,6 +209,6 @@ test('un vuelo que lanza no deja al cliente sin cajón', () => {
 test('animations.js ya no escucha akb:added_to_cart: un solo dueño del cajón', () => {
 	const js = fs.readFileSync(path.join(themeRoot, 'assets/js/animations.js'), 'utf8');
 	assert.doesNotMatch(js, /addEventListener\('akb:added_to_cart'/, 'dos oyentes abrirían el cajón dos veces');
-	assert.match(js, /window\.akbAnimations = \{ volarAlCarrito: volarAlCarrito \};/);
+	assert.match(js, /window\.akbAnimations = \{ (?:volarAlCarrito: volarAlCarrito|volarAlCarrito) \};/);
 	assert.match(js, /dispatchEvent\(new CustomEvent\('akb:animaciones-listas'\)\)/);
 });

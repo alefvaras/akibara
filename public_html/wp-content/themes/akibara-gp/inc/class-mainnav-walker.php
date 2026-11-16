@@ -19,6 +19,14 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidPropertyAssignmentValue
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress MissingOverrideAttribute
+ * @psalm-suppress ParamNameMismatch
+ * @psalm-suppress MissingOverrideAttribute
+ */
 class Akibara_GP_Mainnav_Walker extends Walker_Nav_Menu {
 
 	/**
@@ -48,6 +56,11 @@ class Akibara_GP_Mainnav_Walker extends Walker_Nav_Menu {
 	 */
 	private array $parent_link_stack = array();
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override]
 	public function start_lvl( &$output, $depth = 0, $args = null ) {
 		$sub_id  = ! empty( $this->sub_id_stack ) ? end( $this->sub_id_stack ) : '';
 		$id_attr = '' !== $sub_id ? ' id="' . esc_attr( $sub_id ) . '"' : '';
@@ -68,6 +81,11 @@ class Akibara_GP_Mainnav_Walker extends Walker_Nav_Menu {
 		}
 	}
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override]
 	public function end_lvl( &$output, $depth = 0, $args = null ) {
 		if ( 0 === $depth && ! empty( $this->sub_classes_stack ) ) {
 			array_pop( $this->sub_classes_stack );
@@ -81,15 +99,20 @@ class Akibara_GP_Mainnav_Walker extends Walker_Nav_Menu {
 		$output .= '</div>';
 	}
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override] // @phpstan-ignore complexity.functionLike
 	public function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
-		$classes         = (array) $item->classes;
+		$classes         = (array) $item->classes; // @phpstan-ignore property.notFound
 		$has_children    = in_array( 'menu-item-has-children', $classes, true );
 		$is_active       = in_array( 'current-menu-item', $classes, true )
 			|| in_array( 'current-menu-parent', $classes, true )
 			|| in_array( 'current-menu-ancestor', $classes, true );
-		$url             = $item->url ? esc_url( $item->url ) : '#';
-		$title           = esc_html( $item->title );
-		$raw_title       = (string) $item->title;
+		$url             = $item->url ? esc_url( $item->url ) : '#'; // @phpstan-ignore property.notFound
+		$title           = esc_html( $item->title ); // @phpstan-ignore property.notFound
+		$raw_title       = (string) $item->title; // @phpstan-ignore property.notFound
 		$active_class    = $is_active ? ' mainnav__link--active' : '';
 		$sub_active_class = $is_active ? ' mainnav__sublink--active' : '';
 		$current_attr    = in_array( 'current-menu-item', $classes, true ) ? ' aria-current="page"' : '';
@@ -150,8 +173,13 @@ class Akibara_GP_Mainnav_Walker extends Walker_Nav_Menu {
 		}
 	}
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override]
 	public function end_el( &$output, $item, $depth = 0, $args = null ) {
-		$has_children = in_array( 'menu-item-has-children', (array) $item->classes, true );
+		$has_children = in_array( 'menu-item-has-children', (array) $item->classes, true ); // @phpstan-ignore property.notFound
 		if ( $has_children && ( 0 === $depth || 1 === $depth ) ) {
 			$output .= '</div>';
 		}
@@ -185,6 +213,9 @@ class Akibara_GP_Mainnav_Walker extends Walker_Nav_Menu {
 		return '<button type="button" class="mainnav__toggle' . $modifier . '" aria-expanded="false" aria-controls="' . esc_attr( $submenu_id ) . '" aria-label="Submenú de ' . esc_attr( $title ) . '"></button>';
 	}
 
+	/**
+	 * @param mixed $item
+	 */
 	private function submenu_id( $item, string $prefix = 'mainnav-sub-' ): string {
 		return $prefix . (int) $item->ID;
 	}

@@ -1,0 +1,25 @@
+{
+  "validation_version": 1,
+  "transformation_version": "rankmath-shipping-destination-v1",
+  "expected_state": "either",
+  "result": "PASS",
+  "failures": [],
+  "manifest_rows": 871,
+  "live_scoped_rows": 983,
+  "live_scoped_rows_sha256": "84a47f41ae6cdc935588fe8f344adc18f702b4b97b95db4ea2ca3193e4bb02b2",
+  "states": {
+    "applied": 871
+  },
+  "missing": [],
+  "stale": [],
+  "extra_candidates": [],
+  "assertions": {
+    "manifest_integrity": true,
+    "live_scope_has_no_duplicate_keys": true,
+    "no_missing_rows": true,
+    "no_stale_rows": true,
+    "no_extra_candidates": true,
+    "expected_state_matches": true,
+    "idempotent_after_values": true
+  }
+}

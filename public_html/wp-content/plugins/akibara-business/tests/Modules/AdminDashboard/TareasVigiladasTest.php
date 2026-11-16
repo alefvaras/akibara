@@ -20,8 +20,6 @@ namespace Akibara\Business\Tests\Modules\AdminDashboard;
 
 use Akibara\Business\Modules\AdminDashboard\AdminDashboard;
 use Akibara\Business\Modules\LlmsManifest\LlmsManifest;
-use Akibara\Business\Modules\OrderPreventa\RemindersCron;
-use Akibara\Business\Modules\OrderPreventa\Settings as OrderPreventaSettings;
 use Akibara\Business\Modules\UpsellsAutofill\UpsellsAutofill;
 use Akibara\Business\Utilities\OwnCrons;
 use Brain\Monkey;
@@ -87,7 +85,7 @@ final class TareasVigiladasTest extends TestCase {
 		$vigiladas = AdminDashboard::watched_crons();
 
 		self::assertSame( OwnCrons::RECURRING, $vigiladas );
-		self::assertCount( 8, $vigiladas );
+		self::assertCount( 5, $vigiladas );
 		self::assertArrayHasKey(
 			LlmsManifest::HOOK,
 			$vigiladas,
@@ -97,16 +95,10 @@ final class TareasVigiladasTest extends TestCase {
 
 	/** @testdox Una tarea apagada desde el panel no se espera: su módulo la retira a propósito. */
 	public function test_no_espera_las_que_el_dueno_apago(): void {
-		$GLOBALS['akibara_test_options'] = array( OrderPreventaSettings::OPT_T7_ENABLED => 'no' );
-		$sin_recordatorio                = AdminDashboard::watched_crons();
-		self::assertArrayNotHasKey( RemindersCron::HOOK, $sin_recordatorio );
-		self::assertCount( 7, $sin_recordatorio );
-
 		$GLOBALS['akibara_test_options'] = array( UpsellsAutofill::ENABLED_OPTION => 'no' );
 		$sin_recomendaciones             = AdminDashboard::watched_crons();
 		self::assertArrayNotHasKey( UpsellsAutofill::CRON_HOOK, $sin_recomendaciones );
-		self::assertArrayHasKey( RemindersCron::HOOK, $sin_recomendaciones );
-		self::assertCount( 7, $sin_recomendaciones );
+		self::assertCount( 4, $sin_recomendaciones );
 	}
 
 	/** @testdox Todo al día: ninguna alerta. */
@@ -126,11 +118,11 @@ final class TareasVigiladasTest extends TestCase {
 
 	/** @testdox Un cron desagendado de los que no se vigilaban también sale. */
 	public function test_avisa_de_un_cron_desagendado_fuera_de_los_tres_de_siempre(): void {
-		$alertas = $this->alertas_con( array( 'akb_taxonomy_discount_expiry_sweep' => false ) );
+		$alertas = $this->alertas_con( array( 'akb_bis_cleanup_terminal' => false ) );
 
 		self::assertCount( 1, $alertas );
 		self::assertStringContainsString( 'Cron desagendado', $alertas[0]['html'] );
-		self::assertStringContainsString( 'akb_taxonomy_discount_expiry_sweep', $alertas[0]['html'] );
+		self::assertStringContainsString( 'akb_bis_cleanup_terminal', $alertas[0]['html'] );
 	}
 
 	/** @testdox Apagadas las recomendaciones, su cron ausente NO es una alerta. */

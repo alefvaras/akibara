@@ -31,6 +31,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Tamaño de página de las landings de serie y redirección de las que sobran.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class LandingPageSize {
 
@@ -48,9 +51,6 @@ final class LandingPageSize {
 
 	/** Taxonomía de las landings de serie. */
 	private const TAXONOMY = SeriesCatalogEligibility::TAXONOMY;
-
-	/** Pestaña del panel donde vive el ajuste (`CatalogOrder::PANEL_TAB_ID`). */
-	private const PANEL_TAB = 'catalog_order';
 
 	/**
 	 * Parámetros de seguimiento que no cambian lo que lista la página: con ellos
@@ -84,77 +84,15 @@ final class LandingPageSize {
 	}
 
 	/**
-	 * Engancha el tamaño, la redirección y el saneado del panel.
+	 * Engancha el tamaño y la redirección de páginas fuera de rango.
 	 */
 	public function register(): void {
 		add_filter( 'loop_shop_per_page', array( $this, 'handle_loop_shop_per_page' ), 20 );
 		add_filter( 'pre_handle_404', array( $this, 'handle_pre_handle_404' ), 10, 2 );
 		add_action( 'template_redirect', array( $this, 'handle_template_redirect' ), 1 );
-		add_filter( 'woocommerce_admin_settings_sanitize_option_' . self::OPTION, array( self::class, 'sanitize_for_save' ), 10, 3 );
-		add_filter( 'akibara_panel_options_not_saved', array( $this, 'report_rejected_value' ), 10, 2 );
-		add_filter( 'akibara_panel_option_not_saved_reason', array( $this, 'rejected_value_reason' ), 10, 3 );
-		add_action( 'add_option_' . self::OPTION, array( $this, 'handle_option_added' ), 10, 2 );
-		add_action( 'update_option_' . self::OPTION, array( $this, 'handle_option_updated' ), 10, 2 );
-		add_action( 'delete_option', array( $this, 'handle_option_deleting' ) );
 	}
 
-	/**
-	 * La fila se crea: antes regía el de fábrica.
-	 *
-	 * @internal Callback de `add_option_{OPTION}`.
-	 *
-	 * @param mixed $option Nombre de la option (sin uso).
-	 * @param mixed $value  Valor nuevo.
-	 */
-	public function handle_option_added( $option, $value ): void {
-		unset( $option );
-		$this->purge_if_size_changed( self::DEFAULT_PER_PAGE, $value );
-	}
 
-	/**
-	 * La fila cambia de valor (WordPress no dispara esto si el valor es igual).
-	 *
-	 * @internal Callback de `update_option_{OPTION}`.
-	 *
-	 * @param mixed $old_value Valor anterior.
-	 * @param mixed $value     Valor nuevo.
-	 */
-	public function handle_option_updated( $old_value, $value ): void {
-		$this->purge_if_size_changed( $old_value, $value );
-	}
-
-	/**
-	 * La fila se borra (WP-CLI): vuelve a regir el de fábrica. Se mira ANTES de
-	 * borrar, que es cuando todavía se puede leer el tamaño que había.
-	 *
-	 * @internal Callback de `delete_option`.
-	 *
-	 * @param mixed $option Option que se va a borrar.
-	 */
-	public function handle_option_deleting( $option ): void {
-		if ( self::OPTION !== $option ) {
-			return;
-		}
-		$this->purge_if_size_changed( get_option( self::OPTION, self::DEFAULT_PER_PAGE ), self::DEFAULT_PER_PAGE );
-	}
-
-	/**
-	 * Purga las landings sólo si cambia el tamaño que de verdad se pinta: un
-	 * valor inválido lo lee `per_page()` como el de fábrica, así que «48» → «abc»
-	 * no cambia nada que esté en la caché.
-	 *
-	 * @param mixed $old_value Valor anterior (crudo).
-	 * @param mixed $value     Valor nuevo (crudo).
-	 */
-	private function purge_if_size_changed( $old_value, $value ): void {
-		$before = self::parse( $old_value ) ?? self::DEFAULT_PER_PAGE;
-		$after  = self::parse( $value ) ?? self::DEFAULT_PER_PAGE;
-		if ( $before === $after ) {
-			return;
-		}
-
-		$this->purge_landings();
-	}
 
 	/**
 	 * Purga la landing de cada serie —con sus páginas— en LiteSpeed y en el borde.
@@ -188,46 +126,9 @@ final class LandingPageSize {
 	}
 
 	/**
-	 * Campos del panel. Se suman a los de la pestaña Vitrina.
+	 * Valor válido, o null si no lo es. La única definición, para validar constantes y lecturas.
 	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	public static function get_settings(): array {
-		return array(
-			array(
-				'title' => 'Landings de serie',
-				'type'  => 'title',
-				'id'    => 'akb_series_landing_page_size_settings',
-			),
-			array(
-				'title'             => 'Tomos por página',
-				'id'                => self::OPTION,
-				'type'              => 'number',
-				'default'           => (string) self::DEFAULT_PER_PAGE,
-				'css'               => 'width: 90px;',
-				'custom_attributes' => array(
-					'min'  => (string) self::MIN,
-					'max'  => (string) self::MAX,
-					'step' => '1',
-				),
-				'desc'              => sprintf(
-					'Cuántos tomos muestra cada página de una serie (/serie/…), en orden «Tomo 1 → N». Con %1$d caben enteras todas las series salvo las más largas. Más tomos por página es una página más pesada en el celular: con 48 una serie larga tarda del orden de 0,1–0,2 s más en pintarse en un teléfono lento. Entre %2$d y %3$d; el resto de la tienda sigue con su propio tamaño de página. Al cambiarlo se limpian de la caché las páginas de serie.',
-					self::DEFAULT_PER_PAGE,
-					self::MIN,
-					self::MAX
-				),
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_series_landing_page_size_settings',
-			),
-		);
-	}
-
-	/**
-	 * Valor válido, o null si no lo es. La única definición, para guardar y leer.
-	 *
-	 * @param mixed $raw Valor del formulario, de la option o de WP-CLI.
+	 * @param mixed $raw Valor de la constante o de WP-CLI.
 	 */
 	public static function parse( $raw ): ?int {
 		if ( is_int( $raw ) ) {
@@ -241,25 +142,24 @@ final class LandingPageSize {
 		return ( $value >= self::MIN && $value <= self::MAX ) ? $value : null;
 	}
 
-	/** Tamaño vigente: el guardado si es válido, el de fábrica si no. */
-	public static function per_page(): int {
-		return self::parse( get_option( self::OPTION, self::DEFAULT_PER_PAGE ) ) ?? self::DEFAULT_PER_PAGE;
-	}
-
 	/**
-	 * Saneador del panel: null deja la fila como estaba (WooCommerce no escribe).
+	 * Tamaño de página vigente para las landings de serie.
 	 *
-	 * @internal Callback de `woocommerce_admin_settings_sanitize_option_{OPTION}`.
+	 * Arquitectura de 2 niveles (12-Factor App / WordPress VIP):
+	 * 1. Override opcional en wp-config.php (`AKB_SERIES_LANDING_PER_PAGE`).
+	 * 2. Default canónico en código (`DEFAULT_PER_PAGE = 48`).
 	 *
-	 * @param mixed               $value     Valor preprocesado por WooCommerce.
-	 * @param array<string,mixed> $option    Definición del campo.
-	 * @param mixed               $raw_value Valor crudo del formulario.
+	 * Cero consultas a base de datos.
 	 */
-	public static function sanitize_for_save( $value, array $option = array(), $raw_value = null ): ?string {
-		unset( $option );
-		$parsed = self::parse( null !== $raw_value ? $raw_value : $value );
+	public static function per_page(): int {
+		if ( defined( 'AKB_SERIES_LANDING_PER_PAGE' ) ) {
+			$override = self::parse( AKB_SERIES_LANDING_PER_PAGE );
+			if ( null !== $override ) {
+				return $override;
+			}
+		}
 
-		return null === $parsed ? null : (string) $parsed;
+		return self::DEFAULT_PER_PAGE;
 	}
 
 	/**
@@ -391,50 +291,5 @@ final class LandingPageSize {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Nombra el campo cuando el valor escrito no entró.
-	 *
-	 * El saneador devuelve null y WooCommerce no escribe: sin esto el panel
-	 * diría «guardado» y el dueño vería otra vez el número de antes.
-	 *
-	 * @internal Callback de `akibara_panel_options_not_saved`.
-	 *
-	 * @param array<int, string> $no_guardados Options que no quedaron.
-	 * @param string             $tab          Pestaña guardada.
-	 * @return array<int, string>
-	 */
-	public function report_rejected_value( array $no_guardados, string $tab ): array {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- AdminPanel::handle_save() verifica el nonce antes de este filtro.
-		if ( self::PANEL_TAB !== $tab || ! isset( $_POST[ self::OPTION ] ) ) {
-			return $no_guardados;
-		}
-
-		$sent = is_scalar( $_POST[ self::OPTION ] ) ? sanitize_text_field( wp_unslash( (string) $_POST[ self::OPTION ] ) ) : null;
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
-		if ( null === self::parse( $sent ) ) {
-			$no_guardados[] = self::OPTION;
-		}
-
-		return $no_guardados;
-	}
-
-	/**
-	 * Por qué no entró: el rango, no el buscador (motivo por defecto del panel).
-	 *
-	 * @internal Callback de `akibara_panel_option_not_saved_reason`.
-	 *
-	 * @param string $motivo Motivo por defecto.
-	 * @param string $option Option que no quedó.
-	 * @param string $tab    Pestaña guardada.
-	 */
-	public function rejected_value_reason( string $motivo, string $option, string $tab ): string {
-		unset( $tab );
-		if ( self::OPTION !== $option ) {
-			return $motivo;
-		}
-
-		return sprintf( 'Tiene que ser un número entero entre %1$d y %2$d. Se mantiene el valor anterior.', self::MIN, self::MAX );
 	}
 }

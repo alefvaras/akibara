@@ -34,10 +34,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidGlobal
+ * @psalm-suppress UnusedVariable
  */
 final class Schema {
 
-	public const DB_VERSION = '1.3.0';
+	public const DB_VERSION = '1.5.0';
 	public const OPTION_KEY = 'akb_rewards_db_version';
 
 	/**
@@ -70,8 +74,12 @@ final class Schema {
 	public static function purge_stale_review_tokens(): void {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- tabla propia, mantenimiento.
-		$wpdb->query( 'DELETE FROM ' . self::review_forms_table() . " WHERE used_at IS NULL AND expires_at < DATE_SUB(NOW(), INTERVAL 6 MONTH) LIMIT 500" );
+		$wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE used_at IS NULL AND expires_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 6 MONTH) LIMIT 500',
+				self::review_forms_table()
+			)
+		);
 	}
 
 	/**
@@ -112,6 +120,7 @@ final class Schema {
 
 		self::migrate_option_autoload();
 		self::migrate_award_status();
+		self::migrate_legacy_review_meta();
 
 		// autoload = true a propósito (ver migrate_option_autoload): esta
 		// misma option se lee en CADA petición, en el guard de arriba.
@@ -174,6 +183,36 @@ final class Schema {
 	}
 
 	/**
+	 * Renombra metadatos heredados de reseñas (`ivole_review_image2`, `cr_rev_title`)
+	 * a claves canónicas propias (1.4.0).
+	 *
+	 * @return void
+	 */
+	public static function migrate_legacy_review_meta(): void {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! isset( $wpdb->commentmeta ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- migración única de esquema 1.4.0.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->commentmeta} SET meta_key = %s WHERE meta_key = %s",
+				'_akb_review_image_id',
+				'ivole_review_image2'
+			)
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- migración única de esquema 1.4.0.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->commentmeta} SET meta_key = %s WHERE meta_key = %s",
+				'_akb_review_title',
+				'cr_rev_title'
+			)
+		);
+	}
+
+	/**
 	 * Ejecuta dbDelta con el schema vigente.
 	 *
 	 * @return void
@@ -181,7 +220,9 @@ final class Schema {
 	private static function install(): void {
 		global $wpdb;
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( ! function_exists( 'dbDelta' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		}
 
 		$table   = self::ledger_table();
 		$charset = $wpdb->get_charset_collate();
@@ -220,7 +261,9 @@ final class Schema {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY token (token),
-			KEY order_id (order_id)
+			KEY order_id (order_id),
+			KEY order_used_expires (order_id, used_at, expires_at),
+			KEY used_expires (used_at, expires_at)
 		) {$charset};";
 
 		dbDelta( $sql_forms );

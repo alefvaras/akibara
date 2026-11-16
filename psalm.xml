@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="4"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+    findUnusedCode="true"
+    reportInfo="true"
+    autoloader="phpstan-bootstrap.php"
+>
+    <projectFiles>
+        <directory name="public_html/wp-content/plugins/akibara-business/src" />
+        <directory name="public_html/wp-content/plugins/akibara-search/src" />
+        <directory name="public_html/wp-content/plugins/akibara-rewards/src" />
+        <directory name="public_html/wp-content/plugins/akibara-cart-checkout-blocks/src" />
+        <directory name="public_html/wp-content/themes/akibara-gp/inc" />
+        <directory name="public_html/wp-content/mu-plugins" />
+        <ignoreFiles>
+            <directory name="vendor" />
+            <directory name="node_modules" />
+            <directory name="public_html/wp-admin" />
+            <directory name="public_html/wp-includes" />
+            <file name="public_html/wp-load.php" />
+            <file name="public_html/wp-settings.php" />
+            <file name="public_html/wp-config.php" />
+            <file name="public_html/wp-login.php" />
+            <file name="public_html/xmlrpc.php" />
+        </ignoreFiles>
+    </projectFiles>
+
+    <stubs>
+        <file name="vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php" />
+        <file name="phpstan-stubs.php" />
+    </stubs>
+
+    <plugins>
+        <pluginClass class="PsalmWordPress\Plugin">
+            <hooks>
+                <file name="tools/psalm/woocommerce/hooks.json" />
+            </hooks>
+        </pluginClass>
+    </plugins>
+
+    <issueHandlers>
+        <UndefinedClass errorLevel="info" />
+        <UndefinedConstant errorLevel="info" />
+    </issueHandlers>
+</psalm>

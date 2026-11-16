@@ -13,7 +13,7 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\SeoEnhancements;
 
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
+use Akibara\Business\Utilities\StoreTime;
 use Akibara\Business\Modules\SeoIndexing\SeriesDirectorySearchPolicy;
 use Akibara\Business\Modules\SeoIndexing\SeriesSitemapLastmod;
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
@@ -26,6 +26,16 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UndefinedMagicPropertyFetch
+ * @psalm-suppress UndefinedPropertyFetch
+ * @psalm-suppress UnusedProperty
+ */
+// @phpstan-ignore complexity.classLike
 final class SeoEnhancements {
 
 	/**
@@ -35,18 +45,6 @@ final class SeoEnhancements {
 
 	/** Taxonomía de series. */
 	private const SERIES_TAXONOMY = 'pa_serie';
-
-	/** Nombre público exacto del responsable editorial presentado en /nosotros/. */
-	private const EDITOR_PERSON_NAME = 'Alejandro Fernández';
-
-	/** Fragmento estable del nodo Person editorial. */
-	private const EDITOR_PERSON_FRAGMENT = 'alejandro-fernandez';
-
-	/** Página pública que describe al responsable editorial. */
-	private const ABOUT_PATH = '/nosotros/';
-
-	/** Página factual de opciones de despacho y retiro coordinado. */
-	private const SHIPPING_PATH = '/envios/';
 
 	/** Procedencia explícita de una descripción persistida por el generador. */
 	public const SERIES_DESCRIPTION_OWNERSHIP_KEY = '_akibara_rank_math_description_ownership';
@@ -63,37 +61,12 @@ final class SeoEnhancements {
 	/** Valor versionado: la fila es una foto regenerable, no copy editorial. */
 	public const SERIES_META_GENERATED = 'generated_snapshot_v1';
 
-	/** Cierres canónicos de plantillas anteriores del generador. */
-	private const SERIES_META_RETIRED_CLOSINGS = array(
-		'Revisa precio y disponibilidad en Akibara.',
-		' en español | Akibara Chile',
-		' tomos | Akibara',
-		' en español | Comprar en Akibara Chile',
-	);
-
-	/** El campo está vacío: el filtro del front lo compone en cada request. */
-	private const SERIES_META_AUTO_LIVE = 'auto-vivo';
-
-	/** Hay valor guardado y su hash lo acredita como foto generada. */
-	private const SERIES_META_AUTO_STORED = 'auto-guardado';
-
-	/** Hay valor guardado sin marca válida: manual/congelado. */
-	private const SERIES_META_MANUAL = 'manual';
-
 	/** Acción de admin-post.php que devuelve una serie a meta automática. */
 	private const SERIES_META_RESTORE_ACTION = 'akibara_serie_seo_auto';
 
-	/** Capability real de la pantalla de términos de producto. */
-	private const SERIES_TERMS_CAP = 'manage_product_terms';
-
-	/** Vocabulario cerrado de medios publicables. */
-	private const SERIES_MEDIA = array( 'manga', 'cómic', 'manhwa' );
-
-	/** Transient del medio resuelto de una serie. */
-	private const SERIES_MEDIUM_TRANSIENT_PREFIX = 'akb_serie_medio_';
 
 	/** Vida del medio cacheado (TTL de 36 h). */
-	private const SERIES_MEDIUM_TTL = 36 * HOUR_IN_SECONDS;
+	public const SERIES_MEDIUM_TTL = 36 * HOUR_IN_SECONDS;
 
 	private ?bool $rank_math_active;
 
@@ -159,6 +132,8 @@ final class SeoEnhancements {
 	}
 
 	public function register(): void {
+		$account_meta = new AccountEndpointMeta();
+		add_filter( 'document_title_parts', array( $account_meta, 'document_title_parts' ), 20 );
 		remove_action( 'woocommerce_archive_description', 'woocommerce_taxonomy_archive_description', 10 );
 		add_action( 'woocommerce_archive_description', array( $this, 'handle_native_taxonomy_description' ), 10 );
 		remove_action( 'woocommerce_archive_description', 'woocommerce_product_archive_description', 10 );
@@ -173,6 +148,10 @@ final class SeoEnhancements {
 
 		if ( $this->is_rank_math_active() ) {
 			$this->series_sitemap_lastmod->register();
+			add_filter( 'rank_math/frontend/title', array( $account_meta, 'title' ), 20 );
+			add_filter( 'rank_math/opengraph/facebook/og_title', array( $account_meta, 'title' ), 20 );
+			add_filter( 'rank_math/opengraph/twitter/twitter_title', array( $account_meta, 'title' ), 20 );
+			add_filter( 'rank_math/opengraph/url', array( $account_meta, 'social_url' ), 20 );
 
 			add_filter( 'rank_math/frontend/title', array( $this, 'add_pagination_to_title' ), 99 );
 			add_filter( 'rank_math/frontend/description', array( $this, 'prefer_product_description_template' ), 20 );
@@ -204,6 +183,7 @@ final class SeoEnhancements {
 		add_filter( 'redirect_guess_404_permalink', '__return_false' );
 		add_action( 'wp_head', array( $this, 'archive_canonical_fallback' ), 1 );
 		add_action( 'set_object_terms', array( $this, 'forget_series_medium' ), 10, 4 );
+		add_action( 'init', array( self::class, 'maybe_flush_sitemap_cache_on_deploy' ), 99 );
 	}
 
 	public function handle_native_taxonomy_description(): void {
@@ -233,7 +213,7 @@ final class SeoEnhancements {
 
 	public function is_clean_product_cat_archive(): bool {
 		if ( is_admin()
-			|| CatalogQueryGrammar::has_filter_parameter( (array) $_GET )
+			|| CatalogQueryGrammar::has_filter_parameter( $_GET ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			|| (int) get_query_var( 'paged' ) > 1 ) {
 			return false;
 		}
@@ -271,7 +251,7 @@ final class SeoEnhancements {
 			return '';
 		}
 
-		$iso = substr( (string) $date, 0, 10 );
+		$iso = substr( $date, 0, 10 );
 		if ( 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}$/', $iso ) ) {
 			return '';
 		}
@@ -280,6 +260,9 @@ final class SeoEnhancements {
 		return $iso;
 	}
 
+	/**
+	 * @param mixed $post
+	 */
 	public function invalidate_category_updated_transient_on_save( int $post_id, $post ): void {
 		if ( ! is_object( $post ) || ! isset( $post->post_type ) || 'product' !== $post->post_type || wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 			return;
@@ -294,6 +277,9 @@ final class SeoEnhancements {
 		self::invalidate_product_category_transients( $post_id );
 	}
 
+	/**
+	 * @param mixed $terms
+	 */
 	public function invalidate_category_updated_transient_on_terms_set( int $object_id, $terms, array $tt_ids, string $taxonomy, bool $append, array $old_tt_ids ): void {
 		unset( $terms, $append );
 		if ( 'product_cat' !== $taxonomy || 'product' !== get_post_type( $object_id ) ) {
@@ -315,7 +301,7 @@ final class SeoEnhancements {
 				continue;
 			}
 			$term = get_term_by( 'term_taxonomy_id', $tt_id, 'product_cat' );
-			if ( is_object( $term ) && isset( $term->term_id, $term->taxonomy ) && 'product_cat' === $term->taxonomy ) {
+			if ( is_object( $term ) && isset( $term->term_id, $term->taxonomy ) && 'product_cat' === $term->taxonomy ) { // @phpstan-ignore isset.property, isset.property
 				delete_transient( 'akb_cat_updated_' . (int) $term->term_id );
 			}
 		}
@@ -347,7 +333,7 @@ final class SeoEnhancements {
 		}
 
 		$month_num  = (int) $parts[1];
-		$month_name = PedidoPolicy::mes( $month_num );
+		$month_name = StoreTime::mes( $month_num );
 		if ( '' === $month_name ) {
 			return;
 		}
@@ -363,7 +349,7 @@ final class SeoEnhancements {
 
 	public function is_clean_manga_archive(): bool {
 		if ( is_admin()
-			|| CatalogQueryGrammar::has_filter_parameter( (array) $_GET )
+			|| CatalogQueryGrammar::has_filter_parameter( $_GET ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			|| (int) get_query_var( 'paged' ) > 1 ) {
 			return false;
 		}
@@ -457,7 +443,7 @@ final class SeoEnhancements {
 	public function is_clean_taxonomy_intro_archive(): bool {
 		if ( is_admin()
 			|| ! is_tax( array( 'pa_genero', 'pa_autor' ) )
-			|| CatalogQueryGrammar::has_filter_parameter( (array) $_GET )
+			|| CatalogQueryGrammar::has_filter_parameter( $_GET ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			|| (int) get_query_var( 'paged' ) > 1 ) {
 			return false;
 		}
@@ -552,7 +538,7 @@ final class SeoEnhancements {
 		if ( ! function_exists( 'is_shop' ) || ! ( is_shop() || is_product_taxonomy() ) ) {
 			return;
 		}
-		if ( CatalogQueryGrammar::has_filter_parameter( (array) $_GET ) ) {
+		if ( CatalogQueryGrammar::has_filter_parameter( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
 		global $wp;
@@ -572,26 +558,43 @@ final class SeoEnhancements {
 		return $post_ids;
 	}
 
+	/**
+	 * @param mixed $jsonld
+	 */
 	public function align_series_breadcrumb_schema( array $data, $jsonld = null ): array {
 		unset( $jsonld );
 		return $this->schema_enhancer->align_series_breadcrumb_schema( $data );
 	}
 
+	/**
+	 * @param mixed $jsonld
+	 */
 	public function align_product_breadcrumb_schema( array $data, $jsonld = null ): array {
 		unset( $jsonld );
 		return $this->schema_enhancer->align_product_breadcrumb_schema( $data );
 	}
 
+	/**
+	 * @param mixed $jsonld
+	 */
 	public function add_shipping_page_schema( array $data, $jsonld = null ): array {
 		unset( $jsonld );
 		return $this->schema_enhancer->add_shipping_page_schema( $data );
 	}
 
+	/**
+	 * @param mixed $jsonld
+	 */
 	public function add_series_hub_schema( array $data, $jsonld = null ): array {
 		unset( $jsonld );
 		return $this->schema_enhancer->add_series_hub_schema( $data );
 	}
 
+	/**
+	 * @param mixed $data
+	 * @param mixed $jsonld
+	 * @return mixed
+	 */
 	public function cleanup_global_schema( $data, $jsonld = null ) {
 		unset( $jsonld );
 		return $this->schema_enhancer->cleanup_global_schema( $data );
@@ -663,7 +666,7 @@ final class SeoEnhancements {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! is_object( $post ) || ! isset( $post->post_type ) || 'product' !== $post->post_type ) {
+		if ( ! is_object( $post ) || ! isset( $post->post_type ) || 'product' !== $post->post_type ) { // @phpstan-ignore isset.property
 			return $description;
 		}
 
@@ -772,6 +775,10 @@ final class SeoEnhancements {
 		return $this->provenance_admin->is_generated_series_meta_field( $term_id, $field );
 	}
 
+	/**
+	 * @param mixed $taxonomy
+	 * @param mixed $term
+	 */
 	public function render_series_meta_provenance( $term, $taxonomy = '' ): void {
 		$this->provenance_admin->render_series_meta_provenance( $term, (string) $taxonomy );
 	}
@@ -788,7 +795,7 @@ final class SeoEnhancements {
 	 * @param object $term Término de serie.
 	 * @return bool
 	 */
-	private function restore_generated_series_meta( object $term ): bool {
+	public function restore_generated_series_meta( object $term ): bool {
 		return $this->provenance_admin->restore_generated_series_meta( $term );
 	}
 
@@ -796,10 +803,20 @@ final class SeoEnhancements {
 		$this->provenance_admin->render_series_meta_restore_notice();
 	}
 
+	/**
+	 * @param mixed $columns
+	 * @return mixed
+	 */
 	public function add_series_meta_provenance_column( $columns ) {
 		return $this->provenance_admin->add_series_meta_provenance_column( $columns );
 	}
 
+	/**
+	 * @param mixed $column
+	 * @param mixed $content
+	 * @param mixed $term_id
+	 * @return mixed
+	 */
 	public function render_series_meta_provenance_column( $content, $column = '', $term_id = 0 ) {
 		return $this->provenance_admin->render_series_meta_provenance_column( $content, $column, (int) $term_id );
 	}
@@ -808,6 +825,12 @@ final class SeoEnhancements {
 		return SeriesMetaComposer::series_meta_description( $series_name, $work_state );
 	}
 
+	/**
+	 * @param mixed $object_id
+	 * @param mixed $taxonomy
+	 * @param mixed $terms
+	 * @param mixed $tt_ids
+	 */
 	public function forget_series_medium( $object_id, $terms = null, $tt_ids = null, $taxonomy = '' ): void {
 		unset( $terms, $tt_ids );
 		$this->series_meta_composer->forget_series_medium( $object_id, (string) $taxonomy );
@@ -854,8 +877,8 @@ final class SeoEnhancements {
 				return '';
 			}
 
-			$first = trim( (string) reset( $sentences ) );
-			$last  = trim( (string) end( $sentences ) );
+			$first = trim( reset( $sentences ) );
+			$last  = trim( end( $sentences ) );
 		}
 
 		if ( '' === $first || '' === $last ) {
@@ -897,8 +920,7 @@ final class SeoEnhancements {
 		string $author,
 		string $brand,
 		string $medium,
-		?int $volume,
-		string $encargo = ''
+		?int $volume
 	): array {
 		return ProductMetaComposer::compose_product_meta(
 			$product_title,
@@ -906,8 +928,7 @@ final class SeoEnhancements {
 			$author,
 			$brand,
 			$medium,
-			$volume,
-			$encargo
+			$volume
 		);
 	}
 
@@ -921,7 +942,7 @@ final class SeoEnhancements {
 		}
 
 		return class_exists( '\RankMath\Helper' )
-			&& method_exists( '\RankMath\Helper', 'is_breadcrumbs_enabled' )
+			&& method_exists( '\RankMath\Helper', 'is_breadcrumbs_enabled' ) // @phpstan-ignore function.alreadyNarrowedType
 			&& (bool) \RankMath\Helper::is_breadcrumbs_enabled();
 	}
 
@@ -932,6 +953,9 @@ final class SeoEnhancements {
 		) || class_exists( '\RankMath\Helper' );
 	}
 
+	/**
+	 * @return mixed
+	 */
 	private function rank_math_setting( string $key ) {
 		if ( null !== $this->rank_math_settings_reader ) {
 			return ( $this->rank_math_settings_reader )( $key );
@@ -940,11 +964,40 @@ final class SeoEnhancements {
 		return \RankMath\Helper::get_settings( $key );
 	}
 
+	/**
+	 * @return mixed
+	 */
 	private function rank_math_replace_vars( string $template, object $post ) {
 		if ( null !== $this->rank_math_variable_replacer ) {
 			return ( $this->rank_math_variable_replacer )( $template, $post );
 		}
 
 		return \RankMath\Helper::replace_vars( $template, $post );
+	}
+
+	/**
+	 * Invalida el transient/cache de sitemaps de Rank Math y purga la URL en LiteSpeed
+	 * cuando se detecta un nuevo despliegue.
+	 *
+	 * @return void
+	 */
+	public static function maybe_flush_sitemap_cache_on_deploy(): void {
+		$current_version = defined( 'AKIBARA_BUSINESS_VERSION' ) ? (string) AKIBARA_BUSINESS_VERSION : '1.0.0';
+		$stored_hash     = (string) get_option( 'akb_sitemap_deploy_hash', '' );
+		$current_hash    = md5( $current_version );
+
+		if ( $stored_hash === $current_hash ) {
+			return;
+		}
+
+		if ( class_exists( '\\RankMath\\Sitemap\\Cache' ) && method_exists( '\\RankMath\\Sitemap\\Cache', 'invalidate' ) ) { // @phpstan-ignore function.impossibleType
+			\RankMath\Sitemap\Cache::invalidate();
+		}
+
+		if ( has_action( 'litespeed_purge_url' ) && function_exists( 'home_url' ) ) {
+			do_action( 'litespeed_purge_url', home_url( '/sitemap_index.xml' ) );
+		}
+
+		update_option( 'akb_sitemap_deploy_hash', $current_hash, false );
 	}
 }

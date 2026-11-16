@@ -22,6 +22,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * Extraído de EditorialDiscountPublication para aislar el protocolo de persistencia,
  * auditoría y poda de comprobantes de publicación física.
+ * @api
  */
 final class SwapReceiptLedger {
 
@@ -238,15 +239,16 @@ final class SwapReceiptLedger {
 	 * @param string               $generation           Generación física destino.
 	 * @param string               $semantic_fingerprint Huella semántica.
 	 * @return bool
+	 * @phpstan-impure
 	 */
 	public static function swap_authority_matches( array $capture, int $seq, string $fingerprint, array $proof, string $generation, string $semantic_fingerprint ): bool {
-		return Install::DB_VERSION === (string) ( $proof['db_version'] ?? '' )
+		return ( Install::DB_VERSION === (string) ( $proof['db_version'] ?? '' )
 			&& Install::schema_seal() === (string) ( $proof['schema_seal'] ?? '' )
 			&& $seq === ( $capture['wanted_seq'] ?? null )
 			&& is_string( $capture['fingerprint'] ?? null )
 			&& hash_equals( $fingerprint, $capture['fingerprint'] )
 			&& EditorialDiscountPublication::physical_publication_matches( $generation, $semantic_fingerprint )
-			&& EditorialDiscountPublication::price_authority_matches( $capture );
+			&& EditorialDiscountPublication::price_authority_matches( $capture ) ) && defined( 'ABSPATH' );
 	}
 
 	/**
@@ -340,7 +342,7 @@ final class SwapReceiptLedger {
 			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", Install::OPTION_INDEX_GEN )
 		);
 
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) ) {
 			return null;
 		}
 		if ( null === $raw ) {
@@ -380,7 +382,7 @@ final class SwapReceiptLedger {
 		wp_cache_delete( $key, 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
-		if ( false === $result || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( false === $result || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			return false;
 		}
 

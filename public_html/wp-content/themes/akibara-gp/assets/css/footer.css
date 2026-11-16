@@ -20,10 +20,12 @@
     color: var(--aki-white);
     padding: var(--space-2) var(--space-4);
     text-decoration: none;
+
     /* Nivel superior en la jerarquía visual (--z-skip-link) para asegurar visibilidad en navegación asistida y teclado. */
     z-index: var(--z-skip-link);
     font-weight: var(--weight-semibold);
 }
+
 .skip-link:focus {
     left: 8px;
     top: 8px;
@@ -36,6 +38,7 @@
     bottom: 0;
     left: 0;
     right: 0;
+
     /* Alto PINTADO = el token (tokens.css), borde incluido, más el gesto de
      * inicio del iPhone. Con border-box el contenido sigue midiendo 64px
      * (66 − 2 de borde), exactamente la geometría que había con `height:64px`
@@ -48,8 +51,8 @@
     z-index: var(--z-sticky, 200);
     align-items: center;
     justify-content: space-around;
-    padding: 0 0 env(safe-area-inset-bottom, 0px) 0;
-    box-shadow: -4px -4px 0px var(--aki-black);
+    padding: 0 0 env(safe-area-inset-bottom, 0) 0;
+    box-shadow: -4px -4px 0 var(--aki-black);
 }
 
 .bottom-nav__item {
@@ -74,7 +77,7 @@
 
 .bottom-nav__item:hover,
 .bottom-nav__item--active {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
 }
 
 .bottom-nav__item:active {
@@ -124,9 +127,11 @@
 }
 
 @media (max-width: 1024px) {
+
     .bottom-nav {
         display: flex;
     }
+
     /* Reservar espacio para el bottom-nav fijo: su alto pintado (el token
      * ya incluye el border-top de 2px, que antes dejaba 2px de solape con el
      * último contenido, e.g. el copyright cortado en mi-cuenta) más
@@ -134,11 +139,13 @@
     body {
         padding-bottom: calc(var(--bottom-nav-height, 66px) + env(safe-area-inset-bottom, 0px));
     }
+
     /* Ocultar bottom-nav cuando el drawer de navegación o de filtros está abierto.
      * La alternativa sin :has() se mantiene en regla separada para compatibilidad con navegadores antiguos. */
     body.akb-drawer-open .bottom-nav {
         display: none;
     }
+
     body:has(#mobile-drawer[aria-hidden="false"]) .bottom-nav,
     body:has(.hamburger.active) .bottom-nav {
         display: none;
@@ -148,6 +155,7 @@
 /* Ventana baja (≤ 500 px de alto): retiro de bottom-nav fijo para preservar viewport útil en zoom o apaisado.
  * Restaura el relleno inferior del cuerpo y la posición base del botón flotante de WhatsApp. */
 @media (max-width: 1024px) and (max-height: 500px) {
+
     .bottom-nav {
         display: none;
     }
@@ -206,6 +214,7 @@
 }
 
 .footer-brand__desc {
+
     /* gray-300 (~8.4:1 sobre #111) — gray-400 daba ~4.0:1, bajo AA. */
     color: var(--aki-gray-300);
     font-size: var(--text-sm);
@@ -231,6 +240,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+
     /* Objetivo táctil mínimo (WCAG 2.5.8): 24 px en escritorio, 44 px en móvil. */
     min-height: 24px;
     color: inherit;
@@ -252,6 +262,7 @@ a.footer-nap__item:hover {
 }
 
 .footer-social__link {
+
     /* Touch target ≥44px (antes 36px). El glifo queda a su tamaño visual. */
     width: var(--touch-target-min);
     height: var(--touch-target-min);
@@ -303,6 +314,7 @@ a.footer-nap__item:hover {
 }
 
 .footer-column__title {
+    box-sizing: border-box;
     font-family: var(--font-heading);
     font-size: var(--text-lg);
     text-transform: uppercase;
@@ -310,6 +322,7 @@ a.footer-nap__item:hover {
     color: var(--aki-white);
     margin: 0 0 var(--space-4);
     position: relative;
+    min-block-size: var(--touch-target-min);
     padding: 10px 0 var(--space-2);
     background: transparent !important;
     border: 0 !important;
@@ -326,13 +339,13 @@ a.footer-nap__item:hover {
 }
 
 /* Hover/focus — botón hereda bg gris del browser por default. Forzamos
- * transparent y solo cambiamos las LETRAS al rojo principal. La sombra ya la
+ * transparent y solo cambiamos las LETRAS al rojo accesible. La sombra ya la
  * prohíbe la regla base. */
 .footer-column__title:hover,
 .footer-column__title:focus:not(:focus-visible),
 .footer-column__title:active {
     background: transparent !important;
-    color: var(--aki-red) !important;
+    color: var(--aki-red-text) !important;
     transform: none !important;
 }
 
@@ -348,7 +361,7 @@ a.footer-nap__item:hover {
  * Sin !important: (0,2,0) ya gana al `button:focus` de GeneratePress y, por
  * orden, al `outline: none` global de tokens.css. */
 .footer-column__title:focus-visible {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     outline: var(--aki-focus-outline);
     outline-offset: var(--aki-focus-offset);
 }
@@ -362,6 +375,7 @@ a.footer-nap__item:hover {
     height: 4px;
     background: var(--aki-red);
     transform: skewX(-15deg);
+
     /* Idem: el token ya incluye cubic-bezier. */
     transition: width var(--transition-fast, 150ms ease-out);
 }
@@ -380,12 +394,14 @@ a.footer-nap__item:hover {
 }
 
 .footer-column__link {
+
     /* gray-300 (~8.4:1) — gray-400 daba ~4.0:1 (bajo AA) y además era idéntico
        al texto NO clicable (tagline/copyright), sin affordance de link en reposo. */
     color: var(--aki-gray-300);
     font-size: var(--text-sm);
     text-decoration: none;
     transition: color var(--transition-fast);
+
     /* Tap target ≥44px (antes ~30px) — el min-height lo garantiza en mobile y
        desktop sin depender del padding. */
     display: flex;
@@ -395,18 +411,18 @@ a.footer-nap__item:hover {
 
 .footer-column__link:hover,
 .footer-column__link:focus-visible {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
 }
 
 /* ───── Trust signals reutilizables ───────────────────────────────
  * Se renderizan en PDP, checkout y footer. Antes este bloque vivía como
- * <style> dentro de trust-badges.php y se duplicaba cuando una vista contenía
+ * \3c style> dentro de trust-badges.php y se duplicaba cuando una vista contenía
  * más de una instancia. footer.css es global y ya se carga en todas las rutas,
  * por lo que centralizarlo aquí evita CSS repetido y una cascada tardía. */
 .akb-product-trust-badges {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
     gap: var(--space-3);
     margin-top: var(--space-4);
     padding-top: var(--space-4);
@@ -419,6 +435,7 @@ a.footer-nap__item:hover {
     display: flex;
     align-items: center;
     min-width: 0;
+    min-height: var(--touch-target-min);
     gap: 8px;
     padding: 6px 10px;
     border: 1px solid var(--aki-border);
@@ -434,6 +451,10 @@ a.footer-nap__item:hover {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
+}
+
+.akb-product-trust-badges .akb-badge-trust.akb-badge-trust--linked {
+    padding: 0;
 }
 
 .akb-product-trust-badges .akb-badge-trust span {
@@ -453,8 +474,8 @@ a.footer-nap__item:hover {
     width: 100%;
     min-width: var(--touch-target-min);
     min-height: var(--touch-target-min);
-    gap: 6px;
-    padding: 0 6px;
+    gap: 8px;
+    padding: 6px 10px;
     color: inherit;
     background-color: transparent;
     text-decoration: none;
@@ -466,6 +487,7 @@ a.footer-nap__item:hover {
 }
 
 @media (hover: hover) {
+
     .akb-product-trust-badges .akb-badge-trust > .akb-badge-trust__link:hover {
         color: var(--aki-white);
         background-color: rgba(255, 10, 29, 0.1);
@@ -485,8 +507,9 @@ a.footer-nap__item:hover {
     flex: 0 0 auto;
     width: 16px;
     height: 16px;
-    /* Rojo de marca: el amarillo se reserva a precios y foco de teclado. */
-    color: var(--aki-red-bright);
+
+    /* Rojo accesible de marca: el amarillo se reserva a precios y foco de teclado. */
+    color: var(--aki-red-text);
 }
 
 
@@ -497,13 +520,15 @@ a.footer-nap__item:hover {
     margin: 0 auto;
     text-align: center;
     font-size: var(--text-xs);
+
     /* gray-300 para pasar AA en el copyright (gray-500 daba <4.5:1). */
     color: var(--aki-gray-300);
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ───── Mobile footer accordion ────────────────────────────────── */
 @media (max-width: 768px) {
+
     /* Las columnas se cuentan según cuántos beneficios haya, no a mano. Esta
      * regla fijaba tres columnas porque en su momento eran tres beneficios;
      * al añadirse el cuarto ("Atención personalizada") quedó colgando solo en
@@ -517,6 +542,7 @@ a.footer-nap__item:hover {
         align-items: start;
         gap: var(--space-3) var(--space-2);
     }
+
     .akb-product-trust-badges .akb-badge-trust {
         width: 100%;
         min-width: 0;
@@ -525,17 +551,21 @@ a.footer-nap__item:hover {
         font-size: var(--text-sm);
         line-height: 1.35;
     }
+
     .akb-product-trust-badges .akb-badge-trust > .akb-badge-trust__link {
         justify-content: center;
         text-align: center;
     }
+
     .akb-product-trust-badges .akb-badge-trust span {
         text-wrap: balance;
     }
+
     .akb-product-trust-badges .akb-badge-trust:nth-child(3) {
         grid-column: auto;
         margin-top: 0;
     }
+
     .footer-main {
         grid-template-columns: 1fr;
         gap: 0;
@@ -545,6 +575,7 @@ a.footer-nap__item:hover {
             var(--space-6)
             max(var(--space-4), env(safe-area-inset-left, 0px));
     }
+
     .footer-brand {
         align-items: center;
         text-align: center;
@@ -553,9 +584,11 @@ a.footer-nap__item:hover {
         margin-bottom: var(--space-2);
         gap: var(--space-2);
     }
+
     .footer-nap {
         width: auto;
     }
+
     /* En móvil todo el bloque de marca va centrado (logo → info → redes →
        accesos). Cada fila icon+texto se centra COMO UNIDAD y en FLUJO
        INLINE: con flex, la fila que quiebra («Retiro de pedidos…») consumía
@@ -568,27 +601,34 @@ a.footer-nap__item:hover {
         text-align: center;
         text-wrap: balance;
     }
+
     .footer-nap__item svg {
         display: inline-block;
         vertical-align: -2px;
         margin-right: 6px;
     }
+
     a.footer-nap__item {
+
         /* Target táctil ≥44px sin flex: el alto lo da el padding, así el
            número queda centrado dentro de su propia zona de toque. */
         padding-block: 12px;
     }
+
     a.footer-nap__item,
     .footer-mobile-shortcuts__item {
         box-sizing: border-box;
         min-height: var(--touch-target-min);
     }
+
     .footer-brand__logo img {
         height: 64px;
     }
+
     .footer-brand__desc {
         display: none;
     }
+
     .footer-mobile-shortcuts {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -602,8 +642,8 @@ a.footer-nap__item:hover {
     }
 
     .bottom-nav {
-        padding-left: env(safe-area-inset-left, 0px);
-        padding-right: env(safe-area-inset-right, 0px);
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
     }
 }
 
@@ -620,25 +660,30 @@ a.footer-nap__item:hover {
  * .site-footer.js-footer-accordion, añadido dinámicamente por main.js tras
  * inicializarse. En ausencia de JS o fallos de ejecución, las listas permanecen
  * abiertas y completamente accesibles por defecto. */
+
 /* ───── Footer en tablet: marca arriba, tres columnas debajo ─────
  * Entre 601 y 768 px el grid de escritorio (1.3fr + 3 columnas) deja las
  * listas demasiado estrechas, y el de teléfono (1 columna) apila todo y
  * estira el footer a 1.357 px. Con la marca a ancho completo y las tres
  * columnas en fila quedan a 230 px cada una y el footer baja a 803 px. */
 @media (min-width: 601px) and (max-width: 768px) {
+
     .footer-main {
         grid-template-columns: repeat(3, 1fr);
         gap: var(--space-4);
     }
+
     .footer-brand {
         grid-column: 1 / -1;
     }
 }
 
 @media (max-width: 600px) {
+
     .footer-column {
         border-bottom: 1px solid var(--aki-border);
     }
+
     .footer-column__title {
         user-select: none;
         padding: var(--space-3) 0;
@@ -648,11 +693,13 @@ a.footer-nap__item:hover {
         justify-content: space-between;
         width: 100%;
     }
+
     /* Sin `.js-footer-accordion` el botón no colapsa nada (ver arriba): cursor
      * default, como cualquier encabezado estático. */
     .site-footer.js-footer-accordion .footer-column__title {
         cursor: pointer;
     }
+
     /* Affordance "+"/"−" en lugar de chevron rotado: glyph tipográfico
      * limpio, posicionado al extremo derecho del button por flex
      * space-between (heredado de .footer-column__title). Gateado igual que el
@@ -673,28 +720,36 @@ a.footer-nap__item:hover {
         color: var(--aki-gray-400);
         transition: color var(--transition-fast);
     }
+
     .site-footer.js-footer-accordion .footer-column__title.active::after,
     .site-footer.js-footer-accordion .footer-column__title[aria-expanded="true"]::after {
         content: "\2212"; /* − minus sign U+2212, mejor proporción que '-' */
-        color: var(--aki-red);
+        color: var(--aki-red-text);
     }
-    /* Open state: title también va a rojo brand para que el state sea
+
+    /* Open state: title también va a rojo accesible para que el state sea
      * visible sin depender solo del +/-. Closed state: white default. */
     .site-footer.js-footer-accordion .footer-column__title[aria-expanded="true"] {
-        color: var(--aki-red);
+        color: var(--aki-red-text);
     }
+
     .site-footer.js-footer-accordion .footer-column__list {
+        interpolate-size: allow-keywords;
         max-height: 0;
+        block-size: 0;
         overflow: hidden;
         visibility: hidden;
         pointer-events: none;
         transition:
+            block-size 0.3s ease,
             max-height 0.3s ease,
             visibility 0s linear 0.3s;
         padding-bottom: 0;
     }
+
     .site-footer.js-footer-accordion .footer-column__list.active {
         max-height: 420px;
+        block-size: auto;
         visibility: visible;
         pointer-events: auto;
         transition-delay: 0s;
@@ -702,20 +757,32 @@ a.footer-nap__item:hover {
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+
+    .site-footer.js-footer-accordion .footer-column__list,
+    .site-footer.js-footer-accordion .footer-column__list.active {
+        transition: none;
+    }
+}
+
 @media (max-width: 480px) {
+
     /* En teléfonos angostos el icono sobre el texto iguala los tres ejes
      * visuales y evita que una etiqueta larga empuje a las demás. */
     .akb-product-trust-badges .akb-badge-trust {
         flex-direction: column;
         gap: 6px;
     }
+
     .akb-product-trust-badges .akb-badge-trust > .akb-badge-trust__link {
         flex-direction: column;
         gap: 6px;
     }
+
     .akb-product-trust-badges .akb-badge-trust span {
         max-width: 12ch;
     }
+
     .akb-product-trust-badges .akb-badge-trust svg {
         width: 18px;
         height: 18px;
@@ -728,10 +795,36 @@ body .joinchat {
     z-index: var(--z-chat);
 }
 
-/* ───── Prevención de colisión del botón flotante de WhatsApp sobre acciones de compra ─────
+/* En vista móvil, el botón flotante de WhatsApp debe respetar la altura de la barra
+ * de navegación inferior sticky (--bottom-nav-height) sin solapar accesos críticos. */
+@media (max-width: 1024px) {
+
+    html body .joinchat,
+    html body.single-product .joinchat {
+        bottom: calc(var(--bottom-nav-height, 66px) + env(safe-area-inset-bottom, 0px) + 16px);
+    }
+}
+
+/* ───── Prevención de colisión del botón flotante de WhatsApp sobre acciones de compra y carrito ─────
  * Cuando un botón de compra queda bajo el botón flotante, la clase `.akb-fab-cede`
  * en el body lo oculta temporalmente evitando pulsaciones accidentales sobre el CTA principal. */
 body.akb-fab-cede .joinchat:not(.joinchat--chatbox):not(:focus-within) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+
+/* Cuando el cajón 'Tu carrito' está abierto, se oculta el botón flotante de WhatsApp para no
+ * interferir visualmente ni generar ambigüedades con el overlay del carrito. */
+body.akb-cart-open .joinchat {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
+}
+
+body:has(#akb-native-cart-drawer.akb-open) .joinchat {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;

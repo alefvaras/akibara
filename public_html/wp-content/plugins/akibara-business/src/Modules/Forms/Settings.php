@@ -20,6 +20,9 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Settings {
 
 	public const OPTION_NOTIFY_EMAIL   = 'akibara_forms_notify_email';

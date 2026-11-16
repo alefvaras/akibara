@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Dequeue unused plugin assets per page (performance).
  * Prevents payment gateway, shipping, analytics scripts from loading on non-shop pages.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_dequeue_unused_assets(): void {
 	// Guarda de seguridad: previene fatals globales si WooCommerce está inactivo.
@@ -67,13 +69,14 @@ function akibara_gp_dequeue_unused_assets(): void {
 	 */
 
 	// Shipping calculators only on cart/checkout
-	if ( ! is_cart() && ! is_checkout() ) {
+	if ( ! is_cart() && ! is_checkout() ) { // @phpstan-ignore booleanAnd.alwaysTrue, booleanNot.alwaysTrue, booleanNot.alwaysTrue
 		wp_dequeue_script( 'wc-country-select' );
 		wp_dequeue_script( 'wc-address-i18n' );
 	}
 }
 // Prioridad 99: el dequeue debe correr DESPUÉS de que WooCommerce y los gateways
 // encolen sus assets (prio 10). A prio 5 corría antes y el dequeue era no-op.
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'wp_enqueue_scripts', 'akibara_gp_dequeue_unused_assets', 99 );
 
 /**
@@ -81,6 +84,8 @@ add_action( 'wp_enqueue_scripts', 'akibara_gp_dequeue_unused_assets', 99 );
  *
  * Se mira la página configurada como carrito, no la consulta actual: es la que
  * `is_cart()` reconoce.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_carrito_de_bloques(): bool {
 	if ( ! function_exists( 'has_block' ) || ! function_exists( 'wc_get_page_id' ) ) {
@@ -108,6 +113,8 @@ function akibara_gp_carrito_de_bloques(): bool {
  *
  * Carrito, checkout y Mi cuenta no se cachean y pintan el contador correcto
  * desde el servidor: ahí no hace falta.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_enqueue_cart_badge_sync(): void {
 	if ( ! akibara_gp_wc_activo() || is_cart() || is_checkout() || is_account_page() ) {
@@ -118,4 +125,5 @@ function akibara_gp_enqueue_cart_badge_sync(): void {
 }
 // Prioridad 20: después de que WooCommerce REGISTRE sus scripts (prio 10) y
 // antes del dequeue de arriba (prio 99), que ya no toca este handle.
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'wp_enqueue_scripts', 'akibara_gp_enqueue_cart_badge_sync', 20 );

@@ -23,6 +23,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class Highlighter {
 
@@ -35,7 +37,7 @@ final class Highlighter {
 	 * @param array<int, string> $tokens Tokens del término (≥2 chars).
 	 * @return string HTML escapado con marcas.
 	 */
-	public static function mark( string $text, array $tokens ): string {
+	public static function mark( string $text, array $tokens ): string { // @phpstan-ignore complexity.functionLike
 		if ( '' === $text ) {
 			return '';
 		}
@@ -80,7 +82,7 @@ final class Highlighter {
 
 			$len = mb_strlen( $needle );
 			$off = 0;
-			while ( false !== ( $pos = mb_strpos( $lower, $needle, $off ) ) ) {
+			while ( false !== ( $pos = mb_strpos( $lower, $needle, $off ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 				$ranges[] = array( $pos, $pos + $len );
 				$off      = $pos + $len;
 			}

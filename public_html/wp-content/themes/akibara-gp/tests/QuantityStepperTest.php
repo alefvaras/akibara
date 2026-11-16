@@ -6,10 +6,9 @@
  * puede llevar más de uno (tomo vendido de a uno, o queda una sola unidad).
  *
  * Por qué existe: `get_max_purchase_quantity()` de WooCommerce devuelve **-1**
- * cuando NO hay tope —el producto no gestiona stock o admite encargo, que es
- * justo lo que son «a pedido» y «preventa»— y la condición original
+ * cuando NO hay tope —el producto no gestiona stock límite— y la condición original
  * (`$max <= 1`) metía ese -1 en el mismo saco que «queda uno». Resultado
- * medido el 2026-09-12 en el espejo: ficha a pedido con `input` sin `max` y
+ * medido el 2026-09-12 en el espejo: ficha con `input` sin `max` y
  * CERO botones, ficha con stock 2 con los dos. Son ~494 de 1.628 fichas
  * publicadas, y son las de serie, donde el cliente suele llevarse varios.
  *
@@ -87,7 +86,7 @@ namespace Akibara\GP\Tests {
 			$GLOBALS['product'] = new Akb_Qty_Producto_Doble( $max, $sold_individually );
 		}
 
-		/** @testdox Sin tope (-1), que es como se ve «a pedido» y «preventa», los botones se pintan. */
+		/** @testdox Sin tope (-1), cuando el producto no tiene límite máximo, los botones se pintan. */
 		public function test_sin_tope_se_pintan(): void {
 			$this->producto( -1 );
 			$this->assertTrue( akibara_gp_quantity_is_adjustable() );

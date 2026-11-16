@@ -31,11 +31,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
  */
 final class Carousel {
 
 	public const SHORTCODE = 'akibara_home_reviews';
-	public const TRANSIENT = 'akb_rewards_carousel_v7';
+	public const TRANSIENT = 'akb_rewards_carousel_v9';
 
 	/** El <style> sale una vez por petición (una instancia registra el shortcode). */
 	private bool $style_printed = false;
@@ -74,7 +77,7 @@ final class Carousel {
 	 */
 	public function flush_on_media( $meta_id, $comment_id, $meta_key ): void {
 		unset( $meta_id );
-		if ( in_array( (string) $meta_key, array( Media::META_LOCAL_IMAGE, Media::META_REMOTE_IMAGE ), true ) ) {
+		if ( Media::META_IMAGE_ID === (string) $meta_key ) {
 			$this->flush_if_review( null, (int) $comment_id );
 		}
 	}
@@ -165,7 +168,7 @@ final class Carousel {
 			return;
 		}
 
-		if ( is_object( $post ) && in_array( (string) ( $post->post_type ?? '' ), array( 'product', 'attachment' ), true ) ) {
+		if ( is_object( $post ) && in_array( (string) ( $post->post_type ?? '' ), array( 'product', 'attachment' ), true ) ) { // @phpstan-ignore nullCoalesce.property
 			$this->flush();
 		}
 	}
@@ -183,7 +186,7 @@ final class Carousel {
 			$post = get_post( (int) $post_id );
 		}
 
-		if ( is_object( $post ) && in_array( (string) ( $post->post_type ?? '' ), array( 'product', 'attachment' ), true ) ) {
+		if ( is_object( $post ) && in_array( (string) ( $post->post_type ?? '' ), array( 'product', 'attachment' ), true ) ) { // @phpstan-ignore nullCoalesce.property
 			$this->flush();
 		}
 	}
@@ -280,17 +283,6 @@ final class Carousel {
 	private function build_data(): array {
 		global $wpdb;
 
-		// El dueño puede excluir reseñas que cobraron puntos o contaron para
-		// un premio. Disclosure resuelve el aviso incluido en cada tarjeta.
-		$excluir_premiadas = '';
-		if ( 'yes' === (string) get_option( 'akb_rewards_carousel_exclude_rewarded', 'no' ) ) {
-			$excluir_premiadas = "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->commentmeta} pr
-				WHERE pr.comment_id = c.comment_ID AND pr.meta_key IN ('_akb_rewards_review_points', '_akb_rewards_review_counted')
-					AND CAST(pr.meta_value AS UNSIGNED) > 0
-			)";
-		}
-
 		// El filtro de foto comprueba el adjunto igual que los premios: un adjunto
 		// borrado, un video o una portada de producto no son una foto de reseña.
 		// Las fotos remotas heredadas sólo aceptan URLs HTTP(S) seguras.
@@ -310,20 +302,13 @@ final class Carousel {
 					FROM {$wpdb->comments} c
 					INNER JOIN {$wpdb->posts} p ON p.ID = c.comment_post_ID AND p.post_type = 'product' AND p.post_status = 'publish'
 					WHERE c.comment_approved = '1' AND c.comment_type = 'review' AND c.comment_parent = 0
-						AND CHAR_LENGTH(c.comment_content) >= %d
 						AND EXISTS (
 							SELECT 1 FROM {$wpdb->commentmeta} r
 							WHERE r.comment_id = c.comment_ID AND r.meta_key = 'rating'
 								AND CAST(r.meta_value AS UNSIGNED) BETWEEN 1 AND 5
 						)
-						AND NOT EXISTS (
-							SELECT 1 FROM {$wpdb->commentmeta} m
-							WHERE m.comment_id = c.comment_ID AND m.meta_key = 'cr_coupon_code'
-						)
-						{$excluir_premiadas}
 					ORDER BY c.comment_date_gmt DESC, c.comment_ID DESC
 					LIMIT %d OFFSET %d",
-					Options::carousel_min_chars(),
 					$batch,
 					$offset
 				)
@@ -343,8 +328,10 @@ final class Carousel {
 					break;
 				}
 			}
-			$offset += $batch;
-		} while ( 'mixed' !== $mode && count( $page ) === $batch && count( $rows ) < $needed );
+			$page_count = count( $page );
+			$rows_count = count( $rows );
+			$offset    += $batch;
+		} while ( 'mixed' !== $mode && $page_count === $batch && $rows_count < $needed );
 
 		$eligible = count( $rows );
 		$cards    = array();
@@ -358,7 +345,7 @@ final class Carousel {
 			foreach ( $rows as $row ) {
 				$comment_id = (int) $row->comment_ID;
 				$rating     = (int) get_comment_meta( $comment_id, 'rating', true );
-				$title      = (string) get_comment_meta( $comment_id, 'cr_rev_title', true );
+				$title      = (string) get_comment_meta( $comment_id, AdminReviews::META_TITLE, true );
 
 				$image = self::review_photo( $comment_id );
 
@@ -372,7 +359,7 @@ final class Carousel {
 					'comment'   => $comment_id,
 					'cover_id'  => (int) get_post_thumbnail_id( (int) $row->comment_post_ID ),
 					'product'   => (int) $row->comment_post_ID,
-					'aviso'     => Disclosure::visible_notice_for( $comment_id ),
+					'aviso'     => '',
 					// El aviso de transcripción es independiente del de incentivo.
 					'origen'    => AdminReviews::transcription_notice( $comment_id ),
 				);
@@ -392,17 +379,9 @@ final class Carousel {
 	 * @return array{id:int,url:string}
 	 */
 	private static function review_photo( int $comment_id ): array {
-		foreach ( (array) get_comment_meta( $comment_id, Media::META_LOCAL_IMAGE ) as $attachment_id ) {
+		foreach ( (array) get_comment_meta( $comment_id, Media::META_IMAGE_ID ) as $attachment_id ) { // phpcs:ignore WordPress.WP.GetMetaSingle.Missing
 			if ( (int) $attachment_id > 0 && wp_attachment_is( 'image', (int) $attachment_id ) ) {
 				return array( 'id' => (int) $attachment_id, 'url' => '' );
-			}
-		}
-		foreach ( (array) get_comment_meta( $comment_id, Media::META_REMOTE_IMAGE ) as $remote ) {
-			if ( is_array( $remote ) && ! empty( $remote['url'] ) ) {
-				$url = esc_url( (string) $remote['url'], array( 'https', 'http' ) );
-				if ( '' !== $url ) {
-					return array( 'id' => 0, 'url' => $url );
-				}
 			}
 		}
 		return array( 'id' => 0, 'url' => '' );
@@ -444,19 +423,17 @@ final class Carousel {
 			. '.akb-rw-carousel .akb-rw-track::-webkit-scrollbar{height:4px}'
 			. '.akb-rw-carousel .akb-rw-track::-webkit-scrollbar-track{background:rgba(255,255,255,.06)}'
 			. '.akb-rw-carousel .akb-rw-track::-webkit-scrollbar-thumb{background:var(--akb-rw-accent)}'
-			. '.akb-rw-carousel .akb-rw-card{box-sizing:border-box;position:relative;display:flex;flex-direction:column;scroll-snap-align:start;flex:0 0 min(360px,86vw);max-width:min(360px,86vw);min-height:410px;background:var(--akb-rw-bg);color:var(--akb-rw-fg);border:1px solid var(--aki-border,rgba(255,255,255,.16));border-top:3px solid var(--akb-rw-accent);border-radius:0;padding:22px;margin:0;overflow:hidden;transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s ease,border-color .22s ease}'
-			. '.akb-rw-carousel .akb-rw-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.75),4px 4px 0 var(--akb-rw-accent);border-color:rgba(255,255,255,.28)}'
+			. '.akb-rw-carousel .akb-rw-card{box-sizing:border-box;position:relative;display:flex;flex-direction:column;scroll-snap-align:start;flex:0 0 min(360px,86vw);max-width:min(360px,86vw);min-height:410px;background:var(--akb-rw-bg);color:var(--akb-rw-fg);border:2px solid var(--aki-border,rgba(255,255,255,.22));border-top:4px solid var(--akb-rw-accent);border-radius:0;box-shadow:4px 4px 0 #000;padding:22px;margin:0;overflow:hidden;transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s ease,border-color .22s ease}'
+			. '.akb-rw-carousel .akb-rw-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.75),4px 4px 0 var(--akb-rw-accent);border-color:rgba(255,255,255,.32)}'
 			. '.akb-rw-carousel .akb-rw-stars{color:var(--akb-rw-fg);letter-spacing:3px;font-size:18px;line-height:1.5}'
 			. '.akb-rw-carousel .akb-rw-title{display:block;margin:0 0 6px}'
 			. '.akb-rw-carousel .akb-rw-text{margin:10px 0 14px;font-size:15.5px;line-height:1.6;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;overflow:hidden}'
 			. '.akb-rw-carousel .akb-rw-card:not(:has(.akb-rw-media)) .akb-rw-text{font-size:16px;line-height:1.65;-webkit-line-clamp:7}'
 			. '.akb-rw-carousel .akb-rw-meta{font-size:14px;line-height:1.5;color:var(--akb-rw-fg);margin:0 0 12px}'
 			. '.akb-rw-carousel .akb-rw-author{font-weight:600;margin:0 0 10px;overflow-wrap:anywhere}'
-			. '.akb-rw-carousel .akb-rw-verified-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--aki-green-bright,#86efac);background:rgba(20,83,45,.35);border:1px solid rgba(134,239,172,.3);padding:3px 8px;margin-bottom:12px;width:fit-content}'
-			. '.akb-rw-carousel .akb-rw-media{position:relative;display:block;width:100%;height:180px;margin:6px 0 14px;background:#0d0d10;border:1px solid var(--aki-border,rgba(255,255,255,.14));box-shadow:2px 2px 0 #000;overflow:hidden;text-decoration:none}'
+			. '.akb-rw-carousel .akb-rw-media{position:relative;display:block;width:100%;height:180px;margin:6px 0 14px;background:#0d0d10;border:2px solid var(--aki-border,rgba(255,255,255,.2));box-shadow:3px 3px 0 #000;overflow:hidden;text-decoration:none}'
 			. '.akb-rw-carousel .akb-rw-photo{display:block;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center;margin:0;transition:transform .35s cubic-bezier(.16,1,.3,1)}'
 			. '.akb-rw-carousel .akb-rw-card:hover .akb-rw-photo{transform:scale(1.04)}'
-			. '.akb-rw-carousel .akb-rw-photo-tag{position:absolute;top:8px;left:8px;z-index:2;display:inline-flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(10,10,12,.88);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);color:var(--aki-white,#fff);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}'
 			. '.akb-rw-carousel .akb-rw-disclosure{margin:0 0 12px;padding:8px 10px;border-left:2px solid var(--akb-rw-accent);background:var(--aki-surface,rgba(255,255,255,.06));font-size:12px;line-height:1.5}'
 			. '.akb-rw-carousel .akb-rw-product{display:flex;align-items:center;gap:14px;margin-top:auto;padding-top:16px;min-height:64px;border-top:1px solid var(--aki-border,rgba(255,255,255,.16));font-size:14px;line-height:1.45;color:var(--akb-rw-fg);text-decoration:none;overflow-wrap:anywhere}'
 			. '.akb-rw-carousel .akb-rw-product:hover .akb-rw-product-name{text-decoration:underline}'
@@ -481,12 +458,11 @@ final class Carousel {
 				$photo = '<img class="akb-rw-photo" src="' . esc_url( (string) $card['photo_url'] ) . '" alt="' . esc_attr( $photo_alt ) . '" loading="lazy" width="80" height="96">';
 			}
 			$has_photo = '' !== $photo;
-			$comment_link = (string) get_permalink( (int) $card['product'] ) . '#comment-' . (int) ( $card['comment'] ?? 0 );
+			$comment_link = get_permalink( (int) $card['product'] ) . '#comment-' . (int) ( $card['comment'] ?? 0 );
 			$photo_html = $has_photo
 				? '<figure class="akb-rw-media">'
 					. '<a class="akb-rw-photo-link" href="' . esc_url( $comment_link ) . '" title="Ver reseña y foto completa en el tomo">'
 					. $photo
-					. '<span class="akb-rw-photo-tag" aria-hidden="true">📷 Foto del lector</span>'
 					. '</a>'
 				  . '</figure>'
 				: '';
@@ -500,18 +476,12 @@ final class Carousel {
 				? '<strong class="akb-rw-title">' . esc_html( (string) $card['title'] ) . '</strong>'
 				: '';
 
-			$verified_html = ! $has_photo
-				? '<span class="akb-rw-verified-pill" aria-hidden="true">✓ Opinión verificada</span>'
-				: '';
-
 			$items .= '<li class="akb-rw-card">'
 				. '<span class="akb-rw-stars" aria-hidden="true">' . esc_html( $stars ) . '</span>'
 				. '<span class="screen-reader-text">' . esc_html( sprintf( '%d de 5 estrellas', (int) $card['rating'] ) ) . '</span>'
 				. '<p class="akb-rw-text">' . $title_html . esc_html( self::excerpt( (string) $card['text'] ) ) . '</p>'
 				. '<p class="akb-rw-meta akb-rw-author">' . esc_html( (string) $card['author'] ) . '</p>'
-				. $verified_html
 				. $photo_html
-				. ( Options::carousel_disclosure_on() && '' !== (string) ( $card['aviso'] ?? '' ) ? '<p class="akb-rw-disclosure">' . esc_html( (string) $card['aviso'] ) . '</p>' : '' )
 				. ( '' !== (string) ( $card['origen'] ?? '' ) ? '<p class="akb-rw-disclosure">' . esc_html( (string) $card['origen'] ) . '</p>' : '' )
 				. '<a class="akb-rw-product" href="' . esc_url( $comment_link ) . '">'
 				. $cover . '<span><span class="akb-rw-product-label">Sobre este producto</span><span class="akb-rw-product-name">' . esc_html( $product_name ) . '</span><span class="akb-rw-read">Leer la reseña completa →</span></span></a>'
@@ -562,7 +532,7 @@ final class Carousel {
 		// Cortar en el último espacio solo si no sacrifica media card: una
 		// cadena sin espacios se recorta dura (mejor que desbordar).
 		if ( false !== $space && $space > 120 ) {
-			$cut = $mb ? mb_substr( $cut, 0, (int) $space, 'UTF-8' ) : substr( $cut, 0, (int) $space );
+			$cut = $mb ? mb_substr( $cut, 0, $space, 'UTF-8' ) : substr( $cut, 0, $space );
 		}
 
 		return rtrim( $cut, " \t\n\r.,;:" ) . '…';

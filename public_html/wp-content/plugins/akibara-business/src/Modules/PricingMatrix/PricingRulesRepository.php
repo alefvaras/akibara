@@ -16,6 +16,9 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class PricingRulesRepository {
 
 	public const OPTION_RULES = 'akb_pricing_matrix_rules';
@@ -133,7 +136,7 @@ final class PricingRulesRepository {
 			? (string) $scale_cfg['rounding_mode']
 			: $brand_mode;
 
-		$manual = isset( $scale_cfg['manual_sale_price'] ) && null !== $scale_cfg['manual_sale_price'] && '' !== (string) $scale_cfg['manual_sale_price']
+		$manual = isset( $scale_cfg['manual_sale_price'] ) && null !== $scale_cfg['manual_sale_price'] && '' !== (string) $scale_cfg['manual_sale_price'] // @phpstan-ignore notIdentical.alwaysTrue
 			? (int) $scale_cfg['manual_sale_price']
 			: null;
 
@@ -185,7 +188,7 @@ final class PricingRulesRepository {
 		$terms = get_the_terms( $product_id, 'product_brand' );
 		if ( is_array( $terms ) && ! empty( $terms ) ) {
 			$first = reset( $terms );
-			if ( is_object( $first ) && isset( $first->slug ) ) {
+			if ( is_object( $first ) && isset( $first->slug ) ) { // @phpstan-ignore isset.property
 				return (string) $first->slug;
 			}
 		}
@@ -242,7 +245,7 @@ final class PricingRulesRepository {
 	 * @param array<string, mixed> $payload Datos crudos.
 	 * @return array{version: int, updated_at: string, brands: array<string, array<string, mixed>>}
 	 */
-	public static function normalize_rules_payload( array $payload ): array {
+	public static function normalize_rules_payload( array $payload ): array { // @phpstan-ignore complexity.functionLike
 		$brands = array();
 
 		$source_brands = isset( $payload['brands'] ) && is_array( $payload['brands'] )
@@ -332,7 +335,7 @@ final class PricingRulesRepository {
 			? (string) $entry['rounding_mode']
 			: $default_mode;
 
-		$manual = isset( $entry['manual_sale_price'] ) && null !== $entry['manual_sale_price'] && '' !== (string) $entry['manual_sale_price']
+		$manual = isset( $entry['manual_sale_price'] ) && null !== $entry['manual_sale_price'] && '' !== (string) $entry['manual_sale_price'] // @phpstan-ignore notIdentical.alwaysTrue
 			? max( 0, (int) $entry['manual_sale_price'] )
 			: null;
 

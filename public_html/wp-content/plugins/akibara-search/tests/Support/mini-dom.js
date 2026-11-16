@@ -419,7 +419,7 @@ const h = ( tag, attrs, ...children ) => new Nodo( tag, attrs || {}, children );
  * llega (`loading`).
  */
 function crearDocumento( root, readyState ) {
-	return {
+	const doc = {
 		readyState: readyState || 'complete',
 		title: '',
 		body: root.querySelector( 'body' ),
@@ -440,9 +440,17 @@ function crearDocumento( root, readyState ) {
 		querySelectorAll: ( s ) => root.querySelectorAll( s ),
 		getElementById: ( id ) => root.querySelector( '#' + id ),
 		elementFromPoint: ( x, y ) => mundo.alPunto( x, y ),
-		createElement: ( tag ) => new Nodo( tag ),
+		createElement: ( tag ) => {
+			const n = new Nodo( tag );
+			n.ownerDocument = doc;
+			return n;
+		},
 		importNode: ( n ) => n,
 	};
+	doc.ownerDocument = doc;
+	root.ownerDocument = doc;
+	Nodo.prototype.ownerDocument = doc;
+	return doc;
 }
 
 /**

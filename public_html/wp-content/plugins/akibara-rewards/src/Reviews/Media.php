@@ -2,20 +2,10 @@
 /**
  * Media — detección y validación de fotos de reseña.
  *
- * Compatibilidad por ingeniería inversa de CusRev (04-cusrev-ingenieria-
- * inversa.md): las fotos locales viven en `ivole_review_image2` como UNA
- * FILA DE COMMENT_META POR ADJUNTO (int, unique=false) — NO un array — y las
- * remotas en `ivole_review_image` (array con 'url').
- *
- * Esas DOS son las únicas claves con lectores vivos: la local la escribe
- * `attach_photo()` y la leen el carrusel del home, las superficies de foto,
- * el exportador de privacidad y el premio; la remota sólo tiene lectores,
- * ningún escritor propio (la escribía el tercero, hoy desinstalado). Las
- * metas de video y el contador agregado de CusRev (`ivole_media_count`) se
- * retiraron: nadie del árbol propio las escribía ni las leía.
- *
- * La foto REAL se valida con `wp_attachment_is('image')` — un video no
- * cuenta para el premio (decisión del dueño, heredada del gate del cupón).
+ * Las fotos de reseña viven en `_akb_review_image_id` como una fila de
+ * `commentmeta` por adjunto (int, `unique=false`) — no un array — y se
+ * validan contra `wp_attachment_is('image')` (un video o un adjunto borrado
+ * no cuentan para el premio).
  *
  * @package Akibara\Rewards
  */
@@ -28,31 +18,25 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
  */
 final class Media {
 
-	public const META_LOCAL_IMAGE  = 'ivole_review_image2';
-	public const META_REMOTE_IMAGE = 'ivole_review_image';
+	public const META_IMAGE_ID    = '_akb_review_image_id';
+	public const META_LOCAL_IMAGE = self::META_IMAGE_ID;
 
 	/**
 	 * ¿La reseña tiene al menos UNA foto real?
 	 *
-	 * Locales: cada fila es un ID de adjunto que debe seguir siendo imagen
-	 * (el adjunto pudo borrarse). Remotas: basta la fila con 'url' no vacía
-	 * (heredado del gate del cupón del mu-plugin).
+	 * Cada fila es un ID de adjunto que debe seguir siendo imagen (el adjunto
+	 * pudo borrarse).
 	 *
 	 * @param int $comment_id Reseña.
 	 * @return bool
 	 */
 	public static function has_real_photo( int $comment_id ): bool {
-		foreach ( (array) get_comment_meta( $comment_id, self::META_LOCAL_IMAGE ) as $attachment_id ) {
+		foreach ( (array) get_comment_meta( $comment_id, self::META_IMAGE_ID ) as $attachment_id ) { // phpcs:ignore WordPress.WP.GetMetaSingle.Missing
 			if ( (int) $attachment_id > 0 && wp_attachment_is( 'image', (int) $attachment_id ) ) {
-				return true;
-			}
-		}
-
-		foreach ( (array) get_comment_meta( $comment_id, self::META_REMOTE_IMAGE ) as $remote ) {
-			if ( is_array( $remote ) && ! empty( $remote['url'] ) ) {
 				return true;
 			}
 		}
@@ -61,9 +45,7 @@ final class Media {
 	}
 
 	/**
-	 * Adjunta una foto local a una reseña con las claves compatibles y
-	 * reparentado al producto (mismo comportamiento que la ruta local de
-	 * CusRev: add_comment_meta unique=false + wp_update_post post_parent).
+	 * Adjunta una foto local a una reseña y la reparenta al producto.
 	 *
 	 * @param int $comment_id    Reseña.
 	 * @param int $attachment_id Adjunto (debe ser imagen).
@@ -75,7 +57,7 @@ final class Media {
 			return false;
 		}
 
-		add_comment_meta( $comment_id, self::META_LOCAL_IMAGE, $attachment_id, false );
+		add_comment_meta( $comment_id, self::META_IMAGE_ID, $attachment_id, false );
 
 		if ( $product_id > 0 ) {
 			wp_update_post(

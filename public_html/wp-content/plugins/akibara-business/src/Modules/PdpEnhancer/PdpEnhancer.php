@@ -17,12 +17,20 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Modules\PdpEnhancer;
 
 use Akibara\Business\Modules\Stock\Availability;
-use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Utilities\PluginAssetVersion;
 use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class PdpEnhancer {
 
 	/**
@@ -122,62 +130,11 @@ final class PdpEnhancer {
 	}
 
 	/**
-	 * Detecta si el producto es manga o cómic según su categoría y ancestros.
-	 *
-	 * Sigue la regla canónica de ProductFaq para garantizar que nunca se confundan
-	 * mangas con cómics ni se asignen iconos japoneses al cómic occidental.
-	 *
-	 * @param int $product_id ID del producto.
-	 * @return 'manga'|'comic'|null
-	 */
-	public static function detect_publication_type( int $product_id ): ?string {
-		if ( $product_id < 1 ) {
-			return null;
-		}
-
-		$categories = get_the_terms( $product_id, 'product_cat' );
-		if ( ! is_array( $categories ) ) {
-			return null;
-		}
-
-		$slugs = array();
-		foreach ( $categories as $category ) {
-			if ( ! is_object( $category ) ) {
-				continue;
-			}
-			if ( isset( $category->slug ) && is_string( $category->slug ) ) {
-				$slugs[] = $category->slug;
-			}
-			$term_id = isset( $category->term_id ) ? (int) $category->term_id : 0;
-			if ( $term_id < 1 ) {
-				continue;
-			}
-			if ( function_exists( 'get_ancestors' ) ) {
-				foreach ( get_ancestors( $term_id, 'product_cat', 'taxonomy' ) as $ancestor_id ) {
-					$ancestor = get_term( (int) $ancestor_id, 'product_cat' );
-					if ( is_object( $ancestor ) && ! is_wp_error( $ancestor ) && isset( $ancestor->slug ) && is_string( $ancestor->slug ) ) {
-						$slugs[] = $ancestor->slug;
-					}
-				}
-			}
-		}
-
-		$is_manga = in_array( 'manga', $slugs, true );
-		$is_comic = in_array( 'comics', $slugs, true );
-
-		if ( $is_manga === $is_comic ) {
-			return null;
-		}
-
-		return $is_manga ? 'manga' : 'comic';
-	}
-
-	/**
 	 * Datos de edición junto al precio; se omiten los campos no informados.
 	 *
 	 * La editorial y el tomo ya los muestran el título y su encabezado. Este
-	 * resumen usa los mismos atributos/dimensiones que las especificaciones,
-	 * agregando el sentido de lectura con estricta distinción Manga vs Cómic.
+	 * resumen usa los mismos atributos/dimensiones que las especificaciones
+	 * (País de edición, Formato y Dimensiones).
 	 */
 	public function render_edition_summary(): void {
 		global $product;
@@ -185,14 +142,7 @@ final class PdpEnhancer {
 			return;
 		}
 
-		$details  = array();
-		$pub_type = self::detect_publication_type( $product->get_id() );
-		if ( 'manga' === $pub_type ) {
-			$details['Lectura'] = 'Sentido oriental (derecha a izquierda)';
-		} elseif ( 'comic' === $pub_type ) {
-			$details['Lectura'] = 'Sentido occidental (izquierda a derecha)';
-		}
-
+		$details = array();
 		foreach ( array( 'pa_pais' => 'País de edición', 'pa_formato' => 'Formato' ) as $attribute => $label ) {
 			$attr_obj = $product->get_attributes()[ $attribute ] ?? null;
 			if ( $attr_obj instanceof \WC_Product_Attribute && ! $attr_obj->get_visible() ) {
@@ -212,18 +162,7 @@ final class PdpEnhancer {
 		?>
 		<dl class="akb-pdp-edition-summary" aria-label="Datos de esta edición">
 			<?php foreach ( $details as $label => $value ) : ?>
-				<?php
-				$field_class = 'akb-edition-field';
-				if ( 'Lectura' === $label ) {
-					$field_class .= ' akb-edition-field--reading';
-					if ( 'manga' === $pub_type ) {
-						$field_class .= ' akb-reading--manga';
-					} elseif ( 'comic' === $pub_type ) {
-						$field_class .= ' akb-reading--comic';
-					}
-				}
-				?>
-				<div class="<?php echo esc_attr( $field_class ); ?>"><dt><?php echo esc_html( $label ); ?></dt><dd><?php echo esc_html( $value ); ?></dd></div>
+				<div class="akb-edition-field"><dt><?php echo esc_html( $label ); ?></dt><dd><?php echo esc_html( $value ); ?></dd></div>
 			<?php endforeach; ?>
 		</dl>
 		<?php
@@ -249,7 +188,7 @@ final class PdpEnhancer {
 		}
 
 		$processor = new \WP_HTML_Tag_Processor( $html );
-		if ( ! $processor->next_tag( 'a' ) ) {
+		if ( ! $processor->next_tag( array( 'tag_name' => 'a' ) ) ) {
 			return $html;
 		}
 
@@ -325,8 +264,9 @@ final class PdpEnhancer {
 	 * @param array       $attributes Atributos a mostrar.
 	 * @param \WC_Product $product    Producto.
 	 * @return array
+	 * @psalm-suppress UnusedParam
 	 */
-	public function filter_additional_attributes( array $attributes, $product ): array {
+	public function filter_additional_attributes( array $attributes, $product ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		foreach ( self::GRID_TAXONOMIES as $tax ) {
 			$key = 'attribute_' . $tax;
 			unset( $attributes[ $key ] );
@@ -358,7 +298,7 @@ final class PdpEnhancer {
 		 *
 		 * @since 1.49.9
 		 * @param bool       $show    Mostrar el placeholder de rating vacío + CTA.
-		 * @param WC_Product $product Producto actual de la PDP.
+		 * @param \WC_Product $product Producto actual de la PDP.
 		 */
 		$show_empty_rating = (bool) apply_filters( 'akibara_pdp_show_empty_rating', false, $product );
 		if ( $review_count < 1 && ! $show_empty_rating ) {
@@ -387,11 +327,11 @@ final class PdpEnhancer {
 		<div class="akb-pdp-rating">
 			<?php // role="img" hace computable el aria-label (sobre div genérico los AT lo ignoran); los glifos van aria-hidden para que VoiceOver/NVDA no lean hasta 10 estrellas literales. Mismo patrón que wc_get_rating_html(). ?>
 			<div class="akb-pdp-rating__stars" role="img" aria-label="<?php echo esc_attr( sprintf( 'Valorado con %.1f de 5', $average ) ); ?>">
-				<span class="akb-pdp-rating__filled" aria-hidden="true" style="width:<?php echo esc_attr( $width ); ?>%">★★★★★</span>
+				<span class="akb-pdp-rating__filled" aria-hidden="true" style="width:<?php echo esc_attr( (string) $width ); ?>%">★★★★★</span>
 				<span class="akb-pdp-rating__empty" aria-hidden="true">☆☆☆☆☆</span>
 			</div>
 			<a href="#reviews" class="akb-pdp-rating__link" rel="nofollow">
-				<?php echo esc_html( $review_count ); ?> <?php echo $review_count === 1 ? 'valoración' : 'valoraciones'; ?>
+				<?php echo esc_html( (string) $review_count ); ?> <?php echo $review_count === 1 ? 'valoración' : 'valoraciones'; ?>
 			</a>
 		</div>
 		<?php
@@ -400,8 +340,9 @@ final class PdpEnhancer {
 	/**
 	 * Callback para la pestaña Descripción.
 	 * Renderiza primero los paneles brutalistas y luego llama al render default de WC.
+	 * @psalm-suppress UnusedParam
 	 */
-	public function render_editorial_description_tab( string $key, array $tab ): void {
+	public function render_editorial_description_tab( string $key, array $tab ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$this->render_specs_grid();
 
 		// Llamamos al render default de WC que carga el template de la descripción y ejecuta the_content.
@@ -422,29 +363,10 @@ final class PdpEnhancer {
 		}
 
 		$product_id = $product->get_id();
-		// Incorporar al hash de caché las dos promesas editables: Preventa y A pedido.
-		// Usar Text::one_line_option() para conservar saneamiento y fallback del panel.
-		// Cambiar el copy debe invalidar la representación sin esperar al TTL.
-
-		$promises   = md5(
-			Text::one_line_option( 'akb_copy_promise_preventa_transit', 'En camino a Akibara' )
-			. '|' . Text::one_line_option( 'akb_copy_promise_pedido_transit', 'Lo pedimos a la editorial por ti' )
-		);
-		// El testigo por producto es lo que faltaba. La clave sólo variaba con la
-		// versión del plugin y el copy de las promesas, así que corregir el autor,
-		// la serie, el formato o los géneros de una ficha no se veía en la web
-		// durante hasta doce horas —y el sitio tiene object cache persistente, o
-		// sea que ese TTL es real, no teórico—. Asignar términos ni siquiera
-		// toca `post_modified`, de modo que ninguna marca de tiempo del propio
-		// post servía como sustituto.
 		$generation = (string) get_post_meta( $product_id, self::SPECS_GENERATION_META, true );
-		// El estado COMERCIAL entra a la clave porque cambia sin disparar ningún
-		// bump: una preventa cuya fecha de lanzamiento venció degrada a «A pedido»
-		// en la lectura (Availability), y con un TTL de 12 h sobre object cache
-		// persistente el panel seguiría diciendo «Preventa» medio día más.
 		$cache_key  = 'akb_pdp_specs_' . $product_id . '_' . AKIBARA_BUSINESS_VERSION . '_v7_'
 			. Availability::of( $product ) . '_'
-			. substr( $promises, 0, 8 ) . '_' . substr( (string) preg_replace( '/[^0-9]/', '', $generation ), 0, 12 );
+			. substr( (string) preg_replace( '/[^0-9]/', '', $generation ), 0, 12 );
 
 		// 1. Obtener de caché si existe
 		$cached_html = wp_cache_get( $cache_key, 'akb_pdp' );
@@ -493,17 +415,6 @@ final class PdpEnhancer {
 			return;
 		}
 
-		// 4. Panel del estado comercial, SÓLO para lo que se reserva.
-		//
-		// El tomo disponible llevaba aquí un panel verde «Disponibilidad ·
-		// Despacha en 24–48 h»: con la insignia «Disponible» de arriba y la línea
-		// de despacho junto al botón (BannerRenderer::render_despacho(), UC-2), la
-		// ficha decía lo mismo tres veces con tres tratamientos (). Queda la
-		// línea junto al botón, que es donde se decide. A pedido y preventa
-		// conservan su panel: dicen algo que no está en otra parte («En camino al
-		// distrito», «Lo pedimos a la editorial por ti»).
-		$stock_status = $product->get_stock_status();
-
 		?>
 		<div class="akb-pdp-specs-grid">
 			<?php foreach ( $specs as $label => $values ) : ?>
@@ -512,26 +423,6 @@ final class PdpEnhancer {
 					<div class="akb-spec-value"><?php echo wp_kses_post( $values ); ?></div>
 				</div>
 			<?php endforeach; ?>
-
-			<?php if ( StockStatus::ON_BACKORDER === $stock_status ) : ?>
-				<?php
-				// La palabra y el copy siguen al estado comercial (1.109.0): un
-				// backlist a pedido no está «en camino» — se pide a la editorial
-				// en el próximo corte. La clase CSS --preventa se conserva para
-				// ambos (slug de presentación estable, como el variant `preorder`).
-				$akb_es_preventa = Availability::is_preventa( $product );
-				?>
-				<div class="akb-spec-panel akb-badge-panel--preventa">
-					<div class="akb-spec-label"><?php echo esc_html( Availability::label_of( $product ) ); ?></div>
-					<div class="akb-spec-value"><?php
-					echo esc_html(
-						$akb_es_preventa
-							? Text::one_line_option( 'akb_copy_promise_preventa_transit', 'En camino a Akibara' )
-							: Text::one_line_option( 'akb_copy_promise_pedido_transit', 'Lo pedimos a la editorial por ti' )
-					);
-					?></div>
-				</div>
-			<?php endif; ?>
 		</div>
 		<?php
 

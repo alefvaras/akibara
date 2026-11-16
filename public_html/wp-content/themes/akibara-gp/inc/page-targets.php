@@ -47,6 +47,7 @@ const AKIBARA_GP_CONTENT_PAGES = array(
 	'devoluciones',
 	'terminos-y-condiciones',
 	'politica-de-privacidad',
+	'programa-referidos',
 );
 
 /**

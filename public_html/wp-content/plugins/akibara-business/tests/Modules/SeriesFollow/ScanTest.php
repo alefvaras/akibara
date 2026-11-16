@@ -12,16 +12,14 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\SeriesFollow;
 
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\SeriesFollow\CutoffPhrase;
 use Akibara\Business\Modules\SeriesFollow\DigestQueue;
 use Akibara\Business\Modules\SeriesFollow\DigestRunner;
 use Akibara\Business\Modules\SeriesFollow\FollowerFinder;
 use Akibara\Business\Modules\SeriesFollow\FollowRegistry;
 use Akibara\Business\Modules\SeriesFollow\SeriesFollow;
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
 use Akibara\Business\Services\VolumeVariant;
-use Akibara\Business\Tests\Support\SeriesFollowFixedEta;
 use Akibara\Business\Tests\Support\SeriesFollowFollowersWpdb;
 use Akibara\Business\Tests\Support\SeriesFollowQueueWpdb;
 use Brain\Monkey;
@@ -95,7 +93,7 @@ final class ScanTest extends TestCase {
 		Functions\when( 'get_post_meta' )->alias(
 			fn ( int $id, string $key = '', bool $single = false ): string => VolumeVariant::META_KEY === $key
 				? ( $this->variantes[ $id ] ?? '' )
-				: ''
+				: ( '_stock_status' === $key ? 'instock' : '' )
 		);
 		Functions\when( 'get_the_terms' )->alias(
 			fn ( int $id, string $taxonomy ) => 'pa_serie' === $taxonomy
@@ -152,10 +150,7 @@ final class ScanTest extends TestCase {
 			new DigestQueue( $this->queue_db, 'wp_akb_series_follow_queue' ),
 			new FollowerFinder( $collection, $this->orders_db ),
 			$collection,
-			new CutoffPhrase(
-				new SeriesFollowFixedEta(),
-				new PedidoPolicy()
-			)
+			new CutoffPhrase()
 		);
 	}
 

@@ -17,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.59.0
+ * @api
+ * @psalm-suppress UnusedVariable
  */
 final class HealthReport {
 
@@ -181,7 +183,7 @@ final class HealthReport {
 			)
 		);
 
-		return self::normalise_count( $value, (string) ( $wpdb->last_error ?? '' ) );
+		return self::normalise_count( $value, $wpdb->last_error ?? '' );
 	}
 
 	/**
@@ -211,7 +213,7 @@ final class HealthReport {
 				'publish'
 			)
 		);
-		return self::normalise_count( $value, (string) ( $wpdb->last_error ?? '' ) );
+		return self::normalise_count( $value, $wpdb->last_error ?? '' );
 	}
 
 	/** @return int|null */
@@ -219,7 +221,7 @@ final class HealthReport {
 		global $wpdb;
 		$wpdb->last_error = '';
 		$value = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql no es entrada: los dos únicos llamadores de este helper privado le pasan literales armados con Install::docs_table(), sin ningún valor que preparar.
-		return self::normalise_count( $value, (string) ( $wpdb->last_error ?? '' ) );
+		return self::normalise_count( $value, $wpdb->last_error ?? '' );
 	}
 
 	/** @param mixed $value @return int|null */
@@ -275,96 +277,130 @@ final class HealthReport {
 
 		// --- Rebuild en curso -------------------------------------------------
 		if ( is_array( $rebuild ) ) {
-			$phase         = (string) ( $rebuild['phase'] ?? '' );
-			$rebuild_error = trim( (string) ( $rebuild['error'] ?? '' ) );
-			if ( in_array( $phase, array( RebuildJob::PHASE_BLOCKED, RebuildJob::PHASE_ABORTED ), true ) || '' !== $rebuild_error ) {
-				$reasons[] = array(
-					'code'    => 'protocolo_bloqueado',
-					'message' => sprintf(
-						'El protocolo durable quedó en fase %s%s (topología %s). No se hará una mutación destructiva automática; requiere diagnóstico.',
-						'' !== $phase ? $phase : 'desconocida',
-						'' !== $rebuild_error ? ' · ' . $rebuild_error : '',
-						(string) ( $rebuild['topology'] ?? ( $data['topology'] ?? 'desconocida' ) )
-					),
-					'cta'     => '',
-				);
-				return array(
-					'verdict' => self::ATENCION,
-					'reasons' => $reasons,
-				);
-			}
+			return self::verdict_for_active_rebuild( $data, $rebuild, $work, $now );
+		}
 
-			if ( '' !== trim( (string) ( $work['error'] ?? '' ) ) ) {
-				$reasons[] = array(
-					'code'    => 'work_no_observable',
-					'message' => 'No se pudo leer la cola durable del buscador; su deuda no es verificable y no se autoriza una reconstrucción a ciegas.',
-					'cta'     => '',
-				);
-				return array(
-					'verdict' => self::ATENCION,
-					'reasons' => $reasons,
-				);
-			}
+		self::append_work_and_coverage_reasons( $data, $work, $reasons );
+		self::append_reconciler_and_schema_reasons( $data, $now, $reasons );
 
-			if ( 0 < (int) ( $work['blocked'] ?? 0 ) ) {
-				$reasons[] = array(
-					'code'    => 'work_bloqueado',
-					'message' => sprintf(
-						'La cola durable tiene %d trabajo(s) bloqueado(s). La deuda se conserva para diagnóstico y no se descarta automáticamente.',
-						(int) $work['blocked']
-					),
-					'cta'     => '',
-				);
-				return array(
-					'verdict' => self::ATENCION,
-					'reasons' => $reasons,
-				);
-			}
+		return array(
+			'verdict' => empty( $reasons ) ? self::SANO : self::ATENCION,
+			'reasons' => $reasons,
+		);
+	}
 
-			if ( ! empty( $rebuild['stalled'] ) ) {
-				// Distingue detención durante la fase de construcción de catálogo o durante la puesta al día de reparaciones.
-				$por_poner_al_dia = (int) ( $rebuild['repair_pending'] ?? 0 );
-				$reasons[]        = array(
-					'code'    => 'rebuild_detenido',
-					'message' => 0 < $por_poner_al_dia
-						? sprintf(
-							'La reconstrucción terminó de armar el catálogo (%d de %d productos) pero se detuvo con %d productos por poner al día.',
-							(int) $rebuild['done'],
-							(int) $rebuild['total'],
-							$por_poner_al_dia
-						)
-						: sprintf(
-							'La reconstrucción se detuvo en %d de %d productos (sin avance y sin trabajos encolados).',
-							(int) $rebuild['done'],
-							(int) $rebuild['total']
-						),
-					'cta'     => 'retry',
-				);
-				return array(
-					'verdict' => self::ATENCION,
-					'reasons' => $reasons,
-				);
-			}
-
-			if ( $now - (int) $rebuild['updated_at'] >= self::QUEUE_DEAD_SECONDS ) {
-				$reasons[] = array(
-					'code'    => 'cola_no_avanza',
-					'message' => 'Hay una reconstrucción encolada pero la cola no avanza hace más de 30 minutos.',
-					'cta'     => 'retry',
-				);
-				return array(
-					'verdict' => self::ATENCION,
-					'reasons' => $reasons,
-				);
-			}
-
+	/**
+	 * Evalúa el veredicto cuando hay un rebuild activo.
+	 *
+	 * @param array<string, mixed> $data    Insumos de collect().
+	 * @param array<string, mixed> $rebuild Estado de rebuild.
+	 * @param array<string, mixed> $work    Estado de cola durable.
+	 * @param int                  $now     Timestamp actual.
+	 * @return array{verdict: string, reasons: array<int, array{code: string, message: string, cta: string}>}
+	 */
+	private static function verdict_for_active_rebuild( array $data, array $rebuild, array $work, int $now ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$phase         = (string) ( $rebuild['phase'] ?? '' );
+		$rebuild_error = trim( (string) ( $rebuild['error'] ?? '' ) );
+		if ( in_array( $phase, array( RebuildJob::PHASE_BLOCKED, RebuildJob::PHASE_ABORTED ), true ) || '' !== $rebuild_error ) {
 			return array(
-				'verdict' => self::RECONSTRUYENDO,
-				'reasons' => array(),
+				'verdict' => self::ATENCION,
+				'reasons' => array(
+					array(
+						'code'    => 'protocolo_bloqueado',
+						'message' => sprintf(
+							'El protocolo durable quedó en fase %s%s (topología %s). No se hará una mutación destructiva automática; requiere diagnóstico.',
+							'' !== $phase ? $phase : 'desconocida',
+							'' !== $rebuild_error ? ' · ' . $rebuild_error : '',
+							(string) ( $rebuild['topology'] ?? ( $data['topology'] ?? 'desconocida' ) )
+						),
+						'cta'     => '',
+					),
+				),
 			);
 		}
 
-		// --- Deuda durable global (también sin rebuild activo) ----------------
+		if ( '' !== trim( (string) ( $work['error'] ?? '' ) ) ) {
+			return array(
+				'verdict' => self::ATENCION,
+				'reasons' => array(
+					array(
+						'code'    => 'work_no_observable',
+						'message' => 'No se pudo leer la cola durable del buscador; su deuda no es verificable y no se autoriza una reconstrucción a ciegas.',
+						'cta'     => '',
+					),
+				),
+			);
+		}
+
+		if ( 0 < (int) ( $work['blocked'] ?? 0 ) ) {
+			return array(
+				'verdict' => self::ATENCION,
+				'reasons' => array(
+					array(
+						'code'    => 'work_bloqueado',
+						'message' => sprintf(
+							'La cola durable tiene %d trabajo(s) bloqueado(s). La deuda se conserva para diagnóstico y no se descarta automáticamente.',
+							(int) $work['blocked']
+						),
+						'cta'     => '',
+					),
+				),
+			);
+		}
+
+		if ( ! empty( $rebuild['stalled'] ) ) {
+			$por_poner_al_dia = (int) ( $rebuild['repair_pending'] ?? 0 );
+			return array(
+				'verdict' => self::ATENCION,
+				'reasons' => array(
+					array(
+						'code'    => 'rebuild_detenido',
+						'message' => 0 < $por_poner_al_dia
+							? sprintf(
+								'La reconstrucción terminó de armar el catálogo (%d de %d productos) pero se detuvo con %d productos por poner al día.',
+								(int) $rebuild['done'],
+								(int) $rebuild['total'],
+								$por_poner_al_dia
+							)
+							: sprintf(
+								'La reconstrucción se detuvo en %d de %d productos (sin avance y sin trabajos encolados).',
+								(int) $rebuild['done'],
+								(int) $rebuild['total']
+							),
+						'cta'     => 'retry',
+					),
+				),
+			);
+		}
+
+		if ( $now - (int) $rebuild['updated_at'] >= self::QUEUE_DEAD_SECONDS ) {
+			return array(
+				'verdict' => self::ATENCION,
+				'reasons' => array(
+					array(
+						'code'    => 'cola_no_avanza',
+						'message' => 'Hay una reconstrucción encolada pero la cola no avanza hace más de 30 minutos.',
+						'cta'     => 'retry',
+					),
+				),
+			);
+		}
+
+		return array(
+			'verdict' => self::RECONSTRUYENDO,
+			'reasons' => array(),
+		);
+	}
+
+	/**
+	 * Agrega las razones de deuda durable, último rebuild y cobertura del catálogo.
+	 *
+	 * @param array<string, mixed>                                          $data    Insumos de collect().
+	 * @param array<string, mixed>                                          $work    Estado de cola durable.
+	 * @param array<int, array{code: string, message: string, cta: string}> $reasons Acumulador de razones (por referencia).
+	 * @return void
+	 */
+	private static function append_work_and_coverage_reasons( array $data, array $work, array &$reasons ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		if ( '' !== trim( (string) ( $work['error'] ?? '' ) ) ) {
 			$reasons[] = array(
 				'code'    => 'work_no_observable',
@@ -382,7 +418,6 @@ final class HealthReport {
 			);
 		}
 
-		// --- Último rebuild con error ----------------------------------------
 		$last = is_array( $data['last_rebuild'] ?? null ) ? $data['last_rebuild'] : array();
 		if ( ! empty( $last['error'] ) ) {
 			$reasons[] = array(
@@ -392,13 +427,9 @@ final class HealthReport {
 			);
 		}
 
-		// --- Cobertura (SIN rebuild en curso: el drain post-swap es tolerancia) --
 		$docs     = (int) ( $data['docs'] ?? 0 );
 		$eligible = (int) ( $data['eligible'] ?? 0 );
 		if ( $eligible > 0 && $docs < $eligible ) {
-			// Índice VACÍO tiene severidad narrativa distinta: el fail-open del
-			// front está activo. Va en la MISMA entrada 'cobertura' — un write a
-			// $reasons[0] pisaría la razón equivocada si 'rebuild_fallido' ya entró.
 			$reasons[] = array(
 				'code'    => 'cobertura',
 				'message' => 0 === $docs
@@ -407,7 +438,6 @@ final class HealthReport {
 				'cta'     => 'rebuild',
 			);
 		} elseif ( $docs > $eligible ) {
-			// Documentos huérfanos: productos despublicados pendientes de depuración por el reconciliador.
 			$reasons[] = array(
 				'code'    => 'huerfanos',
 				'message' => sprintf(
@@ -420,12 +450,6 @@ final class HealthReport {
 			);
 		}
 
-		// --- Productos variables (el índice representa SOLO al padre) ---------
-		// No hay corrección automática posible acá: el pipeline entero indexa
-		// `product` y nunca `product_variation` a propósito. Lo que sí se puede
-		// es no dejar que el primero entre en SILENCIO — con un variable en el
-		// catálogo el buscador no encuentra por SKU de variación, ordena por el
-		// precio mínimo del rango y jamás lo marca en Oferta.
 		$variables = (int) ( $data['variables'] ?? 0 );
 		if ( $variables > 0 ) {
 			$reasons[] = array(
@@ -439,10 +463,32 @@ final class HealthReport {
 				'cta'     => '',
 			);
 		}
+	}
 
-		// --- Divergencias del reconciler --------------------------------------
-		// Incluye productos desalineados y facetas huérfanas (términos eliminados).
-		$reconcile = is_array( $data['reconcile_last'] ?? null ) ? $data['reconcile_last'] : array();
+	/**
+	 * Agrega las razones de reconciliación, esquema, collation, capacidad y flags.
+	 *
+	 * @param array<string, mixed>                                          $data    Insumos de collect().
+	 * @param int                                                           $now     Timestamp actual.
+	 * @param array<int, array{code: string, message: string, cta: string}> $reasons Acumulador de razones (por referencia).
+	 * @return void
+	 */
+	private static function append_reconciler_and_schema_reasons( array $data, int $now, array &$reasons ): void {
+		self::append_reconciler_reasons( $data, $now, $reasons );
+		self::append_schema_and_capacity_reasons( $data, $reasons );
+	}
+
+	/**
+	 * Agrega las razones de reconciliación y latido diario.
+	 *
+	 * @param array<string, mixed>                                          $data    Insumos de collect().
+	 * @param int                                                           $now     Timestamp actual.
+	 * @param array<int, array{code: string, message: string, cta: string}> $reasons Acumulador de razones (por referencia).
+	 * @return void
+	 */
+	private static function append_reconciler_reasons( array $data, int $now, array &$reasons ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$last            = is_array( $data['last_rebuild'] ?? null ) ? $data['last_rebuild'] : array();
+		$reconcile       = is_array( $data['reconcile_last'] ?? null ) ? $data['reconcile_last'] : array();
 		$reconcile_error = is_array( $data['reconcile_error'] ?? null ) ? $data['reconcile_error'] : array();
 		if ( ! empty( $reconcile_error['error'] )
 			&& (int) ( $reconcile_error['ran_at'] ?? 0 ) > (int) ( $reconcile['ran_at'] ?? 0 ) ) {
@@ -455,11 +501,11 @@ final class HealthReport {
 				'cta'     => 'reconcile',
 			);
 		}
-		$diverged  = (int) ( $reconcile['missing'] ?? 0 ) + (int) ( $reconcile['orphaned'] ?? 0 )
+
+		$diverged = (int) ( $reconcile['missing'] ?? 0 ) + (int) ( $reconcile['orphaned'] ?? 0 )
 			+ (int) ( $reconcile['divergent'] ?? 0 ) + (int) ( $reconcile['stale'] ?? 0 )
 			+ (int) ( $reconcile['orphan_facets'] ?? 0 );
 		if ( $diverged > 0 ) {
-			// El reconciliador repara lo que encuentra; la advertencia persiste hasta confirmar convergencia limpia.
 			$reasons[] = array(
 				'code'    => 'divergencias',
 				'message' => sprintf(
@@ -472,7 +518,6 @@ final class HealthReport {
 			);
 		}
 
-		// --- Latido del reconciler --------------------------------------------
 		$ran_at   = (int) ( $reconcile['ran_at'] ?? 0 );
 		$baseline = max( $ran_at, (int) ( $last['finished_at'] ?? 0 ) );
 		if ( $baseline > 0 && ( $now - $baseline ) > self::HEARTBEAT_SECONDS ) {
@@ -482,9 +527,16 @@ final class HealthReport {
 				'cta'     => 'reconcile',
 			);
 		}
+	}
 
-		// --- Schema incompleto ------------------------------------------------
-		// Verifica la presencia efectiva de todos los índices del schema vigente.
+	/**
+	 * Agrega las razones de esquema, collation, capacidad y flags.
+	 *
+	 * @param array<string, mixed>                                          $data    Insumos de collect().
+	 * @param array<int, array{code: string, message: string, cta: string}> $reasons Acumulador de razones (por referencia).
+	 * @return void
+	 */
+	private static function append_schema_and_capacity_reasons( array $data, array &$reasons ): void {
 		$schema_raw     = $data['missing_indexes'] ?? null;
 		$schema_missing = is_array( $schema_raw ) ? $schema_raw : array();
 		if ( null === $schema_raw ) {
@@ -505,8 +557,6 @@ final class HealthReport {
 			);
 		}
 
-		// --- Collation de tokens ----------------------------------------------
-		// La tabla de tokens exige collation utf8mb4_bin para evitar colisiones en clave primaria.
 		$collation = (string) ( $data['token_collation'] ?? '' );
 		if ( '' !== $collation && 'utf8mb4_bin' !== $collation ) {
 			$reasons[] = array(
@@ -519,7 +569,6 @@ final class HealthReport {
 			);
 		}
 
-		// --- Tamaño del catálogo (aviso de capacidad) -------------------------
 		$docs_visible = (int) ( $data['docs_visible'] ?? 0 );
 		if ( $docs_visible >= self::VISIBLE_DOCS_WARN ) {
 			$reasons[] = array(
@@ -533,10 +582,9 @@ final class HealthReport {
 			);
 		}
 
-		// --- Flags inconsistentes ---------------------------------------------
-		$flags = is_array( $data['flags'] ?? null ) ? $data['flags'] : array();
-		$facets_effective = self::flag_effective( $flags['facets'] ?? false );
-		$suggest_effective = self::flag_effective( $flags['suggest'] ?? false );
+		$flags              = is_array( $data['flags'] ?? null ) ? $data['flags'] : array();
+		$facets_effective   = self::flag_effective( $flags['facets'] ?? false );
+		$suggest_effective  = self::flag_effective( $flags['suggest'] ?? false );
 		$indexing_effective = self::flag_effective( $flags['indexing'] ?? false );
 		if ( ( $facets_effective || $suggest_effective ) && ! $indexing_effective ) {
 			$reasons[] = array(
@@ -545,11 +593,6 @@ final class HealthReport {
 				'cta'     => 'flags',
 			);
 		}
-
-		return array(
-			'verdict' => empty( $reasons ) ? self::SANO : self::ATENCION,
-			'reasons' => $reasons,
-		);
 	}
 
 	/**

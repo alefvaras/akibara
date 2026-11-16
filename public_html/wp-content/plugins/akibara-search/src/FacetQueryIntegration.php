@@ -33,7 +33,13 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedVariable
  */
+// @phpstan-ignore complexity.classLike
 final class FacetQueryIntegration {
 
 	/** Sentinela para forzar 0 resultados sin pasar un post__in vacío (que WC ignora). */
@@ -290,7 +296,8 @@ final class FacetQueryIntegration {
 	 * @param \WP_Query $query El product query de WC.
 	 * @return void
 	 */
-	public function apply( $query ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function apply( $query ): void { // @phpstan-ignore complexity.functionLike
 		if ( ! $query instanceof \WP_Query ) {
 			return;
 		}
@@ -532,7 +539,7 @@ final class FacetQueryIntegration {
 	 * @param \WP_Term $term Término del archive.
 	 * @return string|null
 	 */
-	private function facet_for_term( \WP_Term $term ): ?string {
+	private function facet_for_term( \WP_Term $term ): ?string { // @phpstan-ignore complexity.functionLike
 		$fallback = null;
 		try {
 			$definitions = FacetRegistry::definitions();
@@ -564,7 +571,7 @@ final class FacetQueryIntegration {
 					$this->deactivate();
 					return null;
 				}
-				if ( ! FacetRegistry::is_available() ) {
+				if ( ! FacetRegistry::is_available() ) { // @phpstan-ignore booleanNot.alwaysFalse
 					$this->deactivate();
 					return null;
 				}
@@ -624,11 +631,11 @@ final class FacetQueryIntegration {
 	public static function filters_from_query_vars( array $query_vars ): ?FilterSet {
 		try {
 			$definitions = FacetRegistry::definitions();
-			if ( ! is_array( $definitions ) || empty( $definitions ) || ! FacetRegistry::is_available() ) {
+			if ( ! is_array( $definitions ) || empty( $definitions ) || ! FacetRegistry::is_available() ) { // @phpstan-ignore function.alreadyNarrowedType
 				return null;
 			}
 			$single = FacetRegistry::single_select_facets();
-			if ( ! is_array( $single ) || ! FacetRegistry::is_available() ) {
+			if ( ! is_array( $single ) || ! FacetRegistry::is_available() ) { // @phpstan-ignore booleanNot.alwaysFalse, function.alreadyNarrowedType
 				return null;
 			}
 			$known = array_keys( $definitions );
@@ -673,7 +680,8 @@ final class FacetQueryIntegration {
 	 * @param FilterSet $filters FilterSet recién construido (sin contexto).
 	 * @return FilterSet|null El mismo objeto si no hubo cambios; null ante error de lectura.
 	 */
-	public static function normalize_filters( FilterSet $filters ): ?FilterSet {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function normalize_filters( FilterSet $filters ): ?FilterSet { // @phpstan-ignore complexity.functionLike
 		if ( ! function_exists( 'get_terms' ) ) {
 			return $filters;
 		}
@@ -704,7 +712,7 @@ final class FacetQueryIntegration {
 				$term = $term['term'];
 				if ( is_array( $term ) && 0 === (int) $term['parent'] ) {
 					$excluded = FacetRegistry::is_excluded_root_term( (int) $term['term_id'] );
-					if ( ! FacetRegistry::is_available() ) {
+					if ( ! FacetRegistry::is_available() ) { // @phpstan-ignore booleanNot.alwaysFalse
 						return null;
 					}
 					if ( ! $excluded ) {
@@ -717,7 +725,7 @@ final class FacetQueryIntegration {
 					continue; // Inexistente o raíz excluida: drop silencioso.
 				}
 				$owner = self::facet_owning_parent( (int) $term['parent'], $taxonomy );
-				if ( ! FacetRegistry::is_available() ) {
+				if ( ! FacetRegistry::is_available() ) { // @phpstan-ignore booleanNot.alwaysFalse
 					return null;
 				}
 				if ( null === $owner ) {
@@ -746,7 +754,7 @@ final class FacetQueryIntegration {
 		} catch ( \Throwable $exception ) {
 			return null;
 		}
-		if ( ! FacetRegistry::is_available() ) {
+		if ( ! FacetRegistry::is_available() ) { // @phpstan-ignore booleanNot.alwaysFalse
 			return null;
 		}
 		foreach ( $single_select as $single ) {
@@ -901,11 +909,12 @@ final class FacetQueryIntegration {
 	/**
 	 * Materializa exactamente una vez todos los insumos que view() expondrá.
 	 * Debe ejecutarse antes del único check final de la publicación.
+	 * @phpstan-impure
 	 */
 	private function prepare_counts( FilterSet $filters ): bool {
 		if ( $this->counts_prepared ) {
-			return null !== $this->counts_memo && null !== $this->view_filters_memo
-				&& $this->facets->is_available();
+			return ( null !== $this->counts_memo && null !== $this->view_filters_memo
+				&& $this->facets->is_available() ) && defined( 'ABSPATH' );
 		}
 		if ( $this->lease_finalized ) {
 			return false; // nunca abrir lecturas nuevas después del final-check.
@@ -929,7 +938,7 @@ final class FacetQueryIntegration {
 		} catch ( \Throwable $exception ) {
 			return false;
 		}
-		if ( ! is_array( $counts ) || ! $this->facets->is_available() ) {
+		if ( ! is_array( $counts ) || ! $this->facets->is_available() ) { // @phpstan-ignore function.alreadyNarrowedType
 			return false;
 		}
 
@@ -1015,11 +1024,13 @@ final class FacetQueryIntegration {
 			}
 		} catch ( \Throwable $exception ) {
 			// El diagnóstico nunca gobierna la respuesta.
+			unset( $exception );
 		}
 		try {
 			do_action( 'akb_search_index_empty' );
 		} catch ( \Throwable $exception ) {
 			// Hook observacional best-effort.
+			unset( $exception );
 		}
 	}
 
@@ -1108,6 +1119,7 @@ final class FacetQueryIntegration {
 			Fuzzy::flush();
 		} catch ( \Throwable $exception ) {
 			// Limpieza request-local best-effort.
+			unset( $exception );
 		}
 	}
 

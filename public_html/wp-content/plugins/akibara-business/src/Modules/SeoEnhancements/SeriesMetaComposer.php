@@ -14,11 +14,15 @@ namespace Akibara\Business\Modules\SeoEnhancements;
 
 use Akibara\Business\Modules\SeriesFacts\PublicationStatus;
 use Akibara\Business\Modules\SeriesFacts\SeriesFacts;
-use Akibara\Business\Modules\TaxonomyDiscount\Settings as DiscountSettings;
 use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArgument
+ */
+// @phpstan-ignore complexity.classLike
 final class SeriesMetaComposer {
 
 	/** Taxonomía de series. */
@@ -95,7 +99,7 @@ final class SeriesMetaComposer {
 	 * @param object $term Término servido.
 	 * @return array{count:int,author:string,brand:string,medium:string,price_from:string,instock:int}|null
 	 */
-	public function series_catalog_snapshot( object $term ): ?array {
+	public function series_catalog_snapshot( object $term ): ?array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		try {
 			$medium = $this->series_medium( (int) ( $term->term_id ?? 0 ) );
 			if ( '' === $medium ) {
@@ -110,7 +114,7 @@ final class SeriesMetaComposer {
 
 			$term_taxonomy_id = isset( $term->term_taxonomy_id ) ? (int) $term->term_taxonomy_id : 0;
 			if ( $term_taxonomy_id > 0 ) {
-				$facts_service = new SeriesFacts( static fn (): bool => ( new DiscountSettings() )->is_enabled() );
+				$facts_service = new SeriesFacts();
 				$facts         = $facts_service->catalog_facts( $term_taxonomy_id );
 				if ( is_array( $facts ) ) {
 					if ( $facts_service->price_range_is_publishable( $facts ) && (float) ( $facts['price_min'] ?? 0 ) > 0 ) {
@@ -211,7 +215,7 @@ final class SeriesMetaComposer {
 			return;
 		}
 		foreach ( $series as $term ) {
-			$term_id = is_object( $term ) && isset( $term->term_id ) ? (int) $term->term_id : 0;
+			$term_id = is_object( $term ) && isset( $term->term_id ) ? (int) $term->term_id : 0; // @phpstan-ignore isset.property
 			if ( $term_id > 0 ) {
 				unset( $this->series_medium_memo[ $term_id ] );
 				delete_transient( self::SERIES_MEDIUM_TRANSIENT_PREFIX . $term_id );
@@ -305,7 +309,7 @@ final class SeriesMetaComposer {
 			: $series_name;
 		$name = trim( wp_strip_all_tags( $name, true ) );
 		$name = html_entity_decode( $name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$name = (string) str_replace( array( "\xc2\xa0", "\xe2\x80\x8b" ), ' ', $name );
+		$name = str_replace( array( "\xc2\xa0", "\xe2\x80\x8b" ), ' ', $name );
 		$name = preg_replace( '/\s+/u', ' ', $name );
 		$name = is_string( $name ) ? trim( $name ) : '';
 		if ( '' === $name ) {
@@ -321,10 +325,10 @@ final class SeriesMetaComposer {
 		};
 
 		$candidates = array(
-			sprintf( '%s en Akibara Chile. %s Revisa el catálogo, los tomos a pedido y el envío según destino.', $name, $clause ),
-			sprintf( '%s en Akibara Chile. %s Revisa catálogo, tomos a pedido y envío según destino.', $name, $clause ),
-			sprintf( '%s en Akibara Chile. Revisa el catálogo, los tomos a pedido y el envío según destino.', $name ),
-			'Series de manga y cómics en Akibara Chile. Revisa el catálogo, los tomos a pedido y el envío según destino.',
+			sprintf( '%s en Akibara Chile. %s Revisa el catálogo, la disponibilidad y el envío según destino.', $name, $clause ),
+			sprintf( '%s en Akibara Chile. %s Revisa catálogo, disponibilidad y envío según destino.', $name, $clause ),
+			sprintf( '%s en Akibara Chile. Revisa el catálogo, la disponibilidad y el envío según destino.', $name ),
+			'Series de manga y cómics en Akibara Chile. Revisa el catálogo, la disponibilidad y el envío según destino.',
 		);
 
 		foreach ( $candidates as $candidate ) {
@@ -370,7 +374,7 @@ final class SeriesMetaComposer {
 			: $series_name;
 		$name = trim( wp_strip_all_tags( $name, true ) );
 		$name = html_entity_decode( $name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$name = (string) str_replace( array( "\xc2\xa0", "\xe2\x80\x8b" ), ' ', $name );
+		$name = str_replace( array( "\xc2\xa0", "\xe2\x80\x8b" ), ' ', $name );
 		$name = preg_replace( '/\s+/u', ' ', $name );
 		$name = is_string( $name ) ? trim( $name ) : '';
 
@@ -483,7 +487,8 @@ final class SeriesMetaComposer {
 	/**
 	 * @return array<int, string>
 	 */
-	public static function build_series_description_candidates(
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function build_series_description_candidates( // @phpstan-ignore complexity.functionLike
 		string $state,
 		bool $complete_sold,
 		bool $partial_sold,

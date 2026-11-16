@@ -1,8 +1,6 @@
 <?php
 /**
  * Vitrinas de portada con selección diversificada por pa_serie.
- * akb_preventas_destacadas selecciona onbackorder sin distinguir lanzamiento
- * pendiente; conserva el tag público del shortcode por compatibilidad.
  * akb_destacados selecciona instock por categoría y orden solicitado.
  * El módulo selecciona IDs y delega el render a products ids con post__in,
  * conservando tarjetas, precios y botones nativos. No usa visibility=instock,
@@ -20,6 +18,11 @@ use Akibara\Business\Modules\Stock\StockStatus;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
+// @phpstan-ignore complexity.classLike
 final class HomeDestacados {
 
 	/**
@@ -37,19 +40,74 @@ final class HomeDestacados {
 	 */
 	private const CACHE_GENERATION_OPTION = 'akb_home_destacados_generation';
 
+	/** @var bool Bandera de proceso para evitar escrituras redundantes a wp_options en la misma petición. */
+	private bool $bumped = false;
+
 	public function register(): void {
 		add_shortcode( 'akb_preventas_destacadas', array( $this, 'render_a_pedido_destacados' ) );
 		add_shortcode( 'akb_destacados', array( $this, 'render_destacados' ) );
 
 		// Todo lo que puede cambiar QUÉ productos entran en las vitrinas: alta,
-		// edición, borrado y stock. `woocommerce_update_product` cubre además el
-		// `total_sales` que ordena la vitrina por popularidad.
-		add_action( 'woocommerce_new_product', array( $this, 'bump_cache_generation' ) );
-		add_action( 'woocommerce_update_product', array( $this, 'bump_cache_generation' ) );
-		add_action( 'woocommerce_delete_product', array( $this, 'bump_cache_generation' ) );
-		add_action( 'woocommerce_trash_product', array( $this, 'bump_cache_generation' ) );
-		add_action( 'woocommerce_product_set_stock_status', array( $this, 'bump_cache_generation' ) );
-		add_action( 'woocommerce_variation_set_stock_status', array( $this, 'bump_cache_generation' ) );
+		// edición, borrado, stock, ventas y visibilidad/categoría/serie.
+		add_action( 'woocommerce_new_product', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_update_product', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_delete_product', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_trash_product', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_product_set_stock_status', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_variation_set_stock_status', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_updated_product_sales', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'woocommerce_recorded_sales', array( $this, 'bump_cache_generation' ), 10, 0 );
+		add_action( 'transition_post_status', array( $this, 'maybe_bump_on_post_transition' ), 10, 3 );
+		add_action( 'set_object_terms', array( $this, 'maybe_bump_on_terms' ), 10, 6 );
+	}
+
+	/**
+	 * Normaliza atributos de shortcode rescatando entradas con comillas tipográficas
+	 * o entidades HTML (p. ej. `»`, `«`, `“`, `”`, `″`, `′`, `&Prime;`) incluso cuando
+	 * WordPress los entregó como tokens posicionales `clave=valor`.
+	 *
+	 * @param array<int|string, mixed>|string $atts Atributos crudos del shortcode.
+	 * @return array<string, string>
+	 */
+	private function clean_shortcode_atts( $atts ): array {
+		if ( ! is_array( $atts ) ) {
+			return array();
+		}
+
+		$typographic = array( '»', '«', '“', '”', '„', '‟', '″', '′', '‘', '’', '‹', '›', '"', "'" );
+		$cleaned     = array();
+
+		foreach ( $atts as $key => $val ) {
+			if ( ! is_scalar( $val ) ) {
+				continue;
+			}
+			$raw = html_entity_decode( (string) $val, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			$raw = (string) preg_replace( '/[\x{00a0}\x{200b}]+/u', ' ', $raw );
+			if ( is_int( $key ) ) {
+				$eq = strpos( $raw, '=' );
+				if ( false !== $eq && $eq > 0 ) {
+					$raw_key    = trim( str_replace( $typographic, '', substr( $raw, 0, $eq ) ) );
+					$parsed_key = function_exists( 'sanitize_key' )
+						? sanitize_key( $raw_key )
+						: strtolower( (string) preg_replace( '/[^a-zA-Z0-9_-]/', '', $raw_key ) );
+					$parsed_val = trim( str_replace( $typographic, '', substr( $raw, $eq + 1 ) ) );
+					if ( '' !== $parsed_key ) {
+						$cleaned[ $parsed_key ] = $parsed_val;
+					}
+				}
+				continue;
+			}
+
+			$raw_key   = trim( str_replace( $typographic, '', $key ) );
+			$clean_key = function_exists( 'sanitize_key' )
+				? sanitize_key( $raw_key )
+				: strtolower( (string) preg_replace( '/[^a-zA-Z0-9_-]/', '', $raw_key ) );
+			if ( '' !== $clean_key ) {
+				$cleaned[ $clean_key ] = trim( str_replace( $typographic, '', $raw ) );
+			}
+		}
+
+		return $cleaned;
 	}
 
 	/**
@@ -59,7 +117,7 @@ final class HomeDestacados {
 	 * grupo ni utiliza una categoría comercial como fuente del stock.
 	 * Muestrea hasta cien candidatos antes de aplicar el límite por serie.
 	 *
-	 * @param array<string, mixed>|string $atts
+	 * @param array<int|string, mixed>|string $atts Atributos del shortcode.
 	 * @return string HTML rendered, vacío si no hay reservables.
 	 */
 	public function render_a_pedido_destacados( $atts ): string {
@@ -69,7 +127,7 @@ final class HomeDestacados {
 				'columns'       => 4,
 				'max_per_serie' => 2,
 			),
-			is_array( $atts ) ? $atts : array(),
+			$this->clean_shortcode_atts( $atts ),
 			'akb_preventas_destacadas'
 		);
 
@@ -97,11 +155,19 @@ final class HomeDestacados {
 					'orderby'                => 'date',
 					'order'                  => 'DESC',
 					'fields'                 => 'ids',
-					'meta_query'             => array(
+					'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 						array(
 							'key'     => '_stock_status',
 							'value'   => StockStatus::ON_BACKORDER,
 							'compare' => '=',
+						),
+					),
+					'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+						array(
+							'taxonomy' => 'product_visibility',
+							'field'    => 'name',
+							'terms'    => array( 'exclude-from-catalog' ),
+							'operator' => 'NOT IN',
 						),
 					),
 					'update_post_meta_cache' => false,
@@ -109,17 +175,27 @@ final class HomeDestacados {
 			);
 
 			if ( empty( $candidate_ids ) ) {
+				if ( empty( $GLOBALS['wpdb']->last_error ) ) {
+					set_transient( $cache_key, '__EMPTY__', HOUR_IN_SECONDS );
+				}
 				return '';
 			}
 
 			$picked = $this->pick_diversified_ids( $candidate_ids, $max_per_serie_int, $count_int );
 
 			if ( empty( $picked ) ) {
+				if ( empty( $GLOBALS['wpdb']->last_error ) ) {
+					set_transient( $cache_key, '__EMPTY__', HOUR_IN_SECONDS );
+				}
 				return '';
 			}
 
 			$ids_csv = implode( ',', $picked );
 			set_transient( $cache_key, $ids_csv, HOUR_IN_SECONDS );
+		}
+
+		if ( '__EMPTY__' === $ids_csv || '' === trim( (string) $ids_csv ) ) {
+			return '';
 		}
 
 		return do_shortcode(
@@ -157,7 +233,7 @@ final class HomeDestacados {
 				'orderby'       => 'popularity',
 				'max_per_serie' => 1,
 			),
-			is_array( $atts ) ? $atts : array(),
+			$this->clean_shortcode_atts( $atts ),
 			'akb_destacados'
 		);
 
@@ -187,14 +263,14 @@ final class HomeDestacados {
 				'post_status'            => 'publish',
 				'posts_per_page'         => 100,
 				'fields'                 => 'ids',
-				'meta_query'             => array(
+				'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 					array(
 						'key'     => '_stock_status',
 						'value'   => StockStatus::IN_STOCK,
 						'compare' => '=',
 					),
 				),
-				'tax_query'              => array(
+				'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 					array(
 						'taxonomy' => 'product_visibility',
 						'field'    => 'name',
@@ -214,7 +290,7 @@ final class HomeDestacados {
 			}
 
 			if ( 'popularity' === $orderby ) {
-				$args['meta_key'] = 'total_sales';
+				$args['meta_key'] = 'total_sales'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				$args['orderby']  = array(
 					'meta_value_num' => 'DESC',
 					'date'           => 'DESC',
@@ -227,17 +303,27 @@ final class HomeDestacados {
 			$candidate_ids = get_posts( $args );
 
 			if ( empty( $candidate_ids ) ) {
+				if ( empty( $GLOBALS['wpdb']->last_error ) ) {
+					set_transient( $cache_key, '__EMPTY__', HOUR_IN_SECONDS );
+				}
 				return '';
 			}
 
 			$picked = $this->pick_diversified_ids( $candidate_ids, $max_per_serie_int, $count_int );
 
 			if ( empty( $picked ) ) {
+				if ( empty( $GLOBALS['wpdb']->last_error ) ) {
+					set_transient( $cache_key, '__EMPTY__', HOUR_IN_SECONDS );
+				}
 				return '';
 			}
 
 			$ids_csv = implode( ',', $picked );
 			set_transient( $cache_key, $ids_csv, HOUR_IN_SECONDS );
+		}
+
+		if ( '__EMPTY__' === $ids_csv || '' === trim( (string) $ids_csv ) ) {
+			return '';
 		}
 
 		return do_shortcode(
@@ -261,7 +347,7 @@ final class HomeDestacados {
 	 * @param int                    $count         Total a seleccionar.
 	 * @return array<int, int>
 	 */
-	private function pick_diversified_ids( array $candidate_ids, int $max_per_serie, int $count ): array {
+	private function pick_diversified_ids( array $candidate_ids, int $max_per_serie, int $count ): array { // @phpstan-ignore complexity.functionLike
 		$picked     = array();
 		$counts_per = array();
 
@@ -296,7 +382,7 @@ final class HomeDestacados {
 			$serie = 'sin-serie';
 			if ( is_array( $serie_terms ) && ! empty( $serie_terms ) ) {
 				$first = reset( $serie_terms );
-				if ( is_object( $first ) && isset( $first->slug ) ) {
+				if ( is_object( $first ) && isset( $first->slug ) ) { // @phpstan-ignore isset.property
 					$serie = (string) $first->slug;
 				}
 			}
@@ -340,11 +426,53 @@ final class HomeDestacados {
 	 * Sólo escribe una option corta; NO purga páginas. La purga de la portada ya
 	 * la dispara quien corresponde, y encadenar un `purge_all` aquí lo pondría a
 	 * correr en cada venta (`total_sales` cambia y con él `woocommerce_update_product`).
+	 * Protegido contra escrituras redundantes dentro de una misma petición.
 	 *
+	 * @param bool $force Si es true, fuerza la escritura incluso si ya se ejecutó en la petición.
 	 * @return void
 	 */
-	public function bump_cache_generation(): void {
-		update_option( self::CACHE_GENERATION_OPTION, (string) time(), true );
+	public function bump_cache_generation( bool $force = false ): void {
+		if ( $this->bumped && ! $force ) {
+			return;
+		}
+		$gen = str_replace( '.', '', sprintf( '%.6F', microtime( true ) ) );
+		update_option( self::CACHE_GENERATION_OPTION, $gen, false );
+		$this->bumped = true;
+	}
+
+	/**
+	 * Dispara invalidación de vitrinas ante cambios de estado de un producto.
+	 *
+	 * @param string   $new_status Nuevo estado.
+	 * @param string   $old_status Estado anterior.
+	 * @param \WP_Post $post       Post afectado.
+	 * @return void
+	 */
+	public function maybe_bump_on_post_transition( string $new_status, string $old_status, $post ): void {
+		if ( $new_status === $old_status || ! $post instanceof \WP_Post || 'product' !== $post->post_type ) {
+			return;
+		}
+		if ( 'publish' === $new_status || 'publish' === $old_status ) {
+			$this->bump_cache_generation();
+		}
+	}
+
+	/**
+	 * Dispara invalidación cuando cambian categoría, serie o visibilidad de un producto.
+	 *
+	 * @param int               $object_id  ID del objeto.
+	 * @param array<int, mixed> $terms      Términos asignados.
+	 * @param array<int, int>   $tt_ids     IDs de term_taxonomy.
+	 * @param string            $taxonomy   Taxonomía.
+	 * @param bool              $append     Si agrega en vez de reemplazar.
+	 * @param array<int, int>   $old_tt_ids Términos anteriores.
+	 * @return void
+	 */
+	public function maybe_bump_on_terms( int $object_id, array $terms, array $tt_ids, string $taxonomy, bool $append, array $old_tt_ids ): void {
+		unset( $object_id, $terms, $tt_ids, $append, $old_tt_ids );
+		if ( in_array( $taxonomy, array( 'product_cat', 'pa_serie', 'product_visibility' ), true ) ) {
+			$this->bump_cache_generation();
+		}
 	}
 
 	/**

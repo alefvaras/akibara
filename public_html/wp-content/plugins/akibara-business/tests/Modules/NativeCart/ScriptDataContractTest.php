@@ -35,7 +35,7 @@ final class ScriptDataContractTest extends TestCase {
 	 * `enqueue_assets()` le hace merge en `wp_localize_script()`. Se verifican
 	 * aparte contra el fuente para que la lista no sea una promesa.
 	 */
-	private const LOCALIZED_EXTRAS = array( 'ajaxUrl', 'cartUrl', 'checkoutUrl', 'nonce' );
+	private const LOCALIZED_EXTRAS = array( 'ajaxUrl', 'cartUrl', 'nonce' );
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -141,20 +141,5 @@ final class ScriptDataContractTest extends TestCase {
 				'La lista de extras del candado tiene que corresponder al merge real de wp_localize_script().'
 			);
 		}
-	}
-
-	/**
-	 * @testdox El interruptor del aviso de preventa gobierna la clave que el JS consulta.
-	 */
-	public function test_the_preventa_toggle_drives_the_key_the_javascript_reads(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default = false ) => Settings::OPTION_SHOW_PREVENTA_POLICY === $option ? 'no' : $default
-		);
-		self::assertFalse( ( new Settings() )->to_script_data()['showPreventaPolicy'] );
-
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default = false ) => Settings::OPTION_SHOW_PREVENTA_POLICY === $option ? 'yes' : $default
-		);
-		self::assertTrue( ( new Settings() )->to_script_data()['showPreventaPolicy'] );
 	}
 }

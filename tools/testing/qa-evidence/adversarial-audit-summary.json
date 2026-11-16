@@ -1,0 +1,61 @@
+{
+  "test1_cart_and_redemption": {
+    "under_min": {
+      "subtotal": 18275,
+      "balance": 5000,
+      "blocked": true,
+      "widget_text": "⭐ Tus Puntos Akibara Tienes 5.000 puntos. Te faltan $6.725 en productos para poder canjear; el despacho no cuenta. ⭐ Este pedido suma 439 puntos = $439 para tus próximas compras."
+    },
+    "tier1": {
+      "subtotal": 41650,
+      "cap": 2000,
+      "button_max_works": true
+    },
+    "under_50k_floor": {
+      "subtotal": 41650,
+      "min_cart_setting": 50000,
+      "missing": 8350,
+      "blocked": true
+    },
+    "over_50k": {
+      "subtotal": 54825,
+      "cap": 5000,
+      "limits_validated": true,
+      "redemption_confirmed": true
+    },
+    "free_shipping_protected": {
+      "subtotal": 78200,
+      "threshold": 60000,
+      "free_shipping_preserved": true
+    }
+  },
+  "test2_landing_puntos_simulator": {
+    "http_status": 200,
+    "title": "Akibara Puntos - Akibara",
+    "simulation_cases_passed": 5
+  },
+  "test3_homepage_showcase_mobile": {
+    "announcement_countdown": {
+      "active": true,
+      "tick1": "2d 10h 55m 13s",
+      "tick2": "2d 10h 55m 11s",
+      "live_countdown_verified": true
+    },
+    "products_showcase": {
+      "product_count": 25,
+      "sample_title": "HOMUNCULUS\n10",
+      "regular_price": "$21.500",
+      "sale_price": "$18.275",
+      "badge": "−15%"
+    },
+    "mobile_375px": {
+      "viewport": "375x667",
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "hasOverflow": false,
+      "tap_targets_checked": 66,
+      "tap_targets_below_44px": 0
+    }
+  },
+  "evidence_files": []
+}

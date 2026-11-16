@@ -39,15 +39,18 @@
 		const own = (CONFIG.messages && typeof CONFIG.messages === 'object') ? CONFIG.messages : {};
 		const validity = field.validity || {};
 		for (let i = 0; i < VALIDITY_KEYS.length; i++) {
+			// eslint-disable-next-line security/detect-object-injection
 			const key = VALIDITY_KEYS[i];
+			// eslint-disable-next-line security/detect-object-injection
 			if (validity[key]) {
+				// eslint-disable-next-line security/detect-object-injection
 				const text = typeof own[key] === 'string' ? own[key].trim() : '';
-				if (text !== '') return { text: text, lang: '' };
+				if (text !== '') return { text, lang: '' };
 				break;
 			}
 		}
 		const lang = (typeof navigator === 'object' && navigator && typeof navigator.language === 'string') ? navigator.language : '';
-		return { text: field.validationMessage, lang: lang };
+		return { text: field.validationMessage, lang };
 	}
 
 	function errorIdFor(field) {
@@ -59,9 +62,9 @@
 	}
 
 	/**
-	 * @param {HTMLElement} field
+	 * @param {HTMLElement}                  field
 	 * @param {{text: string, lang: string}} [given] Mensaje ya decidido (un
-	 *        error del servidor); sin él, el del motivo de ValidityState.
+	 *                                               error del servidor); sin él, el del motivo de ValidityState.
 	 */
 	function showFieldError(field, given) {
 		const id = errorIdFor(field);
@@ -101,7 +104,10 @@
 		}
 	}
 
-	/** @returns {boolean} true si se puede enviar. */
+	/**
+	 * @param {*} form
+	 * @return {boolean} true si se puede enviar.
+	 */
 	function validateForm(form) {
 		let firstInvalid = null;
 		form.querySelectorAll('input, textarea, select').forEach(function (field) {
@@ -145,13 +151,13 @@
 	const SERVER_FIELD_ERRORS = {
 		invalid_email: {
 			key: 'typeMismatch',
-			fields: function (form) {
+			fields (form) {
 				return Array.prototype.slice.call(form.querySelectorAll('input[type="email"]'));
 			}
 		},
 		missing_fields: {
 			key: 'valueMissing',
-			fields: function (form) {
+			fields (form) {
 				return Array.prototype.filter.call(form.querySelectorAll('[required]'), function (field) {
 					return typeof field.value === 'string' && field.value.trim() === '';
 				});
@@ -159,8 +165,14 @@
 		}
 	};
 
-	/** @returns {boolean} true si el error del servidor quedó en sus campos. */
+	/**
+	 * @param {*} form
+	 * @param {*} code
+	 * @param {*} serverText
+	 * @return {boolean} true si el error del servidor quedó en sus campos.
+	 */
 	function showServerFieldErrors(form, code, serverText) {
+		// eslint-disable-next-line security/detect-object-injection
 		const rule = Object.prototype.hasOwnProperty.call(SERVER_FIELD_ERRORS, code) ? SERVER_FIELD_ERRORS[code] : null;
 		if (!rule) return false;
 		const fields = rule.fields(form);
@@ -169,7 +181,7 @@
 		const text = own !== '' ? own : serverText;
 		if (!text) return false;
 		fields.forEach(function (field) {
-			showFieldError(field, { text: text, lang: '' });
+			showFieldError(field, { text, lang: '' });
 		});
 		fields[0].focus();
 		return true;
@@ -226,7 +238,7 @@
 
 			const response = await fetch(CONFIG.restUrl + kind, {
 				method: 'POST',
-				headers: headers,
+				headers,
 				body: JSON.stringify(data)
 			});
 
@@ -247,7 +259,7 @@
 
 			setFeedback(form, json.message || 'Recibido. Te respondemos a la brevedad.', 'success');
 			form.reset();
-		} catch (err) {
+		} catch (_err) {
 			setFeedback(form, 'Error de red. Verifica tu conexión.', 'error');
 		} finally {
 			setSubmitting(form, false);

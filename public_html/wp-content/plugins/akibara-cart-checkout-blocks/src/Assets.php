@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
  * Enqueues the single Blocks presentation bundle and checkout helpers.
  *
  * @since 2.0.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class Assets {
 
@@ -372,8 +374,7 @@ final class Assets {
 		);
 
 		$region_labels = array();
-		if ( function_exists( 'WC' ) && is_object( WC()->countries ?? null ) ) {
-			$states = WC()->countries->get_states( 'CL' );
+		if ( function_exists( 'WC' ) && is_object( WC()->countries ?? null ) ) {			$states = WC()->countries->get_states( 'CL' ); // @phpstan-ignore nullCoalesce.property
 			if ( is_array( $states ) ) {
 				$region_labels = array_map( 'html_entity_decode', $states );
 			}

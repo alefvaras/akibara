@@ -714,8 +714,8 @@ test( 'RQF2-1: un panel que se va (sin :hover ni abierto por JS) no atrapa el pu
 
 test( 'RQF2-1: lo que el puente no cubre (salir del ítem por el costado) lo cubre la gracia de cierre de main.js, sólo en la fila', () => {
 	const main = leer( 'assets/js/main.js' );
-	assert.match( main, /var GRACIA_MS = \d+;/ );
-	assert.match( main, /var conGracia = item\.classList\.contains\('mainnav__item--has-sub'\);/ );
+	assert.match( main, /(?:var|let|const) GRACIA_MS = \d+;/ );
+	assert.match( main, /(?:var|let|const) conGracia = item\.classList\.contains\('mainnav__item--has-sub'\);/ );
 	assert.match( main, /cierreDiferido = window\.setTimeout\(function \(\) \{[\s\S]*?item\.matches\(':hover'\)[\s\S]*?\}, GRACIA_MS\);/ );
 } );
 

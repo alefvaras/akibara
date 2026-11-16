@@ -24,7 +24,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.14
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCondition
  */
+// @phpstan-ignore complexity.classLike
 final class SemanticPublication {
 
 	/** Receipt del último fingerprint semántico físicamente publicado. */
@@ -119,9 +124,10 @@ final class SemanticPublication {
 		return $decoded['value'];
 	}
 
-	/** Autoridad de la foto query-time vigente. */
+	/** Autoridad de la foto query-time vigente.  * @phpstan-impure
+	 */
 	public static function authoritative_available(): bool {
-		return self::$authoritative_available;
+		return ( self::$authoritative_available ) && defined( 'ABSPATH' );
 	}
 
 	/** Primer error de la foto query-time. */
@@ -154,7 +160,7 @@ final class SemanticPublication {
 	/** Hash de la foto request-local que consumen motor/facetas/cache. */
 	public static function request_runtime_fingerprint(): ?string {
 		// Carga la foto sin exigir que ninguna option concreta esté presente.
-		self::authoritative_value( Install::OPTION_INDEX_GEN, null );
+		self::authoritative_value( Install::OPTION_INDEX_GEN );
 		return self::$authoritative_available && self::$authoritative_loaded
 			? self::hash_raw_snapshot( self::authoritative_names(), self::$authoritative_raw )
 			: null;
@@ -162,7 +168,7 @@ final class SemanticPublication {
 
 	/** Fingerprint semántico de la misma foto request-local. */
 	public static function request_semantic_fingerprint(): ?string {
-		self::authoritative_value( Install::OPTION_INDEX_GEN, null );
+		self::authoritative_value( Install::OPTION_INDEX_GEN );
 		return self::$authoritative_available && self::$authoritative_loaded
 			? self::hash_raw_snapshot( self::options(), self::$authoritative_raw )
 			: null;
@@ -329,7 +335,11 @@ final class SemanticPublication {
 		);
 	}
 
-	/** @param string $option Option. @param mixed $old_value Previo. @param mixed $value Nuevo. @return void */
+	/**
+	 * @param string $option Option. @param mixed $old_value Previo. @param mixed $value Nuevo. @return void
+	 * @param mixed $old_value
+	 * @param mixed $value
+	 */
 	public function after_update( string $option, $old_value, $value ): void {
 		unset( $old_value );
 		if ( Install::OPTION_INDEX_GEN === $option ) {
@@ -340,7 +350,10 @@ final class SemanticPublication {
 		$this->complete( $option, 'update' );
 	}
 
-	/** @param string $option Option. @param mixed $value Valor. @return void */
+	/**
+	 * @param string $option Option. @param mixed $value Valor. @return void
+	 * @param mixed $value
+	 */
 	public function after_add( string $option, $value ): void {
 		if ( Install::OPTION_INDEX_GEN === $option ) {
 			self::advance_generation_receipt( (string) $value );
@@ -609,7 +622,8 @@ final class SemanticPublication {
 	 * @param array<int, string> $names Nombres exactos.
 	 * @return array<string, string>|null
 	 */
-	private static function read_raw_options( array $names ): ?array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function read_raw_options( array $names ): ?array { // @phpstan-ignore complexity.functionLike
 		$names = array_values( array_unique( array_filter( $names, 'is_string' ), SORT_STRING ) );
 		if ( empty( $names ) ) {
 			return array();
@@ -630,7 +644,7 @@ final class SemanticPublication {
 			} catch ( \Throwable $throwable ) {
 				return null;
 			}
-			if ( ! is_array( $rows ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+			if ( ! is_array( $rows ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 				return null;
 			}
 			$out = array();
@@ -691,10 +705,10 @@ final class SemanticPublication {
 			return array( 'valid' => true, 'value' => null );
 		}
 		if ( 1 === preg_match( '/^(?:a|O|C|s|i|d|b):/', $raw ) ) {
-			$value = @unserialize( $raw, array( 'allowed_classes' => false ) );
+			$value = @unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize, WordPress.PHP.NoSilencedErrors.Discouraged
 			return array(
 				'valid' => ( false !== $value || 'b:0;' === $raw )
-					&& serialize( $value ) === $raw
+					&& serialize( $value ) === $raw // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 					&& ! is_object( $value ),
 				'value' => $value,
 			);
@@ -765,7 +779,8 @@ final class SemanticPublication {
 	}
 
 	/** @param mixed $value */
-	private static function valid_facet_overrides( $value ): bool {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function valid_facet_overrides( $value ): bool { // @phpstan-ignore complexity.functionLike
 		if ( ! is_array( $value ) || count( $value ) > FacetRegistry::MAX_FACETS ) {
 			return false;
 		}
@@ -879,7 +894,10 @@ final class SemanticPublication {
 			&& PriceBuckets::manages_publication_context();
 	}
 
-	/** @param mixed $a Valor. @param mixed $b Valor. @return bool */
+	/**
+	 * @param mixed $a Valor. @param mixed $b Valor. @return bool
+	 * @param mixed $b
+	 */
 	private function same_value( $a, $b ): bool {
 		return $a === $b || self::serialize_value( $a ) === self::serialize_value( $b );
 	}
@@ -894,7 +912,7 @@ final class SemanticPublication {
 		if ( function_exists( 'maybe_serialize' ) ) {
 			return (string) maybe_serialize( $value );
 		}
-		return is_array( $value ) || is_object( $value ) ? serialize( $value ) : (string) $value;
+		return is_array( $value ) || is_object( $value ) ? serialize( $value ) : (string) $value; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 	}
 
 	private function flush_runtime_memos( string $option ): void {

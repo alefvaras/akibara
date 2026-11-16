@@ -361,7 +361,7 @@ test('fuera de pantalla la marquesina no anima (IntersectionObserver con baja)',
 	// de hilo principal y 301 → 41 recálculos en el espejo.
 	const js = sinComentarios(read('assets/js/animations.js'));
 	const marquee = js.slice(js.indexOf('function setupBrandsMarquee('));
-	assert.match(marquee, /var offscreenPaused = 'function' === typeof window\.IntersectionObserver;/,
+	assert.match(marquee, /(?:var|let|const) offscreenPaused = 'function' === typeof window\.IntersectionObserver;/,
 		'nace en pausa: el primer aviso del observador es asíncrono y build() no debe arrancar un tween que quizá no se ve');
 	assert.match(
 		marquee,
@@ -432,8 +432,8 @@ test('colores forzados: el icono de pausar/reanudar y el foco del botón siguen 
 	// forzado del botón: sin un color de sistema salía gris 300 sobre blanco (2,2:1).
 	assert.match(icono[1], /color:\s*ButtonText/, 'el icono pinta en el color de sistema del texto del botón');
 	// Y los dos dibujos siguen pintando en currentColor: si no, ButtonText no les llega.
-	assert.match(css, /\.akb-brands-home__pause-icon\s*\{[^}]*background:\s*linear-gradient\(to right, currentColor/);
-	assert.match(css, /\.akb-brands-home__pause\[aria-pressed="true"\] \.akb-brands-home__pause-icon\s*\{[^}]*background:\s*currentColor/);
+	assert.match(css, /\.akb-brands-home__pause-icon\s*\{[^}]*background:\s*linear-gradient\(to right, current[cC]olor/);
+	assert.match(css, /\.akb-brands-home__pause\[aria-pressed="true"\] \.akb-brands-home__pause-icon\s*\{[^}]*background:\s*current[cC]olor/);
 	// El foco: el amarillo tampoco llega y la regla general lleva `outline: none`;
 	// quedaba sólo un cambio de color del borde. Desde REV-T6-2-1 lo devuelve el
 	// contorno de respaldo GLOBAL (tokens.css), para éste y todos los controles:

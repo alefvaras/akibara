@@ -51,12 +51,6 @@ final class MediaTest extends RewardsTestCase {
 		$this->assertFalse( Media::has_real_photo( 10 ) );
 	}
 
-	public function test_a_remote_image_with_url_counts(): void {
-		$this->wpdb->comment_meta[10][ Media::META_REMOTE_IMAGE ] = array( array( 'url' => 'https://x/foto.jpg' ) );
-
-		$this->assertTrue( Media::has_real_photo( 10 ) );
-	}
-
 	public function test_attach_photo_appends_a_row_and_reparents(): void {
 		$this->images[901] = true;
 		$this->images[902] = true;

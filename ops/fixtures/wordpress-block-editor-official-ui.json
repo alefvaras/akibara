@@ -1,0 +1,45 @@
+{
+  "first_run_welcome": {
+    "guide": "Bienvenido al editor de bloques",
+    "code_field": false,
+    "code_menu_open": false,
+    "permanent_overlay": false,
+    "expect": "success"
+  },
+  "code_editor_already_active": {
+    "guide": "",
+    "code_field": true,
+    "code_menu_open": false,
+    "permanent_overlay": false,
+    "expect": "success"
+  },
+  "options_menu_already_open": {
+    "guide": "",
+    "code_field": false,
+    "code_menu_open": true,
+    "permanent_overlay": false,
+    "expect": "success"
+  },
+  "unrecognized_dialog": {
+    "guide": "Confirmar una acción no relacionada",
+    "code_field": false,
+    "code_menu_open": false,
+    "permanent_overlay": false,
+    "expect": "BLOCK_EDITOR_UNEXPECTED_DIALOG"
+  },
+  "intercepting_overlay": {
+    "guide": "",
+    "code_field": false,
+    "code_menu_open": false,
+    "permanent_overlay": true,
+    "expect": "BLOCK_EDITOR_OPTIONS_NOT_ACTIONABLE"
+  },
+  "options_open_without_code_control": {
+    "guide": "",
+    "code_field": false,
+    "code_menu_open": false,
+    "permanent_overlay": false,
+    "menu_never_appears": true,
+    "expect": "CODE_EDITOR_MENU_MISSING"
+  }
+}

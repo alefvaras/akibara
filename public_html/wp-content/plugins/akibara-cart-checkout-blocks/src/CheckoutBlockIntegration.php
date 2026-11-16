@@ -18,6 +18,9 @@ defined( 'ABSPATH' ) || exit;
  * Registers Akibara's semantic Checkout Fields inner blocks.
  *
  * @since 2.1.0
+ * @api
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class CheckoutBlockIntegration implements IntegrationInterface {
 
@@ -29,7 +32,6 @@ final class CheckoutBlockIntegration implements IntegrationInterface {
 	 * @var list<string>
 	 */
 	private const BLOCKS = array(
-		'akibara/checkout-preventa-summary',
 		'akibara/checkout-trust-signals',
 	);
 
@@ -66,7 +68,7 @@ final class CheckoutBlockIntegration implements IntegrationInterface {
 
 			register_block_type(
 				$name,
-				array(
+				array( // @phpstan-ignore argument.type
 					'api_version'     => 3,
 					'parent'          => array( 'woocommerce/checkout-fields-block' ),
 					'render_callback' => static function () use ( $name ): string {
@@ -92,6 +94,7 @@ final class CheckoutBlockIntegration implements IntegrationInterface {
 	 * @internal
 	 *
 	 * @param IntegrationRegistry $registry WooCommerce integration registry.
+	 * @psalm-suppress UnusedParam
 	 */
 	public function register_integration( IntegrationRegistry $registry ): void {
 		if ( ! $registry->is_registered( self::NAME ) ) {

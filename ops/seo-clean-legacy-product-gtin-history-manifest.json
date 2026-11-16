@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "operation": "delete_unused_product_gtin_history",
+  "generated_from": {
+    "environment": "production_read_only_snapshot",
+    "date": "2026-09-02",
+    "rank_math_version": "1.0.277.2"
+  },
+  "runtime_source_of_truth": {
+    "meta_key": "_global_unique_id",
+    "consumer": "WC_Product::get_global_unique_id()",
+    "rank_math_evidence": "public_html/wp-content/plugins/seo-by-rank-math/includes/modules/schema/snippets/class-product-woocommerce.php:97",
+    "woocommerce_evidence": "public_html/wp-content/plugins/woocommerce/includes/abstracts/abstract-wc-product.php:279"
+  },
+  "accepted_pre_states": [
+    "reviewed_original",
+    "already_clean"
+  ],
+  "protected_global_unique_id": {
+    "rows": 1568,
+    "distinct_product_ids": 1568,
+    "distinct_values_binary": 1568,
+    "minimum_length": 13,
+    "maximum_length": 13,
+    "invalid_ean13": 0,
+    "non_product_or_non_published": 0,
+    "sha256_post_id_and_hex_value": "851d0aece4cd0779a2b49d2b842f38bb23dc29000f242ccef69d7840f9bd5ec7"
+  },
+  "historical_keys": [
+    {
+      "meta_key": "_wc_gtin",
+      "rows": 1525,
+      "distinct_product_ids": 1525,
+      "distinct_values_binary": 1466,
+      "values_different_from_global_unique_id": 62,
+      "sha256_post_id_and_hex_value": "d29193ea048ab6b014d04f2e61916fbfb4e2065be4fd3355ec69b22d324c2f7d"
+    },
+    {
+      "meta_key": "rank_math_snippet_product_gtin",
+      "rows": 1525,
+      "distinct_product_ids": 1525,
+      "distinct_values_binary": 1466,
+      "values_different_from_global_unique_id": 76,
+      "sha256_post_id_and_hex_value": "9a4c76a7a3cd05cc92fc57198a1d6037512b140305a0b15cfc3f713e2a8d6863"
+    },
+    {
+      "meta_key": "rank_math_gtin_code",
+      "rows": 1171,
+      "distinct_product_ids": 1171,
+      "distinct_values_binary": 1166,
+      "values_different_from_global_unique_id": 21,
+      "sha256_post_id_and_hex_value": "404184ffa4197a3082c4d09eb2e415951e308cd02e3a34138a7959a57f530be5"
+    }
+  ],
+  "reviewed_original_total_rows": 4221,
+  "postconditions": {
+    "historical_rows": 0,
+    "global_unique_id_rows": 1568,
+    "global_unique_id_valid_and_unique": true,
+    "other_postmeta_unchanged": true
+  },
+  "safety": {
+    "transaction_isolation": "SERIALIZABLE",
+    "named_lock": "akibara_legacy_product_gtin_cleanup_v1",
+    "partial_state": "abort",
+    "snapshot_drift": "abort",
+    "sql_error": "rollback",
+    "idempotent_already_clean": true
+  }
+}

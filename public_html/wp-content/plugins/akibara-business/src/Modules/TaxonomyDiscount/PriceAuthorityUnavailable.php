@@ -25,5 +25,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.99.14
+ * @api
  */
 final class PriceAuthorityUnavailable extends \RuntimeException {}

@@ -3,14 +3,14 @@ Contributors: @soporteblue
 Tags: blue express rates, live rates, shipping rates, blue express, woocommerce shipping
 Requires at least: 4.5
 Tested up to: 7.1
-Stable tag: 3.3.2
+Stable tag: 3.4.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
 
-Once the plugin is installed, you need to go to the integration section in the woocommerce settings and add the data delivered by blue express. Also, 
+Once the plugin is installed, you need to go to the integration section in the woocommerce settings and add the data delivered by blue express. Also,
 create a rest api user, this must be in the advanced options and deliver it to Blue Express for the correct functioning of the module.
 
 == Screenshots ==
@@ -23,7 +23,7 @@ create a rest api user, this must be in the advanced options and deliver it to B
 = 1.0.0 - 2022-11-03 =
 * First release!
 = 1.0.1 - 2022-12-15 =
-* Changes requested 
+* Changes requested
 = 1.0.2 - 2023-03-02 =
 * Update of the tariff service for dispatches
 = 1.0.3 - 2023-03-02 =
@@ -59,7 +59,7 @@ create a rest api user, this must be in the advanced options and deliver it to B
 = 2.0.2 - 2024-01-09 =
 * GoogleKey is added for pickup points, free shipping is added for amounts, agencyId is added to the map when a pickup point has already been selected.
 = 2.1.0 - 2024-03-27 =
-* Minor error fixes, integration of district functionality 
+* Minor error fixes, integration of district functionality
 = 2.1.1 - 2024-05-08 =
 * Minor error fixes
 = 2.1.2 - 2024-07-24 =
@@ -94,6 +94,10 @@ create a rest api user, this must be in the advanced options and deliver it to B
 * Handling of fee field on shipping zone module
 = 3.1.7 - 2026-03-17 =
 * Fix declaration of class properties for PHP 8.2 compatibility
+= 3.2.1 - 2026-05-28 =
+* Fix: the pickup-point (PUDO) modal no longer auto-opens when the customer completes their address. "Envío a domicilio" (bluex-ex) is now WooCommerce's default-selected rate; the pickup modal only opens when the customer explicitly selects the "Retiro en Punto Blue Express" rate.
+* WordPress 7.0 compatibility verified. Minimum PHP bumped to 7.4.
+* Improvements and fixes for Retiro en Punto Blue Express rates and delivery information.
 = 3.2.0 - 2026-04-28 =
 * PUDO unified as a native WooCommerce shipping method (`bluex-pudo`) — single source of truth across legacy and Blocks checkouts.
 * Legacy checkout: pickup-point selection now opens in a modal dialog. After picking a point, a "Cambiar punto Blue Express" button under the rate label lets the customer reopen the modal with the previous selection pre-loaded.
@@ -104,10 +108,6 @@ create a rest api user, this must be in the advanced options and deliver it to B
 * Backend rewrite: `bluex-pudo` is rewritten to `bluex-ex` on order creation so fulfillment carries the correct method.
 * Scoped agencyId reads in the webservice to prevent label contamination across non-PUDO Blue Express rates.
 * HPOS compatibility declared; legacy `update_post_meta` fallback removed in favor of `WC_Data` API.
-= 3.2.1 - 2026-05-28 =
-* Fix: the pickup-point (PUDO) modal no longer auto-opens when the customer completes their address. "Envío a domicilio" (bluex-ex) is now WooCommerce's default-selected rate; the pickup modal only opens when the customer explicitly selects the "Retiro en Punto Blue Express" rate.
-* WordPress 7.0 compatibility verified. Minimum PHP bumped to 7.4.
-* Improvements and fixes for Retiro en Punto Blue Express rates and delivery information.
 = 3.3.0 - 2026-08-26 =
 * Retiro en Punto Blue Express (bluex-pudo) is now enabled by default on fresh installs: the shipping method is pre-selected in the integration settings and included in the zones created by the setup wizard. Existing installations are left untouched, and an explicit opt-out is respected when creating zones.
 * Nearby pickup points: the checkout resolves and displays the closest Punto Blue Express to the customer's address, with its price visible by default, instead of requiring the customer to open the map first.
@@ -116,8 +116,15 @@ create a rest api user, this must be in the advanced options and deliver it to B
 * Compatibility verified with WordPress 7.1 and WooCommerce 11.0.1.
 = 3.3.1 - 2026-08-31 =
 * Fix: restore the PUDO helper classes and scripts that were missing from the 3.3.0 package (WC_Bluex_Pudo_Nearby_Service, WC_Bluex_Pudo_Agency_Validator and the pudo-widget-security scripts). Their absence raised a fatal error on every shipping calculation, leaving the checkout unusable.
-* The plugin now degrades instead of failing when those helpers are unavailable: the Punto Blue Express rate is simply not offered, and a pickup point is never accepted without server-side validation.
-= 3.3.2 - 2026-09-22 =
-* Fix: allow a validated, selected PUDO pickup point to be priced even when the address geolocation confidence is below 80%, without relaxing home-delivery or unvalidated pickup checks.
-* Fix: include the actual geolocation confidence percentage in the rejection warning.
-* Fix: price a confirmed PUDO pickup point with the region and district codes returned when the agency was validated, instead of geolocating it again. The second lookup could score 0% and block checkout with "No pudimos actualizar la tarifa del punto Blue Express".
+= 3.4.0 - 2026-11-02 =
+* New: "Estado de tienda" panel in the Blue Express settings. It checks the connection (WooCommerce API key and Blue Express integration), the store setup (plugin version, WooCommerce store address, shipping zones in Chile, 19% service fee, dynamic rates API and order capture) and the address registered in Blue Express, validates the recipient data (phone, email and address) of the last 5 orders, and shows the progress with alerts, errors and shortcuts to fix each item.
+* New: automatic connection flow. The seller only enters the integration ID and approves the connection in WooCommerce, with no API keys to type. The plugin creates the WooCommerce API key, shows each step of the process, applies the default settings and creates the shipping zones. Manual keys remain available as a fallback.
+* New: Punto Blue Express widget v2 for the Classic and Blocks checkouts (map and points list, geolocation, automatic point suggestion). It is selected with the new "Pickup widget version" option in the Blue Express settings and the two versions never run together. The selected point is kept across reloads and cleared when the delivery address changes, and the widget can correct an address it could not locate.
+* Improvement: every integration or update sets pickup points on and the pickup widget to v2. New integrations also take the origin region and commune from the store address registered in Blue Express; on updates, the seller's other settings are kept.
+* Improvement: new Connection screen with a welcome banner and simpler texts, and a redesigned Settings screen with cards and switches.
+= 3.4.1 - 2026-11-10 =
+* Security: every plugin REST endpoint now requires a signed-in user who can manage WooCommerce. Update as soon as possible.
+* Security: developer options stored in the settings are ignored in the public build, and the logs endpoint returns at most 100 entries per page.
+* Security: the checkout script no longer carries the access token for the pre-production pickup map; only debug builds receive it.
+* Fix: the Logs tab sends the REST nonce, so it keeps working with the stricter permissions.
+* Fix: the daily cleanup that removes plugin logs older than 7 days now runs; it was never scheduled before.

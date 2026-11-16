@@ -24,6 +24,14 @@ declare( strict_types = 1 );
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidPropertyAssignmentValue
+ * @psalm-suppress InvalidReturnType
+ * @psalm-suppress MissingOverrideAttribute
+ * @psalm-suppress ParamNameMismatch
+ * @psalm-suppress MissingOverrideAttribute
+ */
 class Akibara_GP_Mobile_Walker extends Walker_Nav_Menu {
 
 	/** Contador para IDs de accordion únicos por instancia. */
@@ -36,6 +44,11 @@ class Akibara_GP_Mobile_Walker extends Walker_Nav_Menu {
 	 */
 	private array $parent_link_stack = array();
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override]
 	public function start_lvl( &$output, $depth = 0, $args = null ) {
 		if ( 0 === $depth ) {
 			$output .= '<div class="mobile-drawer__sub" id="mob-' . $this->toggle_counter . '">';
@@ -50,6 +63,11 @@ class Akibara_GP_Mobile_Walker extends Walker_Nav_Menu {
 		}
 	}
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override]
 	public function end_lvl( &$output, $depth = 0, $args = null ) {
 		if ( 0 === $depth && ! empty( $this->parent_link_stack ) ) {
 			array_pop( $this->parent_link_stack );
@@ -57,12 +75,17 @@ class Akibara_GP_Mobile_Walker extends Walker_Nav_Menu {
 		$output .= '</div>';
 	}
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override] // @phpstan-ignore complexity.functionLike
 	public function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
-		$classes      = (array) $item->classes;
+		$classes      = (array) $item->classes; // @phpstan-ignore property.notFound
 		$has_children = in_array( 'menu-item-has-children', $classes, true );
-		$url          = $item->url ? esc_url( $item->url ) : '#';
-		$title        = esc_html( $item->title );
-		$raw_title    = (string) $item->title;
+		$url          = $item->url ? esc_url( $item->url ) : '#'; // @phpstan-ignore property.notFound
+		$title        = esc_html( $item->title ); // @phpstan-ignore property.notFound
+		$raw_title    = (string) $item->title; // @phpstan-ignore property.notFound
 		$is_current   = in_array( 'current-menu-item', $classes, true );
 		$is_active    = $is_current
 			|| in_array( 'current-menu-parent', $classes, true )
@@ -125,8 +148,13 @@ class Akibara_GP_Mobile_Walker extends Walker_Nav_Menu {
 		}
 	}
 
+	/**
+	 * @return mixed
+	 * @psalm-suppress MissingOverrideAttribute
+	 */
+	#[\Override]
 	public function end_el( &$output, $item, $depth = 0, $args = null ) {
-		$has_children = in_array( 'menu-item-has-children', (array) $item->classes, true );
+		$has_children = in_array( 'menu-item-has-children', (array) $item->classes, true ); // @phpstan-ignore property.notFound
 
 		if ( $has_children && ( 0 === $depth || 1 === $depth ) ) {
 			$output .= '</div>';

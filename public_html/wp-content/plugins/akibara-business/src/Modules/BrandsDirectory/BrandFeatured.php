@@ -21,6 +21,10 @@ use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class BrandFeatured {
 
 	private const TAXONOMY = 'product_brand';

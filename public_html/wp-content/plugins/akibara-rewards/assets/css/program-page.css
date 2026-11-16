@@ -1,0 +1,707 @@
+/**
+ * Akibara Rewards — Hoja de estilos de la página pública del Club de Puntos.
+ *
+ * Estética Neo-Brutalista Akibara («Tu rincón de Akihabara en Chile»):
+ * Superficies oscuras de alto contraste, acentos rojo y oro, tipografía brutalista,
+ * cards dinámicas, calculadora interactiva y cero estilos genéricos de WordPress.
+ *
+ * @package Akibara\Rewards
+ */
+
+:root {
+	--akb-club-red: var(--aki-red, #E60012);
+	--akb-club-red-readable: var(--aki-buy-bg, var(--aki-red-readable, #CC0010));
+	--akb-club-red-text: var(--aki-red-text, #FF4756);
+	--akb-club-red-hover: var(--aki-buy-bg-hover, var(--aki-red-dark, #99000C));
+	--akb-club-yellow: var(--aki-yellow, #FFD700);
+	--akb-club-bg: var(--aki-black, #121212);
+	--akb-club-surface-1: var(--aki-surface, #111);
+	--akb-club-surface-2: var(--aki-surface-2, #1A1A1A);
+	--akb-club-surface-3: var(--aki-surface-3, #222);
+	--akb-club-border: var(--aki-border, #2A2A2E);
+	--akb-club-border-strong: var(--aki-border-light, #333);
+	--akb-club-text: var(--aki-white, #FFF);
+	--akb-club-text-muted: var(--aki-gray-300, #B0B0B0);
+	--akb-club-font-head: var(--font-heading, "Bebas Neue", -apple-system, BlinkMacSystemFont, sans-serif);
+	--akb-club-font-body: var(--font-body, "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
+	--akb-club-shadow: 4px 4px 0 var(--akb-club-bg);
+	--akb-club-shadow-red: 4px 4px 0 var(--akb-club-red);
+}
+
+.akb-club-wrap {
+	max-width: 1040px;
+	margin: 0 auto;
+	padding: 24px 16px 80px;
+	font-family: var(--akb-club-font-body);
+	color: var(--akb-club-text);
+	box-sizing: border-box;
+}
+
+.akb-club-wrap *,
+.akb-club-wrap *::before,
+.akb-club-wrap *::after {
+	box-sizing: inherit;
+}
+
+/* ─── 1. HERO ─────────────────────────────────────────────────── */
+.akb-club-hero {
+	text-align: center;
+	padding: 32px 16px 44px;
+	margin-bottom: 40px;
+	border-bottom: 2px solid var(--akb-club-border);
+}
+
+.akb-club-hero__badge {
+	display: inline-block;
+	background: var(--akb-club-surface-2);
+	border: 1px solid var(--akb-club-red);
+	color: var(--akb-club-yellow);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 6px 16px;
+	border-radius: 20px;
+	margin-bottom: 16px;
+	box-shadow: 2px 2px 0 var(--akb-club-red);
+}
+
+.akb-club-hero__title {
+	font-family: var(--akb-club-font-head);
+	font-size: clamp(32px, 6vw, 56px);
+	line-height: 1.05;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	margin: 0 0 16px;
+	color: var(--akb-club-text);
+}
+
+.akb-club-hero__title span {
+	color: var(--akb-club-red);
+}
+
+.akb-club-hero__desc {
+	font-size: 16px;
+	line-height: 1.6;
+	color: var(--akb-club-text-muted);
+	max-width: 640px;
+	margin: 0 auto 28px;
+}
+
+.akb-club-hero__pills {
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.akb-club-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: var(--akb-club-surface-1);
+	border: 1px solid var(--akb-club-border);
+	padding: 10px 18px;
+	border-radius: 4px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--akb-club-text);
+	box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.akb-club-pill__icon {
+	font-size: 16px;
+}
+
+/* ─── 2. CALCULADORA INTERACTIVA ───────────────────────────────── */
+.akb-club-calc-section {
+	margin-bottom: 56px;
+}
+
+.akb-club-section-header {
+	text-align: center;
+	margin-bottom: 24px;
+}
+
+.akb-club-section-label {
+	font-size: 11px;
+	font-weight: 900;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--akb-club-red-text);
+	margin-bottom: 6px;
+}
+
+.akb-club-section-title {
+	font-family: var(--akb-club-font-head);
+	font-size: clamp(26px, 4.5vw, 40px);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	margin: 0 0 8px;
+	color: var(--akb-club-text);
+}
+
+.akb-club-section-desc {
+	font-size: 14px;
+	color: var(--akb-club-text-muted);
+	max-width: 580px;
+	margin: 0 auto;
+	line-height: 1.5;
+}
+
+.akb-calc-card {
+	background: var(--akb-club-surface-1);
+	border: 2px solid var(--akb-club-border);
+	border-radius: 8px;
+	padding: 28px 24px;
+	box-shadow: var(--akb-club-shadow);
+	margin-top: 20px;
+}
+
+.akb-calc-slider-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-bottom: 28px;
+}
+
+.akb-calc-slider-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.akb-calc-slider-label {
+	font-weight: 700;
+	font-size: 15px;
+	color: var(--akb-club-text);
+}
+
+.akb-calc-amount-display {
+	font-family: var(--akb-club-font-head);
+	font-size: 38px;
+	color: var(--akb-club-yellow);
+	line-height: 1;
+	letter-spacing: 0.04em;
+}
+
+.akb-calc-range {
+	width: 100%;
+	min-height: 44px;
+	height: 44px;
+	padding: 17px 0;
+	-webkit-appearance: none;
+	appearance: none;
+	background: transparent;
+	accent-color: var(--akb-club-red);
+	cursor: pointer;
+	margin: 0;
+}
+
+.akb-calc-range:focus-visible {
+	outline: var(--aki-focus-outline, 2px solid #FFF);
+	outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-calc-range::-webkit-slider-runnable-track {
+	height: 10px;
+	background: var(--akb-club-surface-3);
+	border: 1px solid var(--akb-club-border-strong);
+	border-radius: 5px;
+}
+
+.akb-calc-range::-moz-range-track {
+	height: 10px;
+	background: var(--akb-club-surface-3);
+	border: 1px solid var(--akb-club-border-strong);
+	border-radius: 5px;
+}
+
+.akb-calc-range::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 26px;
+	height: 26px;
+	margin-top: -9px;
+	border-radius: 50%;
+	background: var(--akb-club-red);
+	border: 2px solid var(--akb-club-text);
+	cursor: pointer;
+	box-shadow: 0 0 8px rgba(230, 0, 18, 0.6);
+	transition: transform 0.15s ease;
+}
+
+.akb-calc-range::-webkit-slider-thumb:hover {
+	transform: scale(1.15);
+}
+
+.akb-calc-range::-moz-range-thumb {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--akb-club-red);
+	border: 2px solid var(--akb-club-text);
+	cursor: pointer;
+	box-shadow: 0 0 8px rgba(230, 0, 18, 0.6);
+}
+
+.akb-calc-range-marks {
+	display: flex;
+	justify-content: space-between;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--akb-club-text-muted);
+}
+
+.akb-calc-results {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+}
+
+.akb-calc-res-box {
+	background: var(--akb-club-surface-2);
+	border: 1px solid var(--akb-club-border);
+	border-radius: 6px;
+	padding: 20px 16px;
+	text-align: center;
+	transition: border-color 0.2s ease;
+}
+
+.akb-calc-res-box:hover {
+	border-color: var(--akb-club-red);
+}
+
+.akb-calc-res-icon {
+	font-size: 28px;
+	margin-bottom: 8px;
+	display: block;
+}
+
+.akb-calc-res-value {
+	font-family: var(--akb-club-font-head);
+	font-size: 32px;
+	color: var(--akb-club-text);
+	display: block;
+	line-height: 1.1;
+	margin-bottom: 4px;
+}
+
+.akb-calc-res-value--red {
+	color: var(--akb-club-red-text);
+}
+
+.akb-calc-res-value--yellow {
+	color: var(--akb-club-yellow);
+}
+
+.akb-calc-res-label {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--akb-club-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.akb-calc-note {
+	font-size: 12px;
+	color: var(--akb-club-text-muted);
+	text-align: center;
+	margin-top: 18px;
+	line-height: 1.5;
+}
+
+/* ─── 3. FORMAS DE GANAR PUNTOS ───────────────────────────────── */
+.akb-club-ways-section {
+	margin-bottom: 56px;
+}
+
+.akb-ways-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 16px;
+	margin-top: 24px;
+}
+
+.akb-way-card {
+	background: var(--akb-club-surface-1);
+	border: 1.5px solid var(--akb-club-border);
+	border-radius: 8px;
+	padding: 24px 20px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	position: relative;
+	overflow: hidden;
+	transition: transform 0.2s ease, border-color 0.2s ease;
+	box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.akb-way-card::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: var(--akb-club-red);
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 0.25s ease;
+}
+
+.akb-way-card:hover {
+	transform: translateY(-3px);
+	border-color: var(--akb-club-red);
+}
+
+.akb-way-card:hover::before {
+	transform: scaleX(1);
+}
+
+.akb-way-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.akb-way-icon {
+	font-size: 28px;
+	flex-shrink: 0;
+}
+
+.akb-way-title {
+	font-size: 16px;
+	font-weight: 800;
+	color: var(--akb-club-text);
+	margin: 0;
+}
+
+.akb-way-reward {
+	font-family: var(--akb-club-font-head);
+	font-size: 24px;
+	color: var(--akb-club-yellow);
+	letter-spacing: 0.03em;
+	margin-bottom: 8px;
+}
+
+.akb-way-desc {
+	font-size: 13px;
+	color: var(--akb-club-text-muted);
+	line-height: 1.55;
+	margin: 0 0 16px;
+	flex-grow: 1;
+}
+
+.akb-way-pill {
+	display: inline-block;
+	align-self: flex-start;
+	background: var(--akb-club-surface-2);
+	border: 1px solid var(--akb-club-border-strong);
+	color: var(--akb-club-text);
+	font-size: 11px;
+	font-weight: 700;
+	padding: 3px 10px;
+	border-radius: 12px;
+}
+
+/* ─── 4. NIVELES DE COLECCIONISTA (TIERS) ───────────────────────── */
+.akb-club-tiers-section {
+	margin-bottom: 56px;
+}
+
+.akb-tiers-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+	margin-top: 24px;
+}
+
+.akb-tier-card {
+	background: var(--akb-club-surface-1);
+	border: 2px solid var(--akb-club-border);
+	border-radius: 8px;
+	padding: 24px 20px;
+	text-align: center;
+	box-shadow: var(--akb-club-shadow);
+	position: relative;
+	transition: transform 0.2s ease;
+}
+
+.akb-tier-card--highlight {
+	border-color: var(--akb-club-yellow);
+	box-shadow: 4px 4px 0 var(--akb-club-yellow);
+}
+
+.akb-tier-icon {
+	font-size: 36px;
+	display: block;
+	margin-bottom: 8px;
+}
+
+.akb-tier-name {
+	font-family: var(--akb-club-font-head);
+	font-size: 26px;
+	text-transform: uppercase;
+	color: var(--akb-club-text);
+	margin: 0 0 4px;
+	letter-spacing: 0.03em;
+}
+
+.akb-tier-threshold {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--akb-club-text-muted);
+	margin-bottom: 14px;
+}
+
+.akb-tier-multiplier {
+	display: inline-block;
+	background: var(--akb-club-surface-3);
+	border: 1px solid var(--akb-club-border);
+	color: var(--akb-club-yellow);
+	font-size: 13px;
+	font-weight: 800;
+	padding: 4px 12px;
+	border-radius: 16px;
+}
+
+/* ─── 5. CÓMO CANJEAR EN 3 PASOS ───────────────────────────────── */
+.akb-club-steps-section {
+	margin-bottom: 56px;
+}
+
+.akb-steps-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+	margin-top: 24px;
+}
+
+.akb-step-card {
+	background: var(--akb-club-surface-1);
+	border: 1.5px solid var(--akb-club-border);
+	border-radius: 8px;
+	padding: 24px 20px;
+	box-shadow: var(--akb-club-shadow);
+}
+
+.akb-step-num {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	background: var(--akb-club-red-readable);
+	color: var(--akb-club-text);
+	font-family: var(--akb-club-font-head);
+	font-size: 18px;
+	font-weight: 400;
+	font-synthesis: none;
+	border-radius: 50%;
+	margin-bottom: 14px;
+}
+
+.akb-step-title {
+	font-size: 16px;
+	font-weight: 800;
+	color: var(--akb-club-text);
+	margin: 0 0 8px;
+}
+
+.akb-step-desc {
+	font-size: 13px;
+	color: var(--akb-club-text-muted);
+	line-height: 1.55;
+	margin: 0;
+}
+
+/* ─── 6. LO QUE DEBES SABER (FAQ ACCORDIONS) ────────────────────── */
+.akb-club-faq-section {
+	margin-bottom: 56px;
+}
+
+.akb-faq-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 24px;
+}
+
+.akb-faq-item {
+	background: var(--akb-club-surface-1);
+	border: 1.5px solid var(--akb-club-border);
+	border-radius: 6px;
+	overflow: hidden;
+	transition: border-color 0.2s ease;
+}
+
+.akb-faq-item[open] {
+	border-color: var(--akb-club-red);
+}
+
+.akb-faq-summary {
+	padding: 16px 20px;
+	font-weight: 700;
+	font-size: 15px;
+	color: var(--akb-club-text);
+	cursor: pointer;
+	list-style: none;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	user-select: none;
+	min-height: 44px;
+}
+
+.akb-faq-summary:focus-visible {
+	outline: var(--aki-focus-outline, 2px solid #FFF);
+	outline-offset: -2px;
+}
+
+.akb-faq-summary::-webkit-details-marker {
+	display: none;
+}
+
+.akb-faq-icon {
+	font-family: var(--akb-club-font-head);
+	font-size: 22px;
+	color: var(--akb-club-red-text);
+	line-height: 1;
+	transition: transform 0.2s ease;
+}
+
+.akb-faq-item[open] .akb-faq-icon {
+	transform: rotate(45deg);
+}
+
+.akb-faq-body {
+	padding: 0 20px 18px;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--akb-club-text-muted);
+	border-top: 1px solid var(--akb-club-border);
+}
+
+.akb-faq-body p {
+	margin: 12px 0 0;
+}
+
+.akb-faq-body strong {
+	color: var(--akb-club-text);
+}
+
+/* ─── 7. CTA FINAL ─────────────────────────────────────────────── */
+.akb-club-cta-section {
+	text-align: center;
+	background: var(--akb-club-surface-1);
+	border: 2px solid var(--akb-club-border);
+	border-radius: 8px;
+	padding: 40px 20px;
+	box-shadow: var(--akb-club-shadow-red);
+}
+
+.akb-club-cta-title {
+	font-family: var(--akb-club-font-head);
+	font-size: clamp(28px, 5vw, 44px);
+	text-transform: uppercase;
+	margin: 0 0 10px;
+	color: var(--akb-club-text);
+}
+
+.akb-club-cta-desc {
+	font-size: 15px;
+	color: var(--akb-club-text-muted);
+	max-width: 520px;
+	margin: 0 auto 24px;
+	line-height: 1.5;
+}
+
+.akb-club-cta-btns {
+	display: flex;
+	gap: 14px;
+	justify-content: center;
+	flex-wrap: wrap;
+}
+
+.akb-club-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 48px;
+	padding: 12px 28px;
+	border-radius: 4px;
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 0.2s ease, transform 0.15s ease;
+	box-shadow: 3px 3px 0 var(--akb-club-bg);
+}
+
+.akb-club-btn:focus-visible {
+	outline: var(--aki-focus-outline, 2px solid #FFF);
+	outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-club-wrap .akb-club-btn--primary {
+	background: var(--akb-club-red-readable);
+	color: var(--akb-club-text);
+	border: 2px solid var(--akb-club-bg);
+}
+
+.akb-club-wrap .akb-club-btn--primary:hover {
+	background: var(--akb-club-red-hover);
+	color: var(--akb-club-text);
+	transform: translate(-1px, -1px);
+	box-shadow: 4px 4px 0 var(--akb-club-bg);
+}
+
+.akb-club-wrap .akb-club-btn--ghost {
+	background: var(--akb-club-surface-2);
+	color: var(--akb-club-text);
+	border: 2px solid var(--akb-club-border-strong);
+}
+
+.akb-club-wrap .akb-club-btn--ghost:hover {
+	background: var(--akb-club-surface-3);
+	color: var(--akb-club-text);
+	border-color: var(--akb-club-text);
+	transform: translate(-1px, -1px);
+	box-shadow: 4px 4px 0 var(--akb-club-bg);
+}
+
+/* ─── RESPONSIVE GEOMETRY (Zero horizontal scroll) ─────────────── */
+@media (max-width: 600px) {
+
+	.akb-club-wrap {
+		padding: 16px 12px 60px;
+	}
+
+	.akb-calc-card {
+		padding: 20px 16px;
+	}
+
+	.akb-calc-results {
+		grid-template-columns: 1fr;
+	}
+
+	.akb-ways-grid,
+	.akb-tiers-grid,
+	.akb-steps-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.akb-club-cta-btns {
+		flex-direction: column;
+	}
+
+	.akb-club-btn {
+		width: 100%;
+	}
+}

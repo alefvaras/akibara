@@ -25,6 +25,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
  */
 final class FollowRegistry {
 

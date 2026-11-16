@@ -21,41 +21,42 @@
  *   - Mensaje empty con link a /contacto/ si total visibles == 0
  *   - Debounce 80ms en el input para no thrashear el DOM
  *
- * @package akibara-gp
+ * @package
  */
 ( function () {
 	'use strict';
 
-	var ROOT_SELECTOR     = '.akb-brands-directory';
-	var INPUT_SELECTOR    = '.akb-brands-filterbar__input';
-	var CHIP_SELECTOR     = '.akb-brands-chip';
-	var CHIP_ACTIVE_CLASS = 'akb-brands-chip--active';
-	var CARD_SELECTOR     = '.akb-brand-card';
-	var SECTION_SELECTOR  = '.akb-brands-section';
-	var STATUS_SELECTOR      = '.akb-brands-filterbar__status';
-	var STATUS_TEXT_SELECTOR  = '[data-akb-status-text]';
-	var CLEAR_SELECTOR        = '[data-akb-clear-filters]';
-	var EMPTY_SELECTOR        = '.akb-brands-empty';
-	var DEBOUNCE_MS           = 80;
-	var DEFAULT_STATUS_TEXT   = 'Busca por editorial o filtra por región.';
+	const ROOT_SELECTOR     = '.akb-brands-directory';
+	const INPUT_SELECTOR    = '.akb-brands-filterbar__input';
+	const CHIP_SELECTOR     = '.akb-brands-chip';
+	const CHIP_ACTIVE_CLASS = 'akb-brands-chip--active';
+	const CARD_SELECTOR     = '.akb-brand-card';
+	const SECTION_SELECTOR  = '.akb-brands-section';
+	const STATUS_SELECTOR      = '.akb-brands-filterbar__status';
+	const STATUS_TEXT_SELECTOR  = '[data-akb-status-text]';
+	const CLEAR_SELECTOR        = '[data-akb-clear-filters]';
+	const EMPTY_SELECTOR        = '.akb-brands-empty';
+	const DEBOUNCE_MS           = 80;
+	const DEFAULT_STATUS_TEXT   = 'Busca por editorial o filtra por región.';
 
 	function init( root ) {
-		var input    = root.querySelector( INPUT_SELECTOR );
-		var chips    = Array.prototype.slice.call( root.querySelectorAll( CHIP_SELECTOR ) );
-		var cards    = Array.prototype.slice.call( root.querySelectorAll( CARD_SELECTOR ) );
-		var sections = Array.prototype.slice.call( root.querySelectorAll( SECTION_SELECTOR ) );
-		var status      = root.querySelector( STATUS_SELECTOR );
-		var statusText  = root.querySelector( STATUS_TEXT_SELECTOR );
-		var clearButton = root.querySelector( CLEAR_SELECTOR );
-		var empty       = root.querySelector( EMPTY_SELECTOR );
+		const input    = root.querySelector( INPUT_SELECTOR );
+		const cards    = Array.prototype.slice.call( root.querySelectorAll( CARD_SELECTOR ) );
 
 		if ( ! input || cards.length === 0 ) {
 			return;
 		}
 
+		const chips    = Array.prototype.slice.call( root.querySelectorAll( CHIP_SELECTOR ) );
+		const sections = Array.prototype.slice.call( root.querySelectorAll( SECTION_SELECTOR ) );
+		const status      = root.querySelector( STATUS_SELECTOR );
+		const statusText  = root.querySelector( STATUS_TEXT_SELECTOR );
+		const clearButton = root.querySelector( CLEAR_SELECTOR );
+		const empty       = root.querySelector( EMPTY_SELECTOR );
+
 		function initialRegion() {
-			var requested = new window.URLSearchParams( window.location.search ).get( 'region' ) || 'all';
-			var valid     = chips.some( function ( chip ) {
+			const requested = new window.URLSearchParams( window.location.search ).get( 'region' ) || 'all';
+			const valid     = chips.some( function ( chip ) {
 				return ( chip.getAttribute( 'data-akb-region' ) || 'all' ) === requested;
 			} );
 
@@ -67,7 +68,7 @@
 				return;
 			}
 
-			var url = new window.URL( window.location.href );
+			const url = new window.URL( window.location.href );
 			if ( region === 'all' ) {
 				url.searchParams.delete( 'region' );
 			} else {
@@ -76,14 +77,14 @@
 			window.history.replaceState( null, '', url.toString() );
 		}
 
-		var state = {
+		const state = {
 			region: initialRegion(),
 			query : ''
 		};
 
 		function syncChipState( region ) {
 			chips.forEach( function ( chip ) {
-				var isActive = ( chip.getAttribute( 'data-akb-region' ) || 'all' ) === region;
+				const isActive = ( chip.getAttribute( 'data-akb-region' ) || 'all' ) === region;
 
 				chip.classList.toggle( CHIP_ACTIVE_CLASS, isActive );
 				chip.setAttribute( 'aria-pressed', isActive ? 'true' : 'false' );
@@ -99,16 +100,16 @@
 		}
 
 		function apply() {
-			var visible = 0;
-			var q       = state.query;
-			var isDefault = state.region === 'all' && q === '';
+			let visible = 0;
+			const q       = state.query;
+			const isDefault = state.region === 'all' && q === '';
 
 			cards.forEach( function ( card ) {
-				var name      = card.getAttribute( 'data-akb-brand-name' ) || '';
-				var region    = card.getAttribute( 'data-akb-brand-region' ) || '';
-				var matchReg  = state.region === 'all' || region === state.region;
-				var matchName = q === '' || name.indexOf( q ) !== -1;
-				var show      = matchReg && matchName;
+				const name      = card.getAttribute( 'data-akb-brand-name' ) || '';
+				const region    = card.getAttribute( 'data-akb-brand-region' ) || '';
+				const matchReg  = state.region === 'all' || region === state.region;
+				const matchName = q === '' || name.indexOf( q ) !== -1;
+				const show      = matchReg && matchName;
 
 				card.hidden = ! show;
 				if ( show ) {
@@ -119,7 +120,7 @@
 			// Ocultar secciones cuyos hijos están todos hidden — evita títulos
 			// huérfanos cuando un filtro deja una región vacía.
 			sections.forEach( function ( section ) {
-				var anyVisible = section.querySelector(
+				const anyVisible = section.querySelector(
 					CARD_SELECTOR + ':not([hidden])'
 				);
 				section.hidden = ! anyVisible;
@@ -129,9 +130,8 @@
 			// si todo es default, mostramos una guía breve para evitar una
 			// caja vacía que compite con el contenido.
 			if ( status ) {
-				var statusMessage = isDefault
-					? DEFAULT_STATUS_TEXT
-					: ( visible === 1 ? '1 editorial' : visible + ' editoriales' );
+				const countLabel = visible === 1 ? '1 editorial' : visible + ' editoriales';
+				const statusMessage = isDefault ? DEFAULT_STATUS_TEXT : countLabel;
 
 				if ( statusText ) {
 					statusText.textContent = statusMessage;
@@ -150,7 +150,7 @@
 		}
 
 		// Input con debounce — reduce thrash si owner pega texto largo.
-		var debounceTimer = null;
+		let debounceTimer = null;
 		input.addEventListener( 'input', function () {
 			window.clearTimeout( debounceTimer );
 			debounceTimer = window.setTimeout( function () {
@@ -195,7 +195,7 @@
 		// Antes se buscaba `[data-akb-brands]`, un JSON de 2,2 KB con la lista
 		// completa de editoriales que este fichero NUNCA parseó: lo usaba sólo
 		// como esto, un selector de presencia. El atributo se retiró.
-		var roots = document.querySelectorAll( ROOT_SELECTOR + '[data-akb-total]' );
+		const roots = document.querySelectorAll( ROOT_SELECTOR + '[data-akb-total]' );
 		Array.prototype.forEach.call( roots, init );
 	}
 

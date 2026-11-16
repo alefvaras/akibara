@@ -65,7 +65,7 @@ final class NativeCartPayloadTest extends TestCase {
 
 		Functions\when( 'get_option' )->alias(
 			static function ( string $option, $default = false ) {
-				if ( in_array( $option, array( Settings::OPTION_SHOW_RECOMMENDATIONS, 'akb_series_bundles_enabled' ), true ) ) {
+				if ( Settings::OPTION_SHOW_RECOMMENDATIONS === $option ) {
 					return 'no';
 				}
 				return $default;
@@ -123,44 +123,17 @@ final class NativeCartPayloadTest extends TestCase {
 	 * @testdox Should retain the drawer availability label and an empty ETA when no renderer is injected.
 	 */
 	public function test_item_availability_contract(): void {
-		$payload = $this->payload();
-		self::assertSame( 'A pedido', $payload['items'][0]['stock_label'] ?? null );
+		$payload = $this->payload( array( 'instock' ) );
+		self::assertSame( 'Disponible', $payload['items'][0]['stock_label'] ?? null );
 		self::assertArrayHasKey( 'eta', $payload['items'][0] );
 		self::assertSame( '', $payload['items'][0]['eta'] );
 	}
 
 	/**
-	 * @testdox Should show the calculated discounted line amount in the drawer before tax.
+	 * @testdox In the unified 2-state catalog, has_preventa is always false.
 	 */
-	public function test_discounted_line_uses_the_calculated_total(): void {
-		$payload = $this->payload();
-		self::assertSame( '<del>$10000</del> <ins>$8000</ins>', $payload['items'][0]['price_html'] );
-	}
-
-	/**
-	 * @testdox Should include calculated line tax when WooCommerce displays tax-inclusive prices.
-	 */
-	public function test_discounted_line_includes_its_calculated_tax(): void {
-		$payload = $this->payload( array( 'onbackorder' ), true );
-		self::assertSame( '<del>$11900</del> <ins>$9520</ins>', $payload['items'][0]['price_html'] );
-	}
-
-	/**
-	 * @testdox Should flag only actual mixtures of immediate stock and reservations.
-	 * @dataProvider cart_compositions
-	 * @param array<int,string> $statuses Stock status per product.
-	 */
-	public function test_mixed_delivery_flag_matches_cart_composition( array $statuses, bool $mixed ): void {
-		self::assertSame( $mixed, $this->payload( $statuses )['has_preventa'] );
-	}
-
-	/** @return array<string,array{0:array<int,string>,1:bool}> */
-	public static function cart_compositions(): array {
-		return array(
-			'only reservations' => array( array( 'onbackorder' ), false ),
-			'only ready stock'  => array( array( 'instock' ), false ),
-			'mixed delivery'    => array( array( 'instock', 'onbackorder' ), true ),
-			'empty cart'        => array( array(), false ),
-		);
+	public function test_has_preventa_is_always_false(): void {
+		self::assertFalse( $this->payload( array( 'instock' ) )['has_preventa'] );
+		self::assertFalse( $this->payload( array( 'onbackorder' ) )['has_preventa'] );
 	}
 }

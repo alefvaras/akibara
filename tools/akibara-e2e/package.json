@@ -1,0 +1,15 @@
+{
+  "name": "akibara-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pruebas de extremo a extremo de la tienda: navegador real contra el espejo (y, en sólo lectura, contra producción).",
+  "scripts": {
+    "test": "playwright test",
+    "test:prod": "AKB_BASE_URL=https://akibara.cl AKB_SOLO_LECTURA=1 playwright test --grep @prod",
+    "test:prod:completa": "AKB_BASE_URL=https://akibara.cl AKB_SOLO_LECTURA=1 AKB_TOPE_CARGAS=0 playwright test",
+    "report": "playwright show-report ../../output/playwright/e2e-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

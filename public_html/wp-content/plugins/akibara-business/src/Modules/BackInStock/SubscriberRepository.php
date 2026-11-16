@@ -25,6 +25,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress TooManyArguments
  */
 final class SubscriberRepository {
 
@@ -433,5 +436,36 @@ final class SubscriberRepository {
 		);
 
 		return true;
+	}
+
+	/**
+	 * Da de baja las suscripciones de espera activas de un usuario para una lista de productos
+	 * (por ejemplo, cuando los marca como tenidos en su estantería).
+	 *
+	 * @param int             $user_id     ID del usuario.
+	 * @param array<int, int> $product_ids IDs de productos.
+	 * @return int Filas afectadas.
+	 */
+	public function unsubscribe_user_products( int $user_id, array $product_ids ): int {
+		$product_ids = array_values( array_unique( array_filter( array_map( 'intval', $product_ids ) ) ) );
+		if ( $user_id <= 0 || array() === $product_ids ) {
+			return 0;
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $product_ids ), '%d' ) );
+
+		$affected = $this->db->query(
+			$this->db->prepare(
+				"UPDATE {$this->table}
+				SET status = %s
+				WHERE user_id = %d AND status = %s AND product_id IN ({$placeholders})",
+				Subscriber::STATUS_UNSUBSCRIBED,
+				$user_id,
+				Subscriber::STATUS_SUBSCRIBED,
+				...$product_ids
+			)
+		);
+
+		return max( 0, (int) $affected );
 	}
 }

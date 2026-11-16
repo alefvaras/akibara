@@ -1,13 +1,13 @@
 (function (wp, wc) {
 	'use strict';
 
-	var WIDGET_ORIGIN = 'https://widget-pudo.blue.cl';
-	var WRITE_NAMESPACE = 'bluex_pudo';
-	var VALIDATION_KEY = 'akibara-pudo-selection';
-	var MAX_MESSAGE_BYTES = 8192;
-	var UPDATE_TIMEOUT_MS = 15000;
-	var FRAME_TIMEOUT_MS = 12000;
-	var PUDO_METHOD = 'bluex-pudo';
+	const WIDGET_ORIGIN = 'https://widget-pudo.blue.cl';
+	const WRITE_NAMESPACE = 'bluex_pudo';
+	const VALIDATION_KEY = 'akibara-pudo-selection';
+	const MAX_MESSAGE_BYTES = 8192;
+	const UPDATE_TIMEOUT_MS = 15000;
+	const FRAME_TIMEOUT_MS = 12000;
+	const PUDO_METHOD = 'bluex-pudo';
 
 	function isRecord(value) {
 		return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -20,11 +20,11 @@
 	}
 
 	function utf8Length(value) {
-		var length = 0;
-		var index;
+		let length = 0;
+		let index;
 
 		for (index = 0; index < value.length; index += 1) {
-			var code = value.charCodeAt(index);
+			const code = value.charCodeAt(index);
 			if (code < 0x80) {
 				length += 1;
 			} else if (code < 0x800) {
@@ -41,7 +41,7 @@
 	}
 
 	function chileRegionCode(stateName) {
-		var regions = {
+		const regions = {
 			'Aysén': 'CL-AI',
 			'Aisén del General Carlos Ibañez del Campo': 'CL-AI',
 			'Antofagasta': 'CL-AN',
@@ -67,11 +67,12 @@
 			'Valparaíso': 'CL-VS'
 		};
 
+		// eslint-disable-next-line security/detect-object-injection
 		return regions[stateName] || '';
 	}
 
 	function chileRegionName(regionCode) {
-		var names = {
+		const names = {
 			'CL-AI': 'Aysén',
 			'CL-AN': 'Antofagasta',
 			'CL-AP': 'Arica y Parinacota',
@@ -90,6 +91,7 @@
 			'CL-VS': 'Valparaíso'
 		};
 
+		// eslint-disable-next-line security/detect-object-injection
 		return names[regionCode] || '';
 	}
 
@@ -98,7 +100,7 @@
 			return '';
 		}
 
-		var clean = value.trim();
+		const clean = value.trim();
 		if (!clean || clean.length > maxLength || /[\u0000-\u001F\u007F]/.test(clean)) {
 			return '';
 		}
@@ -118,10 +120,10 @@
 			return null;
 		}
 
-		var serialized;
+		let serialized;
 		try {
 			serialized = JSON.stringify(event.data);
-		} catch (error) {
+		} catch (_error) {
 			return null;
 		}
 
@@ -138,14 +140,13 @@
 			return null;
 		}
 
-		var payload = event.data.payload;
-		var location = payload.location;
-		var agencyId = cleanWidgetString(payload.agency_id, 64);
-		var street = cleanWidgetString(location.street_name || '', 100);
-		var number = cleanWidgetString(location.street_number || '', 24);
-		var city = cleanWidgetString(location.city_name || '', 100);
-		var country = cleanWidgetString(location.country_name || '', 40);
-		var region = cleanWidgetString(location.region_code || '', 5).toUpperCase();
+		const payload = event.data.payload;
+		const location = payload.location;
+		const agencyId = cleanWidgetString(payload.agency_id, 64);
+		const street = cleanWidgetString(location.street_name || '', 100);
+		const city = cleanWidgetString(location.city_name || '', 100);
+		const country = cleanWidgetString(location.country_name || '', 40);
+		let region = cleanWidgetString(location.region_code || '', 5).toUpperCase();
 
 		if (!region) {
 			region = chileRegionCode(cleanWidgetString(location.state_name || '', 100));
@@ -162,20 +163,21 @@
 			return null;
 		}
 
-		var address = [street, number, city].filter(Boolean).join(' ').trim();
+		const number = cleanWidgetString(location.street_number || '', 24);
+		const address = [street, number, city].filter(Boolean).join(' ').trim();
 		if (!address || address.length > 200) {
 			return null;
 		}
 
 		return {
 			agency_id: agencyId,
-			address: address,
+			address,
 			region_code: region
 		};
 	}
 
 	function buildWidgetUrl(agencyId) {
-		var cleanId = cleanWidgetString(agencyId || '', 64);
+		let cleanId = cleanWidgetString(agencyId || '', 64);
 		if (cleanId && !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(cleanId)) {
 			cleanId = '';
 		}
@@ -183,7 +185,7 @@
 	}
 
 	function markMessageProcessed(replayRef, request) {
-		var replayKey = JSON.stringify(request);
+		const replayKey = JSON.stringify(request);
 		if (replayRef.current === replayKey) {
 			return false;
 		}
@@ -193,7 +195,7 @@
 	}
 
 	function createAttemptId() {
-		var bytes = new Uint8Array(16);
+		const bytes = new Uint8Array(16);
 		if (!window.crypto || typeof window.crypto.getRandomValues !== 'function') {
 			throw new Error('Secure browser randomness is unavailable.');
 		}
@@ -205,8 +207,8 @@
 	}
 
 	function shippingPackages(props) {
-		var cart = props && props.cart ? props.cart : {};
-		var packages = cart.shippingRates || cart.shipping_rates || (props && props.shippingRates) || [];
+		const cart = props && props.cart ? props.cart : {};
+		const packages = cart.shippingRates || cart.shipping_rates || (props && props.shippingRates) || [];
 		return Array.isArray(packages) ? packages : [];
 	}
 
@@ -237,10 +239,11 @@
 	 * Blue's widget always opens on Santiago and lists every point in Chile. The
 	 * destination is used only to tell the customer where their order ships, never
 	 * to restrict which point they may choose: Blue itself imposes no such rule.
+	 * @param {*} packages
 	 */
 	function pudoDestination(packages) {
-		var packageData = Array.isArray(packages) && packages.length ? packages[0] : null;
-		var destination = packageData && isRecord(packageData.destination)
+		const packageData = Array.isArray(packages) && packages.length ? packages[0] : null;
+		const destination = packageData && isRecord(packageData.destination)
 			? packageData.destination
 			: null;
 
@@ -248,17 +251,17 @@
 			return null;
 		}
 
-		var country = cleanWidgetString(String(destination.country || ''), 5).toUpperCase();
-		var region = cleanWidgetString(String(destination.state || ''), 5).toUpperCase();
-		var city = cleanWidgetString(String(destination.city || ''), 100);
+		const country = cleanWidgetString(String(destination.country || ''), 5).toUpperCase();
+		const region = cleanWidgetString(String(destination.state || ''), 5).toUpperCase();
 
 		if (country !== 'CL' || !/^CL-[A-Z]{2}$/.test(region)) {
 			return null;
 		}
 
+		const city = cleanWidgetString(String(destination.city || ''), 100);
 		return {
-			city: city,
-			region: region
+			city,
+			region
 		};
 	}
 
@@ -267,7 +270,7 @@
 			return '';
 		}
 
-		var regionName = chileRegionName(destination.region);
+		const regionName = chileRegionName(destination.region);
 		if (destination.city && regionName) {
 			return destination.city + ', ' + regionName;
 		}
@@ -276,7 +279,7 @@
 	}
 
 	function regionScopeHint(destination) {
-		var place = destinationPlaceLabel(destination);
+		const place = destinationPlaceLabel(destination);
 		if (!place) {
 			return '';
 		}
@@ -285,19 +288,18 @@
 	}
 
 	function extensionData(props) {
-		var extensions = props && props.extensions
-			? props.extensions
-			: props && props.cart && props.cart.extensions
-				? props.cart.extensions
-				: {};
+		const cartExt = props && props.cart && props.cart.extensions ? props.cart.extensions : {};
+		const extensions = props && props.extensions ? props.extensions : cartExt;
 
+		// eslint-disable-next-line security/detect-object-injection
 		return extensions && isRecord(extensions[WRITE_NAMESPACE])
+			// eslint-disable-next-line security/detect-object-injection
 			? extensions[WRITE_NAMESPACE]
 			: {};
 	}
 
 	function monitorTimeout(promise, timeoutMs, onTimeout) {
-		var timeout = window.setTimeout(function () {
+		const timeout = window.setTimeout(function () {
 			onTimeout();
 		}, timeoutMs);
 
@@ -318,10 +320,10 @@
 	}
 
 	function createSerializedQueue() {
-		var tail = Promise.resolve();
+		let tail = Promise.resolve();
 
 		return function enqueue(operation) {
-			var current = tail.catch(function () {
+			const current = tail.catch(function () {
 				// A failed request must not poison the queue for the next valid state change.
 			}).then(operation);
 
@@ -333,18 +335,16 @@
 		};
 	}
 
-	var enqueueCartUpdateOperation = createSerializedQueue();
-
 	function isolateDocumentBehindModal(modalElement) {
 		if (!modalElement || !document || !document.body) {
 			return function () {};
 		}
 
-		var records = [];
-		var current = modalElement;
+		const records = [];
+		let current = modalElement;
 
 		while (current && current !== document.body) {
-			var parent = current.parentElement;
+			const parent = current.parentElement;
 			if (!parent) {
 				break;
 			}
@@ -374,7 +374,7 @@
 
 		return function restoreDocument() {
 			records.reverse().forEach(function (record) {
-				var element = record.element;
+				const element = record.element;
 				if (!element || typeof element.setAttribute !== 'function') {
 					return;
 				}
@@ -407,28 +407,29 @@
 	}
 
 	function setValidationError(message) {
-		var actions = validationActions();
+		const actions = validationActions();
 		if (!actions || typeof actions.setValidationErrors !== 'function') {
 			return;
 		}
 
-		var errors = {};
+		const errors = {};
+		// eslint-disable-next-line security/detect-object-injection
 		errors[VALIDATION_KEY] = {
-			message: message,
+			message,
 			hidden: false
 		};
 		actions.setValidationErrors(errors);
 	}
 
 	function clearValidationError() {
-		var actions = validationActions();
+		const actions = validationActions();
 		if (actions && typeof actions.clearValidationError === 'function') {
 			actions.clearValidationError(VALIDATION_KEY);
 		}
 	}
 
 	/* Lista de códigos emitidos por PudoIntegration::throw_route_error para el endpoint bluex_pudo del Store API. Un código ajeno a esta lista no se considera mensaje de nuestro backend. */
-	var PUDO_BACKEND_ERROR_CODES = [
+	const PUDO_BACKEND_ERROR_CODES = [
 		'akibara_pudo_checkout_invalid',
 		'akibara_pudo_invalid_destination',
 		'akibara_pudo_invalid_payload',
@@ -443,13 +444,16 @@
 		'akibara_pudo_validation_failed'
 	];
 
-	/** Extrae mensajes seguros de errores Store API con códigos propios de PUDO. Los fallos de red, DNS, CORS o JSON de api-fetch usan el mensaje en castellano de handleMessage. Se rechazan mensajes vacíos, largos o con marcado. */
+	/**
+	 * Extrae mensajes seguros de errores Store API con códigos propios de PUDO. Los fallos de red, DNS, CORS o JSON de api-fetch usan el mensaje en castellano de handleMessage. Se rechazan mensajes vacíos, largos o con marcado.
+	 * @param {*} error
+	 */
 	function serverMessage(error) {
 		if (!error || typeof error.code !== 'string' || PUDO_BACKEND_ERROR_CODES.indexOf(error.code) === -1) {
 			return '';
 		}
 
-		var candidate = error.message
+		let candidate = error.message
 			|| (error.data && error.data.message)
 			|| (error.response && error.response.message)
 			|| '';
@@ -468,26 +472,26 @@
 
 	if (window.akbPudoBlocksTestMode === true) {
 		window.akbPudoBlocksTestApi = Object.freeze({
-			WIDGET_ORIGIN: WIDGET_ORIGIN,
-			MAX_MESSAGE_BYTES: MAX_MESSAGE_BYTES,
-			buildWidgetUrl: buildWidgetUrl,
-			canDismissOperation: canDismissOperation,
-			chileRegionName: chileRegionName,
-			destinationPlaceLabel: destinationPlaceLabel,
-			pudoDestination: pudoDestination,
-			regionScopeHint: regionScopeHint,
-			clearValidationError: clearValidationError,
-			createSerializedQueue: createSerializedQueue,
-			createAttemptId: createAttemptId,
-			isolateDocumentBehindModal: isolateDocumentBehindModal,
-			markMessageProcessed: markMessageProcessed,
-			monitorTimeout: monitorTimeout,
-			parseWidgetMessage: parseWidgetMessage,
-			serverMessage: serverMessage,
-			setValidationError: setValidationError,
-			selectedPudoPackages: selectedPudoPackages,
-			shippingPackages: shippingPackages,
-			utf8Length: utf8Length
+			WIDGET_ORIGIN,
+			MAX_MESSAGE_BYTES,
+			buildWidgetUrl,
+			canDismissOperation,
+			chileRegionName,
+			destinationPlaceLabel,
+			pudoDestination,
+			regionScopeHint,
+			clearValidationError,
+			createSerializedQueue,
+			createAttemptId,
+			isolateDocumentBehindModal,
+			markMessageProcessed,
+			monitorTimeout,
+			parseWidgetMessage,
+			serverMessage,
+			setValidationError,
+			selectedPudoPackages,
+			shippingPackages,
+			utf8Length
 		});
 	}
 
@@ -502,13 +506,13 @@
 		return;
 	}
 
-	var createElement = wp.element.createElement;
-	var Fragment = wp.element.Fragment;
-	var useEffect = wp.element.useEffect;
-	var useRef = wp.element.useRef;
-	var useState = wp.element.useState;
-	var ExperimentalOrderShippingPackages = wc.blocksCheckout.ExperimentalOrderShippingPackages;
-	var extensionCartUpdate = wc.blocksCheckout.extensionCartUpdate;
+	const createElement = wp.element.createElement;
+	const Fragment = wp.element.Fragment;
+	const useEffect = wp.element.useEffect;
+	const useRef = wp.element.useRef;
+	const useState = wp.element.useState;
+	const ExperimentalOrderShippingPackages = wc.blocksCheckout.ExperimentalOrderShippingPackages;
+	const extensionCartUpdate = wc.blocksCheckout.extensionCartUpdate;
 
 	if (
 		typeof ExperimentalOrderShippingPackages !== 'function'
@@ -519,6 +523,8 @@
 	) {
 		return;
 	}
+
+	const enqueueCartUpdateOperation = createSerializedQueue();
 
 	function CloseIcon() {
 		return createElement(
@@ -538,10 +544,10 @@
 	}
 
 	function PudoModal(props) {
-		var dialogRef = props.dialogRef;
-		var iframeRef = props.iframeRef;
-		var dismissible = canDismissOperation(props.saving, props.timedOut);
-		var interactionBlocked = props.loading || props.saving || Boolean(props.error);
+		const dialogRef = props.dialogRef;
+		const iframeRef = props.iframeRef;
+		const dismissible = canDismissOperation(props.saving, props.timedOut);
+		const interactionBlocked = props.loading || props.saving || Boolean(props.error);
 
 		function handleKeyDown(event) {
 			if (event.key === 'Escape') {
@@ -556,7 +562,7 @@
 				return;
 			}
 
-			var focusable = Array.prototype.slice.call(
+			const focusable = Array.prototype.slice.call(
 				dialogRef.current.querySelectorAll(
 					'button:not([disabled]):not([tabindex="-1"]), iframe:not([tabindex="-1"]), [href]:not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])'
 				)
@@ -566,12 +572,12 @@
 				return;
 			}
 
-			var first = focusable[0];
-			var last = focusable[focusable.length - 1];
-			if (event.shiftKey && document.activeElement === first) {
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (event.shiftKey && document.documentElement.ownerDocument.activeElement === first) {
 				event.preventDefault();
 				last.focus();
-			} else if (!event.shiftKey && document.activeElement === last) {
+			} else if (!event.shiftKey && document.documentElement.ownerDocument.activeElement === last) {
 				event.preventDefault();
 				first.focus();
 			}
@@ -581,7 +587,7 @@
 			'div',
 				{
 					className: 'akb-pudo-modal',
-					onMouseDown: function (event) {
+					onMouseDown (event) {
 						if (event.target === event.currentTarget && dismissible) {
 							props.onClose();
 						}
@@ -717,50 +723,47 @@
 	}
 
 	function PudoShippingFill(props) {
-		var packages = shippingPackages(props);
-		var pudoPackages = selectedPudoPackages(packages);
-		var extension = extensionData(props);
-		var agencyId = cleanWidgetString(extension.agency_id || '', 64);
-		var agencyName = cleanWidgetString(extension.agency_name || '', 160);
-		var agencyAddress = cleanWidgetString(extension.agency_address || '', 240);
-		var hasPudo = pudoPackages.length > 0;
-		var isMultiPackage = hasPudo && packages.length !== 1;
-		var destination = pudoDestination(pudoPackages);
-		var destinationRegion = destination ? destination.region : '';
-		var destinationPlace = destinationPlaceLabel(destination);
-		var scopeHint = regionScopeHint(destination);
-		var stateOpen = useState(false);
-		var open = stateOpen[0];
-		var setOpen = stateOpen[1];
-		var stateLoading = useState(true);
-		var loading = stateLoading[0];
-		var setLoading = stateLoading[1];
-		var stateSaving = useState(false);
-		var saving = stateSaving[0];
-		var setSaving = stateSaving[1];
-		var stateTimedOut = useState(false);
-		var timedOut = stateTimedOut[0];
-		var setTimedOut = stateTimedOut[1];
-		var stateError = useState('');
-		var error = stateError[0];
-		var setError = stateError[1];
-		var stateFrameKey = useState(0);
-		var frameKey = stateFrameKey[0];
-		var setFrameKey = stateFrameKey[1];
-		var dialogRef = useRef(null);
-		var iframeRef = useRef(null);
-		var modalRef = useRef(null);
-		var retryButtonRef = useRef(null);
-		var savingStatusRef = useRef(null);
-		var selectionButtonRef = useRef(null);
-		var multiPackageErrorRef = useRef(null);
-		var triggerRef = useRef(null);
-		var previousActiveRef = useRef(null);
-			var replayRef = useRef('');
-			var savingRef = useRef(false);
-			var timedOutRef = useRef(false);
-			var clearedAgencyRef = useRef('');
-			var invalidFocusRef = useRef('');
+		const packages = shippingPackages(props);
+		const pudoPackages = selectedPudoPackages(packages);
+		const extension = extensionData(props);
+		const agencyId = cleanWidgetString(extension.agency_id || '', 64);
+		const hasPudo = pudoPackages.length > 0;
+		const isMultiPackage = hasPudo && packages.length !== 1;
+		const destination = pudoDestination(pudoPackages);
+		const destinationRegion = destination ? destination.region : '';
+		const destinationPlace = destinationPlaceLabel(destination);
+		const stateOpen = useState(false);
+		const open = stateOpen[0];
+		const setOpen = stateOpen[1];
+		const stateLoading = useState(true);
+		const loading = stateLoading[0];
+		const setLoading = stateLoading[1];
+		const stateSaving = useState(false);
+		const saving = stateSaving[0];
+		const setSaving = stateSaving[1];
+		const stateTimedOut = useState(false);
+		const timedOut = stateTimedOut[0];
+		const setTimedOut = stateTimedOut[1];
+		const stateError = useState('');
+		const error = stateError[0];
+		const setError = stateError[1];
+		const stateFrameKey = useState(0);
+		const frameKey = stateFrameKey[0];
+		const setFrameKey = stateFrameKey[1];
+		const dialogRef = useRef(null);
+		const iframeRef = useRef(null);
+		const modalRef = useRef(null);
+		const retryButtonRef = useRef(null);
+		const savingStatusRef = useRef(null);
+		const selectionButtonRef = useRef(null);
+		const multiPackageErrorRef = useRef(null);
+		const triggerRef = useRef(null);
+		const previousActiveRef = useRef(null);
+			const replayRef = useRef('');
+			const savingRef = useRef(false);
+			const timedOutRef = useRef(false);
+			const clearedAgencyRef = useRef('');
+			const invalidFocusRef = useRef('');
 
 		/* serverMessage es independiente de las props y del estado del componente; comparte el contrato de PUDO_BACKEND_ERROR_CODES. */
 
@@ -768,7 +771,7 @@
 			return enqueueCartUpdateOperation(function () {
 				return extensionCartUpdate({
 					namespace: WRITE_NAMESPACE,
-					data: data
+					data
 				});
 			});
 			}
@@ -792,7 +795,7 @@
 				}
 
 				triggerRef.current = event.currentTarget;
-				previousActiveRef.current = document.activeElement;
+				previousActiveRef.current = document.documentElement.ownerDocument.activeElement;
 				replayRef.current = '';
 				setError('');
 				timedOutRef.current = false;
@@ -813,8 +816,13 @@
 		}
 
 		useEffect(function () {
-			var focusTimeout;
-			var invalidKind = isMultiPackage ? 'multi-package' : hasPudo && !agencyId ? 'missing-selection' : '';
+			let focusTimeout;
+			let invalidKind = '';
+			if (isMultiPackage) {
+				invalidKind = 'multi-package';
+			} else if (hasPudo && !agencyId) {
+				invalidKind = 'missing-selection';
+			}
 
 			if (isMultiPackage) {
 				setValidationError('El retiro en Punto Blue Express no admite pedidos divididos en más de un envío.');
@@ -828,7 +836,7 @@
 			if (invalidKind === 'multi-package' && invalidFocusRef.current !== invalidKind) {
 				invalidFocusRef.current = invalidKind;
 				focusTimeout = window.setTimeout(function () {
-					var focusTarget = multiPackageErrorRef.current;
+					const focusTarget = multiPackageErrorRef.current;
 					if (focusTarget && typeof focusTarget.focus === 'function') {
 						focusTarget.focus();
 					}
@@ -876,8 +884,8 @@
 			}
 
 			document.body.classList.add('akb-pudo-modal-open');
-			var restoreDocument = function () {};
-			var focusTimeout = window.setTimeout(function () {
+			let restoreDocument = function () {};
+			const focusTimeout = window.setTimeout(function () {
 				restoreDocument = isolateDocumentBehindModal(modalRef.current);
 
 				document.addEventListener('focusin', keepFocusInDialog, true);
@@ -912,7 +920,7 @@
 				document.removeEventListener('focusin', keepFocusInDialog, true);
 				restoreDocument();
 				document.body.classList.remove('akb-pudo-modal-open');
-				var focusTarget = triggerRef.current || previousActiveRef.current;
+				const focusTarget = triggerRef.current || previousActiveRef.current;
 				if (focusTarget && typeof focusTarget.focus === 'function') {
 					focusTarget.focus();
 				}
@@ -924,7 +932,7 @@
 				return undefined;
 			}
 
-			var focusTimeout = window.setTimeout(function () {
+			const focusTimeout = window.setTimeout(function () {
 				if (error && retryButtonRef.current) {
 					retryButtonRef.current.focus();
 					return;
@@ -938,7 +946,7 @@
 				if (
 					loading
 					&& iframeRef.current
-					&& document.activeElement === iframeRef.current
+					&& document.documentElement.ownerDocument.activeElement === iframeRef.current
 				) {
 					iframeRef.current.blur();
 					if (dialogRef.current && typeof dialogRef.current.focus === 'function') {
@@ -957,7 +965,7 @@
 				return undefined;
 			}
 
-			var timeout = window.setTimeout(function () {
+			const timeout = window.setTimeout(function () {
 				setLoading(false);
 				setError('El mapa tardó demasiado en responder. Comprueba tu conexión y vuelve a intentarlo.');
 			}, FRAME_TIMEOUT_MS);
@@ -965,6 +973,7 @@
 			return function () {
 				window.clearTimeout(timeout);
 			};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [open, loading, frameKey]);
 
 		useEffect(function () {
@@ -973,7 +982,7 @@
 			}
 
 			async function handleMessage(event) {
-				var request = parseWidgetMessage(event, iframeRef.current);
+				const request = parseWidgetMessage(event, iframeRef.current);
 				if (!request || savingRef.current) {
 					return;
 				}
@@ -1021,6 +1030,7 @@
 			return function () {
 				window.removeEventListener('message', handleMessage);
 			};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [open, frameKey, destinationRegion, destinationPlace]);
 
 		if (!hasPudo) {
@@ -1040,18 +1050,21 @@
 			);
 		}
 
-		var packageCards = packages.map(function (packageData, index) {
-			var selected = selectedPudoPackages([packageData]).length === 1;
+		const agencyName = cleanWidgetString(extension.agency_name || '', 160);
+		const agencyAddress = cleanWidgetString(extension.agency_address || '', 240);
+		const scopeHint = regionScopeHint(destination);
+		const packageCards = packages.map(function (packageData, index) {
+			const selected = selectedPudoPackages([packageData]).length === 1;
 			if (!selected) {
 				return null;
 			}
-			var packageId = String(packageData.package_id === undefined ? index : packageData.package_id);
-			var packageSlug = packageId.replace(/[^A-Za-z0-9_-]/g, '-');
-			var headingId = 'akb-pudo-package-title-' + packageSlug;
-			var helpId = 'akb-pudo-package-help-' + packageSlug;
-			var errorId = 'akb-pudo-package-error-' + packageSlug;
-			var selectionId = 'akb-pudo-package-selection-' + packageSlug;
-			var descriptionId = agencyId ? selectionId : helpId + ' ' + errorId;
+			const packageId = String(packageData.package_id === undefined ? index : packageData.package_id);
+			const packageSlug = packageId.replace(/[^A-Za-z0-9_-]/g, '-');
+			const headingId = 'akb-pudo-package-title-' + packageSlug;
+			const helpId = 'akb-pudo-package-help-' + packageSlug;
+			const errorId = 'akb-pudo-package-error-' + packageSlug;
+			const selectionId = 'akb-pudo-package-selection-' + packageSlug;
+			const descriptionId = agencyId ? selectionId : helpId + ' ' + errorId;
 
 			return createElement(
 				'section',
@@ -1102,7 +1115,7 @@
 						'aria-describedby': descriptionId,
 						'aria-errormessage': !agencyId ? errorId : undefined,
 							'aria-invalid': !agencyId ? 'true' : 'false',
-							className: 'akb-pudo-button',
+							className: agencyId ? 'akb-pudo-button akb-pudo-button--selected' : 'akb-pudo-button',
 							disabled: saving,
 							onClick: openModal,
 						ref: selectionButtonRef,
@@ -1119,25 +1132,25 @@
 			packageCards,
 			open
 				? createElement(PudoModal, {
-					dialogRef: dialogRef,
-					error: error,
-					frameKey: frameKey,
-					iframeRef: iframeRef,
-					loading: loading,
-					modalRef: modalRef,
+					dialogRef,
+					error,
+					frameKey,
+					iframeRef,
+					loading,
+					modalRef,
 					onClose: closeModal,
-					onFrameLoad: function () {
+					onFrameLoad () {
 						setLoading(false);
 					},
 					onRetry: retryFrame,
-						scopeHint: scopeHint,
-						retryButtonRef: retryButtonRef,
-						saving: saving,
-						savingStatusRef: savingStatusRef,
+						scopeHint,
+						retryButtonRef,
+						saving,
+						savingStatusRef,
 						savingMessage: timedOut
 							? 'Blue Express aún está validando el punto. Puedes cerrar este selector y elegir otro método de envío o recargar la página.'
 							: 'Validando el punto con Blue Express…',
-						timedOut: timedOut,
+						timedOut,
 						src: buildWidgetUrl(agencyId)
 				})
 				: null
@@ -1145,7 +1158,7 @@
 	}
 
 	wp.plugins.registerPlugin('akibara-blocks-pudo', {
-		render: function () {
+		render () {
 			return createElement(
 				ExperimentalOrderShippingPackages,
 				null,

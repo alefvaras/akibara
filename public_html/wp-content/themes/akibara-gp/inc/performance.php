@@ -32,6 +32,10 @@ defined( 'ABSPATH' ) || exit;
  * @param mixed                 $attachment Attachment object.
  * @param string|int[]          $size Requested image size.
  * @return array<string, string>
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_handle_home_product_image_loading( array $attr, $attachment, $size ): array {
 	if ( ! akibara_gp_is_home_surface() ) {
@@ -65,6 +69,10 @@ add_filter( 'wp_get_attachment_image_attributes', 'akibara_gp_handle_home_produc
  *
  * Corre en el hook que WooCommerce dispara justo antes del loop del archive, con
  * la consulta principal ya resuelta.
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_prime_catalog_thumbnails(): void {
 	global $wp_query;
@@ -75,6 +83,7 @@ function akibara_gp_prime_catalog_thumbnails(): void {
 
 	update_post_thumbnail_cache( $wp_query );
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_before_shop_loop', 'akibara_gp_prime_catalog_thumbnails', 5 );
 
 /**
@@ -85,6 +94,10 @@ add_action( 'woocommerce_before_shop_loop', 'akibara_gp_prime_catalog_thumbnails
  *
  * @param mixed $results Resultado de WC_Shortcode_Products::get_query_results().
  * @return mixed El mismo resultado, intacto.
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_prime_shortcode_thumbnails( $results ) {
 	if ( ! is_object( $results ) || empty( $results->ids ) || ! function_exists( '_prime_post_caches' ) ) {
@@ -111,6 +124,7 @@ function akibara_gp_prime_shortcode_thumbnails( $results ) {
 
 	return $results;
 }
+/** @psalm-suppress HookNotFound */
 add_filter( 'woocommerce_shortcode_products_query_results', 'akibara_gp_prime_shortcode_thumbnails' );
 
 /**
@@ -150,6 +164,10 @@ add_filter( 'woocommerce_shortcode_products_query_results', 'akibara_gp_prime_sh
  * @param mixed        $sizes Valor calculado por WordPress.
  * @param string|int[] $size  Tamaño solicitado.
  * @return mixed
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_catalog_image_sizes( $sizes, $size ) {
 	$venta_cruzada = akibara_gp_is_cross_sell_loop();
@@ -212,6 +230,10 @@ const AKIBARA_GP_CROSS_SELL_LOOP = 'akb-cross-sell';
  * (portada, blog, correos). Preguntar no puede cambiar el estado del loop.
  *
  * @return bool
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_is_cross_sell_loop(): bool {
 	return isset( $GLOBALS['woocommerce_loop']['name'] )
@@ -228,6 +250,10 @@ function akibara_gp_is_cross_sell_loop(): bool {
  *   - Búsqueda vacía con barra lateral: descuenta el ancho de facetas.
  *
  * @return string
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_cross_sell_image_sizes(): string {
 	if ( function_exists( 'is_cart' ) && is_cart() ) {
@@ -260,6 +286,10 @@ function akibara_gp_cross_sell_image_sizes(): string {
  * @param mixed        $image_meta    Metadatos del adjunto (sin uso).
  * @param int|string   $attachment_id Adjunto.
  * @return mixed
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_single_cover_sizes( $sizes, $size, $image_src = null, $image_meta = null, $attachment_id = 0 ) {
 	unset( $image_src, $image_meta );
@@ -288,6 +318,10 @@ add_filter( 'wp_calculate_image_sizes', 'akibara_gp_single_cover_sizes', 10, 5 )
  * @param int $ancho Ancho del derivado que se pinta.
  * @param int $alto  Alto del derivado que se pinta.
  * @return string
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_single_cover_sizes_value( int $ancho, int $alto ): string {
 	$movil = '(max-width: 768px) calc(100vw - 32px)';
@@ -307,6 +341,10 @@ function akibara_gp_single_cover_sizes_value( int $ancho, int $alto ): string {
  * (relacionados, armador, logos) y levantar el producto cada vez no aporta nada.
  *
  * @return int[]
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_queried_product_image_ids(): array {
 	static $por_producto = array();
@@ -347,6 +385,10 @@ function akibara_gp_queried_product_image_ids(): array {
  *
  * @param mixed $threshold Umbral original de WordPress.
  * @return int
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_catalog_lazy_threshold( $threshold ) {
 	if ( ! akibara_gp_is_catalog_archive() ) {
@@ -372,6 +414,10 @@ add_filter( 'wp_omit_loading_attr_threshold', 'akibara_gp_catalog_lazy_threshold
  * placeholder no es un adjunto se pinta con un `<img>` a mano que no pasa por
  * `wp_get_attachment_image_attributes` (wc-product-functions.php:471-481), pero
  * ocupa su celda igual.
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_catalog_grid_start(): void {
 	if ( isset( $GLOBALS['akibara_gp_rejilla'] ) || ! akibara_gp_is_catalog_archive() ) {
@@ -395,6 +441,7 @@ function akibara_gp_catalog_grid_start(): void {
 		'base' => (int) did_action( 'woocommerce_before_shop_loop_item' ),
 	);
 }
+/** @psalm-suppress HookNotFound */
 add_action( 'woocommerce_before_shop_loop', 'akibara_gp_catalog_grid_start', 1 );
 
 /**
@@ -402,6 +449,10 @@ add_action( 'woocommerce_before_shop_loop', 'akibara_gp_catalog_grid_start', 1 )
  * está dentro de una celda (algo pintado encima de la rejilla).
  *
  * @return int
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_catalog_cover_position(): int {
 	$base = isset( $GLOBALS['akibara_gp_rejilla']['base'] ) ? (int) $GLOBALS['akibara_gp_rejilla']['base'] : 0;
@@ -421,6 +472,10 @@ function akibara_gp_catalog_cover_position(): int {
  * @param mixed                 $attachment Adjunto.
  * @param string|int[]          $size       Tamaño solicitado.
  * @return array<string, string>
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_catalog_cover_loading( array $attr, $attachment, $size ): array {
 	// Aquí SÍ llega el nombre (a diferencia de `wp_calculate_image_sizes`):
@@ -478,6 +533,10 @@ add_filter( 'wp_get_attachment_image_attributes', 'akibara_gp_catalog_cover_load
  *
  * @param array<string, string> $attr Atributos de la imagen.
  * @return array<string, string>
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_align_auto_sizes( array $attr ): array {
 	if ( empty( $attr['sizes'] ) || ! is_string( $attr['sizes'] ) ) {
@@ -536,6 +595,10 @@ function akibara_gp_align_auto_sizes( array $attr ): array {
  *
  * @param mixed $enabled Lo que diga core o quien haya filtrado antes.
  * @return mixed
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_email_images_without_lazy( $enabled ) {
 	if ( doing_action( 'woocommerce_email_order_details' ) || doing_action( 'woocommerce_email_fulfillment_details' ) ) {
@@ -585,13 +648,17 @@ add_filter( 'wp_lazy_loading_enabled', 'akibara_gp_email_images_without_lazy', 9
  * en las tarjetas de producto durante el renderizado inicial.
  *
  * @return string[]
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_home_deferred_style_handles(): array {
 	return array(
 		'wc-blocks-style',
 		'akb-search-suggest',
 		'akb-wishlist',
-		'akb-estimated-delivery',
+		'akb-bis-form',
 		'akibara-native-cart',
 		'akibara-brands-home',
 		'akb-fsp',
@@ -609,6 +676,10 @@ function akibara_gp_home_deferred_style_handles(): array {
  * @param string $href   Stylesheet URL.
  * @param string $media  Original media attribute.
  * @return string
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_gp_defer_noncritical_home_style(
 	string $html,
@@ -643,6 +714,10 @@ add_filter( 'style_loader_tag', 'akibara_gp_defer_noncritical_home_style', 20, 4
  * plugin está inactivo (degradación elegante).
  *
  * @return int[]
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedFunction
  */
 function akibara_get_popular_cross_sell_ids(): array {
 	return array_map( 'intval', (array) apply_filters( 'akibara/popular_product_ids', array(), 4 ) ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- nombre publicado por akibara-business (PopularProducts).

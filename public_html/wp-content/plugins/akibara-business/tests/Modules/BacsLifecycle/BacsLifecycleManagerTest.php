@@ -10,7 +10,6 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Tests\Modules\BacsLifecycle;
 
 use Akibara\Business\Modules\BacsLifecycle\BacsLifecycleManager;
-use Akibara\Business\Support\BusinessOptions;
 use Brain\Monkey;
 use Brain\Monkey\Actions;
 use Brain\Monkey\Filters;
@@ -119,13 +118,13 @@ final class BacsLifecycleManagerTest extends TestCase {
 
 	public function test_on_order_hold_schedules_actions_when_bacs(): void {
 		Functions\when( 'get_option' )->alias( function( $opt, $default = false ) {
-			if ( BusinessOptions::OPT_BACS_AUTO_CANCEL_ENABLED === $opt ) {
+			if ( BacsLifecycleManager::OPT_AUTO_CANCEL_ENABLED === $opt ) {
 				return 'yes';
 			}
-			if ( BusinessOptions::OPT_BACS_REMINDER_HOURS === $opt ) {
+			if ( BacsLifecycleManager::OPT_REMINDER_HOURS === $opt ) {
 				return 12;
 			}
-			if ( BusinessOptions::OPT_BACS_EXPIRY_HOURS === $opt ) {
+			if ( BacsLifecycleManager::OPT_EXPIRY_HOURS === $opt ) {
 				return 24;
 			}
 			return $default;
@@ -179,7 +178,7 @@ final class BacsLifecycleManagerTest extends TestCase {
 
 	public function test_expire_order_respects_grace_period(): void {
 		Functions\when( 'get_option' )->alias( function( $opt, $default = false ) {
-			if ( BusinessOptions::OPT_BACS_RECEIPT_GRACE_HOURS === $opt ) {
+			if ( BacsLifecycleManager::OPT_RECEIPT_GRACE_HOURS === $opt ) {
 				return 48;
 			}
 			return $default;

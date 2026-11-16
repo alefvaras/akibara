@@ -34,6 +34,9 @@ use Akibara\Business\Modules\SeriesDirectory\Shortcode;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class SeriesHubUrl {
 
 	/**

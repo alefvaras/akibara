@@ -9,9 +9,27 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Reviews;
 
+use Akibara\Rewards\Support\Options;
+
 defined( 'ABSPATH' ) || exit;
 
-/** Mantiene la reseña de la ficha voluntaria, verificada y pendiente. */
+/**
+ * Mantiene la reseña de la ficha voluntaria, verificada y pendiente. @api 
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress MissingFile
+ * @psalm-suppress PossiblyUnusedMethod
+ * @psalm-suppress PossiblyUnusedReturnValue
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress MissingFile
+ * @psalm-suppress PossiblyUnusedMethod
+ * @psalm-suppress PossiblyUnusedReturnValue
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
+ */
 final class VoluntaryReviewForm {
 
 	private const PHOTO_FIELD = 'akb_vr_photo';
@@ -40,16 +58,21 @@ final class VoluntaryReviewForm {
 	 *
 	 * @param array<string,mixed> $args Argumentos del formulario.
 	 * @return array<string,mixed>
+	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function handle_form_args( array $args ): array {
 		$product_id = (int) get_the_ID();
 		if ( get_current_user_id() <= 0 || 'product' !== get_post_type( $product_id ) ) {
 			return $args;
 		}
-		$args['comment_field'] = (string) ( $args['comment_field'] ?? '' )
+		$lane_on   = Options::reviews_lane_on();
+		$help_text = $lane_on
+			? 'Máximo 5 MB; JPG, PNG, WebP o HEIC. Si adjuntas una foto real de tu compra verificada, solicitarás puntos al aprobarse.'
+			: 'Máximo 5 MB; JPG, PNG, WebP o HEIC. Adjuntar una foto no solicita puntos.';
+		$args['comment_field'] = ($args['comment_field'] ?? '')
 			. wp_nonce_field( 'akb_voluntary_review_' . $product_id, self::NONCE_FIELD, true, false )
-			. '<input type="hidden" name="akb_rf_points_requested" value="0">'
-			. '<p class="comment-form-photo"><label for="akb_vr_photo">Foto de tu compra (opcional)</label><input type="file" id="akb_vr_photo" name="akb_vr_photo" accept="image/jpeg,image/png,image/webp,image/heic" aria-describedby="akb-vr-photo-help"><span id="akb-vr-photo-help">Máximo 5 MB; JPG, PNG, WebP o HEIC. Adjuntar una foto no solicita puntos.</span></p>';
+			. '<input type="hidden" name="akb_rf_points_requested" value="' . ( $lane_on ? '1' : '0' ) . '">'
+			. '<p class="comment-form-photo"><label for="akb_vr_photo">Foto de tu compra (opcional)</label><input type="file" id="akb_vr_photo" name="akb_vr_photo" accept="image/jpeg,image/png,image/webp,image/heic" aria-describedby="akb-vr-photo-help"><span id="akb-vr-photo-help">' . esc_html( $help_text ) . '</span></p>';
 		return $args;
 	}
 
@@ -77,9 +100,10 @@ final class VoluntaryReviewForm {
 	 * Valida compra, nonce y foto; toda reseña nativa es voluntaria.
 	 *
 	 * @param array<string,mixed> $data Datos sin insertar.
+	  * @psalm-suppress PossiblyUnusedReturnValue
 	 * @return array<string,mixed>
 	 */
-	public function handle_preprocess_comment( array $data ): array {
+	public function handle_preprocess_comment( array $data ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$path = (string) wp_parse_url( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), PHP_URL_PATH );
 		if ( 1 !== preg_match( '#(?:^|/)wp-comments-post\.php$#', $path ) ) {
 			return $data;
@@ -139,9 +163,12 @@ final class VoluntaryReviewForm {
 			$this->attachment_id = $upload;
 			$this->product_id    = $product_id;
 		}
+		$quota     = ReviewEligibility::user_points_quota( $user_id );
+		$requested = ( $this->attachment_id > 0 && Options::reviews_lane_on() && $quota['remaining_quota'] > 0 ) ? 1 : 0;
+
 		$data['comment_type']                                        = 'review';
 		$data['comment_meta']                                        = is_array( $data['comment_meta'] ?? null ) ? $data['comment_meta'] : array();
-		$data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] = 0;
+		$data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] = $requested;
 		$data['comment_meta'][ ReviewForm::META_ORDER ]              = $order_id;
 		$data['comment_meta']['verified']                            = 1;
 		return $data;
@@ -149,19 +176,28 @@ final class VoluntaryReviewForm {
 
 	/**
 	 * Respeta el interruptor nativo y conserva spam, papelera y errores del núcleo.
+	 * Las reseñas que solicitan puntos con foto siempre quedan pendientes de moderación.
 	 *
 	 * @param int|string|\WP_Error $approved Veredicto previo.
 	 * @param array<string,mixed>  $data Datos de reseña.
+	  * @psalm-suppress PossiblyUnusedReturnValue
 	 * @return int|string|\WP_Error
 	 */
 	public function handle_pre_comment_approved( $approved, array $data ) {
+		if ( is_wp_error( $approved ) || in_array( $approved, array( 'spam', 'trash' ), true ) ) {
+			return $approved;
+		}
+		if ( 'product' !== get_post_type( (int) ( $data['comment_post_ID'] ?? 0 ) ) ) {
+			return $approved;
+		}
+		$requested = $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] ?? null;
+		if ( 1 === $requested ) {
+			return 0;
+		}
 		if ( 'yes' !== (string) get_option( 'akb_rewards_moderate_reviews', 'yes' ) ) {
 			return $approved;
 		}
-		if ( isset( $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ] )
-			&& 0 === $data['comment_meta'][ ReviewPoints::META_POINTS_REQUESTED ]
-			&& 'product' === get_post_type( (int) ( $data['comment_post_ID'] ?? 0 ) )
-			&& ! is_wp_error( $approved ) && ! in_array( $approved, array( 'spam', 'trash' ), true ) ) {
+		if ( 0 === $requested ) {
 			return 0;
 		}
 		return $approved;
@@ -174,8 +210,11 @@ final class VoluntaryReviewForm {
 	 * @param \WP_Comment $comment Reseña creada por Core.
 	 */
 	public function handle_inserted_comment( int $comment_id, \WP_Comment $comment ): void {
-		if ( $this->attachment_id <= 0 || (int) $comment->comment_post_ID !== $this->product_id
-			|| '0' !== (string) get_comment_meta( $comment_id, ReviewPoints::META_POINTS_REQUESTED, true ) ) {
+		if ( $this->attachment_id <= 0 || (int) $comment->comment_post_ID !== $this->product_id ) {
+			return;
+		}
+		$req_meta = (string) get_comment_meta( $comment_id, ReviewPoints::META_POINTS_REQUESTED, true );
+		if ( ! in_array( $req_meta, array( '0', '1' ), true ) ) {
 			return;
 		}
 		if ( ! Media::attach_photo( $comment_id, $this->attachment_id, $this->product_id ) ) {

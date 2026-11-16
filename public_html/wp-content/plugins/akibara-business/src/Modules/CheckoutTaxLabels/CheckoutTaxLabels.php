@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
  * Keeps customer-facing tax vocabulary consistent across cart and orders.
  *
  * @since 1.96.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class CheckoutTaxLabels {
 

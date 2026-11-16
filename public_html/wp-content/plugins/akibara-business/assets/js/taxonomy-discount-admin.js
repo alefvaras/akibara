@@ -71,10 +71,15 @@
 			return;
 		}
 
+		function currentValue(input) {
+			if (input.type === 'checkbox' || input.type === 'radio') {
+				return input.checked ? '1' : '0';
+			}
+			return input.value || '';
+		}
+
 		inputs.forEach(function (input) {
-			input.dataset.akbOriginal = input.type === 'checkbox' || input.type === 'radio'
-				? (input.checked ? '1' : '0')
-				: (input.value || '');
+			input.dataset.akbOriginal = currentValue(input);
 		});
 
 		const saveBar = document.createElement('div');
@@ -86,12 +91,6 @@
 			'<button type="submit" name="akibara_panel_save" class="button button-primary akb-sticky-save-bar__button">' +
 			'Guardar ajustes</button>';
 		form.appendChild(saveBar);
-
-		function currentValue(input) {
-			return input.type === 'checkbox' || input.type === 'radio'
-				? (input.checked ? '1' : '0')
-				: (input.value || '');
-		}
 
 		function isDirty() {
 			return inputs.some(function (input) {

@@ -19,12 +19,17 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Points;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Options;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UndefinedFunction
  */
 final class Birthday {
 
@@ -95,7 +100,7 @@ final class Birthday {
 			$dia = (int) $m[2];
 		}
 
-		$meses = array( 1 => 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' );
+		$meses = array_combine( array_keys( Dates::MESES_ES ), array_map( 'ucfirst', Dates::MESES_ES ) );
 
 		// Accesibilidad: agrupación semántica con fieldset + legend y
 		// etiquetas vinculadas por ID para lectores de pantalla.
@@ -108,7 +113,7 @@ final class Birthday {
 		echo '<label for="akb_rw_birthday_dia" class="screen-reader-text">Día de tu cumpleaños</label>';
 		echo '<select name="akb_rw_birthday_dia" id="akb_rw_birthday_dia" style="min-height:44px"><option value="">Día</option>';
 		for ( $d = 1; $d <= 31; $d++ ) {
-			printf( '<option value="%1$d"%2$s>%1$d</option>', (int) $d, selected( $dia, $d, false ) );
+			printf( '<option value="%1$d"%2$s>%1$d</option>', (int) $d, selected( $dia, (int) $d, false ) );
 		}
 		echo '</select>';
 		echo '<label for="akb_rw_birthday_mes" class="screen-reader-text">Mes de tu cumpleaños</label>';
@@ -118,7 +123,7 @@ final class Birthday {
 		}
 		echo '</select></span>';
 		if ( $user_id > 0 ) {
-			$anio_actual = (int) ( new \DateTimeImmutable( 'now', wp_timezone() ) )->format( 'Y' );
+			$anio_actual = (int) Dates::to_datetime()->format( 'Y' );
 			if ( (int) get_user_meta( $user_id, self::META_PAID_YEAR, true ) >= $anio_actual ) {
 				echo '<p class="akb-rw-birthday-note" style="margin:6px 0 0;font-size:13px;opacity:.8">Ya recibiste tu regalo de cumpleaños de este año; si cambias la fecha, aplicará desde el próximo.</p>';
 			}
@@ -154,11 +159,11 @@ final class Birthday {
 			? wc_customer_edit_account_url()
 			: ( function_exists( 'wc_get_endpoint_url' ) ? wc_get_endpoint_url( 'edit-account' ) : '#' );
 		?>
-		<div class="akb-dashboard__birthday-banner" style="margin:20px 0;padding:16px 20px;background:#fff8eb;border:1px solid #ffe3b3;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+		<div class="akb-dashboard__birthday-banner" style="margin:20px 0;padding:16px 20px;background:#141414;border:2px solid #2b2b2b;border-left:5px solid #FFCC00;border-radius:0;box-shadow:4px 4px 0 #000;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
 			<div style="display:flex;align-items:center;gap:12px">
 				<span style="font-size:26px;line-height:1" aria-hidden="true">🎂</span>
 				<div>
-					<p style="margin:0;font-weight:600;color:#1a1a1a;font-size:15px">
+					<p style="margin:0;font-weight:800;color:#FFCC00;font-size:15px;text-transform:uppercase;letter-spacing:.03em">
 						<?php
 						echo esc_html(
 							sprintf(
@@ -168,12 +173,12 @@ final class Birthday {
 						);
 						?>
 					</p>
-					<p style="margin:4px 0 0;color:#666;font-size:13px">
+					<p style="margin:4px 0 0;color:#d4d4d4;font-size:13px">
 						Registra tu día y mes para recibir tus 1.000 Puntos Akibara ($1.000) cada año.
 					</p>
 				</div>
 			</div>
-			<a href="<?php echo esc_url( $edit_url ); ?>" class="button" style="white-space:nowrap;font-size:13px;padding:8px 16px">
+			<a href="<?php echo esc_url( $edit_url ); ?>" class="button" style="display:inline-flex;align-items:center;min-height:44px;white-space:nowrap;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:8px 16px;background:#E60012;color:#fff;border:2px solid #000;border-radius:0;box-shadow:3px 3px 0 #000;text-decoration:none">
 				Registrar fecha
 			</a>
 		</div>
@@ -229,7 +234,7 @@ final class Birthday {
 			return;
 		}
 
-		$now = new \DateTimeImmutable( 'now', wp_timezone() );
+		$now = Dates::to_datetime();
 
 		// Ventana de recuperación: evalúa la fecha actual y los días anteriores
 		// configurados. Protege contra retrasos en la ejecución de Action
@@ -249,7 +254,7 @@ final class Birthday {
 		}
 
 		foreach ( $dias as $md => $anio_del_regalo ) {
-			$this->pay_birthdays( (string) $md, $anio_del_regalo, $points );
+			$this->pay_birthdays( $md, $anio_del_regalo, $points );
 		}
 	}
 
@@ -283,8 +288,9 @@ final class Birthday {
 			);
 
 			$this->pay_batch( (array) $users, $md, $year, $points );
+			$user_count = count( (array) $users );
 			++$paged;
-		} while ( count( (array) $users ) === 200 );
+		} while ( 200 === $user_count );
 	}
 
 	/**

@@ -29,6 +29,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.16.1
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class LscPurger {
 
@@ -68,7 +70,8 @@ final class LscPurger {
 			return;
 		}
 		$this->scheduled = true;
-		add_action( 'shutdown', array( $this, 'do_purge' ), 99 );
+		// Prioridad -10 para correr antes de LiteSpeed Core::send_headers() (shutdown:0) en CLI/cron.
+		add_action( 'shutdown', array( $this, 'do_purge' ), -10 );
 	}
 
 	/**

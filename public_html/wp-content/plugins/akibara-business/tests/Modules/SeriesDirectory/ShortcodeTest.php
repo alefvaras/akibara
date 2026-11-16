@@ -63,7 +63,7 @@ final class ShortcodeEligibilityWpdb {
 
 final class ShortcodeTest extends TestCase {
 
-	private const CACHE_KEY = 'akb_series_directory_v4';
+	private const CACHE_KEY = Shortcode::TRANSIENT_KEY;
 
 	/** @var array<string, mixed> */
 	private array $transients = array();
@@ -77,6 +77,9 @@ final class ShortcodeTest extends TestCase {
 	/** @var array<int, string> Estado de la edición por serie (UC-14). */
 	private array $estados = array();
 
+	/** @var array<int, int|string> Total de tomos de la edición por serie. */
+	private array $tomos_edicion = array();
+
 	/** @var array<int,int> */
 	private array $catalog_counts = array();
 
@@ -89,9 +92,11 @@ final class ShortcodeTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		$this->transients   = array();
-		$this->terms        = array();
-		$this->robots       = array();
+		$this->transients    = array();
+		$this->terms         = array();
+		$this->robots        = array();
+		$this->estados       = array();
+		$this->tomos_edicion = array();
 		$this->catalog_counts = array();
 		$this->eligibility_database = new ShortcodeEligibilityWpdb();
 		$this->term_queries = 0;
@@ -132,9 +137,16 @@ final class ShortcodeTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_term_meta' )->alias(
-			fn( int $term_id, string $key, bool $single = false ) => PublicationStatus::META_EDITION_STATE === $key
-				? ( $this->estados[ $term_id ] ?? '' )
-				: ( $this->robots[ $term_id ] ?? '' )
+			function ( int $term_id, string $key, bool $single = false ) {
+				unset( $single );
+				if ( PublicationStatus::META_EDITION_STATE === $key ) {
+					return $this->estados[ $term_id ] ?? '';
+				}
+				if ( PublicationStatus::META_EDITION_TOTAL === $key ) {
+					return $this->tomos_edicion[ $term_id ] ?? '';
+				}
+				return $this->robots[ $term_id ] ?? '';
+			}
 		);
 		Functions\when( 'get_term_link' )->alias(
 			static fn( $term ) => 'https://akibara.cl/serie/' . $term->slug . '/'
@@ -272,21 +284,17 @@ final class ShortcodeTest extends TestCase {
 	}
 
 	/**
-	 * La barra del índice conserva la forma del alfabeto, pero las letras sin
-	 * series NO son enlaces: un ancla a una sección inexistente deja al lector
-	 * donde estaba y a un rastreador siguiendo un fragmento muerto.
+	 * Tras la orden de producto, el índice alfabético fue eliminado para dar paso
+	 * a búsqueda reactiva unificada (título, autor, editorial) y panel de filtros.
 	 *
-	 * @testdox Should link only the letters that actually have a section.
+	 * @testdox Should not print the redundant letter index bar.
 	 */
-	public function test_links_only_letters_with_a_section(): void {
+	public function test_does_not_print_letter_index_bar(): void {
 		$html = $this->shortcode()->render();
 
-		self::assertStringContainsString( 'href="#akb-series-a"', $html );
-		self::assertStringContainsString( 'href="#akb-series-num"', $html );
-		self::assertStringNotContainsString( 'href="#akb-series-q"', $html );
-		self::assertStringContainsString( '--empty" aria-hidden="true">Q<', $html );
-		// Y las 27 etiquetas siguen impresas: la barra no cambia de forma.
-		self::assertSame( 27, substr_count( $html, 'akb-series-directory__letter-item' ) );
+		self::assertStringNotContainsString( 'akb-series-directory__index', $html );
+		self::assertStringNotContainsString( 'akb-series-directory__letter-item', $html );
+		self::assertStringContainsString( 'data-akb-toggle-facets', $html );
 	}
 
 	/**
@@ -359,8 +367,8 @@ final class ShortcodeTest extends TestCase {
 		$html = $this->shortcode()->render();
 
 		self::assertStringContainsString( '>Buscar una serie o edición</label>', $html );
-		self::assertStringContainsString( 'placeholder="Escribe el nombre de la serie o edición"', $html );
-		self::assertStringContainsString( 'aria-label="Índice alfabético de series y ediciones"', $html );
+		self::assertStringContainsString( 'placeholder="Escribe la serie, autor o edición"', $html );
+		self::assertStringContainsString( 'aria-label="Filtros rápidos y panel"', $html );
 		self::assertStringContainsString( 'aria-controls="akb-series-directory-results"', $html );
 		self::assertStringContainsString( 'id="akb-series-directory-results"', $html );
 		self::assertStringContainsString( 'role="status"', $html );
@@ -370,26 +378,15 @@ final class ShortcodeTest extends TestCase {
 	}
 
 	/**
-	 * El atributo de comportamiento permite limpiar el filtro antes de resolver
-	 * el fragmento; de otro modo una letra puede apuntar a un grupo oculto.
-	 *
-	 * @testdox Should mark alphabet links for search-aware fragment navigation.
-	 */
-	public function test_marks_alphabet_links_for_search_aware_navigation(): void {
-		$html = $this->shortcode()->render();
-
-		self::assertStringContainsString( 'href="#akb-series-a" data-akb-series-letter', $html );
-		self::assertStringNotContainsString( 'href="#akb-series-q" data-akb-series-letter', $html );
-	}
-
-	/**
 	 * El texto de búsqueda viaja calculado desde el servidor: el JS compara dos
 	 * cadenas plegadas por el MISMO criterio que ordena el índice.
 	 *
 	 * @testdox Should ship each entry with its server-folded search text.
 	 */
 	public function test_ships_the_folded_search_text(): void {
-		self::assertStringContainsString( 'data-akb-serie="akira"', $this->shortcode()->render() );
+		$html = $this->shortcode()->render();
+		self::assertStringContainsString( 'data-akb-serie="akira"', $html );
+		self::assertStringContainsString( 'data-akb-serie-id="2"', $html );
 	}
 
 	/**
@@ -455,13 +452,19 @@ final class ShortcodeTest extends TestCase {
 	public function test_flushes_on_series_term_changes(): void {
 		$shortcode = $this->shortcode();
 
-		foreach ( array( 'created_pa_serie', 'edited_pa_serie', 'delete_pa_serie' ) as $hook ) {
+		foreach ( array(
+			'created_pa_serie',
+			'edited_pa_serie',
+			'delete_pa_serie',
+			'edited_product_brand',
+			'edited_pa_pais',
+		) as $hook ) {
 			Monkey\Actions\expectAdded( $hook )->once()->with( array( $shortcode, 'flush_cache' ) );
 		}
 
 		$shortcode->register();
 
-		self::assertTrue( true, 'Los tres hooks de término quedaron colgados.' );
+		self::assertTrue( true, 'Los hooks de término de serie, editorial y país quedaron colgados.' );
 	}
 
 	/** @testdox Should register both final and direct-removal relationship boundaries. */
@@ -661,6 +664,11 @@ final class ShortcodeTest extends TestCase {
 		$this->transients[ self::CACHE_KEY ] = '<div>viejo</div>';
 		$shortcode->flush_on_public_term_meta( 3, 10, PublicationStatus::META_EDITION_STATE );
 		self::assertArrayNotHasKey( self::CACHE_KEY, $this->transients );
+
+		// Ediciones relacionadas alteran la búsqueda cruzada y pistas.
+		$this->transients[ self::CACHE_KEY ] = '<div>viejo</div>';
+		$shortcode->flush_on_public_term_meta( 4, 10, \Akibara\Business\Modules\SeriesDirectory\Shortcode::META_RELATED_EDITIONS );
+		self::assertArrayNotHasKey( self::CACHE_KEY, $this->transients );
 	}
 
 	/**
@@ -765,7 +773,6 @@ final class ShortcodeTest extends TestCase {
 
 		self::assertStringContainsString( '<span class="akb-series-directory__origin">Editorial Ivrea · Argentina</span>', $html );
 		self::assertStringContainsString( '<span class="akb-series-directory__origin">Panini Manga · España</span>', $html );
-		self::assertStringContainsString( '<span class="akb-series-directory__related-hint">También como: Fumando juntos detrás del súper</span>', $html );
 		self::assertStringContainsString( 'data-akb-filter-pais="argentina"', $html );
 		self::assertStringContainsString( 'data-akb-filter-pais="espana"', $html );
 		self::assertStringContainsString( 'data-akb-filter-editorial="editorial-ivrea"', $html );
@@ -791,7 +798,58 @@ final class ShortcodeTest extends TestCase {
 		self::assertArrayNotHasKey( self::CACHE_KEY, $this->transients );
 
 		$this->transients[ self::CACHE_KEY ] = '<div>viejo</div>';
-		$shortcode->flush_on_public_term_meta( 4, 607, '_akb_serie_ediciones_relacionadas' );
+		$shortcode->flush_on_public_term_meta( 4, 607, PublicationStatus::META_EDITION_STATE );
 		self::assertArrayNotHasKey( self::CACHE_KEY, $this->transients );
+
+		$this->transients[ self::CACHE_KEY ] = '<div>viejo</div>';
+		$shortcode->flush_on_public_term_meta( 5, 607, PublicationStatus::META_EDITION_TOTAL );
+		self::assertArrayNotHasKey( self::CACHE_KEY, $this->transients );
+	}
+
+	/**
+	 * Cuando el catálogo contiene series «Al día» (`al_dia`) y «En pausa» (`en_pausa`),
+	 * el selector de Estado debe exponer sus chips de filtro.
+	 *
+	 * @testdox Should expose Al día and En pausa state filter chips when present in the directory.
+	 */
+	public function test_exposes_al_dia_and_en_pausa_state_facets(): void {
+		$this->term( 4, 'frieren', 'Frieren', 15 );
+		$this->term( 5, 'saga-integral', 'Saga Integral', 3 );
+		$this->estados[1] = 'completa';
+		$this->estados[2] = 'en_publicacion';
+		$this->estados[3] = 'completa';
+		$this->estados[4] = 'al_dia';
+		$this->estados[5] = 'en_pausa';
+
+		$html = $this->shortcode()->render();
+
+		self::assertStringContainsString( 'data-akb-filter-estado="al_dia" aria-pressed="false">Al día</button>', $html );
+		self::assertStringContainsString( 'data-akb-filter-estado="en_pausa" aria-pressed="false">En pausa</button>', $html );
+		self::assertStringContainsString( 'data-akb-estado="al_dia"', $html );
+		self::assertStringContainsString( 'data-akb-estado="en_pausa"', $html );
+	}
+
+	/**
+	 * Cuando una edición tiene más tomos publicados/anunciados (`_akb_serie_tomos_edicion`)
+	 * que los presentes en el catálogo (ej. Naruto con 5 de 72 tomos en catálogo), el
+	 * directorio explicita «5 de 72 tomos en catálogo» para no contradecir el estado
+	 * «Completa» ni el número del último tomo vendido.
+	 *
+	 * @testdox Should format volume count as X de Y tomos en catálogo when edition total exceeds catalog count.
+	 */
+	public function test_formats_partial_catalog_count_against_edition_total(): void {
+		$this->term( 406, 'naruto', 'Naruto', 5 );
+		$this->estados[406]       = 'completa';
+		$this->tomos_edicion[406] = 72;
+
+		// Y una serie de 10 tomos con sólo 1 tomo en catálogo no debe etiquetarse como Tomo único.
+		$this->estados[3]       = 'completa';
+		$this->tomos_edicion[3] = 10;
+
+		$html = $this->shortcode()->render();
+
+		self::assertStringContainsString( '>5 de 72 tomos en catálogo<', $html );
+		self::assertStringContainsString( '>1 de 10 tomos en catálogo<', $html );
+		self::assertStringNotContainsString( 'data-akb-estado="tomo_unico"', $html );
 	}
 }

@@ -1,0 +1,2395 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-24",
+  "environment": "docker-local-snapshot",
+  "purpose": "Fail-closed, UI-only follow-up for canonical notation, Spanish orthography and dead editorial markup.",
+  "rank_math_excluded": true,
+  "policy": {
+    "official_ui_first": true,
+    "no_direct_database_writes": true,
+    "delete_valid_published_content_as_historical_garbage": false,
+    "remove_only_verified_dead_historical_markup": true,
+    "preserve_urls_and_html_attributes": true
+  },
+  "evidence": {
+    "mob_psycho_canonical_notation": "???%",
+    "mob_psycho_reference": "https://www.penguinrandomhouse.com/books/759806/mob-psycho-100-volume-16-by-story-and-art-by-one/"
+  },
+  "audit_summary": {
+    "entries": 13,
+    "total_exact_substitutions": 477,
+    "encoding_replacement_characters_observed": 0,
+    "mojibake_markers_observed": 0
+  },
+  "entries": [
+    {
+      "key": "product:15418:post_excerpt",
+      "object_type": "product",
+      "object_id": 15418,
+      "title": "Mob Psycho 100 07",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "canonical_notation_corrupted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 07 > Descripción corta del producto > Actualizar",
+      "expected_before": "Mob Psycho 100 07 separa a Mob de Reigen y prepara el despertar de ?%, su emoción reprimida. Edición 2 en 1 de Ivrea Argentina; despacho según cobertura.",
+      "expected_before_sha256": "fecfd82531dcf486fdad55a99cb73a92f261a6da3799110bbfcb5cb4e2fcae8e",
+      "substitutions": [
+        {
+          "before": "?%",
+          "after": "???%",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "Mob Psycho 100 07 separa a Mob de Reigen y prepara el despertar de ???%, su emoción reprimida. Edición 2 en 1 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "0de3da5d016857473cd696508dd6e04392dffbc21b7b36af36d802ffa2dc925c"
+    },
+    {
+      "key": "product:15418:post_content",
+      "object_type": "product",
+      "object_id": 15418,
+      "title": "Mob Psycho 100 07",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "canonical_notation_corrupted",
+        "missing_article"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 07 > Descripción del producto > Actualizar",
+      "expected_before": "<h2>Mob Psycho 100 07 — Reigen, el escándalo y la vida sin maestro</h2>\n\n<p>El penúltimo gran giro del manga es también el más arriesgado en términos editoriales: ONE separa a su dúo central. Una entrevista mal manejada por <strong>Reigen Arataka</strong> termina con la prensa exponiéndolo como el charlatán que siempre fue, la opinión pública se vuelve contra él y su negocio espiritual se desploma. <strong>Mob</strong>, decepcionado al descubrir lo que en el fondo ya intuía pero no quería verbalizar, abandona temporalmente al maestro al que dedicó la mitad de su adolescencia. La fórmula con la que arrancó la serie queda partida en dos.</p>\n\n<p>El manga atraviesa varios capítulos de un Mob solitario que intenta reconstruir una rutina sin el adulto que oficiaba de red de seguridad cómica y emocional. El protagonista entra y sale de clubes escolares, ensaya pequeñas victorias sociales, profundiza en su relación con <strong>Tsubomi</strong> —el crush eterno que lo viene moviendo desde el primer tomo— y enfrenta retos sin la frase tranquilizadora que Reigen siempre tenía a mano. Pero el verdadero problema crece desde adentro: el ego que Mob había reprimido con tanto cuidado empieza a tomar autonomía y a manifestarse como una entidad separada bautizada simplemente <strong>?%</strong>.</p>\n\n<p>Esa sombra vigila al protagonista esperando un instante de debilidad para tomar control completo. ONE prepara, sin marquesina, el clímax filosófico del manga: la pregunta sobre qué hacemos con las partes de nosotros que llevamos años queriendo apagar. Mientras tanto, Reigen descubre, sin Mob al lado, que sus técnicas humanas seguían siendo útiles aun sin el respaldo psíquico que las amplificaba. Cada uno crece en ausencia del otro y el reencuentro queda promisorio.</p>\n\n<p><strong>Edición Ivrea Argentina (2-en-1)</strong> — Tomo 07, compila los volúmenes originales 13 y 14 publicados por Shōgakukan. Formato B6 de 12,8 × 18 cm con sobrecubierta, alrededor de 400 páginas en blanco y negro con páginas a color iniciales. Lectura en sentido oriental. Obra de <strong>ONE</strong>, autor también de One-Punch Man, serializada originalmente en Manga ONE entre 2012 y 2017 y adaptada al anime por el estudio Bones en tres temporadas. Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "a91f20cb85d531c44011ac4a62e56d61bc3a7a83569bf4f6d6a871165f88507f",
+      "substitutions": [
+        {
+          "before": "?%",
+          "after": "???%",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "tomar control completo",
+          "after": "tomar el control completo",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<h2>Mob Psycho 100 07 — Reigen, el escándalo y la vida sin maestro</h2>\n\n<p>El penúltimo gran giro del manga es también el más arriesgado en términos editoriales: ONE separa a su dúo central. Una entrevista mal manejada por <strong>Reigen Arataka</strong> termina con la prensa exponiéndolo como el charlatán que siempre fue, la opinión pública se vuelve contra él y su negocio espiritual se desploma. <strong>Mob</strong>, decepcionado al descubrir lo que en el fondo ya intuía pero no quería verbalizar, abandona temporalmente al maestro al que dedicó la mitad de su adolescencia. La fórmula con la que arrancó la serie queda partida en dos.</p>\n\n<p>El manga atraviesa varios capítulos de un Mob solitario que intenta reconstruir una rutina sin el adulto que oficiaba de red de seguridad cómica y emocional. El protagonista entra y sale de clubes escolares, ensaya pequeñas victorias sociales, profundiza en su relación con <strong>Tsubomi</strong> —el crush eterno que lo viene moviendo desde el primer tomo— y enfrenta retos sin la frase tranquilizadora que Reigen siempre tenía a mano. Pero el verdadero problema crece desde adentro: el ego que Mob había reprimido con tanto cuidado empieza a tomar autonomía y a manifestarse como una entidad separada bautizada simplemente <strong>???%</strong>.</p>\n\n<p>Esa sombra vigila al protagonista esperando un instante de debilidad para tomar el control completo. ONE prepara, sin marquesina, el clímax filosófico del manga: la pregunta sobre qué hacemos con las partes de nosotros que llevamos años queriendo apagar. Mientras tanto, Reigen descubre, sin Mob al lado, que sus técnicas humanas seguían siendo útiles aun sin el respaldo psíquico que las amplificaba. Cada uno crece en ausencia del otro y el reencuentro queda promisorio.</p>\n\n<p><strong>Edición Ivrea Argentina (2-en-1)</strong> — Tomo 07, compila los volúmenes originales 13 y 14 publicados por Shōgakukan. Formato B6 de 12,8 × 18 cm con sobrecubierta, alrededor de 400 páginas en blanco y negro con páginas a color iniciales. Lectura en sentido oriental. Obra de <strong>ONE</strong>, autor también de One-Punch Man, serializada originalmente en Manga ONE entre 2012 y 2017 y adaptada al anime por el estudio Bones en tres temporadas. Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "d41bd89423aab79d891d7eba298b1957687c59f606c91f95b8d058ad442e3a95"
+    },
+    {
+      "key": "product:15421:post_content",
+      "object_type": "product",
+      "object_id": 15421,
+      "title": "Mob Psycho 100 08",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "canonical_notation_corrupted",
+        "missing_article",
+        "untranslated_common_noun"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 08 > Descripción del producto > Actualizar",
+      "expected_before": "<h2>Mob Psycho 100 Vol. 8 — ?%: el ego de Mob toma control y la confesión a Tsubomi</h2>\n<p>El final del manga ejecuta el conflicto que se venía sembrando desde el primer tomo: el <strong>?% (Mob al cien por ciento sin freno)</strong> toma control completo del cuerpo de Shigeo y emprende una campaña de destrucción urbana. La ciudad entera entra en pánico, el ejército despliega tanques inútiles, los aliados psíquicos —<strong>Teruki</strong>, <strong>Ritsu</strong>, <strong>Serizawa</strong>, los miembros redimidos de Claw— se enfrentan al ?% sin lograr detenerlo. <strong>Reigen</strong> regresa al centro de la trama: lo único que puede detener a Mob es la conexión humana del maestro charlatán con su discípulo. La conversación final entre ambos en plena devastación urbana es el clímax emocional definitivo del manga: Reigen reconoce ser un fraude profesional pero un mentor genuino, Mob acepta su ego como parte integrante de sí mismo, no como algo a reprimir. La integración devuelve la calma. El epílogo cierra con Mob confesando finalmente sus sentimientos a <strong>Tsubomi</strong> en una secuencia adolescente desencantada y conmovedora a partes iguales.</p>\n<p>ONE entrega uno de los finales más recordados del manga reciente: el villain era el ego reprimido del propio protagonista, la solución es la integración, el final emocional pasa por la confesión adolescente más torpe del medio. Cierre filosófico, cómico y tierno.</p>\n<p><strong>Edición Ivrea Argentina (2-en-1)</strong> · Formato B6 (12.8 × 18 cm) con sobrecubierta · ~400 páginas · Compila los volúmenes finales originales 15 y 16 (Shōgakukan, Japón, 2017-2018; edición Argentina 2-en-1 2024) · Obra de <strong>ONE</strong> · Recomendado +13 años · Envío según cobertura del transportista desde Akibara.</p>",
+      "expected_before_sha256": "407bae7e4744a4d0e955e2aed52cc8af281872700635481a0358ad48a65b71df",
+      "substitutions": [
+        {
+          "before": "?%",
+          "after": "???%",
+          "match_mode": "text_literal",
+          "expected_count": 3
+        },
+        {
+          "before": "toma control",
+          "after": "toma el control",
+          "match_mode": "text_literal",
+          "expected_count": 2
+        },
+        {
+          "before": "villain",
+          "after": "villano",
+          "match_mode": "text_word",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<h2>Mob Psycho 100 Vol. 8 — ???%: el ego de Mob toma el control y la confesión a Tsubomi</h2>\n<p>El final del manga ejecuta el conflicto que se venía sembrando desde el primer tomo: el <strong>???% (Mob al cien por ciento sin freno)</strong> toma el control completo del cuerpo de Shigeo y emprende una campaña de destrucción urbana. La ciudad entera entra en pánico, el ejército despliega tanques inútiles, los aliados psíquicos —<strong>Teruki</strong>, <strong>Ritsu</strong>, <strong>Serizawa</strong>, los miembros redimidos de Claw— se enfrentan al ???% sin lograr detenerlo. <strong>Reigen</strong> regresa al centro de la trama: lo único que puede detener a Mob es la conexión humana del maestro charlatán con su discípulo. La conversación final entre ambos en plena devastación urbana es el clímax emocional definitivo del manga: Reigen reconoce ser un fraude profesional pero un mentor genuino, Mob acepta su ego como parte integrante de sí mismo, no como algo a reprimir. La integración devuelve la calma. El epílogo cierra con Mob confesando finalmente sus sentimientos a <strong>Tsubomi</strong> en una secuencia adolescente desencantada y conmovedora a partes iguales.</p>\n<p>ONE entrega uno de los finales más recordados del manga reciente: el villano era el ego reprimido del propio protagonista, la solución es la integración, el final emocional pasa por la confesión adolescente más torpe del medio. Cierre filosófico, cómico y tierno.</p>\n<p><strong>Edición Ivrea Argentina (2-en-1)</strong> · Formato B6 (12.8 × 18 cm) con sobrecubierta · ~400 páginas · Compila los volúmenes finales originales 15 y 16 (Shōgakukan, Japón, 2017-2018; edición Argentina 2-en-1 2024) · Obra de <strong>ONE</strong> · Recomendado +13 años · Envío según cobertura del transportista desde Akibara.</p>",
+      "proposed_after_sha256": "27ecd9c198d96ce60f34cfdd5153785176daa7473fb5d225333183c80a0bcc73"
+    },
+    {
+      "key": "post:22607:post_content",
+      "object_type": "post",
+      "object_id": 22607,
+      "title": "Guía completa para empezar a leer One Piece en 2026",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "dead_presentational_span",
+        "malformed_wpautop_section_header"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Guía completa para empezar a leer One Piece en 2026 > Editor de código > Actualizar",
+      "expected_before": "<div class=\"aki-page-hero\" style=\"background:linear-gradient(135deg,#111 60%,#C60202 100%)\">\n<h1>Guía completa para empezar a leer One Piece en 2026</h1>\n<p>El manga más vendido de la historia: por dónde empezar, qué edición elegir y todas las sagas explicadas</p>\n</div>\n\n<div class=\"aki-page\">\n\n<p class=\"aki-about-intro\">Con más de 500 millones de copias vendidas en el mundo, <strong>One Piece</strong> de Eiichiro Oda no es solo el manga más exitoso de la historia — es una de las obras narrativas más ambiciosas jamás creadas. Si estás pensando en empezar, esta guía te da todo lo que necesitas.</p>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿De qué trata One Piece?</h2></div>\n<p style=\"font-size:15px;line-height:1.8\"><strong>Monkey D. Luffy</strong> es un joven que sueña con ser el Rey de los Piratas. Después de comer la Fruta Gomu Gomu, su cuerpo se vuelve de goma, y con esa habilidad zarpa al mar en busca del legendario tesoro \"One Piece\". En el camino recluta a los <strong>Sombrero de Paja</strong>: un espadachín, una navegante, un francotirador, un cocinero, un médico, una arqueóloga, un carpintero naval, un músico esqueleto y un timonel. Cada uno con un sueño propio. Lo que empieza como una aventura pirata se convierte en una épica sobre libertad, amistad y el significado de perseguir tus sueños.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>One Piece en números</h2></div>\n<div class=\"aki-stat-grid\">\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">110+</span><span class=\"aki-stat-label\">Tomos en Japón</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">103</span><span class=\"aki-stat-label\">Ivrea Argentina</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">10</span><span class=\"aki-stat-label\">Planeta 3 en 1</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">11</span><span class=\"aki-stat-label\">Sagas</span></div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿Qué edición elegir?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Ivrea Argentina — Tomo individual</h3>\n<p>La edición clásica. <strong>103 tomos disponibles</strong>, tamaño tankoubon estándar. Ideal para coleccionistas que quieren cada volumen por separado. Es la edición más avanzada en español latino.</p>\n<div style=\"margin-top:12px\"><a href=\"/tienda/?s=one+piece+ivrea&amp;post_type=product\" class=\"aki-btn\">Ver edición Ivrea</a></div>\n</div>\n<div class=\"aki-card\">\n<h3>Planeta España — 3 en 1</h3>\n<p><strong>10 tomos disponibles</strong>, cada uno recopila 3 volúmenes originales. Más económico por capítulo y perfecto si quieres avanzar rápido. Formato más grande y grueso.</p>\n<div style=\"margin-top:12px\"><a href=\"/tienda/?s=one+piece+3+en+1&amp;post_type=product\" class=\"aki-btn\">Ver edición 3 en 1</a></div>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Todas las sagas explicadas (sin spoilers)</h2></div>\n<ul class=\"aki-feature-list\">\n<li><span class=\"aki-fl-icon\">🌊</span><div><strong>East Blue (tomos 1-12):</strong> El inicio perfecto. Luffy recluta a Zoro, Nami, Usopp y Sanji. Cada arco presenta a un nuevo nakama con su historia de fondo. Si estos 12 tomos te enganchan, no vas a parar.</div></li>\n<li><span class=\"aki-fl-icon\">🏜️</span><div><strong>Alabasta (tomos 12-24):</strong> La primera saga larga. Chopper se une al grupo. Una conspiración amenaza un reino y los Sombrero de Paja se enfrentan a la organización Baroque Works. Aquí One Piece muestra su verdadero potencial.</div></li>\n<li><span class=\"aki-fl-icon\">☁️</span><div><strong>Skypiea (tomos 24-32):</strong> Una isla en el cielo. Algunos la ven como \"lenta\", pero establece piezas fundamentales del lore que Oda paga décadas después. Paciencia aquí vale oro.</div></li>\n<li><span class=\"aki-fl-icon\">🔨</span><div><strong>Water 7 / Enies Lobby (tomos 32-46):</strong> Para muchos, la mejor saga del manga. Robin en el centro, Franky se une, y los Sombrero de Paja le declaran la guerra al Gobierno Mundial. Momentos icónicos que definen el género.</div></li>\n<li><span class=\"aki-fl-icon\">👻</span><div><strong>Thriller Bark (tomos 46-50):</strong> Terror con humor. Brook, el músico esqueleto, se une con una de las historias de fondo más emotivas de la serie.</div></li>\n<li><span class=\"aki-fl-icon\">⚔️</span><div><strong>Sabaody / Marineford (tomos 50-61):</strong> El punto de inflexión. La tripulación es separada y Luffy se ve envuelto en una guerra entre los piratas más poderosos del mundo y la Marina. Épico a nivel que pocos manga alcanzan.</div></li>\n<li><span class=\"aki-fl-icon\">🐠</span><div><strong>Isla Gyojin / Punk Hazard (tomos 61-70):</strong> El Nuevo Mundo comienza. Alianza con Trafalgar Law y preparación para derrocar a los emperadores del mar.</div></li>\n<li><span class=\"aki-fl-icon\">🦩</span><div><strong>Dressrosa (tomos 70-80):</strong> Gladiadores, juguetes vivientes y la caída de Doflamingo. Una saga ambiciosa con decenas de personajes memorables.</div></li>\n<li><span class=\"aki-fl-icon\">🍰</span><div><strong>Whole Cake Island (tomos 82-90):</strong> Sanji es el protagonista. Enfrentamiento con Big Mom, una de las Emperadoras del Mar. Pastelería, política y peleas brutales.</div></li>\n<li><span class=\"aki-fl-icon\">🐉</span><div><strong>Wano (tomos 90-105):</strong> Samuráis, dragones y la batalla contra Kaido. El arte de Oda alcanza su punto máximo. Una saga de liberación que tardó una década en construirse.</div></li>\n<li><span class=\"aki-fl-icon\">🏴</span><div><strong>Saga Final (tomo 105+):</strong> Oda confirmó que estamos en el acto final. Los misterios de 25 años empiezan a resolverse: el Siglo Vacío, la Voluntad de D., el One Piece mismo.</div></li>\n</ul>\n</div>\n\n<div class=\"aki-highlight\">\n<h3>¿Por dónde empezar?</h3>\n<p>Siempre por el tomo 1. One Piece es una historia continua donde cada detalle importa. Los primeros 12 tomos son la prueba de fuego — si East Blue te atrapa, tienes cientos de horas de lectura épica por delante.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿Manga o anime?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Manga (recomendado)</h3>\n<p>Cero relleno, ritmo perfecto de Oda, arte original. Un tomo se lee en 30-40 minutos. Es la forma más rápida y fiel de vivir la historia. 103 tomos = ~60 horas de lectura.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Anime</h3>\n<p>Más de 1,100 episodios con relleno y ritmo lento en muchos arcos. \"One Pace\" es un proyecto fan que recorta el relleno. El remake de Netflix tiene buenas reviews pero solo cubre East Blue.</p>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Comprar One Piece en Akibara</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Tenemos <strong>116 tomos de One Piece</strong> disponibles: la edición individual de Ivrea Argentina (103 tomos) y la edición 3 en 1 de Planeta España (10 tomos). Todos 100% originales, con envío según cobertura del transportista y hasta 3 cuotas sin interés.</p>\n<div style=\"margin-top:20px;gap:12px;flex-wrap:wrap\">\n<a href=\"/tienda/?s=one+piece&amp;post_type=product\" class=\"aki-btn\">Ver todo One Piece</a>\n</div>\n</div>\n\n</div>\n\n<p><strong>Encuentra todos los tomos de One Piece en <a href=\"https://akibara.cl/serie/one-piece/\">nuestra tienda</a></strong></p>",
+      "expected_before_sha256": "5af52b447a7114bc091af353cbc14b6ca7e653310ce8820cddfb833e1a2da806",
+      "substitutions": [
+        {
+          "before": "<span class=\"aki-page-section-accent\"></span>",
+          "after": "",
+          "match_mode": "raw_literal",
+          "expected_count": 6
+        }
+      ],
+      "proposed_after": "<div class=\"aki-page-hero\" style=\"background:linear-gradient(135deg,#111 60%,#C60202 100%)\">\n<h1>Guía completa para empezar a leer One Piece en 2026</h1>\n<p>El manga más vendido de la historia: por dónde empezar, qué edición elegir y todas las sagas explicadas</p>\n</div>\n\n<div class=\"aki-page\">\n\n<p class=\"aki-about-intro\">Con más de 500 millones de copias vendidas en el mundo, <strong>One Piece</strong> de Eiichiro Oda no es solo el manga más exitoso de la historia — es una de las obras narrativas más ambiciosas jamás creadas. Si estás pensando en empezar, esta guía te da todo lo que necesitas.</p>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿De qué trata One Piece?</h2></div>\n<p style=\"font-size:15px;line-height:1.8\"><strong>Monkey D. Luffy</strong> es un joven que sueña con ser el Rey de los Piratas. Después de comer la Fruta Gomu Gomu, su cuerpo se vuelve de goma, y con esa habilidad zarpa al mar en busca del legendario tesoro \"One Piece\". En el camino recluta a los <strong>Sombrero de Paja</strong>: un espadachín, una navegante, un francotirador, un cocinero, un médico, una arqueóloga, un carpintero naval, un músico esqueleto y un timonel. Cada uno con un sueño propio. Lo que empieza como una aventura pirata se convierte en una épica sobre libertad, amistad y el significado de perseguir tus sueños.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>One Piece en números</h2></div>\n<div class=\"aki-stat-grid\">\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">110+</span><span class=\"aki-stat-label\">Tomos en Japón</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">103</span><span class=\"aki-stat-label\">Ivrea Argentina</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">10</span><span class=\"aki-stat-label\">Planeta 3 en 1</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">11</span><span class=\"aki-stat-label\">Sagas</span></div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿Qué edición elegir?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Ivrea Argentina — Tomo individual</h3>\n<p>La edición clásica. <strong>103 tomos disponibles</strong>, tamaño tankoubon estándar. Ideal para coleccionistas que quieren cada volumen por separado. Es la edición más avanzada en español latino.</p>\n<div style=\"margin-top:12px\"><a href=\"/tienda/?s=one+piece+ivrea&amp;post_type=product\" class=\"aki-btn\">Ver edición Ivrea</a></div>\n</div>\n<div class=\"aki-card\">\n<h3>Planeta España — 3 en 1</h3>\n<p><strong>10 tomos disponibles</strong>, cada uno recopila 3 volúmenes originales. Más económico por capítulo y perfecto si quieres avanzar rápido. Formato más grande y grueso.</p>\n<div style=\"margin-top:12px\"><a href=\"/tienda/?s=one+piece+3+en+1&amp;post_type=product\" class=\"aki-btn\">Ver edición 3 en 1</a></div>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Todas las sagas explicadas (sin spoilers)</h2></div>\n<ul class=\"aki-feature-list\">\n<li><span class=\"aki-fl-icon\">🌊</span><div><strong>East Blue (tomos 1-12):</strong> El inicio perfecto. Luffy recluta a Zoro, Nami, Usopp y Sanji. Cada arco presenta a un nuevo nakama con su historia de fondo. Si estos 12 tomos te enganchan, no vas a parar.</div></li>\n<li><span class=\"aki-fl-icon\">🏜️</span><div><strong>Alabasta (tomos 12-24):</strong> La primera saga larga. Chopper se une al grupo. Una conspiración amenaza un reino y los Sombrero de Paja se enfrentan a la organización Baroque Works. Aquí One Piece muestra su verdadero potencial.</div></li>\n<li><span class=\"aki-fl-icon\">☁️</span><div><strong>Skypiea (tomos 24-32):</strong> Una isla en el cielo. Algunos la ven como \"lenta\", pero establece piezas fundamentales del lore que Oda paga décadas después. Paciencia aquí vale oro.</div></li>\n<li><span class=\"aki-fl-icon\">🔨</span><div><strong>Water 7 / Enies Lobby (tomos 32-46):</strong> Para muchos, la mejor saga del manga. Robin en el centro, Franky se une, y los Sombrero de Paja le declaran la guerra al Gobierno Mundial. Momentos icónicos que definen el género.</div></li>\n<li><span class=\"aki-fl-icon\">👻</span><div><strong>Thriller Bark (tomos 46-50):</strong> Terror con humor. Brook, el músico esqueleto, se une con una de las historias de fondo más emotivas de la serie.</div></li>\n<li><span class=\"aki-fl-icon\">⚔️</span><div><strong>Sabaody / Marineford (tomos 50-61):</strong> El punto de inflexión. La tripulación es separada y Luffy se ve envuelto en una guerra entre los piratas más poderosos del mundo y la Marina. Épico a nivel que pocos manga alcanzan.</div></li>\n<li><span class=\"aki-fl-icon\">🐠</span><div><strong>Isla Gyojin / Punk Hazard (tomos 61-70):</strong> El Nuevo Mundo comienza. Alianza con Trafalgar Law y preparación para derrocar a los emperadores del mar.</div></li>\n<li><span class=\"aki-fl-icon\">🦩</span><div><strong>Dressrosa (tomos 70-80):</strong> Gladiadores, juguetes vivientes y la caída de Doflamingo. Una saga ambiciosa con decenas de personajes memorables.</div></li>\n<li><span class=\"aki-fl-icon\">🍰</span><div><strong>Whole Cake Island (tomos 82-90):</strong> Sanji es el protagonista. Enfrentamiento con Big Mom, una de las Emperadoras del Mar. Pastelería, política y peleas brutales.</div></li>\n<li><span class=\"aki-fl-icon\">🐉</span><div><strong>Wano (tomos 90-105):</strong> Samuráis, dragones y la batalla contra Kaido. El arte de Oda alcanza su punto máximo. Una saga de liberación que tardó una década en construirse.</div></li>\n<li><span class=\"aki-fl-icon\">🏴</span><div><strong>Saga Final (tomo 105+):</strong> Oda confirmó que estamos en el acto final. Los misterios de 25 años empiezan a resolverse: el Siglo Vacío, la Voluntad de D., el One Piece mismo.</div></li>\n</ul>\n</div>\n\n<div class=\"aki-highlight\">\n<h3>¿Por dónde empezar?</h3>\n<p>Siempre por el tomo 1. One Piece es una historia continua donde cada detalle importa. Los primeros 12 tomos son la prueba de fuego — si East Blue te atrapa, tienes cientos de horas de lectura épica por delante.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿Manga o anime?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Manga (recomendado)</h3>\n<p>Cero relleno, ritmo perfecto de Oda, arte original. Un tomo se lee en 30-40 minutos. Es la forma más rápida y fiel de vivir la historia. 103 tomos = ~60 horas de lectura.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Anime</h3>\n<p>Más de 1,100 episodios con relleno y ritmo lento en muchos arcos. \"One Pace\" es un proyecto fan que recorta el relleno. El remake de Netflix tiene buenas reviews pero solo cubre East Blue.</p>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Comprar One Piece en Akibara</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Tenemos <strong>116 tomos de One Piece</strong> disponibles: la edición individual de Ivrea Argentina (103 tomos) y la edición 3 en 1 de Planeta España (10 tomos). Todos 100% originales, con envío según cobertura del transportista y hasta 3 cuotas sin interés.</p>\n<div style=\"margin-top:20px;gap:12px;flex-wrap:wrap\">\n<a href=\"/tienda/?s=one+piece&amp;post_type=product\" class=\"aki-btn\">Ver todo One Piece</a>\n</div>\n</div>\n\n</div>\n\n<p><strong>Encuentra todos los tomos de One Piece en <a href=\"https://akibara.cl/serie/one-piece/\">nuestra tienda</a></strong></p>",
+      "proposed_after_sha256": "893bee99123e550e665e62ff985f0b7abb837ccfc8594fba04d6c1f6393c5293"
+    },
+    {
+      "key": "post:22610:post_content",
+      "object_type": "post",
+      "object_id": 22610,
+      "title": "Berserk: guía para leer la obra definitiva del manga seinen",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "dead_presentational_span",
+        "malformed_wpautop_section_header",
+        "spanish_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Berserk: guía para leer la obra definitiva del manga seinen > Editor de código > Actualizar",
+      "expected_before": "<div class=\"aki-page-hero\" style=\"background:linear-gradient(135deg,#0a0a0a 60%,#8B0000 100%)\">\n<h1>Berserk: guía para leer la obra definitiva del manga seinen</h1>\n<p>El legado de Kentaro Miura, la fantasía oscura que cambió el medio para siempre</p>\n</div>\n\n<div class=\"aki-page\">\n\n<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Berserk se lee en orden de publicación desde el tomo 1. La obra de Kentaro Miura tiene 42 tomos publicados en Japón; en español, la edición recomendada es <strong>Maximum Berserk de Panini</strong>, que recopila 2 tomos japoneses por volumen, con 21 tomos disponibles en Akibara y envío según cobertura del transportista.</p>\n\n<p class=\"aki-about-intro\"><strong>Berserk</strong> no es un manga. Es <em>el</em> manga. La obra maestra de <strong>Kentaro Miura</strong> es considerada por críticos, autores y lectores como una de las cumbres narrativas y artísticas del medio. Si buscas una historia con profundidad, ambición y un arte que desafía lo humanamente posible, Berserk es tu siguiente lectura.</p>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿De qué trata?</h2></div>\n<p style=\"font-size:15px;line-height:1.8\"><strong>Guts</strong> es un mercenario solitario marcado por un pasado brutal. Armado con una espada gigante y una armadura maldita, recorre un mundo medieval oscuro luchando contra demonios y apostoles — humanos que vendieron su humanidad a cambio de poder. Su objetivo: encontrar y destruir a <strong>Griffith</strong>, el hombre que una vez fue su mejor amigo y lo traicionó en el evento más devastador del manga: el <em>Eclipse</em>. Berserk es una historia sobre la voluntad humana frente al destino, sobre seguir adelante cuando todo dice que te detengas.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Berserk en números</h2></div>\n<div class=\"aki-stat-grid\">\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">42</span><span class=\"aki-stat-label\">Tomos en Japón</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">21</span><span class=\"aki-stat-label\">Maximum (Panini)</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">1989</span><span class=\"aki-stat-label\">Inicio publicación</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">50M+</span><span class=\"aki-stat-label\">Copias vendidas</span></div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿Qué edición comprar?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Maximum Berserk — Panini España</h3>\n<p>La edición definitiva en español. <strong>21 tomos disponibles</strong> en Akibara. Cada Maximum recopila 2 tomos japoneses en un volumen grande de tapa blanda con sobrecubierta. Calidad de impresión superior y tamaño generoso que hace justicia al arte de Miura.</p>\n<div style=\"margin-top:12px\"><a href=\"/tienda/?s=maximum+berserk&amp;post_type=product\" class=\"aki-btn\">Ver Maximum Berserk</a></div>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Los arcos narrativos</h2></div>\n<ul class=\"aki-feature-list\">\n<li><span class=\"aki-fl-icon\">⚔️</span><div><strong>El Espadachín Negro (tomos 1-3):</strong> Conocemos a Guts como el guerrero imparable que caza demonios. Brutal, directo, adictivo. Establece el tono oscuro de la serie.</div></li>\n<li><span class=\"aki-fl-icon\">🏰</span><div><strong>La Edad Dorada (tomos 3-14):</strong> El corazón de Berserk. Flashback al pasado de Guts: su encuentro con Griffith, la Banda del Halcón, la amistad, la ambición y la traición. Culmina en el Eclipse — uno de los momentos más impactantes de cualquier obra de ficción.</div></li>\n<li><span class=\"aki-fl-icon\">🌑</span><div><strong>La Convicción (tomos 14-21):</strong> Guts solo contra el mundo, perseguido por espíritus y demonios. Conoce a nuevos compañeros y empieza a sanar mientras el mundo se vuelve más oscuro.</div></li>\n<li><span class=\"aki-fl-icon\">🧝</span><div><strong>El Halcón del Milenio (tomos 22-35):</strong> El grupo de Guts crece. Fantasía épica a gran escala con batallas descomunales y un mundo que se transforma. El arte de Miura alcanza niveles sobrehumanos.</div></li>\n<li><span class=\"aki-fl-icon\">🌿</span><div><strong>Fantasia / Elfheim (tomos 35-42):</strong> El viaje hacia la isla de los elfos. Momentos de paz, belleza y esperanza después de tanta oscuridad. El contraste es demoledor.</div></li>\n</ul>\n</div>\n\n<div class=\"aki-highlight\">\n<h3>El legado de Kentaro Miura</h3>\n<p>Miura falleció en mayo de 2021 a los 54 años. Su amigo y asistente Kouji Mori, junto al Studio Gaga, continúan Berserk siguiendo las notas e indicaciones que Miura dejó. La historia continúa, fiel a su visión.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>¿Por qué leer Berserk?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Arte sin igual</h3>\n<p>El nivel de detalle de Miura no tiene paralelo en el manga. Cada página de batalla, cada paisaje, cada expresión facial está dibujada con una dedicación obsesiva que te deja sin aliento.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Personajes reales</h3>\n<p>Guts no es un héroe genérico. Es un personaje roto que elige seguir adelante. Griffith es un villano que entiendes. Casca, Farnese, Serpico — cada personaje tiene peso y evolución real.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Influencia total</h3>\n<p>Dark Souls, Elden Ring, Dragon's Dogma, Claymore, Vinland Saga — todos deben algo a Berserk. Leer Berserk es entender el origen de toda una generación de fantasía oscura.</p>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><span class=\"aki-page-section-accent\"></span><h2>Disponible en Akibara</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Los 21 tomos de <strong>Maximum Berserk</strong> de Panini España están disponibles en nuestra tienda. Edición original, envío según cobertura del transportista, hasta 3 cuotas sin interés.</p>\n<div style=\"margin-top:20px\"><a href=\"/tienda/?s=maximum+berserk&amp;post_type=product\" class=\"aki-btn\">Ver Berserk en la tienda</a></div>\n</div>\n\n</div>",
+      "expected_before_sha256": "c64ebd87f6cc4dcd14f6eb8c5277ecbb283aa9b1ebfbf128f32a1598084660c3",
+      "substitutions": [
+        {
+          "before": "<span class=\"aki-page-section-accent\"></span>",
+          "after": "",
+          "match_mode": "raw_literal",
+          "expected_count": 6
+        },
+        {
+          "before": "apostoles",
+          "after": "apóstoles",
+          "match_mode": "text_word",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<div class=\"aki-page-hero\" style=\"background:linear-gradient(135deg,#0a0a0a 60%,#8B0000 100%)\">\n<h1>Berserk: guía para leer la obra definitiva del manga seinen</h1>\n<p>El legado de Kentaro Miura, la fantasía oscura que cambió el medio para siempre</p>\n</div>\n\n<div class=\"aki-page\">\n\n<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Berserk se lee en orden de publicación desde el tomo 1. La obra de Kentaro Miura tiene 42 tomos publicados en Japón; en español, la edición recomendada es <strong>Maximum Berserk de Panini</strong>, que recopila 2 tomos japoneses por volumen, con 21 tomos disponibles en Akibara y envío según cobertura del transportista.</p>\n\n<p class=\"aki-about-intro\"><strong>Berserk</strong> no es un manga. Es <em>el</em> manga. La obra maestra de <strong>Kentaro Miura</strong> es considerada por críticos, autores y lectores como una de las cumbres narrativas y artísticas del medio. Si buscas una historia con profundidad, ambición y un arte que desafía lo humanamente posible, Berserk es tu siguiente lectura.</p>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿De qué trata?</h2></div>\n<p style=\"font-size:15px;line-height:1.8\"><strong>Guts</strong> es un mercenario solitario marcado por un pasado brutal. Armado con una espada gigante y una armadura maldita, recorre un mundo medieval oscuro luchando contra demonios y apóstoles — humanos que vendieron su humanidad a cambio de poder. Su objetivo: encontrar y destruir a <strong>Griffith</strong>, el hombre que una vez fue su mejor amigo y lo traicionó en el evento más devastador del manga: el <em>Eclipse</em>. Berserk es una historia sobre la voluntad humana frente al destino, sobre seguir adelante cuando todo dice que te detengas.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Berserk en números</h2></div>\n<div class=\"aki-stat-grid\">\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">42</span><span class=\"aki-stat-label\">Tomos en Japón</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">21</span><span class=\"aki-stat-label\">Maximum (Panini)</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">1989</span><span class=\"aki-stat-label\">Inicio publicación</span></div>\n<div class=\"aki-stat\"><span class=\"aki-stat-num\">50M+</span><span class=\"aki-stat-label\">Copias vendidas</span></div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿Qué edición comprar?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Maximum Berserk — Panini España</h3>\n<p>La edición definitiva en español. <strong>21 tomos disponibles</strong> en Akibara. Cada Maximum recopila 2 tomos japoneses en un volumen grande de tapa blanda con sobrecubierta. Calidad de impresión superior y tamaño generoso que hace justicia al arte de Miura.</p>\n<div style=\"margin-top:12px\"><a href=\"/tienda/?s=maximum+berserk&amp;post_type=product\" class=\"aki-btn\">Ver Maximum Berserk</a></div>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Los arcos narrativos</h2></div>\n<ul class=\"aki-feature-list\">\n<li><span class=\"aki-fl-icon\">⚔️</span><div><strong>El Espadachín Negro (tomos 1-3):</strong> Conocemos a Guts como el guerrero imparable que caza demonios. Brutal, directo, adictivo. Establece el tono oscuro de la serie.</div></li>\n<li><span class=\"aki-fl-icon\">🏰</span><div><strong>La Edad Dorada (tomos 3-14):</strong> El corazón de Berserk. Flashback al pasado de Guts: su encuentro con Griffith, la Banda del Halcón, la amistad, la ambición y la traición. Culmina en el Eclipse — uno de los momentos más impactantes de cualquier obra de ficción.</div></li>\n<li><span class=\"aki-fl-icon\">🌑</span><div><strong>La Convicción (tomos 14-21):</strong> Guts solo contra el mundo, perseguido por espíritus y demonios. Conoce a nuevos compañeros y empieza a sanar mientras el mundo se vuelve más oscuro.</div></li>\n<li><span class=\"aki-fl-icon\">🧝</span><div><strong>El Halcón del Milenio (tomos 22-35):</strong> El grupo de Guts crece. Fantasía épica a gran escala con batallas descomunales y un mundo que se transforma. El arte de Miura alcanza niveles sobrehumanos.</div></li>\n<li><span class=\"aki-fl-icon\">🌿</span><div><strong>Fantasia / Elfheim (tomos 35-42):</strong> El viaje hacia la isla de los elfos. Momentos de paz, belleza y esperanza después de tanta oscuridad. El contraste es demoledor.</div></li>\n</ul>\n</div>\n\n<div class=\"aki-highlight\">\n<h3>El legado de Kentaro Miura</h3>\n<p>Miura falleció en mayo de 2021 a los 54 años. Su amigo y asistente Kouji Mori, junto al Studio Gaga, continúan Berserk siguiendo las notas e indicaciones que Miura dejó. La historia continúa, fiel a su visión.</p>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>¿Por qué leer Berserk?</h2></div>\n<div class=\"aki-card-grid\">\n<div class=\"aki-card\">\n<h3>Arte sin igual</h3>\n<p>El nivel de detalle de Miura no tiene paralelo en el manga. Cada página de batalla, cada paisaje, cada expresión facial está dibujada con una dedicación obsesiva que te deja sin aliento.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Personajes reales</h3>\n<p>Guts no es un héroe genérico. Es un personaje roto que elige seguir adelante. Griffith es un villano que entiendes. Casca, Farnese, Serpico — cada personaje tiene peso y evolución real.</p>\n</div>\n<div class=\"aki-card\">\n<h3>Influencia total</h3>\n<p>Dark Souls, Elden Ring, Dragon's Dogma, Claymore, Vinland Saga — todos deben algo a Berserk. Leer Berserk es entender el origen de toda una generación de fantasía oscura.</p>\n</div>\n</div>\n</div>\n\n<div class=\"aki-page-section\">\n<div class=\"aki-page-section-header\"><h2>Disponible en Akibara</h2></div>\n<p style=\"font-size:15px;line-height:1.8\">Los 21 tomos de <strong>Maximum Berserk</strong> de Panini España están disponibles en nuestra tienda. Edición original, envío según cobertura del transportista, hasta 3 cuotas sin interés.</p>\n<div style=\"margin-top:20px\"><a href=\"/tienda/?s=maximum+berserk&amp;post_type=product\" class=\"aki-btn\">Ver Berserk en la tienda</a></div>\n</div>\n\n</div>",
+      "proposed_after_sha256": "ac4afd5b37c4d721cc6518e7604b431b4b62f549bf44c096b29768fde3b61db1"
+    },
+    {
+      "key": "post:22638:post_excerpt",
+      "object_type": "post",
+      "object_id": 22638,
+      "title": "¿En qué tomo del manga continuar Jujutsu Kaisen después del anime?",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "missing_opening_question_mark"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > ¿En qué tomo del manga continuar Jujutsu Kaisen después del anime? > Extracto > Actualizar",
+      "expected_before": "Terminaste el anime y quieres seguir la historia? Te decimos exactamente en qué tomo del manga continuar Jujutsu Kaisen.",
+      "expected_before_sha256": "855af53e8dbb4fa50d31c53b2c62cd7d9b29882d97f4449f41145a6c21db9913",
+      "substitutions": [
+        {
+          "before": "Terminaste el anime",
+          "after": "¿Terminaste el anime",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "¿Terminaste el anime y quieres seguir la historia? Te decimos exactamente en qué tomo del manga continuar Jujutsu Kaisen.",
+      "proposed_after_sha256": "8d5124df6d23d7bbf493b804c72220329027e267592c13ec75ecfb134ca6ab62"
+    },
+    {
+      "key": "post:22638:post_content",
+      "object_type": "post",
+      "object_id": 22638,
+      "title": "¿En qué tomo del manga continuar Jujutsu Kaisen después del anime?",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > ¿En qué tomo del manga continuar Jujutsu Kaisen después del anime? > Editor de código > Actualizar",
+      "expected_before": "<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Si terminaste la Temporada 2 del anime de Jujutsu Kaisen, continúa la lectura desde el Tomo 17 del manga: ahí comienza el Arco del Juego de la Colonia (Culling Game), que lleva la serie hacia su conclusión. El manga ya está completo, y en Akibara tenemos disponibles los tomos 0 al 30 de la edición Panini Argentina en español, con envío según cobertura del transportista.</p>\n\n<p>Si terminaste de ver el anime de <strong><a href=\"https://akibara.cl/serie/jujutsu-kaisen/\">Jujutsu Kaisen</a></strong> y quieres seguir la historia en el manga, esta guia te explica exactamente en que tomo continuar. Con la serie completa disponible en 31 volumenes de <a href=\"https://akibara.cl/product-brand/panini-argentina/\">Panini Argentina</a>, no hay mejor momento para leer el <strong>jujutsu kaisen manga tomo</strong> a tomo y descubrir todo lo que el anime aun no ha adaptado.</p>\n\n<h2>¿Que cubre cada temporada del anime?</h2>\n\n<h3>Temporada 1 (2020) - Tomos 1 al 8</h3>\n<p>La primera temporada de 24 episodios adapta los tomos 1 al 8 del manga. Aqui conocemos a <strong>Yuji Itadori</strong>, quien ingiere uno de los dedos de Ryomen Sukuna y se convierte en su recipiente. Yuji se une a la Escuela Tecnica de Hechiceria de Tokio junto a Megumi Fushiguro y Nobara Kugisaki, bajo la tutela de Satoru Gojo. La temporada cubre el arco introductorio, la mision en el centro de detencion juvenil y el <strong>Evento de Buena Voluntad de Kioto</strong>, culminando con la aparicion de enemigos poderosos como Mahito y Suguru Geto.</p>\n\n<h3>Temporada 2 (2023) - Tomos 8 al 16</h3>\n<p>La segunda temporada se divide en dos partes fundamentales:</p>\n<ul>\n<li><strong>Arco del Pasado Oculto (Hidden Inventory):</strong> Tomos 8 y 9. Retrocedemos al pasado para conocer la juventud de Gojo y Geto, su mision de proteger a Riko Amanai y el evento traumatico que separo sus caminos. Este arco es esencial para entender la motivacion de ambos personajes.</li>\n<li><strong>Arco del Incidente de Shibuya:</strong> Tomos 10 al 16. Considerado por muchos como el mejor arco de la serie, la trampa tendida en Shibuya para sellar a Gojo desencadena una batalla masiva con consecuencias devastadoras para todos los personajes. El final de este arco cambia por completo el rumbo de la historia.</li>\n</ul>\n\n<h3>Pelicula Jujutsu Kaisen 0 (2021) - Tomo 0</h3>\n<p>La pelicula adapta el <strong>Tomo 0</strong>, un volumen precuela que cuenta la historia de <strong>Yuta Okkotsu</strong>, un joven atormentado por la maldicion de su amiga de infancia Rika. Este tomo funciona tanto como punto de entrada a la serie como complemento despues de la Temporada 1. En Akibara tenemos disponible el <span style=\"display:block; text-align:center; margin: 30px 0;\"><a href=\"https://akibara.cl/jujutsu-kaisen-0/\" target=\"_blank\" style=\"display:inline-block; width:100%; max-width:350px; padding:15px 20px; background:linear-gradient(135deg, #1a1a1a 0%, #333 100%); color:#fff; text-decoration:none; border-radius:12px; font-weight:bold; font-size:16px; border:1px solid #444; box-shadow:0 4px 15px rgba(0,0,0,0.3);\">🛒 Ver disponibilidad: tomo 0 de Jujutsu Kaisen</a></span>.</p>\n\n<h2>¿En que tomo continuar despues del anime?</h2>\n\n<p><strong>Si viste hasta la Temporada 2 completa, debes continuar desde el Tomo 17.</strong></p>\n\n<p>A partir del tomo 17 comienza el <strong>Arco del Juego de la Colonia (Culling Game)</strong>, donde los hechiceros deben participar en un juego mortal con reglas impuestas por Kenjaku. Este arco introduce nuevos personajes, batallas estrategicas y revela informacion crucial sobre el pasado de la hechiceria jujutsu. Es un arco extenso y ambicioso que lleva la serie hacia su conclusion.</p>\n\n<h3>Resumen rapido: ¿Desde donde leer?</h3>\n<ul>\n<li><strong>No viste nada del anime:</strong> Empieza desde el Tomo 1.</li>\n<li><strong>Viste la Temporada 1:</strong> Continua desde el Tomo 9 (aunque recomendamos desde el 8 para no perder detalles del arco Hidden Inventory).</li>\n<li><strong>Viste la Temporada 2 completa:</strong> Continua desde el <strong>Tomo 17</strong>.</li>\n<li><strong>Solo viste la pelicula JJK 0:</strong> Lee el Tomo 0 y luego empieza desde el Tomo 1.</li>\n</ul>\n\n<h2>¿Por que leer el manga de Jujutsu Kaisen?</h2>\n\n<p>Aunque el anime es una adaptacion excepcional, el manga ofrece ventajas unicas. El ritmo narrativo de Gege Akutami en papel es mas denso y recompensante, con detalles en los paneles que a veces se pierden en la animacion. Ademas, la serie concluyo en 2024 con el tomo 30 de la serie principal (mas un volumen final recopilatorio), asi que puedes leer la historia completa sin esperar.</p>\n\n<p>El tomo final incluye epilogos exclusivos dibujados especialmente para el manga, que cierran las historias de los personajes principales de manera satisfactoria. Este contenido no existe en ninguna otra version.</p>\n\n<h2>Coleccion completa en Akibara</h2>\n\n<p>En <strong>Akibara</strong> tenemos disponibles los tomos 0 al 30 de Jujutsu Kaisen, edicion de <strong>Panini Argentina</strong> en espanol. Puedes armar tu coleccion completa o empezar desde el tomo que necesites. <span style=\"display:block; text-align:center; margin: 30px 0;\"><a href=\"https://akibara.cl/jujutsu-kaisen/\" target=\"_blank\" style=\"display:inline-block; width:100%; max-width:350px; padding:15px 20px; background:linear-gradient(135deg, #1a1a1a 0%, #333 100%); color:#fff; text-decoration:none; border-radius:12px; font-weight:bold; font-size:16px; border:1px solid #444; box-shadow:0 4px 15px rgba(0,0,0,0.3);\">🛒 Ver disponibilidad: Ver todos los tomos de Jujutsu Kaisen</a></span>.</p>\n\n<p>Si te interesa explorar mas series de accion sobrenatural, te recomendamos tambien <a href=\"https://akibara.cl/chainsaw-man/\" target=\"_blank\">Chainsaw Man</a> y <a href=\"https://akibara.cl/demon-slayer-kimetsu-no-yaiba/\" target=\"_blank\">Demon Slayer</a>, dos series completas que comparten ese espiritu de shonen moderno y oscuro que hizo famoso a JJK.</p>",
+      "expected_before_sha256": "bd2a76fdc74301abb0db836cb8e76220cdde322d1bb1404dc084a5caab2694fe",
+      "substitutions": [
+        {
+          "before": "accion",
+          "after": "acción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "adaptacion",
+          "after": "adaptación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Ademas",
+          "after": "Además",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "animacion",
+          "after": "animación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aparicion",
+          "after": "aparición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Aqui",
+          "after": "Aquí",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "asi",
+          "after": "así",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Coleccion",
+          "after": "Colección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "coleccion",
+          "after": "colección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "conclusion",
+          "after": "conclusión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "despues",
+          "after": "después",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "detencion",
+          "after": "detención",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "edicion",
+          "after": "edición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "epilogos",
+          "after": "epílogos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "espanol",
+          "after": "español",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "espiritu",
+          "after": "espíritu",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "estrategicas",
+          "after": "estratégicas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "guia",
+          "after": "guía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Hechiceria",
+          "after": "Hechicería",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "hechiceria",
+          "after": "hechicería",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "informacion",
+          "after": "información",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "maldicion",
+          "after": "maldición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mision",
+          "after": "misión",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "motivacion",
+          "after": "motivación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Pelicula",
+          "after": "Película",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "pelicula",
+          "after": "película",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "rapido",
+          "after": "rápido",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tambien",
+          "after": "también",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Tecnica",
+          "after": "Técnica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "traumatico",
+          "after": "traumático",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "unicas",
+          "after": "únicas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "version",
+          "after": "versión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "volumenes",
+          "after": "volúmenes",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aun",
+          "after": "aún",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "separo",
+          "after": "separó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Continua",
+          "after": "Continúa",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "concluyo",
+          "after": "concluyó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "¿Que cubre",
+          "after": "¿Qué cubre",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "¿En que tomo continuar",
+          "after": "¿En qué tomo continuar",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "¿Desde donde leer",
+          "after": "¿Desde dónde leer",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "¿Por que leer",
+          "after": "¿Por qué leer",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Si terminaste la Temporada 2 del anime de Jujutsu Kaisen, continúa la lectura desde el Tomo 17 del manga: ahí comienza el Arco del Juego de la Colonia (Culling Game), que lleva la serie hacia su conclusión. El manga ya está completo, y en Akibara tenemos disponibles los tomos 0 al 30 de la edición Panini Argentina en español, con envío según cobertura del transportista.</p>\n\n<p>Si terminaste de ver el anime de <strong><a href=\"https://akibara.cl/serie/jujutsu-kaisen/\">Jujutsu Kaisen</a></strong> y quieres seguir la historia en el manga, esta guía te explica exactamente en que tomo continuar. Con la serie completa disponible en 31 volúmenes de <a href=\"https://akibara.cl/product-brand/panini-argentina/\">Panini Argentina</a>, no hay mejor momento para leer el <strong>jujutsu kaisen manga tomo</strong> a tomo y descubrir todo lo que el anime aún no ha adaptado.</p>\n\n<h2>¿Qué cubre cada temporada del anime?</h2>\n\n<h3>Temporada 1 (2020) - Tomos 1 al 8</h3>\n<p>La primera temporada de 24 episodios adapta los tomos 1 al 8 del manga. Aquí conocemos a <strong>Yuji Itadori</strong>, quien ingiere uno de los dedos de Ryomen Sukuna y se convierte en su recipiente. Yuji se une a la Escuela Técnica de Hechicería de Tokio junto a Megumi Fushiguro y Nobara Kugisaki, bajo la tutela de Satoru Gojo. La temporada cubre el arco introductorio, la misión en el centro de detención juvenil y el <strong>Evento de Buena Voluntad de Kioto</strong>, culminando con la aparición de enemigos poderosos como Mahito y Suguru Geto.</p>\n\n<h3>Temporada 2 (2023) - Tomos 8 al 16</h3>\n<p>La segunda temporada se divide en dos partes fundamentales:</p>\n<ul>\n<li><strong>Arco del Pasado Oculto (Hidden Inventory):</strong> Tomos 8 y 9. Retrocedemos al pasado para conocer la juventud de Gojo y Geto, su misión de proteger a Riko Amanai y el evento traumático que separó sus caminos. Este arco es esencial para entender la motivación de ambos personajes.</li>\n<li><strong>Arco del Incidente de Shibuya:</strong> Tomos 10 al 16. Considerado por muchos como el mejor arco de la serie, la trampa tendida en Shibuya para sellar a Gojo desencadena una batalla masiva con consecuencias devastadoras para todos los personajes. El final de este arco cambia por completo el rumbo de la historia.</li>\n</ul>\n\n<h3>Película Jujutsu Kaisen 0 (2021) - Tomo 0</h3>\n<p>La película adapta el <strong>Tomo 0</strong>, un volumen precuela que cuenta la historia de <strong>Yuta Okkotsu</strong>, un joven atormentado por la maldición de su amiga de infancia Rika. Este tomo funciona tanto como punto de entrada a la serie como complemento después de la Temporada 1. En Akibara tenemos disponible el <span style=\"display:block; text-align:center; margin: 30px 0;\"><a href=\"https://akibara.cl/jujutsu-kaisen-0/\" target=\"_blank\" style=\"display:inline-block; width:100%; max-width:350px; padding:15px 20px; background:linear-gradient(135deg, #1a1a1a 0%, #333 100%); color:#fff; text-decoration:none; border-radius:12px; font-weight:bold; font-size:16px; border:1px solid #444; box-shadow:0 4px 15px rgba(0,0,0,0.3);\">🛒 Ver disponibilidad: tomo 0 de Jujutsu Kaisen</a></span>.</p>\n\n<h2>¿En qué tomo continuar después del anime?</h2>\n\n<p><strong>Si viste hasta la Temporada 2 completa, debes continuar desde el Tomo 17.</strong></p>\n\n<p>A partir del tomo 17 comienza el <strong>Arco del Juego de la Colonia (Culling Game)</strong>, donde los hechiceros deben participar en un juego mortal con reglas impuestas por Kenjaku. Este arco introduce nuevos personajes, batallas estratégicas y revela información crucial sobre el pasado de la hechicería jujutsu. Es un arco extenso y ambicioso que lleva la serie hacia su conclusión.</p>\n\n<h3>Resumen rápido: ¿Desde dónde leer?</h3>\n<ul>\n<li><strong>No viste nada del anime:</strong> Empieza desde el Tomo 1.</li>\n<li><strong>Viste la Temporada 1:</strong> Continúa desde el Tomo 9 (aunque recomendamos desde el 8 para no perder detalles del arco Hidden Inventory).</li>\n<li><strong>Viste la Temporada 2 completa:</strong> Continúa desde el <strong>Tomo 17</strong>.</li>\n<li><strong>Solo viste la película JJK 0:</strong> Lee el Tomo 0 y luego empieza desde el Tomo 1.</li>\n</ul>\n\n<h2>¿Por qué leer el manga de Jujutsu Kaisen?</h2>\n\n<p>Aunque el anime es una adaptación excepcional, el manga ofrece ventajas únicas. El ritmo narrativo de Gege Akutami en papel es más denso y recompensante, con detalles en los paneles que a veces se pierden en la animación. Además, la serie concluyó en 2024 con el tomo 30 de la serie principal (más un volumen final recopilatorio), así que puedes leer la historia completa sin esperar.</p>\n\n<p>El tomo final incluye epílogos exclusivos dibujados especialmente para el manga, que cierran las historias de los personajes principales de manera satisfactoria. Este contenido no existe en ninguna otra versión.</p>\n\n<h2>Colección completa en Akibara</h2>\n\n<p>En <strong>Akibara</strong> tenemos disponibles los tomos 0 al 30 de Jujutsu Kaisen, edición de <strong>Panini Argentina</strong> en español. Puedes armar tu colección completa o empezar desde el tomo que necesites. <span style=\"display:block; text-align:center; margin: 30px 0;\"><a href=\"https://akibara.cl/jujutsu-kaisen/\" target=\"_blank\" style=\"display:inline-block; width:100%; max-width:350px; padding:15px 20px; background:linear-gradient(135deg, #1a1a1a 0%, #333 100%); color:#fff; text-decoration:none; border-radius:12px; font-weight:bold; font-size:16px; border:1px solid #444; box-shadow:0 4px 15px rgba(0,0,0,0.3);\">🛒 Ver disponibilidad: Ver todos los tomos de Jujutsu Kaisen</a></span>.</p>\n\n<p>Si te interesa explorar más series de acción sobrenatural, te recomendamos también <a href=\"https://akibara.cl/chainsaw-man/\" target=\"_blank\">Chainsaw Man</a> y <a href=\"https://akibara.cl/demon-slayer-kimetsu-no-yaiba/\" target=\"_blank\">Demon Slayer</a>, dos series completas que comparten ese espíritu de shonen moderno y oscuro que hizo famoso a JJK.</p>",
+      "proposed_after_sha256": "c77c6897ba7b0985fd121cfcdcafb149780e6060b54416133d7b4e93cc5f79fa"
+    },
+    {
+      "key": "post:23323:post_content",
+      "object_type": "post",
+      "object_id": 23323,
+      "title": "My Hero Academia: guía completa para leer el manga en 2026",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "missing_enye",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > My Hero Academia: guía completa para leer el manga en 2026 > Editor de código > Actualizar",
+      "expected_before": "<p>Despues de 10 anos de publicacion y 430 capitulos, <strong>My Hero Academia</strong> llego a su final en agosto de 2024. La obra de <strong>Kohei Horikoshi</strong> se convirtio en uno de los pilares del shonen moderno, y ahora que esta completa, es el momento perfecto para leerla de principio a fin. En <strong>Akibara</strong> tenemos los <a href=\"https://akibara.cl/my-hero-academia-1-ivrea-argentina/\">42 tomos de la edicion de Ivrea Argentina</a>, la coleccion completa tal como la concibio su autor.</p>\n\n<h2>De que trata My Hero Academia</h2>\n\n<p>En un mundo donde el 80% de la poblacion posee superpoderes llamados <strong>Quirks</strong>, ser heroe es una profesion regulada y aspiracional. <strong>Izuku Midoriya (Deku)</strong> nace sin Quirk, pero su determinacion inquebrantable llama la atencion del heroe numero uno, <strong>All Might</strong>, quien le hereda su poder: el One For All.</p>\n\n<p>A partir de ahi, Deku ingresa a la <strong>Academia U.A.</strong>, la mejor escuela de heroes de Japon, donde junto a sus companeros de la Clase 1-A enfrentara villanos cada vez mas peligrosos mientras descubre los secretos oscuros detras de la sociedad de heroes.</p>\n\n<h2>Los grandes arcos de My Hero Academia</h2>\n\n<p>La serie se organiza en sagas que van escalando en escala y dramatismo:</p>\n\n<ul>\n<li><strong>Saga de los Inicios (tomos 1-11):</strong> El ingreso a U.A., el Festival Deportivo, la aparicion del Asesino de Heroes Stain y el campamento de entrenamiento. Aqui se establecen los personajes y las dinamicas centrales.</li>\n<li><strong>Saga del Ascenso de los Villanos (tomos 12-26):</strong> Overhaul, la Liga de Villanos, el arco de Endeavor y la devastadora Guerra de Liberacion Paranormal. La serie se oscurece significativamente.</li>\n<li><strong>Saga del Acto Final (tomos 27-42):</strong> Star and Stripe, la revelacion del traidor de U.A. y la <strong>Guerra Final</strong>, el enfrentamiento definitivo entre heroes y villanos que decide el destino de la sociedad.</li>\n</ul>\n\n<p>Cada saga construye sobre la anterior, con personajes que evolucionan de forma natural. Villanos como <strong>Shigaraki Tomura</strong> y <strong>Dabi</strong> tienen arcos de desarrollo que rivalizan con los de los protagonistas, dando profundidad a los conflictos morales de la serie.</p>\n\n<h2>Que cubre el anime y por que leer el manga</h2>\n\n<p>El anime producido por <strong>Bones</strong> ha sido una adaptacion fiel y de alta calidad. La <strong>temporada 7</strong> (2024) cubrio hasta aproximadamente el tomo 39, dejando sin adaptar los ultimos capitulos de la Guerra Final y el epilogo. Se ha confirmado una temporada final que cerrara la historia.</p>\n\n<p>Pero si no quieres esperar, el manga te ofrece la experiencia completa ahora. Los ultimos tomos contienen algunos de los momentos mas epicos e impactantes de toda la serie, incluyendo revelaciones que cambian la perspectiva de toda la historia y un epilogo de 38 paginas exclusivo del volumen 42 que muestra a los personajes ocho anos despues del final.</p>\n\n<h2>La ventaja de una serie completa</h2>\n\n<p>Una de las grandes ventajas de leer My Hero Academia en 2026 es que <strong>la historia ya esta terminada</strong>. Esto significa:</p>\n\n<ul>\n<li><strong>Sin esperas:</strong> Puedes leer los 42 tomos a tu ritmo sin depender de publicaciones mensuales.</li>\n<li><strong>Experiencia cohesiva:</strong> Leer la serie completa de corrido permite apreciar el desarrollo de personajes y las conexiones narrativas que se pierden con pausas largas entre volumenes.</li>\n<li><strong>Coleccion cerrada:</strong> Sabes exactamente cuantos tomos necesitas. No hay incertidumbre sobre la extension final.</li>\n<li><strong>El epilogo completo:</strong> El volumen 42 incluye contenido extra y un epilogo ampliado que no estuvo en la revista, solo en el tankobon.</li>\n</ul>\n\n<h2>Guia de lectura para empezar</h2>\n\n<p>Si ya viste el anime hasta la temporada 7, puedes retomar el manga desde el <strong>tomo 39</strong> (capitulo 399 en adelante) para disfrutar el final que el anime aun no ha cubierto. Si prefieres la experiencia completa desde cero, empieza por el tomo 1: Horikoshi tiene un estilo visual dinamico y expresivo que vale la pena apreciar desde el principio.</p>\n\n<p>Una recomendacion: aunque los primeros tomos pueden sentirse mas ligeros, la serie gana complejidad de forma exponencial a partir del tomo 12. Si el Festival Deportivo te atrapo en el anime, preparate para arcos que son dramaticamente superiores en el manga.</p>\n\n<h2>My Hero Academia en Akibara</h2>\n\n<p>En nuestra tienda encontraras la <strong>coleccion completa de My Hero Academia</strong> en la <a href=\"https://akibara.cl/my-hero-academia-1-ivrea-argentina/\">edicion de Ivrea Argentina</a>, con los 42 volumenes que componen la serie. Es la edicion oficial en espanol para Latinoamerica, con traduccion de calidad y formato fiel al tankobon japones.</p>\n\n<p>Si My Hero Academia es tu entrada al manga, te recomendamos explorar tambien nuestras guias de <a href=\"https://akibara.cl/hunter-x-hunter-por-que-debes-leer-el-manga-de-togashi/\">Hunter x Hunter</a> y <a href=\"https://akibara.cl/demon-slayer-kimetsu-no-yaiba-guia-definitiva-del-manga/\">Demon Slayer</a>. Para descubrir mas titulos, revisa nuestra <a href=\"https://akibara.cl/product-category/shonen/\">seccion shonen</a> o consulta la <a href=\"https://akibara.cl/en-que-orden-leer-los-tomos-de-manga-guia-de-lectura-para-principiantes/\">guia de orden de lectura para principiantes</a>.</p>",
+      "expected_before_sha256": "99177dc33bc4a8b7850465580a53458af976dccffc9e2f6568ed437645bb2b42",
+      "substitutions": [
+        {
+          "before": "Despues",
+          "after": "Después",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "despues",
+          "after": "después",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "anos",
+          "after": "años",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "publicacion",
+          "after": "publicación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "capitulos",
+          "after": "capítulos",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "llego",
+          "after": "llegó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "convirtio",
+          "after": "convirtió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "esta",
+          "after": "está",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "edicion",
+          "after": "edición",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "coleccion",
+          "after": "colección",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "Coleccion",
+          "after": "Colección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "concibio",
+          "after": "concibió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "poblacion",
+          "after": "población",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "heroe",
+          "after": "héroe",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "heroes",
+          "after": "héroes",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "Heroes",
+          "after": "Héroes",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "profesion",
+          "after": "profesión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "determinacion",
+          "after": "determinación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "atencion",
+          "after": "atención",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "numero",
+          "after": "número",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "ahi",
+          "after": "ahí",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Japon",
+          "after": "Japón",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "companeros",
+          "after": "compañeros",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "enfrentara",
+          "after": "enfrentará",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "match_mode": "text_word",
+          "expected_count": 4
+        },
+        {
+          "before": "detras",
+          "after": "detrás",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aparicion",
+          "after": "aparición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Aqui",
+          "after": "Aquí",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dinamicas",
+          "after": "dinámicas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Liberacion",
+          "after": "Liberación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "revelacion",
+          "after": "revelación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "adaptacion",
+          "after": "adaptación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "cubrio",
+          "after": "cubrió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "ultimos",
+          "after": "últimos",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "epilogo",
+          "after": "epílogo",
+          "match_mode": "text_word",
+          "expected_count": 4
+        },
+        {
+          "before": "epicos",
+          "after": "épicos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "cerrara",
+          "after": "cerrará",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "paginas",
+          "after": "páginas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "volumenes",
+          "after": "volúmenes",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "cuantos",
+          "after": "cuántos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "extension",
+          "after": "extensión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Guia",
+          "after": "Guía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "guia",
+          "after": "guía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "capitulo",
+          "after": "capítulo",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aun",
+          "after": "aún",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dinamico",
+          "after": "dinámico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "recomendacion",
+          "after": "recomendación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "atrapo",
+          "after": "atrapó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "preparate",
+          "after": "prepárate",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dramaticamente",
+          "after": "dramáticamente",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "encontraras",
+          "after": "encontrarás",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "espanol",
+          "after": "español",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Latinoamerica",
+          "after": "Latinoamérica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "traduccion",
+          "after": "traducción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "japones",
+          "after": "japonés",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tambien",
+          "after": "también",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "guias",
+          "after": "guías",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "titulos",
+          "after": "títulos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "seccion",
+          "after": "sección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "De que trata",
+          "after": "De qué trata",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Que cubre el anime y por que leer",
+          "after": "Qué cubre el anime y por qué leer",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<p>Después de 10 años de publicación y 430 capítulos, <strong>My Hero Academia</strong> llegó a su final en agosto de 2024. La obra de <strong>Kohei Horikoshi</strong> se convirtió en uno de los pilares del shonen moderno, y ahora que está completa, es el momento perfecto para leerla de principio a fin. En <strong>Akibara</strong> tenemos los <a href=\"https://akibara.cl/my-hero-academia-1-ivrea-argentina/\">42 tomos de la edición de Ivrea Argentina</a>, la colección completa tal como la concibió su autor.</p>\n\n<h2>De qué trata My Hero Academia</h2>\n\n<p>En un mundo donde el 80% de la población posee superpoderes llamados <strong>Quirks</strong>, ser héroe es una profesión regulada y aspiracional. <strong>Izuku Midoriya (Deku)</strong> nace sin Quirk, pero su determinación inquebrantable llama la atención del héroe número uno, <strong>All Might</strong>, quien le hereda su poder: el One For All.</p>\n\n<p>A partir de ahí, Deku ingresa a la <strong>Academia U.A.</strong>, la mejor escuela de héroes de Japón, donde junto a sus compañeros de la Clase 1-A enfrentará villanos cada vez más peligrosos mientras descubre los secretos oscuros detrás de la sociedad de héroes.</p>\n\n<h2>Los grandes arcos de My Hero Academia</h2>\n\n<p>La serie se organiza en sagas que van escalando en escala y dramatismo:</p>\n\n<ul>\n<li><strong>Saga de los Inicios (tomos 1-11):</strong> El ingreso a U.A., el Festival Deportivo, la aparición del Asesino de Héroes Stain y el campamento de entrenamiento. Aquí se establecen los personajes y las dinámicas centrales.</li>\n<li><strong>Saga del Ascenso de los Villanos (tomos 12-26):</strong> Overhaul, la Liga de Villanos, el arco de Endeavor y la devastadora Guerra de Liberación Paranormal. La serie se oscurece significativamente.</li>\n<li><strong>Saga del Acto Final (tomos 27-42):</strong> Star and Stripe, la revelación del traidor de U.A. y la <strong>Guerra Final</strong>, el enfrentamiento definitivo entre héroes y villanos que decide el destino de la sociedad.</li>\n</ul>\n\n<p>Cada saga construye sobre la anterior, con personajes que evolucionan de forma natural. Villanos como <strong>Shigaraki Tomura</strong> y <strong>Dabi</strong> tienen arcos de desarrollo que rivalizan con los de los protagonistas, dando profundidad a los conflictos morales de la serie.</p>\n\n<h2>Qué cubre el anime y por qué leer el manga</h2>\n\n<p>El anime producido por <strong>Bones</strong> ha sido una adaptación fiel y de alta calidad. La <strong>temporada 7</strong> (2024) cubrió hasta aproximadamente el tomo 39, dejando sin adaptar los últimos capítulos de la Guerra Final y el epílogo. Se ha confirmado una temporada final que cerrará la historia.</p>\n\n<p>Pero si no quieres esperar, el manga te ofrece la experiencia completa ahora. Los últimos tomos contienen algunos de los momentos más épicos e impactantes de toda la serie, incluyendo revelaciones que cambian la perspectiva de toda la historia y un epílogo de 38 páginas exclusivo del volumen 42 que muestra a los personajes ocho años después del final.</p>\n\n<h2>La ventaja de una serie completa</h2>\n\n<p>Una de las grandes ventajas de leer My Hero Academia en 2026 es que <strong>la historia ya está terminada</strong>. Esto significa:</p>\n\n<ul>\n<li><strong>Sin esperas:</strong> Puedes leer los 42 tomos a tu ritmo sin depender de publicaciones mensuales.</li>\n<li><strong>Experiencia cohesiva:</strong> Leer la serie completa de corrido permite apreciar el desarrollo de personajes y las conexiones narrativas que se pierden con pausas largas entre volúmenes.</li>\n<li><strong>Colección cerrada:</strong> Sabes exactamente cuántos tomos necesitas. No hay incertidumbre sobre la extensión final.</li>\n<li><strong>El epílogo completo:</strong> El volumen 42 incluye contenido extra y un epílogo ampliado que no estuvo en la revista, solo en el tankobon.</li>\n</ul>\n\n<h2>Guía de lectura para empezar</h2>\n\n<p>Si ya viste el anime hasta la temporada 7, puedes retomar el manga desde el <strong>tomo 39</strong> (capítulo 399 en adelante) para disfrutar el final que el anime aún no ha cubierto. Si prefieres la experiencia completa desde cero, empieza por el tomo 1: Horikoshi tiene un estilo visual dinámico y expresivo que vale la pena apreciar desde el principio.</p>\n\n<p>Una recomendación: aunque los primeros tomos pueden sentirse más ligeros, la serie gana complejidad de forma exponencial a partir del tomo 12. Si el Festival Deportivo te atrapó en el anime, prepárate para arcos que son dramáticamente superiores en el manga.</p>\n\n<h2>My Hero Academia en Akibara</h2>\n\n<p>En nuestra tienda encontrarás la <strong>colección completa de My Hero Academia</strong> en la <a href=\"https://akibara.cl/my-hero-academia-1-ivrea-argentina/\">edición de Ivrea Argentina</a>, con los 42 volúmenes que componen la serie. Es la edición oficial en español para Latinoamérica, con traducción de calidad y formato fiel al tankobon japonés.</p>\n\n<p>Si My Hero Academia es tu entrada al manga, te recomendamos explorar también nuestras guías de <a href=\"https://akibara.cl/hunter-x-hunter-por-que-debes-leer-el-manga-de-togashi/\">Hunter x Hunter</a> y <a href=\"https://akibara.cl/demon-slayer-kimetsu-no-yaiba-guia-definitiva-del-manga/\">Demon Slayer</a>. Para descubrir más títulos, revisa nuestra <a href=\"https://akibara.cl/product-category/shonen/\">sección shonen</a> o consulta la <a href=\"https://akibara.cl/en-que-orden-leer-los-tomos-de-manga-guia-de-lectura-para-principiantes/\">guía de orden de lectura para principiantes</a>.</p>",
+      "proposed_after_sha256": "e683b9d784d2a59b6b16b064e1782fc2e0b5a3e89d599407916a49b884c112f1"
+    },
+    {
+      "key": "post:23324:post_content",
+      "object_type": "post",
+      "object_id": 23324,
+      "title": "Blue Lock: la revolución del manga deportivo en 2026",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Blue Lock: la revolución del manga deportivo en 2026 > Editor de código > Actualizar",
+      "expected_before": "<p>En un genero dominado durante decadas por series como Captain Tsubasa y Slam Dunk, aparecio <strong>Blue Lock</strong> para demostrar que el manga deportivo podia reinventarse por completo. Escrita por <strong>Muneyuki Kaneshiro</strong> e ilustrada por <strong>Yusuke Nomura</strong>, esta serie ha superado los 50 millones de copias en circulacion y se ha convertido en el <strong>manga deportivo mas vendido de la historia reciente</strong>.</p>\n\n<h2>La premisa que cambio todo</h2>\n\n<p>Despues de una humillante derrota de la seleccion japonesa de futbol, el controvertido entrenador <strong>Jinpachi Ego</strong> propone un proyecto radical: encerrar a los 300 mejores delanteros sub-18 de Japon en una instalacion llamada <strong>Blue Lock</strong>. El objetivo es crear al mejor delantero del mundo a traves de una competencia brutal donde solo sobrevive el mas egoista.</p>\n\n<p>El protagonista, <strong>Yoichi Isagi</strong>, no es el mas rapido ni el mas fuerte. Su arma es el <strong>pensamiento espacial</strong>: la capacidad de leer el juego, anticipar jugadas y encontrar oportunidades donde nadie mas las ve. Es un protagonista que gana con inteligencia, no con poder fisico sobrehumano.</p>\n\n<h2>Por que Blue Lock es diferente al manga deportivo tradicional</h2>\n\n<p>Los manga deportivos clasicos suelen centrarse en el trabajo en equipo, la amistad y la superacion grupal. Blue Lock invierte esa formula por completo:</p>\n\n<ul>\n<li><strong>Egoismo como virtud:</strong> La serie argumenta que para ser el mejor delantero del mundo necesitas un ego feroz. El trabajo en equipo existe, pero al servicio del individuo.</li>\n<li><strong>Formato battle royale:</strong> La estructura de eliminacion constante genera tension permanente. Cada partido puede ser el ultimo para cualquier personaje.</li>\n<li><strong>Analisis tactico real:</strong> Aunque tiene momentos exagerados, Blue Lock basa sus estrategias en conceptos tacticos del futbol real, con referencias a jugadores como Ronaldo, Messi y Noel Noa (inspirado en varios iconos reales).</li>\n<li><strong>Villanos memorables:</strong> Cada rival tiene su propia filosofia del futbol, creando enfrentamientos ideologicos ademas de deportivos.</li>\n</ul>\n\n<h2>Los arcos de Blue Lock</h2>\n\n<p>La serie se estructura en fases de competencia que van escalando en complejidad:</p>\n\n<ul>\n<li><strong>Primera Seleccion (tomos 1-5):</strong> La introduccion al programa Blue Lock y las primeras eliminaciones entre los 300 jugadores.</li>\n<li><strong>Segunda Seleccion (tomos 5-8):</strong> Competencias directas que definen los roles de los jugadores.</li>\n<li><strong>Tercera Seleccion (tomos 8-12):</strong> Los enfrentamientos se intensifican con la aparicion de los top players del programa.</li>\n<li><strong>Arco U-20 (tomos 12-17):</strong> El equipo Blue Lock se enfrenta a la seleccion sub-20 de Japon en un partido que define el futuro del futbol japones. Es el climax de la primera mitad de la serie.</li>\n<li><strong>Neo Egoist League (tomos 17-30):</strong> La segunda fase del programa, donde los jugadores de Blue Lock compiten junto a estrellas mundiales en equipos mixtos, preparandose para el Mundial Sub-20.</li>\n<li><strong>Arco actual (tomos 30+):</strong> La historia continua escalando con nuevos desafios internacionales.</li>\n</ul>\n\n<h2>El anime de Blue Lock y que cubre</h2>\n\n<p>La primera temporada del anime (2022-2023) cubrio aproximadamente los primeros 12 tomos del manga, hasta antes del partido contra la seleccion U-20. La <strong>segunda temporada</strong>, estrenada en octubre de 2024, adapta el <strong>Arco U-20</strong>, uno de los momentos mas emocionantes de la serie.</p>\n\n<p>Ademas, ya se confirmo una <strong>tercera temporada</strong> que cubrira el arco de la Neo Egoist League, y hay una <strong>pelicula live-action</strong> programada para 2026. Blue Lock no para de crecer.</p>\n\n<p>Leer el manga te permite ir muy por delante del anime. Mientras el anime va por el tomo 17 aproximadamente, el manga ya supera los 35 tomos con tramas que todavia no se han adaptado.</p>\n\n<h2>Por que Blue Lock exploto en popularidad</h2>\n\n<p>Blue Lock logro algo que pocos manga deportivos han conseguido: atraer lectores que normalmente no leen manga de deportes. Su estructura de competencia tipo battle royale, la intensidad psicologica de los personajes y el ritmo frenetico la hacen sentir mas cercana a un <a href=\"https://akibara.cl/en-que-tomo-del-manga-continuar-jujutsu-kaisen-despues-del-anime/\">Jujutsu Kaisen</a> que a un manga deportivo clasico.</p>\n\n<p>En 2023 fue el manga mas vendido en Japon, superando incluso a titulos de accion consolidados. Y su popularidad sigue en alza gracias al anime, la pelicula live-action anunciada y la calidad consistente del manga.</p>\n\n<h2>Blue Lock en Akibara</h2>\n\n<p>En nuestra tienda tenemos disponibles los <a href=\"https://akibara.cl/blue-lock-1-ivrea-argentina/\">35 tomos de Blue Lock en la edicion de Ivrea Argentina</a>. Es una coleccion que crece mes a mes con nuevos volumenes, perfecta para ir al dia con una de las series mas emocionantes del momento.</p>\n\n<p>Si te gusta Blue Lock, probablemente disfrutes tambien nuestra guia sobre <a href=\"https://akibara.cl/slam-dunk-el-manga-que-hizo-que-japon-amara-el-basketball/\">Slam Dunk, el manga que hizo que Japon amara el basketball</a>, otro clasico deportivo imprescindible. Y para explorar mas series de competencia y accion, entra a nuestra <a href=\"https://akibara.cl/product-category/shonen/\">seccion shonen</a> o descubre <a href=\"https://akibara.cl/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">los 10 mejores manga para empezar en 2026</a>.</p>",
+      "expected_before_sha256": "c157bc70a811c4ef88b6bde62dba9de6c6d1be85afcdf4edda7de6547ae8e9a5",
+      "substitutions": [
+        {
+          "before": "genero",
+          "after": "género",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Ademas",
+          "after": "Además",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "decadas",
+          "after": "décadas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aparecio",
+          "after": "apareció",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "podia",
+          "after": "podía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "circulacion",
+          "after": "circulación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "match_mode": "text_word",
+          "expected_count": 10
+        },
+        {
+          "before": "cambio",
+          "after": "cambió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Despues",
+          "after": "Después",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "seleccion",
+          "after": "selección",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "Seleccion",
+          "after": "Selección",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "futbol",
+          "after": "fútbol",
+          "match_mode": "text_word",
+          "expected_count": 4
+        },
+        {
+          "before": "Japon",
+          "after": "Japón",
+          "match_mode": "text_word",
+          "expected_count": 4
+        },
+        {
+          "before": "instalacion",
+          "after": "instalación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "traves",
+          "after": "través",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "egoista",
+          "after": "egoísta",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "rapido",
+          "after": "rápido",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "fisico",
+          "after": "físico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "clasicos",
+          "after": "clásicos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "superacion",
+          "after": "superación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "formula",
+          "after": "fórmula",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Egoismo",
+          "after": "Egoísmo",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "eliminacion",
+          "after": "eliminación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tension",
+          "after": "tensión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "ultimo",
+          "after": "último",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Analisis",
+          "after": "Análisis",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tactico",
+          "after": "táctico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tacticos",
+          "after": "tácticos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "iconos",
+          "after": "íconos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "filosofia",
+          "after": "filosofía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "ideologicos",
+          "after": "ideológicos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "ademas",
+          "after": "además",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "introduccion",
+          "after": "introducción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aparicion",
+          "after": "aparición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "japones",
+          "after": "japonés",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "climax",
+          "after": "clímax",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "preparandose",
+          "after": "preparándose",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "continua",
+          "after": "continúa",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "desafios",
+          "after": "desafíos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "cubrio",
+          "after": "cubrió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "confirmo",
+          "after": "confirmó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "cubrira",
+          "after": "cubrirá",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "pelicula",
+          "after": "película",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "todavia",
+          "after": "todavía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "exploto",
+          "after": "explotó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "logro",
+          "after": "logró",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "psicologica",
+          "after": "psicológica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "frenetico",
+          "after": "frenético",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "clasico",
+          "after": "clásico",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "titulos",
+          "after": "títulos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "accion",
+          "after": "acción",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "edicion",
+          "after": "edición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "coleccion",
+          "after": "colección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "volumenes",
+          "after": "volúmenes",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dia",
+          "after": "día",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tambien",
+          "after": "también",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "guia",
+          "after": "guía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "seccion",
+          "after": "sección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Por que Blue Lock",
+          "after": "Por qué Blue Lock",
+          "match_mode": "text_literal",
+          "expected_count": 2
+        },
+        {
+          "before": "El anime de Blue Lock y que cubre",
+          "after": "El anime de Blue Lock y qué cubre",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<p>En un género dominado durante décadas por series como Captain Tsubasa y Slam Dunk, apareció <strong>Blue Lock</strong> para demostrar que el manga deportivo podía reinventarse por completo. Escrita por <strong>Muneyuki Kaneshiro</strong> e ilustrada por <strong>Yusuke Nomura</strong>, esta serie ha superado los 50 millones de copias en circulación y se ha convertido en el <strong>manga deportivo más vendido de la historia reciente</strong>.</p>\n\n<h2>La premisa que cambió todo</h2>\n\n<p>Después de una humillante derrota de la selección japonesa de fútbol, el controvertido entrenador <strong>Jinpachi Ego</strong> propone un proyecto radical: encerrar a los 300 mejores delanteros sub-18 de Japón en una instalación llamada <strong>Blue Lock</strong>. El objetivo es crear al mejor delantero del mundo a través de una competencia brutal donde solo sobrevive el más egoísta.</p>\n\n<p>El protagonista, <strong>Yoichi Isagi</strong>, no es el más rápido ni el más fuerte. Su arma es el <strong>pensamiento espacial</strong>: la capacidad de leer el juego, anticipar jugadas y encontrar oportunidades donde nadie más las ve. Es un protagonista que gana con inteligencia, no con poder físico sobrehumano.</p>\n\n<h2>Por qué Blue Lock es diferente al manga deportivo tradicional</h2>\n\n<p>Los manga deportivos clásicos suelen centrarse en el trabajo en equipo, la amistad y la superación grupal. Blue Lock invierte esa fórmula por completo:</p>\n\n<ul>\n<li><strong>Egoísmo como virtud:</strong> La serie argumenta que para ser el mejor delantero del mundo necesitas un ego feroz. El trabajo en equipo existe, pero al servicio del individuo.</li>\n<li><strong>Formato battle royale:</strong> La estructura de eliminación constante genera tensión permanente. Cada partido puede ser el último para cualquier personaje.</li>\n<li><strong>Análisis táctico real:</strong> Aunque tiene momentos exagerados, Blue Lock basa sus estrategias en conceptos tácticos del fútbol real, con referencias a jugadores como Ronaldo, Messi y Noel Noa (inspirado en varios íconos reales).</li>\n<li><strong>Villanos memorables:</strong> Cada rival tiene su propia filosofía del fútbol, creando enfrentamientos ideológicos además de deportivos.</li>\n</ul>\n\n<h2>Los arcos de Blue Lock</h2>\n\n<p>La serie se estructura en fases de competencia que van escalando en complejidad:</p>\n\n<ul>\n<li><strong>Primera Selección (tomos 1-5):</strong> La introducción al programa Blue Lock y las primeras eliminaciones entre los 300 jugadores.</li>\n<li><strong>Segunda Selección (tomos 5-8):</strong> Competencias directas que definen los roles de los jugadores.</li>\n<li><strong>Tercera Selección (tomos 8-12):</strong> Los enfrentamientos se intensifican con la aparición de los top players del programa.</li>\n<li><strong>Arco U-20 (tomos 12-17):</strong> El equipo Blue Lock se enfrenta a la selección sub-20 de Japón en un partido que define el futuro del fútbol japonés. Es el clímax de la primera mitad de la serie.</li>\n<li><strong>Neo Egoist League (tomos 17-30):</strong> La segunda fase del programa, donde los jugadores de Blue Lock compiten junto a estrellas mundiales en equipos mixtos, preparándose para el Mundial Sub-20.</li>\n<li><strong>Arco actual (tomos 30+):</strong> La historia continúa escalando con nuevos desafíos internacionales.</li>\n</ul>\n\n<h2>El anime de Blue Lock y qué cubre</h2>\n\n<p>La primera temporada del anime (2022-2023) cubrió aproximadamente los primeros 12 tomos del manga, hasta antes del partido contra la selección U-20. La <strong>segunda temporada</strong>, estrenada en octubre de 2024, adapta el <strong>Arco U-20</strong>, uno de los momentos más emocionantes de la serie.</p>\n\n<p>Además, ya se confirmó una <strong>tercera temporada</strong> que cubrirá el arco de la Neo Egoist League, y hay una <strong>película live-action</strong> programada para 2026. Blue Lock no para de crecer.</p>\n\n<p>Leer el manga te permite ir muy por delante del anime. Mientras el anime va por el tomo 17 aproximadamente, el manga ya supera los 35 tomos con tramas que todavía no se han adaptado.</p>\n\n<h2>Por qué Blue Lock explotó en popularidad</h2>\n\n<p>Blue Lock logró algo que pocos manga deportivos han conseguido: atraer lectores que normalmente no leen manga de deportes. Su estructura de competencia tipo battle royale, la intensidad psicológica de los personajes y el ritmo frenético la hacen sentir más cercana a un <a href=\"https://akibara.cl/en-que-tomo-del-manga-continuar-jujutsu-kaisen-despues-del-anime/\">Jujutsu Kaisen</a> que a un manga deportivo clásico.</p>\n\n<p>En 2023 fue el manga más vendido en Japón, superando incluso a títulos de acción consolidados. Y su popularidad sigue en alza gracias al anime, la película live-action anunciada y la calidad consistente del manga.</p>\n\n<h2>Blue Lock en Akibara</h2>\n\n<p>En nuestra tienda tenemos disponibles los <a href=\"https://akibara.cl/blue-lock-1-ivrea-argentina/\">35 tomos de Blue Lock en la edición de Ivrea Argentina</a>. Es una colección que crece mes a mes con nuevos volúmenes, perfecta para ir al día con una de las series más emocionantes del momento.</p>\n\n<p>Si te gusta Blue Lock, probablemente disfrutes también nuestra guía sobre <a href=\"https://akibara.cl/slam-dunk-el-manga-que-hizo-que-japon-amara-el-basketball/\">Slam Dunk, el manga que hizo que Japón amara el basketball</a>, otro clásico deportivo imprescindible. Y para explorar más series de competencia y acción, entra a nuestra <a href=\"https://akibara.cl/product-category/shonen/\">sección shonen</a> o descubre <a href=\"https://akibara.cl/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">los 10 mejores manga para empezar en 2026</a>.</p>",
+      "proposed_after_sha256": "e05c067c0343deeb974c0d7447784a8d28596a85f55e7ebe56311f089696cb13"
+    },
+    {
+      "key": "post:23325:post_content",
+      "object_type": "post",
+      "object_id": 23325,
+      "title": "Demon Slayer (Kimetsu no Yaiba): guía definitiva del manga",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Demon Slayer (Kimetsu no Yaiba): guía definitiva del manga > Editor de código > Actualizar",
+      "expected_before": "<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Demon Slayer (Kimetsu no Yaiba) es una serie completa de 23 tomos en la edición japonesa, así que se lee en orden simple: del tomo 1 al 23, siguiendo sus arcos desde la Selección Final hasta el Arco Final contra Muzan. La edición de Ivrea Argentina mantiene el sentido de lectura japonés (derecha a izquierda). Está disponible en Akibara con envío según cobertura del transportista.</p>\n\n<p>Si hay un manga que definio la ultima decada del shonen, ese es <strong>Demon Slayer (Kimetsu no Yaiba)</strong>. La obra de <strong>Koyoharu Gotouge</strong> no solo rompio records de ventas en Japon sino que se convirtio en un fenomeno cultural global. Y lo mejor: es una serie <strong>completa</strong>, lo que significa que puedes disfrutarla de principio a fin sin esperas.</p>\n\n<h2>De que trata Demon Slayer</h2>\n\n<p>La historia sigue a <strong>Tanjiro Kamado</strong>, un joven bondadoso cuya familia es masacrada por demonios. Su hermana <strong>Nezuko</strong> sobrevive pero queda convertida en demonio. Determinado a encontrar una cura para Nezuko y vengar a su familia, Tanjiro se une al <strong>Cuerpo de Cazadores de Demonios</strong>, una organizacion secreta que lucha contra las criaturas de la noche lideradas por el temible Muzan Kibutsuji.</p>\n\n<p>Lo que hace especial a Demon Slayer no es solo la accion espectacular, sino la <strong>humanidad de sus villanos</strong>. Gotouge dedica tiempo a mostrar la historia de cada demonio antes de su muerte, creando momentos de empatia inesperada que le dan profundidad emocional a cada combate.</p>\n\n<h2>Todos los arcos de Demon Slayer explicados</h2>\n\n<p>El manga se divide en arcos bien definidos, cada uno con sus propios antagonistas y desarrollo:</p>\n\n<ul>\n<li><strong>Arco de Seleccion Final:</strong> Tanjiro entra al Cuerpo de Cazadores tras un brutal entrenamiento con Urokodaki.</li>\n<li><strong>Arco de Asakusa y Monte Natagumo:</strong> Primeros enfrentamientos serios y la aparicion de las Lunas Demoniacas.</li>\n<li><strong>Arco del Tren Infinito:</strong> El arco que inspiro la pelicula mas taquillera de la historia de Japon. La batalla contra Enmu y el destino tragico del Pilar de la Flama, Rengoku.</li>\n<li><strong>Arco del Distrito Rojo:</strong> Tengen Uzui lidera una mision contra las Lunas Superiores Daki y Gyutaro. Accion al limite.</li>\n<li><strong>Arco de la Aldea de los Herreros:</strong> Tanjiro busca una nueva espada mientras enfrenta a las Lunas Superiores 4 y 5, con los Pilares Mitsuri y Muichiro.</li>\n<li><strong>Arco del Entrenamiento Hashira:</strong> Preparacion para la batalla final contra Muzan.</li>\n<li><strong>Arco del Castillo Infinito:</strong> La batalla definitiva. Todos los Pilares contra todos los demonios restantes en un enfrentamiento epico y devastador.</li>\n<li><strong>Arco Final:</strong> El desenlace contra Muzan Kibutsuji y un epilogo emotivo.</li>\n</ul>\n\n<h2>Que cubre el anime y que falta por adaptar</h2>\n\n<p>El anime producido por <strong>Ufotable</strong> es una de las mejores adaptaciones que existen, con una animacion que elevo el material original a niveles increibles. Hasta 2025, el anime ha cubierto los arcos hasta el Entrenamiento Hashira (temporada 4). El <strong>Arco del Castillo Infinito</strong>, que es el climax de toda la serie, esta siendo adaptado como una trilogia de peliculas que comenzo en 2025.</p>\n\n<p>Sin embargo, leer el manga tiene ventajas claras: puedes disfrutar la historia completa sin esperar anos entre temporadas, y el estilo de Gotouge tiene un encanto particular en blanco y negro que transmite las emociones de manera diferente al anime.</p>\n\n<h2>Por que Demon Slayer es perfecto para empezar a leer manga</h2>\n\n<p>Si nunca has leido manga y no sabes por donde empezar, Demon Slayer es una eleccion ideal por varias razones:</p>\n\n<ul>\n<li><strong>Serie completa:</strong> No tienes que esperar publicaciones futuras. La historia tiene inicio, desarrollo y final.</li>\n<li><strong>Extension manejable:</strong> Con 23 tomos en la edicion japonesa, es una serie que puedes coleccionar completa sin el compromiso de series larguisimas como <a href=\"https://akibara.cl/guia-para-empezar-a-leer-one-piece-en-2026/\">One Piece</a>.</li>\n<li><strong>Ritmo agil:</strong> Gotouge no rellena. Cada capitulo avanza la trama, lo que hace la lectura adictiva.</li>\n<li><strong>Accesible para todos:</strong> Aunque es un shonen de accion, sus temas de familia, sacrificio y perseverancia conectan con lectores de todas las edades.</li>\n</ul>\n\n<h2>La edicion de Ivrea Argentina</h2>\n\n<p>En <strong>Akibara</strong> tenemos disponible el <strong>manga de Demon Slayer en la edicion de Ivrea Argentina</strong>. Esta es la edicion oficial en espanol para Latinoamerica, con una traduccion de calidad y formato tankoubon fiel al original japones. Actualmente contamos con <a href=\"https://akibara.cl/demon-slayer-kimetsu-no-yaiba-1-ivrea-argentina/\">los tomos disponibles en nuestra tienda</a>, ideales tanto para empezar la coleccion como para completarla.</p>\n\n<p>La edicion de Ivrea incluye las sobrecubiertas originales y mantiene el sentido de lectura japones (derecha a izquierda), que es la forma autentica de experimentar el manga tal como Gotouge lo dibujo.</p>\n\n<h2>Demon Slayer en tu coleccion</h2>\n\n<p>Tener Demon Slayer completo en tu estanteria es tener una de las obras definitivas del shonen moderno. Es una serie que funciona perfectamente como regalo para alguien que quiere iniciarse en el manga, como pieza de coleccion para fans del anime, o simplemente como una gran historia para disfrutar.</p>\n\n<p>Si te gustan las series de accion con corazon, revisa tambien nuestras guias de <a href=\"https://akibara.cl/my-hero-academia-guia-completa-para-leer-el-manga-en-2026/\">My Hero Academia</a> y <a href=\"https://akibara.cl/blue-lock-la-revolucion-del-manga-deportivo-en-2026/\">Blue Lock</a>. Y si quieres explorar mas opciones, entra a nuestra <a href=\"https://akibara.cl/product-category/shonen/\">seccion de manga shonen</a> o lee nuestro articulo sobre <a href=\"https://akibara.cl/que-es-el-manga-guia-para-principiantes-en-chile/\">que es el manga</a>.</p>",
+      "expected_before_sha256": "31d4ab8e7d10159f9d1939a58605e3b68b4edb2b0d77c00333e57ab69b672b3c",
+      "substitutions": [
+        {
+          "before": "definio",
+          "after": "definió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "ultima",
+          "after": "última",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "decada",
+          "after": "década",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "rompio",
+          "after": "rompió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "records",
+          "after": "récords",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Japon",
+          "after": "Japón",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "convirtio",
+          "after": "convirtió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "fenomeno",
+          "after": "fenómeno",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "organizacion",
+          "after": "organización",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "accion",
+          "after": "acción",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "empatia",
+          "after": "empatía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Seleccion",
+          "after": "Selección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aparicion",
+          "after": "aparición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Demoniacas",
+          "after": "Demoníacas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "inspiro",
+          "after": "inspiró",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "pelicula",
+          "after": "película",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "tragico",
+          "after": "trágico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mision",
+          "after": "misión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Accion",
+          "after": "Acción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "limite",
+          "after": "límite",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Preparacion",
+          "after": "Preparación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "epico",
+          "after": "épico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "epilogo",
+          "after": "epílogo",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "animacion",
+          "after": "animación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "elevo",
+          "after": "elevó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "increibles",
+          "after": "increíbles",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "climax",
+          "after": "clímax",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "trilogia",
+          "after": "trilogía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "peliculas",
+          "after": "películas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "comenzo",
+          "after": "comenzó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "anos",
+          "after": "años",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "leido",
+          "after": "leído",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "eleccion",
+          "after": "elección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Extension",
+          "after": "Extensión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "edicion",
+          "after": "edición",
+          "match_mode": "text_word",
+          "expected_count": 5
+        },
+        {
+          "before": "larguisimas",
+          "after": "larguísimas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "agil",
+          "after": "ágil",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "capitulo",
+          "after": "capítulo",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "espanol",
+          "after": "español",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Latinoamerica",
+          "after": "Latinoamérica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "traduccion",
+          "after": "traducción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "japones",
+          "after": "japonés",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "coleccion",
+          "after": "colección",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "autentica",
+          "after": "auténtica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dibujo",
+          "after": "dibujó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "estanteria",
+          "after": "estantería",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "corazon",
+          "after": "corazón",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tambien",
+          "after": "también",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "guias",
+          "after": "guías",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "seccion",
+          "after": "sección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "articulo",
+          "after": "artículo",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "De que trata",
+          "after": "De qué trata",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Que cubre el anime y que falta",
+          "after": "Qué cubre el anime y qué falta",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "esta siendo adaptado",
+          "after": "está siendo adaptado",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Por que Demon Slayer",
+          "after": "Por qué Demon Slayer",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "por donde empezar",
+          "after": "por dónde empezar",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "que es el manga",
+          "after": "qué es el manga",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Demon Slayer (Kimetsu no Yaiba) es una serie completa de 23 tomos en la edición japonesa, así que se lee en orden simple: del tomo 1 al 23, siguiendo sus arcos desde la Selección Final hasta el Arco Final contra Muzan. La edición de Ivrea Argentina mantiene el sentido de lectura japonés (derecha a izquierda). Está disponible en Akibara con envío según cobertura del transportista.</p>\n\n<p>Si hay un manga que definió la última década del shonen, ese es <strong>Demon Slayer (Kimetsu no Yaiba)</strong>. La obra de <strong>Koyoharu Gotouge</strong> no solo rompió récords de ventas en Japón sino que se convirtió en un fenómeno cultural global. Y lo mejor: es una serie <strong>completa</strong>, lo que significa que puedes disfrutarla de principio a fin sin esperas.</p>\n\n<h2>De qué trata Demon Slayer</h2>\n\n<p>La historia sigue a <strong>Tanjiro Kamado</strong>, un joven bondadoso cuya familia es masacrada por demonios. Su hermana <strong>Nezuko</strong> sobrevive pero queda convertida en demonio. Determinado a encontrar una cura para Nezuko y vengar a su familia, Tanjiro se une al <strong>Cuerpo de Cazadores de Demonios</strong>, una organización secreta que lucha contra las criaturas de la noche lideradas por el temible Muzan Kibutsuji.</p>\n\n<p>Lo que hace especial a Demon Slayer no es solo la acción espectacular, sino la <strong>humanidad de sus villanos</strong>. Gotouge dedica tiempo a mostrar la historia de cada demonio antes de su muerte, creando momentos de empatía inesperada que le dan profundidad emocional a cada combate.</p>\n\n<h2>Todos los arcos de Demon Slayer explicados</h2>\n\n<p>El manga se divide en arcos bien definidos, cada uno con sus propios antagonistas y desarrollo:</p>\n\n<ul>\n<li><strong>Arco de Selección Final:</strong> Tanjiro entra al Cuerpo de Cazadores tras un brutal entrenamiento con Urokodaki.</li>\n<li><strong>Arco de Asakusa y Monte Natagumo:</strong> Primeros enfrentamientos serios y la aparición de las Lunas Demoníacas.</li>\n<li><strong>Arco del Tren Infinito:</strong> El arco que inspiró la película más taquillera de la historia de Japón. La batalla contra Enmu y el destino trágico del Pilar de la Flama, Rengoku.</li>\n<li><strong>Arco del Distrito Rojo:</strong> Tengen Uzui lidera una misión contra las Lunas Superiores Daki y Gyutaro. Acción al límite.</li>\n<li><strong>Arco de la Aldea de los Herreros:</strong> Tanjiro busca una nueva espada mientras enfrenta a las Lunas Superiores 4 y 5, con los Pilares Mitsuri y Muichiro.</li>\n<li><strong>Arco del Entrenamiento Hashira:</strong> Preparación para la batalla final contra Muzan.</li>\n<li><strong>Arco del Castillo Infinito:</strong> La batalla definitiva. Todos los Pilares contra todos los demonios restantes en un enfrentamiento épico y devastador.</li>\n<li><strong>Arco Final:</strong> El desenlace contra Muzan Kibutsuji y un epílogo emotivo.</li>\n</ul>\n\n<h2>Qué cubre el anime y qué falta por adaptar</h2>\n\n<p>El anime producido por <strong>Ufotable</strong> es una de las mejores adaptaciones que existen, con una animación que elevó el material original a niveles increíbles. Hasta 2025, el anime ha cubierto los arcos hasta el Entrenamiento Hashira (temporada 4). El <strong>Arco del Castillo Infinito</strong>, que es el clímax de toda la serie, está siendo adaptado como una trilogía de películas que comenzó en 2025.</p>\n\n<p>Sin embargo, leer el manga tiene ventajas claras: puedes disfrutar la historia completa sin esperar años entre temporadas, y el estilo de Gotouge tiene un encanto particular en blanco y negro que transmite las emociones de manera diferente al anime.</p>\n\n<h2>Por qué Demon Slayer es perfecto para empezar a leer manga</h2>\n\n<p>Si nunca has leído manga y no sabes por dónde empezar, Demon Slayer es una elección ideal por varias razones:</p>\n\n<ul>\n<li><strong>Serie completa:</strong> No tienes que esperar publicaciones futuras. La historia tiene inicio, desarrollo y final.</li>\n<li><strong>Extensión manejable:</strong> Con 23 tomos en la edición japonesa, es una serie que puedes coleccionar completa sin el compromiso de series larguísimas como <a href=\"https://akibara.cl/guia-para-empezar-a-leer-one-piece-en-2026/\">One Piece</a>.</li>\n<li><strong>Ritmo ágil:</strong> Gotouge no rellena. Cada capítulo avanza la trama, lo que hace la lectura adictiva.</li>\n<li><strong>Accesible para todos:</strong> Aunque es un shonen de acción, sus temas de familia, sacrificio y perseverancia conectan con lectores de todas las edades.</li>\n</ul>\n\n<h2>La edición de Ivrea Argentina</h2>\n\n<p>En <strong>Akibara</strong> tenemos disponible el <strong>manga de Demon Slayer en la edición de Ivrea Argentina</strong>. Esta es la edición oficial en español para Latinoamérica, con una traducción de calidad y formato tankoubon fiel al original japonés. Actualmente contamos con <a href=\"https://akibara.cl/demon-slayer-kimetsu-no-yaiba-1-ivrea-argentina/\">los tomos disponibles en nuestra tienda</a>, ideales tanto para empezar la colección como para completarla.</p>\n\n<p>La edición de Ivrea incluye las sobrecubiertas originales y mantiene el sentido de lectura japonés (derecha a izquierda), que es la forma auténtica de experimentar el manga tal como Gotouge lo dibujó.</p>\n\n<h2>Demon Slayer en tu colección</h2>\n\n<p>Tener Demon Slayer completo en tu estantería es tener una de las obras definitivas del shonen moderno. Es una serie que funciona perfectamente como regalo para alguien que quiere iniciarse en el manga, como pieza de colección para fans del anime, o simplemente como una gran historia para disfrutar.</p>\n\n<p>Si te gustan las series de acción con corazón, revisa también nuestras guías de <a href=\"https://akibara.cl/my-hero-academia-guia-completa-para-leer-el-manga-en-2026/\">My Hero Academia</a> y <a href=\"https://akibara.cl/blue-lock-la-revolucion-del-manga-deportivo-en-2026/\">Blue Lock</a>. Y si quieres explorar más opciones, entra a nuestra <a href=\"https://akibara.cl/product-category/shonen/\">sección de manga shonen</a> o lee nuestro artículo sobre <a href=\"https://akibara.cl/que-es-el-manga-guia-para-principiantes-en-chile/\">qué es el manga</a>.</p>",
+      "proposed_after_sha256": "388130c2c0ea45122c926960bbf15fd71725f5693d0b889ef77a91327d9bd18c"
+    },
+    {
+      "key": "post:23326:post_content",
+      "object_type": "post",
+      "object_id": 23326,
+      "title": "Hunter x Hunter: por qué debes leer el manga de Togashi",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "missing_enye",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Hunter x Hunter: por qué debes leer el manga de Togashi > Editor de código > Actualizar",
+      "expected_before": "<p>Si eres fan del anime shonen y todavia no has leido el <strong>manga de Hunter x Hunter</strong>, te estas perdiendo una de las obras mas ambiciosas e inteligentes de la historia del genero. Creada por <strong>Yoshihiro Togashi</strong> en 1998, esta serie ha redefinido lo que un manga de aventuras puede lograr, con un sistema de poderes brillante, villanos memorables y arcos narrativos que desafian las convenciones del shonen.</p>\n\n<h2>Quien es Yoshihiro Togashi y por que es un genio</h2>\n\n<p>Togashi no es un mangaka cualquiera. Antes de Hunter x Hunter, ya habia creado <strong>Yu Yu Hakusho</strong>, otro clasico absoluto del genero. Lo que distingue a Togashi es su capacidad para construir sistemas complejos, desarrollar personajes con profundidad psicologica y plantear dilemas morales que no tienen respuestas faciles. En Hunter x Hunter, cada arco narrativo se siente como una obra diferente en terminos de tono y tematica, pero todo esta conectado por una coherencia interna admirable.</p>\n\n<h2>De que trata Hunter x Hunter</h2>\n\n<p>La historia sigue a <strong>Gon Freecss</strong>, un joven que decide convertirse en Hunter (un cazador profesional de elite) para encontrar a su padre, Ging, quien lo abandono de nino. En su camino conoce a <strong>Killua, Kurapika y Leorio</strong>, cada uno con motivaciones propias y arcos de desarrollo que evolucionan a lo largo de toda la serie.</p>\n\n<p>Lo que empieza como una aventura clasica se transforma gradualmente en algo mucho mas oscuro y estrategico. El sistema de poder Nen es considerado uno de los mas elaborados y coherentes del manga, con reglas claras que permiten combates basados en estrategia mas que en fuerza bruta.</p>\n\n<h2>Los arcos del manga Hunter x Hunter</h2>\n\n<p>La serie se divide en arcos bien diferenciados, cada uno con una identidad propia:</p>\n\n<ul>\n<li><strong>Examen de Cazador:</strong> La introduccion perfecta al mundo y los personajes principales.</li>\n<li><strong>Isla Ballena y Torre Celestial:</strong> Desarrollo del sistema Nen y entrenamiento.</li>\n<li><strong>Yorknew City:</strong> Un arco de mafia y venganza centrado en Kurapika que eleva la serie a otro nivel.</li>\n<li><strong>Greed Island:</strong> Aventura dentro de un videojuego con reglas complejas.</li>\n<li><strong>Chimera Ant:</strong> Con 132 capitulos, es el arco mas largo y es considerado una obra maestra. Explora la naturaleza humana, la empatia y la violencia con una profundidad extraordinaria.</li>\n<li><strong>Eleccion del Presidente:</strong> Cierra un ciclo emocional importante para Gon y Killua.</li>\n<li><strong>Continente Oscuro y Sucesion:</strong> El arco actual, exclusivo del manga, con una trama politica y de misterio de enorme complejidad.</li>\n</ul>\n\n<h2>Que cubre el anime vs que es exclusivo del manga</h2>\n\n<p>El <strong>anime de 2011 producido por Madhouse</strong> (148 episodios) adapto el manga hasta el arco de la Eleccion del Presidente. Es una adaptacion excelente y fiel al material original. Sin embargo, <strong>todo lo que viene despues es exclusivo del manga</strong>: el viaje al Continente Oscuro, la guerra de sucesion de Kakin y las tramas de los Princes son contenido que solo existe en el manga.</p>\n\n<p>Esto significa que si solo viste el anime, te estas perdiendo lo que muchos fans consideran la etapa mas madura y ambiciosa de Togashi. Las intrigas politicas, los nuevos personajes y las amenazas del Continente Oscuro expanden el universo de maneras que el anime nunca mostro.</p>\n\n<h2>La historia de los hiatus y el regreso de Togashi</h2>\n\n<p>Es imposible hablar de Hunter x Hunter sin mencionar sus famosos <strong>hiatus</strong>. Los problemas de salud de Togashi han interrumpido la publicacion en multiples ocasiones durante mas de dos decadas. A pesar de esto, cada vez que el manga regresa, la calidad se mantiene intacta.</p>\n\n<p>En 2022 Togashi sorprendio al mundo creando una cuenta en X (antes Twitter) y mostrando su progreso. Desde entonces, ha completado nuevos capitulos que expanden la trama del Continente Oscuro. Segun las actualizaciones mas recientes, Togashi tiene preparados diez nuevos capitulos (del 411 al 420), lo que indica un posible regreso a la publicacion en 2026.</p>\n\n<h2>Guia de lectura: como empezar Hunter x Hunter</h2>\n\n<p>Si ya viste el anime de 2011, puedes empezar directamente desde el <strong>tomo 33</strong>, que es donde continua la historia tras el arco de la Eleccion. Si prefieres la experiencia completa desde el principio (recomendado), los primeros tomos cubren los mismos eventos del anime pero con el estilo grafico unico de Togashi y detalles que la adaptacion omitio.</p>\n\n<p>En <strong>Akibara</strong> tenemos disponibles los <a href=\"https://akibara.cl/hunter-x-hunter-1-ivrea-argentina/\">38 tomos de Hunter x Hunter en la edicion de Ivrea Argentina</a>, la editorial que publica la serie en espanol para Latinoamerica. Es una edicion de calidad con traduccion fiel al japones.</p>\n\n<h2>Por que Hunter x Hunter es imprescindible en tu coleccion</h2>\n\n<p>Hunter x Hunter no es solo un gran manga shonen: es una de las obras mas intelectualmente estimulantes del medio. Si disfrutas series como <a href=\"https://akibara.cl/en-que-tomo-del-manga-continuar-jujutsu-kaisen-despues-del-anime/\">Jujutsu Kaisen</a> o <a href=\"https://akibara.cl/en-que-tomo-del-manga-continuar-chainsaw-man-despues-del-anime/\">Chainsaw Man</a>, debes saber que ambas reconocen la influencia directa de Togashi en su creacion.</p>\n\n<p>Coleccionar Hunter x Hunter es apostar por una obra que sigue en construccion, con un mangaka que se niega a comprometer su vision artistica. Cada tomo es una pieza de un rompecabezas que, a pesar de los hiatus, sigue siendo uno de los mas fascinantes del manga contemporaneo.</p>\n\n<p>Explora nuestra <a href=\"https://akibara.cl/product-category/shonen/\">seccion shonen</a> para descubrir mas series imprescindibles, o revisa nuestra <a href=\"https://akibara.cl/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">guia de los 10 mejores manga para empezar a leer en 2026</a>.</p>",
+      "expected_before_sha256": "91992bc6adc7e0ed3ec0948081b21ca58eb5bc598b602a9fd8c6a691e422ed9c",
+      "substitutions": [
+        {
+          "before": "todavia",
+          "after": "todavía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "leido",
+          "after": "leído",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "match_mode": "text_word",
+          "expected_count": 11
+        },
+        {
+          "before": "genero",
+          "after": "género",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "desafian",
+          "after": "desafían",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "habia",
+          "after": "había",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "clasico",
+          "after": "clásico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "psicologica",
+          "after": "psicológica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "faciles",
+          "after": "fáciles",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "terminos",
+          "after": "términos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tematica",
+          "after": "temática",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "elite",
+          "after": "élite",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "abandono",
+          "after": "abandonó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "nino",
+          "after": "niño",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "clasica",
+          "after": "clásica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "estrategico",
+          "after": "estratégico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "introduccion",
+          "after": "introducción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "capitulos",
+          "after": "capítulos",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "empatia",
+          "after": "empatía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Eleccion",
+          "after": "Elección",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "Sucesion",
+          "after": "Sucesión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "politica",
+          "after": "política",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "adapto",
+          "after": "adaptó",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "adaptacion",
+          "after": "adaptación",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "despues",
+          "after": "después",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "sucesion",
+          "after": "sucesión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "politicas",
+          "after": "políticas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mostro",
+          "after": "mostró",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "publicacion",
+          "after": "publicación",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "multiples",
+          "after": "múltiples",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "decadas",
+          "after": "décadas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "sorprendio",
+          "after": "sorprendió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Segun",
+          "after": "Según",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Guia",
+          "after": "Guía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "guia",
+          "after": "guía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "continua",
+          "after": "continúa",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "grafico",
+          "after": "gráfico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "unico",
+          "after": "único",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "omitio",
+          "after": "omitió",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "edicion",
+          "after": "edición",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "espanol",
+          "after": "español",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Latinoamerica",
+          "after": "Latinoamérica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "traduccion",
+          "after": "traducción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "japones",
+          "after": "japonés",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "coleccion",
+          "after": "colección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "creacion",
+          "after": "creación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "construccion",
+          "after": "construcción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "vision",
+          "after": "visión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "artistica",
+          "after": "artística",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "contemporaneo",
+          "after": "contemporáneo",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "seccion",
+          "after": "sección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "te estas perdiendo",
+          "after": "te estás perdiendo",
+          "match_mode": "text_literal",
+          "expected_count": 2
+        },
+        {
+          "before": "todo esta conectado",
+          "after": "todo está conectado",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Quien es Yoshihiro Togashi y por que",
+          "after": "Quién es Yoshihiro Togashi y por qué",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "De que trata",
+          "after": "De qué trata",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Que cubre el anime vs que es",
+          "after": "Qué cubre el anime vs qué es",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Guía de lectura: como empezar",
+          "after": "Guía de lectura: cómo empezar",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        },
+        {
+          "before": "Por que Hunter x Hunter",
+          "after": "Por qué Hunter x Hunter",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<p>Si eres fan del anime shonen y todavía no has leído el <strong>manga de Hunter x Hunter</strong>, te estás perdiendo una de las obras más ambiciosas e inteligentes de la historia del género. Creada por <strong>Yoshihiro Togashi</strong> en 1998, esta serie ha redefinido lo que un manga de aventuras puede lograr, con un sistema de poderes brillante, villanos memorables y arcos narrativos que desafían las convenciones del shonen.</p>\n\n<h2>Quién es Yoshihiro Togashi y por qué es un genio</h2>\n\n<p>Togashi no es un mangaka cualquiera. Antes de Hunter x Hunter, ya había creado <strong>Yu Yu Hakusho</strong>, otro clásico absoluto del género. Lo que distingue a Togashi es su capacidad para construir sistemas complejos, desarrollar personajes con profundidad psicológica y plantear dilemas morales que no tienen respuestas fáciles. En Hunter x Hunter, cada arco narrativo se siente como una obra diferente en términos de tono y temática, pero todo está conectado por una coherencia interna admirable.</p>\n\n<h2>De qué trata Hunter x Hunter</h2>\n\n<p>La historia sigue a <strong>Gon Freecss</strong>, un joven que decide convertirse en Hunter (un cazador profesional de élite) para encontrar a su padre, Ging, quien lo abandonó de niño. En su camino conoce a <strong>Killua, Kurapika y Leorio</strong>, cada uno con motivaciones propias y arcos de desarrollo que evolucionan a lo largo de toda la serie.</p>\n\n<p>Lo que empieza como una aventura clásica se transforma gradualmente en algo mucho más oscuro y estratégico. El sistema de poder Nen es considerado uno de los más elaborados y coherentes del manga, con reglas claras que permiten combates basados en estrategia más que en fuerza bruta.</p>\n\n<h2>Los arcos del manga Hunter x Hunter</h2>\n\n<p>La serie se divide en arcos bien diferenciados, cada uno con una identidad propia:</p>\n\n<ul>\n<li><strong>Examen de Cazador:</strong> La introducción perfecta al mundo y los personajes principales.</li>\n<li><strong>Isla Ballena y Torre Celestial:</strong> Desarrollo del sistema Nen y entrenamiento.</li>\n<li><strong>Yorknew City:</strong> Un arco de mafia y venganza centrado en Kurapika que eleva la serie a otro nivel.</li>\n<li><strong>Greed Island:</strong> Aventura dentro de un videojuego con reglas complejas.</li>\n<li><strong>Chimera Ant:</strong> Con 132 capítulos, es el arco más largo y es considerado una obra maestra. Explora la naturaleza humana, la empatía y la violencia con una profundidad extraordinaria.</li>\n<li><strong>Elección del Presidente:</strong> Cierra un ciclo emocional importante para Gon y Killua.</li>\n<li><strong>Continente Oscuro y Sucesión:</strong> El arco actual, exclusivo del manga, con una trama política y de misterio de enorme complejidad.</li>\n</ul>\n\n<h2>Qué cubre el anime vs qué es exclusivo del manga</h2>\n\n<p>El <strong>anime de 2011 producido por Madhouse</strong> (148 episodios) adaptó el manga hasta el arco de la Elección del Presidente. Es una adaptación excelente y fiel al material original. Sin embargo, <strong>todo lo que viene después es exclusivo del manga</strong>: el viaje al Continente Oscuro, la guerra de sucesión de Kakin y las tramas de los Princes son contenido que solo existe en el manga.</p>\n\n<p>Esto significa que si solo viste el anime, te estás perdiendo lo que muchos fans consideran la etapa más madura y ambiciosa de Togashi. Las intrigas políticas, los nuevos personajes y las amenazas del Continente Oscuro expanden el universo de maneras que el anime nunca mostró.</p>\n\n<h2>La historia de los hiatus y el regreso de Togashi</h2>\n\n<p>Es imposible hablar de Hunter x Hunter sin mencionar sus famosos <strong>hiatus</strong>. Los problemas de salud de Togashi han interrumpido la publicación en múltiples ocasiones durante más de dos décadas. A pesar de esto, cada vez que el manga regresa, la calidad se mantiene intacta.</p>\n\n<p>En 2022 Togashi sorprendió al mundo creando una cuenta en X (antes Twitter) y mostrando su progreso. Desde entonces, ha completado nuevos capítulos que expanden la trama del Continente Oscuro. Según las actualizaciones más recientes, Togashi tiene preparados diez nuevos capítulos (del 411 al 420), lo que indica un posible regreso a la publicación en 2026.</p>\n\n<h2>Guía de lectura: cómo empezar Hunter x Hunter</h2>\n\n<p>Si ya viste el anime de 2011, puedes empezar directamente desde el <strong>tomo 33</strong>, que es donde continúa la historia tras el arco de la Elección. Si prefieres la experiencia completa desde el principio (recomendado), los primeros tomos cubren los mismos eventos del anime pero con el estilo gráfico único de Togashi y detalles que la adaptación omitió.</p>\n\n<p>En <strong>Akibara</strong> tenemos disponibles los <a href=\"https://akibara.cl/hunter-x-hunter-1-ivrea-argentina/\">38 tomos de Hunter x Hunter en la edición de Ivrea Argentina</a>, la editorial que publica la serie en español para Latinoamérica. Es una edición de calidad con traducción fiel al japonés.</p>\n\n<h2>Por qué Hunter x Hunter es imprescindible en tu colección</h2>\n\n<p>Hunter x Hunter no es solo un gran manga shonen: es una de las obras más intelectualmente estimulantes del medio. Si disfrutas series como <a href=\"https://akibara.cl/en-que-tomo-del-manga-continuar-jujutsu-kaisen-despues-del-anime/\">Jujutsu Kaisen</a> o <a href=\"https://akibara.cl/en-que-tomo-del-manga-continuar-chainsaw-man-despues-del-anime/\">Chainsaw Man</a>, debes saber que ambas reconocen la influencia directa de Togashi en su creación.</p>\n\n<p>Coleccionar Hunter x Hunter es apostar por una obra que sigue en construcción, con un mangaka que se niega a comprometer su visión artística. Cada tomo es una pieza de un rompecabezas que, a pesar de los hiatus, sigue siendo uno de los más fascinantes del manga contemporáneo.</p>\n\n<p>Explora nuestra <a href=\"https://akibara.cl/product-category/shonen/\">sección shonen</a> para descubrir más series imprescindibles, o revisa nuestra <a href=\"https://akibara.cl/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">guía de los 10 mejores manga para empezar a leer en 2026</a>.</p>",
+      "proposed_after_sha256": "e30241dd4b4b247cddf4e3077e26710f2204ce708943726a2228244e1691d0c3"
+    },
+    {
+      "key": "post:23330:post_excerpt",
+      "object_type": "post",
+      "object_id": 23330,
+      "title": "Manga vs Cómics: diferencias, similitudes y cuál elegir",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "missing_opening_question_mark"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Manga vs Cómics: diferencias, similitudes y cuál elegir > Extracto > Actualizar",
+      "expected_before": "Manga o cómics? Conoce las diferencias clave entre ambos formatos y descubre cuál es mejor para ti.",
+      "expected_before_sha256": "e3a7ed26fd83913715512bd5f38ddb6606b6de09ec49866d417bff9a9cb57bc2",
+      "substitutions": [
+        {
+          "before": "Manga o cómics?",
+          "after": "¿Manga o cómics?",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "¿Manga o cómics? Conoce las diferencias clave entre ambos formatos y descubre cuál es mejor para ti.",
+      "proposed_after_sha256": "c978fcb8bd934c7c3e46cf60dd2c7520ba207e216a4e135a250aed32e770c39b"
+    },
+    {
+      "key": "post:23330:post_content",
+      "object_type": "post",
+      "object_id": 23330,
+      "title": "Manga vs Cómics: diferencias, similitudes y cuál elegir",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Manga vs Cómics: diferencias, similitudes y cuál elegir > Editor de código > Actualizar",
+      "expected_before": "<p>Si estas pensando en empezar a leer historias graficas pero no sabes si elegir <strong>manga o comics</strong>, no estas solo. Son dos tradiciones narrativas con estilos muy diferentes, y entender sus diferencias te ayudara a encontrar lo que mas conecta contigo. En esta guia comparamos ambos formatos en profundidad para que puedas decidir con conocimiento.</p>\n\n<h2>Origen y contexto cultural</h2>\n\n<p>El <strong>manga</strong> nace en Japon y es parte integral de la cultura japonesa. Se publica desde mediados del siglo XX de forma masiva, y en Japon lo lee gente de todas las edades y profesiones. No es un nicho: es un medio de comunicacion con revistas semanales que venden millones de copias.</p>\n\n<p>Los <strong>comics</strong> (o historietas) tienen raices en Estados Unidos y Europa. En EEUU, el genero se asocia tradicionalmente con los superheroes gracias a editoriales como <strong>Marvel y DC</strong>, aunque el comic independiente y europeo abarca generos muy diversos. En Chile y Latinoamerica, el comic norteamericano y el manga conviven con una escena local creciente.</p>\n\n<h2>Formato y presentacion visual</h2>\n\n<p>Esta es una de las diferencias mas evidentes entre ambos medios:</p>\n\n<ul>\n<li><strong>Color:</strong> Los comics occidentales suelen publicarse a todo color, con coloristas dedicados que aportan atmosfera y profundidad visual. El manga se publica mayoritariamente en <strong>blanco y negro</strong>, lo que le da una estetica particular y permite a los mangakas producir mas paginas semanalmente.</li>\n<li><strong>Direccion de lectura:</strong> Los comics se leen de izquierda a derecha, como cualquier libro occidental. El manga se lee de <strong>derecha a izquierda</strong>, siguiendo la tradicion japonesa. Puede parecer confuso al principio, pero la mayoria de los lectores se adaptan en pocas paginas.</li>\n<li><strong>Tamano y formato:</strong> Los comics individuales suelen ser grapas de 20-30 paginas o tomos recopilatorios (trade paperbacks). Los manga se publican como <strong>tankoubon</strong> de aproximadamente 180-200 paginas, ofreciendo mas contenido por volumen.</li>\n<li><strong>Frecuencia:</strong> Un manga puede publicar entre 15 y 20 paginas por semana en revistas como Shonen Jump. Un comic tipico publica un numero mensual de 20-24 paginas.</li>\n</ul>\n\n<h2>Estilo narrativo y estructura</h2>\n\n<p>Aqui es donde las diferencias se vuelven realmente interesantes:</p>\n\n<ul>\n<li><strong>Autoria:</strong> En el manga, generalmente <strong>un solo autor (mangaka)</strong> escribe y dibuja la obra completa, a veces con asistentes para fondos. En los comics, es comun que guionista, dibujante, entintador y colorista sean personas diferentes. Esto crea dinamicas creativas muy distintas.</li>\n<li><strong>Continuidad:</strong> El manga cuenta historias con <strong>inicio, desarrollo y final</strong> definidos por un unico autor. Los comics de superheroes tienden a tener continuidades compartidas donde multiples escritores reinterpretan a los mismos personajes durante decadas.</li>\n<li><strong>Ritmo:</strong> El manga usa tecnicas cinematograficas como la descompresion narrativa: puede dedicar paginas enteras a una expresion facial o un momento de silencio. Los comics occidentales suelen ser mas densos en texto y dialogos por pagina.</li>\n<li><strong>Generos:</strong> El manga abarca una variedad enorme de generos organizados por demografia: <strong>shonen</strong> (jovenes), <strong>seinen</strong> (adultos), <strong>shojo</strong> (jovenes mujeres), <strong>josei</strong> (mujeres adultas), <strong>kodomo</strong> (ninos). Los comics occidentales estan diversificandose, pero historicamente el superheroismo ha dominado el mercado.</li>\n</ul>\n\n<h2>Precio y accesibilidad en Chile</h2>\n\n<p>En terminos de precio por pagina de contenido, el manga suele ofrecer <strong>mejor relacion calidad-precio</strong>. Un tomo de manga de 180+ paginas cuesta similar a un comic de 24 paginas en formato grapa. Los trade paperbacks de comics recopilan varios numeros y ofrecen mejor valor, pero generalmente siguen siendo mas caros por pagina que el manga.</p>\n\n<p>En Chile, ambos formatos tienen buena disponibilidad gracias a editoriales como <strong>Ivrea Argentina, Panini y Planeta</strong> para manga, y <strong>Ovni Press, Panini y ediciones importadas</strong> para comics de Marvel, DC y editoriales independientes.</p>\n\n<h2>Cual elegir segun tus gustos</h2>\n\n<p>No hay una respuesta correcta: depende de lo que busques como lector.</p>\n\n<p><strong>Elige manga si:</strong></p>\n<ul>\n<li>Te gustan las historias con un arco completo de principio a fin</li>\n<li>Prefieres seguir la vision de un unico autor</li>\n<li>Disfrutas el anime y quieres profundizar en las historias originales</li>\n<li>Buscas variedad de generos mas alla de la accion</li>\n<li>Quieres mas contenido por tu dinero</li>\n</ul>\n\n<p><strong>Elige comics si:</strong></p>\n<ul>\n<li>Te fascinan los superheroes y sus universos compartidos</li>\n<li>Valoras el arte a todo color</li>\n<li>Te gusta ver diferentes interpretaciones de un mismo personaje</li>\n<li>Prefieres historias autoconclusivas (graphic novels)</li>\n<li>Quieres explorar el comic independiente y europeo</li>\n</ul>\n\n<h2>O mejor aun: lee los dos</h2>\n\n<p>La verdad es que manga y comics no son rivales: son dos formas brillantes de contar historias a traves del arte secuencial. Muchos lectores disfrutan de ambos formatos, y la experiencia de leer uno enriquece la apreciacion del otro.</p>\n\n<p>En <strong>Akibara</strong> tenemos tanto <a href=\"https://akibara.cl/product-category/manga/\">manga</a> como <a href=\"https://akibara.cl/product-category/comics/\">comics</a>, asi que puedes explorar los dos mundos en un solo lugar. Si quieres empezar por el manga, te recomendamos nuestra <a href=\"https://akibara.cl/que-es-el-manga-guia-para-principiantes-en-chile/\">guia para principiantes</a>. Y para conocer titulos especificos, revisa nuestro listado de <a href=\"https://akibara.cl/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">los 10 mejores manga para empezar en 2026</a>.</p>",
+      "expected_before_sha256": "e77b427f1705c443b1774c5bca46abaa0eeb700a3aa98ee8e2a018b74bc3f0c7",
+      "substitutions": [
+        {
+          "before": "estas",
+          "after": "estás",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "graficas",
+          "after": "gráficas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "comics",
+          "after": "cómics",
+          "match_mode": "text_word",
+          "expected_count": 14
+        },
+        {
+          "before": "comic",
+          "after": "cómic",
+          "match_mode": "text_word",
+          "expected_count": 5
+        },
+        {
+          "before": "ayudara",
+          "after": "ayudará",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "match_mode": "text_word",
+          "expected_count": 8
+        },
+        {
+          "before": "guia",
+          "after": "guía",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "Japon",
+          "after": "Japón",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "comunicacion",
+          "after": "comunicación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "raices",
+          "after": "raíces",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "genero",
+          "after": "género",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "superheroes",
+          "after": "superhéroes",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "generos",
+          "after": "géneros",
+          "match_mode": "text_word",
+          "expected_count": 3
+        },
+        {
+          "before": "Latinoamerica",
+          "after": "Latinoamérica",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "presentacion",
+          "after": "presentación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "atmosfera",
+          "after": "atmósfera",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "estetica",
+          "after": "estética",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "paginas",
+          "after": "páginas",
+          "match_mode": "text_word",
+          "expected_count": 9
+        },
+        {
+          "before": "Direccion",
+          "after": "Dirección",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tradicion",
+          "after": "tradición",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "mayoria",
+          "after": "mayoría",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Tamano",
+          "after": "Tamaño",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tipico",
+          "after": "típico",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "numero",
+          "after": "número",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Aqui",
+          "after": "Aquí",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Autoria",
+          "after": "Autoría",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "comun",
+          "after": "común",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dinamicas",
+          "after": "dinámicas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "unico",
+          "after": "único",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "multiples",
+          "after": "múltiples",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "decadas",
+          "after": "décadas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "tecnicas",
+          "after": "técnicas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "cinematograficas",
+          "after": "cinematográficas",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "descompresion",
+          "after": "descompresión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "expresion",
+          "after": "expresión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "dialogos",
+          "after": "diálogos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Generos",
+          "after": "Géneros",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "demografia",
+          "after": "demografía",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "jovenes",
+          "after": "jóvenes",
+          "match_mode": "text_word",
+          "expected_count": 2
+        },
+        {
+          "before": "ninos",
+          "after": "niños",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "estan",
+          "after": "están",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "diversificandose",
+          "after": "diversificándose",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "historicamente",
+          "after": "históricamente",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "terminos",
+          "after": "términos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "relacion",
+          "after": "relación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "numeros",
+          "after": "números",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "segun",
+          "after": "según",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "vision",
+          "after": "visión",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "alla",
+          "after": "allá",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "accion",
+          "after": "acción",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "traves",
+          "after": "través",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "aun",
+          "after": "aún",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "apreciacion",
+          "after": "apreciación",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "asi",
+          "after": "así",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "titulos",
+          "after": "títulos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "especificos",
+          "after": "específicos",
+          "match_mode": "text_word",
+          "expected_count": 1
+        },
+        {
+          "before": "Cual elegir",
+          "after": "Cuál elegir",
+          "match_mode": "text_literal",
+          "expected_count": 1
+        }
+      ],
+      "proposed_after": "<p>Si estás pensando en empezar a leer historias gráficas pero no sabes si elegir <strong>manga o cómics</strong>, no estás solo. Son dos tradiciones narrativas con estilos muy diferentes, y entender sus diferencias te ayudará a encontrar lo que más conecta contigo. En esta guía comparamos ambos formatos en profundidad para que puedas decidir con conocimiento.</p>\n\n<h2>Origen y contexto cultural</h2>\n\n<p>El <strong>manga</strong> nace en Japón y es parte integral de la cultura japonesa. Se publica desde mediados del siglo XX de forma masiva, y en Japón lo lee gente de todas las edades y profesiones. No es un nicho: es un medio de comunicación con revistas semanales que venden millones de copias.</p>\n\n<p>Los <strong>cómics</strong> (o historietas) tienen raíces en Estados Unidos y Europa. En EEUU, el género se asocia tradicionalmente con los superhéroes gracias a editoriales como <strong>Marvel y DC</strong>, aunque el cómic independiente y europeo abarca géneros muy diversos. En Chile y Latinoamérica, el cómic norteamericano y el manga conviven con una escena local creciente.</p>\n\n<h2>Formato y presentación visual</h2>\n\n<p>Esta es una de las diferencias más evidentes entre ambos medios:</p>\n\n<ul>\n<li><strong>Color:</strong> Los cómics occidentales suelen publicarse a todo color, con coloristas dedicados que aportan atmósfera y profundidad visual. El manga se publica mayoritariamente en <strong>blanco y negro</strong>, lo que le da una estética particular y permite a los mangakas producir más páginas semanalmente.</li>\n<li><strong>Dirección de lectura:</strong> Los cómics se leen de izquierda a derecha, como cualquier libro occidental. El manga se lee de <strong>derecha a izquierda</strong>, siguiendo la tradición japonesa. Puede parecer confuso al principio, pero la mayoría de los lectores se adaptan en pocas páginas.</li>\n<li><strong>Tamaño y formato:</strong> Los cómics individuales suelen ser grapas de 20-30 páginas o tomos recopilatorios (trade paperbacks). Los manga se publican como <strong>tankoubon</strong> de aproximadamente 180-200 páginas, ofreciendo más contenido por volumen.</li>\n<li><strong>Frecuencia:</strong> Un manga puede publicar entre 15 y 20 páginas por semana en revistas como Shonen Jump. Un cómic típico publica un número mensual de 20-24 páginas.</li>\n</ul>\n\n<h2>Estilo narrativo y estructura</h2>\n\n<p>Aquí es donde las diferencias se vuelven realmente interesantes:</p>\n\n<ul>\n<li><strong>Autoría:</strong> En el manga, generalmente <strong>un solo autor (mangaka)</strong> escribe y dibuja la obra completa, a veces con asistentes para fondos. En los cómics, es común que guionista, dibujante, entintador y colorista sean personas diferentes. Esto crea dinámicas creativas muy distintas.</li>\n<li><strong>Continuidad:</strong> El manga cuenta historias con <strong>inicio, desarrollo y final</strong> definidos por un único autor. Los cómics de superhéroes tienden a tener continuidades compartidas donde múltiples escritores reinterpretan a los mismos personajes durante décadas.</li>\n<li><strong>Ritmo:</strong> El manga usa técnicas cinematográficas como la descompresión narrativa: puede dedicar páginas enteras a una expresión facial o un momento de silencio. Los cómics occidentales suelen ser más densos en texto y diálogos por pagina.</li>\n<li><strong>Géneros:</strong> El manga abarca una variedad enorme de géneros organizados por demografía: <strong>shonen</strong> (jóvenes), <strong>seinen</strong> (adultos), <strong>shojo</strong> (jóvenes mujeres), <strong>josei</strong> (mujeres adultas), <strong>kodomo</strong> (niños). Los cómics occidentales están diversificándose, pero históricamente el superheroismo ha dominado el mercado.</li>\n</ul>\n\n<h2>Precio y accesibilidad en Chile</h2>\n\n<p>En términos de precio por pagina de contenido, el manga suele ofrecer <strong>mejor relación calidad-precio</strong>. Un tomo de manga de 180+ páginas cuesta similar a un cómic de 24 páginas en formato grapa. Los trade paperbacks de cómics recopilan varios números y ofrecen mejor valor, pero generalmente siguen siendo más caros por pagina que el manga.</p>\n\n<p>En Chile, ambos formatos tienen buena disponibilidad gracias a editoriales como <strong>Ivrea Argentina, Panini y Planeta</strong> para manga, y <strong>Ovni Press, Panini y ediciones importadas</strong> para cómics de Marvel, DC y editoriales independientes.</p>\n\n<h2>Cuál elegir según tus gustos</h2>\n\n<p>No hay una respuesta correcta: depende de lo que busques como lector.</p>\n\n<p><strong>Elige manga si:</strong></p>\n<ul>\n<li>Te gustan las historias con un arco completo de principio a fin</li>\n<li>Prefieres seguir la visión de un único autor</li>\n<li>Disfrutas el anime y quieres profundizar en las historias originales</li>\n<li>Buscas variedad de géneros más allá de la acción</li>\n<li>Quieres más contenido por tu dinero</li>\n</ul>\n\n<p><strong>Elige cómics si:</strong></p>\n<ul>\n<li>Te fascinan los superhéroes y sus universos compartidos</li>\n<li>Valoras el arte a todo color</li>\n<li>Te gusta ver diferentes interpretaciones de un mismo personaje</li>\n<li>Prefieres historias autoconclusivas (graphic novels)</li>\n<li>Quieres explorar el cómic independiente y europeo</li>\n</ul>\n\n<h2>O mejor aún: lee los dos</h2>\n\n<p>La verdad es que manga y cómics no son rivales: son dos formas brillantes de contar historias a través del arte secuencial. Muchos lectores disfrutan de ambos formatos, y la experiencia de leer uno enriquece la apreciación del otro.</p>\n\n<p>En <strong>Akibara</strong> tenemos tanto <a href=\"https://akibara.cl/product-category/manga/\">manga</a> como <a href=\"https://akibara.cl/product-category/comics/\">cómics</a>, así que puedes explorar los dos mundos en un solo lugar. Si quieres empezar por el manga, te recomendamos nuestra <a href=\"https://akibara.cl/que-es-el-manga-guia-para-principiantes-en-chile/\">guía para principiantes</a>. Y para conocer títulos específicos, revisa nuestro listado de <a href=\"https://akibara.cl/los-10-mejores-manga-para-empezar-a-leer-en-2026/\">los 10 mejores manga para empezar en 2026</a>.</p>",
+      "proposed_after_sha256": "9f54b8a5358d3a9b9a2396e9c835098096b1be95bac4345a606cbc665eb7ac6e"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-search-toolbar-production-hotfix",
+  "release_id": "akibara-search-0.1.8_theme-production-2.1.58",
+  "promotion_sequence": [
+    "docker-local",
+    "production"
+  ],
+  "components": {
+    "search": {
+      "kind": "plugin",
+      "slug": "akibara-search",
+      "source_root": "public_html/wp-content/plugins/akibara-search",
+      "preimage": {
+        "version": "0.1.8",
+        "archive": "dist/akibara-search-0.1.8.zip",
+        "archive_sha256": "183c6578968698bf783327147eefe7d91b4df8a5963f6680cd6e776a76138146",
+        "inventory": "dist/akibara-search-0.1.8.files.sha256",
+        "inventory_sha256": "c42dae86737a09b45263e9a16740db5a6b8c685d10f9afb70d8f255b2c712db2",
+        "runtime_files": 40
+      },
+      "candidate": {
+        "version": "0.1.8",
+        "archive": "dist/akibara-search-0.1.8.zip",
+        "archive_sha256": "183c6578968698bf783327147eefe7d91b4df8a5963f6680cd6e776a76138146",
+        "inventory": "dist/akibara-search-0.1.8.files.sha256",
+        "inventory_sha256": "c42dae86737a09b45263e9a16740db5a6b8c685d10f9afb70d8f255b2c712db2",
+        "runtime_files": 40
+      },
+      "source_inputs": [],
+      "allowed_runtime_changes": [],
+      "added_runtime_files": [],
+      "removed_runtime_files": [],
+      "modified_runtime_files": []
+    },
+    "theme": {
+      "kind": "theme",
+      "slug": "akibara-gp",
+      "source_root": "public_html/wp-content/themes/akibara-gp",
+      "preimage": {
+        "version": "2.1.57",
+        "archive": "dist/akibara-gp-2.1.57.zip",
+        "archive_sha256": "689f71b2452b0999476f9a220614a41c3ec359de00f3e3f7ca6fc0d69748fcf0",
+        "inventory": "dist/akibara-gp-2.1.57.files.sha256",
+        "inventory_sha256": "4a0bd29f180136e6cf0cec4f0ec469aa5e7b644ec075b23b7dbe812dca53706e",
+        "runtime_files": 102
+      },
+      "candidate": {
+        "version": "2.1.58",
+        "archive": "dist/akibara-gp-2.1.58.zip",
+        "archive_sha256": "64c3710c1afef80b8378e1bbed7706563d014768fcb0e2e82f2d80ec7d9e72b6",
+        "inventory": "dist/akibara-gp-2.1.58.files.sha256",
+        "inventory_sha256": "bcf95523865421fa4a45e95da166713190ffe5bbd5fa740075d5d9b13efa640f",
+        "runtime_files": 102
+      },
+      "source_inputs": [
+        {
+          "path": "assets/js/animations.js",
+          "sha256": "8522194dba962b629e0602d0576ea8c9043713bff985de5eb91ace0fedb33c4a"
+        },
+        {
+          "path": "assets/css/brands-home.css",
+          "sha256": "f45c713d99a1796e706abb61893303f70a4135a0c90377d301f86a12372497c6"
+        }
+      ],
+      "allowed_runtime_changes": [
+        "akibara-gp/style.css",
+        "akibara-gp/assets/js/animations.js",
+        "akibara-gp/assets/css/brands-home.css"
+      ],
+      "added_runtime_files": [],
+      "removed_runtime_files": [],
+      "modified_runtime_files": [
+        "akibara-gp/style.css",
+        "akibara-gp/assets/js/animations.js",
+        "akibara-gp/assets/css/brands-home.css"
+      ]
+    }
+  },
+  "production_invariants": {
+    "business": {
+      "slug": "akibara-business",
+      "version": "1.98.1",
+      "archive_sha256": "40e4a5ba625a06fc710b07edac7776ad1c3da929bbd0da2a5a7bf764529499d3",
+      "inventory_sha256": "74fa7d5137107c3deab60d3ca5962f3ada93e407befb76458a4bd84d195859ef",
+      "runtime_files": 217
+    },
+    "blocks": {
+      "slug": "akibara-cart-checkout-blocks",
+      "version": "2.1.5",
+      "archive_sha256": "4bc2d5b44f6dd0cfa20d18ceb512bfff164ecc333fd1a769f1ed5a082c0b862b",
+      "inventory_sha256": "f49f8be2d6e573c3a9806ed422d05886a2ea1e3a336c3aaa77ba187a4041ef30",
+      "runtime_files": 22
+    },
+    "bluex": {
+      "slug": "bluex-for-woocommerce",
+      "version": "3.2.2",
+      "must_remain_byte_identical": true
+    },
+    "rank_math_active": true,
+    "remote_backups_allowed": false,
+    "graphify_during_release_allowed": false
+  }
+}

@@ -21,12 +21,18 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Tests\Blocks;
 
-use PHPUnit\Framework\TestCase;
+use Akibara\Rewards\Blocks\CheckoutIntegration;
+use Akibara\Rewards\Points\Calculator;
+use Akibara\Rewards\Points\Ledger;
+use Akibara\Rewards\Points\Redemption;
+use Akibara\Rewards\Points\Tiers;
+use Akibara\Rewards\Tests\Support\RewardsTestCase;
+use Brain\Monkey\Functions;
 
 /**
  * @since 0.4.3
  */
-final class CheckoutIntegrationContratoTest extends TestCase {
+final class CheckoutIntegrationContratoTest extends RewardsTestCase {
 
 	private static function sin_comentarios( string $codigo ): string {
 		return (string) preg_replace( '#/\*.*?\*/|//[^\n]*#s', '', $codigo );
@@ -82,49 +88,35 @@ final class CheckoutIntegrationContratoTest extends TestCase {
 		$this->assertSame( array(), $sin_lector, 'Campos del Store API que el checkout no usa.' );
 	}
 
-	/**
-	 * Lo que el checkout PROMETE tiene que salir de lo que después ACREDITA.
-	 *
-	 * El aviso dice ahora «este pedido suma N puntos». Si ese N se calculara
-	 * aparte —en el navegador multiplicando el total, o con una copia de la regla
-	 * en PHP— el día que el dueño cambie el tramo desde el panel el checkout
-	 * seguiría prometiendo lo viejo, y el cliente vería una cifra al comprar y
-	 * otra en su saldo. Por eso sale de `Calculator::points_for()` sobre la misma
-	 * base (`award_base_for_cart`) que usa la acreditación.
-	 *
-	 * @testdox El número que promete el checkout sale de la función que acredita.
-	 */
+	/** @testdox Checkout promises the exact net cart points, personal tier and program gates. */
 	public function test_lo_que_promete_es_lo_que_acredita(): void {
-		$php = self::php();
-
-		self::assertMatchesRegularExpression(
-			"/'earn_now'\s*=>.{0,200}Calculator::points_for\(/s",
-			$php,
-			'el checkout no puede prometer puntos con una regla propia'
-		);
-		self::assertMatchesRegularExpression(
-			'/\$limits\s*=\s*Redemption::redemption_limits\(\s*\$cart,\s*\$user_id\s*\)/',
-			$php,
-			'y los límites proceden del motor canónico del carrito'
-		);
-		self::assertMatchesRegularExpression(
-			'/Calculator::award_base_for_cart\(\s*\$cart,\s*\$canje_bruto\s*\)/',
-			$php,
-			'la resta del canje la hace la propia Calculator, no una copia de la regla en la caja'
-		);
-		// Y lo que no acredita, no se promete: la vigencia del programa es una
-		// compuerta del acreditado y tiene que gobernar también el aviso.
-		self::assertMatchesRegularExpression(
-			'/\$vigente\s*=\s*Accrual::program_open_now\(\)/',
-			$php,
-			'con el programa aún no vigente (o su fecha malformada) no se puede prometer nada'
-		);
-		foreach ( array( 'earn_now', 'earn_points', 'earn_amount', 'welcome_bonus' ) as $campo ) {
-			self::assertMatchesRegularExpression(
-				"/'" . $campo . "'\s*=>\s*\\\$vigente\s*\?/",
-				$php,
-				sprintf( '«%s» también promete acumulación: calla fuera de vigencia.', $campo )
-			);
+		$this->install_fake_wc();
+		$options = array( 'akb_rewards_program_start' => '2020-01-01 00:00:00' );
+		Functions\when( 'get_option' )->alias( static function ( $key, $default = false ) use ( &$options ) { return $options[ $key ] ?? $default; } );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'wc_price' )->alias( static fn ( $value ) => '$' . number_format( $value, 0, ',', '.' ) );
+		$this->wpdb->user_meta[7][Ledger::META_TOTAL_EARNED] = 20000;
+		$this->wpdb->user_meta[7][Tiers::META_TIER_EXPIRES_AT] = time() + 86400;
+		$cart = new class() extends \WC_Cart {
+			public function get_fees(): array {
+				return array( (object) array( 'name' => Redemption::FEE_NAME, 'total' => -840.34, 'tax' => -159.66 ) );
+			}
+		};
+		$cart->contents = array( array( 'line_total' => 10000.0, 'line_tax' => 1900.0 ) );
+		WC()->cart = $cart;
+		$sut = new CheckoutIntegration();
+		$data = $sut->cart_data();
+		self::assertSame( Calculator::points_for( Calculator::award_base_for_cart( $cart, 1000.0 ), 7 ), $data['earn_now'] );
+		self::assertSame( 327, $data['earn_now'], 'The effective 1,000-peso fee and the 1.5 tier both matter.' );
+		$limits = Redemption::redemption_limits( $cart, 7 );
+		self::assertSame( $limits['max_points'], $data['max'] );
+		self::assertSame( $limits['missing'], $data['missing'] );
+		foreach ( array( 'ayer', gmdate( 'Y-m-d H:i:s', time() + 86400 ) ) as $start ) {
+			$options['akb_rewards_program_start'] = $start;
+			$closed = $sut->cart_data();
+			foreach ( array( 'earn_now', 'earn_points', 'earn_amount', 'welcome_bonus' ) as $field ) {
+				self::assertSame( 0, $closed[ $field ], $field . ' cannot promise outside the program.' );
+			}
 		}
 	}
 

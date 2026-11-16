@@ -150,3 +150,8 @@ $wpdb->query(
 $wpdb->query(
 	"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE '\\_akb\\_sf\\_%'"
 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+// User-meta de «Mi colección» y estantería personal (_akb_collection_manual_owned, _akb_owned_gen).
+$wpdb->query(
+	"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE '\\_akb\\_collection\\_%' OR meta_key = '_akb_owned_gen'"
+); // phpcs:ignore WordPress.DB.DirectDatabaseQuery

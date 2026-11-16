@@ -20,6 +20,9 @@ defined( 'ABSPATH' ) || exit;
  * subpages do not exist because the shortcode renders the complete directory
  * in one document; WordPress nevertheless resolves `/series/page/N/` as the
  * same singular page unless this policy turns it into a real 404.
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class SeriesDirectorySearchPolicy {
 
@@ -267,7 +270,7 @@ final class SeriesDirectorySearchPolicy {
 		}
 
 		$post = get_post();
-		if ( ! is_object( $post ) || ! is_string( $post->post_content ?? null ) ) {
+		if ( ! is_object( $post ) || ! is_string( $post->post_content ?? null ) ) { // @phpstan-ignore nullCoalesce.property
 			return null;
 		}
 

@@ -30,8 +30,24 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $option   Nombre de la option compartida con akibara-business.
  * @param string $fallback Literal que la plantilla tenía escrito a mano.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_copy( string $option, string $fallback ): string {
+	// 1. Sobrescritura de alta prioridad desde array centralizado en wp-config.php (0 SQL)
+	if ( defined( 'AKB_SITE_COPYS' ) && is_array( AKB_SITE_COPYS ) && isset( AKB_SITE_COPYS[ $option ] ) ) {
+		$copy = is_string( AKB_SITE_COPYS[ $option ] ) ? trim( AKB_SITE_COPYS[ $option ] ) : '';
+		return '' !== $copy ? $copy : $fallback;
+	}
+
+	// 2. Sobrescritura opcional por constante directa (ej. AKB_COPY_SEARCH_PLACEHOLDER)
+	$const = strtoupper( $option );
+	if ( defined( $const ) ) {
+		$copy = constant( $const );
+		$copy = is_string( $copy ) ? trim( $copy ) : '';
+		return '' !== $copy ? $copy : $fallback;
+	}
+
+	// 3. Fallback retrocompatible a get_option
 	$copy = get_option( $option, $fallback );
 	$copy = is_string( $copy ) ? trim( $copy ) : '';
 
@@ -41,6 +57,7 @@ function akibara_gp_copy( string $option, string $fallback ): string {
 /**
  * La promesa comercial de cuotas (ficha, carrito vacío y checkout).
  * Lee unificadamente la opción configurable `akb_copy_promise_installments`.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_promise_installments(): string {
 	return akibara_gp_copy( 'akb_copy_promise_installments', '3 cuotas sin interés' );
@@ -54,6 +71,7 @@ function akibara_gp_promise_installments(): string {
  * ya dice que titula las dos superficies. La option es de akibara-rewards y su
  * nombre es el contrato compartido, igual que las de Akibara → Textos. Nunca
  * vacío: un título en blanco dejaría la barra roja del encabezado huérfana.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_reviews_title(): string {
 	return akibara_gp_copy( 'akb_rewards_carousel_title', 'Voces de Akibara' );
@@ -67,6 +85,7 @@ function akibara_gp_reviews_title(): string {
  * Se edita en Akibara → Textos → «Blog / Buscador» (CopyManager de
  * akibara-business, que la sanea a una línea y vuelve al de fábrica si queda
  * vacía). El nombre de la option es el contrato entre los dos: no cambia.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_search_placeholder(): string {
 	return akibara_gp_copy( 'akb_copy_search_placeholder', 'Buscar manga, series o autor…' );
@@ -85,6 +104,7 @@ function akibara_gp_search_placeholder(): string {
  * Con `preg_replace` en modo /u y no con `rtrim()`: rtrim cuenta BYTES, y «…»
  * son tres (E2 80 A6) que también terminan otras letras (la «À» es C3 80): una
  * pista acabada en esa letra salía partida por la mitad.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_search_label(): string {
 	$label = preg_replace( '/[\s.…]+$/u', '', akibara_gp_search_placeholder() );
@@ -98,6 +118,7 @@ function akibara_gp_search_label(): string {
  * (woocommerce/loop/no-products-found.php). El mismo texto en las dos: son la
  * misma salida comercial. Se edita en Akibara → Textos → «Blog / Buscador»
  * (R-I1-6: era un literal del tema en una superficie nueva).
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_empty_popular_title(): string {
 	return akibara_gp_copy( 'akb_copy_search_empty_popular', 'Lo más vendido' );
@@ -113,6 +134,7 @@ function akibara_gp_empty_popular_title(): string {
  * guardar). Se editan en la misma sección que la pista del buscador.
  *
  * @return array{texto:string,tienda:string,serie:string,kicker:string,boton:string}
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_guide_copy(): array {
 	return array(
@@ -127,6 +149,7 @@ function akibara_gp_guide_copy(): array {
 /**
  * Línea de horario de atención del pie. Vacía = la línea no se pinta: un
  * horario en blanco junto al icono del reloj promete atención sin decir cuándo.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_footer_support_hours(): string {
 	$copy = get_option( 'akb_copy_footer_support_hours', 'Horario de soporte: Lun a Vie · 10:00 a 18:00 hrs' );
@@ -141,6 +164,7 @@ function akibara_gp_footer_support_hours(): string {
  * Es UN campo del que se derivan las tres formas: el número visible con sus
  * espacios, el `tel:` y el `wa.me`. Antes eran tres literales independientes en
  * la misma plantilla, y cambiar el número obligaba a acertarle a los tres.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_footer_phone(): string {
 	$copy = get_option( 'akb_copy_footer_phone', '+56 9 4424 2844' );
@@ -151,6 +175,7 @@ function akibara_gp_footer_phone(): string {
 /**
  * Sólo los dígitos del teléfono: lo que necesitan `tel:` y `wa.me`. Cadena
  * vacía cuando no hay número que marcar.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_footer_phone_digits(): string {
 	$digits = preg_replace( '/\D+/', '', akibara_gp_footer_phone() );

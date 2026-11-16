@@ -89,8 +89,7 @@ final class ProductFaqTest extends TestCase {
 	 */
 	public function stock_copy_provider(): array {
 		return array(
-			'a pedido'     => array( 51001, StockStatus::ON_BACKORDER, 'disponible a pedido', 'disponible en stock' ),
-			'in stock'     => array( 51002, StockStatus::IN_STOCK, 'disponible en stock', 'disponible a pedido' ),
+			'in stock'     => array( 51002, StockStatus::IN_STOCK, 'disponible en stock', 'actualmente agotado' ),
 			'out of stock' => array( 51003, StockStatus::OUT_OF_STOCK, 'actualmente agotado', 'disponible en stock' ),
 		);
 	}
@@ -112,6 +111,9 @@ final class ProductFaqTest extends TestCase {
 		);
 		Functions\when( 'get_the_terms' )->alias(
 			static function ( int $post_id, string $taxonomy ) {
+				if ( 'pa_serie' === $taxonomy ) {
+					return array( (object) array( 'name' => 'Blue Lock' ) );
+				}
 				return 'product_brand' === $taxonomy
 					? array( (object) array( 'name' => 'Ivrea Argentina' ) )
 					: false;
@@ -120,7 +122,7 @@ final class ProductFaqTest extends TestCase {
 		Functions\when( 'is_wp_error' )->justReturn( false );
 		Functions\when( 'get_term_by' )->justReturn( false );
 
-		$product = new ProductFaqProductStub( 51004, 'Blue Lock 37', '12990', StockStatus::ON_BACKORDER );
+		$product = new ProductFaqProductStub( 51004, 'Blue Lock 37', '12990', StockStatus::OUT_OF_STOCK );
 
 		$answers = implode( ' ', array_column( $this->sut->get_faq_data( array(), $product ), 'a' ) );
 
@@ -181,7 +183,7 @@ final class ProductFaqTest extends TestCase {
 	}
 
 	/**
-	 * @testdox No debe leer `_akibara_serie_norm`: era código muerto, la meta no existe en producción (S-bb554c3a).
+	 * @testdox No debe leer metadatos de serie en postmeta: la serie procede canónicamente de pa_serie.
 	 */
 	public function test_does_not_read_the_dead_series_norm_meta(): void {
 		$meta_keys_read = array();
@@ -189,7 +191,7 @@ final class ProductFaqTest extends TestCase {
 			static function ( int $post_id, string $key ) use ( &$meta_keys_read ): string {
 				unset( $post_id );
 				$meta_keys_read[] = $key;
-				return '_akibara_serie' === $key ? 'Blue Lock' : '';
+				return '';
 			}
 		);
 
@@ -197,9 +199,9 @@ final class ProductFaqTest extends TestCase {
 		$this->sut->get_faq_data( array(), $product );
 
 		self::assertSame(
-			array( '_akibara_serie' ),
+			array(),
 			$meta_keys_read,
-			'S-bb554c3a: `$serie_key` no lo consume nadie — leer `_akibara_serie_norm` es una consulta postmeta de sobra contra una meta que produce CERO filas en producción.'
+			'La serie se resuelve desde la taxonomía canónica pa_serie; postmeta no se consulta.'
 		);
 	}
 }

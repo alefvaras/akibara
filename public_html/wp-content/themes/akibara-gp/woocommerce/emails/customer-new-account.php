@@ -33,7 +33,7 @@ $akb_account_url = wc_get_page_permalink( 'myaccount' );
 
 <p><?php echo $akb_first ? esc_html( sprintf( '¡Hola %s!', $akb_first ) ) : '¡Hola!'; ?></p>
 
-<p><?php esc_html_e( 'Gracias por sumarte a Akibara, tu rincón de Akihabara en Chile. Ya tienes tu cuenta lista para seguir tus pedidos, preventas y restocks.', 'akibara-gp' ); ?></p>
+<p><?php esc_html_e( 'Gracias por sumarte a Akibara, tu rincón de Akihabara en Chile. Ya tienes tu cuenta lista para seguir tus pedidos y restocks.', 'akibara-gp' ); ?></p>
 
 <p style="margin:0 0 4px;"><?php echo wp_kses( sprintf( __( 'Tu usuario: <strong>%s</strong>', 'akibara-gp' ), esc_html( $user_login ) ), array( 'strong' => array() ) ); ?></p>
 
@@ -51,7 +51,7 @@ $akb_account_url = wc_get_page_permalink( 'myaccount' );
 	</p>
 <?php endif; ?>
 
-<p style="font-size:0.92em;color:#6b6459;"><?php esc_html_e( 'Desde Mi cuenta puedes ver tus pedidos, seguir tus preventas y cambiar tu contraseña cuando quieras.', 'akibara-gp' ); ?></p>
+<p style="font-size:0.92em;color:#6b6459;"><?php esc_html_e( 'Desde Mi cuenta puedes ver tus pedidos y cambiar tu contraseña cuando quieras.', 'akibara-gp' ); ?></p>
 
 <?php echo $email_improvements_enabled ? '</div>' : ''; ?>
 

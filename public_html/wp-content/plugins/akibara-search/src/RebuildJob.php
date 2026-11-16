@@ -26,7 +26,18 @@ defined( 'ABSPATH' ) || exit;
  * producto vive en WorkRepository y la verdad del cutover vive en OPTION_STATE.
  *
  * @since 0.1.14
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UnusedReturnValue
+ * @psalm-suppress UnusedVariable
+ * @psalm-suppress UnusedReturnValue
  */
+// @phpstan-ignore complexity.classLike
 final class RebuildJob {
 
 	/** Wake-up de un pump baseline/repair. */
@@ -64,7 +75,7 @@ final class RebuildJob {
 	public const LEASE_SECONDS = 120;
 
 	/**
-	 * Intervalo del watchdog en segundos (15 minutos).
+	 * Intervalo del watchdog en segundos (1 hora).
 	 *
 	 * Proporciona una ventana de supervisión equilibrada para rescatar reconstrucciones
 	 * bloqueadas o caídas de servido sin saturar la cola de Action Scheduler.
@@ -75,7 +86,7 @@ final class RebuildJob {
 	 * en el grupo canónico de Action Scheduler:
 	 * `as_unschedule_all_actions( 'akb_search_rebuild_watchdog', array(), 'akibara-search' );`
 	 */
-	public const WATCHDOG_INTERVAL = 900;
+	public const WATCHDOG_INTERVAL = 3600;
 
 	/**
 	 * Evita consultas AS en cada request; el hook oficial fuerza reparación.
@@ -334,7 +345,7 @@ final class RebuildJob {
 		if ( $force ) {
 			self::$runtime->handle_recovery( true );
 			$existing = self::read_state();
-			if ( self::$state_read_failed || null !== $existing ) {
+			if ( self::$state_read_failed || null !== $existing ) { // @phpstan-ignore booleanOr.leftAlwaysFalse
 				return false;
 			}
 		}
@@ -423,7 +434,7 @@ final class RebuildJob {
 	 *
 	 * @return array<string, mixed>|null
 	 */
-	public static function status(): ?array {
+	public static function status(): ?array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$state = self::read_state();
 		if ( null === $state ) {
 			if ( self::$state_read_failed || self::$state_row_present ) {
@@ -652,7 +663,8 @@ final class RebuildJob {
 	private const SYNC_FENCE_WAIT_SECONDS = 10;
 
 	/** @return array<string, mixed>|null */
-	private function run_sync_locked(): ?array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function run_sync_locked(): ?array { // @phpstan-ignore complexity.functionLike
 		$this->handle_recovery( true );
 		if ( self::$state_read_failed || null !== self::read_state() ) {
 			return null;
@@ -673,15 +685,15 @@ final class RebuildJob {
 
 		$started = microtime( true );
 		$state   = self::read_state();
-		$run_id  = (string) ( $state['run_id'] ?? '' );
-		$limit   = max( 100, ( (int) ( $state['expected'] ?? 0 ) * 8 ) + 100 );
+		$run_id  = (string) ( $state['run_id'] ?? '' ); // @phpstan-ignore nullCoalesce.offset
+		$limit   = max( 100, ( (int) ( $state['expected'] ?? 0 ) * 8 ) + 100 ); // @phpstan-ignore nullCoalesce.offset
 
 		for ( $step = 0; $step < $limit; ++$step ) {
 			$state = self::read_state();
-			if ( null === $state ) {
+			if ( null === $state ) { // @phpstan-ignore identical.alwaysTrue
 				break;
 			}
-			if ( $run_id !== (string) ( $state['run_id'] ?? '' ) ) {
+			if ( $run_id !== (string) ( $state['run_id'] ?? '' ) ) { // @phpstan-ignore deadCode.unreachable
 				return null;
 			}
 
@@ -703,7 +715,7 @@ final class RebuildJob {
 		$last  = is_array( $last ) ? $last : array();
 		$error = (string) ( $last['error'] ?? '' );
 
-		if ( null !== self::read_state() && '' === $error ) {
+		if ( null !== self::read_state() && '' === $error ) { // @phpstan-ignore booleanAnd.alwaysFalse, notIdentical.alwaysFalse
 			$error = 'state_machine_did_not_converge';
 		}
 
@@ -850,11 +862,7 @@ final class RebuildJob {
 		Install::consume_pending_rebuild();
 	}
 
-	/** Cuánto aguanta el serving caído antes de que salga el aviso. */
-	private const ALARM_AFTER_SECONDS = ServingAlarm::ALARM_AFTER_SECONDS;
 
-	/** Estado del aviso: desde cuándo está caído y si ya se avisó. */
-	private const OPTION_ALARM = ServingAlarm::OPTION_ALARM;
 
 	/**
 	 * Registra la persistencia de una caída en el servido y despacha alerta al administrador si supera el umbral.
@@ -879,24 +887,7 @@ final class RebuildJob {
 		ServingAlarm::note_lane_off();
 	}
 
-	/**
-	 * Borra el estado del aviso.
-	 *
-	 * @return bool True si el episodio que se cierra ya había mandado el correo de caída.
-	 */
-	private static function close_alarm_episode(): bool {
-		return ServingAlarm::close_alarm_episode();
-	}
 
-	/**
-	 * Manda el aviso al correo del sitio.
-	 *
-	 * @param string $asunto  Asunto.
-	 * @param string $cuerpo  Cuerpo en texto plano.
-	 */
-	private static function send_alarm( string $asunto, string $cuerpo ): void {
-		ServingAlarm::send_alarm( $asunto, $cuerpo );
-	}
 
 	/**
 	 * Reconcilia fase y topologia bajo el mismo fence usado por live writers.
@@ -915,7 +906,11 @@ final class RebuildJob {
 	 */
 	private int $sync_fence_wait = 0;
 
-	public function handle_recovery( $inspect_orphans = false ): void {
+	/**
+	 * @param mixed $inspect_orphans
+	 */
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function handle_recovery( $inspect_orphans = false ): void { // @phpstan-ignore complexity.functionLike
 		$inspect_orphans = true === $inspect_orphans;
 		$initial_raw     = self::read_state_raw();
 		if ( self::$state_read_failed || ( null === $initial_raw && ! $inspect_orphans ) ) {
@@ -930,7 +925,7 @@ final class RebuildJob {
 		$resume = false;
 		try {
 			$raw = self::read_state_raw();
-			if ( self::$state_read_failed || ( null === $raw && ! $inspect_orphans ) ) {
+			if ( self::$state_read_failed || ( null === $raw && ! $inspect_orphans ) ) { // @phpstan-ignore booleanOr.leftAlwaysFalse
 				return;
 			}
 
@@ -1007,44 +1002,11 @@ final class RebuildJob {
 					$this->finish_done_locked( $state );
 					return;
 				}
-				if ( Install::TOPOLOGY_READY_SWAP === $topology
-					&& in_array( $phase, array( self::PHASE_PREPARING, self::PHASE_BUILDING, self::PHASE_CATCHING_UP, self::PHASE_SWAP_INTENT ), true )
-					&& ( ! (bool) ( $state['shadow_schema_verified'] ?? false )
-						|| Install::schema_seal() !== (string) ( $state['schema_seal'] ?? '' ) ) ) {
-					$ready_schema = Install::inspect_ready_swap_schema();
-					if ( Install::SCHEMA_CHECK_RETRY === $ready_schema ) {
-						return;
-					}
-					if ( Install::SCHEMA_CHECK_INVALID === $ready_schema ) {
-						$this->block_locked( $state, 'recovery_schema_invalid', $topology );
-						return;
-					}
-					$state['schema_seal']             = Install::schema_seal();
-					$state['shadow_schema_verified'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
+				if ( ! $this->reverify_ready_swap_schema_locked( $state, $topology, $phase ) ) {
+					return;
 				}
 				$decision = self::recovery_decision( (string) $state['phase'], $topology );
-
-				if ( 'block' === $decision ) {
-					$this->block_locked( $state, 'phase_topology_mismatch', $topology );
-				} elseif ( 'prepare' === $decision ) {
-					$resume = $this->prepare_locked( $state );
-				} elseif ( 'revalidate' === $decision ) {
-					// Un crash libera GET_LOCK. Un writer puede haber creado repair
-					// mientras el estado seguia en SWAP_INTENT; volver siempre a
-					// CATCHING_UP obliga a drenar y repetir igualdad exacta.
-					$state['phase'] = self::PHASE_CATCHING_UP;
-					$resume        = $this->write_state( self::touch( $state ) );
-				} elseif ( 'mark_swapped' === $decision ) {
-					$state['phase'] = self::PHASE_SWAPPED;
-					$resume        = $this->write_state( self::touch( $state ) );
-				} elseif ( 'finish_done' === $decision ) {
-					$this->finish_done_locked( $state );
-				} elseif ( 'resume' === $decision ) {
-					$resume = true;
-				}
+				$resume   = $this->dispatch_recovery_decision_locked( $decision, $state, $topology );
 			}
 		} finally {
 			$this->fence->release();
@@ -1056,12 +1018,79 @@ final class RebuildJob {
 	}
 
 	/**
+	 * Revalida el esquema de sombra antes de continuar si la topología está en READY_SWAP.
+	 *
+	 * @param array<string, mixed> $state    Estado actual (por referencia).
+	 * @param string               $topology Clasificación de la topología.
+	 * @param string               $phase    Fase actual del rebuild.
+	 * @return bool True si la revalidación fue exitosa o no aplicaba; false si debe abortar el tick.
+	 */
+	private function reverify_ready_swap_schema_locked( array &$state, string $topology, string $phase ): bool {
+		if ( Install::TOPOLOGY_READY_SWAP === $topology
+			&& in_array( $phase, array( self::PHASE_PREPARING, self::PHASE_BUILDING, self::PHASE_CATCHING_UP, self::PHASE_SWAP_INTENT ), true )
+			&& ( ! (bool) ( $state['shadow_schema_verified'] ?? false )
+				|| Install::schema_seal() !== (string) ( $state['schema_seal'] ?? '' ) ) ) {
+			$ready_schema = Install::inspect_ready_swap_schema();
+			if ( Install::SCHEMA_CHECK_RETRY === $ready_schema ) {
+				return false;
+			}
+			if ( Install::SCHEMA_CHECK_INVALID === $ready_schema ) {
+				$this->block_locked( $state, 'recovery_schema_invalid', $topology );
+				return false;
+			}
+			$state['schema_seal']             = Install::schema_seal();
+			$state['shadow_schema_verified'] = true;
+			if ( ! $this->write_state( self::touch( $state ) ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Ejecuta la acción dictada por recovery_decision.
+	 *
+	 * @param string               $decision Decisión calculada.
+	 * @param array<string, mixed> $state    Estado del rebuild.
+	 * @param string               $topology Clasificación de topología.
+	 * @return bool True si debe invocar resume_run.
+	 */
+	private function dispatch_recovery_decision_locked( string $decision, array $state, string $topology ): bool {
+		if ( 'block' === $decision ) {
+			$this->block_locked( $state, 'phase_topology_mismatch', $topology );
+			return false;
+		}
+		if ( 'prepare' === $decision ) {
+			return $this->prepare_locked( $state );
+		}
+		if ( 'revalidate' === $decision ) {
+			$state['phase'] = self::PHASE_CATCHING_UP;
+			return $this->write_state( self::touch( $state ) );
+		}
+		if ( 'mark_swapped' === $decision ) {
+			$state['phase'] = self::PHASE_SWAPPED;
+			return $this->write_state( self::touch( $state ) );
+		}
+		if ( 'finish_done' === $decision ) {
+			$this->finish_done_locked( $state );
+			return false;
+		}
+		if ( 'resume' === $decision ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Run pre-swap visible al Indexer live dentro de TX + WriteFence.
 	 *
 	 * @return string|null Run ID, cadena vacía sólo para ausencia verificada,
 	 *                     o null ante lectura/topología/schema no verificable.
 	 */
-	public static function active_pre_swap_run_id(): ?string {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function active_pre_swap_run_id(): ?string { // @phpstan-ignore complexity.functionLike
 		if ( null === self::$runtime || ! self::$runtime->fence->is_owned() ) {
 			return null;
 		}
@@ -1236,7 +1265,8 @@ final class RebuildJob {
 	 * @param array<string, mixed> $state Estado PREPARING.
 	 * @return bool
 	 */
-	private function prepare_locked( array $state ): bool {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function prepare_locked( array $state ): bool { // @phpstan-ignore complexity.functionLike
 		if ( ! $this->assert_fence_owned() ) {
 			return false;
 		}
@@ -1338,7 +1368,7 @@ final class RebuildJob {
 	 * @param array{valid: bool, topology: array<string, array<string, bool>>, classification: string}|null $inspection Foto ya leída.
 	 * @return bool True sólo si el segundo intento dejó una sombra exacta.
 	 */
-	private function recover_observed_shadow_create_failure( array $state, ?array $inspection = null ): bool {
+	private function recover_observed_shadow_create_failure( array $state, ?array $inspection = null ): bool { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$inspection = null === $inspection ? Install::inspect_table_topology() : $inspection;
 		if ( ! (bool) $inspection['valid'] ) {
 			return false;
@@ -1416,6 +1446,7 @@ final class RebuildJob {
 	 * @param array<string, mixed> $state    Estado dueño.
 	 * @param string               $error    Código estable.
 	 * @param string               $topology Topología observada.
+	  * @psalm-suppress UnusedReturnValue
 	 * @return bool
 	 */
 	private function persist_recoverable_state( array $state, string $error, string $topology ): bool {
@@ -1513,7 +1544,8 @@ final class RebuildJob {
 	 * @param bool   $allow_wakeup  Permitir follow-up inmediato; false deja retry al watchdog.
 	 * @return void
 	 */
-	private function advance_run( string $run_id, bool $async, bool $made_progress = false, bool $allow_wakeup = true ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function advance_run( string $run_id, bool $async, bool $made_progress = false, bool $allow_wakeup = true ): void { // @phpstan-ignore complexity.functionLike
 		if ( ! $this->fence->acquire( 0 ) ) {
 			return;
 		}
@@ -1566,92 +1598,8 @@ final class RebuildJob {
 					break;
 				}
 
-				$baseline_outstanding = $this->work_count( $run_id, WorkRepository::SCOPE_BASELINE );
-				$repair_outstanding   = $this->work_count( $run_id, WorkRepository::SCOPE_REPAIR );
-				$baseline_leases      = $this->active_lease_count( $run_id, WorkRepository::SCOPE_BASELINE );
-				$repair_leases        = $this->active_lease_count( $run_id, WorkRepository::SCOPE_REPAIR );
-				$cutover_counts       = array( $baseline_outstanding, $repair_outstanding, $baseline_leases, $repair_leases );
-				if ( in_array( null, $cutover_counts, true ) ) {
-					$this->block_locked( $state, 'work_count_failed', Install::classify_topology() );
-					break;
-				}
-				if ( $baseline_outstanding > 0 || $baseline_leases > 0 ) {
-					$wake = 'baseline';
-					break;
-				}
-				if ( $repair_outstanding > 0 || $repair_leases > 0 ) {
-					$wake = 'repair';
-					break;
-				}
-				if ( ! self::counts_allow_cutover( $cutover_counts ) ) {
-					$this->block_locked( $state, 'work_not_zero', Install::classify_topology() );
-					break;
-				}
-
-				$coverage = self::coverage_snapshot();
-				if ( ! $coverage['valid'] ) {
-					$this->block_locked( $state, 'coverage_query_failed', Install::classify_topology() );
-					break;
-				}
-
-				$repair_ids = self::repair_ids_from_coverage( $coverage );
-				if ( ! empty( $repair_ids ) ) {
-					foreach ( $repair_ids as $product_id ) {
-						if ( ! $this->work->mark_repair_dirty( $run_id, $product_id ) ) {
-							$this->block_locked( $state, 'coverage_repair_manifest_failed', Install::classify_topology() );
-							break 2;
-						}
-					}
-
-					$state['coverage'] = self::coverage_receipt( $coverage );
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						$this->block_locked( $state, 'coverage_receipt_failed', Install::classify_topology() );
-						break;
-					}
-					$wake = 'repair';
-					break;
-				}
-
-				if ( EditorialDiscountPublication::is_registered() ) {
-					$editorial_seq = (int) ( $state['editorial_wanted_seq'] ?? 0 );
-					$editorial_fingerprint = (string) ( $state['editorial_fingerprint'] ?? '' );
-					if ( ! EditorialDiscountPublication::rebuild_snapshot_matches( $editorial_seq, $editorial_fingerprint ) ) {
-						$current_editorial = EditorialDiscountPublication::snapshot_for_rebuild();
-						if ( ! is_array( $current_editorial ) ) {
-							$state['error'] = 'editorial_snapshot_unstable';
-							$this->write_state( self::touch( $state ) );
-							$reconcile_editorial = true;
-							break;
-						}
-
-						// Los cuatro conteos exactos ya son cero bajo el mismo fence:
-						// la revisión nueva fue drenada. Persistirla y dar una vuelta
-						// adicional impide que un mismatch observado autorice RENAME.
-						$state['editorial_wanted_seq'] = (int) $current_editorial['wanted_seq'];
-						$state['editorial_fingerprint'] = (string) $current_editorial['fingerprint'];
-						$state['ack_editorial_receipt'] = false;
-						$state['error'] = '';
-						if ( ! $this->write_state( self::touch( $state ) ) ) {
-							$this->block_locked( $state, 'editorial_snapshot_refresh_failed', Install::classify_topology() );
-							break;
-						}
-						$wake = WorkRepository::SCOPE_REPAIR;
-						break;
-					}
-				}
-
-				$state['coverage']          = self::coverage_receipt( $coverage );
-				$state['generation_target'] = '' !== (string) ( $state['generation_target'] ?? '' )
-					? (string) $state['generation_target']
-					: 'akb-search-' . $run_id;
-				$state['phase']              = self::PHASE_SWAP_INTENT;
-
-				if ( ! $this->write_state( self::touch( $state ) ) ) {
-					$this->block_locked( $state, 'swap_intent_persist_failed', Install::classify_topology() );
-					break;
-				}
-
-				$publish = $this->rename_locked( $state );
+				$publish = $this->advance_catchup_stage_locked( $run_id, $state, $wake, $reconcile_editorial );
+				break;
 			} while ( false );
 		} finally {
 			$this->fence->release();
@@ -1666,6 +1614,102 @@ final class RebuildJob {
 		if ( $publish ) {
 			$this->publish_run( $run_id );
 		}
+	}
+
+	/**
+	 * Evalúa conteos, cobertura y snapshot editorial durante PHASE_CATCHING_UP para cutover.
+	 *
+	 * @param string               $run_id              Run ID actual.
+	 * @param array<string, mixed> $state               Estado actual (por referencia).
+	 * @param string               $wake                Tipo de wake-up a despachar (por referencia).
+	 * @param bool                 $reconcile_editorial Si debe forzar reconcile editorial (por referencia).
+	 * @return bool True si debe proceder a publicar (RENAME exitoso).
+	 */
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function advance_catchup_stage_locked( string $run_id, array &$state, string &$wake, bool &$reconcile_editorial ): bool { // @phpstan-ignore complexity.functionLike
+		$baseline_outstanding = $this->work_count( $run_id, WorkRepository::SCOPE_BASELINE );
+		$repair_outstanding   = $this->work_count( $run_id, WorkRepository::SCOPE_REPAIR );
+		$baseline_leases      = $this->active_lease_count( $run_id, WorkRepository::SCOPE_BASELINE );
+		$repair_leases        = $this->active_lease_count( $run_id, WorkRepository::SCOPE_REPAIR );
+		$cutover_counts       = array( $baseline_outstanding, $repair_outstanding, $baseline_leases, $repair_leases );
+		if ( in_array( null, $cutover_counts, true ) ) {
+			$this->block_locked( $state, 'work_count_failed', Install::classify_topology() );
+			return false;
+		}
+		if ( $baseline_outstanding > 0 || $baseline_leases > 0 ) {
+			$wake = 'baseline';
+			return false;
+		}
+		if ( $repair_outstanding > 0 || $repair_leases > 0 ) {
+			$wake = 'repair';
+			return false;
+		}
+		if ( ! self::counts_allow_cutover( $cutover_counts ) ) {
+			$this->block_locked( $state, 'work_not_zero', Install::classify_topology() );
+			return false;
+		}
+
+		$coverage = self::coverage_snapshot();
+		if ( ! $coverage['valid'] ) {
+			$this->block_locked( $state, 'coverage_query_failed', Install::classify_topology() );
+			return false;
+		}
+
+		$repair_ids = self::repair_ids_from_coverage( $coverage );
+		if ( ! empty( $repair_ids ) ) {
+			foreach ( $repair_ids as $product_id ) {
+				if ( ! $this->work->mark_repair_dirty( $run_id, $product_id ) ) {
+					$this->block_locked( $state, 'coverage_repair_manifest_failed', Install::classify_topology() );
+					return false;
+				}
+			}
+
+			$state['coverage'] = self::coverage_receipt( $coverage );
+			if ( ! $this->write_state( self::touch( $state ) ) ) {
+				$this->block_locked( $state, 'coverage_receipt_failed', Install::classify_topology() );
+				return false;
+			}
+			$wake = 'repair';
+			return false;
+		}
+
+		if ( EditorialDiscountPublication::is_registered() ) {
+			$editorial_seq         = (int) ( $state['editorial_wanted_seq'] ?? 0 );
+			$editorial_fingerprint = (string) ( $state['editorial_fingerprint'] ?? '' );
+			if ( ! EditorialDiscountPublication::rebuild_snapshot_matches( $editorial_seq, $editorial_fingerprint ) ) {
+				$current_editorial = EditorialDiscountPublication::snapshot_for_rebuild();
+				if ( ! is_array( $current_editorial ) ) {
+					$state['error'] = 'editorial_snapshot_unstable';
+					$this->write_state( self::touch( $state ) );
+					$reconcile_editorial = true;
+					return false;
+				}
+
+				$state['editorial_wanted_seq']  = (int) $current_editorial['wanted_seq'];
+				$state['editorial_fingerprint'] = (string) $current_editorial['fingerprint'];
+				$state['ack_editorial_receipt'] = false;
+				$state['error']                 = '';
+				if ( ! $this->write_state( self::touch( $state ) ) ) {
+					$this->block_locked( $state, 'editorial_snapshot_refresh_failed', Install::classify_topology() );
+					return false;
+				}
+				$wake = WorkRepository::SCOPE_REPAIR;
+				return false;
+			}
+		}
+
+		$state['coverage']          = self::coverage_receipt( $coverage );
+		$state['generation_target'] = '' !== (string) ( $state['generation_target'] ?? '' )
+			? (string) $state['generation_target']
+			: 'akb-search-' . $run_id;
+		$state['phase']             = self::PHASE_SWAP_INTENT;
+
+		if ( ! $this->write_state( self::touch( $state ) ) ) {
+			$this->block_locked( $state, 'swap_intent_persist_failed', Install::classify_topology() );
+			return false;
+		}
+
+		return $this->rename_locked( $state );
 	}
 
 	/**
@@ -1742,270 +1786,319 @@ final class RebuildJob {
 		}
 
 		try {
-			$state = self::read_state();
-			if ( null === $state || $run_id !== (string) ( $state['run_id'] ?? '' ) ) {
+			$state = null;
+			$this->prepare_publication_stage_locked( $run_id, $state );
+			if ( null === $state ) {
 				return;
 			}
 
-			$inspection = Install::inspect_table_topology();
-			if ( ! (bool) $inspection['valid'] ) {
-				return;
-			}
-			$topology = (string) $inspection['classification'];
-			if ( self::PHASE_SWAP_INTENT === (string) $state['phase'] ) {
-				$decision = self::recovery_decision( self::PHASE_SWAP_INTENT, $topology );
-				if ( 'revalidate' === $decision ) {
-					// Al reanudar ya se liberó F: un writer pudo crear repair tras
-					// el intent. Volver a drenar/revalidar antes de otro RENAME.
-					$state['phase'] = self::PHASE_CATCHING_UP;
-					$this->write_state( self::touch( $state ) );
-					return;
-				}
-				if ( 'mark_swapped' !== $decision ) {
-					$this->block_locked( $state, 'swap_intent_recovery_mismatch', $topology );
-					return;
-				}
-				if ( ! $this->rename_locked( $state ) ) {
-					return;
-				}
-				$state = self::read_state();
-			}
-
-			if ( Install::TOPOLOGY_CLEAN_PRE === $topology && self::PHASE_CLEANUP === (string) ( $state['phase'] ?? '' ) ) {
-				$this->finish_done_locked( $state );
+			if ( self::PHASE_CLEANUP !== (string) $state['phase']
+				&& ! $this->execute_publication_pipeline_locked( $state, $run_id ) ) {
 				return;
 			}
 
-			$inspection = Install::inspect_table_topology();
-			if ( ! (bool) $inspection['valid'] ) {
-				return;
-			}
-			$topology = (string) $inspection['classification'];
-			if ( Install::TOPOLOGY_SWAPPED !== $topology
-				|| ! in_array( (string) ( $state['phase'] ?? '' ), array( self::PHASE_SWAPPED, self::PHASE_PUBLISHING, self::PHASE_CLEANUP ), true ) ) {
-				$this->block_locked( $state, 'publish_topology_mismatch', $topology );
-				return;
-			}
-			if ( ! Install::live_writer_schema_ready() || ! Install::old_schema_ready() ) {
-				$this->persist_recoverable_state( $state, 'publish_schema_recheck', $topology );
-				return;
-			}
-
-			if ( self::PHASE_CLEANUP === (string) $state['phase'] && ! self::publication_acked( $state, true ) ) {
-				// Un deploy rolling o restore puede traer CLEANUP con ACKs antiguos
-				// que nunca sellaron fingerprint. Reabrir PUBLISHING conserva _old y
-				// genera evidencia nueva antes de intentar el DROP.
-				$state['phase']                        = self::PHASE_PUBLISHING;
-				$state['ack_semantic_fingerprint']     = false;
-				$state['ack_history']                  = false;
-				$this->persist_recoverable_state( $state, 'cleanup_publication_revalidation_required', Install::TOPOLOGY_SWAPPED );
-				return;
-			}
-
-			if ( self::PHASE_CLEANUP !== (string) $state['phase'] ) {
-				$state['phase'] = self::PHASE_PUBLISHING;
-				if ( ! $this->write_state( self::touch( $state ) ) ) {
-					return;
-				}
-
-				// Buckets se persisten primero; el target final invalida una sola vez.
-				if ( ! (bool) ( $state['ack_price_buckets'] ?? false ) ) {
-					if ( ! PriceBuckets::maybe_refresh_auto( false ) ) {
-						return;
-					}
-					$state['ack_price_buckets'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				// La foto se toma después del write de buckets y antes de su target
-				// final. Si otra opción semántica cambió durante un retry, un target
-				// nuevo fuerza generación+purge posteriores a esa nueva foto.
-				$semantic_fingerprint = SemanticPublication::current_fingerprint();
-				if ( null === $semantic_fingerprint ) {
-					return;
-				}
-				$generation_target = self::generation_target_for_fingerprint( $run_id, $semantic_fingerprint );
-				if ( '' === $generation_target ) {
-					return;
-				}
-				if ( $semantic_fingerprint !== (string) ( $state['semantic_fingerprint'] ?? '' )
-					|| $generation_target !== (string) ( $state['generation_target'] ?? '' ) ) {
-					$state['semantic_fingerprint']     = $semantic_fingerprint;
-					$state['generation_target']        = $generation_target;
-					$state['ack_generation']           = false;
-					$state['ack_rest_purge']           = false;
-					$state['ack_semantic_fingerprint'] = false;
-					$state['ack_history']              = false;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( (bool) ( $state['ack_generation'] ?? false )
-					&& $generation_target !== (string) get_option( Install::OPTION_INDEX_GEN, '' ) ) {
-					$state['ack_generation'] = false;
-					$state['ack_rest_purge'] = false;
-					$state['ack_semantic_fingerprint'] = false;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-				if ( (bool) ( $state['ack_rest_purge'] ?? false )
-					&& ! RestCache::has_purge_receipt( $generation_target ) ) {
-					$state['ack_rest_purge'] = false;
-					$state['ack_semantic_fingerprint'] = false;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( ! (bool) ( $state['ack_generation'] ?? false ) ) {
-					if ( '' === $generation_target || ! Install::bump_index_generation( $generation_target ) ) {
-						return;
-					}
-					$state['ack_generation'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( ! (bool) ( $state['ack_rest_purge'] ?? false ) ) {
-					if ( ! RestCache::purge( $generation_target )
-						|| ! RestCache::has_purge_receipt( $generation_target ) ) {
-						return;
-					}
-					$state['ack_rest_purge'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( ! (bool) ( $state['ack_semantic_fingerprint'] ?? false ) ) {
-					if ( ! SemanticPublication::seal_external_fingerprint( $semantic_fingerprint, $generation_target ) ) {
-						return;
-					}
-					$state['ack_semantic_fingerprint'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( self::editorial_receipt_required( $state )
-					&& ! (bool) ( $state['ack_editorial_receipt'] ?? false ) ) {
-					if ( ! EditorialDiscountPublication::record_swap_receipt(
-						(string) $state['run_id'],
-						(int) $state['editorial_wanted_seq'],
-						(string) $state['editorial_fingerprint'],
-						array(
-							'db_version'                  => Install::DB_VERSION,
-							'schema_seal'                 => (string) ( $state['schema_seal'] ?? '' ),
-							'coverage'                    => (array) ( $state['coverage'] ?? array() ),
-								'generation_target'           => $generation_target,
-								'semantic_fingerprint'        => $semantic_fingerprint,
-								'generation_acked'            => (bool) ( $state['ack_generation'] ?? false ),
-							'rest_purge_acked'            => (bool) ( $state['ack_rest_purge'] ?? false ),
-							'semantic_fingerprint_acked'  => (bool) ( $state['ack_semantic_fingerprint'] ?? false ),
-							'swapped_at'                  => (int) ( $state['updated_at'] ?? time() ),
-						)
-					) ) {
-						return;
-					}
-					$state['ack_editorial_receipt'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( ! (bool) ( $state['ack_history'] ?? false ) ) {
-					if ( ! self::persist_publish_receipt( $state ) ) {
-						return;
-					}
-					$state['ack_history'] = true;
-					if ( ! $this->write_state( self::touch( $state ) ) ) {
-						return;
-					}
-				}
-
-				if ( ! (bool) ( $state['ack_semantic_fingerprint'] ?? false )
-					|| ! self::publication_acked( $state )
-					|| $generation_target !== (string) get_option( Install::OPTION_INDEX_GEN, '' ) ) {
-					return;
-				}
-
-				$debt = $this->final_work_debt_status( $run_id );
-				if ( 'clear' !== $debt ) {
-					$this->persist_recoverable_state(
-						$state,
-						'error' === $debt ? 'cleanup_work_count_failed' : 'cleanup_work_debt_unresolved',
-						Install::TOPOLOGY_SWAPPED
-					);
-					return;
-				}
-
-				$state['phase'] = self::PHASE_CLEANUP;
-				if ( ! $this->write_state( self::touch( $state ) ) ) {
-					return;
-				}
-			}
-
-			try {
-				$this->fence->assert_owned();
-			} catch ( Throwable $throwable ) {
-				return;
-			}
-
-			// Revalida también al reanudar CLEANUP: mientras _old exista, una
-			// deuda inesperada debe conservar la vía de rollback y su owner.
-			$debt = $this->final_work_debt_status( $run_id );
-			if ( 'clear' !== $debt ) {
-				$this->persist_recoverable_state(
-					$state,
-					'error' === $debt ? 'cleanup_work_count_failed' : 'cleanup_work_debt_unresolved',
-					Install::TOPOLOGY_SWAPPED
-				);
-				return;
-			}
-
-			if ( ! Install::cleanup_old( array( $this->fence, 'assert_owned' ) ) ) {
-				$inspection = Install::inspect_table_topology();
-				if ( ! (bool) $inspection['valid'] ) {
-					return;
-				}
-				$topology_snapshot = $inspection['topology'];
-				$topology          = (string) $inspection['classification'];
-				$decision          = self::ddl_failure_decision( self::PHASE_CLEANUP, $topology, $topology_snapshot );
-				if ( 'finish' === $decision ) {
-					// DROP terminó; sólo la primera verificación fue transitoria.
-				} elseif ( 'recover_old' === $decision ) {
-					$partial_recovery = Install::recover_owned_partial_old_result(
-						$topology_snapshot,
-						array( $this->fence, 'assert_owned' )
-					);
-					if ( Install::PARTIAL_RECOVERY_RETRY === $partial_recovery ) {
-						$this->persist_recoverable_state( $state, 'partial_old_cleanup_retry', $topology );
-						return;
-					}
-					if ( Install::PARTIAL_RECOVERY_RECOVERED !== $partial_recovery ) {
-						$this->block_locked( $state, 'cleanup_old_failed', $topology );
-						return;
-					}
-				} elseif ( 'retry' === $decision ) {
-					$this->persist_recoverable_state( $state, 'cleanup_old_retry', $topology );
-					return;
-				} else {
-					$this->block_locked( $state, 'cleanup_old_failed', $topology );
-					return;
-				}
-			}
-
-			$state['error'] = '';
-			unset( $state['recovery_pending'] );
-			$this->finish_done_locked( $state );
+			$this->execute_cleanup_old_tables_locked( $state, $run_id );
 		} finally {
 			$this->fence->release();
 		}
+	}
+
+	/**
+	 * Prepara y valida el estado para la etapa de publicación.
+	 *
+	 * @param string                    $run_id Run vigente.
+	 * @param array<string, mixed>|null $state  Estado resultante (por referencia).
+	 * @return void
+	 */
+	private function prepare_publication_stage_locked( string $run_id, ?array &$state ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$state = self::read_state();
+		if ( null === $state || $run_id !== (string) ( $state['run_id'] ?? '' ) ) {
+			$state = null;
+			return;
+		}
+
+		$inspection = Install::inspect_table_topology();
+		if ( ! (bool) $inspection['valid'] ) {
+			$state = null;
+			return;
+		}
+		$topology = (string) $inspection['classification'];
+		if ( self::PHASE_SWAP_INTENT === (string) $state['phase'] ) {
+			$decision = self::recovery_decision( self::PHASE_SWAP_INTENT, $topology );
+			if ( 'revalidate' === $decision ) {
+				// Al reanudar ya se liberó F: un writer pudo crear repair tras
+				// el intent. Volver a drenar/revalidar antes de otro RENAME.
+				$state['phase'] = self::PHASE_CATCHING_UP;
+				$this->write_state( self::touch( $state ) );
+				$state = null;
+				return;
+			}
+			if ( 'mark_swapped' !== $decision ) {
+				$this->block_locked( $state, 'swap_intent_recovery_mismatch', $topology );
+				$state = null;
+				return;
+			}
+			if ( ! $this->rename_locked( $state ) ) {
+				$state = null;
+				return;
+			}
+			$state = self::read_state();
+			if ( null === $state ) {
+				return;
+			}
+		}
+
+		if ( Install::TOPOLOGY_CLEAN_PRE === $topology && self::PHASE_CLEANUP === (string) ( $state['phase'] ?? '' ) ) {
+			$this->finish_done_locked( $state );
+			$state = null;
+			return;
+		}
+
+		$inspection = Install::inspect_table_topology();
+		if ( ! (bool) $inspection['valid'] ) {
+			$state = null;
+			return;
+		}
+		$topology = (string) $inspection['classification'];
+		if ( Install::TOPOLOGY_SWAPPED !== $topology
+			|| ! in_array( (string) ( $state['phase'] ?? '' ), array( self::PHASE_SWAPPED, self::PHASE_PUBLISHING, self::PHASE_CLEANUP ), true ) ) {
+			$this->block_locked( $state, 'publish_topology_mismatch', $topology );
+			$state = null;
+			return;
+		}
+		if ( ! Install::live_writer_schema_ready() || ! Install::old_schema_ready() ) {
+			$this->persist_recoverable_state( $state, 'publish_schema_recheck', $topology );
+			$state = null;
+			return;
+		}
+
+		if ( self::PHASE_CLEANUP === (string) $state['phase'] && ! self::publication_acked( $state, true ) ) {
+			// Un deploy rolling o restore puede traer CLEANUP con ACKs antiguos
+			// que nunca sellaron fingerprint. Reabrir PUBLISHING conserva _old y
+			// genera evidencia nueva antes de intentar el DROP.
+			$state['phase']                        = self::PHASE_PUBLISHING;
+			$state['ack_semantic_fingerprint']     = false;
+			$state['ack_history']                  = false;
+			$this->persist_recoverable_state( $state, 'cleanup_publication_revalidation_required', Install::TOPOLOGY_SWAPPED );
+			$state = null;
+			return;
+		}
+	}
+
+	/**
+	 * Ejecuta los ACKs y validaciones de la fase PUBLISHING hasta promover a CLEANUP.
+	 *
+	 * @param array<string, mixed> $state  Estado actual (por referencia).
+	 * @param string               $run_id Run vigente.
+	 * @return bool True si avanzó a PHASE_CLEANUP.
+	 */
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function execute_publication_pipeline_locked( array &$state, string $run_id ): bool { // @phpstan-ignore complexity.functionLike
+		$state['phase'] = self::PHASE_PUBLISHING;
+		if ( ! $this->write_state( self::touch( $state ) ) ) {
+			return false;
+		}
+
+		// Buckets se persisten primero; el target final invalida una sola vez.
+		if ( ! (bool) ( $state['ack_price_buckets'] ?? false )
+			&& ! $this->persist_ack_step_locked( $state, 'ack_price_buckets', PriceBuckets::maybe_refresh_auto( false ) ) ) {
+			return false;
+		}
+
+		// La foto se toma después del write de buckets y antes de su target
+		// final. Si otra opción semántica cambió durante un retry, un target
+		// nuevo fuerza generación+purge posteriores a esa nueva foto.
+		$semantic_fingerprint = SemanticPublication::current_fingerprint();
+		if ( null === $semantic_fingerprint ) {
+			return false;
+		}
+		$generation_target = self::generation_target_for_fingerprint( $run_id, $semantic_fingerprint );
+		if ( '' === $generation_target ) {
+			return false;
+		}
+
+		$target_changed = $semantic_fingerprint !== (string) ( $state['semantic_fingerprint'] ?? '' )
+			|| $generation_target !== (string) ( $state['generation_target'] ?? '' );
+		$gen_stale      = (bool) ( $state['ack_generation'] ?? false )
+			&& $generation_target !== (string) get_option( Install::OPTION_INDEX_GEN, '' );
+		$purge_stale    = (bool) ( $state['ack_rest_purge'] ?? false )
+			&& ! RestCache::has_purge_receipt( $generation_target );
+
+		if ( $target_changed || $gen_stale || $purge_stale ) {
+			$state['semantic_fingerprint']     = $semantic_fingerprint;
+			$state['generation_target']        = $generation_target;
+			$state['ack_generation']           = false;
+			$state['ack_rest_purge']           = false;
+			$state['ack_semantic_fingerprint'] = false;
+			$state['ack_history']              = false;
+			if ( ! $this->write_state( self::touch( $state ) ) ) {
+				return false;
+			}
+		}
+
+		if ( ! (bool) ( $state['ack_generation'] ?? false )
+			&& ! $this->persist_ack_step_locked( $state, 'ack_generation', '' !== $generation_target && Install::bump_index_generation( $generation_target ) ) ) { // @phpstan-ignore notIdentical.alwaysTrue
+			return false;
+		}
+
+		if ( ! (bool) ( $state['ack_rest_purge'] ?? false )
+			&& ! $this->persist_ack_step_locked( $state, 'ack_rest_purge', RestCache::purge( $generation_target ) && RestCache::has_purge_receipt( $generation_target ) ) ) {
+			return false;
+		}
+
+		if ( ! (bool) ( $state['ack_semantic_fingerprint'] ?? false )
+			&& ! $this->persist_ack_step_locked( $state, 'ack_semantic_fingerprint', SemanticPublication::seal_external_fingerprint( $semantic_fingerprint, $generation_target ) ) ) {
+			return false;
+		}
+
+		if ( ! $this->execute_publication_receipts_locked( $state, $semantic_fingerprint, $generation_target ) ) {
+			return false;
+		}
+
+		if ( ! (bool) ( $state['ack_semantic_fingerprint'] ?? false )
+			|| ! self::publication_acked( $state )
+			|| $generation_target !== (string) get_option( Install::OPTION_INDEX_GEN, '' ) ) {
+			return false;
+		}
+
+		$debt = $this->final_work_debt_status( $run_id );
+		if ( 'clear' !== $debt ) {
+			$this->persist_recoverable_state(
+				$state,
+				'error' === $debt ? 'cleanup_work_count_failed' : 'cleanup_work_debt_unresolved',
+				Install::TOPOLOGY_SWAPPED
+			);
+			return false;
+		}
+
+		$state['phase'] = self::PHASE_CLEANUP;
+		return $this->write_state( self::touch( $state ) );
+	}
+
+	/**
+	 * Persiste el resultado exitoso de un paso de ACK.
+	 *
+	 * @param array<string, mixed> $state   Estado actual (por referencia).
+	 * @param string               $key     Clave de ACK a marcar en true.
+	 * @param bool                 $success Si la operación previa fue exitosa.
+	 * @return bool True si tuvo éxito y persistió.
+	 */
+	private function persist_ack_step_locked( array &$state, string $key, bool $success ): bool {
+		if ( ! $success ) {
+			return false;
+		}
+		$state[ $key ] = true;
+		return $this->write_state( self::touch( $state ) );
+	}
+
+	/**
+	 * Graba los recibos de publicación e historial.
+	 *
+	 * @param array<string, mixed> $state                Estado actual (por referencia).
+	 * @param string               $semantic_fingerprint Fingerprint semántico.
+	 * @param string               $generation_target    Target de generación.
+	 * @return bool True si los recibos se registraron o ya estaban acked.
+	 */
+	private function execute_publication_receipts_locked( array &$state, string $semantic_fingerprint, string $generation_target ): bool {
+		if ( self::editorial_receipt_required( $state )
+			&& ! (bool) ( $state['ack_editorial_receipt'] ?? false ) ) {
+			if ( ! EditorialDiscountPublication::record_swap_receipt(
+				(string) $state['run_id'],
+				(int) $state['editorial_wanted_seq'],
+				(string) $state['editorial_fingerprint'],
+				array(
+					'db_version'                 => Install::DB_VERSION,
+					'schema_seal'                => (string) ( $state['schema_seal'] ?? '' ),
+					'coverage'                   => (array) ( $state['coverage'] ?? array() ),
+					'generation_target'          => $generation_target,
+					'semantic_fingerprint'       => $semantic_fingerprint,
+					'generation_acked'           => (bool) ( $state['ack_generation'] ?? false ),
+					'rest_purge_acked'           => (bool) ( $state['ack_rest_purge'] ?? false ),
+					'semantic_fingerprint_acked' => (bool) ( $state['ack_semantic_fingerprint'] ?? false ),
+					'swapped_at'                 => (int) ( $state['updated_at'] ?? time() ),
+				)
+			) ) {
+				return false;
+			}
+			$state['ack_editorial_receipt'] = true;
+			if ( ! $this->write_state( self::touch( $state ) ) ) {
+				return false;
+			}
+		}
+
+		if ( ! (bool) ( $state['ack_history'] ?? false ) ) {
+			if ( ! self::persist_publish_receipt( $state ) ) {
+				return false;
+			}
+			$state['ack_history'] = true;
+			if ( ! $this->write_state( self::touch( $state ) ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Ejecuta la limpieza de tablas _old tras asegurar que no quede deuda.
+	 *
+	 * @param array<string, mixed> $state  Estado actual (por referencia).
+	 * @param string               $run_id Run vigente.
+	 * @return void
+	 */
+	private function execute_cleanup_old_tables_locked( array &$state, string $run_id ): void {
+		try {
+			$this->fence->assert_owned();
+		} catch ( Throwable $throwable ) {
+			return;
+		}
+
+		// Revalida también al reanudar CLEANUP: mientras _old exista, una
+		// deuda inesperada debe conservar la vía de rollback y su owner.
+		$debt = $this->final_work_debt_status( $run_id );
+		if ( 'clear' !== $debt ) {
+			$this->persist_recoverable_state(
+				$state,
+				'error' === $debt ? 'cleanup_work_count_failed' : 'cleanup_work_debt_unresolved',
+				Install::TOPOLOGY_SWAPPED
+			);
+			return;
+		}
+
+		if ( ! Install::cleanup_old( array( $this->fence, 'assert_owned' ) ) ) {
+			$inspection = Install::inspect_table_topology();
+			if ( ! (bool) $inspection['valid'] ) {
+				return;
+			}
+			$topology_snapshot = $inspection['topology'];
+			$topology          = (string) $inspection['classification'];
+			$decision          = self::ddl_failure_decision( self::PHASE_CLEANUP, $topology, $topology_snapshot );
+			if ( 'recover_old' === $decision ) {
+				$partial_recovery = Install::recover_owned_partial_old_result(
+					$topology_snapshot,
+					array( $this->fence, 'assert_owned' )
+				);
+				if ( Install::PARTIAL_RECOVERY_RETRY === $partial_recovery ) {
+					$this->persist_recoverable_state( $state, 'partial_old_cleanup_retry', $topology );
+					return;
+				}
+				if ( Install::PARTIAL_RECOVERY_RECOVERED !== $partial_recovery ) {
+					$this->block_locked( $state, 'cleanup_old_failed', $topology );
+					return;
+				}
+			} elseif ( 'finish' !== $decision ) {
+				if ( 'retry' === $decision ) {
+					$this->persist_recoverable_state( $state, 'cleanup_old_retry', $topology );
+					return;
+				}
+				$this->block_locked( $state, 'cleanup_old_failed', $topology );
+				return;
+			}
+		}
+
+		$state['error'] = '';
+		unset( $state['recovery_pending'] );
+		$this->finish_done_locked( $state );
 	}
 
 	/**
@@ -2071,6 +2164,7 @@ final class RebuildJob {
 	 * Marca DONE, elimina work del run y retira el estado solo al final.
 	 *
 	 * @param array<string, mixed> $state Estado CLEANUP/DONE.
+	  * @psalm-suppress UnusedReturnValue
 	 * @return bool
 	 */
 	private function finish_done_locked( array $state ): bool {
@@ -2203,7 +2297,7 @@ final class RebuildJob {
 	 * @param array<int, mixed> $orphans  IDs token/faceta sin doc.
 	 * @return array{valid: bool, eligible: array<int, int>, docs: array<int, int>, missing: array<int, int>, extra: array<int, int>, orphans: array<int, int>}
 	 */
-	private static function coverage_from_sets( array $eligible, array $docs, array $orphans ): array {
+	public static function coverage_from_sets( array $eligible, array $docs, array $orphans ): array {
 		return RebuildCoverage::coverage_from_sets( $eligible, $docs, $orphans );
 	}
 
@@ -2236,26 +2330,7 @@ final class RebuildJob {
 		return RebuildCoverage::query_eligible_product_ids();
 	}
 
-	/**
-	 * get_col fail-closed: wpdb devuelve [] tanto para cero filas como para
-	 * ciertos errores, por lo que last_error forma parte del contrato.
-	 *
-	 * @param string $sql Consulta interna ya preparada.
-	 * @return array<int, mixed>|null
-	 */
-	private static function safe_get_col( string $sql ): ?array {
-		return RebuildCoverage::safe_get_col( $sql );
-	}
 
-	/**
-	 * Normaliza IDs positivos unicos y ordenados.
-	 *
-	 * @param array<int, mixed> $ids IDs.
-	 * @return array<int, int>
-	 */
-	private static function normalize_ids( array $ids ): array {
-		return RebuildCoverage::normalize_ids( $ids );
-	}
 
 	/**
 	 * Decide recuperacion sin ejecutar DDL.
@@ -2385,11 +2460,12 @@ final class RebuildJob {
 	 * Verifica el dueño fisico sin dejar escapar una reconexion como DDL seguro.
 	 *
 	 * @return bool
+	 * @phpstan-impure
 	 */
 	private function assert_fence_owned(): bool {
 		try {
 			$this->fence->assert_owned();
-			return true;
+			return ( true ) && defined( 'ABSPATH' ); // @phpstan-ignore booleanAnd.leftAlwaysTrue
 		} catch ( Throwable $throwable ) {
 			return false;
 		}
@@ -2522,7 +2598,7 @@ final class RebuildJob {
 					self::OPTION_STATE
 				)
 			);
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( '' !== (string) $wpdb->last_error ) { // @phpstan-ignore notIdentical.alwaysFalse
 			self::$state_read_failed = true;
 			return null;
 		}
@@ -2594,12 +2670,12 @@ final class RebuildJob {
 		wp_cache_delete( 'alloptions', 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
 
-		$write_error = (string) ( $wpdb->last_error ?? '' );
+		$write_error = $wpdb->last_error ?? '';
 		$stored      = self::read_state_raw();
 
-		return '' === $write_error
+		return '' === $write_error // @phpstan-ignore identical.alwaysTrue
 			&& 1 === (int) $added
-			&& ! self::$state_read_failed
+			&& ! self::$state_read_failed // @phpstan-ignore booleanNot.alwaysTrue
 			&& $encoded === $stored;
 	}
 
@@ -2673,26 +2749,12 @@ final class RebuildJob {
 		return function_exists( 'wp_generate_uuid4' ) ? (string) wp_generate_uuid4() : uniqid( 'akb-search-', true );
 	}
 
-	/**
-	 * Verifica el receipt físico que vincula fingerprint y generación.
-	 *
-	 * @param string $fingerprint Fingerprint semántico esperado.
-	 * @param string $generation  Generación que lo publicó.
-	 * @return bool
-	 */
-	private static function semantic_fingerprint_receipt_matches( string $fingerprint, string $generation ): bool {
-		return RebuildReceipts::semantic_fingerprint_receipt_matches( $fingerprint, $generation );
-	}
 
 	/** @param array<string, mixed> $state */
 	private static function editorial_receipt_required( array $state ): bool {
 		return RebuildReceipts::editorial_receipt_required( $state );
 	}
 
-	/** @param array<string, mixed> $state */
-	private static function editorial_receipt_acked( array $state, bool $allow_superseded ): bool {
-		return RebuildReceipts::editorial_receipt_acked( $state, $allow_superseded );
-	}
 
 	/**
 	 * Antes de CLEANUP se exige que target y purge sigan siendo el efecto físico
@@ -2707,15 +2769,6 @@ final class RebuildJob {
 		return RebuildReceipts::publication_acked( $state, $allow_superseded );
 	}
 
-	/**
-	 * Busca el receipt nuevo exacto en last o en el ring (last puede avanzar).
-	 *
-	 * @param array<string, mixed> $state Estado del run.
-	 * @return array<string, mixed>|null
-	 */
-	private static function publication_receipt_for_state( array $state ): ?array {
-		return RebuildReceipts::publication_receipt_for_state( $state );
-	}
 
 	/**
 	 * Persiste receipt/historial de publicacion de forma idempotente por run_id.

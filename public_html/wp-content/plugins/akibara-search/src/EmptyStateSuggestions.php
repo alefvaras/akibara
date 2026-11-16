@@ -43,7 +43,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.75
+ * @api
  */
+// @phpstan-ignore complexity.classLike
 final class EmptyStateSuggestions {
 
 	/** Interruptor en Buscador → Ajustes. Sin fila guardada, encendido. */
@@ -186,12 +188,9 @@ final class EmptyStateSuggestions {
 	 *     temporada», «kaguya sama tomo xii». Más allá, el cliente escribe la
 	 *     cifra, que `tail_is_format()` acepta siempre, igual que el ordinal con
 	 *     cifra («3ra», «2do», «1era»);
-	 *   - cómo se compra: «kaguya sama a pedido», «demon slayer preventa», «re
-	 *     zero precio», «slam dunk usado», «tomos sueltos», «colección
-	 *     completa», «kaguya sama encargo», «attack on titan disponibles». Es el
-	 *     vocabulario de la propia tienda —la meta de las landings dice «tomos a
-	 *     pedido»—, y quien lo escribe busca la serie, no otra obra (revisiones
-	 *     RN-REV1-1 y RN-REV2-1).
+	 *   - cómo se compra: «re zero precio», «slam dunk usado», «tomos sueltos»,
+	 *     «colección completa», «attack on titan disponibles», «chainsaw man oferta».
+	 *     Quien lo escribe busca la serie, no otra obra (revisiones RN-REV1-1 y RN-REV2-1).
 	 * Las palabras ignoradas —«en», «de», «la», «a»— no hace falta repetirlas
 	 * aquí: `tail_is_format()` ya las salta.
 	 *
@@ -211,8 +210,7 @@ final class EmptyStateSuggestions {
 			'sexto', 'septimo', 'setimo', 'octavo', 'noveno', 'decimo', 'ultimo', 'final',
 			'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
 			'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii', 'xix', 'xx',
-			'temporada', 'season', 'parte', 'part', 'completo', 'todo',
-			'preventa', 'pedido', 'encargo', 'reserva', 'importado',
+			'temporada', 'season', 'parte', 'part', 'completo', 'todo', 'importado',
 			'oferta', 'promocion', 'precio', 'descuento', 'barato',
 			'usado', 'nuevo', 'suelto', 'stock', 'disponible',
 		);

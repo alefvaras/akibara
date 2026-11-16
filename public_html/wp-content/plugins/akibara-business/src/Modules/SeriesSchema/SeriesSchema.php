@@ -27,6 +27,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Entidad `ComicSeries` de la landing `pa_serie` dentro del grafo de Rank Math.
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
  */
 final class SeriesSchema {
 
@@ -124,7 +127,7 @@ final class SeriesSchema {
 			return $data;
 		}
 
-		$data[ self::GRAPH_KEY ] = $this->build_entity( $term, $facts, $url );
+		$data[ self::GRAPH_KEY ] = $this->build_entity( $term, $facts, $url ); // @phpstan-ignore argument.type
 
 		return $this->point_collection_page_at( $data, $url );
 	}

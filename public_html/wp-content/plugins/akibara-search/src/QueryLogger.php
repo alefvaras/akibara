@@ -26,6 +26,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress TooManyArguments
  */
 final class QueryLogger {
 

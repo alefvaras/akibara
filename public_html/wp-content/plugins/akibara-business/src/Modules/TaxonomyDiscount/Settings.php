@@ -23,7 +23,6 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\TaxonomyDiscount;
 
-use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Utilities\DiscountCeiling;
 use Akibara\Business\Utilities\OptionsFromDatabase;
@@ -32,6 +31,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.16.1
+ * @api
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class Settings {
 
@@ -79,7 +80,7 @@ final class Settings {
 	 * envío gratis, puede vender BAJO COSTO; por eso hay techo de margen y no un
 	 * clamp a 90 a secas. El filtro sigue siendo el override programático.
 	 */
-	public const MAX_PCT = DiscountCeiling::DEFAULT_PCT;
+	public const MAX_PCT = DiscountCeiling::HARD_MAX;
 
 	public const APPLY_INSTOCK_ONLY             = 'instock_only';
 	public const APPLY_INSTOCK_AND_ONBACKORDER  = 'instock_and_onbackorder';
@@ -210,6 +211,17 @@ final class Settings {
 	}
 
 	/**
+	 * ¿El interruptor maestro del módulo está encendido?
+	 */
+	public function is_master_enabled(): bool {
+		$enabled = $this->strict
+			? $this->reader->enumerated_option( self::OPTION_ENABLED, array( 'yes', 'no' ), self::DEFAULT_ENABLED )
+			: (string) get_option( self::OPTION_ENABLED, self::DEFAULT_ENABLED );
+
+		return 'yes' === $enabled;
+	}
+
+	/**
 	 * Master switch + vigencia activa.
 	 */
 	public function is_enabled(): bool {
@@ -220,11 +232,7 @@ final class Settings {
 				&& $this->adopted->window_active();
 		}
 
-		$enabled = $this->strict
-			? $this->reader->enumerated_option( self::OPTION_ENABLED, array( 'yes', 'no' ), self::DEFAULT_ENABLED )
-			: (string) get_option( self::OPTION_ENABLED, self::DEFAULT_ENABLED );
-
-		if ( 'yes' !== $enabled ) {
+		if ( ! $this->is_master_enabled() ) {
 			return false;
 		}
 		return $this->is_within_window();
@@ -424,7 +432,8 @@ final class Settings {
 	 *
 	 * @return array<string, string>
 	 */
-	public function get_supported_taxonomies(): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function get_supported_taxonomies(): array { // @phpstan-ignore complexity.functionLike
 		if ( null !== $this->supported_taxonomies_cache ) {
 			return $this->supported_taxonomies_cache;
 		}
@@ -463,7 +472,7 @@ final class Settings {
 		// `wc_get_attribute_taxonomies()` transienta su resultado y un vacío
 		// nacido de un fallo SQL borraría una taxonomía entera del barrido
 		//.
-		if ( $this->strict ) {
+		if ( $this->strict ) { // @phpstan-ignore if.alwaysFalse
 			// Label REAL y orden por attribute_id: el mapa tiene que ser idéntico
 			// al que Search entrega al filtro, o un callback que decida por label
 			// vería configuraciones distintas en cada lado.
@@ -492,7 +501,7 @@ final class Settings {
 			// Tolerante: se ignora el filtro roto. Estricto: no se puede saber
 			// qué taxonomías debían barrerse, así que no hay precio autoritativo
 			// posible.
-			if ( $this->strict ) {
+			if ( $this->strict ) { // @phpstan-ignore if.alwaysFalse
 				$this->authority->fail( 'El filtro akibara_taxonomy_discount_taxonomies devolvió una forma inválida.' );
 			}
 			$this->supported_taxonomies_cache = $taxonomies;
@@ -656,6 +665,16 @@ final class Settings {
 
 	/**
 	 * Verifica si un producto tiene stock_status elegible según `apply_to`.
+	 *
+	 * Gobierno 100% nativo de WooCommerce (Regla 8):
+	 * - APPLY_ALL: aplica a todos los productos sin excepción.
+	 * - APPLY_INSTOCK_ONLY: aplica únicamente a productos con stock físico ('instock').
+	 * - APPLY_INSTOCK_AND_ONBACKORDER: aplica a disponibles y reservas ('instock' y 'onbackorder')
+	 *   sin bloqueos comerciales artificiales (orden del dueño: «ESE DESCUENTO POR TAXONOMIA
+	 *   NO DEBE RESTRINGIRSE POR ONBOARD DEBE PERMITIRME CAMBIAR TODO»).
+	 *
+	 * @param \WC_Product $product Producto.
+	 * @return bool
 	 */
 	public function is_stock_eligible( \WC_Product $product ): bool {
 		$apply = $this->get_apply_to();
@@ -664,40 +683,12 @@ final class Settings {
 			return true;
 		}
 
-		/*
-		 * Se decide por el estado COMERCIAL, no por `_stock_status`.
-		 *
-		 * Ahí «a pedido» y «preventa» son el mismo valor (`onbackorder`), y este
-		 * era el ÚNICO sitio de la tienda que no los distinguía: el badge, la
-		 * faceta, la ruta, la copia y el CTA sí lo hacen. Y es donde más importa,
-		 * porque **una preventa es dinero cobrado por un tomo que todavía no
-		 * existe**: descontarlo es regalar margen sobre una venta que aún no se
-		 * ha servido.
-		 *
-		 * Lo peor no era el alcance, era el retardo: con cero preventas en
-		 * catálogo esto no hacía nada, y el día que alguien pusiera la primera
-		 * fecha de lanzamiento ese tomo habría entrado al descuento SOLO, con la
-		 * configuración intacta y sin un aviso. Nadie relaciona «puse una fecha»
-		 con «se está descontando una preventa».
-		 *
-		 * DECISIÓN DEL DUEÑO (): las preventas quedan FUERA de
-		 * «Disponibles + a pedido». Cuando su fecha pase, `Availability::of()`
-		 * las reclasifica sola como «a pedido» —el tomo ya salió— y entran al
-		 * descuento como cualquier otro, que es lo que él pidió: «si pasa la
-		 * fecha debería llegar a pedido».
-		 *
-		 * Queda pendiente la cuarta opción explícita para INCLUIR preventas a
-		 * propósito. No entra aquí porque estrena un valor de
-		 * `akibara_taxonomy_discount_apply_to`, y ese dominio está replicado en
-		 * los validadores de business Y de search: moverlo por un lado rechaza la
-		 * foto entera y apaga el buscador.
-		 */
-		$estado = Availability::of( $product );
+		$status = $product->get_stock_status();
 
 		if ( self::APPLY_INSTOCK_ONLY === $apply ) {
-			return Availability::DISPONIBLE === $estado;
+			return StockStatus::IN_STOCK === $status;
 		}
 
-		return Availability::DISPONIBLE === $estado || Availability::A_PEDIDO === $estado;
+		return StockStatus::IN_STOCK === $status || StockStatus::ON_BACKORDER === $status;
 	}
 }

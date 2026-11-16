@@ -205,7 +205,6 @@ export const MARCAS = {
 	'#order_review': [ C ],
 	'woocommerce-checkout-review-order': [ C ],
 	'woocommerce-checkout-review-order-table': [ C ],
-	'woocommerce-checkout-section': [ C ],
 	'#payment': [ C ],
 	payment_box: [ C ],
 	'place-order': [ C ],
@@ -626,7 +625,7 @@ function esbuild() {
 	return bin;
 }
 
-function minificar( bin, texto, tipo, destino = 'es5' ) {
+function minificar( bin, texto, tipo, destino = 'es2017' ) {
 	const args = 'css' === tipo
 		? [ '--loader=css', '--minify-whitespace', '--legal-comments=none', '--log-level=warning' ]
 		: [ '--loader=js', '--minify', `--target=${ destino }`, '--legal-comments=none', '--log-level=warning' ];

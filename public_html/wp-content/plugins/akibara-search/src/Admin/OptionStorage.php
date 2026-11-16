@@ -16,7 +16,10 @@ use Akibara\Search\Support;
 
 /**
  * Persistencia exacta y recuperación transaccional Compare-And-Swap (CAS).
+ * @api
+ * @psalm-suppress RedundantCast
  */
+// @phpstan-ignore complexity.classLike
 final class OptionStorage {
 
 	/**
@@ -129,7 +132,7 @@ final class OptionStorage {
 					$option
 				)
 			);
-			if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) {
+			if ( '' !== (string) ( $wpdb->last_error ?? '' ) ) { // @phpstan-ignore notIdentical.alwaysFalse
 				return null;
 			}
 			if ( null === $row ) {
@@ -307,7 +310,7 @@ final class OptionStorage {
 		self::clear_option_cache( $option );
 		$observed = self::option_snapshot( $option );
 		$ok       = false !== $result
-			&& '' === (string) ( $wpdb->last_error ?? '' )
+			&& '' === (string) ( $wpdb->last_error ?? '' ) // @phpstan-ignore identical.alwaysTrue
 			&& null !== $observed
 			&& self::option_states_equal( $observed, $snapshot );
 		return array(

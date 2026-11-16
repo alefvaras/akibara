@@ -34,7 +34,11 @@ require_once __DIR__ . '/EditorialDiscount/SourceSnapshotReader.php';
  * REPAIR y el receipt posterior al RENAME son la verdad durable.
  *
  * @since 0.1.14
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
  */
+// @phpstan-ignore complexity.classLike
 final class EditorialDiscountPublication {
 
 	public const OPTION_STATE   = 'akb_search_editorial_discount_state';
@@ -76,16 +80,6 @@ final class EditorialDiscountPublication {
 	 * La purga en el borde de CDN se coordina mediante litespeed_purge_all al publicar.
 	 */
 	public const PAGE_CACHE_BOUNDARY_HORIZON = 43200;
-	private const RUN_RECEIPT_PREFIX = 'akb_search_editorial_run_receipt_';
-
-	/**
-	 * Cantidad máxima de comprobantes inmutables de ejecución conservados en options.
-	 * La poda mantiene las revisiones más recientes para trazabilidad sin saturar la tabla wp_options.
-	 */
-	private const RUN_RECEIPT_KEEP = 20;
-
-	/** Techo de filas que la poda examina en una pasada. */
-	private const RUN_RECEIPT_SCAN_LIMIT = 500;
 
 	public const OPTION_ENABLED     = 'akibara_taxonomy_discount_enabled';
 	// Espejo del tope configurable de business (Utilities\DiscountCeiling::OPTION).
@@ -143,7 +137,7 @@ final class EditorialDiscountPublication {
 
 	/** @var array<string, bool> Veredicto memoizado por consumidor. */
 	private static array $serving_final_matches_by = array();
-	private static bool $serving_final_matches = false;
+	private static bool $serving_final_matches = false; // @phpstan-ignore property.onlyWritten
 
 	/**
 	 * Ventana editorial de la MISMA foto que produjo el token de serving.
@@ -157,7 +151,7 @@ final class EditorialDiscountPublication {
 	private static ?array $serving_capture_window = null;
 
 	/** @var object|null Objeto exacto que ya ocupa el callback efectivo. */
-	private static $adopted_price_provider = null;
+	private static $adopted_price_provider;
 
 	private static ?string $adopted_price_token = null;
 
@@ -531,7 +525,7 @@ final class EditorialDiscountPublication {
 	}
 
 	/** @return array<string, mixed> */
-	public static function status(): array {
+	public static function status(): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$source  = self::stable_source_snapshot();
 		$state   = self::read_state();
 		$receipt = self::read_option_uncached( self::OPTION_RECEIPT );
@@ -590,13 +584,10 @@ final class EditorialDiscountPublication {
 	 *
 	 * @return int|null
 	 */
-	private static function authorized_page_cache_ttl(): ?int {
+	public static function authorized_page_cache_ttl(): ?int {
 		return PageCacheGate::authorized_page_cache_ttl( self::$serving_capture_window );
 	}
 
-	private static function mark_page_no_store( string $reason ): void {
-		PageCacheGate::mark_page_no_store( $reason );
-	}
 
 	public const WRITE_UNCHANGED = OptionsWriteGuard::WRITE_UNCHANGED;
 	public const WRITE_FENCED = OptionsWriteGuard::WRITE_FENCED;
@@ -609,7 +600,11 @@ final class EditorialDiscountPublication {
 	/** @var array<string, true> */
 	public static array $precise_panel_rejections = array();
 
-	/** @param mixed $value @param mixed $old_value @return mixed */
+	/**
+	 * @param mixed $value @param mixed $old_value @return mixed
+	 * @param mixed $old_value
+	 * @return mixed
+	 */
 	public function filter_pre_update_option( $value, string $option, $old_value ) {
 		return $this->write_guard->filter_pre_update_option( $value, $option, $old_value );
 	}
@@ -619,7 +614,7 @@ final class EditorialDiscountPublication {
 	 * @param array{present: bool, raw: string}|null $row
 	 * @return string
 	 */
-	private static function write_verdict( string $option, ?array $row ): string {
+	public static function write_verdict( string $option, ?array $row ): string {
 		return OptionsWriteGuard::write_verdict( $option, $row );
 	}
 
@@ -627,98 +622,32 @@ final class EditorialDiscountPublication {
 	 * @param mixed $value
 	 * @return array{present: bool, raw: string}|null
 	 */
-	private static function value_row( $value ): ?array {
+	public static function value_row( $value ): ?array {
 		return OptionsWriteGuard::value_row( $value );
 	}
 
-	/** @param mixed $value */
-	private static function stored_option_bytes( $value ): ?string {
-		return OptionsWriteGuard::stored_option_bytes( $value );
-	}
 
-	/**
-	 * @param array<string, array{present: bool, raw: string}> $options
-	 * @param array<string, mixed>                             $database
-	 */
-	private static function snapshot_readable( array $options, array $database ): bool {
-		return OptionsWriteGuard::snapshot_readable( $options, $database );
-	}
 
-	/** @return array<int, string> */
-	private static function option_group( string $option ): array {
-		return OptionsWriteGuard::option_group( $option );
-	}
 
-	/** @return array<string, array{present: bool, raw: string}>|null */
-	private static function neutral_source_options(): ?array {
-		return OptionsWriteGuard::neutral_source_options();
-	}
 
-	/**
-	 * @param string                                            $option
-	 * @param array<string, array{present: bool, raw: string}> $from
-	 * @param array<string, array{present: bool, raw: string}> $base
-	 * @param array<string, mixed>                             $database
-	 */
-	private static function group_readable( string $option, array $from, array $base, array $database ): bool {
-		return OptionsWriteGuard::group_readable( $option, $from, $base, $database );
-	}
 
-	/**
-	 * @param string                                            $option
-	 * @param array<string, array{present: bool, raw: string}> $before
-	 * @param array<string, array{present: bool, raw: string}> $after
-	 * @param array<string, mixed>                             $database
-	 */
-	private static function repairs_own_group( string $option, array $before, array $after, array $database ): bool {
-		return OptionsWriteGuard::repairs_own_group( $option, $before, $after, $database );
-	}
 
 	/** @return array<int, array{label: string, where: string}> */
 	private static function broken_options(): array {
 		return OptionsWriteGuard::broken_options();
 	}
 
-	/** @return array<int, string> */
-	private static function broken_option_labels(): array {
-		return OptionsWriteGuard::broken_option_labels();
-	}
 
-	/** @return array<string, string> */
-	private static function repair_locations(): array {
-		return OptionsWriteGuard::repair_locations();
-	}
 
-	/** @param mixed $value */
-	private static function reject_write( string $write, $value, string $cause ): void {
-		OptionsWriteGuard::reject_write( $write, $value, $cause );
-	}
 
-	/** @param mixed $value */
-	private static function describe_value( $value ): string {
-		return OptionsWriteGuard::describe_value( $value );
-	}
 
-	/** @return array<string, string> */
-	private static function write_labels(): array {
-		return OptionsWriteGuard::write_labels();
-	}
 
-	/** @return array<string, string> */
-	private static function rejection_texts(): array {
-		return OptionsWriteGuard::rejection_texts();
-	}
+
 
 	/**
-	 * @param string             $write
-	 * @param string             $cause
-	 * @param array<int, string> $broken
+	 * @param mixed $options @return mixed
+	 * @return mixed
 	 */
-	private static function record_rejected_write( string $write, string $cause, array $broken = array() ): void {
-		OptionsWriteGuard::record_rejected_write( $write, $cause, $broken );
-	}
-
-	/** @param mixed $options @return mixed */
 	public static function filter_business_options_not_saved( $options ) {
 		return OptionsWriteGuard::filter_business_options_not_saved( $options );
 	}
@@ -727,7 +656,10 @@ final class EditorialDiscountPublication {
 		OptionsWriteGuard::render_rejected_write_notice();
 	}
 
-	/** @param mixed $query @return mixed */
+	/**
+	 * @param mixed $query @return mixed
+	 * @return mixed
+	 */
 	public function filter_blocked_option_write( $query ) {
 		return $this->write_guard->filter_blocked_option_write( $query );
 	}
@@ -741,7 +673,10 @@ final class EditorialDiscountPublication {
 		$this->write_guard->before_delete_option( $option );
 	}
 
-	/** @param mixed $old @param mixed $value */
+	/**
+	 * @param mixed $old @param mixed $value
+	 * @param mixed $value
+	 */
 	public function after_update_option( string $option, $old, $value ): void {
 		$this->write_guard->after_update_option( $option, $old, $value );
 	}
@@ -755,40 +690,70 @@ final class EditorialDiscountPublication {
 		$this->write_guard->after_delete_option( $option );
 	}
 
-	/** @param mixed $check @param mixed $value @param mixed $previous @return mixed */
+	/**
+	 * @param mixed $check @param mixed $value @param mixed $previous @return mixed
+	 * @param mixed $previous
+	 * @param mixed $value
+	 * @return mixed
+	 */
 	public function filter_update_term_metadata( $check, int $term_id, string $key, $value, $previous ) {
 		return $this->write_guard->filter_update_term_metadata( $check, $term_id, $key, $value, $previous );
 	}
 
-	/** @param mixed $check @param mixed $value @return mixed */
+	/**
+	 * @param mixed $check @param mixed $value @return mixed
+	 * @param mixed $value
+	 * @return mixed
+	 */
 	public function filter_add_term_metadata( $check, int $term_id, string $key, $value, bool $unique ) {
 		return $this->write_guard->filter_add_term_metadata( $check, $term_id, $key, $value, $unique );
 	}
 
-	/** @param mixed $check @param mixed $value @return mixed */
+	/**
+	 * @param mixed $check @param mixed $value @return mixed
+	 * @param mixed $value
+	 * @return mixed
+	 */
 	public function filter_delete_term_metadata( $check, int $term_id, string $key, $value, bool $delete_all ) {
 		return $this->write_guard->filter_delete_term_metadata( $check, $term_id, $key, $value, $delete_all );
 	}
 
-	/** @param mixed $check @param mixed $value @param mixed $key @return mixed */
+	/**
+	 * @param mixed $check @param mixed $value @param mixed $key @return mixed
+	 * @param mixed $key
+	 * @param mixed $value
+	 * @return mixed
+	 */
 	public function filter_update_term_metadata_by_mid( $check, int $meta_id, $value, $key ) {
 		return $this->write_guard->filter_update_term_metadata_by_mid( $check, $meta_id, $value, $key );
 	}
 
-	/** @param mixed $check @return mixed */
+	/**
+	 * @param mixed $check @return mixed
+	 * @return mixed
+	 */
 	public function filter_delete_term_metadata_by_mid( $check, int $meta_id ) {
 		return $this->write_guard->filter_delete_term_metadata_by_mid( $check, $meta_id );
 	}
 
+	/**
+	 * @param mixed $value
+	 */
 	public function after_updated_term_meta( int $meta_id, int $term_id, string $key, $value ): void {
 		$this->write_guard->after_updated_term_meta( $meta_id, $term_id, $key, $value );
 	}
 
+	/**
+	 * @param mixed $value
+	 */
 	public function after_added_term_meta( int $meta_id, int $term_id, string $key, $value ): void {
 		$this->write_guard->after_added_term_meta( $meta_id, $term_id, $key, $value );
 	}
 
-	/** @param mixed $meta_ids @param mixed $value */
+	/**
+	 * @param mixed $meta_ids @param mixed $value
+	 * @param mixed $value
+	 */
 	public function after_deleted_term_meta( $meta_ids, int $term_id, string $key, $value ): void {
 		$this->write_guard->after_deleted_term_meta( $meta_ids, $term_id, $key, $value );
 	}
@@ -796,7 +761,7 @@ final class EditorialDiscountPublication {
 	/**
 	 * Repara SQL directo, crash PRE/POST y missed boundary sin adoptar LIVE.
 	 */
-	public function reconcile_fingerprint(): bool {
+	public function reconcile_fingerprint(): bool { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		if ( $this->reconciling ) {
 			return false;
 		}
@@ -896,7 +861,12 @@ final class EditorialDiscountPublication {
 		}
 	}
 
-	/** @return void */
+	/**
+	 * @return void
+	 * @param mixed $boundary_at
+	 * @param mixed $fingerprint
+	 * @param mixed $seq
+	 */
 	public function handle_boundary( $seq, $fingerprint, $boundary_at ): void {
 		$state = self::read_state();
 		if ( ! self::valid_state( $state )
@@ -965,13 +935,12 @@ final class EditorialDiscountPublication {
 		);
 	}
 
-	/** Relectura final inmediatamente antes del efecto durable o respuesta. */
+	/** Relectura final inmediatamente antes del efecto durable o respuesta.  * @phpstan-impure
+	 */
 	public static function price_authority_matches( array $capture ): bool {
 		if ( defined( 'AKIBARA_SEARCH_TESTING' ) && AKIBARA_SEARCH_TESTING
 			&& is_array( self::$test_price_match_sequence ) ) {
-			return array() !== self::$test_price_match_sequence
-				? (bool) array_shift( self::$test_price_match_sequence )
-				: false;
+			return array() !== self::$test_price_match_sequence && array_shift( self::$test_price_match_sequence );
 		}
 		if ( defined( 'AKIBARA_SEARCH_TESTING' ) && AKIBARA_SEARCH_TESTING
 			&& ( null !== self::$test_serving_override || ( ! self::$registered && null === self::$runtime ) ) ) {
@@ -1023,10 +992,6 @@ final class EditorialDiscountPublication {
 		return SwapReceiptLedger::record_swap_receipt( $run_id, $seq, $fingerprint, $proof );
 	}
 
-	/** @param array<string, mixed> $proof */
-	private static function record_superseded_swap_receipt( string $run_id, int $seq, string $fingerprint, array $proof ): bool {
-		return SwapReceiptLedger::record_superseded_swap_receipt( $run_id, $seq, $fingerprint, $proof );
-	}
 
 	public static function dispatch_receipt_purge(): bool {
 		try {
@@ -1040,26 +1005,8 @@ final class EditorialDiscountPublication {
 		}
 	}
 
-	/** @param array<string, mixed> $proof */
-	private static function swap_proof_is_complete( array $proof ): bool {
-		return SwapReceiptLedger::swap_proof_is_complete( $proof );
-	}
 
-	/**
-	 * @param array<string, mixed> $proof
-	 * @return array<string, mixed>
-	 */
-	private static function swap_receipt_entry( string $run_id, int $seq, string $fingerprint, array $proof ): array {
-		return SwapReceiptLedger::swap_receipt_entry( $run_id, $seq, $fingerprint, $proof );
-	}
 
-	/**
-	 * @param array<string, mixed> $capture
-	 * @param array<string, mixed> $proof
-	 */
-	private static function swap_authority_matches( array $capture, int $seq, string $fingerprint, array $proof, string $generation, string $semantic_fingerprint ): bool {
-		return SwapReceiptLedger::swap_authority_matches( $capture, $seq, $fingerprint, $proof, $generation, $semantic_fingerprint );
-	}
 
 	public static function swap_receipt_exists( string $run_id, int $seq, string $fingerprint, bool $allow_superseded ): bool {
 		return SwapReceiptLedger::swap_receipt_exists( $run_id, $seq, $fingerprint, $allow_superseded );
@@ -1074,7 +1021,7 @@ final class EditorialDiscountPublication {
 	}
 
 	private function receipt_auditor(): PhysicalReceiptAuditor {
-		return new PhysicalReceiptAuditor( $this->work, $this->indexer, $this->fence );
+		return new PhysicalReceiptAuditor( $this->work, $this->indexer );
 	}
 
 	/**
@@ -1085,31 +1032,13 @@ final class EditorialDiscountPublication {
 		return $this->receipt_auditor()->reprove_physical_receipt( $source, $state );
 	}
 
-	/**
-	 * @param array<string, mixed> $state
-	 * @param array<string, mixed> $proof
-	 */
-	private static function editorial_materialization_is_unchanged( array $state, array $proof ): bool {
-		return PhysicalReceiptAuditor::editorial_materialization_is_unchanged( $state, $proof );
-	}
 
-	private function live_work_defers_rebuild( string $reason ): bool {
-		return $this->receipt_auditor()->live_work_defers_rebuild( $reason );
-	}
-
-	private function clear_defer_clock(): void {
-		$this->receipt_auditor()->clear_defer_clock();
-	}
 
 	/** @param array<string, mixed> $claim */
-	private static function lease_expired( array $claim ): bool {
+	public static function lease_expired( array $claim ): bool {
 		return PhysicalReceiptAuditor::lease_expired( $claim );
 	}
 
-	/** @param array<string, mixed> $state */
-	private static function withdraw_option_rebuild_request( array $state ): void {
-		PhysicalReceiptAuditor::withdraw_option_rebuild_request( $state );
-	}
 
 	/** @return array<string, mixed>|null */
 	public function stage_global( string $reason ): ?array {
@@ -1236,7 +1165,7 @@ final class EditorialDiscountPublication {
 	 * @param string               $paso  Paso que falló, en cristiano.
 	 * @return null Siempre: no hay marco.
 	 */
-	private function abandon_staged_revision( array $state, string $paso ): ?array {
+	private function abandon_staged_revision( array $state, string $paso ): ?array { // @phpstan-ignore return.unusedType
 		AuditLog::record(
 			'deuda_editorial_a_medias',
 			sprintf(
@@ -1583,7 +1512,7 @@ final class EditorialDiscountPublication {
 			return null;
 		}
 
-		$payload = self::hash_raw_bundle( $names, $pre ) . (string) $source['fingerprint'];
+		$payload = self::hash_raw_bundle( $names, $pre ) . $source['fingerprint'];
 		return array(
 			'token'               => hash( 'sha256', $payload ),
 			'runtime_fingerprint' => $semantic['runtime'],
@@ -1659,7 +1588,7 @@ final class EditorialDiscountPublication {
 			self::mark_read_unavailable( $throwable->getMessage() ?: 'Serving option bundle read threw.' );
 			return null;
 		}
-		if ( ! is_array( $rows ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
+		if ( ! is_array( $rows ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
 			self::mark_read_unavailable( 'Serving option bundle read failed.' );
 			return null;
 		}
@@ -1784,13 +1713,13 @@ final class EditorialDiscountPublication {
 		global $wpdb;
 		try {
 			$wpdb->last_error = '';
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- nombre de tabla propio resuelto por `Install::docs_table()`; no entra nada de fuera.
-			$raw = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Install::docs_table() );
+			$docs_table       = Install::docs_table();
+			$raw              = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $docs_table ) );
 		} catch ( Throwable $throwable ) {
 			self::mark_read_unavailable( $throwable->getMessage() ?: 'Physical document count threw.' );
 			return false;
 		}
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) )
+		if ( '' !== trim( $wpdb->last_error ?? '' )
 			|| ( ! is_int( $raw ) && ( ! is_string( $raw ) || 1 !== preg_match( '/^\d+$/D', $raw ) ) ) ) {
 			self::mark_read_unavailable( 'Physical document count is not authoritative.' );
 			return false;
@@ -1831,6 +1760,9 @@ final class EditorialDiscountPublication {
 		return SourceSnapshotReader::effective_taxonomies();
 	}
 
+	/**
+	 * @param mixed $attributes
+	 */
 	public static function effective_taxonomies_from_attribute_rows( $attributes ): ?array {
 		return SourceSnapshotReader::effective_taxonomies_from_attribute_rows( $attributes );
 	}
@@ -1839,6 +1771,9 @@ final class EditorialDiscountPublication {
 		return SourceSnapshotReader::provider_descriptor();
 	}
 
+	/**
+	 * @return mixed
+	 */
 	public static function resolve_price_provider() {
 		return SourceSnapshotReader::resolve_price_provider();
 	}
@@ -1878,7 +1813,7 @@ final class EditorialDiscountPublication {
 			return null;
 		}
 		if ( ! is_string( $token ) || 1 !== preg_match( '/^[a-f0-9]{64}$/D', $token )
-			|| ! is_array( $authoritative ) || $snapshot !== $authoritative || true !== $fresh ) {
+			|| ! is_array( $authoritative ) || $snapshot !== $authoritative || !$fresh ) {
 			self::mark_read_unavailable( 'Price snapshot adoption could not be verified.' );
 			return null;
 		}
@@ -1967,7 +1902,7 @@ final class EditorialDiscountPublication {
 			self::mark_read_unavailable( $throwable->getMessage() ?: 'Editorial state read threw.' );
 			return null;
 		}
-		if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ( null !== $raw && ! is_string( $raw ) ) ) {
+		if ( '' !== trim( $wpdb->last_error ?? '' ) || ( null !== $raw && ! is_string( $raw ) ) ) {
 			self::$state_read_failed = true;
 			self::mark_read_unavailable( 'Editorial state read failed.' );
 			return null;
@@ -2024,7 +1959,7 @@ final class EditorialDiscountPublication {
 		wp_cache_delete( 'alloptions', 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
 		self::invalidate_runtime_memo();
-		return '' === trim( (string) ( $wpdb->last_error ?? '' ) )
+		return '' === trim( $wpdb->last_error ?? '' )
 			&& 1 === (int) $result
 			&& $encoded === self::read_state_raw();
 	}
@@ -2112,7 +2047,10 @@ final class EditorialDiscountPublication {
 		return $actual === $keys;
 	}
 
-	/** @param mixed $state @param mixed $receipt */
+	/**
+	 * @param mixed $state @param mixed $receipt
+	 * @param mixed $receipt
+	 */
 	public static function is_ready_from( ?array $source, $state, $receipt ): bool {
 		if ( ! self::materialization_matches( $source, $state, $receipt )
 			|| ! RebuildJob::publication_barrier_open() ) {
@@ -2125,7 +2063,10 @@ final class EditorialDiscountPublication {
 		);
 	}
 
-	/** @param mixed $state @param mixed $receipt */
+	/**
+	 * @param mixed $state @param mixed $receipt
+	 * @param mixed $receipt
+	 */
 	public static function materialization_matches( ?array $source, $state, $receipt ): bool {
 		return self::publication_ready_except_editorial_revision( $source, $state, $receipt )
 			&& (int) $state['wanted_seq'] === (int) $receipt['wanted_seq']
@@ -2180,23 +2121,12 @@ final class EditorialDiscountPublication {
 			&& (int) ( $semantic['published_at'] ?? 0 ) > 0;
 	}
 
-	/** @param array<string, mixed> $entry */
-	private static function persist_run_receipt( array $entry ): bool {
-		return SwapReceiptLedger::persist_run_receipt( $entry );
-	}
 
-	private static function prune_run_receipts( string $keep_key ): void {
+	public static function prune_run_receipts( string $keep_key ): void {
 		SwapReceiptLedger::prune_run_receipts( $keep_key );
 	}
 
-	/** @return array<string, mixed>|null */
-	private static function run_receipt( string $run_id, int $seq, string $fingerprint ): ?array {
-		return SwapReceiptLedger::run_receipt( $run_id, $seq, $fingerprint );
-	}
 
-	private static function run_receipt_option( string $run_id, int $seq, string $fingerprint ): string {
-		return SwapReceiptLedger::run_receipt_option( $run_id, $seq, $fingerprint );
-	}
 
 	/**
 	 * Lee wp_options sin object cache y falla cerrado ante errores SQL o bytes
@@ -2268,20 +2198,8 @@ final class EditorialDiscountPublication {
 		self::$source_memo               = null;
 	}
 
-	/** @param mixed $value */
-	private static function canonical_positive_int( $value ): bool {
-		return SourceSnapshotReader::canonical_positive_int( $value );
-	}
 
-	/** @param mixed $value */
-	private static function canonical_nonnegative_int( $value ): bool {
-		return SourceSnapshotReader::canonical_nonnegative_int( $value );
-	}
 
-	/** @param mixed $value Entero de hook antes de cualquier cast. */
-	private static function canonical_filter_integer( $value ): ?int {
-		return SourceSnapshotReader::canonical_filter_integer( $value );
-	}
 
 	/** @return array<string, mixed>|null */
 	public function top_option_frame( string $option ): ?array {
@@ -2292,7 +2210,10 @@ final class EditorialDiscountPublication {
 		return is_array( $top ) ? $top : null;
 	}
 
-	/** @param mixed $one @param mixed $two */
+	/**
+	 * @param mixed $one @param mixed $two
+	 * @param mixed $two
+	 */
 	public static function same_value( $one, $two ): bool {
 		return $one === $two || maybe_serialize( $one ) === maybe_serialize( $two );
 	}

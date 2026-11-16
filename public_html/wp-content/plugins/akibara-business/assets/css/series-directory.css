@@ -16,6 +16,7 @@ h1.entry-title {
 .akb-series-directory {
     font-family: var(--font-body, Inter, system-ui, sans-serif);
     color: var(--aki-white, #fff);
+
     /*
      * El directorio define sus propios márgenes laterales sin depender de que el tema reconozca el
      * slug de la página como contenido especial.
@@ -60,6 +61,7 @@ h1.entry-title {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--aki-gray-200, #e0e0e0);
+
     /* Bebas Neue no tiene bold real: sin esto el navegador lo sintetiza y el
      * trazo engorda de forma desigual. Mismo criterio que el patrón «eyebrow»
      * del theme. */
@@ -69,6 +71,7 @@ h1.entry-title {
 .akb-series-directory__input {
     width: 100%;
     max-width: 420px;
+
     /* 44px de alto mínimo: objetivo táctil del sistema. */
     min-height: 44px;
     padding: 10px 14px;
@@ -90,6 +93,150 @@ h1.entry-title {
     outline-offset: var(--aki-focus-offset, 2px);
 }
 
+/* ── Barra de filtros rápidos y toggle ─────────────────────────────────────── */
+
+.akb-series-directory__quick-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-block-start: 10px;
+    margin-block-end: 8px;
+}
+
+.akb-series-directory button.akb-series-directory__toggle-filters,
+.akb-series-directory__toggle-filters {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--touch-target-min, 44px);
+    padding: 8px 14px;
+    background: var(--aki-surface-3, #242428);
+    border: 1px solid var(--aki-border, #3a3a3e);
+    border-radius: 0;
+    color: var(--aki-white, #fff);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    touch-action: manipulation;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.akb-series-directory button.akb-series-directory__toggle-filters:hover,
+.akb-series-directory button.akb-series-directory__toggle-filters:focus-visible {
+    background: var(--aki-surface-3, #2e2e34);
+    border-color: var(--aki-gray-300, #b0b0b0);
+}
+
+.akb-series-directory button.akb-series-directory__toggle-filters:focus-visible,
+.akb-series-directory__toggle-filters:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-series-directory button.akb-series-directory__toggle-filters.has-active-filters {
+    background: rgba(230, 0, 18, 0.15);
+    border-color: var(--aki-red, #e60012);
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-directory__toggle-filters .akb-toggle-icon {
+    color: var(--aki-yellow, #fc0);
+}
+
+.akb-series-directory__toggle-filters .akb-toggle-arrow {
+    font-size: 0.75rem;
+    color: var(--aki-gray-400, #8a8a8a);
+    transition: transform 0.2s ease;
+}
+
+.akb-series-directory button.akb-series-directory__toggle-filters[aria-expanded="true"] .akb-toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.akb-series-directory .akb-filter-badge {
+    background: var(--aki-red, #e60012);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    line-height: 1.2;
+}
+
+.akb-series-directory__quick-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 8px;
+}
+
+.akb-series-directory button.akb-series-directory__quick-chip,
+.akb-series-directory__quick-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min, 44px);
+    padding: 6px 14px;
+    background: var(--aki-surface-2, #1a1a1a);
+    border: 1px solid var(--aki-border-light, #333);
+    border-radius: 0;
+    color: var(--aki-gray-200, #e0e0e0);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    touch-action: manipulation;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.akb-series-directory button.akb-series-directory__quick-chip:hover,
+.akb-series-directory__quick-chip:hover {
+    background-color: var(--aki-surface-3, #242428);
+    border-color: var(--aki-gray-400, #8a8a8a);
+    color: var(--aki-white, #fff);
+}
+
+.akb-series-directory button.akb-series-directory__quick-chip:focus-visible,
+.akb-series-directory__quick-chip:focus-visible {
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
+    outline-offset: var(--aki-focus-offset, 2px);
+}
+
+.akb-series-directory button.akb-series-directory__quick-chip.is-active {
+    background-color: var(--aki-red, #e60012);
+    border-color: var(--aki-red, #e60012);
+    color: var(--aki-white, #fff);
+    font-weight: 700;
+}
+
+/* ── Panel colapsable de facetas y alfabeto ────────────────────────────────── */
+
+.akb-series-directory__facets-panel {
+    background: var(--aki-surface-1, #141416);
+    border: 1px solid var(--aki-border, #2a2a2e);
+    border-top: 2px solid var(--aki-red, #e60012);
+    border-radius: 0;
+    padding: 16px;
+    margin-block-start: 8px;
+    margin-block-end: 16px;
+}
+
+.akb-series-directory__facets-panel[hidden] {
+    display: none;
+}
+
+.akb-series-directory__panel-alphabet {
+    margin-block-start: 14px;
+    padding-block-start: 12px;
+    border-block-start: 1px dashed var(--aki-border, #2a2a2e);
+}
+
 /* ── Filtros rápidos por faceta (País, Editorial, Estado) ─────────────────── */
 
 .akb-series-directory__facets {
@@ -107,9 +254,10 @@ h1.entry-title {
 }
 
 .akb-series-directory__facet-label {
-    padding-block-start: 7px;
+    padding-block-start: 10px;
     font-family: var(--font-heading, "Bebas Neue", Impact, sans-serif);
     font-size: 0.88rem;
+    font-weight: 400;
     line-height: 1.2;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -120,18 +268,18 @@ h1.entry-title {
 .akb-series-directory__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
 }
 
 .akb-series-directory button.akb-series-directory__chip,
 .akb-series-directory__chip {
     display: inline-flex;
     align-items: center;
-    min-height: 34px;
-    padding: 4px 12px;
+    min-height: var(--touch-target-min, 44px);
+    padding: 6px 14px;
     background-color: var(--aki-surface-2, #1a1a1a);
-    border: 1px solid var(--aki-border-light, #333333);
-    border-radius: 3px;
+    border: 1px solid var(--aki-border-light, #333);
+    border-radius: 0;
     color: var(--aki-gray-200, #e0e0e0);
     font: inherit;
     font-size: 0.82rem;
@@ -190,6 +338,7 @@ h1.entry-title {
 
 .akb-series-directory__letters {
     display: grid;
+
     /* En el viewport mínimo caben seis objetivos completos. Desde 360px son
      * siete: el alfabeto queda íntegro y visible en 4–5 filas, nunca detrás de
      * un gesto horizontal sin pista. */
@@ -292,17 +441,19 @@ a.akb-series-directory__letter:focus-visible {
 
 .akb-series-directory__list {
     display: grid;
+
     /* Columnas por ANCHO disponible y no por número fijo: con 104 entradas
      * repartidas de forma muy desigual (la S tiene 11, la Q ninguna) un número
      * fijo deja columnas vacías en los grupos cortos. */
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 2px 16px;
+    gap: 6px 16px;
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
 .akb-series-directory__item {
+    min-width: 0;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -314,57 +465,67 @@ a.akb-series-directory__letter:focus-visible {
 
 .akb-series-directory__link {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    /* 44px de alto: el renglón ES el objetivo táctil. */
-    min-height: 44px;
-    padding: 8px 6px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 6px;
+
+    /* Igualar altura en cada fila del grid y respetar 44px táctiles */
+    height: 100%;
+    min-height: var(--touch-target-min, 44px);
+    padding: 10px 8px;
     color: var(--aki-gray-200, #e0e0e0);
     text-decoration: none;
     border-block-end: 1px solid var(--aki-border, #2a2a2e);
     touch-action: manipulation;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .akb-series-directory__link:hover,
 .akb-series-directory__link:focus-visible {
     color: var(--aki-white, #fff);
     background: var(--aki-surface-2, #1a1a1a);
+    border-block-end-color: var(--aki-red, #e60012);
 }
 
 .akb-series-directory__link:focus-visible {
-    outline: var(--aki-focus-outline);
+    outline: var(--aki-focus-outline, 3px solid #ffd700);
     outline-offset: var(--aki-focus-offset, 2px);
 }
 
 .akb-series-directory__name {
-    /* `min-width: 0` para que el título largo pueda encoger en lugar de empujar
-     * el conteo fuera de la celda. */
+
+    /* Flex con wrap limpio y min-width: 0 para alinear badges a ras de margen
+     * izquierdo cuando bajan de línea, sin sangría ni desbordamientos. */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
     min-width: 0;
-    flex: 1 1 auto;
+    line-height: 1.3;
+    text-wrap: balance;
 }
 
 .akb-series-directory__link:hover .akb-series-directory__name {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    color: var(--aki-white, #fff);
 }
 
 /* Estado de la edición (UC-14): marca pequeña junto al nombre, que baja con él
- * si no cabe en la columna. Neutra —no es un estado de stock ni una alerta—; la
- * edición «Completa» se lee un paso más clara porque es la que se puede tener
- * entera. `vertical-align` la centra con la versal del nombre. */
+ * si no cabe en la columna alineada a x = 0. Neutra —no es un estado de stock ni
+ * una alerta—; la edición «Completa» se lee un paso más clara. */
 .akb-series-directory__estado {
     display: inline-block;
-    margin-inline-start: 6px;
+    margin-inline-start: 0;
     padding: 1px 6px;
-    border: 1px solid var(--aki-border-light, #333333);
-    border-radius: 3px;
+    border: 1px solid var(--aki-border-light, #333);
+    border-radius: 0;
     color: var(--aki-gray-300, #b0b0b0);
     font-size: var(--text-xs, 0.75rem);
     font-weight: 600;
     line-height: 1.4;
     letter-spacing: 0.04em;
+    text-decoration: none;
     text-transform: uppercase;
-    vertical-align: 0.1em;
     white-space: nowrap;
 }
 
@@ -380,35 +541,34 @@ a.akb-series-directory__letter:focus-visible {
 
 .akb-series-directory__origin {
     display: inline-block;
-    margin-inline-start: 6px;
+    margin-inline-start: 0;
     padding: 1px 6px;
     background: var(--aki-surface-2, #1a1a1a);
     border: 1px solid var(--aki-border, #2a2a2e);
-    border-radius: 3px;
+    border-radius: 0;
     color: var(--aki-gray-300, #b0b0b0);
-    font-size: 0.72rem;
+    font-size: var(--text-xs, 0.75rem);
     font-weight: 500;
     line-height: 1.4;
-    vertical-align: 0.1em;
+    text-decoration: none;
     white-space: nowrap;
 }
 
 .akb-series-directory__related-hint {
     display: block;
-    margin-block-start: 3px;
-    color: var(--aki-gray-400, #8a8a8a);
-    font-size: 0.76rem;
+    flex: 1 1 100%;
+    margin-block-start: 2px;
+    color: var(--aki-gray-300, #b0b0b0);
+    font-size: 0.78rem;
     font-style: italic;
     line-height: 1.3;
     text-decoration: none;
 }
 
-/* El conteo es metadato: se desenfatiza por matiz, nunca por luminancia (el
- * blanco puro sobre #121212 llega a 18,7:1 y promovería el dato secundario por
- * encima del título). `tabular-nums` alinea los números entre renglones. */
+/* El conteo es metadato anclado al pie de la tarjeta con tabular-nums. */
 .akb-series-directory__tomos {
-    flex: 0 0 auto;
-    color: var(--aki-gray-400, #8a8a8a);
+    align-self: flex-start;
+    color: var(--aki-gray-300, #b0b0b0);
     font-size: 0.82rem;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -417,16 +577,19 @@ a.akb-series-directory__letter:focus-visible {
 /* ── Responsivo ───────────────────────────────────────────────────────────── */
 
 @media (min-width: 360px) {
+
     .akb-series-directory__letters {
         grid-template-columns: repeat(7, minmax(44px, 1fr));
     }
 }
 
 @media (min-width: 720px) {
+
     .akb-series-directory__index {
         position: sticky;
         top: var(--header-sticky-offset, 68px);
         z-index: 15;
+
         /* Fondo opaco obligatorio: al quedar pegado arriba, los renglones pasan
          * por debajo y sin fondo se leen los dos textos superpuestos. */
         background: var(--aki-black, #121212);
@@ -434,6 +597,7 @@ a.akb-series-directory__letter:focus-visible {
     }
 
     .akb-series-directory__letters {
+
         /* Dos filas previsibles en tablet y escritorio. Cada letra conserva
          * 44px aunque el contenedor sea angosto. */
         grid-template-columns: repeat(14, minmax(44px, 1fr));
@@ -445,6 +609,7 @@ a.akb-series-directory__letter:focus-visible {
 }
 
 @media (max-width: 600px) {
+
     .akb-series-directory__facet {
         grid-template-columns: 1fr;
         gap: 4px;
@@ -455,16 +620,17 @@ a.akb-series-directory__letter:focus-visible {
     }
 
     .akb-series-directory__list {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .akb-series-directory,
     .akb-series-directory * {
-        scroll-behavior: auto !important;
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        scroll-behavior: auto;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
     }
 }

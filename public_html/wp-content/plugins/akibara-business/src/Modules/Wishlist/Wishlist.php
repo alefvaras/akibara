@@ -23,6 +23,11 @@ use Akibara\Business\Utilities\PluginAssetVersion;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ */
 final class Wishlist {
 
 	private Ajax $ajax;

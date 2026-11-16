@@ -87,6 +87,12 @@ final class RebuildReceiptFailureWpdb {
 
 	public string $last_error = '';
 
+	/** @param mixed ...$args */
+	public function prepare( string $query, ...$args ): string {
+		unset( $args );
+		return $query;
+	}
+
 	/** @return null */
 	public function get_var( string $query ) {
 		unset( $query );

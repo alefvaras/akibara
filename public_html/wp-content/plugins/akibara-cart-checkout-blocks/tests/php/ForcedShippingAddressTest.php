@@ -25,6 +25,14 @@ final class ForcedShippingAddressTest extends TestCase {
 		// El mismo `WC()` que usan las demás clases: define la función sólo si falta
 		// y lee el runtime de un global, así que no le roba el doble a nadie.
 		require_once __DIR__ . '/fixtures/woocommerce-functions.php';
+
+		Functions\when( 'WC' )->alias(
+			static function(): ?object {
+				$woocommerce = $GLOBALS['akibara_test_woocommerce'] ?? null;
+
+				return is_object( $woocommerce ) ? $woocommerce : null;
+			}
+		);
 	}
 
 	protected function tearDown(): void {

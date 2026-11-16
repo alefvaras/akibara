@@ -19,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.61.0
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress TooManyArguments
  */
 final class PopularQueries {
 
@@ -77,13 +80,13 @@ final class PopularQueries {
 	 * @return array<int, string>
 	 */
 	public function top(): array {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 		if ( ! $this->enabled() ) {
 			return array();
 		}
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -135,6 +138,7 @@ final class PopularQueries {
 			set_transient( self::TRANSIENT, $top, self::TTL );
 		} catch ( \Throwable $exception ) {
 			// Cache blando: la lectura SQL autoritativa sigue siendo servible.
+			unset( $exception );
 		}
 
 		return $top;

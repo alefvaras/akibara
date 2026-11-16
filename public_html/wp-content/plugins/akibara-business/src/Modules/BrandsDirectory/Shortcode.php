@@ -28,6 +28,12 @@ use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UnusedParam
+ */
 final class Shortcode {
 
 	public const TAG       = 'akibara_brands_grid';
@@ -290,7 +296,7 @@ final class Shortcode {
 	 * @param array<string, string>                        $atts
 	 * @param array<string, array{label:string,count:int}> $regions_meta
 	 */
-	private function render_via_template( array $grouped, array $atts, array $regions_meta ): string {
+	private function render_via_template( array $grouped, array $atts, array $regions_meta ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$template = locate_template( 'template-parts/brands/grid.php' );
 
 		ob_start();

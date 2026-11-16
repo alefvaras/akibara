@@ -1,0 +1,468 @@
+/**
+ * admin-rewards.css — Panel de Administración Puntos & Reseñas de Akibara.
+ * Sistema visual Neo-Brutalista Refinado de Akibara («Tu rincón de Akihabara en Chile»).
+ * Erradica cualquier azul nativo de WordPress/WooCommerce en favor del branding oficial.
+ *
+ * @package Akibara\Rewards
+ */
+
+.akb-rewards-wrap {
+	--akb-admin-ink: #141416;
+	--akb-admin-charcoal: #1E1E24;
+	--akb-admin-red: #E60012;
+	--akb-admin-red-hover: #C0000F;
+	--akb-admin-yellow: #FC0;
+	--akb-admin-white: #FFF;
+	--akb-admin-cream: #F8F9FA;
+	--akb-admin-border: #141416;
+	--akb-admin-border-subtle: #D8D8DC;
+	--akb-admin-muted: #555558;
+	--akb-admin-shadow: 3px 3px 0 #141416;
+
+	margin: 20px 20px 0 2px;
+	max-width: 1240px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	color: var(--akb-admin-ink);
+}
+
+/* ---- Panel Contenedor ---- */
+.akb-rewards-panel {
+	background: var(--akb-admin-white);
+	border: 2px solid var(--akb-admin-border);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 4px 4px 0 rgba(20, 20, 22, 0.12);
+}
+
+/* ---- Barra Superior: Enlace de Retorno ---- */
+.akb-panel-top-bar {
+	background: var(--akb-admin-charcoal);
+	padding: 10px 24px;
+	border-bottom: 2px solid var(--akb-admin-border);
+}
+
+.akb-panel-back-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #141416 !important;
+	background: #fff !important;
+	border: 2px solid #141416 !important;
+	border-radius: 4px;
+	min-height: 44px;
+	box-sizing: border-box;
+	padding: 10px 16px;
+	box-shadow: 2px 2px 0 #141416;
+	text-decoration: none !important;
+	line-height: 1.2;
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.akb-panel-back-btn:hover,
+.akb-panel-back-btn:focus {
+	background: #FC0 !important;
+	color: #141416 !important;
+	transform: translate(-1px, -1px);
+	box-shadow: 3px 3px 0 #141416;
+}
+
+.akb-panel-back-btn:active {
+	transform: translate(1px, 1px);
+	box-shadow: 1px 1px 0 #141416;
+}
+
+/* ---- Header Principal con Branding Akibara ---- */
+.akb-rewards-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: stretch;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 0 24px;
+	min-height: 64px;
+	background: var(--akb-admin-ink);
+	color: var(--akb-admin-white);
+	border-bottom: 2px solid var(--akb-admin-border);
+}
+
+.akb-rewards-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	white-space: nowrap;
+}
+
+.akb-rewards-brand h1 {
+	font-size: 20px;
+	font-weight: 900;
+	letter-spacing: -0.3px;
+	color: var(--akb-admin-white);
+	margin: 0;
+	padding: 0;
+	line-height: 1;
+}
+
+.akb-rewards-gem {
+	color: var(--akb-admin-red);
+	font-size: 22px;
+	line-height: 1;
+	filter: drop-shadow(0 0 6px rgba(230, 0, 18, 0.6));
+}
+
+.akb-rewards-ver {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	background: var(--akb-admin-red);
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	padding: 3px 8px;
+	border-radius: 4px;
+	color: var(--akb-admin-white);
+	text-transform: uppercase;
+}
+
+/* ---- Navegación por Pestañas (Tabs) ---- */
+.akb-rewards-head .nav-tab-wrapper {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 6px;
+	border: 0;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	max-width: 100%;
+}
+
+.akb-rewards-head .nav-tab:focus-visible {
+	outline: 3px solid var(--akb-admin-yellow);
+	outline-offset: -3px;
+}
+
+.akb-rewards-head .nav-tab {
+	border: 0;
+	margin: 0;
+	background: rgba(255, 255, 255, 0.08);
+	color: #D8D8DC;
+	font-weight: 700;
+	font-size: 13px;
+	line-height: 1;
+	padding: 12px 20px;
+	border-radius: 6px 6px 0 0;
+	align-self: flex-end;
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	box-sizing: border-box;
+	text-decoration: none;
+	cursor: pointer;
+	border-top: 2px solid transparent;
+}
+
+.akb-rewards-head .nav-tab:hover,
+.akb-rewards-head .nav-tab:focus {
+	background: rgba(230, 0, 18, 0.2);
+	color: var(--akb-admin-white);
+	box-shadow: none;
+}
+
+.akb-rewards-head .nav-tab-active,
+.akb-rewards-head .nav-tab-active:hover,
+.akb-rewards-head .nav-tab-active:focus {
+	background: var(--akb-admin-white);
+	color: var(--akb-admin-ink);
+	border-top: 3px solid var(--akb-admin-red);
+	font-weight: 900;
+	box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ---- Cuerpo de Ajustes ---- */
+.akb-rewards-body {
+	padding: 28px 32px 36px;
+	background: var(--akb-admin-cream);
+}
+
+/* ---- Tarjetas Modulares Neo-Brutalistas ---- */
+.akb-rewards-card {
+	background: var(--akb-admin-white);
+	border: 2px solid var(--akb-admin-border);
+	border-radius: 6px;
+	padding: 0;
+	margin-bottom: 24px;
+	box-shadow: var(--akb-admin-shadow);
+	overflow: hidden;
+	transition: box-shadow 0.15s ease;
+}
+
+.akb-rewards-card:hover {
+	box-shadow: 4px 4px 0 #141416;
+}
+
+.akb-rewards-card__header {
+	background: #F1F1F4;
+	border-bottom: 2px solid var(--akb-admin-border);
+	padding: 14px 22px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.akb-rewards-card__title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+	color: var(--akb-admin-ink);
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.akb-rewards-card__title::before {
+	content: "";
+	display: inline-block;
+	width: 4px;
+	height: 16px;
+	background: var(--akb-admin-red);
+	border-radius: 2px;
+}
+
+/* ---- Tab Panels ---- */
+.akb-tab-panel {
+	display: none;
+}
+
+.akb-tab-panel.is-active {
+	display: block;
+}
+
+/* ---- Tabla de Formulario y Filas ---- */
+.akb-rewards-card .form-table {
+	margin: 0;
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.akb-rewards-card .form-table th {
+	width: 300px;
+	padding: 18px 24px;
+	font-weight: 700;
+	color: var(--akb-admin-ink);
+	font-size: 14px;
+	vertical-align: top;
+	background: #FAFAFB;
+	border-right: 1px solid var(--akb-admin-border-subtle);
+}
+
+.akb-rewards-card .form-table td {
+	padding: 18px 24px;
+	vertical-align: top;
+}
+
+.akb-rewards-card .form-table tr:not(:last-child) td,
+.akb-rewards-card .form-table tr:not(:last-child) th {
+	border-bottom: 1px solid var(--akb-admin-border-subtle);
+}
+
+/* ---- Controles de Entrada (Inputs, Selects, Checkboxes) ---- */
+.akb-rewards-card input[type="text"],
+.akb-rewards-card input[type="number"],
+.akb-rewards-card select {
+	border: 1.5px solid var(--akb-admin-border);
+	border-radius: 4px;
+	padding: 8px 12px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--akb-admin-ink);
+	background: var(--akb-admin-white);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	box-shadow: none;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.akb-rewards-card input.small-text {
+	width: auto;
+	min-width: 100px;
+}
+
+.akb-rewards-card input[type="text"]:focus,
+.akb-rewards-card input[type="number"]:focus,
+.akb-rewards-card select:focus {
+	border-color: var(--akb-admin-red) !important;
+	outline: 2px solid var(--akb-admin-red) !important;
+	outline-offset: 1px !important;
+	box-shadow: none !important;
+}
+
+.akb-rewards-card input[type="checkbox"] {
+	border: 2px solid var(--akb-admin-border) !important;
+	border-radius: 4px;
+	accent-color: var(--akb-admin-red);
+	width: 20px;
+	height: 20px;
+	vertical-align: middle;
+	margin-right: 8px;
+	cursor: pointer;
+}
+
+.akb-rewards-card input[type="checkbox"]:focus {
+	outline: 2px solid var(--akb-admin-red) !important;
+	outline-offset: 1px !important;
+	box-shadow: none !important;
+}
+
+.akb-rewards-card label {
+	font-weight: 600;
+	color: var(--akb-admin-ink);
+	cursor: pointer;
+}
+
+/* ---- Textos de Ayuda y Avisos ---- */
+.akb-rewards-card .description {
+	color: var(--akb-admin-muted);
+	font-size: 13px;
+	margin-top: 8px;
+	line-height: 1.5;
+}
+
+.akb-rewards-card .description strong {
+	color: var(--akb-admin-ink);
+}
+
+/* ---- Barra Inferior Flotante de Guardado ---- */
+.akb-rewards-status-bar {
+	position: sticky;
+	bottom: 0;
+	background: var(--akb-admin-white);
+	border-top: 2px solid var(--akb-admin-border);
+	padding: 16px 32px;
+	margin: 24px -32px -36px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	box-shadow: 0 -4px 16px rgba(20, 20, 22, 0.08);
+	z-index: 20;
+}
+
+/* ---- Botones Primarios Akibara (Erradicación total de azules) ---- */
+.akb-rewards-wrap .button-primary,
+.akb-rewards-wrap .button-primary:visited,
+.akb-rewards-wrap input[type="submit"].button-primary,
+.akb-rewards-wrap button.button-primary {
+	background: var(--akb-admin-red) !important;
+	border: 2px solid var(--akb-admin-border) !important;
+	color: var(--akb-admin-white) !important;
+	font-weight: 800 !important;
+	font-size: 14px !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.5px !important;
+	padding: 8px 24px !important;
+	height: auto !important;
+	line-height: 24px !important;
+	border-radius: 6px !important;
+	box-shadow: 3px 3px 0 var(--akb-admin-border) !important;
+	text-shadow: none !important;
+	cursor: pointer;
+	transition: all 0.12s ease !important;
+}
+
+.akb-rewards-wrap .button-primary:hover,
+.akb-rewards-wrap .button-primary:focus,
+.akb-rewards-wrap input[type="submit"].button-primary:hover,
+.akb-rewards-wrap button.button-primary:hover {
+	background: var(--akb-admin-red-hover) !important;
+	transform: translate(-1px, -1px);
+	box-shadow: 4px 4px 0 var(--akb-admin-border) !important;
+	color: var(--akb-admin-white) !important;
+}
+
+.akb-rewards-wrap .button-primary:active,
+.akb-rewards-wrap input[type="submit"].button-primary:active,
+.akb-rewards-wrap button.button-primary:active {
+	transform: translate(1px, 1px);
+	box-shadow: 1px 1px 0 var(--akb-admin-border) !important;
+}
+
+/* Enlaces sin azul */
+.akb-rewards-wrap a {
+	color: var(--akb-admin-ink);
+	text-decoration-color: var(--akb-admin-red);
+}
+
+.akb-rewards-wrap a:hover,
+.akb-rewards-wrap a:focus {
+	color: var(--akb-admin-red);
+}
+
+[data-akb-settings-status] {
+	font-size: 13px;
+	color: var(--akb-admin-muted);
+	font-weight: 700;
+	margin: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+[data-akb-settings-status]::before {
+	content: "●";
+	color: var(--akb-admin-red);
+	font-size: 14px;
+}
+
+.akb-review-table {
+	overflow-x: auto;
+	max-width: 100%;
+	-webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 782px) {
+
+	.akb-rewards-wrap {
+		margin: 12px 10px 0 0;
+	}
+
+	.akb-panel-top-bar,
+	.akb-rewards-head {
+		padding-inline: 14px;
+	}
+
+	.akb-rewards-body {
+		padding: 16px;
+	}
+
+	.akb-rewards-card .form-table,
+	.akb-rewards-card .form-table tbody,
+	.akb-rewards-card .form-table tr,
+	.akb-rewards-card .form-table th,
+	.akb-rewards-card .form-table td {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.akb-rewards-card .form-table th {
+		border-right: 0;
+		border-bottom: 1px solid var(--akb-admin-border-subtle);
+		padding: 14px 16px 8px;
+	}
+
+	.akb-rewards-card .form-table td {
+		padding: 12px 16px 16px;
+	}
+
+	.akb-rewards-status-bar {
+		margin: 20px -16px -16px;
+		padding: 14px 16px;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+}

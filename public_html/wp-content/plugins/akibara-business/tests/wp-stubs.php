@@ -81,6 +81,28 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_make_link_relative' ) ) {
+	/** Core formatting.php semantics, available consistently across the suite. */
+	function wp_make_link_relative( $link ): string {
+		return (string) preg_replace( '|^(https?:)?//[^/]+(/?.*)|i', '$2', (string) $link );
+	}
+}
+
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	/**
+	 * Core lo expone SIEMPRE en runtime; el código de producción lo usa en lugar
+	 * de `parse_url()`. Para las URL que ejercitan las pruebas su resultado es el
+	 * mismo, así que el doble delega en la función nativa.
+	 *
+	 * @param string $url       URL a descomponer.
+	 * @param int    $component Componente (`PHP_URL_*`) o -1 para el arreglo completo.
+	 * @return mixed
+	 */
+	function wp_parse_url( $url, $component = -1 ) {
+		return parse_url( (string) $url, $component );
+	}
+}
+
 if ( ! function_exists( 'sanitize_key' ) ) {
 	function sanitize_key( $key ) {
 		$raw_key = (string) $key;
@@ -171,6 +193,17 @@ if ( ! function_exists( 'esc_attr' ) ) {
 	 */
 	function esc_attr( $text ): string {
 		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( 'esc_url' ) ) {
+	/**
+	 * Sanitiza URLs para salida segura.
+	 *
+	 * @param mixed $url URL cruda.
+	 */
+	function esc_url( $url ): string {
+		return filter_var( (string) $url, FILTER_SANITIZE_URL ) ?: '';
 	}
 }
 
@@ -1209,6 +1242,15 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 			public $data;
 
 			public int $status;
+			private array $headers = array();
+
+			public function header( string $key, string $value, bool $replace = true ): void {
+				$this->headers[ $key ] = $replace ? $value : ( $this->headers[ $key ] ?? '' ) . ', ' . $value;
+			}
+
+			public function get_headers(): array {
+				return $this->headers;
+			}
 
 			/**
 			 * @param mixed $data   Cuerpo.

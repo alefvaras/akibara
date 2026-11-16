@@ -204,8 +204,8 @@ test('el breadcrumb sube al hub de series y se anuncia en español', () => {
 	// Se empareja por FIRMA (el primer peldaño sin URL que no es el último), no
 	// por posición: desde la página 2 WooCommerce añade «Página N» al final y el
 	// penúltimo pasa a ser el término, con URL (revisión R12, 2). El matcher
-	// first-party que existe (DisponiblesRoute) descarta los peldaños sin URL,
-	// y acá el que hay que tocar es exactamente ése.
+	// habitual por URL descarta los peldaños sin URL, y acá el que hay que
+	// tocar es exactamente ése.
 	assert.doesNotMatch(php, /count\(\s*\$crumbs\s*\)\s*-\s*2/, 'el matcher posicional fallaba en páginas 2+');
 	assert.match(php, /empty\(\s*\$crumb\[1\]\s*\)/);
 	assert.match(php, /\$pos === count\( \$crumbs \) - 1/, 'el último peldaño (término o «Página N») nunca es la etiqueta');
@@ -319,4 +319,20 @@ test('la ficha completa de la serie va bajo la rejilla en akibara-business (el u
 	assert.match(facts, /add_action\(\s*'woocommerce_before_shop_loop',\s*array\(\s*\$this,\s*'render_summary'\s*\),\s*2\s*\)/);
 	assert.doesNotMatch(facts, /add_action\(\s*'woocommerce_before_shop_loop',\s*array\(\s*\$this,\s*'render'\s*\)/);
 	assert.doesNotMatch(tema, /'class="akb-series-facts"'/);
+});
+
+test('barra de salto por rangos editoriales en pa_serie cuando supera 24 tomos', () => {
+	const php = read('inc/series-order.php');
+	assert.match(php, /akibara_gp_is_series_archive\(\)/);
+	assert.match(php, /add_action\(\s*['"]woocommerce_before_shop_loop['"],\s*['"]akibara_gp_render_series_range_jump_bar['"],\s*36\s*\)/);
+	assert.match(php, /class="akb-series-range-nav"/);
+	assert.match(php, /class="akb-series-range-nav__list akb-series-range-list"/);
+	assert.match(php, /class="akb-series-range-nav__pill akb-series-range-link/);
+	assert.match(php, /aria-current="page"/);
+	assert.match(php, /Tomos\s+%d–%d/);
+
+	const css = sinComentarios(read('assets/css/woocommerce.css'));
+	assert.match(css, /\.akb-series-range-nav\s*\{/);
+	assert.match(css, /\.akb-series-range-link[^{]*\{[^}]*min-height:\s*var\(--touch-target-min\)/);
+	assert.match(css, /\.akb-series-range-link\.is-active/);
 });

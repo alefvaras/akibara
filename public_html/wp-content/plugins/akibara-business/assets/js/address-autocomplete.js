@@ -33,7 +33,6 @@
 		s.defer   = true;
 		s.onerror = () => {
 			loaderState = 'idle';
-			console.warn( '[akibara] Failed to load Google Maps JS API.' );
 		};
 		document.head.appendChild( s );
 	}
@@ -68,14 +67,11 @@
 			? google.maps.importLibrary( 'places' )
 			: Promise.resolve();
 
-		importLib.then( bootstrap ).catch( ( err ) => {
-			console.warn( '[akibara] Places import failed:', err );
-		} );
+		importLib.then( bootstrap ).catch( () => {} );
 	};
 
 	function bootstrap() {
 		if ( ! google.maps.places || ! google.maps.places.PlaceAutocompleteElement ) {
-			console.warn( '[akibara] PlaceAutocompleteElement no disponible. Habilitar Places API (New) en Google Cloud Console.' );
 			return;
 		}
 
@@ -123,8 +119,7 @@
 			pac = new google.maps.places.PlaceAutocompleteElement( {
 				includedRegionCodes: config.country || [ 'cl' ],
 			} );
-		} catch ( e ) {
-			console.warn( '[akibara] PlaceAutocompleteElement init failed:', e );
+		} catch ( _e ) {
 			initialized.delete( input );
 			return;
 		}
@@ -143,7 +138,9 @@
 
 		// Web Component reemplaza visualmente al input, pero el input nativo
 		// sigue en el DOM (oculto) para que WC reciba el value en el POST.
-		input.parentNode && input.parentNode.insertBefore( pac, input );
+		if ( input.parentNode ) {
+			input.parentNode.insertBefore( pac, input );
+		}
 		input.style.display = 'none';
 		input.setAttribute( 'aria-hidden', 'true' );
 		input.tabIndex = -1;
@@ -156,8 +153,8 @@
 				const place = prediction.toPlace();
 				await place.fetchFields( { fields: [ 'addressComponents', 'formattedAddress' ] } );
 				applyPlace( place, input, prefix );
-			} catch ( err ) {
-				console.warn( '[akibara] gmp-select failed:', err );
+			} catch ( _err ) {
+				// Fallo silencioso de autocompletado; el usuario conserva escritura manual.
 			}
 		} );
 
@@ -165,11 +162,13 @@
 		// nombres alternativos), el cliente escribe igual y el texto se replica al input
 		// nativo oculto. WC valida ese input y pinta verde el form-row vía CSS.
 		const syncFromPac = () => {
-			const raw = ( pac.value != null ? String( pac.value ) : '' ).trim();
+			const raw = ( pac.value !== null && pac.value !== undefined ? String( pac.value ) : '' ).trim();
 			if ( input.value !== raw ) {
 				setValue( input, raw );
 				if ( window.jQuery ) {
-					try { jQuery( input ).trigger( 'validate' ); } catch ( e ) {}
+					try { jQuery( input ).trigger( 'validate' ); } catch {
+						// silencio
+					}
 				}
 			}
 		};
@@ -195,7 +194,7 @@
 
 		// Forzar recalculo de envío en checkout shortcode.
 		if ( window.jQuery ) {
-			try { jQuery( document.body ).trigger( 'update_checkout' ); } catch ( e ) {}
+			try { jQuery( document.body ).trigger( 'update_checkout' ); } catch ( _e ) {}
 		}
 	}
 
@@ -245,10 +244,12 @@
 
 	function mapRegion( shortName, longName ) {
 		const map = config.regionMap || {};
+		// eslint-disable-next-line security/detect-object-injection
 		if ( shortName && map[ shortName ] ) return map[ shortName ];
 
 		if ( longName ) {
 			const norm = longName.toLowerCase().normalize( 'NFD' ).replace( /[̀-ͯ]/g, '' );
+			// eslint-disable-next-line security/detect-object-injection
 			if ( FALLBACK_REGIONS[ norm ] ) return FALLBACK_REGIONS[ norm ];
 		}
 		return null;
@@ -262,6 +263,7 @@
 			const sufix = code.replace( /^CL-/, '' );
 			let matched = false;
 			for ( let i = 0; i < el.options.length; i++ ) {
+				// eslint-disable-next-line security/detect-object-injection
 				const v = el.options[ i ].value;
 				if ( v === code || v === sufix ) {
 					el.selectedIndex = i;
@@ -272,7 +274,7 @@
 			if ( matched ) {
 				dispatchChange( el );
 				if ( window.jQuery && jQuery.fn.select2 ) {
-					try { jQuery( el ).trigger( 'change' ); } catch ( e ) {}
+					try { jQuery( el ).trigger( 'change' ); } catch ( _e ) {}
 				}
 			}
 		} else {
@@ -288,6 +290,7 @@
 			const normCity = cityName.toLowerCase().normalize( 'NFD' ).replace( /[̀-ͯ]/g, '' );
 			let matched = false;
 			for ( let i = 0; i < el.options.length; i++ ) {
+				// eslint-disable-next-line security/detect-object-injection
 				const opt = el.options[ i ];
 				const v = opt.value.toLowerCase().normalize( 'NFD' ).replace( /[̀-ͯ]/g, '' );
 				const t = opt.text.toLowerCase().normalize( 'NFD' ).replace( /[̀-ͯ]/g, '' );
@@ -302,7 +305,7 @@
 			if ( matched ) {
 				dispatchChange( el );
 				if ( window.jQuery && jQuery.fn.select2 ) {
-					try { jQuery( el ).trigger( 'change' ); } catch ( e ) {}
+					try { jQuery( el ).trigger( 'change' ); } catch ( _e ) {}
 				}
 			}
 		} else {
@@ -319,7 +322,7 @@
 		el.dispatchEvent( new Event( 'input',  { bubbles: true } ) );
 		el.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 		if ( window.jQuery ) {
-			try { jQuery( el ).trigger( 'change' ); } catch ( e ) {}
+			try { jQuery( el ).trigger( 'change' ); } catch ( _e ) {}
 		}
 	}
 

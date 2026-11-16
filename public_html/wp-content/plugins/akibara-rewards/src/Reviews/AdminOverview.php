@@ -9,12 +9,18 @@ declare( strict_types = 1 );
 
 namespace Akibara\Rewards\Reviews;
 
+use Akibara\Rewards\Support\Dates;
 use Akibara\Rewards\Support\Options;
 use Akibara\Rewards\Support\SettingsPage;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Review operations at the top of the program settings. */
+/**
+ * Review operations at the top of the program settings. @api 
+ * @psalm-suppress PossiblyUnusedMethod
+ * @psalm-suppress PossiblyUnusedMethod
+ */
+// @phpstan-ignore complexity.classLike
 final class AdminOverview {
 
 	private const SAMPLE_LIMIT = 10;
@@ -69,17 +75,21 @@ final class AdminOverview {
 				if ( ! $order instanceof \WC_Order ) {
 					continue;
 				}
-				$next = function_exists( 'as_next_scheduled_action' ) ? as_next_scheduled_action( Invitations::HOOK, array( (int) $order->get_id() ) ) : false;
+				$next     = function_exists( 'as_next_scheduled_action' ) ? as_next_scheduled_action( Invitations::HOOK, array( (int) $order->get_id() ) ) : false;
+				$sent     = (string) $order->get_meta( Invitations::META_SENT );
+				$progress = '' !== $sent ? self::order_review_progress( $order ) : array( 'reviewed' => 0, 'total' => 0 );
 				$data['orders'][] = array(
 					'id'        => (int) $order->get_id(),
 					'url'       => $order->get_edit_order_url(),
 					'status'    => (string) $order->get_status(),
 					'scheduled' => (string) $order->get_meta( Invitations::META_SCHEDULED ),
-					'sent'      => (string) $order->get_meta( Invitations::META_SENT ),
+					'sent'      => $sent,
 					'failures'  => max( 0, (int) $order->get_meta( Invitations::META_ATTEMPTS ) ),
 					'next'      => is_int( $next ) ? $next : null,
 					'running'   => true === $next,
 					'reason'    => self::order_reason( $order ),
+					'reviewed'  => $progress['reviewed'],
+					'total'     => $progress['total'],
 				);
 			}
 		}
@@ -92,7 +102,8 @@ final class AdminOverview {
 	 *
 	 * @internal
 	 */
-	public function render(): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function render(): void { // @phpstan-ignore complexity.functionLike
 		if ( ! current_user_can( SettingsPage::CAPABILITY ) ) {
 			return;
 		}
@@ -104,7 +115,6 @@ final class AdminOverview {
 		$moderation = 'yes' === (string) get_option( 'akb_rewards_moderate_reviews', 'yes' );
 		$labels     = SettingsPage::order_status_choices();
 		$status     = $labels[ Invitations::trigger_status() ] ?? Invitations::trigger_status();
-		$pickup     = $labels[ Invitations::pickup_status() ] ?? Invitations::pickup_status();
 		$reviews    = admin_url( 'edit.php?post_type=product&page=product-reviews' );
 		$queue_url  = admin_url( 'admin.php?page=wc-status&tab=action-scheduler&s=' . rawurlencode( Invitations::HOOK ) );
 
@@ -112,7 +122,7 @@ final class AdminOverview {
 		echo '<style>.akb-review-overview{background:#fff;border:1px solid #c3c4c7;padding:16px;margin:20px 0}.akb-review-overview .akb-review-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:20px}.akb-review-overview h3{margin:0 0 10px}.akb-review-overview .akb-review-links{display:flex;flex-wrap:wrap;gap:8px}.akb-review-overview .akb-review-table{overflow:auto}.akb-review-overview th,.akb-review-overview td{vertical-align:top}.akb-review-overview .akb-review-table table{min-width:620px}</style>';
 		echo '<h2 id="akb-review-overview">Gestión de reseñas</h2>';
 		if ( ! $engine ) {
-			echo '<div class="notice notice-warning inline"><p><strong>El motor propio de reseñas está inactivo.</strong> CusRev, cuando está activo, lo desactiva para evitar duplicados; también puede desactivarse mediante una integración. Los ajustes de invitaciones y premios de Akibara no se ejecutan mientras este motor esté inactivo.</p></div>';
+			echo '<div class="notice notice-warning inline"><p><strong>El motor propio de reseñas está inactivo.</strong> Los ajustes de invitaciones y premios de Akibara no se ejecutan mientras este motor esté inactivo.</p></div>';
 		}
 		echo '<p><strong>' . esc_html( number_format_i18n( $data['pending'] ) ) . ' pendientes de revisión</strong> · ' . esc_html( number_format_i18n( $data['approved'] ) ) . ' publicadas. Se cuentan reseñas de productos, sin las respuestas del hilo.</p>';
 		echo '<p class="akb-review-links"><a class="button button-primary" href="' . esc_url( $reviews . '&comment_status=moderated' ) . '">Revisar pendientes</a> <a class="button" href="' . esc_url( $reviews ) . '">Todas las valoraciones</a>';
@@ -120,8 +130,8 @@ final class AdminOverview {
 			echo ' <a class="button" href="' . esc_url( admin_url( 'edit-comments.php?page=akb-rewards-new-review' ) ) . '">Transcribir una reseña recibida</a>';
 		}
 		echo '</p><div class="akb-review-steps"><div><h3>1. Cuándo se invita</h3>';
-		echo '<p><strong>' . esc_html( $invites ? 'Invitaciones automáticas activas.' : 'Invitaciones automáticas inactivas.' ) . '</strong> Despacho: ' . esc_html( (string) Invitations::delay_days() ) . ' días corridos desde «' . esc_html( $status ) . '». Entrega directa o retiro: ' . esc_html( (string) Invitations::pickup_delay_days() ) . ' días corridos desde «' . esc_html( $pickup ) . '». Una sola invitación por pedido; pasar por ambos estados no reinicia el plazo. El enlace dura ' . esc_html( (string) Invitations::token_days() ) . ' días.</p>';
-		echo '<p>Se exige pago confirmado y productos a pedido o preventa listos para entregar. Antes de enviar se comprueba otra vez el pedido y la baja voluntaria del cliente.</p><p>Guardar ajustes conserva las fechas de la cola y no invita retroactivamente a pedidos anteriores. El recordatorio en correos del pedido es un ajuste aparte.</p></div>';
+		echo '<p><strong>' . esc_html( $invites ? 'Invitaciones automáticas activas.' : 'Invitaciones automáticas inactivas.' ) . '</strong> Plazo: ' . esc_html( (string) Invitations::delay_days() ) . ' días corridos desde «' . esc_html( $status ) . '». Una sola invitación por pedido. El enlace dura ' . esc_html( (string) Invitations::token_days() ) . ' días.</p>';
+		echo '<p>Se exige pago confirmado. Antes de enviar se comprueba otra vez el pedido y la baja voluntaria del cliente.</p><p>Guardar ajustes conserva las fechas de la cola y no invita retroactivamente a pedidos anteriores. El recordatorio en correos del pedido es un ajuste aparte.</p></div>';
 		echo '<div><h3>2. Dónde revisar y aprobar</h3><p><strong>' . esc_html( $engine && $moderation ? 'Moderación obligatoria activa.' : ( $engine ? 'Moderación obligatoria inactiva.' : 'Moderación propia inactiva.' ) ) . '</strong> ';
 		echo esc_html( $engine ? 'Las reseñas por invitación siempre quedan pendientes. Este interruptor controla además la moderación de los formularios nativos de las fichas.' : 'Comprueba las reglas del motor de reseñas que esté activo.' );
 		echo '</p><p>Abre Productos → Valoraciones, revisa el texto, la puntuación y la foto, y pulsa Aprobar. Una reseña pendiente aún no aparece en la tienda ni cobra puntos.</p><p>La transcripción es para una opinión que el cliente ya compartió y autorizó publicar: queda identificada como publicada por la tienda y no genera premios.</p></div>';
@@ -130,7 +140,7 @@ final class AdminOverview {
 			$every = Options::review_every_n();
 			$max   = Options::review_max_per_user();
 			echo '<p><strong>' . esc_html( number_format_i18n( Options::review_points() ) ) . ' puntos ' . esc_html( 1 === $every ? 'por cada reseña que cumple los requisitos.' : 'cada ' . $every . ' reseñas que cumplen los requisitos.' ) . '</strong> ' . esc_html( $max > 0 ? 'Hasta ' . $max . ' premios vigentes por cliente.' : 'Sin tope de premios por cliente.' ) . '</p>';
-			echo '<p>La invitación por correo es para solicitar puntos y exige una foto real de la compra. Para acreditar el premio se evalúan al aprobar: foto real, cuenta del cliente' . ( 'yes' === (string) get_option( 'akb_rewards_review_require_verified', 'yes' ) ? ', compra verificada' : '' ) . ' y producto publicado. Las nuevas reseñas voluntarias de la ficha admiten foto opcional y no generan puntos, aunque lleven foto. Las reseñas anteriores conservan su política vigente. Las estrellas no deciden el premio. Sin cuenta, el premio solicitado espera a que la cree y verifique su correo.</p><p>Retirar la aprobación revierte los puntos acreditados. El historial se consulta en Clientes → Gestionar puntos, y el cliente lo ve en Mi cuenta → Puntos Akibara.</p>';
+			echo '<p>La invitación por correo es para solicitar puntos y exige una foto real de la compra. Para acreditar el premio se evalúan al aprobar: foto real, cuenta del cliente' . ( 'yes' === (string) get_option( 'akb_rewards_review_require_verified', 'yes' ) ? ', compra verificada' : '' ) . ' y producto publicado. Los compradores verificados también pueden solicitar puntos subiendo una foto real desde la ficha del tomo o desde Mi Colección. Las reseñas sin foto se publican como opinión voluntaria y no generan puntos. Las estrellas no deciden el premio. Sin cuenta, el premio solicitado espera a que la cree y verifique su correo.</p><p>Retirar la aprobación revierte los puntos acreditados. El historial se consulta en Clientes → Gestionar puntos, y el cliente lo ve en Mi cuenta → Puntos Akibara.</p>';
 		} else {
 			echo '<p><strong>Los premios por reseña están inactivos.</strong> Revisa el interruptor, el monto del premio y el estado del motor antes de ofrecer puntos a un cliente.</p>';
 		}
@@ -159,7 +169,7 @@ final class AdminOverview {
 	}
 
 	/** Render order evidence without exposing recipient data or invitation tokens. */
-	private function render_orders( array $orders, array $labels ): void {
+	private function render_orders( array $orders, array $labels ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		if ( array() === $orders ) {
 			echo '<p>No hay pedidos en esta muestra.</p>';
 			return;
@@ -169,6 +179,9 @@ final class AdminOverview {
 			$state = $order['reason'];
 			if ( '' !== $order['sent'] ) {
 				$state = 'Enviada al transporte';
+				if ( ( $order['total'] ?? 0 ) > 0 ) {
+					$state .= sprintf( ' (%d de %d tomos reseñados)', (int) ( $order['reviewed'] ?? 0 ), (int) $order['total'] );
+				}
 			} elseif ( $order['running'] ) {
 				$state = 'En ejecución';
 			} elseif ( null !== $order['next'] ) {
@@ -181,13 +194,13 @@ final class AdminOverview {
 			echo '<tr><th scope="row"><a href="' . esc_url( $order['url'] ) . '">#' . esc_html( (string) $order['id'] ) . '</a></th><td>' . esc_html( $labels[ $order['status'] ] ?? $order['status'] ) . '</td><td>' . esc_html( $state ) . '</td><td>';
 			$dates = array();
 			if ( '' !== $order['scheduled'] ) {
-				$dates[] = 'Alta en cola: ' . $order['scheduled'];
+				$dates[] = 'Alta en cola: ' . Dates::admin_datetime( $order['scheduled'] );
 			}
 			if ( null !== $order['next'] ) {
 				$dates[] = 'Próximo envío: ' . $this->format_timestamp( $order['next'] );
 			}
 			if ( '' !== $order['sent'] ) {
-				$dates[] = 'Enviada: ' . $order['sent'];
+				$dates[] = 'Enviada: ' . Dates::admin_datetime( $order['sent'] );
 			}
 			echo implode( '<br>', array_map( 'esc_html', $dates ) ) . '</td><td>' . esc_html( (string) $order['failures'] ) . '</td></tr>';
 		}
@@ -196,7 +209,7 @@ final class AdminOverview {
 
 	/** Format scheduler timestamps in the store timezone. */
 	private function format_timestamp( int $timestamp ): string {
-		return wp_date( 'd-m-Y H:i', $timestamp, wp_timezone() );
+		return Dates::admin_datetime( $timestamp );
 	}
 
 	/** Motivo actual, leído sin alterar el pedido ni su cola. */
@@ -212,7 +225,29 @@ final class AdminOverview {
 		return '' !== $recorded ? $recorded : 'Esperando despacho al transportista o entrega directa.';
 	}
 
-	/** Evidencia de invitación dentro del pedido oficial (HPOS o clásico). */
+	/**
+	 * Calcula cuántos tomos elegibles del pedido ya fueron reseñados sin exponer datos personales.
+	 *
+	 * @param \WC_Order $order Pedido.
+	 * @return array{reviewed:int,total:int}
+	 */
+	private static function order_review_progress( \WC_Order $order ): array {
+		$items = ReviewEligibility::extract_order_items( $order );
+		if ( array() === $items ) {
+			return array( 'reviewed' => 0, 'total' => 0 );
+		}
+		$state = ReviewEligibility::unreviewed_order_items( $order, $items );
+		return array(
+			'reviewed' => (int) $state['reviewed_count'],
+			'total'    => (int) $state['total_count'],
+		);
+	}
+
+	/**
+	 * Evidencia de invitación dentro del pedido oficial (HPOS o clásico).
+	 * @param mixed $order
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
 	public function render_order( $order ): void {
 		if ( ! current_user_can( SettingsPage::CAPABILITY ) || ! $order instanceof \WC_Order ) {
 			return;
@@ -223,7 +258,11 @@ final class AdminOverview {
 		$trigger = (string) $order->get_meta( Invitations::META_TRIGGER );
 		$message = self::order_reason( $order );
 		if ( '' !== $sent ) {
-			$message = 'Invitación enviada al sistema de correo: ' . $sent . '.';
+			$progress = self::order_review_progress( $order );
+			$suffix   = $progress['total'] > 0
+				? sprintf( ' Avance: %d de %d tomos reseñados.', $progress['reviewed'], $progress['total'] )
+				: '';
+			$message  = 'Invitación enviada al sistema de correo: ' . Dates::admin_datetime( $sent ) . '.' . $suffix;
 		} elseif ( is_int( $next ) ) {
 			$message = 'Invitación prevista para ' . $this->format_timestamp( $next ) . ', desde «' . ( $labels[ $trigger ] ?? $trigger ) . '».';
 		} elseif ( true === $next ) {

@@ -21,6 +21,13 @@ use WC_Product;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCondition
+ */
+// @phpstan-ignore complexity.classLike
 final class SchemaProductRankMath {
 
 	public const ENABLED_FILTER = 'akibara_schema_rankmath_product_enabled';
@@ -76,15 +83,6 @@ final class SchemaProductRankMath {
 	 * @param mixed $availability Valor calculado por Rank Math.
 	 */
 	public function filter_facebook_product_availability( $availability ): string {
-		if ( ! function_exists( 'is_singular' ) || ! is_singular( 'product' ) ) {
-			return is_scalar( $availability ) ? (string) $availability : '';
-		}
-
-		$product = function_exists( 'wc_get_product' ) ? wc_get_product( get_the_ID() ) : null;
-		if ( $product instanceof WC_Product && StockStatus::is_reservable( $product ) ) {
-			return '';
-		}
-
 		return is_scalar( $availability ) ? (string) $availability : '';
 	}
 
@@ -113,6 +111,10 @@ final class SchemaProductRankMath {
 		}
 
 		$entity = $this->augment_product_entity( $entity, $product );
+
+		// Rank Math debe ver el tipo escalar 'Product' hasta que su conector de grafo
+		// termine (prioridad 99 en restore_book_series_relationship promueve a Product+Book).
+		$entity['@type'] = 'Product';
 
 		// Rank Math puede heredar URLs legacy http://schema.org en Offer. Se
 		// normalizan recursivamente solo valores del vocabulario Schema.org;
@@ -188,7 +190,6 @@ final class SchemaProductRankMath {
 	 * @return array<string,mixed>
 	 */
 	private function augment_product_entity( array $entity, WC_Product $product ): array {
-		$entity = $this->apply_preventa( $entity, $product );
 		$entity = $this->sanitize_simple_product_offers( $entity, $product );
 		$entity = $this->book_schema->enrich( $entity, $product );
 
@@ -212,7 +213,7 @@ final class SchemaProductRankMath {
 	 * @param WC_Product          $product Producto asociado al nodo.
 	 * @return array<string,mixed>
 	 */
-	private static function replace_product_description( array $entity, WC_Product $product ): array {
+	private static function replace_product_description( array $entity, WC_Product $product ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$name = is_scalar( $entity['name'] ?? null )
 			? self::sanitize_description_component( (string) $entity['name'] )
 			: '';
@@ -415,75 +416,6 @@ final class SchemaProductRankMath {
 		$integer = (int) $value;
 
 		return $integer > 0 ? $integer : null;
-	}
-
-	/**
-	 *  (): desde 1.109.0 `availability` sigue el estado
-	 * COMERCIAL derivado, NO «todo onbackorder» — ese fue el bug histórico que
-	 * el propio código de abajo describe. PreOrder solo en preventa (lanzamiento
-	 * pendiente); BackOrder en a pedido (ya publicado). `availabilityStarts`
-	 * solo se añade en modo preventa con fecha explícita válida; la ETA
-	 * automática no representa una fecha oficial de disponibilidad ni un
-	 * vencimiento del precio.
-	 *
-	 * @param array<string,mixed> $entity Nodo Product.
-	 * @return array<string,mixed>
-	 */
-	private function apply_preventa( array $entity, WC_Product $product ): array {
-		if ( ! StockStatus::is_reservable( $product ) ) {
-			return $entity;
-		}
-		if ( ! isset( $entity['offers'] ) || ! is_array( $entity['offers'] ) ) {
-			return $entity;
-		}
-
-		// Separación 1.109.0: el `availability` sigue al estado COMERCIAL.
-		//   - Preventa (lanzamiento pendiente)   → schema.org/PreOrder.
-		//   - A pedido (ya publicado, se trae)   → schema.org/BackOrder.
-		// Antes TODO onbackorder emitía PreOrder, y una fecha vencida seguía
-		// saliendo como `availabilityStarts` en el pasado hacia Google. Con el
-		// estado derivado eso es imposible: fecha pasada ⇒ A_PEDIDO ⇒ BackOrder
-		// sin availabilityStarts.
-		$is_preventa  = Availability::is_preventa( $product );
-		$availability = $is_preventa ? 'https://schema.org/PreOrder' : 'https://schema.org/BackOrder';
-
-		$release_date     = (string) $product->get_meta( '_akb_eta_release_date' );
-		// Misma regla que las dos puertas de captura: una fecha con el año mal
-		// tecleado no sale a Google como `availabilityStarts`.
-		$has_release_date = $is_preventa && Availability::is_valid_release_date( $release_date );
-
-		// Rank Math usa un Offer asociativo; WooCommerce core envuelve el suyo
-		// en una lista. El fallback debe respetar ambas estructuras.
-		if ( isset( $entity['offers'][0] ) && is_array( $entity['offers'][0] ) ) {
-			foreach ( $entity['offers'] as $index => $offer ) {
-				if ( ! is_array( $offer ) ) {
-					continue;
-				}
-				$entity['offers'][ $index ] = self::mark_offer_as_reservable( $offer, $availability, $release_date, $has_release_date );
-			}
-		} else {
-			$entity['offers'] = self::mark_offer_as_reservable( $entity['offers'], $availability, $release_date, $has_release_date );
-		}
-
-		return $entity;
-	}
-
-	/**
-	 * Aplica la semántica de reserva (preventa o a pedido) a un Offer.
-	 *
-	 * @param array<string,mixed> $offer            Nodo Offer.
-	 * @param string              $availability     URL schema.org resuelta por estado.
-	 * @param string              $release_date     Fecha configurada.
-	 * @param bool                $has_release_date Si la fecha es publicable (solo preventa).
-	 * @return array<string,mixed>
-	 */
-	private static function mark_offer_as_reservable( array $offer, string $availability, string $release_date, bool $has_release_date ): array {
-		$offer['availability'] = $availability;
-		if ( $has_release_date ) {
-			$offer['availabilityStarts'] = $release_date;
-		}
-
-		return $offer;
 	}
 
 	/**

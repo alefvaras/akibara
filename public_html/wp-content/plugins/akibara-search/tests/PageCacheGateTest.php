@@ -56,7 +56,7 @@ final class PageCacheGateWpdb {
 	public function prepare( string $query, ...$args ): string {
 		foreach ( $args as $arg ) {
 			$replacement = is_int( $arg ) ? (string) $arg : "'" . str_replace( "'", "''", (string) $arg ) . "'";
-			$query = (string) preg_replace( '/%[sd]/', $replacement, $query, 1 );
+			$query = (string) preg_replace( '/%[sdi]/', $replacement, $query, 1 );
 		}
 		return $query;
 	}

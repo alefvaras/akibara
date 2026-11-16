@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
  * Gestor de receipts e historial de rebuilds.
  *
  * @since 0.1.85
+ * @api
  */
 final class RebuildReceipts {
 
@@ -212,8 +213,9 @@ final class RebuildReceipts {
 		}
 
 		$wpdb->last_error = '';
-		$docs             = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Install::docs_table() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		if ( '' !== (string) ( $wpdb->last_error ?? '' )
+		$docs_table       = Install::docs_table();
+		$docs             = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $docs_table ) );
+		if ( '' !== (string) ( $wpdb->last_error ?? '' ) // @phpstan-ignore notIdentical.alwaysFalse
 			|| ( ! is_int( $docs ) && ( ! is_string( $docs ) || 1 !== preg_match( '/^[0-9]+$/D', $docs ) ) ) ) {
 			return false;
 		}

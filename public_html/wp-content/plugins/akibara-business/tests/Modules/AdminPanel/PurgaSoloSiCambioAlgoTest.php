@@ -51,7 +51,7 @@ final class PurgaSoloSiCambioAlgoTest extends TestCase {
 	 */
 	public function test_a_real_change_still_purges(): void {
 		self::assertTrue( $this->decide( 'copys', 1 ) );
-		self::assertTrue( $this->decide( 'branding', 3 ) );
+		self::assertTrue( $this->decide( 'announcement', 3 ) );
 	}
 
 	/**

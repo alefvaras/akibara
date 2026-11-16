@@ -10,6 +10,9 @@ namespace Akibara\Search;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class NativeAvailabilityFallback {
 
 	/**
@@ -22,12 +25,12 @@ final class NativeAvailabilityFallback {
 	 * @param array<string,array> $definitions Authoritative facet definitions.
 	 * @return bool Whether every selected criterion can be preserved safely.
 	 */
-	public static function apply( \WP_Query $query, FilterSet $filters, array $definitions ): bool {
+	public static function apply( \WP_Query $query, FilterSet $filters, array $definitions ): bool { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$availability = $filters->values( 'disponibilidad' );
 		if ( empty( $availability ) ) {
 			return true;
 		}
-		$stock_map = array( 'instock' => 'instock', 'outofstock' => 'outofstock', 'a_pedido' => 'onbackorder', 'preventa' => 'onbackorder' );
+		$stock_map = array( 'instock' => 'instock', 'outofstock' => 'outofstock' );
 		foreach ( $availability as $value ) {
 			if ( ! is_string( $value ) || ! isset( $stock_map[ $value ] ) ) {
 				return false;
@@ -77,49 +80,8 @@ final class NativeAvailabilityFallback {
 		}
 		$native_tax = array_merge( $native_tax, $extra_tax );
 
-		// Only a half of onbackorder needs per-product business classification.
-		$split_backorders = in_array( 'a_pedido', $availability, true ) !== in_array( 'preventa', $availability, true );
-		$ids = null;
-		if ( $split_backorders ) {
-			$args = array_merge( $vars, array(
-				'post_type' => 'product', 'post_status' => 'publish',
-				'posts_per_page' => -1, 'nopaging' => true, 'paged' => 1,
-				'fields' => 'ids', 'no_found_rows' => true, 'orderby' => 'ID',
-				'order' => 'ASC', 'suppress_filters' => false,
-				'meta_query' => $native_meta, 'tax_query' => $native_tax,
-			) );
-			unset( $args['offset'] );
-			$candidates = get_posts( $args );
-			if ( ! is_array( $candidates ) ) {
-				return false;
-			}
-			$candidate_ids = array();
-			foreach ( $candidates as $raw_id ) {
-				if ( ! is_scalar( $raw_id ) || ! ctype_digit( (string) $raw_id ) || (int) $raw_id < 1 ) {
-					return false;
-				}
-				$candidate_ids[] = (int) $raw_id;
-			}
-			if ( array() !== $candidate_ids && function_exists( '_prime_post_caches' ) ) {
-				_prime_post_caches( $candidate_ids, false, true );
-			}
-			$ids = array();
-			foreach ( $candidate_ids as $id ) {
-				$product = wc_get_product( $id );
-				if ( ! $product instanceof \WC_Product ) {
-					return false;
-				}
-				$resolved = StockLabels::availability( $product->get_stock_status(), $id );
-				if ( in_array( $resolved['value'] ?? null, $availability, true ) ) {
-					$ids[] = $id;
-				}
-			}
-		}
 		$query->set( 'meta_query', $native_meta );
 		$query->set( 'tax_query', $native_tax );
-		if ( null !== $ids ) {
-			$query->set( 'post__in', empty( $ids ) ? array( -1 ) : array_values( array_unique( $ids ) ) );
-		}
 		$query->set( '_akb_native_availability_fallback', true );
 		return true;
 	}

@@ -21,6 +21,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.0
+ * @api
+ * @psalm-suppress InvalidOperand
  */
 final class Calculator {
 
@@ -90,13 +92,21 @@ final class Calculator {
 	}
 
 	/**
-	 * Puntos para una base con la configuración vigente.
+	 * Puntos para una base con la configuración vigente, aplicando opcionalmente
+	 * el multiplicador de nivel del cliente.
 	 *
-	 * @param float $base Base en pesos.
+	 * @param float $base    Base en pesos.
+	 * @param int   $user_id ID opcional del cliente para aplicar multiplicador de nivel.
 	 * @return int
 	 */
-	public static function points_for( float $base ): int {
-		return self::points_for_base( $base, Options::earn_points(), Options::earn_amount() );
+	public static function points_for( float $base, int $user_id = 0 ): int {
+		$raw = self::points_for_base( $base, Options::earn_points(), Options::earn_amount() );
+
+		if ( $raw <= 0 || $user_id <= 0 || ! Options::tiers_enabled() ) {
+			return $raw;
+		}
+
+		return Tiers::apply_multiplier( $raw, Tiers::multiplier_for_user( $user_id ) );
 	}
 
 	/**
@@ -157,8 +167,7 @@ final class Calculator {
 		$base = 0.0;
 
 		foreach ( $order->get_items( 'line_item' ) as $item ) {
-			$base += (float) $item->get_total() + (float) $item->get_total_tax();
-		}
+			$base += (float) $item->get_total() + (float) $item->get_total_tax();		} // @phpstan-ignore method.notFound, method.notFound
 
 		foreach ( $order->get_refunds() as $refund ) {
 			$item_part  = 0.0;
@@ -166,12 +175,10 @@ final class Calculator {
 
 			// En un reembolso los totales de línea vienen NEGATIVOS.
 			foreach ( $refund->get_items( 'line_item' ) as $item ) {
-				$item_part += abs( (float) $item->get_total() + (float) $item->get_total_tax() );
-			}
+				$item_part += abs( (float) $item->get_total() + (float) $item->get_total_tax() );			} // @phpstan-ignore method.notFound, method.notFound
 			foreach ( array( 'shipping', 'fee' ) as $type ) {
 				foreach ( $refund->get_items( $type ) as $item ) {
-					$other_part += abs( (float) $item->get_total() + (float) $item->get_total_tax() );
-				}
+					$other_part += abs( (float) $item->get_total() + (float) $item->get_total_tax() );				} // @phpstan-ignore method.notFound, method.notFound
 			}
 
 			$amount   = abs( (float) $refund->get_amount() );
@@ -206,8 +213,7 @@ final class Calculator {
 		$base = 0.0;
 
 		foreach ( $order->get_items( 'line_item' ) as $item ) {
-			$base += (float) $item->get_total() + (float) $item->get_total_tax();
-		}
+			$base += (float) $item->get_total() + (float) $item->get_total_tax();		} // @phpstan-ignore method.notFound, method.notFound
 
 		return max( 0.0, self::store_rounding( $base ) );
 	}

@@ -34,6 +34,8 @@ defined( 'ABSPATH' ) || exit;
  * Owner edita todos en wp-admin → Apariencia → Menús, asignando cada menú
  * creado a la location correspondiente. Si una location no tiene menú asignado
  * el theme oculta esa columna sin romper el layout.
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_setup(): void {
 	add_theme_support( 'title-tag' );
@@ -71,6 +73,7 @@ function akibara_gp_setup(): void {
 	// Se quita acá (after_setup_theme, cuando GP ya registró su add_action prio 2).
 	remove_action( 'generate_before_header', 'generate_do_skip_to_content_link', 2 );
 }
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'after_setup_theme', 'akibara_gp_setup' );
 
 // GeneratePress (padre) reactiva `wc-product-gallery-zoom` en inc/plugin-compat.php
@@ -79,6 +82,7 @@ add_action( 'after_setup_theme', 'akibara_gp_setup' );
 // chicas (~550-610px) y un área de display mayor, el zoom de WooCommerce dibujaba
 // una copia más chica encima al pasar el cursor (efecto "duplicado"). El lightbox
 // (click) sigue activo para ver la portada completa.
+/** @psalm-suppress HookInvalidArgs */
 add_action(
 	'after_setup_theme',
 	static function (): void {

@@ -26,7 +26,7 @@ echo wp_kses( wp_strip_all_tags( $email_heading ), array() );
 echo "\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 
 echo $akb_first ? wp_kses( sprintf( '¡Hola %s!', $akb_first ), array() ) . "\n\n" : "¡Hola!\n\n";
-echo wp_kses( __( 'Gracias por sumarte a Akibara, tu distrito del manga y cómics. Ya tienes tu cuenta lista para seguir tus pedidos, preventas y restocks.', 'akibara-gp' ), array() ) . "\n\n";
+echo wp_kses( __( 'Gracias por sumarte a Akibara, tu distrito del manga y cómics. Ya tienes tu cuenta lista para seguir tus pedidos y restocks.', 'akibara-gp' ), array() ) . "\n\n";
 /* translators: %s: usuario */
 echo wp_kses( sprintf( __( 'Tu usuario: %s', 'akibara-gp' ), $user_login ), array() ) . "\n\n";
 
@@ -38,7 +38,7 @@ if ( $password_generated && $set_password_url ) {
 	echo esc_url_raw( wc_get_page_permalink( 'myaccount' ) ) . "\n\n";
 }
 
-echo wp_kses( __( 'Desde Mi cuenta puedes ver tus pedidos, seguir tus preventas y cambiar tu contraseña cuando quieras.', 'akibara-gp' ), array() ) . "\n\n";
+echo wp_kses( __( 'Desde Mi cuenta puedes ver tus pedidos y cambiar tu contraseña cuando quieras.', 'akibara-gp' ), array() ) . "\n\n";
 
 if ( $additional_content ) {
 	echo wp_kses( wp_strip_all_tags( wptexturize( $additional_content ) ), array() ) . "\n\n";

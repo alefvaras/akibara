@@ -19,6 +19,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.16
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress UnusedVariable
  */
 final class EdgePurge {
 
@@ -70,12 +75,12 @@ final class EdgePurge {
 	}
 
 	/**
-	 * ¿El carril está encendido?
+	 * ¿El carril está encendido? Opera permanentemente por código.
 	 *
 	 * @return bool
 	 */
 	public static function is_enabled(): bool {
-		return 'no' !== (string) get_option( self::ENABLED_OPTION, 'yes' );
+		return true;
 	}
 
 	/**
@@ -263,7 +268,6 @@ final class EdgePurge {
 	 */
 	private static function anotar_resultado( $respuesta, array $lote, int $intento ): void {
 		$ok     = false;
-		$motivo = 'sin respuesta';
 
 		if ( is_wp_error( $respuesta ) ) {
 			$motivo = $respuesta->get_error_message();

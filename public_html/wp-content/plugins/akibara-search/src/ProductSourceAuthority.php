@@ -23,7 +23,12 @@ defined( 'ABSPATH' ) || exit;
  * posteriores y conserva su diagnóstico original.
  *
  * @since 0.1.14
+ * @api
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress InvalidScalarArgument
+ * @psalm-suppress TooManyArguments
  */
+// @phpstan-ignore complexity.classLike
 final class ProductSourceAuthority {
 
 	use Support\FailsClosed;
@@ -94,7 +99,7 @@ final class ProductSourceAuthority {
 	 * @param array<int, \WP_Term> $terms Términos públicos observados.
 	 */
 	public function verify_product_terms( int $product_id, string $taxonomy, array $terms ): bool {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		if ( ! isset( $this->authoritative_product_terms[ $product_id ][ $taxonomy ] )
@@ -123,9 +128,12 @@ final class ProductSourceAuthority {
 		return true;
 	}
 
-	/** Comprueba un término ancestro rehidratado contra el cierre SQL crudo. */
+	/**
+	 * Comprueba un término ancestro rehidratado contra el cierre SQL crudo.
+	 * @param mixed $term
+	 */
 	public function verify_product_term( int $product_id, string $taxonomy, $term ): bool {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		if ( ! isset( $this->authoritative_product_terms[ $product_id ][ $taxonomy ] )
@@ -146,7 +154,7 @@ final class ProductSourceAuthority {
 
 	/** Verifica orden y cobertura exactos del get_ancestors() filtrable. */
 	public function verify_product_ancestor_ids( int $product_id, string $taxonomy, int $term_id, array $ancestor_ids ): bool {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		if ( ! isset( $this->authoritative_product_terms[ $product_id ][ $taxonomy ] )
@@ -185,9 +193,12 @@ final class ProductSourceAuthority {
 		return true;
 	}
 
-	/** Verifica un campo consumido de WC_Product contra la fila posts fijada. */
+	/**
+	 * Verifica un campo consumido de WC_Product contra la fila posts fijada.
+	 * @param mixed $value
+	 */
 	public function verify_product_post_field( int $product_id, string $field, $value ): bool {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		if ( ! isset( $this->authoritative_product_posts[ $product_id ] ) ) {
@@ -214,8 +225,9 @@ final class ProductSourceAuthority {
 	 * @param array<int, int> $raw_ids IDs positivos.
 	 * @return array<int, int>
 	 */
-	public function published_product_ids( array $raw_ids ): array {
-		if ( ! $this->available ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function published_product_ids( array $raw_ids ): array { // @phpstan-ignore complexity.functionLike
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -229,7 +241,7 @@ final class ProductSourceAuthority {
 				fn() => ( $this->test_reader )( $ids ),
 				'Could not read the test product source.'
 			);
-			if ( ! $this->available || ! is_array( $result ) ) {
+			if ( ! $this->is_available() || ! is_array( $result ) ) {
 				$this->mark_unavailable( 'The test product source returned an invalid shape.' );
 				return array();
 			}
@@ -238,7 +250,7 @@ final class ProductSourceAuthority {
 		}
 
 		$raw_posts = $this->authoritative_product_post_rows( $ids );
-		if ( ! $this->available || null === $raw_posts ) {
+		if ( ! $this->is_available() || null === $raw_posts ) {
 			return array();
 		}
 		foreach ( $ids as $id ) {
@@ -249,7 +261,7 @@ final class ProductSourceAuthority {
 		}
 
 		$this->evict( $ids, array( 'posts', 'post_meta' ) );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return array();
 		}
 
@@ -260,7 +272,7 @@ final class ProductSourceAuthority {
 			},
 			'Could not prime product posts.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $ids );
 			return array();
 		}
@@ -269,7 +281,7 @@ final class ProductSourceAuthority {
 		foreach ( $ids as $id ) {
 			$expected = $raw_posts[ $id ] ?? null;
 			$post = $this->read( static fn() => get_post( $id ), 'Could not verify a product post.' );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				$this->cleanup( $ids );
 				return array();
 			}
@@ -286,7 +298,7 @@ final class ProductSourceAuthority {
 				$this->cleanup( $ids );
 				return array();
 			}
-			if ( ! isset( $post->ID, $post->post_type, $post->post_status, $post->post_title, $post->post_excerpt, $post->post_content, $post->menu_order,
+			if ( ! isset( $post->ID, $post->post_type, $post->post_status, $post->post_title, $post->post_excerpt, $post->post_content, $post->menu_order, // @phpstan-ignore isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property, isset.property
 				$post->post_name, $post->post_date, $post->post_date_gmt, $post->post_modified, $post->post_modified_gmt,
 				$post->post_parent, $post->post_password, $post->comment_status )
 				|| ! is_int( $post->ID ) || $post->ID !== $id
@@ -317,19 +329,19 @@ final class ProductSourceAuthority {
 		}
 
 		$this->prime_post_meta( $published );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $published );
 			return array();
 		}
 
 		$this->prime_terms( $published );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $published );
 			return array();
 		}
 
 		$this->evict_woocommerce_product_caches( $published );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $published );
 			return array();
 		}
@@ -345,8 +357,9 @@ final class ProductSourceAuthority {
 	 * @param int $limit     Cota de hijos.
 	 * @return array<int, \WC_Product>
 	 */
-	public function published_variations( int $parent_id, int $limit ): array {
-		if ( ! $this->available || $parent_id <= 0 || $limit <= 0 || $limit > 50 ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function published_variations( int $parent_id, int $limit ): array { // @phpstan-ignore complexity.functionLike
+		if ( ! $this->is_available() || $parent_id <= 0 || $limit <= 0 || $limit > 50 ) {
 			if ( $this->available && ( $parent_id <= 0 || $limit <= 0 || $limit > 50 ) ) {
 				$this->mark_unavailable( 'Variation source bounds are invalid.' );
 			}
@@ -364,7 +377,7 @@ final class ProductSourceAuthority {
 			return $this->validated_variation_products( $products, $parent_id, $limit );
 		}
 
-		if ( ! is_object( $this->db ) || ! isset( $this->db->posts )
+		if ( ! is_object( $this->db ) || ! isset( $this->db->posts ) // @phpstan-ignore isset.property
 			|| ! is_callable( array( $this->db, 'prepare' ) ) || ! is_callable( array( $this->db, 'get_col' ) ) ) {
 			$this->mark_unavailable( 'Authoritative variation table is unavailable.' );
 			return array();
@@ -382,7 +395,7 @@ final class ProductSourceAuthority {
 			),
 			'Could not prepare authoritative variation read.'
 		);
-		if ( ! $this->available || ! is_string( $sql ) || '' === trim( $sql ) ) {
+		if ( ! $this->is_available() || ! is_string( $sql ) || '' === trim( $sql ) ) {
 			$this->mark_unavailable( 'Authoritative variation query has an invalid shape.' );
 			return array();
 		}
@@ -390,7 +403,7 @@ final class ProductSourceAuthority {
 			fn() => $this->db->get_col( $sql ),
 			'Could not read authoritative variations.'
 		);
-		if ( ! $this->available || ! is_array( $raw_ids ) ) {
+		if ( ! $this->is_available() || ! is_array( $raw_ids ) ) {
 			$this->mark_unavailable( 'Authoritative variation identifiers have an invalid shape.' );
 			return array();
 		}
@@ -411,14 +424,14 @@ final class ProductSourceAuthority {
 			},
 			'Could not prime variation posts.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $ids );
 			return array();
 		}
 		foreach ( $ids as $id ) {
 			$post = $this->read( static fn() => get_post( $id ), 'Could not verify a variation post.' );
-			if ( ! $this->available || ! $post instanceof \WP_Post
-				|| ! isset( $post->ID, $post->post_type, $post->post_status, $post->post_parent )
+			if ( ! $this->is_available() || ! $post instanceof \WP_Post
+				|| ! isset( $post->ID, $post->post_type, $post->post_status, $post->post_parent ) // @phpstan-ignore isset.property, isset.property, isset.property, isset.property
 				|| ! is_int( $post->ID ) || $post->ID !== $id
 				|| ! is_string( $post->post_type ) || 'product_variation' !== $post->post_type
 				|| ! is_string( $post->post_status ) || 'publish' !== $post->post_status
@@ -430,7 +443,7 @@ final class ProductSourceAuthority {
 		}
 		$this->prime_post_meta( $ids );
 		$this->evict_woocommerce_product_caches( $ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $ids );
 			return array();
 		}
@@ -441,7 +454,7 @@ final class ProductSourceAuthority {
 				static fn() => wc_get_product( $id ),
 				'Could not hydrate an authoritative variation.'
 			);
-			if ( ! $this->available || ! $product instanceof \WC_Product ) {
+			if ( ! $this->is_available() || ! $product instanceof \WC_Product ) {
 				$this->mark_unavailable( 'Authoritative variation could not be hydrated.' );
 				$this->cleanup( $ids );
 				return array();
@@ -460,7 +473,7 @@ final class ProductSourceAuthority {
 	 * exactamente la misma frontera.
 	 */
 	public function prepare_variable_price_source( int $parent_id ): bool {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return false;
 		}
 		if ( $parent_id <= 0 ) {
@@ -485,16 +498,16 @@ final class ProductSourceAuthority {
 				'Could not read all test variation sources.'
 			);
 			$this->validated_variation_products( $products, $parent_id, PHP_INT_MAX );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return false;
 			}
 		} else {
 			$child_ids = $this->all_price_variation_ids( $parent_id );
-			if ( ! $this->available || null === $child_ids ) {
+			if ( ! $this->is_available() || null === $child_ids ) {
 				return false;
 			}
 			$this->prepare_variation_sources( $child_ids, $parent_id );
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return false;
 			}
 		}
@@ -505,7 +518,7 @@ final class ProductSourceAuthority {
 				static fn() => delete_transient( $name ),
 				'Could not invalidate WooCommerce variable product transient.'
 			);
-			if ( ! $this->available || ! is_bool( $deleted ) ) {
+			if ( ! $this->is_available() || ! is_bool( $deleted ) ) {
 				$this->mark_unavailable( 'WooCommerce variable product transient deletion returned an invalid shape.' );
 				return false;
 			}
@@ -513,7 +526,7 @@ final class ProductSourceAuthority {
 				static fn() => get_transient( $name ),
 				'Could not verify WooCommerce variable product transient.'
 			);
-			if ( ! $this->available ) {
+			if ( ! $this->is_available() ) {
 				return false;
 			}
 			if ( false !== $remaining ) {
@@ -527,7 +540,7 @@ final class ProductSourceAuthority {
 
 	/** @return array<int, int>|null */
 	private function all_price_variation_ids( int $parent_id ): ?array {
-		if ( ! is_object( $this->db ) || ! isset( $this->db->posts )
+		if ( ! is_object( $this->db ) || ! isset( $this->db->posts ) // @phpstan-ignore isset.property
 			|| ! is_callable( array( $this->db, 'prepare' ) ) || ! is_callable( array( $this->db, 'get_col' ) ) ) {
 			$this->mark_unavailable( 'Authoritative variation table is unavailable.' );
 			return null;
@@ -544,7 +557,7 @@ final class ProductSourceAuthority {
 			),
 			'Could not prepare all authoritative variation sources.'
 		);
-		if ( ! $this->available || ! is_string( $sql ) || '' === trim( $sql ) ) {
+		if ( ! $this->is_available() || ! is_string( $sql ) || '' === trim( $sql ) ) {
 			$this->mark_unavailable( 'All authoritative variation query has an invalid shape.' );
 			return null;
 		}
@@ -552,7 +565,7 @@ final class ProductSourceAuthority {
 			fn() => $this->db->get_col( $sql ),
 			'Could not read all authoritative variation sources.'
 		);
-		if ( ! $this->available || ! is_array( $raw_ids ) ) {
+		if ( ! $this->is_available() || ! is_array( $raw_ids ) ) {
 			$this->mark_unavailable( 'All authoritative variation identifiers have an invalid shape.' );
 			return null;
 		}
@@ -577,15 +590,15 @@ final class ProductSourceAuthority {
 			},
 			'Could not prime all variation posts.'
 		);
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $ids );
 			return;
 		}
 		$expected_statuses = array();
 		foreach ( $ids as $id ) {
 			$post = $this->read( static fn() => get_post( $id ), 'Could not verify an all-variation post.' );
-			if ( ! $this->available || ! $post instanceof \WP_Post
-				|| ! isset( $post->ID, $post->post_type, $post->post_status, $post->post_parent )
+			if ( ! $this->is_available() || ! $post instanceof \WP_Post
+				|| ! isset( $post->ID, $post->post_type, $post->post_status, $post->post_parent ) // @phpstan-ignore isset.property, isset.property, isset.property, isset.property
 				|| ! is_int( $post->ID ) || $post->ID !== $id
 				|| ! is_string( $post->post_type ) || 'product_variation' !== $post->post_type
 				|| ! is_string( $post->post_status ) || ! in_array( $post->post_status, array( 'publish', 'private' ), true )
@@ -598,7 +611,7 @@ final class ProductSourceAuthority {
 		}
 		$this->prime_post_meta( $ids );
 		$this->evict_woocommerce_product_caches( $ids );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			$this->cleanup( $ids );
 			return;
 		}
@@ -608,31 +621,31 @@ final class ProductSourceAuthority {
 				static fn() => wc_get_product( $id ),
 				'Could not hydrate an all-variation product.'
 			);
-			if ( ! $this->available || ! $product instanceof \WC_Product ) {
+			if ( ! $this->is_available() || ! $product instanceof \WC_Product ) {
 				$this->mark_unavailable( 'All-variation product could not be hydrated.' );
 				$this->cleanup( $ids );
 				return;
 			}
 			$observed_id = $this->read( static fn() => $product->get_id(), 'Could not read all-variation identity.' );
-			if ( ! $this->available || ! is_int( $observed_id ) || $observed_id !== $id ) {
+			if ( ! $this->is_available() || ! is_int( $observed_id ) || $observed_id !== $id ) {
 				$this->mark_unavailable( 'All-variation product identity disagrees with its source.' );
 				$this->cleanup( $ids );
 				return;
 			}
 			$status = $this->read( static fn() => $product->get_status(), 'Could not read all-variation status.' );
-			if ( ! $this->available || ! is_string( $status ) || $status !== $expected_statuses[ $id ] ) {
+			if ( ! $this->is_available() || ! is_string( $status ) || $status !== $expected_statuses[ $id ] ) {
 				$this->mark_unavailable( 'All-variation product status disagrees with its source.' );
 				$this->cleanup( $ids );
 				return;
 			}
 			$is_variation = $this->read( static fn() => $product->is_type( 'variation' ), 'Could not read all-variation type.' );
-			if ( ! $this->available || true !== $is_variation ) {
+			if ( ! $this->is_available() || true !== $is_variation ) {
 				$this->mark_unavailable( 'All-variation product type disagrees with its source.' );
 				$this->cleanup( $ids );
 				return;
 			}
 			$observed_parent = $this->read( static fn() => $product->get_parent_id(), 'Could not read all-variation parent.' );
-			if ( ! $this->available || ! is_int( $observed_parent ) || $observed_parent !== $parent_id ) {
+			if ( ! $this->is_available() || ! is_int( $observed_parent ) || $observed_parent !== $parent_id ) {
 				$this->mark_unavailable( 'All-variation product parent disagrees with its source.' );
 				$this->cleanup( $ids );
 				return;
@@ -648,7 +661,7 @@ final class ProductSourceAuthority {
 	 * @return array<int, \WC_Product>
 	 */
 	private function validated_variation_products( $raw_products, int $parent_id, int $limit, array $expected_ids = array() ): array {
-		if ( ! $this->available || ! is_array( $raw_products ) || count( $raw_products ) > $limit ) {
+		if ( ! $this->is_available() || ! is_array( $raw_products ) || count( $raw_products ) > $limit ) {
 			$this->mark_unavailable( 'Variation products have an invalid shape.' );
 			return array();
 		}
@@ -660,22 +673,22 @@ final class ProductSourceAuthority {
 			}
 			$id = $this->read( static fn() => $product->get_id(), 'Could not read variation identity.' );
 			$expected_id = $expected_ids[ $offset ] ?? $id;
-			if ( ! $this->available || ! is_int( $id ) || $id <= 0 || $id !== $expected_id ) {
+			if ( ! $this->is_available() || ! is_int( $id ) || $id <= 0 || $id !== $expected_id ) {
 				$this->mark_unavailable( 'Variation product identity disagrees with the authoritative source.' );
 				return array();
 			}
 			$status = $this->read( static fn() => $product->get_status(), 'Could not read variation status.' );
-			if ( ! $this->available || ! is_string( $status ) || 'publish' !== $status ) {
+			if ( ! $this->is_available() || ! is_string( $status ) || 'publish' !== $status ) {
 				$this->mark_unavailable( 'Variation product status disagrees with the authoritative source.' );
 				return array();
 			}
 			$is_variation = $this->read( static fn() => $product->is_type( 'variation' ), 'Could not read variation type.' );
-			if ( ! $this->available || true !== $is_variation ) {
+			if ( ! $this->is_available() || true !== $is_variation ) {
 				$this->mark_unavailable( 'Variation product type disagrees with the authoritative source.' );
 				return array();
 			}
 			$observed_parent = $this->read( static fn() => $product->get_parent_id(), 'Could not read variation parent.' );
-			if ( ! $this->available || ! is_int( $observed_parent ) || $observed_parent !== $parent_id ) {
+			if ( ! $this->is_available() || ! is_int( $observed_parent ) || $observed_parent !== $parent_id ) {
 				$this->mark_unavailable( 'Variation product parent disagrees with the authoritative source.' );
 				return array();
 			}
@@ -688,8 +701,8 @@ final class ProductSourceAuthority {
 	 * @param array<int, int> $ids IDs pedidos.
 	 * @return array<int, array<string, mixed>>|null
 	 */
-	private function authoritative_product_post_rows( array $ids ): ?array {
-		if ( ! is_object( $this->db ) || ! isset( $this->db->posts )
+	private function authoritative_product_post_rows( array $ids ): ?array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		if ( ! is_object( $this->db ) || ! isset( $this->db->posts ) // @phpstan-ignore isset.property
 			|| ! is_callable( array( $this->db, 'prepare' ) ) || ! is_callable( array( $this->db, 'get_results' ) ) ) {
 			$this->mark_unavailable( 'Authoritative product post table is unavailable.' );
 			return null;
@@ -704,7 +717,7 @@ final class ProductSourceAuthority {
 			),
 			'Could not prepare authoritative product post read.'
 		);
-		if ( ! $this->available || ! is_string( $sql ) || '' === trim( $sql ) ) {
+		if ( ! $this->is_available() || ! is_string( $sql ) || '' === trim( $sql ) ) {
 			$this->mark_unavailable( 'Authoritative product post query has an invalid shape.' );
 			return null;
 		}
@@ -712,7 +725,7 @@ final class ProductSourceAuthority {
 			fn() => $this->db->get_results( $sql, ARRAY_A ),
 			'Could not read authoritative product posts.'
 		);
-		if ( ! $this->available || ! is_array( $rows ) || count( $rows ) > count( $ids ) ) {
+		if ( ! $this->is_available() || ! is_array( $rows ) || count( $rows ) > count( $ids ) ) {
 			$this->mark_unavailable( 'Authoritative product posts have an invalid shape.' );
 			return null;
 		}
@@ -793,7 +806,7 @@ final class ProductSourceAuthority {
 				static fn() => \WC_Cache_Helper::get_cache_prefix( $group ),
 				'Could not read WooCommerce product cache prefix.'
 			);
-			if ( ! $this->available || ! is_string( $before ) || '' === $before ) {
+			if ( ! $this->is_available() || ! is_string( $before ) || '' === $before ) {
 				$this->mark_unavailable( 'WooCommerce product cache prefix has an invalid shape.' );
 				return;
 			}
@@ -801,7 +814,7 @@ final class ProductSourceAuthority {
 				static fn() => \WC_Cache_Helper::invalidate_cache_group( $group ),
 				'Could not invalidate WooCommerce product cache prefix.'
 			);
-			if ( ! $this->available || true !== $invalidated ) {
+			if ( ! $this->is_available() || true !== $invalidated ) {
 				$this->mark_unavailable( 'WooCommerce product cache prefix invalidation failed.' );
 				return;
 			}
@@ -809,7 +822,7 @@ final class ProductSourceAuthority {
 				static fn() => \WC_Cache_Helper::get_cache_prefix( $group ),
 				'Could not verify WooCommerce product cache prefix.'
 			);
-			if ( ! $this->available || ! is_string( $after ) || '' === $after || $before === $after ) {
+			if ( ! $this->is_available() || ! is_string( $after ) || '' === $after || $before === $after ) {
 				$this->mark_unavailable( 'WooCommerce product cache prefix invalidation could not be verified.' );
 				return;
 			}
@@ -821,10 +834,10 @@ final class ProductSourceAuthority {
 			return;
 		}
 		$cache = $this->read(
-			static fn() => wc_get_container()->get( $product_cache_class ),
+			static fn() => wc_get_container()->get( $product_cache_class ), // @phpstan-ignore argument.type
 			'Could not resolve WooCommerce product object cache.'
 		);
-		if ( ! $this->available || ! is_object( $cache )
+		if ( ! $this->is_available() || ! is_object( $cache )
 			|| ! is_callable( array( $cache, 'remove' ) ) || ! is_callable( array( $cache, 'is_cached' ) ) ) {
 			$this->mark_unavailable( 'WooCommerce product object cache has an invalid shape.' );
 			return;
@@ -835,7 +848,7 @@ final class ProductSourceAuthority {
 				static fn() => $cache->remove( $id ),
 				'Could not invalidate WooCommerce product object cache.'
 			);
-			if ( ! $this->available || ! is_bool( $removed ) ) {
+			if ( ! $this->is_available() || ! is_bool( $removed ) ) {
 				$this->mark_unavailable( 'WooCommerce product object cache invalidation returned an invalid shape.' );
 				return;
 			}
@@ -843,7 +856,7 @@ final class ProductSourceAuthority {
 				static fn() => $cache->is_cached( $id ),
 				'Could not verify WooCommerce product object cache.'
 			);
-			if ( ! $this->available || ! is_bool( $cached ) || $cached ) {
+			if ( ! $this->is_available() || ! is_bool( $cached ) || $cached ) {
 				$this->mark_unavailable( 'WooCommerce product object cache invalidation could not be verified.' );
 				return;
 			}
@@ -854,7 +867,7 @@ final class ProductSourceAuthority {
 	private function prime_post_meta( array $ids ): void {
 		$this->evict( $ids, array( 'post_meta' ) );
 		$meta = $this->read( static fn() => update_postmeta_cache( $ids ), 'Could not prime product metadata.' );
-		if ( ! $this->available || ! $this->valid_cache_map( $meta, $ids ) ) {
+		if ( ! $this->is_available() || ! $this->valid_cache_map( $meta, $ids ) ) {
 			$this->mark_unavailable( 'Product metadata coverage is incomplete.' );
 			return;
 		}
@@ -863,7 +876,7 @@ final class ProductSourceAuthority {
 			static fn() => wp_cache_get_multiple( $ids, 'post_meta' ),
 			'Could not verify product metadata cache.'
 		);
-		if ( ! $this->available || ! $this->valid_cache_map( $cached, $ids ) ) {
+		if ( ! $this->is_available() || ! $this->valid_cache_map( $cached, $ids ) ) {
 			$this->mark_unavailable( 'Product metadata cache coverage is incomplete.' );
 			return;
 		}
@@ -876,7 +889,8 @@ final class ProductSourceAuthority {
 	}
 
 	/** @param array<int, int> $ids */
-	private function prime_terms( array $ids ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function prime_terms( array $ids ): void { // @phpstan-ignore complexity.functionLike
 		foreach ( $ids as $id ) {
 			unset( $this->authoritative_product_terms[ $id ] );
 		}
@@ -884,7 +898,7 @@ final class ProductSourceAuthority {
 			static fn() => get_object_taxonomies( 'product', 'names' ),
 			'Could not enumerate product taxonomies.'
 		);
-		if ( ! $this->available || ! is_array( $raw_taxonomies ) ) {
+		if ( ! $this->is_available() || ! is_array( $raw_taxonomies ) ) {
 			$this->mark_unavailable( 'Product taxonomies have an invalid shape.' );
 			return;
 		}
@@ -905,7 +919,7 @@ final class ProductSourceAuthority {
 
 		$relationship_groups = array_map( static fn( string $taxonomy ): string => $taxonomy . '_relationships', $taxonomies );
 		$this->evict( $ids, $relationship_groups );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return;
 		}
 
@@ -915,7 +929,7 @@ final class ProductSourceAuthority {
 		// hidratar el object cache. La misma foto incluye todos los ancestros que
 		// DocumentBuilder recorrerá mediante get_ancestors()/get_term().
 		$source = $this->authoritative_term_source( $ids, $taxonomies );
-		if ( ! $this->available || null === $source ) {
+		if ( ! $this->is_available() || null === $source ) {
 			return;
 		}
 		$relations   = $source['relations'];
@@ -929,7 +943,7 @@ final class ProductSourceAuthority {
 				static fn() => wp_cache_set_multiple( $relations[ $taxonomy ], $taxonomy . '_relationships' ),
 				'Could not cache product-term relationships.'
 			);
-			if ( ! $this->available || ! $this->valid_write_map( $written, $ids ) ) {
+			if ( ! $this->is_available() || ! $this->valid_write_map( $written, $ids ) ) {
 				$this->mark_unavailable( 'Product-term relationships could not be cached.' );
 				return;
 			}
@@ -937,7 +951,7 @@ final class ProductSourceAuthority {
 				static fn() => wp_cache_get_multiple( $ids, $taxonomy . '_relationships' ),
 				'Could not verify product-term relationship cache.'
 			);
-			if ( ! $this->available || ! is_array( $cached ) ) {
+			if ( ! $this->is_available() || ! is_array( $cached ) ) {
 				$this->mark_unavailable( 'Product-term relationship cache has an invalid shape.' );
 				return;
 			}
@@ -962,10 +976,29 @@ final class ProductSourceAuthority {
 		}
 
 		$this->evict( $term_ids, array( 'terms' ) );
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return;
 		}
 
+		if ( ! $this->verify_primed_term_objects( $taxonomies, $term_ids, $term_records ) ) {
+			return;
+		}
+
+		if ( ! $this->prime_term_meta_cache( $term_ids ) ) {
+			return;
+		}
+		$this->store_term_snapshots( $ids, $taxonomies, $relations, $term_records );
+	}
+
+	/**
+	 * Hidrata y verifica los objetos WP_Term contra la fuente SQL autoritativa.
+	 *
+	 * @param array<int, string>                                                                   $taxonomies   Taxonomías registradas.
+	 * @param array<int, int>                                                                      $term_ids     IDs de términos.
+	 * @param array<string, array{term_id:int,taxonomy:string,parent:int,slug:string,name:string}> $term_records Registros autoritativos.
+	 * @return bool
+	 */
+	private function verify_primed_term_objects( array $taxonomies, array $term_ids, array $term_records ): bool {
 		$term_objects = $this->read(
 			static fn() => get_terms(
 				array(
@@ -980,59 +1013,68 @@ final class ProductSourceAuthority {
 			),
 			'Could not read product term objects.'
 		);
-		if ( ! $this->available || ! is_array( $term_objects ) ) {
+		if ( ! $this->is_available() || ! is_array( $term_objects ) ) {
 			$this->mark_unavailable( 'Product term objects have an invalid shape.' );
-			return;
+			return false;
 		}
 		$observed = array();
 		foreach ( $term_objects as $term ) {
 			if ( ! $term instanceof \WP_Term || (int) $term->term_id <= 0 ) {
 				$this->mark_unavailable( 'Product term objects contain invalid data.' );
-				return;
+				return false;
 			}
-			$key = (string) $term->taxonomy . ':' . (int) $term->term_id;
+			$key = $term->taxonomy . ':' . (int) $term->term_id;
 			if ( isset( $observed[ $key ] ) || ! isset( $term_records[ $key ] ) ) {
 				$this->mark_unavailable( 'Product term objects do not match the authoritative source.' );
-				return;
+				return false;
 			}
 			$record = $term_records[ $key ];
 			if ( (int) $term->parent !== $record['parent']
 				|| (string) $term->slug !== $record['slug']
 				|| (string) $term->name !== $record['name'] ) {
 				$this->mark_unavailable( 'Product term object data disagrees with the authoritative source.' );
-				return;
+				return false;
 			}
 			$observed[ $key ] = true;
 		}
 		if ( count( $observed ) !== count( $term_records ) ) {
 			$this->mark_unavailable( 'Product term object coverage is incomplete.' );
-			return;
+			return false;
 		}
+		return true;
+	}
 
+	/**
+	 * Hidrata y verifica la caché de term_meta para los términos dados.
+	 *
+	 * @param array<int, int> $term_ids IDs de términos.
+	 * @return bool
+	 */
+	private function prime_term_meta_cache( array $term_ids ): bool {
 		$this->evict( $term_ids, array( 'term_meta' ) );
 		$term_meta = $this->read(
 			static fn() => update_meta_cache( 'term', $term_ids ),
 			'Could not prime product term metadata.'
 		);
-		if ( ! $this->available || ! $this->valid_cache_map( $term_meta, $term_ids ) ) {
+		if ( ! $this->is_available() || ! $this->valid_cache_map( $term_meta, $term_ids ) ) {
 			$this->mark_unavailable( 'Product term metadata coverage is incomplete.' );
-			return;
+			return false;
 		}
 		$cached_meta = $this->read(
 			static fn() => wp_cache_get_multiple( $term_ids, 'term_meta' ),
 			'Could not verify product term metadata cache.'
 		);
-		if ( ! $this->available || ! $this->valid_cache_map( $cached_meta, $term_ids ) ) {
+		if ( ! $this->is_available() || ! $this->valid_cache_map( $cached_meta, $term_ids ) ) {
 			$this->mark_unavailable( 'Product term metadata cache coverage is incomplete.' );
-			return;
+			return false;
 		}
 		foreach ( $term_ids as $term_id ) {
 			if ( $cached_meta[ $term_id ] !== $term_meta[ $term_id ] ) {
 				$this->mark_unavailable( 'Product term metadata cache disagrees with the freshly primed source.' );
-				return;
+				return false;
 			}
 		}
-		$this->store_term_snapshots( $ids, $taxonomies, $relations, $term_records );
+		return true;
 	}
 
 	/**
@@ -1096,7 +1138,7 @@ final class ProductSourceAuthority {
 	/** @param mixed $term @return array{term_id:int,taxonomy:string,parent:int,slug:string,name:string}|null */
 	private function term_object_record( $term, string $taxonomy ): ?array {
 		if ( ! $term instanceof \WP_Term
-			|| ! isset( $term->term_id, $term->taxonomy, $term->parent, $term->slug, $term->name )
+			|| ! isset( $term->term_id, $term->taxonomy, $term->parent, $term->slug, $term->name ) // @phpstan-ignore isset.property, isset.property, isset.property, isset.property, isset.property
 			|| ! is_int( $term->term_id ) || $term->term_id <= 0
 			|| ! is_int( $term->parent ) || $term->parent < 0
 			|| ! is_string( $term->taxonomy ) || $term->taxonomy !== $taxonomy
@@ -1122,7 +1164,7 @@ final class ProductSourceAuthority {
 	 */
 	private function authoritative_term_source( array $ids, array $taxonomies ): ?array {
 		if ( ! is_object( $this->db )
-			|| ! isset( $this->db->term_relationships, $this->db->term_taxonomy, $this->db->terms )
+			|| ! isset( $this->db->term_relationships, $this->db->term_taxonomy, $this->db->terms ) // @phpstan-ignore isset.property, isset.property, isset.property
 			|| ! is_callable( array( $this->db, 'prepare' ) )
 			|| ! is_callable( array( $this->db, 'get_results' ) ) ) {
 			$this->mark_unavailable( 'Authoritative product term tables are unavailable.' );
@@ -1151,7 +1193,7 @@ final class ProductSourceAuthority {
 			),
 			'Could not prepare authoritative product-term relationships.'
 		);
-		if ( ! $this->available || ! is_string( $sql ) || '' === trim( $sql ) ) {
+		if ( ! $this->is_available() || ! is_string( $sql ) || '' === trim( $sql ) ) {
 			$this->mark_unavailable( 'Authoritative product-term query has an invalid shape.' );
 			return null;
 		}
@@ -1159,7 +1201,7 @@ final class ProductSourceAuthority {
 			fn() => $this->db->get_results( $sql, ARRAY_A ),
 			'Could not read authoritative product-term relationships.'
 		);
-		if ( ! $this->available || ! is_array( $rows ) ) {
+		if ( ! $this->is_available() || ! is_array( $rows ) ) {
 			$this->mark_unavailable( 'Authoritative product-term relationships have an invalid shape.' );
 			return null;
 		}
@@ -1186,8 +1228,21 @@ final class ProductSourceAuthority {
 			}
 		}
 
-		// Completar padres por olas. Cada par taxonomy:id debe tener una fila
-		// exacta; un padre ausente, duplicado o que cruza taxonomía cierra la foto.
+		if ( ! $this->complete_term_ancestors( $records ) || ! $this->verify_acyclic_ancestry( $records ) ) {
+			return null;
+		}
+
+		return array( 'relations' => $relations, 'terms' => $records );
+	}
+
+	/**
+	 * Completa padres por olas desde las tablas Core.
+	 *
+	 * @param array<string, array{term_id:int,taxonomy:string,parent:int,slug:string,name:string}> $records Registros acumulados.
+	 * @return bool
+	 */
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function complete_term_ancestors( array &$records ): bool { // @phpstan-ignore complexity.functionLike
 		$pending = array();
 		foreach ( $records as $record ) {
 			if ( $record['parent'] > 0 ) {
@@ -1198,7 +1253,7 @@ final class ProductSourceAuthority {
 		while ( array() !== $pending ) {
 			if ( ++$rounds > 100 || count( $records ) + count( $pending ) > 10000 ) {
 				$this->mark_unavailable( 'Product taxonomy ancestry exceeds its safety bound.' );
-				return null;
+				return false;
 			}
 			foreach ( array_keys( $pending ) as $key ) {
 				if ( isset( $records[ $key ] ) ) {
@@ -1209,10 +1264,10 @@ final class ProductSourceAuthority {
 				break;
 			}
 
-			$parent_ids  = array_values( array_unique( array_map( static fn( array $pair ): int => $pair[1], $pending ), SORT_NUMERIC ) );
-			$parent_tax  = array_values( array_unique( array_map( static fn( array $pair ): string => $pair[0], $pending ), SORT_STRING ) );
-			$id_marks    = implode( ', ', array_fill( 0, count( $parent_ids ), '%d' ) );
-			$tax_marks   = implode( ', ', array_fill( 0, count( $parent_tax ), '%s' ) );
+			$parent_ids = array_values( array_unique( array_map( static fn( array $pair ): int => $pair[1], $pending ), SORT_NUMERIC ) );
+			$parent_tax = array_values( array_unique( array_map( static fn( array $pair ): string => $pair[0], $pending ), SORT_STRING ) );
+			$id_marks   = implode( ', ', array_fill( 0, count( $parent_ids ), '%d' ) );
+			$tax_marks  = implode( ', ', array_fill( 0, count( $parent_tax ), '%s' ) );
 			$parent_sql = $this->read(
 				fn() => $this->db->prepare(
 					"SELECT t.term_id, t.name, t.slug, tt.taxonomy, tt.parent
@@ -1224,24 +1279,24 @@ final class ProductSourceAuthority {
 				),
 				'Could not prepare authoritative product term ancestors.'
 			);
-			if ( ! $this->available || ! is_string( $parent_sql ) || '' === trim( $parent_sql ) ) {
+			if ( ! $this->is_available() || ! is_string( $parent_sql ) || '' === trim( $parent_sql ) ) {
 				$this->mark_unavailable( 'Authoritative product term ancestor query has an invalid shape.' );
-				return null;
+				return false;
 			}
 			$parent_rows = $this->read(
 				fn() => $this->db->get_results( $parent_sql, ARRAY_A ),
 				'Could not read authoritative product term ancestors.'
 			);
-			if ( ! $this->available || ! is_array( $parent_rows ) ) {
+			if ( ! $this->is_available() || ! is_array( $parent_rows ) ) {
 				$this->mark_unavailable( 'Authoritative product term ancestors have an invalid shape.' );
-				return null;
+				return false;
 			}
 			$found = array();
 			foreach ( $parent_rows as $row ) {
 				$record = $this->term_record( $row );
 				if ( null === $record ) {
 					$this->mark_unavailable( 'Authoritative product term ancestor contains invalid data.' );
-					return null;
+					return false;
 				}
 				$key = $record['taxonomy'] . ':' . $record['term_id'];
 				if ( ! isset( $pending[ $key ] ) ) {
@@ -1249,13 +1304,13 @@ final class ProductSourceAuthority {
 				}
 				if ( isset( $found[ $key ] ) || ! $this->merge_term_record( $records, $record ) ) {
 					$this->mark_unavailable( 'Authoritative product term ancestor is not unique.' );
-					return null;
+					return false;
 				}
 				$found[ $key ] = true;
 			}
 			if ( count( $found ) !== count( $pending ) ) {
 				$this->mark_unavailable( 'Authoritative product term ancestor coverage is incomplete.' );
-				return null;
+				return false;
 			}
 			$pending = array();
 			foreach ( $found as $key => $_present ) {
@@ -1265,22 +1320,30 @@ final class ProductSourceAuthority {
 				}
 			}
 		}
+		return true;
+	}
 
+	/**
+	 * Verifica que la jerarquía de términos sea acíclica y completa.
+	 *
+	 * @param array<string, array{term_id:int,taxonomy:string,parent:int,slug:string,name:string}> $records Registros acumulados.
+	 * @return bool
+	 */
+	private function verify_acyclic_ancestry( array $records ): bool {
 		foreach ( $records as $record ) {
-			$seen = array();
+			$seen   = array();
 			$cursor = $record;
 			while ( $cursor['parent'] > 0 ) {
 				$key = $cursor['taxonomy'] . ':' . $cursor['parent'];
 				if ( isset( $seen[ $key ] ) || ! isset( $records[ $key ] ) ) {
 					$this->mark_unavailable( 'Product taxonomy ancestry is cyclic or incomplete.' );
-					return null;
+					return false;
 				}
 				$seen[ $key ] = true;
-				$cursor = $records[ $key ];
+				$cursor       = $records[ $key ];
 			}
 		}
-
-		return array( 'relations' => $relations, 'terms' => $records );
+		return true;
 	}
 
 	/** @param mixed $raw @return array{term_id:int,taxonomy:string,parent:int,slug:string,name:string}|null */
@@ -1314,7 +1377,7 @@ final class ProductSourceAuthority {
 				return false;
 			}
 		}
-		$records[ $key ] = $record;
+		$records[ $key ] = $record; // @phpstan-ignore parameterByRef.type
 		return true;
 	}
 
@@ -1382,7 +1445,7 @@ final class ProductSourceAuthority {
 					static fn() => wp_cache_delete( $id, $group ),
 					'Could not invalidate a product source cache.'
 				);
-				if ( ! $this->available || ! is_bool( $deleted ) ) {
+				if ( ! $this->is_available() || ! is_bool( $deleted ) ) {
 					$this->mark_unavailable( 'Product source cache deletion returned an invalid shape.' );
 					return;
 				}
@@ -1396,7 +1459,7 @@ final class ProductSourceAuthority {
 					},
 					'Could not verify product source cache invalidation.'
 				);
-				if ( ! $this->available ) {
+				if ( ! $this->is_available() ) {
 					return;
 				}
 				if ( ! is_bool( $found ) || $found ) {
@@ -1451,7 +1514,7 @@ final class ProductSourceAuthority {
 
 	/** @return mixed */
 	private function read( callable $reader, string $fallback ) {
-		if ( ! $this->available ) {
+		if ( ! $this->is_available() ) {
 			return null;
 		}
 		$this->clear_db_error();

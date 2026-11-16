@@ -64,24 +64,21 @@ namespace Akibara\Search\Tests {
 			self::assertSame( 'IN', $query->query_vars['tax_query'][0]['operator'] );
 			self::assertSame( 'pa_genero', $query->query_vars['tax_query'][1]['taxonomy'] );
 		}
-		/** @testdox Reservable states remain distinct using the same StockLabels business hook. */
-		public function test_preventa_and_a_pedido_are_not_merged(): void {
-			$products = array( 10 => new NativeAvailabilityTestProduct( 10, 'instock' ), 20 => new NativeAvailabilityTestProduct( 20, 'onbackorder' ), 30 => new NativeAvailabilityTestProduct( 30, 'onbackorder' ), 40 => new NativeAvailabilityTestProduct( 40, 'outofstock' ) );
-			Functions\when( 'get_posts' )->justReturn( array_keys( $products ) );
-			Functions\when( 'wc_get_product' )->alias( static fn( int $id ) => $products[ $id ] ?? null );
-			foreach ( array( array( array( 'a_pedido' ), array( 30 ) ), array( array( 'preventa' ), array( 20 ) ), array( array( 'instock', 'a_pedido' ), array( 10, 30 ) ), array( array( 'outofstock', 'preventa' ), array( 20, 40 ) ) ) as [ $selected, $expected ] ) {
+		/** @testdox Unsupported availability values like backorders or unknown keys are rejected fail-closed. */
+		public function test_unsupported_availability_values_are_rejected(): void {
+			foreach ( array( 'a_pedido', 'preventa', 'onbackorder', 'unknown' ) as $invalid ) {
 				$query = new \WP_Query();
-				self::assertTrue( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => $selected ) ), array() ) );
-				self::assertSame( $expected, $query->query_vars['post__in'] );
+				self::assertFalse( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => array( $invalid ) ) ), array() ) );
 			}
 		}
-		/** @testdox Selecting both reservable states uses onbackorder without a per-product scan. */
-		public function test_both_reservable_states_need_no_scan(): void {
-			Functions\expect( 'get_posts' )->never();
+
+		/** @testdox Instock applies cleanly to meta_query without per-product scans. */
+		public function test_instock_applies_cleanly(): void {
 			$query = new \WP_Query();
-			self::assertTrue( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => array( 'a_pedido', 'preventa' ) ) ), array() ) );
-			self::assertSame( array( 'onbackorder' ), $query->query_vars['meta_query'][0]['value'] );
+			self::assertTrue( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => array( 'instock' ) ) ), array() ) );
+			self::assertSame( array( 'instock' ), $query->query_vars['meta_query'][0]['value'] );
 		}
+
 		/** @testdox Index-only criteria are rejected before any query is broadened or mutated. */
 		public function test_unsupported_criteria_do_not_silently_disappear(): void {
 			foreach ( array( 'precio', 'oferta', 'novedad' ) as $facet ) {
@@ -93,26 +90,6 @@ namespace Akibara\Search\Tests {
 			$query = new \WP_Query();
 			self::assertFalse( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => array( 'outofstock' ) ), 'given' ), array() ) );
 			self::assertSame( array(), $query->query_vars );
-		}
-		/** @testdox Empty reservable matches use a nonempty no-match sentinel. */
-		public function test_empty_business_selection_cannot_widen_post_in(): void {
-			Functions\when( 'get_posts' )->justReturn( array() );
-			$query = new \WP_Query();
-			self::assertTrue( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => array( 'preventa' ) ) ), array() ) );
-			self::assertSame( array( -1 ), $query->query_vars['post__in'] );
-		}
-		/** @testdox Candidate enumeration preserves archive, exclusions and metadata while removing pagination. */
-		public function test_candidate_scan_preserves_existing_restrictions(): void {
-			$captured = null;
-			Functions\when( 'get_posts' )->alias( static function ( array $args ) use ( &$captured ): array { $captured = $args; return array(); } );
-			$query = new \WP_Query();
-			$query->query_vars = array( 'product_brand' => 'milky-way', 'paged' => 3, 'posts_per_page' => 24, 'post__in' => array( 20, 30 ), 'post__not_in' => array( 40 ) );
-			self::assertTrue( NativeAvailabilityFallback::apply( $query, new FilterSet( array( 'disponibilidad' => array( 'a_pedido' ) ) ), array() ) );
-			self::assertSame( 'milky-way', $captured['product_brand'] );
-			self::assertSame( array( 20, 30 ), $captured['post__in'] );
-			self::assertSame( array( 40 ), $captured['post__not_in'] );
-			self::assertSame( 1, $captured['paged'] );
-			self::assertSame( 3, $query->query_vars['paged'] );
 		}
 	}
 }

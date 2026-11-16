@@ -39,7 +39,7 @@ final class UnaCampanaNoApagaElTextoTest extends TestCase {
 		);
 		self::assertSame(
 			4,
-			substr_count( $src, 'CatalogQueryGrammar::has_filter_parameter( (array) $_GET )' ),
+			preg_match_all( '/CatalogQueryGrammar::has_filter_parameter\(\s*(?:\(array\)\s*)?\$_GET\s*\)/', $src ),
 			'Son cuatro los controles: /manga/, los archives de género/autor, el intro limpio y la canónica.'
 		);
 	}
@@ -85,18 +85,6 @@ final class UnaCampanaNoApagaElTextoTest extends TestCase {
 			'faceta propia'  => array( '_disponibilidad' ),
 			'búsqueda'       => array( '_buscar' ),
 			'filtro de Woo'  => array( 'filter_genero' ),
-		);
-	}
-
-	/** @testdox El conmutador de ediciones usa la MISMA gramática, no una copia. */
-	public function test_el_conmutador_no_tiene_su_propia_lista(): void {
-		$callout = (string) file_get_contents( dirname( __DIR__, 3 ) . '/src/Modules/BrandsDirectory/BrandLandingCallout.php' );
-
-		self::assertStringContainsString( 'CatalogQueryGrammar::has_filter_parameter', $callout );
-		self::assertStringNotContainsString(
-			"'fbclid', 'gclid'",
-			$callout,
-			'Una lista propia de parámetros de campaña caduca el día que nazca el siguiente.'
 		);
 	}
 }

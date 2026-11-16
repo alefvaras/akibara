@@ -23,6 +23,11 @@ namespace Akibara\Business\Modules\Wishlist;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
 final class PrivacyHandler {
 
 	private const GROUP_ID = 'akb-wishlist';
@@ -65,8 +70,9 @@ final class PrivacyHandler {
 	 * @param string $email Email del titular.
 	 * @param int    $page  Página (las wishlists son chicas: una sola pasada).
 	 * @return array{data: array<int, mixed>, done: bool}
+	 * @psalm-suppress UnusedParam
 	 */
-	public function export( string $email, int $page = 1 ): array {
+	public function export( string $email, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$data = array();
 		$user = get_user_by( 'email', $email );
 
@@ -100,8 +106,9 @@ final class PrivacyHandler {
 	 * @param string $email Email del titular.
 	 * @param int    $page  Página.
 	 * @return array{items_removed: bool, items_retained: bool, messages: array<int, string>, done: bool}
+	 * @psalm-suppress UnusedParam
 	 */
-	public function erase( string $email, int $page = 1 ): array {
+	public function erase( string $email, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$user    = get_user_by( 'email', $email );
 		$removed = $user instanceof \WP_User ? Storage::erase_user( (int) $user->ID ) : 0;
 

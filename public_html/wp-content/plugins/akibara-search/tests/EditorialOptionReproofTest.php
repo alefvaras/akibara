@@ -113,6 +113,10 @@ namespace Akibara\Search\Tests {
 		/** @param mixed ...$args */
 		public function prepare( string $query, ...$args ): string {
 			foreach ( $args as $arg ) {
+				if ( false !== strpos( $query, '%i' ) ) {
+					$query = (string) preg_replace( '/%i/', '`' . str_replace( '`', '``', (string) $arg ) . '`', $query, 1 );
+					continue;
+				}
 				$replacement = is_int( $arg ) ? (string) $arg : "'" . str_replace( "'", "''", (string) $arg ) . "'";
 				$query       = (string) preg_replace( '/%[sd]/', $replacement, $query, 1 );
 			}

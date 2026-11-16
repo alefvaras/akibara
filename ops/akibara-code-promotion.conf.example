@@ -1,0 +1,10 @@
+# Copy this file outside the repository, chmod 0600 it, and replace every
+# placeholder. The promotion script parses this as data; it never sources it.
+#
+# Host and paths are an explicit production allowlist. The script accepts no
+# host, webroot, URL, or log path from command-line arguments.
+
+PRODUCTION_HOST=deploy@example-production.invalid
+PRODUCTION_WEBROOT=/home/example-account/domains/example.invalid/public_html
+PRODUCTION_BASE_URL=https://www.example.invalid
+PRODUCTION_LOG_PATHS=/home/example-account/domains/example.invalid/public_html/error_log;/home/example-account/domains/example.invalid/public_html/wp-content/debug.log;/home/example-account/domains/example.invalid/public_html/wp-content/uploads/adbc_uploads_replace_safe_token/debug.log

@@ -23,6 +23,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $css GeneratePress dynamic CSS.
  * @return string Filtered CSS.
+ * @psalm-suppress HookNotFound
  */
 function akibara_gp_scope_generatepress_button_states( string $css ): string {
 	$generatepress_selectors = array(
@@ -51,6 +52,7 @@ function akibara_gp_scope_generatepress_button_states( string $css ): string {
 	);
 }
 
+/** @psalm-suppress HookNotFound */
 add_filter( 'generate_colors_css_output', 'akibara_gp_scope_generatepress_button_states', PHP_INT_MAX );
 
 // GeneratePress serves a persisted option after the first request, bypassing

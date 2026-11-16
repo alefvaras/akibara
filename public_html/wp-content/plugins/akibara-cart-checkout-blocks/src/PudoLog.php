@@ -23,6 +23,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 2.2.9
+ * @api
  */
 final class PudoLog {
 
@@ -61,12 +62,12 @@ final class PudoLog {
 		// Enriquecimiento de log con código de error y detalle estructurado si están disponibles.
 		// Aplica duck typing para desacoplar de clases de excepción específicas de akibara-business.
 		if ( is_callable( array( $throwable, 'error_code' ) ) ) {
-			$message .= ' · código=' . (string) $throwable->error_code();
+			$message .= ' · código=' . $throwable->error_code();
 		}
 		if ( is_callable( array( $throwable, 'details' ) ) ) {
 			$details = $throwable->details();
 			if ( is_array( $details ) && array() !== $details ) {
-				$message .= ' · detalle=' . (string) wp_json_encode( $details, JSON_UNESCAPED_UNICODE );
+				$message .= ' · detalle=' . wp_json_encode( $details, JSON_UNESCAPED_UNICODE );
 			}
 		}
 

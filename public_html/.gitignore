@@ -1,0 +1,45 @@
+# WordPress
+wp-content/uploads/
+wp-content/cache/
+wp-content/litespeed/
+wp-content/upgrade/
+*.log
+
+# Secrets — wp-config.php contiene DB pass, salts, API keys.
+# Nunca commitear. Usar wp-config-sample.php como referencia.
+wp-config.php
+wp-config-*.php
+!wp-config-sample.php
+
+# Carpeta de credenciales locales (protegida adicionalmente por .htaccess
+# "Deny from all" si el servidor web la sirve). Contiene cosas como
+# credenciales MCP MySQL, tokens de debug, etc.
+.private/*
+!.private/.htaccess
+
+# Archivos backup con secrets (el audit encontró wp-config.php.bak-gmaps
+# con credenciales expuestas). Prevenir que cualquier *.bak* se commitee.
+*.backup
+*.bak
+*.bak-*
+*.old
+*.save
+*.orig
+*.swp
+
+# Desarrollo
+.vscode/settings.json
+.DS_Store
+node_modules/
+.env
+
+# Scripts temporales
+/tmp/
+*.tmp
+
+# Deploy coordination (local a cada agente, nunca versionar)
+.deploy-last
+.deploy.lock
+.deploy-state.json
+.deploy-state.txt
+.deploy-state.txt.new

@@ -23,6 +23,7 @@ use Akibara\Rewards\Points\Referrals;
 use Akibara\Rewards\Points\WelcomeBonus;
 use Akibara\Rewards\Reviews\AdminReviews;
 use Akibara\Rewards\Reviews\Carousel;
+use Akibara\Rewards\Reviews\AdminProductSearch;
 use Akibara\Rewards\Reviews\Moderation;
 use Akibara\Rewards\Reviews\Disclosure;
 use Akibara\Rewards\Reviews\PhotoSurfaces;
@@ -40,6 +41,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Singleton que registra los módulos. Cada módulo expone `register()` y cuelga
  * sus propios hooks (patrón de akibara-business).
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class Plugin {
 
@@ -72,6 +75,7 @@ final class Plugin {
 		Schema::register();
 		( new SettingsPage() )->register();
 
+		( new \Akibara\Rewards\Points\Tiers() )->register();
 		( new Accrual() )->register();
 		( new \Akibara\Rewards\Support\QueueHooks() )->register();
 		( new WelcomeBonus() )->register();
@@ -91,11 +95,9 @@ final class Plugin {
 		( new \Akibara\Rewards\Support\Privacy() )->register();
 		( new \Akibara\Rewards\Support\Alerts() )->register();
 
-		// La administración permanece disponible con CusRev. Las superficies
-		// públicas esperan al motor propio para evitar premios y schema duplicados.
+		// La administración de reseñas y el aviso de incentivo permanecen siempre activos.
 		( new AdminReviews() )->register();
-		// El aviso de incentivo también SIEMPRE: sólo lee la meta de lo ya
-		// pagado, y una reseña premiada no puede perderlo si el motor se duerme.
+		( new AdminProductSearch() )->register();
 		( new Disclosure() )->register();
 
 		// Expone la conversión configurada de puntos sin que otros plugins
@@ -126,17 +128,6 @@ final class Plugin {
 			( new ReviewNudge() )->register();
 			( new Invitations() )->register();
 			( new ReviewForm() )->register();
-		} else {
-			add_action(
-				'admin_notices',
-				static function (): void {
-					echo '<div class="notice notice-info"><p>';
-					echo '<strong>Akibara Rewards</strong>: los módulos de reseñas (puntos, carrusel, schema, moderación) ';
-					echo 'duermen mientras Customer Reviews siga activo — su cupón es el incentivo vigente. ';
-					echo 'Para la moderación obligatoria mientras tanto, activar <code>ivole_enable_moderation</code>.';
-					echo '</p></div>';
-				}
-			);
 		}
 
 		// El comando WP-CLI de migración se registra en el fichero principal,

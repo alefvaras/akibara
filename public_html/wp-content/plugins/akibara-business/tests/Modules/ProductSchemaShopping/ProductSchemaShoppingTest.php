@@ -409,4 +409,28 @@ final class ProductSchemaShoppingTest extends TestCase {
 			( new ProductSchemaShopping() )->handle_rank_math_json_ld( $input )['product']['offers']['priceValidUntil']
 		);
 	}
+
+	/**
+	 * @testdox Should remove fake zero shipping details on items below free shipping threshold.
+	 */
+	public function test_removes_fake_zero_shipping_details_below_threshold(): void {
+		Functions\when( 'is_front_page' )->justReturn( false );
+		Functions\when( 'is_product' )->justReturn( true );
+
+		$input = array(
+			'product' => array(
+				'@type'  => 'Product',
+				'offers' => array(
+					'@type'           => 'Offer',
+					'price'           => '14990',
+					'shippingDetails' => array(
+						'shippingRate' => array( 'value' => '0', 'currency' => 'CLP' ),
+					),
+				),
+			),
+		);
+
+		$result = ( new ProductSchemaShopping() )->handle_rank_math_json_ld( $input );
+		self::assertArrayNotHasKey( 'shippingDetails', $result['product']['offers'] );
+	}
 }

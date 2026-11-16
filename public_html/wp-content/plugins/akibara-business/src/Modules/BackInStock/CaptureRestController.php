@@ -26,6 +26,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
  */
 final class CaptureRestController {
 
@@ -127,15 +128,7 @@ final class CaptureRestController {
 			return $this->result( 'not_found', 'El producto no existe.', 404 );
 		}
 
-		// Sólo admite agotados estrictos. onbackorder ya es comprable y devuelve
-		// un código propio; el code preventa conserva compatibilidad con el cliente
-		// mientras la etiqueta visible sigue al estado comercial.
-		if ( StockStatus::is_reservable( $product ) ) {
-			$mensaje = Availability::is_preventa( $product )
-				? 'Este producto está en preventa: puedes reservarlo ahora.'
-				: 'Este producto está a pedido: puedes pedirlo ahora.';
-			return $this->result( 'preventa', $mensaje, 409 );
-		}
+		// Sólo admite agotados estrictos.
 		if ( ! StockStatus::is_out_of_stock( $product ) ) {
 			return $this->result( 'in_stock', 'Este producto está disponible: puedes comprarlo ahora.', 409 );
 		}

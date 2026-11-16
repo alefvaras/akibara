@@ -1,7 +1,6 @@
-"""Executable negative controls for the inventory deployment gate."""
+"""Executable negative controls for the inventory deployment gate (ADR-010)."""
 import ast
 import contextlib
-import importlib.util
 import io
 import json
 from pathlib import Path
@@ -34,8 +33,8 @@ function wp_get_object_terms($ids, $taxonomy, $args) {
 
 class InventoryGateTest(unittest.TestCase):
     def report(self, **changes):
-        row = dict(ID=1, post_title='Tomo', stock_status='onbackorder', manage_stock='no',
-                   stock_qty='', backorders='no', regular_price='10000', sale_price='9500', price='9500')
+        row = dict(ID=1, post_title='Tomo', stock_status='instock', manage_stock='yes',
+                   stock_qty='3', backorders='no', regular_price='10000', sale_price='', price='10000')
         row.update(changes)
         result = subprocess.run(['php', '-r', PRELUDE + PHP.removeprefix('<?php')],
                                 input=json.dumps([row]), text=True, capture_output=True, check=True)
@@ -44,30 +43,30 @@ class InventoryGateTest(unittest.TestCase):
     def approved(self, **changes):
         return not any(self.report(**changes)['anomalies'].values())
 
-    def test_valid_reserve_and_half_up_rounding(self):
+    def test_valid_instock_and_outofstock(self):
         self.assertTrue(self.approved())
-        self.assertTrue(self.approved(regular_price='10600', sale_price='10100', price='10100'))
-        self.assertTrue(self.approved(regular_price='14990', sale_price='14200', price='14200'))
+        self.assertTrue(self.approved(stock_status='outofstock', oos=True, manage_stock='yes', stock_qty='0', sale_price='', price='10000'))
+        self.assertTrue(self.approved(stock_status='outofstock', oos=True, manage_stock='no', stock_qty='', sale_price='', price='10000'))
 
-    def test_exact_reserve_price_required(self):
-        for changes in ({'sale_price':'9501'}, {'price':'10000'}, {'sale_price':''}, {'regular_price':'10600', 'sale_price':'10070', 'price':'10070'}):
-            with self.subTest(changes=changes): self.assertFalse(self.approved(**changes))
+    def test_onbackorder_is_allowed(self):
+        for manage in ('no', 'yes'):
+            with self.subTest(manage=manage):
+                rep = self.report(stock_status='onbackorder', manage_stock=manage, stock_qty='0', backorders='yes')
+                self.assertTrue(not any(rep['anomalies'].values()))
+                self.assertEqual(1, rep['onbackorder_count'])
 
-    def test_nonphysical_quantity_and_backorders_policy(self):
-        for changes in ({'manage_stock':'yes','stock_qty':'0'}, {'stock_qty':'-1'}, {'backorders':'yes'}, {'backorders':'notify'}):
-            with self.subTest(changes=changes): self.assertFalse(self.approved(**changes))
+    def test_flexible_inventory_settings_allowed(self):
+        for changes in ({'manage_stock':'no'}, {'stock_qty':'0'}, {'stock_qty':'-1'}, {'backorders':'yes'}, {'backorders':'notify'}):
+            with self.subTest(changes=changes):
+                self.assertTrue(self.approved(**changes))
 
-    def test_physical_stock_can_have_five_percent_sale(self):
-        self.assertTrue(self.approved(stock_status='instock', manage_stock='yes', stock_qty='1', backorders='no'))
-
-    def test_physical_stock_must_have_positive_quantity_and_disallow_backorders(self):
-        for qty in ('0', '-1', '', 'invalid'):
-            with self.subTest(qty=qty):
-                self.assertFalse(self.approved(stock_status='instock', manage_stock='yes', stock_qty=qty, backorders='no'))
+    def test_physical_stock_can_have_sale_price(self):
+        self.assertTrue(self.approved(stock_status='instock', manage_stock='yes', stock_qty='1', backorders='no', sale_price='9500', price='9500'))
 
     def test_outofstock_contract(self):
-        self.assertTrue(self.approved(stock_status='outofstock', oos=True, backorders='no', sale_price='', price='10000'))
-        self.assertFalse(self.approved(stock_status='outofstock', oos=True, backorders='no'))
+        self.assertTrue(self.approved(stock_status='outofstock', oos=True, stock_qty='0', backorders='no', sale_price='', price='10000'))
+        self.assertTrue(self.approved(stock_status='outofstock', oos=True, stock_qty='0', backorders='no', sale_price='9500', price='9500'))
+        self.assertFalse(self.approved(stock_status='outofstock', oos=False, stock_qty='0', backorders='no', sale_price='', price='10000'))
 
     def test_visibility_and_malformed_prices_rejected(self):
         self.assertFalse(self.approved(oos=True))
@@ -77,7 +76,8 @@ class InventoryGateTest(unittest.TestCase):
         with patch.object(sys, 'argv', [str(SOURCE), '--target', 'local']), \
                 patch('subprocess.run', return_value=result), contextlib.redirect_stdout(io.StringIO()), \
                 contextlib.redirect_stderr(io.StringIO()):
-            with self.assertRaises(SystemExit) as caught: runpy.run_path(str(SOURCE), run_name='__main__')
+            with self.assertRaises(SystemExit) as caught:
+                runpy.run_path(str(SOURCE), run_name='__main__')
         return caught.exception.code
 
     def test_cli_never_approves_failed_empty_or_incomplete_reads(self):
@@ -86,9 +86,10 @@ class InventoryGateTest(unittest.TestCase):
                 self.assertEqual(2, self.cli_exit(subprocess.CompletedProcess([], status, payload, '')))
 
     def test_cli_verdict_matches_actual_anomalies(self):
-        for changes, expected in (({}, 0), ({'stock_qty':'-1'}, 1)):
+        for changes, expected in (({}, 0), ({'price':'invalid'}, 1), ({'oos':True}, 1)):
             result = subprocess.CompletedProcess([], 0, json.dumps(self.report(**changes)), '')
             self.assertEqual(expected, self.cli_exit(result))
 
 
-if __name__ == '__main__': unittest.main()
+if __name__ == '__main__':
+    unittest.main()

@@ -49,6 +49,9 @@ final class AccessWallTest extends TestCase {
 		Functions\when( 'esc_html' )->alias(
 			static fn( string $text ): string => htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' )
 		);
+		Functions\when( 'WC' )->justReturn( null );
+		Functions\when( 'wc_get_checkout_url' )->justReturn( 'https://akibara.cl/finalizar-compra/' );
+		Functions\when( 'is_checkout' )->justReturn( false );
 
 		/*
 		 * El catálogo de prueba modela PRODUCCIÓN, no el espejo.

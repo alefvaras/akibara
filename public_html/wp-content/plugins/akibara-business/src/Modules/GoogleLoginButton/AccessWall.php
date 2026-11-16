@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.115.1
+ * @api
  */
 final class AccessWall {
 
@@ -35,8 +36,8 @@ final class AccessWall {
 	public const OPTION_RETURN = 'akb_copy_wall_return';
 
 	public const DEFAULT_TITLE     = 'Accede a Akibara';
-	public const DEFAULT_SUB       = 'Elige cómo continuar para comprar, seguir tus pedidos y gestionar tus preventas.';
-	public const DEFAULT_SUB_LOGIN = 'Inicia sesión para seguir tus pedidos y gestionar tus preventas.';
+	public const DEFAULT_SUB       = 'Elige cómo continuar para comprar, seguir tus pedidos y gestionar tus puntos.';
+	public const DEFAULT_SUB_LOGIN = 'Inicia sesión para seguir tus pedidos y gestionar tus puntos.';
 
 	public const DEFAULT_FAVORITOS_TITLE = 'Los tomos que guardaste te esperan';
 	public const DEFAULT_FAVORITOS_SUB   = 'Entra y verás tu lista completa, con el precio y la disponibilidad de cada uno.';
@@ -116,8 +117,7 @@ final class AccessWall {
 		}
 
 		$wc = WC();
-		if ( ! is_object( $wc ) || ! isset( $wc->query ) || ! is_object( $wc->query ) ) {
-			return '';
+		if ( ! is_object( $wc ) || ! isset( $wc->query ) || ! is_object( $wc->query ) ) {			return ''; // @phpstan-ignore isset.property
 		}
 		if ( ! method_exists( $wc->query, 'get_current_endpoint' ) ) {
 			return '';

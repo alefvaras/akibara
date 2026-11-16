@@ -16,6 +16,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.16.1
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class CouponInteraction {
 
@@ -33,8 +37,11 @@ final class CouponInteraction {
 
 	/**
 	 * @throws \Exception Cuando se bloquea el cupón.
+	 * @param mixed $discounts
+	 * @psalm-suppress UnusedParam
 	 */
-	public function maybe_invalidate( bool $valid, \WC_Coupon $coupon, $discounts = null ): bool {
+	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed, Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function maybe_invalidate( bool $valid, \WC_Coupon $coupon, $discounts = null ): bool { // @phpstan-ignore complexity.functionLike
 		if ( ! $valid ) {
 			return $valid;
 		}

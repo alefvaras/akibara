@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "contract": "akibara-business-production-release",
+  "release_id": "akibara-business-1.99.14",
+  "seal_state": "sealed",
+  "promotion_sequence": [
+    "docker-local",
+    "production"
+  ],
+  "exclusive_targets": [
+    "public_html/wp-content/plugins/akibara-business"
+  ],
+  "supersedes": {
+    "rejected_candidates": [
+      "1.99.11",
+      "1.99.12"
+    ],
+    "superseded_unpromoted": [
+      "1.99.13"
+    ],
+    "reason": "1.99.11 y 1.99.12 fueron rechazados por la revisión adversarial; 1.99.13 quedó válido pero NUNCA se promovió. Producción sigue en 1.99.10, así que el salto real que este rail describe es 1.99.10 -> 1.99.14. Ninguno de los artefactos anteriores se sobrescribe."
+  },
+  "change_summary": {
+    "scope": "P1 ronda 3 (despacho ready-to-ship) + P1 ronda 4 (autoridad del precio editorial)",
+    "highlights": [
+      "ReadyToShipEmail: locale/sending/filtros de transporte cerrados en finally; marker durable verificado fail-closed; reintento pre-transporte acotado",
+      "DiscountResolver/Settings: estado request-local de autoridad; WP_Error, errores SQL y formas inválidas dejan de leerse como 'sin descuento'",
+      "Nunca se memoiza un 0 ni un precio calculado sin autoridad",
+      "SearchPriceProvider: el feed de Search falla explícitamente en vez de publicar precio base",
+      "SEARCH_FEED_CONTRACT_VERSION 1 -> 2: fuerza un rebuild por el cambio semántico del proveedor"
+    ]
+  },
+  "components": {
+    "business": {
+      "kind": "plugin",
+      "slug": "akibara-business",
+      "source_root": "public_html/wp-content/plugins/akibara-business",
+      "preimage": {
+        "version": "1.99.10",
+        "archive": "dist/akibara-business-1.99.10.zip",
+        "archive_sha256": "7b397d2c5c2518cfafa0a138b7ee6a7801a91e6a891609d14fbfbf9213763134",
+        "inventory": "dist/akibara-business-1.99.10.files.sha256",
+        "inventory_sha256": "5172c0291ac7c92606a1f4984d3d71e14e907301fe58ced7567da943c0774522",
+        "runtime_files": 221
+      },
+      "remote_baseline": {
+        "version": "1.99.10",
+        "inventory": "dist/akibara-business-1.99.10.files.sha256",
+        "inventory_sha256": "5172c0291ac7c92606a1f4984d3d71e14e907301fe58ced7567da943c0774522",
+        "runtime_files": 221
+      },
+      "candidate": {
+        "version": "1.99.14",
+        "archive": "dist/akibara-business-1.99.14.zip",
+        "archive_sha256": "f9d498493f59b05fe3f9c1d84c4e129afd67dc07e8a37e5e872f35aeabec10ec",
+        "inventory": "dist/akibara-business-1.99.14.files.sha256",
+        "inventory_sha256": "f42610b91e90d7622922f4c4626256a1302c751115d45d26652f2aa9a95ac31a",
+        "runtime_files": 223
+      },
+      "modified_runtime_files": [
+        "akibara-business/akibara-business.php",
+        "akibara-business/src/Modules/OrderPreventa/ReadyToShipEmail.php",
+        "akibara-business/src/Modules/TaxonomyDiscount/DiscountResolver.php",
+        "akibara-business/src/Modules/TaxonomyDiscount/Settings.php",
+        "akibara-business/src/Plugin.php"
+      ],
+      "added_runtime_files": [
+        "akibara-business/src/Modules/TaxonomyDiscount/PriceAuthorityUnavailable.php",
+        "akibara-business/src/Modules/TaxonomyDiscount/SearchPriceProvider.php"
+      ],
+      "removed_runtime_files": [],
+      "source_inputs": [
+        {
+          "path": "akibara-business/akibara-business.php",
+          "sha256": "1134e3cdae82b3cbfb6c3ac19073c780e4dd1111dc94811380692e03fe9d5064"
+        },
+        {
+          "path": "akibara-business/src/Modules/OrderPreventa/ReadyToShipEmail.php",
+          "sha256": "b3ee2014cf41617c14d10c0f2814eb53b256de22106c50bc3d07b096641c1175"
+        },
+        {
+          "path": "akibara-business/src/Modules/TaxonomyDiscount/DiscountResolver.php",
+          "sha256": "918b9b8ae3c3c68dc1a26bf303bf487c9645e54ad94babfe72e282a49dfde821"
+        },
+        {
+          "path": "akibara-business/src/Modules/TaxonomyDiscount/Settings.php",
+          "sha256": "07c6bee79e9bf4f0409e1ac66771e338a346725bfc7effa1581a5415231d8f31"
+        },
+        {
+          "path": "akibara-business/src/Plugin.php",
+          "sha256": "56f6a031343d20b3a0e5dd66353524354dc8c99900a685553d479c54d3fabf7c"
+        },
+        {
+          "path": "akibara-business/src/Modules/TaxonomyDiscount/PriceAuthorityUnavailable.php",
+          "sha256": "f30406674984d10c58a2e9f668cf278135c418fdbb03cd61d62c7f14bc232a0f"
+        },
+        {
+          "path": "akibara-business/src/Modules/TaxonomyDiscount/SearchPriceProvider.php",
+          "sha256": "ace317fcf1d314e9b2cf93577ee4b359f962bfc10c3c6640a7b5f213234ebf30"
+        }
+      ]
+    }
+  },
+  "production_invariants": {
+    "protected_components": [
+      {
+        "kind": "plugin",
+        "slug": "akibara-cart-checkout-blocks"
+      },
+      {
+        "kind": "plugin",
+        "slug": "akibara-search"
+      },
+      {
+        "kind": "plugin",
+        "slug": "bluex-for-woocommerce"
+      },
+      {
+        "kind": "theme",
+        "slug": "akibara-gp"
+      }
+    ],
+    "required_active_plugins": [
+      "akibara-business",
+      "akibara-cart-checkout-blocks",
+      "akibara-search",
+      "bluex-for-woocommerce",
+      "litespeed-cache",
+      "seo-by-rank-math",
+      "woocommerce"
+    ],
+    "required_active_theme": "akibara-gp",
+    "runtime_outside_business_must_remain_byte_identical": true,
+    "commerce_fingerprint_must_remain_identical": true,
+    "search_fingerprint_must_remain_identical": true,
+    "remote_backups_allowed": false,
+    "graphify_during_release_allowed": false,
+    "cloudflare_zone_name": "akibara.cl",
+    "cloudflare_zone_id": "b298201b3a38d017bc8413d9fd7414cd",
+    "cloudflare_purge_required": true,
+    "cloudflare_purge_transport": "official-mcp-handoff",
+    "cloudflare_witness_max_age_seconds": 900,
+    "cloudflare_purge_payload": {
+      "purge_everything": true
+    },
+    "live_cache_purge_order": [
+      "litespeed",
+      "cloudflare"
+    ],
+    "manga_archive_copy": {
+      "source": "woocommerce_product_category_description",
+      "canonical_clean_first_page": "first_paragraph_above_rest_after_main_content",
+      "query_or_page_2": "suppressed",
+      "allowed_html": [
+        "p",
+        "a",
+        "strong",
+        "em",
+        "br",
+        "ul",
+        "ol",
+        "li"
+      ],
+      "faq_schema_added": false,
+      "required_viewports": [
+        "375x812",
+        "1440x1000"
+      ]
+    }
+  },
+  "search_feed_contract": {
+    "version": "2",
+    "previous": "1",
+    "forces_rebuild": true,
+    "mechanism": "Plugin::maybe_upgrade_search_feed_contract() reclama la option akibara_business_search_feed_contract_version por CAS y agenda un único rebuild asíncrono.",
+    "provider_contract": "akb_search_effective_price lanza Akibara\\Business\\Modules\\TaxonomyDiscount\\PriceAuthorityUnavailable cuando el descuento editorial no es autoritativo; el consumidor NO debe capturarla para publicar precio base."
+  },
+  "quality_gates": {
+    "unit": {
+      "command": "tools/akibara-business/vendor/bin/phpunit -c tools/akibara-business/phpunit.xml.dist",
+      "expected": "581 tests / 1601 assertions"
+    },
+    "dispatch_integration": {
+      "command": "bash tools/akibara-releases/qa-preventa-dispatch.sh",
+      "expected": "dos corridas verdes y cero residuo"
+    },
+    "full_local_qa": {
+      "command": "tools/akibara-business/qa.sh",
+      "expected": "EXIT 0"
+    },
+    "docker_sealed_gate": {
+      "command": "bash tools/akibara-releases/docker-business-1.99.14-production.sh",
+      "expected": "PENDIENTE: requiere que Codex confirme akibara-search estable"
+    }
+  }
+}

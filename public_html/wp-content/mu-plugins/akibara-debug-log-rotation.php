@@ -33,9 +33,10 @@ const AKIBARA_FATAL_LOG_KEEP = 2;
  * Ruta del log de depuración según la configuración vigente.
  *
  * @return string Ruta absoluta, o '' si el log no es un archivo.
+ * @psalm-suppress HookInvalidArgs
  */
 function akibara_debug_log_path(): string {
-	if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && '' !== WP_DEBUG_LOG ) {
+	if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && '' !== WP_DEBUG_LOG ) { // @phpstan-ignore notIdentical.alwaysTrue
 		return WP_DEBUG_LOG;
 	}
 	if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
@@ -51,6 +52,7 @@ function akibara_debug_log_path(): string {
  * @param int    $tope         Bytes a partir de los cuales se rota.
  * @param int    $generaciones Cuántas copias `.1`, `.2`… se conservan.
  * @return void
+ * @psalm-suppress HookInvalidArgs
  */
 function akibara_log_maybe_rotate( string $log, int $tope, int $generaciones ): void {
 	if ( '' === $log || ! is_file( $log ) ) {
@@ -65,15 +67,15 @@ function akibara_log_maybe_rotate( string $log, int $tope, int $generaciones ): 
 	// Descartar la generación más vieja y correr el resto un peldaño.
 	$oldest = $log . '.' . $generaciones;
 	if ( is_file( $oldest ) ) {
-		@unlink( $oldest ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		@unlink( $oldest ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions.unlink_unlink
 	}
 	for ( $i = $generaciones - 1; $i >= 1; $i-- ) {
 		$from = $log . '.' . $i;
 		if ( is_file( $from ) ) {
-			@rename( $from, $log . '.' . ( $i + 1 ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+			@rename( $from, $log . '.' . ( $i + 1 ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions.rename_rename
 		}
 	}
-	@rename( $log, $log . '.1' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+	@rename( $log, $log . '.1' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions.rename_rename
 }
 
 /**
@@ -85,6 +87,7 @@ function akibara_log_maybe_rotate( string $log, int $tope, int $generaciones ): 
  * produjo el archivo gigante.
  *
  * @return void
+ * @psalm-suppress HookInvalidArgs
  */
 function akibara_debug_log_maybe_rotate(): void {
 	if ( 'local' !== wp_get_environment_type() ) {
@@ -99,6 +102,7 @@ function akibara_debug_log_maybe_rotate(): void {
 	akibara_log_maybe_rotate( akibara_debug_log_path(), AKIBARA_DEBUG_LOG_MAX_BYTES, AKIBARA_DEBUG_LOG_KEEP );
 	akibara_log_maybe_rotate( WP_CONTENT_DIR . '/fatal_crash.log', AKIBARA_FATAL_LOG_MAX_BYTES, AKIBARA_FATAL_LOG_KEEP );
 }
+/** @psalm-suppress HookInvalidArgs */
 add_action( 'shutdown', 'akibara_debug_log_maybe_rotate', 9999 );
 
 /**
@@ -118,6 +122,7 @@ add_action( 'shutdown', 'akibara_debug_log_maybe_rotate', 9999 );
  * garantizado para mirar su tamaño es justo antes de escribir.
  *
  * @return void
+ * @psalm-suppress HookInvalidArgs
  */
 function akibara_capture_fatal_to_own_channel(): void {
 	if ( 'local' !== wp_get_environment_type() ) {

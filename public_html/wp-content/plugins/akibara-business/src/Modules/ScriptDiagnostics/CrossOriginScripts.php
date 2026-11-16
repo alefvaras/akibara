@@ -7,8 +7,8 @@
  * esa cabecera, añadir el atributo puede bloquear el script: no se aplica por
  * barrido a cualquier dominio ni se confunde visibilidad del error con su solución.
  *
- * La lista explícita cubre los hosts compatibles de Mercado Pago, Google Tag
- * Manager y Clarity. Un host que no autoriza CORS, como doubleclick en este
+ * La lista explícita cubre los hosts compatibles de Mercado Pago y Google Tag
+ * Manager. Un host que no autoriza CORS, como doubleclick en este
  * contrato, permanece fuera para no impedir la ejecución del proveedor.
  *
  * @package Akibara\Business
@@ -22,6 +22,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.108.26
+ * @api
+ * @psalm-suppress RedundantCondition
  */
 final class CrossOriginScripts {
 
@@ -37,12 +39,15 @@ final class CrossOriginScripts {
 		'www.mercadopago.com',
 		'http2.mlstatic.com',
 		'www.googletagmanager.com',
-		'scripts.clarity.ms',
-		'www.clarity.ms',
 	);
 
 	/** Interruptor de emergencia: `no` desactiva el módulo sin desplegar. */
 	public const OPTION_ENABLED = 'akb_crossorigin_scripts_enabled';
+
+	/** ¿Está encendido? Opera permanentemente por código salvo apagado de emergencia en BD. */
+	public static function enabled(): bool {
+		return 'no' !== get_option( self::OPTION_ENABLED, 'yes' );
+	}
 
 	public function register(): void {
 		add_filter( 'script_loader_tag', array( $this, 'mark_third_party' ), 20, 3 );
@@ -61,9 +66,7 @@ final class CrossOriginScripts {
 			return $tag;
 		}
 
-		// Interruptor de emergencia. Se consulta acá y no en `register()` para
-		// que apagarlo surta efecto en la siguiente petición, sin desplegar.
-		if ( 'no' === get_option( self::OPTION_ENABLED, 'yes' ) ) {
+		if ( ! self::enabled() ) {
 			return $tag;
 		}
 

@@ -20,19 +20,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.108.19
+ * @api
  */
 final class ContactoLog {
 
 	/** Prefijo de la fila de cada mensaje. El sufijo es el id de la entrada. */
 	public const OPTION_PREFIX = 'akb_contacto_log_';
-
-	/**
-	 * La bitácora ANTERIOR: una sola option con todas las entradas dentro.
-	 * Se reparte en filas la primera vez que alguien lee y desaparece; sin esa
-	 * migración, actualizar el plugin descartaría en silencio los mensajes que
-	 * el dueño todavía no leyó.
-	 */
-	private const LEGACY_OPTION = 'akb_contacto_log';
 
 	/**
 	 * Tope de mensajes conservados.
@@ -163,8 +156,6 @@ final class ContactoLog {
 	 * @return list<array<string,mixed>>
 	 */
 	public static function all(): array {
-		self::migrate_legacy();
-
 		global $wpdb;
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) {
 			return array();
@@ -242,31 +233,6 @@ final class ContactoLog {
 		foreach ( array_slice( array_merge( $entregadas, $sin_entregar ), 0, $sobran ) as $entry ) {
 			self::forget( (string) ( $entry['id'] ?? '' ) );
 		}
-	}
-
-	/**
-	 * Reparte la bitácora vieja —una option con todas las entradas dentro— en
-	 * una fila por mensaje, y la retira. Corre una sola vez: después de borrar
-	 * la option, `get_option()` responde desde `notoptions` sin tocar la base.
-	 */
-	private static function migrate_legacy(): void {
-		$raw = get_option( self::LEGACY_OPTION, false );
-		if ( ! is_array( $raw ) ) {
-			return;
-		}
-
-		foreach ( $raw as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			$id = (string) ( $entry['id'] ?? '' );
-			if ( '' === $id ) {
-				continue;
-			}
-			OptionRow::insert_if_absent( self::OPTION_PREFIX . $id, $entry );
-		}
-
-		delete_option( self::LEGACY_OPTION );
 	}
 
 	private static function truncate( string $value ): string {

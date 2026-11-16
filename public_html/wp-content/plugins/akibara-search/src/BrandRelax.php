@@ -26,6 +26,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.47
+ * @api
+ * @psalm-suppress UnusedVariable
  */
 final class BrandRelax {
 

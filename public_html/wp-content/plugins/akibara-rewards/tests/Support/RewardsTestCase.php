@@ -44,6 +44,11 @@ abstract class RewardsTestCase extends TestCase {
 		$this->logger = new \Akibara_Rewards_Fake_Logger();
 		$logger       = $this->logger;
 		Functions\when( 'wc_get_logger' )->alias( static fn() => $logger );
+		Functions\when( 'as_unschedule_all_actions' )->justReturn( null );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL ) ? (string) $email : false );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
 
 		// El memo por PETICIÓN de la página pública sobrevive entre pruebas
 		// dentro del mismo proceso: sin este reseteo, un test que la resuelve
@@ -60,6 +65,8 @@ abstract class RewardsTestCase extends TestCase {
 			$estatico->setAccessible( true );
 			$estatico->setValue( null, $valor );
 		}
+
+		\Akibara\Rewards\Reviews\ReviewEligibility::reset();
 
 		$this->wpdb        = new \FakeWpdb();
 		$GLOBALS['wpdb']   = $this->wpdb;

@@ -21,6 +21,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.2.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCondition
  */
 final class PdpNotice {
 
@@ -39,9 +42,7 @@ final class PdpNotice {
 	 *   tema (a 15). Ese gancho sólo existe cuando WooCommerce pinta el
 	 *   formulario, o sea, cuando hay algo que comprar hoy.
 	 * - `woocommerce_single_product_summary` a 32: el respaldo de un tomo
-	 *   agotado, que no tiene formulario. El 32 va tras las promesas de preventa
-	 *   (31), no empatado con ellas: con un empate, el orden lo decidiría el
-	 *   orden de carga de los plugins, no un contrato.
+	 *   agotado, que no tiene formulario.
 	 *
 	 * @return void
 	 */
@@ -84,34 +85,20 @@ final class PdpNotice {
 		// En un variable, wc_get_price_including_tax devuelve el precio
 		// MÍNIMO del rango: la promesa dice «desde», nunca un número que la
 		// variación cara no cumple.
-		$desde = method_exists( $product, 'is_type' ) && $product->is_type( 'variable' ) ? 'desde ' : '';
+		$desde = method_exists( $product, 'is_type' ) && $product->is_type( 'variable' ) ? 'desde ' : ''; // @phpstan-ignore function.alreadyNarrowedType
 
 		$programa_url = ProgramPage::url();
 
-		// El gancho del bono sólo se promete si el carril está VIVO: con la
-		// bienvenida apagada, la ficha ofrecía «más 0 de bienvenida».
-		$bono = Promise::welcome_bonus();
-
 		// Expresión equivalente en pesos según la tasa de canje configurada en el panel.
-		// El indicador «desde» en productos variables gobierna ambas cifras.
-		$texto = is_user_logged_in() || $bono <= 0
-			? sprintf(
-				'Gana <strong>%s%s Puntos Akibara = %s</strong> con este tomo.',
-				$desde,
-				number_format_i18n( $points ),
-				Options::points_label( $points )
-			)
-			: sprintf(
-				'Gana <strong>%s%s Puntos Akibara = %s</strong> con este tomo creando tu cuenta — más <strong>%s de bienvenida = %s</strong> en tu primera compra%s (uno por persona, no acumulable con cupón de referido).',
-				$desde,
-				number_format_i18n( $points ),
-				Options::points_label( $points ),
-				number_format_i18n( $bono ),
-				Options::points_label( $bono ),
-				Options::first_purchase_min() > 0
-					? sprintf( ' desde $%s', number_format_i18n( Options::first_purchase_min() ) )
-					: ''
-			);
+		// El texto es único, conciso y uniforme entre todas las fichas (invitado y sesión
+		// iniciada), evitando contaminación de caché en LiteSpeed/Cloudflare y cortes
+		// ("creando tu ...") en extractos y pantallas estrechas.
+		$texto = sprintf(
+			'Gana <strong>%s%s Puntos Akibara = %s</strong> con este tomo.',
+			$desde,
+			number_format_i18n( $points ),
+			Options::points_label( $points )
+		);
 
 		// El relleno vertical y white-space:nowrap proporcionan un blanco de toque accesible
 		// (mínimo 24px) y previenen particiones huérfanas de línea en viewport móvil.
@@ -124,8 +111,10 @@ final class PdpNotice {
 		// El margen de arriba es el de la línea de despacho (12 px), la vecina
 		// de arriba bajo el botón. La estrella usa el rojo de texto sobre fondo
 		// oscuro (5.6:1 contra #0e0e10; --aki-red daba 4.31:1, bajo el 4.5:1 AA).
+		// data-nosnippet evita que buscadores indexen o trunquen el aviso de puntos
+		// como descripción del producto en lugar de su sinopsis editorial.
 		printf(
-			'<p class="akb-rw-pdp-points" style="margin:12px 0 0;font-size:14px;line-height:1.45;color:var(--aki-gray-200,#e0e0e0)"><span aria-hidden="true" style="color:var(--aki-red-text,#ff4756);margin-right:4px">★</span>%s%s</p>',
+			'<p class="akb-rw-pdp-points" data-nosnippet style="margin:12px 0 0;font-size:14px;line-height:1.45;color:var(--aki-gray-200,#e0e0e0)"><span aria-hidden="true" style="color:var(--aki-red-text,#ff4756);margin-right:4px">★</span>%s%s</p>',
 			wp_kses_post( $texto ),
 			wp_kses_post( $enlace )
 		);

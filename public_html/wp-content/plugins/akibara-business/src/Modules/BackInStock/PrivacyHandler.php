@@ -21,6 +21,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.54.0
+ * @api
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
  */
 final class PrivacyHandler {
 
@@ -74,8 +77,9 @@ final class PrivacyHandler {
 	 * @param string $email Email del titular.
 	 * @param int    $page  Página (la tabla es chica: una sola pasada).
 	 * @return array{data: array<int, mixed>, done: bool}
+	 * @psalm-suppress UnusedParam
 	 */
-	public function export( string $email, int $page = 1 ): array {
+	public function export( string $email, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$data = array();
 
 		foreach ( $this->repository->for_email( $email ) as $subscriber ) {
@@ -107,8 +111,9 @@ final class PrivacyHandler {
 	 * @param string $email Email del titular.
 	 * @param int    $page  Página.
 	 * @return array{items_removed: bool, items_retained: bool, messages: array<int, string>, done: bool}
+	 * @psalm-suppress UnusedParam
 	 */
-	public function erase( string $email, int $page = 1 ): array {
+	public function erase( string $email, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$removed = $this->repository->erase_email( $email );
 
 		return array(

@@ -100,7 +100,7 @@ final class PrivacyTest extends RewardsTestCase {
 		} );
 		Functions\when( 'get_comments' )->justReturn( array( 501 ) );
 		Functions\when( 'wp_get_attachment_url' )->justReturn( 'https://akibara.test/foto-de-la-resena.jpg' );
-		$this->wpdb->comment_meta[501]['ivole_review_image2'] = array( 8801 );
+		$this->wpdb->comment_meta[501][ \Akibara\Rewards\Reviews\Media::META_IMAGE_ID ] = array( 8801 );
 
 		$campos = ( new Privacy() )->export( 'clienta@correo.cl', 1 );
 
@@ -249,7 +249,7 @@ final class PrivacyTest extends RewardsTestCase {
 	public function test_a_guest_gets_their_review_photos(): void {
 		Functions\when( 'get_comments' )->justReturn( array( 501 ) );
 		Functions\when( 'wp_get_attachment_url' )->justReturn( 'https://akibara.test/foto-invitada.jpg' );
-		$this->wpdb->comment_meta[501]['ivole_review_image2'] = array( 8801 );
+		$this->wpdb->comment_meta[501][ \Akibara\Rewards\Reviews\Media::META_IMAGE_ID ] = array( 8801 );
 
 		$res = ( new Privacy() )->export( 'invitada@correo.cl', 1 );
 

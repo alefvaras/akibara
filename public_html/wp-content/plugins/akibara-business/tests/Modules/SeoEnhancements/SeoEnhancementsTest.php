@@ -759,6 +759,7 @@ final class SeoEnhancementsTest extends TestCase {
 
 		self::assertSame(
 			array(
+				array( 'rank_math/frontend/title', 'title', 20 ),
 				array( 'rank_math/frontend/title', 'add_pagination_to_title', 99 ),
 				array( 'rank_math/frontend/title', 'prefer_series_term_title', 20 ),
 				array( 'rank_math/frontend/title', 'prefer_product_title', 20 ),
@@ -1027,50 +1028,10 @@ final class SeoEnhancementsTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Should announce a preorder without any other volatile state.
-	 */
-	public function test_announces_preorder_in_the_product_meta(): void {
-		$meta = SeoEnhancements::compose_product_meta(
-			'Kagurabachi 08',
-			'Kagurabachi',
-			'Takeru Hokazono',
-			'Ivrea Argentina',
-			'manga',
-			8,
-			'preventa'
-		);
-
-		self::assertStringContainsString( 'Resérvalo en preventa', $meta['description'] );
-		self::assertStringNotContainsString( 'stock', $meta['description'] );
-		self::assertStringNotContainsString( '$', $meta['description'] );
-	}
-
-	/**
-	 * @testdox Should announce a-pedido with its OWN vocabulary, never «preventa».
-	 */
-	public function test_a_pedido_never_says_preventa(): void {
-		// La mentira que vivió un año: backorder titulaba «en preventa» a las
-		// 422 fichas a pedido delante de Google (hallazgo 2026-08-31).
-		$meta = SeoEnhancements::compose_product_meta(
-			'Prison School 02',
-			'Prison School',
-			'Akira Hiramoto',
-			'Ivrea España',
-			'manga',
-			2,
-			'a_pedido'
-		);
-
-		self::assertStringContainsString( 'a pedido', mb_strtolower( $meta['title'] . ' ' . $meta['description'], 'UTF-8' ) );
-		self::assertStringNotContainsString( 'preventa', mb_strtolower( $meta['title'] . ' ' . $meta['description'], 'UTF-8' ) );
-		self::assertStringContainsString( 'Pídelo', $meta['description'] );
-	}
-
-	/**
 	 * @testdox Should degrade the product meta gracefully when catalog data is partial.
 	 */
 	public function test_degrades_product_meta_with_partial_data(): void {
-		$meta = SeoEnhancements::compose_product_meta( 'Uzumaki', '', '', '', 'manga', null, '' );
+		$meta = SeoEnhancements::compose_product_meta( 'Uzumaki', '', '', '', 'manga', null );
 
 		self::assertSame( 'Uzumaki manga en español | Akibara Chile', $meta['title'] );
 		self::assertSame(
@@ -1078,7 +1039,7 @@ final class SeoEnhancementsTest extends TestCase {
 			$meta['description']
 		);
 
-		$no_medium = SeoEnhancements::compose_product_meta( 'Uzumaki', '', '', '', '', null, '' );
+		$no_medium = SeoEnhancements::compose_product_meta( 'Uzumaki', '', '', '', '', null );
 		self::assertSame( '', $no_medium['title'], 'Sin medio real no se adivina «manga».' );
 	}
 
@@ -1387,7 +1348,7 @@ final class SeoEnhancementsTest extends TestCase {
 		$result = ( new SeoEnhancements( true ) )->prefer_series_term_description( 'Plantilla compartida' );
 
 		self::assertSame(
-			'The Walking Dead en Akibara Chile. La obra original está finalizada. Revisa el catálogo, los tomos a pedido y el envío según destino.',
+			'The Walking Dead en Akibara Chile. La obra original está finalizada. Revisa el catálogo, la disponibilidad y el envío según destino.',
 			$result
 		);
 		self::assertStringNotContainsString( 'catálogo completo', mb_strtolower( $result, 'UTF-8' ) );
@@ -1403,7 +1364,7 @@ final class SeoEnhancementsTest extends TestCase {
 		$this->on_series_archive( 'Berserk' );
 
 		self::assertSame(
-			'Berserk en Akibara Chile. Conoce la serie. Revisa el catálogo, los tomos a pedido y el envío según destino.',
+			'Berserk en Akibara Chile. Conoce la serie. Revisa el catálogo, la disponibilidad y el envío según destino.',
 			( new SeoEnhancements( true ) )->prefer_series_term_description( 'Plantilla compartida' )
 		);
 	}
@@ -1451,7 +1412,7 @@ final class SeoEnhancementsTest extends TestCase {
 		$result = SeoEnhancements::series_meta_description( str_repeat( 'Nombre de serie extraordinariamente largo ', 8 ), 'completa' );
 
 		self::assertSame(
-			'Series de manga y cómics en Akibara Chile. Revisa el catálogo, los tomos a pedido y el envío según destino.',
+			'Series de manga y cómics en Akibara Chile. Revisa el catálogo, la disponibilidad y el envío según destino.',
 			$result
 		);
 		self::assertStringNotContainsString( '…', $result );
@@ -1605,7 +1566,7 @@ final class SeoEnhancementsTest extends TestCase {
 		);
 
 		self::assertSame(
-			'Dragon Ball & Dr. Slump en Akibara Chile. La obra original sigue en publicación. Revisa el catálogo, los tomos a pedido y el envío según destino.',
+			'Dragon Ball & Dr. Slump en Akibara Chile. La obra original sigue en publicación. Revisa el catálogo, la disponibilidad y el envío según destino.',
 			$result,
 			'La meta se escapa al imprimirse: sin decodificar acá, `&amp;` llega al SERP como `&amp;amp;`.'
 		);
@@ -1658,7 +1619,7 @@ final class SeoEnhancementsTest extends TestCase {
 		self::assertSame(
 			// La base es la forma corta (la larga con el estado no cabe en 160);
 			// la paginación quita la frase del estado para sumar la página.
-			'Biblioteca Vertigo. John Constantine: Hellblazer en Akibara Chile. Revisa catálogo, tomos a pedido y envío según destino. Página 2 de 5.',
+			'Biblioteca Vertigo. John Constantine: Hellblazer en Akibara Chile. Revisa catálogo, disponibilidad y envío según destino. Página 2 de 5.',
 			$result
 		);
 		self::assertLessThanOrEqual( 160, mb_strlen( $result, 'UTF-8' ) );
@@ -2352,15 +2313,16 @@ final class SeoEnhancementsTest extends TestCase {
 	}
 
 	/**
-	 * @testdox La descripción de las series habla de tomos a pedido, no de preventas: hoy el catálogo no tiene preventas (sesión SEO/GEO).
+	 * @testdox La descripción de las series habla de disponibilidad, no de preventas ni a pedido.
 	 */
-	public function test_series_meta_description_says_a_pedido_not_preventas(): void {
+	public function test_series_meta_description_says_disponibilidad_not_preventas(): void {
 		foreach ( array( '', 'completa', 'en_publicacion', 'en_pausa', 'cancelada' ) as $estado ) {
 			foreach ( array( 'Berserk', 'Biblioteca Vertigo. John Constantine: Hellblazer', str_repeat( 'Nombre larguísimo ', 10 ) ) as $nombre ) {
 				$descripcion = SeoEnhancements::series_meta_description( $nombre, $estado );
 
 				self::assertStringNotContainsString( 'preventa', $descripcion, "{$nombre} / {$estado}" );
-				self::assertStringContainsString( 'tomos a pedido', $descripcion, "{$nombre} / {$estado}" );
+				self::assertStringNotContainsString( 'a pedido', $descripcion, "{$nombre} / {$estado}" );
+				self::assertStringContainsString( 'disponibilidad', $descripcion, "{$nombre} / {$estado}" );
 				self::assertLessThanOrEqual( 160, mb_strlen( $descripcion, 'UTF-8' ) );
 			}
 		}

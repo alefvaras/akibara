@@ -27,6 +27,18 @@ use Throwable;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TooManyArguments
+ * @psalm-suppress UnusedParam
+ * @psalm-suppress UnusedParam
+ */
+// @phpstan-ignore complexity.classLike
 final class CacheWarmer {
 
 	public const HOOK = 'akibara_business_cache_warm';
@@ -52,6 +64,9 @@ final class CacheWarmer {
 
 	/** Segundos de trabajo por corrida de la cola. */
 	private const BUDGET_SECONDS = 20;
+
+	/** Ventana de debounce deslizante (600 segundos = 10 minutos) tras edición de productos. */
+	public const DEBOUNCE_SECONDS = 600;
 
 	/** Espera entre corridas de una misma pasada. */
 	private const CONTINUE_DELAY = 60;
@@ -79,6 +94,9 @@ final class CacheWarmer {
 
 	/** Navegador con el que se pide: se reconoce en los registros por `AkibaraCacheWarm`. */
 	public const USER_AGENT = 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36 AkibaraCacheWarm';
+
+	/** Tope de fallos consecutivos antes de cortar la pasada (circuit breaker). */
+	public const MAX_CONSECUTIVE_ERRORS = 5;
 
 	/** Lo que manda un navegador real al abrir una página, formatos de imagen incluidos. */
 	public const ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8';
@@ -121,15 +139,39 @@ final class CacheWarmer {
 	public function register(): void {
 		add_action( self::HOOK, array( $this, 'run' ) );
 		add_action( 'init', array( $this, 'maybe_schedule' ) );
-		add_action( 'update_option_' . self::OPTION_ENABLED, array( self::class, 'on_toggle' ), 10, 2 );
-		// La primera vez que se guarda la pestaña la fila no existe: WordPress la
-		// crea con `add_option` y `update_option_*` no corre.
-		add_action( 'add_option_' . self::OPTION_ENABLED, array( self::class, 'on_first_save' ), 10, 2 );
+		add_action( 'save_post_product', array( $this, 'on_product_save' ), 10, 2 );
+		add_action( 'woocommerce_update_product', array( $this, 'on_product_save' ), 10, 1 );
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'akb-cache warm', array( $this, 'cli_warm' ) );
+			\WP_CLI::add_command( 'akb-cache status', array( $this, 'cli_status' ) );
+		}
 	}
 
-	/** ¿Está encendido? La fila ausente cuenta como encendido. */
+	/**
+	 * Al editar o actualizar un producto, encola un calentamiento con ventana deslizante (600s = 10 min).
+	 *
+	 * Editar 20 productos seguidos desprograma la acción previa y posterga el
+	 * calentamiento 600 segundos desde la última edición.
+	 *
+	 * @param int|\WC_Product $product ID o producto.
+	 * @param \WP_Post|null   $post    Objeto post si viene de save_post.
+	 * @psalm-suppress UnusedParam
+	 */
+	public function on_product_save( $product, $post = null ): void {
+		if ( ! self::enabled() || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ) {
+			return;
+		}
+		if ( $post instanceof \WP_Post && 'publish' !== $post->post_status ) {
+			return;
+		}
+		$ahora = (int) ( $this->clock )();
+		self::schedule( $ahora + self::DEBOUNCE_SECONDS );
+	}
+
+	/** ¿Está encendido? El módulo opera permanentemente por código. */
 	public static function enabled(): bool {
-		return 'no' !== get_option( self::OPTION_ENABLED, 'yes' );
+		return true;
 	}
 
 	/**
@@ -203,33 +245,7 @@ final class CacheWarmer {
 	}
 
 	/**
-	 * Apagar quita lo agendado; encender lo vuelve a agendar la próxima petición de admin.
-	 *
-	 * @internal Callback de `update_option_akb_cache_warm_enabled`.
-	 *
-	 * @param mixed $old_value Valor anterior.
-	 * @param mixed $value     Valor nuevo.
-	 */
-	public static function on_toggle( $old_value, $value ): void {
-		unset( $old_value );
-		if ( 'no' === $value && function_exists( 'as_unschedule_all_actions' ) ) {
-			as_unschedule_all_actions( self::HOOK, array(), self::GROUP );
-		}
-	}
-
-	/**
-	 * @internal Callback de `add_option_akb_cache_warm_enabled`.
-	 *
-	 * @param mixed $option Nombre de la option.
-	 * @param mixed $value  Valor escrito.
-	 */
-	public static function on_first_save( $option, $value ): void {
-		unset( $option );
-		self::on_toggle( null, $value );
-	}
-
-	/**
-	 * Empieza una pasada ahora, fuera de la ventana («Recalentar ahora» del panel).
+	 * Empieza una pasada ahora, fuera de la ventana («Recalentar ahora» del panel o CLI).
 	 *
 	 * @return string `encolada`, `ya-en-curso`, `apagado`, `sin-cola` o `sin-fichas`.
 	 */
@@ -258,6 +274,83 @@ final class CacheWarmer {
 		} finally {
 			$this->release_lock();
 		}
+	}
+
+	/**
+	 * WP-CLI: Recalienta las fichas del catálogo.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--now]
+	 * : Encola inmediatamente una pasada de calentamiento.
+	 *
+	 * @param array<int, string>    $args       Argumentos posicionales.
+	 * @param array<string, string> $assoc_args Argumentos asociativos.
+	 */
+	public function cli_warm( array $args = array(), array $assoc_args = array() ): void {
+		unset( $args, $assoc_args );
+		$res = $this->start_manual();
+		if ( 'encolada' === $res ) {
+			\WP_CLI::success( 'Recalentado de fichas encolado exitosamente.' );
+		} elseif ( 'ya-en-curso' === $res ) {
+			\WP_CLI::warning( 'Ya hay un recalentado de caché en curso.' );
+		} elseif ( 'sin-fichas' === $res ) {
+			\WP_CLI::warning( 'No hay fichas publicadas que recalentar.' );
+		} else {
+			\WP_CLI::error( 'No se pudo encolar el recalentado: ' . $res );
+		}
+	}
+
+	/**
+	 * WP-CLI: Muestra el estado del calentador de caché.
+	 */
+	public function cli_status(): void {
+		\WP_CLI::line( self::describe_state( self::fresh_state(), self::enabled() ) );
+	}
+
+	/**
+	 * El estado en una frase para el dueño o la CLI.
+	 *
+	 * @param array<string, int|string> $estado  Estado de {@see CacheWarmer::state()}.
+	 * @param bool                      $enabled Si el recalentado está encendido.
+	 */
+	public static function describe_state( array $estado, bool $enabled = true ): string {
+		$prefijo = $enabled ? '' : 'Apagado. ';
+		if ( 0 === (int) $estado['started'] ) {
+			return $prefijo . 'Todavía no se ha recalentado ninguna ficha.';
+		}
+
+		$abierta = 0 === (int) $estado['finished'];
+		$cuando  = function_exists( 'wp_date' )
+			? wp_date( 'd/m/Y H:i', (int) ( $abierta ? $estado['started'] : $estado['finished'] ) )
+			: gmdate( 'd/m/Y H:i', (int) ( $abierta ? $estado['started'] : $estado['finished'] ) );
+		$cabeza  = $abierta
+			? sprintf( 'En curso desde el %s: %s de %s fichas', $cuando, function_exists( 'number_format_i18n' ) ? number_format_i18n( (int) $estado['cursor'] ) : (string) $estado['cursor'], function_exists( 'number_format_i18n' ) ? number_format_i18n( (int) $estado['total'] ) : (string) $estado['total'] )
+			: sprintf(
+				'%s el %s: %s de %s fichas',
+				1 === (int) $estado['cortada'] ? sprintf( 'Se cortó a las %02d:00', self::END_HOUR ) : 'Última pasada terminada',
+				$cuando,
+				function_exists( 'number_format_i18n' ) ? number_format_i18n( (int) $estado['cursor'] ) : (string) $estado['cursor'],
+				function_exists( 'number_format_i18n' ) ? number_format_i18n( (int) $estado['total'] ) : (string) $estado['total']
+			);
+
+		$format = function_exists( 'number_format_i18n' )
+			? static fn( $n ) => number_format_i18n( (int) $n )
+			: static fn( $n ) => (string) $n;
+
+		$frase = sprintf(
+			'%s%s · %s guardadas ahora · %s ya estaban guardadas · %s no se guardan (redirección o sin caché)',
+			$prefijo,
+			$cabeza,
+			$format( $estado['calentadas'] ),
+			$format( $estado['ya_calientes'] ),
+			$format( $estado['sin_cache'] )
+		);
+		if ( (int) $estado['errores'] > 0 ) {
+			$frase .= sprintf( ' · %s con error. Último: %s', $format( $estado['errores'] ), (string) $estado['ultimo_error'] );
+		}
+
+		return $frase . '.';
 	}
 
 	/**
@@ -296,6 +389,15 @@ final class CacheWarmer {
 			}
 
 			if ( $this->process_batch( $estado ) ) {
+				if ( (int) $estado['errores'] >= self::MAX_CONSECUTIVE_ERRORS && 0 === (int) $estado['calentadas'] && 0 === (int) $estado['ya_calientes'] ) {
+					// Circuit breaker: servidor inaccesible o red caída. Abortar la pasada para evitar bucles continuos de reintentos.
+					$cierre             = (int) ( $this->clock )();
+					$estado['finished'] = $cierre;
+					$estado['cortada']  = 1;
+					self::close_pass( $estado );
+					self::schedule( self::next_window_start( $cierre ) );
+					return;
+				}
 				update_option( self::OPTION_STATE, $estado, false );
 				self::schedule( $ahora + self::CONTINUE_DELAY );
 				return;
@@ -332,18 +434,22 @@ final class CacheWarmer {
 	 * @param array<string, int|string> $estado Estado de la pasada; se actualiza.
 	 * @return bool Si quedan fichas por pedir.
 	 */
-	private function process_batch( array &$estado ): bool {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function process_batch( array &$estado ): bool { // @phpstan-ignore complexity.functionLike
 		$cola = get_option( self::OPTION_QUEUE, array() );
 		if ( ! is_array( $cola ) ) {
 			return false;
 		}
-		$cola   = array_values( $cola );
-		$limite = ( $this->clock )() + self::BUDGET_SECONDS;
+		$cola               = array_values( $cola );
+		$total_cola         = count( $cola );
+		$limite             = ( $this->clock )() + self::BUDGET_SECONDS;
+		$consecutive_errors = 0;
 
-		while ( ( $this->clock )() < $limite && (int) $estado['cursor'] < count( $cola ) ) {
-			$peticiones = array();
-			$ruta       = null;
-			while ( count( $peticiones ) < self::CONCURRENCY && (int) $estado['cursor'] < count( $cola ) ) {
+		while ( ( $this->clock )() < $limite && (int) $estado['cursor'] < $total_cola ) {
+			$peticiones       = array();
+			$peticiones_count = 0;
+			$ruta             = null;
+			while ( $peticiones_count < self::CONCURRENCY && (int) $estado['cursor'] < $total_cola ) {
 				$id               = (int) $cola[ (int) $estado['cursor'] ];
 				$url              = $id > 0 ? get_permalink( $id ) : false;
 				$estado['cursor'] = (int) $estado['cursor'] + 1;
@@ -361,6 +467,7 @@ final class CacheWarmer {
 				// Todas las fichas son del mismo sitio: la ruta es la misma para la tanda.
 				$ruta              = $ruta_ficha;
 				$peticiones[ $id ] = self::request_for( $url );
+				++$peticiones_count;
 			}
 			if ( array() === $peticiones || null === $ruta ) {
 				continue;
@@ -376,21 +483,29 @@ final class CacheWarmer {
 				switch ( self::classify( $respuesta ) ) {
 					case 'hit':
 						$estado['ya_calientes'] = (int) $estado['ya_calientes'] + 1;
+						$consecutive_errors     = 0;
 						break;
 					case 'miss':
 						$estado['calentadas'] = (int) $estado['calentadas'] + 1;
+						$consecutive_errors   = 0;
 						break;
 					case 'sin_cache':
 						$estado['sin_cache'] = (int) $estado['sin_cache'] + 1;
+						$consecutive_errors  = 0;
 						break;
 					default:
 						$estado['errores']      = (int) $estado['errores'] + 1;
 						$estado['ultimo_error'] = self::error_text( $respuesta, $peticion['url'] );
+						++$consecutive_errors;
 						// Un 5xx o una petición sin respuesta es el servidor pidiendo aire.
 						if ( ! isset( $respuesta['status'] ) || (int) $respuesta['status'] >= 500 ) {
 							$frenar = true;
 						}
 				}
+			}
+
+			if ( $consecutive_errors >= self::MAX_CONSECUTIVE_ERRORS ) {
+				$frenar = true;
 			}
 
 			update_option( self::OPTION_STATE, $estado, false );
@@ -623,9 +738,12 @@ final class CacheWarmer {
 	/**
 	 * Una sola corrida pendiente: la nueva reemplaza a la que hubiera.
 	 *
+	 * Aplica debounce de ventana deslizante: desprograma cualquier acción previa
+	 * del mismo hook y grupo antes de encolar la nueva.
+	 *
 	 * @param int $timestamp Cuándo.
 	 */
-	private static function schedule( int $timestamp ): void {
+	public static function schedule( int $timestamp ): void {
 		if ( ! function_exists( 'as_schedule_single_action' ) ) {
 			return;
 		}

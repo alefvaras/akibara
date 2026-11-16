@@ -51,7 +51,7 @@ final class AccountReviewLinkTest extends RewardsTestCase {
 		$before = $this->database->row;
 		$actions = $this->sut->order_actions( array( 'view' => array( 'url' => '/pedido' ) ), $this->own_order() );
 		$this->assertSame( ReviewForm::url_for( str_repeat( 'Tk', 20 ) ), $actions['akb_review_invitation']['url'] );
-		$this->assertSame( 'Reseñar y obtener puntos', $actions['akb_review_invitation']['name'] );
+		$this->assertSame( 'Reseñar y obtener Puntos Akibara', $actions['akb_review_invitation']['name'] );
 		$this->assertArrayHasKey( 'view', $actions );
 		$this->assertCount( 1, $this->database->reads );
 		$this->assertStringContainsString( 'WHERE order_id = 100 AND used_at IS NULL', $this->database->reads[0] );
@@ -112,7 +112,7 @@ final class AccountReviewLinkTest extends RewardsTestCase {
 		ob_start();
 		$this->sut->view_order( 100 );
 		$html = (string) ob_get_clean();
-		$this->assertStringContainsString( 'Reseñar y obtener puntos', $html );
+		$this->assertStringContainsString( 'Reseñar y obtener Puntos Akibara', $html );
 		$this->assertStringContainsString( str_repeat( 'Tk', 20 ), $html );
 		$order->customer_id = 8;
 		ob_start();

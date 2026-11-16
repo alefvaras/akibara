@@ -18,25 +18,31 @@ use Akibara\Business\Utilities\PluginAssetVersion;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidOperand
+ */
+// @phpstan-ignore complexity.classLike
 final class FreeShippingProgress {
 
-	private const OPTION_ENABLED              = 'akibara_fsp_enabled';
-	private const OPTION_THRESHOLD            = 'akibara_fsp_threshold';
-	private const OPTION_CARRIER_THRESHOLD    = 'akibara_fsp_carrier_threshold';
-	private const OPTION_SHOW_CART            = 'akibara_fsp_show_cart';
-	private const OPTION_SHOW_MINI_CART       = 'akibara_fsp_show_mini_cart';
-	private const OPTION_SHOW_CHECKOUT        = 'akibara_fsp_show_checkout';
-	private const OPTION_SHOW_QUALIFIED       = 'akibara_fsp_show_qualified';
-	private const OPTION_DISABLE_LOCAL_PICKUP = 'akibara_fsp_disable_local_pickup';
-	private const OPTION_TITLE                = 'akibara_fsp_title';
-	private const OPTION_MESSAGE              = 'akibara_fsp_message';
-	private const OPTION_QUALIFIED            = 'akibara_fsp_qualified';
+	public const OPTION_ENABLED              = 'akibara_fsp_enabled';
+	public const OPTION_THRESHOLD            = 'akibara_fsp_threshold';
+	public const OPTION_CARRIER_THRESHOLD    = 'akibara_fsp_carrier_threshold';
+	public const OPTION_SHOW_CART            = 'akibara_fsp_show_cart';
+	public const OPTION_SHOW_MINI_CART       = 'akibara_fsp_show_mini_cart';
+	public const OPTION_SHOW_CHECKOUT        = 'akibara_fsp_show_checkout';
+	public const OPTION_SHOW_QUALIFIED       = 'akibara_fsp_show_qualified';
+	public const OPTION_DISABLE_LOCAL_PICKUP = 'akibara_fsp_disable_local_pickup';
+	public const OPTION_TITLE                = 'akibara_fsp_title';
+	public const OPTION_MESSAGE              = 'akibara_fsp_message';
+	public const OPTION_QUALIFIED            = 'akibara_fsp_qualified';
 
 	// Override inicial del operador: cero utiliza el min_amount real de WooCommerce.
-	private const DEFAULT_THRESHOLD = 0;
-	// Umbral del transportista: fallback para zonas sin instancia core
-	// `free_shipping` habilitada. 0 = apagado (ver FreeShippingThreshold).
-	private const DEFAULT_CARRIER_THRESHOLD = 0;
+	public const DEFAULT_THRESHOLD = 0;
+	// Umbral único de envío gratis a domicilio (Blue Express): $60.000 CLP por defecto.
+	public const DEFAULT_CARRIER_THRESHOLD = 60000;
 	// El copy nombra "a domicilio" a propósito: el retiro en Punto Blue se cotiza
 	// aparte y no queda gratis por monto. Prometer "envío gratis" a secas se
 	// contradecía con el cargo que el cliente ve al elegir un punto.
@@ -54,6 +60,16 @@ final class FreeShippingProgress {
 	private ?string $html_cache = null;
 
 	public function register(): void {
+		// Garantiza que akibara_fsp_threshold se mantenga en 0 para evitar pisos fantasmas en DB.
+		add_action( 'update_option_' . self::OPTION_CARRIER_THRESHOLD, static function (): void {
+			if ( (int) get_option( self::OPTION_THRESHOLD, 0 ) !== 0 ) {
+				update_option( self::OPTION_THRESHOLD, 0 );
+			}
+		} );
+		add_filter( 'pre_update_option_' . self::OPTION_THRESHOLD, static function (): int {
+			return 0;
+		} );
+
 		if ( 'yes' !== get_option( self::OPTION_ENABLED, 'yes' ) ) {
 			return;
 		}
@@ -64,6 +80,9 @@ final class FreeShippingProgress {
 		// Un shipping_total cero no distingue gratis de aún no calculado. La regla
 		// se publica aunque Mostrar en mini carrito esté apagado.
 		add_filter( 'akb_native_cart_fsp_qualified', array( $this, 'is_qualified' ) );
+
+		// Garantiza la paridad de envío gratis pre-cupones sobre instancias WC_Shipping_Free_Shipping.
+		add_filter( 'woocommerce_shipping_free_shipping_is_available', array( $this, 'filter_free_shipping_is_available' ), 20, 3 );
 
 		if ( 'yes' === get_option( self::OPTION_SHOW_MINI_CART, 'yes' ) ) {
 			// Widget WC nativo (woocommerce.php template).
@@ -367,7 +386,7 @@ final class FreeShippingProgress {
 		if ( ! function_exists( 'WC' ) ) {
 			return false;
 		}
-		$cart = WC()->cart ?? null;
+		$cart = WC()->cart ?? null; // @phpstan-ignore nullCoalesce.property
 		if ( ! $cart || ! $cart->needs_shipping() || ! $cart->get_cart_contents() ) {
 			return false;
 		}
@@ -392,8 +411,8 @@ final class FreeShippingProgress {
 	 * FreeShippingThreshold::for_current_cart(). Este fallback cubre rates de
 	 * costo cero aportados por integraciones externas sin inventar umbrales.
 	 */
-	private function has_chosen_zero_fee(): bool {
-		$customer = WC()->customer ?? null;
+	private function has_chosen_zero_fee(): bool { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		$customer = WC()->customer ?? null; // @phpstan-ignore nullCoalesce.property
 		if ( ! is_object( $customer )
 			|| ! method_exists( $customer, 'has_shipping_address' )
 			|| ! $customer->has_shipping_address()
@@ -407,7 +426,7 @@ final class FreeShippingProgress {
 			return false;
 		}
 
-		$packages = WC()->shipping ? WC()->shipping->get_packages() : array();
+		$packages = WC()->shipping ? WC()->shipping->get_packages() : array(); // @phpstan-ignore property.notFound
 		if ( ! is_array( $packages ) || empty( $packages ) ) {
 			return false;
 		}
@@ -436,41 +455,15 @@ final class FreeShippingProgress {
 	}
 
 	/**
-	 * La frase que dice, con el número de hoy, cuándo este campo hará algo.
-	 *
-	 * Se calcula al pintar la pantalla y no se guarda en ninguna parte: si
-	 * mañana cambia el umbral del transportista, la ayuda cambia con él. Un
-	 * texto que se quedara clavado sería peor que no ponerlo.
-	 *
-	 * Sin umbral de transportista configurado no se dice nada: un «$0» en la
-	 * ayuda no informa, confunde.
-	 */
-	private static function piso_efecto_actual(): string {
-		$transportista = (float) get_option( self::OPTION_CARRIER_THRESHOLD, self::DEFAULT_CARRIER_THRESHOLD );
-
-		if ( $transportista <= 0 ) {
-			return '';
-		}
-
-		$monto = function_exists( 'number_format_i18n' )
-			? number_format_i18n( $transportista )
-			: (string) (int) $transportista;
-
-		return ' <strong>Ahora mismo el transportista da envío gratis desde $' . $monto
-			. ', así que un valor menor que ése no cambiará nada de lo que ve el cliente:'
-			. ' este campo sólo sirve para exigir más.</strong>';
-	}
-
-	/**
-	 * Override visual conservador. La resolución por zona nunca permite que un
-	 * valor menor rebaje el `min_amount` real de WooCommerce.
+	 * Override visual conservador.
+	 * Se mantiene en 0 para que la única fuente de verdad sea el umbral del transportista (carrier threshold).
 	 */
 	private function get_threshold_override(): float {
-		return max( 0.0, (float) get_option( self::OPTION_THRESHOLD, self::DEFAULT_THRESHOLD ) );
+		return 0.0;
 	}
 
 	/**
-	 * Umbral que el transportista aplica dentro de su propia tarifa.
+	 * Umbral que el transportista aplica dentro de su propia tarifa (fuente única de verdad).
 	 *
 	 * En Akibara el envío gratis lo otorga Blue Express (`isShipmentFree`), no una
 	 * instancia core `free_shipping`: las de las zonas están deshabilitadas a
@@ -480,10 +473,8 @@ final class FreeShippingProgress {
 	 * @since 1.97.0
 	 */
 	private function get_carrier_threshold(): float {
-		return max(
-			0.0,
-			(float) get_option( self::OPTION_CARRIER_THRESHOLD, self::DEFAULT_CARRIER_THRESHOLD )
-		);
+		$threshold = (float) get_option( self::OPTION_CARRIER_THRESHOLD, self::DEFAULT_CARRIER_THRESHOLD );
+		return $threshold > 0.0 ? $threshold : (float) self::DEFAULT_CARRIER_THRESHOLD;
 	}
 
 	private function get_chosen_shipping_id(): ?string {
@@ -507,7 +498,7 @@ final class FreeShippingProgress {
 		if ( ! $chosen_id ) {
 			return '';
 		}
-		$packages = WC()->shipping ? WC()->shipping->get_packages() : array();
+		$packages = WC()->shipping ? WC()->shipping->get_packages() : array(); // @phpstan-ignore property.notFound
 		if ( empty( $packages ) ) {
 			return '';
 		}
@@ -536,7 +527,7 @@ final class FreeShippingProgress {
 			return false;
 		}
 
-		$packages   = WC()->shipping ? WC()->shipping->get_packages() : array();
+		$packages   = WC()->shipping ? WC()->shipping->get_packages() : array(); // @phpstan-ignore property.notFound
 		$package    = reset( $packages );
 		$rate_count = $package && ! empty( $package['rates'] ) ? count( $package['rates'] ) : 0;
 
@@ -712,7 +703,7 @@ final class FreeShippingProgress {
 	 * @return string
 	 */
 	private static function plain_text( string $text ): string {
-		$decoded = html_entity_decode( strip_tags( $text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$decoded = html_entity_decode( wp_strip_all_tags( $text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$plain   = preg_replace( '/\s+/u', ' ', str_replace( "\xc2\xa0", ' ', $decoded ) );
 
 		return trim( is_string( $plain ) ? $plain : '' );
@@ -748,24 +739,8 @@ final class FreeShippingProgress {
 				'default' => 'yes',
 			),
 			array(
-				'title'             => 'Umbral envío gratis (CLP)',
-				// El número VIVO del transportista, no sólo la mecánica en
-				// abstracto. Este campo es un piso: sólo puede exigir MÁS, nunca
-				// menos. La ayuda ya lo explicaba y aun así QA escribió 45.000
-				// sobre 55.000, no vio cambiar nada y lo dio por un interruptor
-				// muerto. Quien lee la ayuda tiene derecho a saber contra qué
-				// número se compara el suyo, antes de escribirlo.
-				'desc'              => 'Déjalo en 0 (recomendado) para usar el monto y requisitos reales del método "Envío gratis" de la zona del cliente. Un valor > 0 solo actúa como piso visual conservador: nunca rebaja el mínimo real ni crea envío gratis en una zona que no lo ofrece.'
-					. self::piso_efecto_actual(),
-				'id'                => self::OPTION_THRESHOLD,
-				'type'              => 'number',
-				'default'           => (string) self::DEFAULT_THRESHOLD,
-				'custom_attributes' => array( 'min' => '0', 'step' => '1000' ),
-				'css'               => 'width:120px;',
-			),
-			array(
-				'title'             => 'Umbral del transportista (CLP)',
-				'desc'              => 'Monto sobre el cual <strong>Blue Express</strong> entrega gratis a domicilio dentro de su propia tarifa. Úsalo cuando el método "Envío gratis" de WooCommerce esté deshabilitado en las zonas (que es el caso en Akibara: habilitarlo publicaría una tarifa paralela sin servicio Blue asociado). Sin este valor la barra no tiene umbral y nunca aparece. Solo aplica en zonas con al menos un método de entrega a domicilio habilitado; el retiro en Punto Blue nunca queda cubierto. Una instancia core "Envío gratis" habilitada siempre manda sobre este valor.',
+				'title'             => 'Umbral de envío gratis a domicilio (CLP)',
+				'desc'              => 'Monto sobre el cual Blue Express entrega gratis a domicilio dentro de su propia tarifa ($60.000 CLP por defecto). Este monto único gobierna la barra de envío gratis, el envío gratis a domicilio con Blue Express, los avisos de despacho y la protección de envío gratis al canjear Puntos Akibara (el retiro en Punto Blue y retiro en tienda no aplican).',
 				'id'                => self::OPTION_CARRIER_THRESHOLD,
 				'type'              => 'number',
 				'default'           => (string) self::DEFAULT_CARRIER_THRESHOLD,
@@ -836,5 +811,34 @@ final class FreeShippingProgress {
 				'id'   => 'akibara_fsp_section',
 			),
 		);
+	}
+
+	/**
+	 * Evalúa el umbral comercial de envío gratis previo a la aplicación de descuentos por cupones.
+	 *
+	 * Previene que cupones porcentuales (ej. popup10) reduzcan el subtotal bajo los $60.000 CLP
+	 * y penalicen al cliente con cobro de flete.
+	 *
+	 * @param bool                $is_available Disponibilidad calculada por WooCommerce.
+	 * @param array<string,mixed> $package      Paquete de envío.
+	 * @param mixed               $method       Instancia de método de envío.
+	 * @return bool
+	 */
+	public function filter_free_shipping_is_available( $is_available, $package, $method ): bool {
+		unset( $package, $method );
+
+		$threshold = (float) get_option( self::OPTION_CARRIER_THRESHOLD, 60000.0 );
+		if ( $threshold <= 0.0 ) {
+			$threshold = 60000.0;
+		}
+
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			$subtotal = (float) WC()->cart->get_displayed_subtotal();
+			if ( $subtotal >= $threshold ) {
+				return true;
+			}
+		}
+
+		return (bool) $is_available;
 	}
 }

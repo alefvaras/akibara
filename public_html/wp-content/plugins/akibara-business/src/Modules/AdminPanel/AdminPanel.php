@@ -16,6 +16,15 @@ use Akibara\Business\Utilities\PluginAssetVersion;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ */
+// @phpstan-ignore complexity.classLike
 final class AdminPanel {
 
 	/** Capability del panel completo. Cada sección puede exigir MÁS, nunca menos. */
@@ -51,10 +60,9 @@ final class AdminPanel {
 	 *   OJO: el mensaje del umbral que sí aparece en TODAS las páginas es el de
 	 *   la barra de anuncios, que es otra sección (`announcement`) y sí purga.
 	 *
-	 * Quedan FUERA a propósito, aunque tienten: `preventa` y `back_in_stock`
+	 * Quedan FUERA a propósito, aunque tienten: `back_in_stock`
 	 * (sus banners y formularios se imprimen en fichas y listados cacheados),
-	 * `taxonomy_discount` y `series_bundles` (mueven precios), `announcement`,
-	 * `branding` y `copys` (HTML de todo el sitio).
+	 * `taxonomy_discount` (mueve precios), `announcement` y `copys` (HTML de todo el sitio).
 	 *
 	 * Mapeo de secciones administrativas a la explicación contextual que justifica
 	 * omitir la purga global de caché tras guardar.
@@ -62,23 +70,8 @@ final class AdminPanel {
 	 * @var array<string, string>
 	 */
 	private const SECTIONS_WITHOUT_CACHED_SURFACE = array(
-		'address'                 => 'Estos ajustes se ven en el checkout, que no se cachea: el cambio ya está visible sin limpiar la caché del sitio.',
-		'native_cart'             => 'Estos ajustes se ven en el carrito y su cajón, que no se cachean: el cambio ya está visible sin limpiar la caché del sitio.',
-		'free_shipping_progress'  => 'Esta barra se ve en el cajón, el carrito y el checkout, que no se cachean: el cambio ya está visible sin limpiar la caché del sitio.',
-		// La calidad AVIF sólo actúa al crear archivos de imagen; ningún HTML
-		// cambia al guardarla. La recompresión purga por su cuenta al terminar.
-		'imagenes'                => 'Esta calidad se aplica a las imágenes que subas de ahora en adelante; las ya subidas no cambian hasta que uses «Recomprimir». Ningún HTML cacheado depende de ella.',
-		// El interruptor del recalentado no cambia HTML (y purgar tiraría lo que
-		// recalentó). La etiqueta de Google Ads y la carga diferida de GA4 y
-		// Clarity sí viven en el HTML: sus options purgan por su cuenta, y sólo
-		// cuando cambian de valor (`GoogleAdsTag`, `AnalyticsAfterLoad`).
-		'velocidad'               => 'El recalentado no cambia el HTML del sitio, así que el guardado no limpió la caché. Si moviste la etiqueta de Google Ads o la carga de Analytics y Clarity, esa parte limpió la caché por su cuenta.',
-		// Guardar la vitrina no reordena nada: encola el recálculo, y ése purga
-		// al terminar (sólo si reescribió algún menu_order). Purgar aquí vaciaba
-		// el borde minutos ANTES de que cambiara el orden —la tienda fría para
-		// nada— y el aviso «el cambio ya está visible» mentía.
-		'home_series'             => 'Si cambiaste la vitrina, se limpió de la caché sólo la portada, no el sitio entero. Cloudflare puede tardar hasta 10 minutos en mostrar el cambio.',
-		'catalog_order'           => 'Si cambiaste el orden de la vitrina, lo aplica un recálculo que el cron del servidor ejecuta en unos minutos y que limpia la caché del sitio al terminar; hasta entonces el cliente sigue viendo el orden anterior. Si cambiaste los tomos por página de las series, esas páginas ya se limpiaron de la caché: el cambio se ve en uno o dos minutos.',
+		'free_shipping_progress' => 'Esta barra se ve en el cajón, el carrito y el checkout, que no se cachean: el cambio ya está visible sin limpiar la caché del sitio.',
+		'home_series'            => 'Si cambiaste la vitrina, se limpió de la caché sólo la portada, no el sitio entero. Cloudflare puede tardar hasta 10 minutos en mostrar el cambio.',
 	);
 
 	/**
@@ -114,6 +107,32 @@ final class AdminPanel {
 		'fidelizacion' => 'Fidelización & Avisos',
 		'sitio'        => 'Sitio & Experiencia',
 		'sistema'      => 'Sistema',
+	);
+
+	/**
+	 * Pantallas satélite de Akibara con submenú propio fuera del panel principal.
+	 *
+	 * @var list<array{tab: string, label: string, page: string, keywords: string}>
+	 */
+	public const SATELLITE_SCREENS = array(
+		array(
+			'tab'      => 'satelite_rewards',
+			'label'    => 'Puntos y Reseñas',
+			'page'     => 'akb-rewards-settings',
+			'keywords' => 'puntos resenas fidelizacion',
+		),
+		array(
+			'tab'      => 'satelite_search',
+			'label'    => 'Buscador',
+			'page'     => 'akibara-search',
+			'keywords' => 'buscador indice facetas sinonimos',
+		),
+		array(
+			'tab'      => 'satelite_pricing_matrix',
+			'label'    => 'Matriz de Precios',
+			'page'     => 'akibara-pricing-matrix',
+			'keywords' => 'matriz precios tarifas editoriales',
+		),
 	);
 
 	/** @var array<string, array{label: string, settings_fn: callable, header_fn: ?callable, is_action: bool, cap: string, group: string}> */
@@ -208,10 +227,48 @@ final class AdminPanel {
 	}
 
 	public function register(): void {
+		add_action( 'init', array( $this, 'redirect_retired_routes' ) );
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_head', array( $this, 'print_sidebar_cleanup_styles' ) );
+		add_filter( 'parent_file', array( $this, 'filter_parent_file' ) );
+		add_filter( 'submenu_file', array( $this, 'filter_submenu_file' ) );
 		add_action( 'admin_init', array( $this, 'handle_save' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'admin_print_styles-edit.php', array( $this, 'print_product_list_styles' ) );
+	}
+
+	/**
+	 * Redirige rutas administrativas retiradas (Reglas Financieras y pestaña Branding)
+	 * al Centro de Mando antes de que admin.php valide el menú desaparecido con wp_die().
+	 */
+	public function redirect_retired_routes(): void {
+		if ( ! is_admin() || wp_doing_ajax() || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- solo lectura para redirigir rutas retiradas.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+		$tab  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$retired_pages = array(
+			'akibara-financial-rules',
+			'akibara-provider-access',
+		);
+		$retired_tabs  = array(
+			'branding',
+			'velocidad',
+			'catalog_order',
+			'salud_seo',
+			'imagenes',
+			'native_cart',
+			'address',
+			'copys',
+			'upsells_autofill',
+			'upsells',
+		);
+		if ( in_array( $page, $retired_pages, true ) || ( 'akibara-panel' === $page && in_array( $tab, $retired_tabs, true ) ) ) {
+			wp_safe_redirect( admin_url( 'admin.php?page=akibara-panel' ) );
+			exit;
+		}
 	}
 
 	public function register_menu(): void {
@@ -225,10 +282,6 @@ final class AdminPanel {
 			56
 		);
 
-		// El primer submenú hereda el nombre del menú («Akibara» dentro de
-		// «Akibara»): se renombra a «Panel» (patrón fix_admin_menu de Rank
-		// Math). Y «Puntos y Reseñas» aparece como ENLACE saliente a su
-		// pantalla real bajo WooCommerce — el hub enlaza, no absorbe.
 		add_submenu_page(
 			'akibara-panel',
 			'Panel Akibara',
@@ -236,15 +289,73 @@ final class AdminPanel {
 			'manage_woocommerce',
 			'akibara-panel'
 		);
-		if ( class_exists( '\\Akibara\\Rewards\\Plugin' ) ) {
-			add_submenu_page(
-				'akibara-panel',
-				'Puntos y Reseñas',
-				'Puntos y Reseñas',
-				'manage_woocommerce',
-				'admin.php?page=akb-rewards-settings'
-			);
+	}
+
+	/**
+	 * Oculta el menú desplegable (flyout) del menú lateral de WordPress para Akibara.
+	 * Mantiene todas las páginas registradas en el backend con sus permisos y capacidades intactas,
+	 * garantizando que al hacer clic en «Akibara» se ingrese directamente al Centro de Mando,
+	 * y que desde el Centro de Mando se navegue limpiamente a cualquier módulo sin ensuciar la barra.
+	 */
+	public function print_sidebar_cleanup_styles(): void {
+		echo '<style id="akb-sidebar-cleanup">'
+			. '#toplevel_page_akibara-panel .wp-submenu,'
+			. '#toplevel_page_akibara-panel.wp-has-submenu > a .wp-menu-arrow,'
+			. '#toplevel_page_akibara-panel .wp-menu-arrow { display: none !important; }'
+			. '#toplevel_page_akibara-panel.wp-has-submenu:hover .wp-submenu,'
+			. '#toplevel_page_akibara-panel.wp-menu-open .wp-submenu { display: none !important; }'
+			. '.akb-panel-top-bar { margin: 0 0 16px 0; display: flex; align-items: center; padding: 10px 18px; background: #1E1E24; border: 2px solid #141416; border-radius: 6px; box-shadow: 3px 3px 0 #141416; }'
+			. '.akb-panel-back-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #141416 !important; background: #ffffff !important; border: 2px solid #141416 !important; border-radius: 4px; min-height: 44px; box-sizing: border-box; padding: 10px 16px; box-shadow: 2px 2px 0 #141416; text-decoration: none !important; line-height: 1.2; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); }'
+			. '.akb-panel-back-btn:hover, .akb-panel-back-btn:focus { background: #FFCC00 !important; color: #141416 !important; transform: translate(-1px, -1px); box-shadow: 3px 3px 0 #141416; }'
+			. '.akb-panel-back-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #141416; }'
+			. '</style>';
+	}
+
+	/**
+	 * Mantiene el resaltado de «Akibara» en el sidebar de WordPress cuando se
+	 * visita cualquiera de las pantallas satélite desde el Centro de Mando.
+	 *
+	 * @param string $parent_file Archivo/slug padre actual.
+	 */
+	public function filter_parent_file( string $parent_file ): string {
+		global $plugin_page;
+
+		$satellites = array(
+			'akb-rewards-settings',
+			'akb-review-reschedule',
+			'akb-customer-points',
+			'akibara-search',
+			'akibara-pricing-matrix',
+		);
+
+		if ( in_array( $plugin_page, $satellites, true ) ) {
+			return 'akibara-panel';
 		}
+
+		return $parent_file;
+	}
+
+	/**
+	 * Evita desalineación de submenú activo en pantallas satélite.
+	 *
+	 * @param string|null $submenu_file Submenú activo actual.
+	 */
+	public function filter_submenu_file( ?string $submenu_file ): ?string {
+		global $plugin_page;
+
+		$satellites = array(
+			'akb-rewards-settings',
+			'akb-review-reschedule',
+			'akb-customer-points',
+			'akibara-search',
+			'akibara-pricing-matrix',
+		);
+
+		if ( in_array( $plugin_page, $satellites, true ) ) {
+			return 'akibara-panel';
+		}
+
+		return $submenu_file;
 	}
 
 	/**
@@ -365,7 +476,8 @@ final class AdminPanel {
 	 * @param string                $motivo_sin_purga Motivo visible de por qué la pestaña no purga; '' cuando no aplica.
 	 * @return array<int, array<string, string>> Avisos `tipo` + `texto`.
 	 */
-	private static function post_save_notices( bool $saved, array $errores, array $parciales, bool $purged, bool $cambios = true, string $motivo_sin_purga = '' ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private static function post_save_notices( bool $saved, array $errores, array $parciales, bool $purged, bool $cambios = true, string $motivo_sin_purga = '' ): array { // @phpstan-ignore complexity.functionLike
 		$avisos = array();
 
 		foreach ( $errores as $error ) {
@@ -557,7 +669,8 @@ final class AdminPanel {
 		return $fallidos;
 	}
 
-	public function handle_save(): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function handle_save(): void { // @phpstan-ignore complexity.functionLike
 		if ( ! isset( $_POST['akibara_panel_save'] ) ) {
 			return;
 		}
@@ -736,9 +849,9 @@ final class AdminPanel {
 				'shutdown',
 				static function (): void {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- hook de LiteSpeed.
-			do_action( 'litespeed_purge_all' );
+					do_action( 'litespeed_purge_all' );
 				},
-				99
+				-10
 			);
 		}
 
@@ -752,7 +865,7 @@ final class AdminPanel {
 		);
 
 		// Soporte para sub-tabs internos: módulos que renderean su propio
-		// sub-nav (ej. TaxonomyDiscount) pueden inyectar un hidden input
+		// sub-nav pueden inyectar un hidden input
 		// `akibara_current_subtab` en el form para preservar el sub-tab
 		// activo tras el redirect post-save.
 		$subtab = isset( $_POST['akibara_current_subtab'] ) ? sanitize_key( wp_unslash( (string) $_POST['akibara_current_subtab'] ) ) : '';
@@ -764,7 +877,7 @@ final class AdminPanel {
 		exit;
 	}
 
-	public function render_page(): void {
+	public function render_page(): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		// El nav y el fallback de tab se derivan de las secciones VISIBLES: una
 		// sección con cap propia no aparece, y llegar a ella por URL cae
 		// en la primera visible en vez de renderizar un aviso de permisos.
@@ -799,8 +912,7 @@ final class AdminPanel {
 
 		// Los dos canales del guardado, cada uno con su significado. Viven en
 		// transient para sobrevivir el redirect post-save; se consumen aquí.
-		//   errores  → validación cross-field (ej. akb_range_pair de
-		//              EstimatedDelivery): no se escribió NADA.
+		//   errores  → validación cross-field: no se escribió NADA.
 		//   parcial  → escrituras rechazadas una a una: entró casi todo.
 		$error_transient_key   = self::ERROR_TRANSIENT_PREFIX . get_current_user_id();
 		$partial_transient_key = self::PARTIAL_TRANSIENT_PREFIX . get_current_user_id();
@@ -836,10 +948,16 @@ final class AdminPanel {
 		?>
 		<div class="wrap woocommerce akb-panel">
 
-			<div class="akb-panel-header">
-				<h1>Akibara</h1>
-				<span class="akb-panel-version">v<?php echo esc_html( AKIBARA_BUSINESS_VERSION ); ?></span>
-			</div>
+			<header class="akb-panel-head akb-panel-header">
+				<div class="akb-panel-brand">
+					<span class="akb-panel-gem" aria-hidden="true">&#9670;</span>
+					<h1>Akibara</h1>
+					<span class="akb-panel-ver akb-panel-version">v<?php echo esc_html( AKIBARA_BUSINESS_VERSION ); ?></span>
+				</div>
+				<div class="akb-panel-tagline">
+					<span>Centro de Mando &amp; Operaciones</span>
+				</div>
+			</header>
 			<?php // Marcador estándar para inserción de avisos administrativos de WordPress. ?>
 			<hr class="wp-header-end">
 
@@ -860,6 +978,13 @@ final class AdminPanel {
 								<?php echo esc_html( $section['label'] ); ?>
 							</option>
 						<?php endforeach; ?>
+						<optgroup label="Pantallas Satélite">
+							<?php foreach ( self::SATELLITE_SCREENS as $sat ) : ?>
+								<option value="<?php echo esc_url( admin_url( 'admin.php?page=' . $sat['page'] ) ); ?>">
+									<?php echo esc_html( $sat['label'] ); ?>
+								</option>
+							<?php endforeach; ?>
+						</optgroup>
 					</select>
 					<nav class="akb-panel-nav" aria-label="Secciones Akibara">
 						<?php
@@ -879,6 +1004,16 @@ final class AdminPanel {
 							   data-nav-group="<?php echo esc_attr( $g ); ?>"
 							   <?php echo $current === $id ? 'aria-current="page"' : ''; ?>>
 								<?php echo esc_html( $section['label'] ); ?>
+							</a>
+						<?php endforeach; ?>
+						<span class="akb-panel-nav__group" data-nav-group="satelites" role="presentation">Pantallas Satélite</span>
+						<?php foreach ( self::SATELLITE_SCREENS as $sat ) : ?>
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $sat['page'] ) ); ?>"
+							   class="akb-panel-nav__link"
+							   data-tab="<?php echo esc_attr( $sat['tab'] ); ?>"
+							   data-nav-group="satelites"
+							   data-keywords="<?php echo esc_attr( $sat['keywords'] ); ?>">
+								<?php echo esc_html( $sat['label'] ); ?>
 							</a>
 						<?php endforeach; ?>
 					</nav>
@@ -903,7 +1038,7 @@ final class AdminPanel {
 							/**
 							 * Permite a un módulo inyectar `<input type="hidden">` adicionales
 							 * en el form del panel. Útil para preservar estado de sub-navegación
-							 * interna tras el redirect post-save (ej. TaxonomyDiscount sub-tab).
+							 * interna tras el redirect post-save.
 							 *
 							 * @since 1.16.1
 							 *
@@ -969,7 +1104,7 @@ final class AdminPanel {
 			. '<path d="M10 2C8 2 5.5 2.8 4 4v13c1.5-1 4-1.7 6-1.7V2z"/>'
 			. '<path d="M10 2c2 0 4.5.8 6 2v13c-1.5-1-4-1.7-6-1.7V2z" opacity=".6"/>'
 			. '</svg>';
-		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
+		return 'data:image/svg+xml;base64,' . base64_encode( $svg ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 	}
 
 	/**

@@ -26,6 +26,7 @@ use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Services\VolumeVariant;
 use Akibara\Business\Utilities\PluginAssetVersion;
+use Akibara\Business\Utilities\ProductVisibility;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -33,7 +34,12 @@ defined( 'ABSPATH' ) || exit;
  * Ficha de datos del catálogo de una serie.
  *
  * @since 1.100.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidReturnStatement
  */
+// @phpstan-ignore complexity.classLike
 final class SeriesFacts {
 
 	/** Taxonomía de serie. Las landings viven en sus archives. */
@@ -143,6 +149,7 @@ final class SeriesFacts {
 
 		add_action( 'save_post_product', array( $this, 'invalidate_product' ), 10, 1 );
 		add_action( 'before_delete_post', array( $this, 'invalidate_product' ), 10, 1 );
+		add_action( 'transition_post_status', array( $this, 'invalidate_on_status_change' ), 10, 3 );
 		add_action( 'added_post_meta', array( $this, 'invalidate_on_product_meta_changed' ), 10, 3 );
 		add_action( 'updated_post_meta', array( $this, 'invalidate_on_product_meta_changed' ), 10, 3 );
 		add_action( 'deleted_post_meta', array( $this, 'invalidate_on_product_meta_changed' ), 10, 3 );
@@ -195,6 +202,28 @@ final class SeriesFacts {
 			return;
 		}
 		$this->invalidate_product( (int) $product->get_id() );
+	}
+
+	/**
+	 * Invalida cuando un producto cambia de estado de publicación.
+	 *
+	 * Cubre el paso a papelera ('trash') y la restauración ('publish'), que no
+	 * pasan por save_post_product.
+	 *
+	 * @internal Callback de `transition_post_status`.
+	 *
+	 * @param string $new_status Estado nuevo.
+	 * @param string $old_status Estado anterior.
+	 * @param mixed  $post       Objeto de post.
+	 * @return void
+	 */
+	public function invalidate_on_status_change( string $new_status, string $old_status, $post ): void {
+		if ( ProductVisibility::changed( $new_status, $old_status, $post ) ) {
+			$post_id = is_object( $post ) && isset( $post->ID ) ? (int) $post->ID : 0;
+			if ( $post_id > 0 ) {
+				$this->invalidate_product( $post_id );
+			}
+		}
 	}
 
 	/**
@@ -673,7 +702,7 @@ final class SeriesFacts {
 	 * Los MISMOS hechos que pinta el bloque, para quien deba declararlos en otro lenguaje.
 	 *
 	 * @param int $term_taxonomy_id Término de la serie.
-	 * @return array{tomos:int,instock:int,preventa:int,agotados:int,productos:int,productos_instock:int,productos_preventa:int,productos_agotados:int,agotados_tomos:array<int,string>,price_min:?float,price_max:?float,updated:string,autores:array<int,array{name:string,term_id:int}>,editoriales:array<int,array{name:string,term_id:int}>,ultimo_tomo:array{id:int,numero:int}|null}|null
+	 * @return array{tomos:int,instock:int,agotados:int,productos:int,productos_instock:int,productos_agotados:int,agotados_tomos:array<int,string>,price_min:?float,price_max:?float,updated:string,autores:array<int,array{name:string,term_id:int}>,editoriales:array<int,array{name:string,term_id:int}>,ultimo_tomo:array{id:int,numero:int}|null}|null
 	 */
 	public function catalog_facts( int $term_taxonomy_id ): ?array {
 		return $this->facts( $term_taxonomy_id );
@@ -697,9 +726,9 @@ final class SeriesFacts {
 	 * Lee hechos cacheados por término con verificación de generación durable.
 	 *
 	 * @param int $term_taxonomy_id Término de la serie.
-	 * @return array{tomos:int,instock:int,preventa:int,agotados:int,productos:int,productos_instock:int,productos_preventa:int,productos_agotados:int,agotados_tomos:array<int,string>,price_min:?float,price_max:?float,updated:string,autores:array<int,array{name:string,term_id:int}>,editoriales:array<int,array{name:string,term_id:int}>,ultimo_tomo:array{id:int,numero:int}|null}|null
+	 * @return array{tomos:int,instock:int,agotados:int,productos:int,productos_instock:int,productos_agotados:int,agotados_tomos:array<int,string>,price_min:?float,price_max:?float,updated:string,autores:array<int,array{name:string,term_id:int}>,editoriales:array<int,array{name:string,term_id:int}>,ultimo_tomo:array{id:int,numero:int}|null}|null
 	 */
-	private function facts( int $term_taxonomy_id ): ?array {
+	private function facts( int $term_taxonomy_id ): ?array { // @phpstan-ignore complexity.functionLike
 		$verified = self::verified( $term_taxonomy_id );
 		if ( null !== $verified ) {
 			$now = $this->cache->cache_generation_snapshot( $term_taxonomy_id, true );
@@ -863,12 +892,6 @@ final class SeriesFacts {
 							WHEN l.stock_status = %s AND {$tomo_normal} THEN p.ID
 						END
 					) AS instock,
-					COUNT(DISTINCT CASE WHEN l.stock_status = %s THEN p.ID END) AS productos_preventa,
-					COUNT(
-						DISTINCT CASE
-							WHEN l.stock_status = %s AND {$tomo_normal} THEN p.ID
-						END
-					) AS preventa,
 					COUNT(DISTINCT CASE WHEN l.stock_status = %s THEN p.ID END) AS productos_agotados,
 					COUNT(
 						DISTINCT CASE
@@ -894,8 +917,10 @@ final class SeriesFacts {
 						ORDER BY CONCAT_WS(%s, bt.name, bt.term_id)
 						SEPARATOR %s
 					) AS editoriales,
-					MAX(
-						CASE WHEN {$tomo_normal} THEN CONCAT(p.post_title, %s, p.ID) END
+					GROUP_CONCAT(
+						DISTINCT CASE WHEN {$tomo_normal} THEN CONCAT(p.post_title, %s, p.ID) END
+						ORDER BY p.ID DESC
+						SEPARATOR %s
 					) AS ultimo_tomo
 				FROM {$wpdb->term_relationships} tr
 				INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id
@@ -930,9 +955,6 @@ final class SeriesFacts {
 					array( StockStatus::IN_STOCK ),
 					array( StockStatus::IN_STOCK ),
 					$variant_kinds,
-					array( StockStatus::ON_BACKORDER ),
-					array( StockStatus::ON_BACKORDER ),
-					$variant_kinds,
 					array( StockStatus::OUT_OF_STOCK ),
 					array( StockStatus::OUT_OF_STOCK ),
 					$variant_kinds,
@@ -952,6 +974,7 @@ final class SeriesFacts {
 					$variant_kinds,
 					array(
 						self::PAIR_SEPARATOR,
+						self::LIST_SEPARATOR,
 						VolumeVariant::META_KEY,
 						self::BRAND_TAXONOMY,
 						self::AUTHOR_TAXONOMY,

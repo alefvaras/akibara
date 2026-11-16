@@ -17,12 +17,12 @@
 	width: min(440px, calc(100vw - 32px));
 	padding: 0;
 	overscroll-behavior: contain;
-	color: var(--aki-gray-100, #f0f0f0);
-	background: var(--aki-surface-2, #1a1a1a);
-	border: 1px solid rgb(255 255 255 / 18%);
-	border-top: 4px solid var(--aki-red, #d90010);
-	border-radius: 6px;
-	box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+	color: var(--aki-gray-100, #F5F5F5);
+	background: var(--aki-surface-2, #1A1A1A);
+	border: 2px solid var(--aki-black, #121212);
+	border-top: 4px solid var(--aki-red, #E60012);
+	border-radius: 0;
+	box-shadow: 6px 6px 0 var(--aki-black, #121212);
 }
 
 .akb-wl-login::backdrop {
@@ -48,6 +48,7 @@ html.akb-wl-login-open body {
 	font-family: var(--font-heading, "Inter", sans-serif);
 	font-size: 26px;
 	font-weight: 400;
+	font-synthesis: none;
 	line-height: 1.15;
 	letter-spacing: 0.02em;
 }
@@ -64,14 +65,14 @@ html.akb-wl-login-open body {
 	color: var(--aki-white, #fff);
 	background: transparent;
 	border: 1px solid rgb(255 255 255 / 28%);
-	border-radius: 3px;
+	border-radius: 0;
 	cursor: pointer;
 	touch-action: manipulation;
 }
 
 .akb-wl-login__body {
 	margin: 10px 20px 0;
-	color: var(--aki-gray-200, #d6d6d6);
+	color: var(--aki-gray-200, #E0E0E0);
 	font-size: 15px;
 	line-height: 1.5;
 }
@@ -90,9 +91,11 @@ html.akb-wl-login-open body {
 	justify-content: center;
 	min-height: 48px;
 	padding: 12px 18px;
-	color: var(--aki-white, #fff);
-	background: var(--aki-red, #d90010);
-	border-radius: 3px;
+	color: var(--aki-buy-fg, #FFF);
+	background: var(--aki-buy-bg, #CC0010);
+	border: 2px solid var(--aki-black, #121212);
+	border-radius: 0;
+	box-shadow: 3px 3px 0 var(--aki-black, #121212);
 	font-weight: 800;
 	letter-spacing: 0.03em;
 	text-align: center;
@@ -108,7 +111,7 @@ html.akb-wl-login-open body {
 	color: var(--aki-white, #fff);
 	background: transparent;
 	border: 1px solid rgb(255 255 255 / 28%);
-	border-radius: 3px;
+	border-radius: 0;
 	font: inherit;
 	font-weight: 700;
 	cursor: pointer;
@@ -116,9 +119,10 @@ html.akb-wl-login-open body {
 }
 
 @media (hover: hover) {
+
 	.akb-wl-login .akb-wl-login__cta:hover {
-		color: var(--aki-white, #fff);
-		background: var(--aki-red-hover, #b8000d);
+		color: var(--aki-buy-fg, #FFF);
+		background: var(--aki-buy-bg-hover, #99000C);
 	}
 
 	.akb-wl-login .akb-wl-login__close:hover,
@@ -140,22 +144,23 @@ html.akb-wl-login-open body {
 .akb-wl-login .akb-wl-login__cta:focus-visible,
 .akb-wl-login .akb-wl-login__close:focus-visible,
 .akb-wl-login .akb-wl-login__dismiss:focus-visible {
-	outline: 2px solid var(--aki-white, #ffffff);
+	outline: 2px solid var(--aki-white, #fff);
 	outline-offset: 2px;
 }
 
 @media (max-width: 767px) {
+
 	.akb-wl-login {
 		position: fixed;
 		inset: auto 0 0 0;
 		width: 100%;
 		max-width: none;
 		margin: 0;
-		padding-bottom: env(safe-area-inset-bottom, 0px);
+		padding-bottom: env(safe-area-inset-bottom, 0);
 		border-right: 0;
 		border-bottom: 0;
 		border-left: 0;
-		border-radius: 12px 12px 0 0;
+		border-radius: 0;
 		animation: akb-wl-login-rise 0.22s ease-out;
 	}
 
@@ -165,11 +170,14 @@ html.akb-wl-login-open body {
 }
 
 @keyframes akb-wl-login-rise {
+
 	from { transform: translateY(24px); opacity: 0.4; }
+
 	to { transform: translateY(0); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.akb-wl-login {
 		animation: none;
 	}

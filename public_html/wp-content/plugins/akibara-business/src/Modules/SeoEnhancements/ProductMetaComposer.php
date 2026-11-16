@@ -19,6 +19,9 @@ use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class ProductMetaComposer {
 
 	/**
@@ -72,7 +75,7 @@ final class ProductMetaComposer {
 		try {
 			$medium = $this->product_medium( $post_id );
 			$post   = function_exists( 'get_post' ) ? get_post( $post_id ) : null;
-			$name   = is_object( $post ) && isset( $post->post_title ) ? (string) $post->post_title : '';
+			$name   = is_object( $post ) && isset( $post->post_title ) ? (string) $post->post_title : ''; // @phpstan-ignore isset.property
 			if ( '' !== $medium && '' !== $name ) {
 				$composed = self::compose_product_meta(
 					$name,
@@ -80,8 +83,7 @@ final class ProductMetaComposer {
 					self::single_term_name( $post_id, 'pa_autor' ),
 					self::single_term_name( $post_id, 'product_brand' ),
 					$medium,
-					VolumeTitle::extract_number( $name ),
-					self::encargo_state( $post_id )
+					VolumeTitle::extract_number( $name )
 				);
 				if ( '' !== $composed['title'] || '' !== $composed['description'] ) {
 					$meta = $composed;
@@ -94,27 +96,6 @@ final class ProductMetaComposer {
 		$this->product_meta_memo[ $post_id ] = $meta;
 
 		return $meta;
-	}
-
-	/**
-	 * Estado de encargo del producto ('' | 'a_pedido' | 'preventa').
-	 *
-	 * @param int $post_id ID del producto.
-	 * @return string
-	 */
-	public static function encargo_state( int $post_id ): string {
-		if ( StockStatus::ON_BACKORDER !== (string) get_post_meta( $post_id, '_stock_status', true ) ) {
-			return '';
-		}
-
-		if ( function_exists( 'wc_get_product' ) ) {
-			$product = wc_get_product( $post_id );
-			if ( $product instanceof \WC_Product && Availability::is_preventa( $product ) ) {
-				return 'preventa';
-			}
-		}
-
-		return 'a_pedido';
 	}
 
 	/**
@@ -157,7 +138,7 @@ final class ProductMetaComposer {
 		}
 		$first = reset( $terms );
 
-		return is_object( $first ) && isset( $first->name ) ? trim( (string) $first->name ) : '';
+		return is_object( $first ) && isset( $first->name ) ? trim( (string) $first->name ) : ''; // @phpstan-ignore isset.property
 	}
 
 	/**
@@ -169,7 +150,6 @@ final class ProductMetaComposer {
 	 * @param string   $brand         Editorial única.
 	 * @param string   $medium        'manga' | 'cómic' | 'manhwa'.
 	 * @param int|null $volume        Nº de tomo extraído.
-	 * @param string   $encargo       '' en stock · 'a_pedido' · 'preventa'.
 	 * @return array{title:string,description:string}
 	 */
 	public static function compose_product_meta(
@@ -178,8 +158,7 @@ final class ProductMetaComposer {
 		string $author,
 		string $brand,
 		string $medium,
-		?int $volume,
-		string $encargo = ''
+		?int $volume
 	): array {
 		$name = trim( wp_strip_all_tags( $product_title, true ) );
 		$name = html_entity_decode( $name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
@@ -208,17 +187,6 @@ final class ProductMetaComposer {
 				sprintf( '%s | Akibara', $name ),
 			)
 		);
-		if ( 'preventa' === $encargo ) {
-			array_unshift(
-				$title_candidates,
-				sprintf( '%s en preventa | %s en español | Akibara', $name, ucfirst( $medium ) )
-			);
-		} elseif ( 'a_pedido' === $encargo ) {
-			array_unshift(
-				$title_candidates,
-				sprintf( '%s a pedido | %s en español | Akibara', $name, ucfirst( $medium ) )
-			);
-		}
 
 		$title = '';
 		foreach ( $title_candidates as $candidate ) {
@@ -231,16 +199,8 @@ final class ProductMetaComposer {
 		$serie_clause = ( '' !== $serie_name && null !== $volume )
 			? sprintf( 'Tomo %d de la serie %s.', $volume, $serie_name )
 			: '';
-		if ( 'preventa' === $encargo ) {
-			$close       = 'Resérvalo en preventa en Akibara con despacho a todo Chile.';
-			$short_close = 'Resérvalo en Akibara. Despacho a todo Chile.';
-		} elseif ( 'a_pedido' === $encargo ) {
-			$close       = 'Pídelo a pedido en Akibara con despacho a todo Chile.';
-			$short_close = 'Pídelo en Akibara. Despacho a todo Chile.';
-		} else {
-			$close       = 'Cómpralo en Akibara con despacho a todo Chile.';
-			$short_close = 'Despacho a todo Chile desde Akibara.';
-		}
+		$close       = 'Cómpralo en Akibara con despacho a todo Chile.';
+		$short_close = 'Despacho a todo Chile desde Akibara.';
 
 		$description_candidates = array();
 		if ( '' !== $author && '' !== $brand ) {

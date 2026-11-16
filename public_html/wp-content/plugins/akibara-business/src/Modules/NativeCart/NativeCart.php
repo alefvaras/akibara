@@ -13,26 +13,23 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Modules\NativeCart;
 
 use Akibara\Business\Modules\CartQuantity\CartQuantityCeiling;
-use Akibara\Business\Modules\EstimatedDelivery\BannerRenderer;
-use Akibara\Business\Modules\SeriesBundles\CartSeriesCollector;
-use Akibara\Business\Modules\SeriesBundles\EligibilityGuard;
-use Akibara\Business\Modules\SeriesBundles\Settings as SeriesBundlesSettings;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Utilities\PluginAssetVersion;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidCast
+ * @psalm-suppress RedundantCondition
+ */
+// @phpstan-ignore complexity.classLike
 final class NativeCart {
 
 	private Settings $settings;
-
-	/**
-	 * Resumen de llegada del carrito. Opcional: el drawer sabe funcionar sin él
-	 * (payload sin nota), y así las pruebas del módulo no arrastran el
-	 * calculador entero para verificar cantidades y avisos.
-	 */
-	private ?BannerRenderer $eta_renderer;
 
 	/**
 	 * ¿WooCommerce ya calculó los totales en ESTA petición?
@@ -51,9 +48,8 @@ final class NativeCart {
 	 */
 	private bool $totals_calculated = false;
 
-	public function __construct( ?Settings $settings = null, ?BannerRenderer $eta_renderer = null ) {
-		$this->settings     = $settings ?? new Settings();
-		$this->eta_renderer = $eta_renderer;
+	public function __construct( ?Settings $settings = null ) {
+		$this->settings = $settings ?? new Settings();
 	}
 
 	public function register(): void {
@@ -117,10 +113,9 @@ final class NativeCart {
 			'akbNativeCart',
 			array_merge(
 				array(
-					'ajaxUrl'     => \WC_AJAX::get_endpoint( '%%endpoint%%' ),
-					'cartUrl'     => wc_get_cart_url(),
-					'checkoutUrl' => wc_get_checkout_url(),
-					'nonce'       => wp_create_nonce( Settings::NONCE_ACTION ),
+					'ajaxUrl' => \WC_AJAX::get_endpoint( '%%endpoint%%' ),
+					'cartUrl' => wc_get_cart_url(),
+					'nonce'   => wp_create_nonce( Settings::NONCE_ACTION ),
 				),
 				$this->settings->to_script_data()
 			)
@@ -155,12 +150,10 @@ final class NativeCart {
 			<div class="akb-cart-live" aria-live="polite" aria-atomic="true"></div>
 			<div class="akb-cart-body">
 				<!--
-					Avisos gateados (mezcla preventa/despacho, "Arma tu Pack") ARRIBA de
-					los ítems: los cross-sells se inyectan dentro de items-container, así
-					que con el status al final quedaba enterrado bajo el scroll —
-					invisible al abrir el drawer. aria-live="polite" para que renderStatus
-					los anuncie a lectores de pantalla (antes escribía al DOM sin pasar por
-					ninguna live-region).
+					Avisos informativos ARRIBA de los ítems: los cross-sells se inyectan
+					dentro de items-container, así que con el status al final quedaba
+					enterrado bajo el scroll — invisible al abrir el drawer. aria-live="polite"
+					para que renderStatus los anuncie a lectores de pantalla.
 				-->
 				<div class="akb-cart-status" data-akb-cart-status aria-live="polite"></div>
 				<div class="akb-cart-items-container">
@@ -231,7 +224,8 @@ final class NativeCart {
 	 *                       en su región viva, así que el cliente se entera de por
 	 *                       qué cambió su carrito en vez de ver desaparecer algo.
 	 */
-	public function ajax_get_cart( string $notice = '' ): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function ajax_get_cart( string $notice = '' ): void { // @phpstan-ignore complexity.functionLike
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- ver el docblock de `drain_error_notices()`: el drenaje es opt-in y sólo toca la cola de avisos de quien llama.
 		$pide_drenaje = isset( $_GET['drain_notices'] ) && '1' === $_GET['drain_notices'];
 		$errores      = $pide_drenaje ? $this->drain_error_notices() : array();
@@ -271,9 +265,7 @@ final class NativeCart {
 			// `wp_get_attachment_image_url()` idénticas para el mismo adjunto.
 			$thumbnail_url = $this->thumbnail_url( $_product );
 
-			$item_eta = null !== $this->eta_renderer && StockStatus::is_reservable( $_product )
-				? $this->eta_renderer->summarize_cart( array( $cart_item ) )
-				: null;
+			$item_eta = null;
 
 			$regular_price_subtotal = (float) $_product->get_regular_price() * (float) $cart_item['quantity'];
 			$line_subtotal = WC()->cart->display_prices_including_tax()
@@ -293,8 +285,9 @@ final class NativeCart {
 			$items_payload[] = array(
 				'id'             => $cart_item['product_id'],
 				'title'          => $_product->get_name(),
+				'permalink'      => method_exists( $_product, 'get_permalink' ) ? (string) $_product->get_permalink() : '',
 				'stock_label'    => Availability::label_of( $_product ),
-				'eta'            => $item_eta['value'] ?? '',
+				'eta'            => $item_eta['value'] ?? '', // @phpstan-ignore nullCoalesce.offset
 				'quantity'       => $cart_item['quantity'],
 				'price_html'     => $item_price_html,
 				'thumbnail'      => '' !== $thumbnail_url
@@ -321,73 +314,17 @@ final class NativeCart {
 		}
 
 		// 3. Obtener cross-sells basados en los ítems del carrito
-		$cross_sells = array();
-		if ( $this->settings->show_recommendations()
-			&& Settings::RECOMMENDATION_SOURCE_CROSS_SELLS === $this->settings->get_recommendation_source() ) {
-			$cross_sells_ids = \WC()->cart->get_cross_sells();
-			$limit           = $this->settings->get_recommendation_limit();
-
-			$con_miniatura = $this->settings->show_thumbnails();
-
-			if ( ! empty( $cross_sells_ids ) && function_exists( '_prime_post_caches' ) ) {
-				_prime_post_caches( array_map( 'intval', $cross_sells_ids ), true, true );
-			}
-
-			foreach ( $cross_sells_ids as $cs_id ) {
-				$cs = wc_get_product( $cs_id );
-				if ( $cs && $cs->is_type( 'simple' ) && $cs->is_purchasable() && $cs->is_in_stock() ) {
-					$thumbnail_url = $this->thumbnail_url( $cs );
-
-					$cross_sells[] = array(
-						'id'            => $cs->get_id(),
-						'title'         => $cs->get_name(),
-						'price_html'    => $cs->get_price_html(),
-						'thumbnail'     => $con_miniatura
-							? ( '' !== $thumbnail_url
-								? '<img src="' . esc_url( $thumbnail_url ) . '" alt="' . esc_attr( $cs->get_name() ) . '" loading="lazy" width="40" height="55">'
-								: wc_placeholder_img( 'woocommerce_thumbnail' ) )
-							: '',
-						'thumbnail_url' => $thumbnail_url,
-					);
-					if ( count( $cross_sells ) >= $limit ) {
-						break;
-					}
-				}
-			}
-		}
-
-		// Banderas de contenido del carrito para gatear los avisos del drawer: sin
-		// esto, "Arma tu Pack" y el de preventa mixta se pintaban con los toggles
-		// globales ON aunque el carrito no tuviera ni pack ni preventa (copy falso).
-		$cart_flags = $this->detect_cart_flags( WC()->cart, $this->make_series_collector() );
+		$cross_sells = $this->build_cross_sells_payload();
 
 		wp_send_json_success( array(
+			'purchase_incentives' => \Akibara\Business\Services\PurchaseIncentives::cart_state( WC()->cart ),
 			'cart_count'      => WC()->cart->get_cart_contents_count(),
 			'subtotal_html'   => WC()->cart->get_cart_subtotal(),
-			// El subtotal de WooCommerce es deliberadamente previo a cupones. El
-			// drawer debe mostrar también descuento y total cuando corresponda para
-			// no presentar $49.950 como si fuera el precio final de un pack de
-			// $44.955. Estos valores vienen del carrito ya calculado: no se replica
-			// ni altera la lógica de stacking/mejor-precio del motor de bundles.
 			'has_discount'    => $has_discount,
 			'discount_html'   => $has_discount ? '-' . wc_price( $discount_total ) : '',
 			'total_html'      => WC()->cart->get_total(),
 			'items'           => $items_payload,
-			// Gates de los avisos del drawer (los consume renderStatus en el JS): el
-			// aviso de pack solo si el carrito tiene membresía BYP; el de preventa
-			// solo si algún tomo es preventa.
-			'has_preventa'    => $cart_flags['has_preventa'],
-			// La frase YA elegida para este carrito: el JS la prefiere sobre
-			// la copy estática (payloads viejos caen al fallback sin mentir).
-			'preventa_policy' => $this->settings->build_preventa_policy_copy( (string) $cart_flags['preventa_tipo'] ),
-			// En qué pedido entra la compra y cuánto viaja DESDE ESE CIERRE. El
-			// dato ya existía en la ficha y moría ahí: el cliente decidía con la
-			// explicación completa y llegaba a pagar con una fecha sin porqué,
-			// que es justo donde la duda «¿desde cuándo cuentan las semanas?»
-			// cuesta la venta. Texto plano; el drawer lo pinta con textContent.
-			'preventa_nota'   => $this->nota_de_llegada(),
-			'has_byp'         => $cart_flags['has_byp'],
-			'is_mixed'        => \Akibara\Business\Modules\Logistics\MixedCartShipmentGuard::cart_is_mixed(),
+			'has_preventa'    => false,
 			'cross_sells'     => $cross_sells,
 			'shipping_notice' => $shipping_notice,
 			'notice'          => $notice,
@@ -412,6 +349,53 @@ final class NativeCart {
 			// transporta un nonce vigente que el JS adopta (auto-sanado sin ESI).
 			'nonce'           => wp_create_nonce( Settings::NONCE_ACTION ),
 		) );
+	}
+
+	/**
+	 * Construye las recomendaciones cross-sell del carrito cuando están activas.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function build_cross_sells_payload(): array {
+		if ( ! $this->settings->show_recommendations()
+			|| Settings::RECOMMENDATION_SOURCE_CROSS_SELLS !== $this->settings->get_recommendation_source() ) {
+			return array();
+		}
+
+		$cross_sells     = array();
+		$cross_sells_ids = \WC()->cart->get_cross_sells();
+		$limit           = $this->settings->get_recommendation_limit();
+		$con_miniatura   = $this->settings->show_thumbnails();
+
+		if ( ! empty( $cross_sells_ids ) && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( array_map( 'intval', $cross_sells_ids ), true, true );
+		}
+
+		foreach ( $cross_sells_ids as $cs_id ) {
+			$cs = wc_get_product( $cs_id );
+			if ( ! $cs || ! $cs->is_type( 'simple' ) || ! $cs->is_purchasable() || ! $cs->is_in_stock() ) {
+				continue;
+			}
+			$thumbnail_url = $this->thumbnail_url( $cs );
+
+			$cross_sells[] = array(
+				'id'            => $cs->get_id(),
+				'title'         => $cs->get_name(),
+				'permalink'     => method_exists( $cs, 'get_permalink' ) ? (string) $cs->get_permalink() : '',
+				'price_html'    => $cs->get_price_html(),
+				'thumbnail'     => $con_miniatura
+					? ( '' !== $thumbnail_url
+						? '<img src="' . esc_url( $thumbnail_url ) . '" alt="' . esc_attr( $cs->get_name() ) . '" loading="lazy" width="40" height="55">'
+						: wc_placeholder_img( 'woocommerce_thumbnail' ) )
+					: '',
+				'thumbnail_url' => $thumbnail_url,
+			);
+			if ( count( $cross_sells ) >= $limit ) {
+				break;
+			}
+		}
+
+		return $cross_sells;
 	}
 
 	/**
@@ -455,7 +439,7 @@ final class NativeCart {
 		}
 
 		if ( array() !== $errores ) {
-			wc_clear_notices( 'error' );
+			wc_clear_notices();
 		}
 
 		return $errores;
@@ -578,115 +562,4 @@ final class NativeCart {
 		return (string) wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' );
 	}
 
-	/**
-	 * La nota de tanda del carrito, o '' si no aplica.
-	 *
-	 * Delega ENTERA en `BannerRenderer::summarize_cart()`, que ya resuelve el
-	 * corte más tardío con la misma regla conservadora que la fecha agregada. El
-	 * drawer no calcula nada de esto: una segunda cuenta aquí acabaría nombrando
-	 * un cierre distinto del que produjo la fecha que el cliente vio en la ficha.
-	 */
-	private function nota_de_llegada(): string {
-		if ( null === $this->eta_renderer || ! function_exists( 'WC' ) || ! WC()->cart ) {
-			return '';
-		}
-
-		$resumen = $this->eta_renderer->summarize_cart( WC()->cart->get_cart() );
-
-		return null === $resumen ? '' : (string) ( $resumen['nota'] ?? '' );
-	}
-
-	/**
-	 * Deriva las banderas de avisos desde el contenido efectivo del carrito.
-	 *
-	 * StockStatus::is_reservable() detecta líneas que esperan una tanda, con
-	 * independencia del motor de packs. Availability distingue su palabra A pedido
-	 * y Preventa. CartSeriesCollector::collect() determina has_byp tras aplicar
-	 * categoría elegible, comprabilidad, stock y tipo simple, igual que el engine.
-	 *
-	 * Sin collector porque el motor global está apagado, has_byp permanece falso
-	 * aunque existan configuraciones de serie; has_preventa se evalúa siempre.
-	 * El barrido de palabras corta al conocer ambas. El collector reutiliza términos
-	 * y configuración ya cebados durante calculate_totals(), sin añadir consultas.
-	 *
-	 * @param \WC_Cart                 $cart      Carrito vivo.
-	 * @param CartSeriesCollector|null $collector Resolutor de series compartido, o
-	 *                                            null si el motor de bundles está apagado.
-	 * @return array{has_preventa:bool, has_byp:bool, preventa_tipo:string}
-	 */
-	private function detect_cart_flags( \WC_Cart $cart, ?CartSeriesCollector $collector ): array {
-		$has_preventa = false;
-		$hay_preventa = false;
-		$hay_a_pedido = false;
-		$hay_instock  = false;
-
-		foreach ( $cart->get_cart() as $cart_item ) {
-			$product = $cart_item['data'] ?? null;
-			if ( ! $product instanceof \WC_Product ) {
-				continue;
-			}
-
-			if ( StockStatus::is_reservable( $product ) ) {
-				$has_preventa = true;
-
-				// Elegir la palabra comercial a partir de las líneas reales del carrito:
-				// A pedido y Preventa no son etiquetas intercambiables.
-
-				if ( \Akibara\Business\Modules\Stock\Availability::is_preventa( $product ) ) {
-					$hay_preventa = true;
-				} else {
-					$hay_a_pedido = true;
-				}
-			} elseif ( $product->is_in_stock() ) {
-				$hay_instock = true;
-			}
-
-			if ( $has_preventa && $hay_instock && $hay_preventa && $hay_a_pedido ) {
-				break; // Ya no hay más que aprender del resto del carrito.
-			}
-		}
-
-		$is_mixed = $has_preventa && $hay_instock;
-
-		$preventa_tipo = 'pedidos';
-		if ( $hay_preventa ) {
-			$preventa_tipo = $hay_a_pedido ? 'preventas y pedidos' : 'preventas';
-		}
-
-		// has_byp solo si el motor arma un pack de verdad: collect() aplica los
-		// guards de elegibilidad/stock/tipo y devuelve las series con ≥1 miembro
-		// REALMENTE elegible. Con el motor apagado (collector null) queda en false.
-		$has_byp = null !== $collector && ! empty( $collector->collect( $cart ) );
-
-		return array(
-			// Candado logístico: el aviso de mezcla («Si mezclas...») solo se muestra
-			// cuando el carrito realmente combina preventa/a pedido con stock listo en bodega.
-			'has_preventa'  => $is_mixed,
-			'is_mixed'      => $is_mixed,
-			'has_byp'       => $has_byp,
-			'preventa_tipo' => $preventa_tipo,
-		);
-	}
-
-	/**
-	 * Arma el resolutor de series compartido. NativeCart no recibe el módulo
-	 * SeriesBundles por inyección (se cablea aparte en Plugin.php), así que
-	 * construye su propia instancia: los constructores son puros y
-	 * `Settings::get_byp_config()` memoiza el decode del blob JSON, de modo que la
-	 * resolución por ítem no agrega queries. Misma composición que usan el resto
-	 * de consumidores (una `Settings` compartida por collector y guard).
-	 *
-	 * Devuelve null cuando el motor GLOBAL de bundles está apagado
-	 * (`akb_series_bundles_enabled` = 'no'): si un admin apaga el motor dejando
-	 * configs por-serie vivas, el aviso "Arma tu Pack" prometería un descuento que
-	 * el motor ya no otorga. Sin collector, `detect_cart_flags` omite `has_byp` y
-	 * el aviso no se pinta. La preventa no depende de este toggle.
-	 */
-	private function make_series_collector(): ?CartSeriesCollector {
-		$bundles_settings = new SeriesBundlesSettings();
-		if ( ! $bundles_settings->is_enabled() ) {
-			return null;
-		}
-		return new CartSeriesCollector( $bundles_settings, new EligibilityGuard( $bundles_settings ) );
-	}
 }

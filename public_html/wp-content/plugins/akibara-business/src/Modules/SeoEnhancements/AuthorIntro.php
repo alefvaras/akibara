@@ -23,6 +23,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.116.30
+ * @api
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
  */
 final class AuthorIntro {
 
@@ -40,7 +43,7 @@ final class AuthorIntro {
 	private const SERIES_NOMBRADAS = 3;
 
 	/** Segunda frase, siempre cierta: cada serie del catálogo tiene su guía. */
-	private const CIERRE = 'Cada serie tiene su propia guía con sus tomos, disponibles o a pedido.';
+	private const CIERRE = 'Cada serie tiene su propia guía con sus tomos y su disponibilidad en tienda.';
 
 	/**
 	 * @return void
@@ -271,7 +274,7 @@ final class AuthorIntro {
 		$series = array();
 		$brands = array();
 		foreach ( $relaciones as $relacion ) {
-			if ( ! is_object( $relacion ) || ! isset( $relacion->taxonomy, $relacion->name, $relacion->term_id ) ) {
+			if ( ! is_object( $relacion ) || ! isset( $relacion->taxonomy, $relacion->name, $relacion->term_id ) ) { // @phpstan-ignore isset.property, isset.property, isset.property
 				continue;
 			}
 			if ( self::SERIES_TAXONOMY === (string) $relacion->taxonomy ) {

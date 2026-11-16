@@ -11,7 +11,7 @@
  *
  * El fallback a UTC NO es cosmético: el servidor corre en UTC y la tienda en
  * America/Santiago, así que después de las 20:00 CL la fecha comparada sería
- * la del día siguiente y una preventa caducaría cuatro horas antes de tiempo.
+ * la del día siguiente.
  * Cuando WordPress no está cargado, UTC es la única respuesta honesta.
  *
  * @package Akibara\Business
@@ -27,6 +27,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.1
+ * @api
  */
 final class StoreTime {
 
@@ -42,6 +43,7 @@ final class StoreTime {
 				}
 			} catch ( \Throwable $e ) {
 				// Brain\Monkey missing expectation or runtime error.
+				unset( $e );
 			}
 		}
 
@@ -75,5 +77,57 @@ final class StoreTime {
 	 */
 	public static function today_ymd( ?int $now = null ): string {
 		return ( new \DateTimeImmutable( '@' . ( $now ?? time() ) ) )->setTimezone( self::zone() )->format( 'Y-m-d' );
+	}
+
+	/**
+	 * Nombre en español del mes (1-12).
+	 *
+	 * @param int $mes Número del mes (1-12).
+	 * @return string Nombre del mes en minúsculas.
+	 */
+	public static function mes( int $mes ): string {
+		$meses = array(
+			1  => 'enero',
+			2  => 'febrero',
+			3  => 'marzo',
+			4  => 'abril',
+			5  => 'mayo',
+			6  => 'junio',
+			7  => 'julio',
+			8  => 'agosto',
+			9  => 'septiembre',
+			10 => 'octubre',
+			11 => 'noviembre',
+			12 => 'diciembre',
+		);
+		return $meses[ $mes ] ?? '';
+	}
+
+	/**
+	 * Formatea una marca de tiempo en la zona horaria oficial de la tienda.
+	 *
+	 * Centraliza y estandariza el formateo eliminando discrepancias entre
+	 * date() (que asume UTC del servidor) y la hora local de Chile.
+	 *
+	 * @since 1.120.47
+	 *
+	 * @param int|null $timestamp Marca de tiempo Unix (null = ahora).
+	 * @param string   $format    Formato de fecha PHP (por defecto 'Y-m-d H:i:s').
+	 * @return string
+	 */
+	public static function format( ?int $timestamp = null, string $format = 'Y-m-d H:i:s' ): string {
+		$ts = $timestamp ?? time();
+		if ( function_exists( 'wp_date' ) ) {
+			try {
+				$formatted = wp_date( $format, $ts, self::zone() );
+				if ( is_string( $formatted ) && '' !== $formatted ) {
+					return $formatted;
+				}
+			} catch ( \Throwable $e ) {
+				// Fallback cuando el entorno de pruebas o Brain\Monkey no tiene expectativa mockeada.
+				unset( $e );
+			}
+		}
+		return ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( self::zone() )->format( $format );
 	}
 }

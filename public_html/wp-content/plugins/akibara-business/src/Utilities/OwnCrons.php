@@ -39,6 +39,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Fuente única de los eventos de WP-Cron y de la cola de Action Scheduler propios.
+ * @api
  */
 final class OwnCrons {
 
@@ -54,9 +55,6 @@ final class OwnCrons {
 	 * @var array<string, string>
 	 */
 	public const RECURRING = array(
-		'akb_order_preventa_recompute_ready'        => 'Preventa: recompute diario de órdenes listas',            // OrderPreventa\ReadyToShipCron::HOOK
-		'akb_order_preventa_t7_reminder_scan'       => 'Preventa: recordatorio previo a la llegada',              // OrderPreventa\RemindersCron::HOOK
-		'akb_preventa_vencida_sweep'                => 'Preventa: barrido de lanzamientos con la fecha vencida',  // Stock\PreventaVencidaCron::HOOK
 		'akb_bis_cleanup_terminal'                  => 'Lista de espera: limpieza de suscripciones terminales',   // BackInStock\Retention::HOOK
 		'akb_taxonomy_discount_expiry_sweep'        => 'Descuentos: apagado automático de la campaña vencida',    // TaxonomyDiscount\CampaignExpiryCron::HOOK
 		'akb_upsells_autofill_cron'                 => 'Recomendaciones automáticas: rellenado diario',           // UpsellsAutofill::CRON_HOOK
@@ -74,7 +72,7 @@ final class OwnCrons {
 	public const SINGLE = array(
 		'akibara_business_social_image_derivatives_continue', // SeoSocial\SocialImageDerivatives::HOOK_CONTINUE
 		'akibara_business_social_image_for_slug',             //::HOOK_SLUG — lleva el slug como argumento.
-		'akibara_business_cleanup_collection_owner_fence',    // SeriesBundles\CustomerCollection — respaldo de Action Scheduler, con argumento.
+		'akibara_business_cleanup_collection_owner_fence',    // AccountCollection\CustomerCollection — respaldo de Action Scheduler, con argumento.
 	);
 
 	/**
@@ -89,7 +87,17 @@ final class OwnCrons {
 	 * @var array<string, string>
 	 */
 	public const RETIRED = array(
-		'akb_unpaid_orders_sweep' => '1.120.7',
+		'akb_unpaid_orders_sweep'                       => '1.120.7',
+		'akb_order_preventa_recompute_ready'            => '1.121.0',
+		'akb_order_preventa_t7_reminder_scan'           => '1.121.0',
+		'akb_preventa_vencida_sweep'                    => '1.121.0',
+		'akb_order_preventa_dispatch_ready_email'       => '1.121.0',
+		'akb_order_preventa_recompute_for_product'      => '1.121.0',
+		'akb_order_preventa_release_date_changed_batch' => '1.121.0',
+		'akb_order_preventa_verify_carrier_handoff'     => '1.121.0',
+		'akibara_business_image_recompress'             => '1.121.3',
+		'akibara_business_image_recompress_purge'       => '1.121.3',
+		'akb_collection_rebuild_catalog'                => '1.121.4',
 	);
 
 	/**
@@ -105,12 +113,6 @@ final class OwnCrons {
 		'akibara-bis'            => array( // BackInStock\StockWatcher::AS_GROUP
 			'akb_bis_notify_product',                          // StockWatcher::ASYNC_HOOK
 		),
-		'akibara-order-preventa' => array( // OrderPreventa\ReadyEmailDispatcher::AS_GROUP
-			'akb_order_preventa_dispatch_ready_email',         // ReadyEmailDispatcher::READY_EMAIL_DISPATCH_HOOK
-			'akb_order_preventa_recompute_for_product',        // StockChangeListener::ASYNC_HOOK
-			'akb_order_preventa_release_date_changed_batch',   // ReleaseDateChangeListener::BATCH_HOOK
-			'akb_order_preventa_verify_carrier_handoff',       // CarrierHandoffMonitor::CHECK_HOOK
-		),
 		'akibara-series-follow'  => array( // SeriesFollow\SeriesFollow::AS_GROUP
 			'akb_sf_digest_run',                               // SeriesFollow::HOOK_DIGEST
 			'akb_sf_scan_product',                             // SeriesFollow::HOOK_SCAN
@@ -119,21 +121,14 @@ final class OwnCrons {
 			'akibara_catalog_order_daily',                     // CatalogOrder::DAILY_HOOK
 			'akibara_catalog_order_recompute',                 // CatalogOrder::RECOMPUTE_HOOK
 		),
-		'akb-image-recompress'   => array( // ImageQuality\Recompressor::GROUP
-			'akibara_business_image_recompress',               // Recompressor::HOOK
-			'akibara_business_image_recompress_purge',         // Recompressor::HOOK_PURGE
-		),
 		'akb-cache-warm'         => array( // SiteSpeed\CacheWarmer::GROUP
 			'akibara_business_cache_warm',                     // CacheWarmer::HOOK
 		),
-		'akibara-welcome'        => array( // WelcomeCoupon\CouponService::GC_GROUP
-			'akb_welcome_coupon_gc_expired',                   // CouponService::GC_HOOK
-		),
 		'akibara-business'       => array( // El grupo genérico del plugin.
-			'akibara_business_cleanup_collection_owner_fence', // SeriesBundles\CustomerCollection — la vía normal; WP-Cron es su respaldo.
-			'akibara_edge_purge_run',                          // SiteSpeed\EdgePurge::HOOK
-			'akb_bacs_send_reminder_email',                    // BacsLifecycle\BacsLifecycleManager::ACTION_REMINDER
 			'akb_bacs_auto_expire_order',                      // BacsLifecycle\BacsLifecycleManager::ACTION_EXPIRE
+			'akb_bacs_send_reminder_email',                    // BacsLifecycle\BacsLifecycleManager::ACTION_REMINDER
+			'akibara_business_cleanup_collection_owner_fence', // AccountCollection\CustomerCollection — la vía normal; WP-Cron es su respaldo.
+			'akibara_edge_purge_run',                          // SiteSpeed\EdgePurge::HOOK
 		),
 	);
 
@@ -206,5 +201,49 @@ final class OwnCrons {
 				as_unschedule_all_actions( $hook );
 			}
 		}
+
+		self::purge_retired_action_scheduler_history();
+	}
+
+	/**
+	 * Elimina de Action Scheduler los registros residuales (`pending`, `failed`,
+	 * `canceled`, `complete`) y logs asociados a hooks ya retirados para no dejar
+	 * huérfanos o falsas alarmas históricas tras el upgrade.
+	 *
+	 * @return void
+	 */
+	private static function purge_retired_action_scheduler_history(): void {
+		$retired_hooks = array_keys( self::RETIRED );
+		if ( array() === $retired_hooks ) {
+			return;
+		}
+
+		$wpdb = $GLOBALS['wpdb'] ?? null;
+		if ( ! is_object( $wpdb ) || ! isset( $wpdb->prefix ) || ! method_exists( $wpdb, 'get_var' ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'query' ) ) {
+			return;
+		}
+
+		$actions_table = $wpdb->prefix . 'actionscheduler_actions';
+		if ( $actions_table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $actions_table ) ) ) {
+			return;
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $retired_hooks ), '%s' ) );
+		$logs_table   = $wpdb->prefix . 'actionscheduler_logs';
+		if ( $logs_table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $logs_table ) ) ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE l FROM `{$logs_table}` l INNER JOIN `{$actions_table}` a ON a.action_id = l.action_id WHERE a.hook IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+					...$retired_hooks
+				)
+			);
+		}
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM `{$actions_table}` WHERE hook IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+				...$retired_hooks
+			)
+		);
 	}
 }

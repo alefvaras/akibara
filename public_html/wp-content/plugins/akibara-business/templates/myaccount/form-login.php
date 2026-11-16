@@ -58,7 +58,7 @@ $akb_wall_redirect = \Akibara\Business\Modules\GoogleLoginButton\AccessWall::red
 			?></p>
 		<?php endif; ?>
 		<ul class="akb-account-auth__perks" aria-label="Beneficios de tu cuenta Akibara">
-			<li><strong>Mi colección:</strong> lleva tu estantería al día y recibe avisos de nuevos tomos.</li>
+			<li><strong>Seguimiento de series:</strong> recibe avisos automáticos cuando publiquemos nuevos tomos de tus compras y series favoritas.</li>
 			<?php
 			// Lo que promete esta línea lo dicta el plugin Rewards (Ajustes del
 			// programa): si el dueño apaga compras o reseñas, la frase lo sigue.
@@ -70,7 +70,6 @@ $akb_wall_redirect = \Akibara\Business\Modules\GoogleLoginButton\AccessWall::red
 				?>
 			<li><strong>Puntos Akibara:</strong> acumula puntos en <?php echo esc_html( implode( ' y ', $akb_rw_parts ) ); ?>.</li>
 			<?php endif; ?>
-			<li><strong>Arma tu pack:</strong> descuenta de la selección los tomos que ya tienes.</li>
 		</ul>
 	</header>
 

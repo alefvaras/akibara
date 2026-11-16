@@ -19,6 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * Matriz de decisiones y reglas de cutover de RebuildJob.
  *
  * @since 0.1.85
+ * @api
  */
 final class RebuildDecisions {
 

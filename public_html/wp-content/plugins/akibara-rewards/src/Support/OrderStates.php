@@ -19,6 +19,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.1
+ * @api
  */
 final class OrderStates {
 
@@ -37,7 +38,7 @@ final class OrderStates {
 	 *
 	 * @var array<int,string>
 	 */
-	public const ALIVE = array( 'pending', 'on-hold', 'processing', 'shipping-progress', 'completed' );
+	public const ALIVE = array( 'pending', 'on-hold', 'processing', 'completed' );
 
 	/**
 	 * Pedido PAGADO: una compra de verdad. Lo comparten «¿ya compró antes?»
@@ -46,12 +47,12 @@ final class OrderStates {
 	 *
 	 * @var array<int,string>
 	 */
-	public const PAID = array( 'processing', 'shipping-progress', 'completed' );
+	public const PAID = array( 'processing', 'completed' );
 
 	/**
 	 * ¿`$status` es el estado pagado `$ref`, o uno posterior?
 	 *
-	 * El orden es el de PAID: procesando → listo para enviar → completado.
+	 * El orden es el de PAID: procesando → completado.
 	 * Existe porque la acreditación no puede depender de pisar EXACTAMENTE el
 	 * estado que fija el panel: un pedido que salta directo a «Completado»
 	 * —pago manual, retiro en tienda, o el dueño moviéndolo a mano— pasaba de

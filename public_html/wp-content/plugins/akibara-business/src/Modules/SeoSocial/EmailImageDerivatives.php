@@ -11,6 +11,9 @@ namespace Akibara\Business\Modules\SeoSocial;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class EmailImageDerivatives {
 	private const MAX_SIDE = 640;
 	private const MAX_BYTES = 262144;
@@ -86,7 +89,12 @@ final class EmailImageDerivatives {
 		return self::$resolved[ $url ] = self::fallback();
 	}
 
-	/** Precálculo en la subida: el cliente suele encontrar la copia ya preparada. */
+	/**
+	 * Precálculo en la subida: el cliente suele encontrar la copia ya preparada.
+	 * @param mixed $attachment_id
+	 * @param mixed $metadata
+	 * @return mixed
+	 */
 	public static function on_upload( $metadata, $attachment_id ) {
 		$url = wp_get_attachment_url( (int) $attachment_id );
 		if ( is_string( $url ) ) {
@@ -105,18 +113,18 @@ final class EmailImageDerivatives {
 		if ( ! is_readable( $file ) || is_link( $file ) || filesize( $file ) > self::MAX_BYTES ) {
 			return false;
 		}
-		$size = @getimagesize( $file );
-		if ( ! is_array( $size ) || IMAGETYPE_JPEG !== ( $size[2] ?? null )
+		$size = @getimagesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( ! is_array( $size ) || IMAGETYPE_JPEG !== ( $size[2] ?? null ) // @phpstan-ignore nullCoalesce.offset
 			|| min( $size[0], $size[1] ) < 1 || max( $size[0], $size[1] ) > self::MAX_SIDE ) {
 			return false;
 		}
-		$handle = fopen( $file, 'rb' );
+		$handle = fopen( $file, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( false === $handle ) {
 			return false;
 		}
 		fseek( $handle, -2, SEEK_END );
-		$end = fread( $handle, 2 );
-		fclose( $handle );
+		$end = fread( $handle, 2 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		return "\xff\xd9" === $end;
 	}
 
@@ -142,7 +150,7 @@ final class EmailImageDerivatives {
 		$canvas = null;
 		$temp = '';
 		try {
-			$image = @$decode( $source );
+			$image = @$decode( $source ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			if ( false === $image ) {
 				return false;
 			}
@@ -156,8 +164,8 @@ final class EmailImageDerivatives {
 			if ( false === $temp || ! imagejpeg( $canvas, $temp, 82 ) || ! self::valid_jpeg( $temp ) ) {
 				return false;
 			}
-			chmod( $temp, 0644 );
-			return rename( $temp, $target );
+			chmod( $temp, 0644 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+			return rename( $temp, $target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 		} catch ( \Throwable $error ) {
 			return false;
 		} finally {
@@ -168,7 +176,7 @@ final class EmailImageDerivatives {
 				imagedestroy( $canvas );
 			}
 			if ( is_string( $temp ) && '' !== $temp && is_file( $temp ) ) {
-				unlink( $temp );
+				unlink( $temp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 			}
 		}
 	}

@@ -4,100 +4,156 @@
  */
 
 .akb-fwp {
-	--akb-admin-red: #d90010;
-	--akb-admin-red-dark: #aa000c;
-	--akb-admin-ink: #171717;
-	--akb-admin-line: #d7d7d7;
+	--akb-admin-ink: #141416;
+	--akb-admin-charcoal: #1E1E24;
+	--akb-admin-red: #E60012;
+	--akb-admin-red-hover: #C0000F;
+	--akb-admin-red-dark: #C0000F;
+	--akb-admin-yellow: #FC0;
+	--akb-admin-white: #FFF;
+	--akb-admin-cream: #F8F9FA;
+	--akb-admin-border: #141416;
+	--akb-admin-border-subtle: #D8D8DC;
+	--akb-admin-muted: #555558;
+	--akb-admin-shadow: 3px 3px 0 #141416;
+	--akb-admin-line: #141416;
 	--akb-admin-soft-line: #ececec;
 	--akb-admin-soft-red: #fff1f2;
-	--akb-admin-yellow: #ffd401;
+
 	margin: 20px 20px 0 2px;
-	max-width: 1200px;
+	max-width: 1240px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
 .akb-fwp-panel {
-	background: #fff;
-	border: 1px solid var(--akb-admin-line);
+	background: var(--akb-admin-white);
+	border: 2px solid var(--akb-admin-border);
 	border-radius: 8px;
 	overflow: hidden;
-	box-shadow: 0 2px 0 rgba(0, 0, 0, .05);
+	box-shadow: 4px 4px 0 rgba(20, 20, 22, 0.12);
+}
+
+/* ---- Barra Superior: Enlace de Retorno ---- */
+.akb-fwp-panel .akb-panel-top-bar {
+	background: var(--akb-admin-charcoal);
+	padding: 10px 24px;
+	border-bottom: 2px solid var(--akb-admin-border);
+}
+
+.akb-fwp-panel .akb-panel-back-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #141416 !important;
+	background: #fff !important;
+	border: 2px solid #141416 !important;
+	border-radius: 4px;
+	min-height: 44px;
+	box-sizing: border-box;
+	padding: 10px 16px;
+	box-shadow: 2px 2px 0 #141416;
+	text-decoration: none !important;
+	line-height: 1.2;
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.akb-fwp-panel .akb-panel-back-btn:hover,
+.akb-fwp-panel .akb-panel-back-btn:focus {
+	background: #FC0 !important;
+	color: #141416 !important;
+	transform: translate(-1px, -1px);
+	box-shadow: 3px 3px 0 #141416;
+}
+
+.akb-fwp-panel .akb-panel-back-btn:active {
+	transform: translate(1px, 1px);
+	box-shadow: 1px 1px 0 #141416;
 }
 
 /* ---- Header Akibara ---- */
 .akb-fwp-head {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: stretch;
-	gap: 4px;
-	padding: 0 14px;
-	min-height: 56px;
+	gap: 12px;
+	padding: 0 24px;
+	min-height: 64px;
 	background: var(--akb-admin-ink);
 	color: #fff;
-	border-bottom: 1px solid rgba(255, 255, 255, .12);
+	border-bottom: 2px solid var(--akb-admin-border);
 }
 
 .akb-fwp-brand {
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-	font-size: 15px;
-	font-weight: 800;
+	gap: 12px;
+	font-size: 16px;
+	font-weight: 900;
 	letter-spacing: .2px;
-	padding-right: 10px;
+	padding-right: 14px;
 	margin-right: 6px;
 	white-space: nowrap;
 }
 
 .akb-fwp-gem {
 	color: var(--akb-admin-red);
-	font-size: 17px;
+	font-size: 22px;
 	line-height: 1;
+	filter: drop-shadow(0 0 6px rgba(230, 0, 18, 0.6));
 }
 
 .akb-fwp-ver {
 	font-size: 11px;
-	font-weight: 700;
-	background: rgba(217, 0, 16, .24);
-	border: 1px solid rgba(255, 255, 255, .22);
-	padding: 2px 8px;
-	border-radius: 10px;
+	font-weight: 800;
+	background: var(--akb-admin-red);
+	border: 1px solid rgba(255, 255, 255, .3);
+	padding: 3px 8px;
+	border-radius: 4px;
+	letter-spacing: .05em;
+	text-transform: uppercase;
 }
 
 /* Reusa el nav-tab de WP (render_subnav) y lo pinta como tabs Akibara. */
 .akb-fwp-head .nav-tab-wrapper {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: flex-end;
-	gap: 2px;
+	gap: 6px;
 	border: 0;
 	margin: 0;
 	padding: 0;
 	background: transparent;
+	max-width: 100%;
 }
 
 .akb-fwp-head .nav-tab {
 	border: 0;
 	margin: 0;
-	background: transparent;
-	color: rgba(255, 255, 255, .8);
+	background: rgba(255, 255, 255, 0.08);
+	color: #D8D8DC;
 	font-weight: 700;
 	font-size: 13px;
 	line-height: 1;
-	padding: 10px 16px;
-	border-radius: 7px 7px 0 0;
+	padding: 12px 18px;
+	border-radius: 6px 6px 0 0;
 	align-self: flex-end;
-	transition: background .12s ease, color .12s ease;
-	/*
-	 * Objetivo táctil de al menos 44px en todos los breakpoints. Usar border-box para que el
-	 * padding no aumente la altura computada a 64px.
-	 */
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 	display: inline-flex;
 	align-items: center;
 	min-height: 44px;
 	box-sizing: border-box;
+	text-decoration: none;
+	cursor: pointer;
+	border-top: 2px solid transparent;
 }
 
 .akb-fwp-head .nav-tab:hover,
 .akb-fwp-head .nav-tab:focus {
-	background: rgba(217, 0, 16, .28);
+	background: rgba(230, 0, 18, 0.2);
 	color: #fff;
 	box-shadow: none;
 }
@@ -106,28 +162,52 @@
 .akb-fwp-head .nav-tab-active:hover,
 .akb-fwp-head .nav-tab-active:focus {
 	background: #fff;
-	color: var(--akb-admin-red-dark);
-	border: 0;
+	color: var(--akb-admin-ink);
+	border-top: 3px solid var(--akb-admin-red);
+	font-weight: 900;
+	box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .akb-fwp-reindex {
-	margin-left: auto;
+	margin: 10px 0 10px auto;
 	align-self: center;
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	box-sizing: border-box;
+	white-space: nowrap;
+	flex-shrink: 0;
 	background: var(--akb-admin-red);
+	border: 2px solid var(--akb-admin-border) !important;
 	color: #fff !important;
 	text-decoration: none;
-	font-weight: 600;
+	font-weight: 800;
 	font-size: 13px;
-	padding: 8px 16px;
-	border-radius: 7px;
-	transition: background .12s ease;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	padding: 8px 18px;
+	border-radius: 6px;
+	box-shadow: 2px 2px 0 var(--akb-admin-border);
+	transition: all 0.12s ease;
 }
 
 .akb-fwp-reindex:hover,
 .akb-fwp-reindex:focus {
-	background: var(--akb-admin-red-dark);
+	background: var(--akb-admin-red-hover);
+	transform: translate(-1px, -1px);
+	box-shadow: 3px 3px 0 var(--akb-admin-border);
 	color: #fff !important;
-	box-shadow: none;
+}
+
+@media (max-width: 782px) {
+
+	.akb-fwp-head {
+		padding: 12px 16px 0;
+	}
+
+	.akb-fwp-reindex {
+		margin: 8px 0 12px;
+	}
 }
 
 .akb-fwp a:focus,
@@ -249,6 +329,7 @@
  * limitar el corte a 782px porque dejaría acciones recortadas entre 783 y 1199px.
  */
 @media (max-width: 1199px) {
+
 	.akb-fwp-head {
 		flex-wrap: wrap;
 	}
@@ -258,10 +339,12 @@
 		flex-basis: 100%;
 		overflow-x: auto;
 		-webkit-overflow-scrolling: touch;
+
 		/*
 		 * No usar scroll-snap: compite con scrollIntoView, puede dejar tabs parcialmente recortadas y
 		 * dificulta estabilizar el foco y los clics.
 		 */
+
 		/* Affordance de scroll: scrolling shadows con background-attachment:
 		   local — los covers (color del header) viajan con el contenido y
 		   destapan las sombras solo donde quedan tabs ocultas; se apagan
@@ -296,10 +379,6 @@
 
 .akb-facets-table {
 	min-width: 680px; /* scroll honesto: la tabla NO se comprime */
-}
-
-.akb-encargos-table {
-	min-width: 760px; /* scroll honesto para 7 columnas */
 }
 
 /*
@@ -351,10 +430,13 @@
 	-webkit-overflow-scrolling: touch;
 	max-width: none;
 }
+
 .akb-facets-table input[type="text"] {
 	min-width: 140px;
 }
+
 @media (max-width: 782px) {
+
 	.akb-facets-table input[type="text"] {
 		min-width: 140px; /* scoped a text — NO a los checkboxes */
 	}
@@ -438,6 +520,7 @@
 }
 
 @media (max-width: 782px) {
+
 	.akb-precios-table {
 		min-width: 0;
 	}
@@ -479,6 +562,7 @@
  * la tabla. Cada td usa su data-label para identificar la columna sin depender de la cabecera.
  */
 @media (max-width: 782px) {
+
 	/*
 	 * Retirar la tabla móvil del algoritmo de ancho intrínseco y limitar los controles al ancho
 	 * disponible. min-width: 0 por sí solo no contiene el ancho mínimo de sus campos de texto.

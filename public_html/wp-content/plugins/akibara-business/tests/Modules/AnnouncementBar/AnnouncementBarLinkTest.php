@@ -304,7 +304,7 @@ final class AnnouncementBarLinkTest extends TestCase {
 		self::assertStringContainsString( 'la línea 9 termina en «|» sin dirección', $aviso );
 		self::assertStringContainsString( 'la línea 10 no tiene texto antes de «|»', $aviso );
 		self::assertStringContainsString( '«&lt;b&gt;x&lt;/b&gt;.cl»', $aviso, 'Lo escrito por el dueño se lee tal cual, sin pintarse como HTML.' );
-		self::assertStringContainsString( 'empezando por / (una página de la tienda, como /envios/) o por https://', $aviso );
+		self::assertStringContainsString( 'Para enlazar, escribe | [akb_descuento_url] o una dirección empezando por / (como /envios/) o https://, sin espacios.', $aviso );
 
 		self::assertSame( array( 'otra' => 'x' ), ( new AnnouncementBar() )->report_saved_with_warning( array( 'otra' => 'x' ), 'copys' ), 'Otra pestaña: no toca nada.' );
 

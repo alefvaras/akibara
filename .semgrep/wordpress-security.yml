@@ -1,0 +1,75 @@
+rules:
+  - id: wp-sqli-wpdb-concatenation
+    languages: [php]
+    severity: ERROR
+    message: "Posible inyección SQL detectada: interpolación directa de variables o concatenación dentro de consultas $wpdb. Utiliza siempre $wpdb->prepare() antes de ejecutar la consulta."
+    pattern-either:
+      - pattern: $WPDB->query("$QUERY" . $VAR)
+      - pattern: $WPDB->query($VAR . "$QUERY")
+      - pattern: $WPDB->query("$QUERY {$VAR}")
+      - pattern: $WPDB->get_results("$QUERY" . $VAR)
+      - pattern: $WPDB->get_results($VAR . "$QUERY")
+      - pattern: $WPDB->get_results("$QUERY {$VAR}")
+      - pattern: $WPDB->get_row("$QUERY" . $VAR)
+      - pattern: $WPDB->get_row("$QUERY {$VAR}")
+      - pattern: $WPDB->get_var("$QUERY" . $VAR)
+      - pattern: $WPDB->get_var("$QUERY {$VAR}")
+
+  - id: wp-direct-eval-execution
+    languages: [php]
+    severity: ERROR
+    message: "Uso peligroso de eval() detectado en código PHP de WordPress."
+    pattern: eval(...)
+
+  - id: wp-command-execution
+    languages: [php]
+    severity: ERROR
+    message: "Ejecución de comandos de sistema operativo detectada (RCE). No permitida en runtime de Akibara."
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: shell_exec(...)
+      - pattern: system(...)
+      - pattern: passthru(...)
+      - pattern: proc_open(...)
+      - pattern: popen(...)
+
+  - id: wp-unsafe-deserialization
+    languages: [php]
+    severity: ERROR
+    message: "Deserialización insegura con unserialize() sin restringir clases. Utiliza json_decode() o define ['allowed_classes' => false]."
+    pattern-either:
+      - pattern: unserialize($DATA)
+      - pattern: "@unserialize($DATA)"
+
+  - id: wp-raw-cookie-usage
+    languages: [php]
+    severity: WARNING
+    message: "Uso directo de setcookie() detectado. En WooCommerce debe usarse wc_setcookie() para respetar SameSite y atributos de sesión seguros."
+    pattern: setcookie(...)
+
+  - id: wp-unsafe-redirect
+    languages: [php]
+    severity: WARNING
+    message: "Uso de wp_redirect con entradas dinámicas detectado. Utiliza wp_safe_redirect() para evitar Open Redirects."
+    pattern-either:
+      - pattern: wp_redirect($_GET[...])
+      - pattern: wp_redirect($_POST[...])
+      - pattern: wp_redirect($_REQUEST[...])
+
+  - id: wp-untrusted-file-inclusion
+    languages: [php]
+    severity: ERROR
+    message: "Inclusión dinámica de archivos con parámetros de usuario (LFI/RFI). Utiliza rutas canónicas fijas."
+    pattern-either:
+      - pattern: include($_GET[...])
+      - pattern: include($_POST[...])
+      - pattern: include($_REQUEST[...])
+      - pattern: require($_GET[...])
+      - pattern: require($_POST[...])
+      - pattern: require($_REQUEST[...])
+      - pattern: include_once($_GET[...])
+      - pattern: include_once($_POST[...])
+      - pattern: include_once($_REQUEST[...])
+      - pattern: require_once($_GET[...])
+      - pattern: require_once($_POST[...])
+      - pattern: require_once($_REQUEST[...])

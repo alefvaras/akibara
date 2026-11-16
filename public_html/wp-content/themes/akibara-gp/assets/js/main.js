@@ -8,8 +8,8 @@
 (function () {
 	'use strict';
 
-	var doc = document;
-	var body = doc.body;
+	const doc = document;
+	const body = doc.body;
 
 	/* ── Skip-link: mover el FOCO al landmark, no solo el scroll ──
 	 * El skip-link apunta a #main (el <main> que emite cada template child o el
@@ -25,11 +25,11 @@
 	 * enfoca el formulario de filtros para que el siguiente Tab entre a la primera faceta.
 	 * Delegado también sobrevive al PJAX del buscador al repintar la fila. */
 	doc.addEventListener('click', function (e) {
-		var link = e.target && e.target.closest ? e.target.closest('a.skip-link, a.akb-skip-filtros') : null;
+		const link = e.target && e.target.closest ? e.target.closest('a.skip-link, a.akb-skip-filtros') : null;
 		if (!link) return;
-		var href = link.getAttribute('href') || '';
+		const href = link.getAttribute('href') || '';
 		if (href.charAt(0) !== '#' || href.length < 2) return;
-		var target = doc.getElementById(href.slice(1));
+		const target = doc.getElementById(href.slice(1));
 		if (!target) return;
 		if (!target.hasAttribute('tabindex')) {
 			target.setAttribute('tabindex', '-1');
@@ -42,12 +42,12 @@
 	 * Al enfocar elementos dentro de la cabecera fija, los navegadores pueden intentar
 	 * desplazar el viewport asumiendo que el elemento está cubierto.
 	 * Se restaura la posición de scroll previa si ocurre un salto no intencionado. */
-	var cabeceraFija = doc.querySelector('.site-header');
+	const cabeceraFija = doc.querySelector('.site-header');
 	if (cabeceraFija) {
-		var VIGILANCIA_FOCO_MS = 400;
-		var yVista = window.pageYOffset;
-		var vigilancia = null; // { y, hasta } mientras se vigila un foco recién llegado.
-		var devolver = function () {
+		const VIGILANCIA_FOCO_MS = 400;
+		let yVista = window.pageYOffset;
+		let vigilancia = null; // { y, hasta } mientras se vigila un foco recién llegado.
+		const devolver = function () {
 			if (vigilancia && window.pageYOffset < vigilancia.y) {
 				window.scrollTo(window.pageXOffset, vigilancia.y);
 				return true;
@@ -75,22 +75,22 @@
 	}
 
 	/* ── Mobile drawer toggle ───────────────────────────────────── */
-	var menuToggle = doc.getElementById('menu-toggle');
-	var drawer = doc.getElementById('mobile-drawer');
-	var overlay = doc.getElementById('mobile-overlay');
-	var drawerClose = doc.getElementById('mobile-close');
+	const menuToggle = doc.getElementById('menu-toggle');
+	const drawer = doc.getElementById('mobile-drawer');
+	const overlay = doc.getElementById('mobile-overlay');
+	const drawerClose = doc.getElementById('mobile-close');
 
 	// Elementos del documento que quedan fuera del drawer cuando abre. Reciben
 	// `inert` + `aria-hidden=true` para que SR/teclado no naveguen elementos
 	// visualmente ocultos detrás del drawer (iconos del header, content, footer).
 	// #main / .site-main NO van acá: son hijos de #main-content, así que el `inert`
 	// que recibe #main-content ya los cubre por cascada (evita doble aplicación).
-	var outsideSelectors = '.site-header, #main-content, .site-footer, .bottom-nav, #akb-ann-bar';
-	var lastFocus = null;
+	const outsideSelectors = '.site-header, #main-content, .site-footer, .bottom-nav, #akb-ann-bar';
+	let lastFocus = null;
 
 	function getDrawerFocusable() {
 		if (!drawer) return [];
-		var sel = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+		const sel = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 		return Array.prototype.slice.call(drawer.querySelectorAll(sel)).filter(function (el) {
 			return el.offsetWidth > 0 || el.offsetHeight > 0;
 		});
@@ -179,7 +179,7 @@
 		// el tab "Buscar") o, por defecto, al primer focuseable del drawer (close).
 		// setTimeout evita race con la transición; refuerza el foco síncrono de iOS.
 		setTimeout(function () {
-			var first = focusTarget || drawerClose || getDrawerFocusable()[0];
+			const first = focusTarget || drawerClose || getDrawerFocusable()[0];
 			if (first) first.focus();
 		}, 50);
 	}
@@ -187,14 +187,14 @@
 	function closeDrawer() {
 		if (!drawer || !overlay || !menuToggle) return;
 		// Capturar ANTES de quitar clases: decide a qué trigger vuelve el foco.
-		var closingSearchSheet = drawer.classList.contains('mobile-drawer--search');
+		const closingSearchSheet = drawer.classList.contains('mobile-drawer--search');
 		drawer.classList.remove('open');
 		if (drawer.classList.contains('mobile-drawer--search')) {
 			drawer.classList.remove('mobile-drawer--search');
 			drawer.removeAttribute('aria-label');
 			drawer.setAttribute('aria-labelledby', 'mobile-drawer-title');
 		}
-		var bottomSearchBtn = doc.getElementById('bottom-nav-search');
+		const bottomSearchBtn = doc.getElementById('bottom-nav-search');
 		if (bottomSearchBtn) bottomSearchBtn.setAttribute('aria-expanded', 'false');
 		overlay.classList.remove('mobile-overlay--search');
 		drawer.setAttribute('aria-hidden', 'true');
@@ -206,12 +206,12 @@
 		menuToggle.setAttribute('aria-label', 'Abrir menú');
 		body.style.overflow = '';
 		// Restore focus al elemento activador previo con fallback defensivo al botón disparador.
-		var wasSearchSheet = closingSearchSheet
+		const wasSearchSheet = closingSearchSheet
 			|| (lastFocus && lastFocus.id === 'bottom-nav-search');
-		var fallback = wasSearchSheet ? doc.getElementById('bottom-nav-search') : menuToggle;
-		var valid = lastFocus && lastFocus !== body && lastFocus !== doc.documentElement
+		const fallback = wasSearchSheet ? doc.getElementById('bottom-nav-search') : menuToggle;
+		const valid = lastFocus && lastFocus !== body && lastFocus !== doc.documentElement
 			&& typeof lastFocus.focus === 'function';
-		var target = valid ? lastFocus : fallback;
+		const target = valid ? lastFocus : fallback;
 		lastFocus = null;
 		// El foco vuelve DESPUÉS de soltar el `inert`: un elemento inerte no
 		// acepta foco, y el focus() síncrono de antes forzaba ahí mismo el
@@ -246,10 +246,10 @@
 		drawer.addEventListener('keydown', function (e) {
 			if (e.key !== 'Tab') return;
 			if (!drawer.classList.contains('open')) return;
-			var focusable = getDrawerFocusable();
+			const focusable = getDrawerFocusable();
 			if (!focusable.length) return;
-			var first = focusable[0];
-			var last = focusable[focusable.length - 1];
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
 			if (e.shiftKey && doc.activeElement === first) {
 				e.preventDefault();
 				last.focus();
@@ -261,7 +261,7 @@
 	}
 
 	/* ── Mobile drawer accordion (Manga / Cómics submenús) ──────── */
-	var drawerToggles = doc.querySelectorAll('.mobile-drawer__toggle');
+	const drawerToggles = doc.querySelectorAll('.mobile-drawer__toggle');
 
 	function setDrawerAccordionState(btn, sub, isOpen) {
 		sub.classList.toggle('open', isOpen);
@@ -270,15 +270,15 @@
 	}
 
 	drawerToggles.forEach(function (btn) {
-		var targetId = btn.getAttribute('data-target');
-		var sub = targetId ? doc.getElementById(targetId) : null;
+		const targetId = btn.getAttribute('data-target');
+		const sub = targetId ? doc.getElementById(targetId) : null;
 		if (!sub) return;
 
 		// En archivos de editorial, abre de entrada la rama que contiene el
 		// enlace actual. El item ya viene marcado por MenuInjector/walker; acá
 		// sincronizamos el estado visual y ARIA para que la ubicación no quede
 		// escondida al abrir el drawer.
-		var isCurrentBranch = btn.classList.contains('mobile-drawer__link--active')
+		const isCurrentBranch = btn.classList.contains('mobile-drawer__link--active')
 			|| btn.classList.contains('mobile-drawer__subtoggle--active');
 		if (isCurrentBranch) {
 			setDrawerAccordionState(btn, sub, true);
@@ -290,13 +290,13 @@
 	});
 
 	/* ── Footer column accordion (mobile only) ──────────────────── */
-	var footerEl = doc.querySelector('.site-footer');
-	var footerToggles = doc.querySelectorAll('.footer-column__toggle');
+	const footerEl = doc.querySelector('.site-footer');
+	const footerToggles = doc.querySelectorAll('.footer-column__toggle');
 	// 600 px, no 768: desde ahí caben las tres columnas y plegarlas sólo
 	// añade un toque para leer enlaces visibles. El mismo umbral está en
 	// assets/css/footer.css; mover uno sin el otro descuadra el botón
 	// respecto de lo que se ve.
-	var footerAccordionMedia = window.matchMedia('(max-width: 600px)');
+	const footerAccordionMedia = window.matchMedia('(max-width: 600px)');
 
 	function setFooterPanelA11y(list, isOpen) {
 		if (!list) return;
@@ -312,12 +312,12 @@
 	}
 
 	function syncFooterAccordionMode() {
-		var isMobile = footerAccordionMedia.matches;
+		const isMobile = footerAccordionMedia.matches;
 		footerToggles.forEach(function (btn) {
-			var listId = btn.getAttribute('aria-controls');
-			var list = listId ? doc.getElementById(listId) : null;
+			const listId = btn.getAttribute('aria-controls');
+			const list = listId ? doc.getElementById(listId) : null;
 			if (!list) return;
-			var isOpen = !isMobile || list.classList.contains('active');
+			const isOpen = !isMobile || list.classList.contains('active');
 			btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 			setFooterPanelA11y(list, isOpen);
 		});
@@ -326,11 +326,11 @@
 	footerToggles.forEach(function (btn) {
 		btn.addEventListener('click', function () {
 			if (!footerAccordionMedia.matches) return;
-			var listId = btn.getAttribute('aria-controls');
+			const listId = btn.getAttribute('aria-controls');
 			if (!listId) return;
-			var list = doc.getElementById(listId);
+			const list = doc.getElementById(listId);
 			if (!list) return;
-			var isOpen = list.classList.toggle('active');
+			const isOpen = list.classList.toggle('active');
 			btn.classList.toggle('active', isOpen);
 			btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 			setFooterPanelA11y(list, isOpen);
@@ -355,11 +355,11 @@
 	 * el teclado nativo si el .focus() ocurre dentro del handler del usuario;
 	 * el setTimeout interno de openDrawer solo lo refuerza. NOTA: no pasar
 	 * openDrawer directo como listener — recibiría el Event como focusTarget. */
-	var bottomSearch = doc.getElementById('bottom-nav-search');
-	var searchCancel = doc.getElementById('akb-search-cancel');
+	const bottomSearch = doc.getElementById('bottom-nav-search');
+	const searchCancel = doc.getElementById('akb-search-cancel');
 	if (bottomSearch) {
 		bottomSearch.addEventListener('click', function () {
-			var input = doc.getElementById('akb-mobile-search-input');
+			const input = doc.getElementById('akb-mobile-search-input');
 			// SEARCH SHEET: el drawer pasa a full-screen con el input en la fila
 			// superior y «Cancelar» (ver header.css). El scrim se vuelve
 			// transparente porque ya no hay "fuera" al que tocar. Ambas clases se
@@ -391,7 +391,7 @@
 			// Cancelar = descartar la búsqueda: limpiar el campo (compartido con el
 			// menú lateral; si no, el término reaparecía al abrir ☰) y avisar al
 			// suggest para que cierre su panel y olvide lastQuery.
-			var input = doc.getElementById('akb-mobile-search-input');
+			const input = doc.getElementById('akb-mobile-search-input');
 			if (input && input.value) {
 				input.value = '';
 				input.dispatchEvent(new Event('input'));
@@ -414,21 +414,21 @@
 	 * compactaba el header cuando la barra faltaba— no podía registrarse
 	 * nunca. Se retiró: la compactación vive dentro de updateProgress(), que
 	 * sí corre en cada scroll y va con requestAnimationFrame. */
-	var progress = doc.getElementById('aki-scroll-progress');
-	var siteHeader = doc.querySelector('.site-header');
+	const progress = doc.getElementById('aki-scroll-progress');
+	const siteHeader = doc.querySelector('.site-header');
 	/* Histéresis de compactación de cabecera:
 	 * Se compacta al sobrepasar 120 px y se restablece únicamente por debajo de 60 px.
 	 * La diferencia de umbral (60 px) supera la variación de altura (26 px, de 130 a 104 px),
 	 * previniendo oscilaciones y bucles de scroll-anchoring en los navegadores. */
-	var CABECERA_COMPACTA_DESDE = 120;
-	var CABECERA_ENTERA_BAJO = 60;
+	const CABECERA_COMPACTA_DESDE = 120;
+	const CABECERA_ENTERA_BAJO = 60;
 	if (progress) {
-		var ticking = false;
+		let ticking = false;
 		// Transform scaleX para delegar la animación al compositor gráfico.
 		function updateProgress() {
-			var docEl = doc.documentElement;
-			var scrollRange = Math.max(1, docEl.scrollHeight - docEl.clientHeight);
-			var ratio = Math.min(1, Math.max(0, docEl.scrollTop / scrollRange));
+			const docEl = doc.documentElement;
+			const scrollRange = Math.max(1, docEl.scrollHeight - docEl.clientHeight);
+			const ratio = Math.min(1, Math.max(0, docEl.scrollTop / scrollRange));
 			progress.style.transform = 'scaleX(' + ratio + ')';
 			if (siteHeader) {
 				siteHeader.classList.toggle('is-compact', siteHeader.classList.contains('is-compact')
@@ -460,15 +460,17 @@
 	 *
 	 * Filtra pointerType === 'touch' para evitar colisiones entre eventos táctiles y mouseenter.
 	 * La clase `mainnav--js` activa los comportamientos dinámicos preservando :focus-within como fallback. */
-	var FLYOUT_ITEMS = '.mainnav__item--has-sub, .mainnav__sub-item--has-sub';
-	var desktopFlyouts = doc.querySelectorAll(FLYOUT_ITEMS);
-	var mainnav = doc.querySelector('.mainnav');
+	const FLYOUT_ITEMS = '.mainnav__item--has-sub, .mainnav__sub-item--has-sub';
+	const desktopFlyouts = doc.querySelectorAll(FLYOUT_ITEMS);
+	const mainnav = doc.querySelector('.mainnav');
 	if (mainnav && mainnav.querySelector('.mainnav__toggle')) mainnav.classList.add('mainnav--js');
 
 	function directChildWithClass(el, className) {
 		if (!el || !el.children) return null;
-		for (var i = 0; i < el.children.length; i++) {
+		for (let i = 0; i < el.children.length; i++) {
+			// eslint-disable-next-line security/detect-object-injection
 			if (el.children[i].classList && el.children[i].classList.contains(className)) {
+				// eslint-disable-next-line security/detect-object-injection
 				return el.children[i];
 			}
 		}
@@ -493,13 +495,13 @@
 
 	// ¿El foco está en el panel del ítem (no en su enlace ni en su botón)?
 	function focusInPanel(item) {
-		var active = doc.activeElement;
+		const active = doc.activeElement;
 		return !!active && item.contains(active)
 			&& active !== getFlyoutLink(item) && active !== getFlyoutToggle(item);
 	}
 
 	function setFlyoutExpanded(item, isOpen) {
-		var toggle = getFlyoutToggle(item);
+		const toggle = getFlyoutToggle(item);
 		if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 		item.classList.toggle('mainnav__flyout--open', isOpen);
 		if (isOpen) {
@@ -542,26 +544,26 @@
 	 * del cursor hacia paneles anchos o centrados sin cerrarse involuntariamente.
 	 * La gracia aplica cuando el vector de movimiento del puntero se dirige hacia el panel.
 	 * Si la salida es lateral o ascendente, el cierre se ejecuta de inmediato. */
-	var GRACIA_MS = 300;
-	var PUNTOS_DEL_TRAMO = 4;
+	const GRACIA_MS = 300;
+	const PUNTOS_DEL_TRAMO = 4;
 
 	// ¿El tramo `desde` → salida, prolongado, entra en el panel por arriba?
 	function vaHaciaElPanel(panel, desde, e) {
 		if (!panel || !desde) return false;
-		var dy = e.clientY - desde.y;
-		var r = panel.getBoundingClientRect();
+		const dy = e.clientY - desde.y;
+		const r = panel.getBoundingClientRect();
 		if (dy <= 0 || e.clientY >= r.top) return false;
-		var x = e.clientX + (r.top - e.clientY) * (e.clientX - desde.x) / dy;
+		const x = e.clientX + (r.top - e.clientY) * (e.clientX - desde.x) / dy;
 		return x >= r.left && x <= r.right;
 	}
 
 	desktopFlyouts.forEach(function (item) {
-		var link = getFlyoutLink(item);
-		var toggle = getFlyoutToggle(item);
-		var conGracia = item.classList.contains('mainnav__item--has-sub');
-		var panel = directChildWithClass(item, 'mainnav__sub');
-		var cierreDiferido = 0;
-		var tramo = [];
+		const link = getFlyoutLink(item);
+		const toggle = getFlyoutToggle(item);
+		const conGracia = item.classList.contains('mainnav__item--has-sub');
+		const panel = directChildWithClass(item, 'mainnav__sub');
+		let cierreDiferido = 0;
+		let tramo = [];
 
 		// Fijado, o con el foco de teclado dentro del panel: se queda.
 		function seQueda() {
@@ -583,7 +585,7 @@
 		}
 
 		item.addEventListener('pointerleave', function (e) {
-			var desde = tramo[0];
+			const desde = tramo[0];
 			tramo = [];
 			if (e.pointerType === 'touch' || window.innerWidth <= 1024) return;
 			// El cierre pedido (Escape, el botón) se levanta al salir el puntero.
@@ -660,12 +662,13 @@
 	}
 
 	function flyoutToDismiss(active) {
-		var item = active && active.closest ? active.closest(FLYOUT_ITEMS) : null;
+		let item = active && active.closest ? active.closest(FLYOUT_ITEMS) : null;
 		while (item) {
 			if (isFlyoutShown(item)) return item;
 			item = item.parentElement ? item.parentElement.closest(FLYOUT_ITEMS) : null;
 		}
-		for (var i = desktopFlyouts.length - 1; i >= 0; i--) {
+		for (let i = desktopFlyouts.length - 1; i >= 0; i--) {
+			// eslint-disable-next-line security/detect-object-injection
 			if (isFlyoutShown(desktopFlyouts[i])) return desktopFlyouts[i];
 		}
 		return null;
@@ -673,15 +676,15 @@
 
 	doc.addEventListener('keydown', function (e) {
 		if (e.key !== 'Escape' || e.defaultPrevented) return;
-		var activeFlyout = flyoutToDismiss(doc.activeElement);
+		const activeFlyout = flyoutToDismiss(doc.activeElement);
 		if (activeFlyout) {
 			e.preventDefault();
-			var focusWasInPanel = focusInPanel(activeFlyout);
+			const focusWasInPanel = focusInPanel(activeFlyout);
 			closeFlyout(activeFlyout, true);
 			// El foco vuelve al disparador si estaba dentro del panel que se oculta.
 			// preventScroll evita desplazamiento involuntario en la cabecera sticky.
 			if (focusWasInPanel) {
-				var backTo = getFlyoutToggle(activeFlyout) || getFlyoutLink(activeFlyout);
+				const backTo = getFlyoutToggle(activeFlyout) || getFlyoutLink(activeFlyout);
 				if (backTo) backTo.focus({ preventScroll: true });
 			}
 			return;
@@ -697,16 +700,16 @@
 	 *
 	 * Parámetros reservados (_buscar, _paged) se excluyen del cómputo.
 	 * Valores múltiples separados por coma se computan individualmente. */
-	var FACET_RESERVED_PARAMS = ['_paged', '_buscar'];
+	const FACET_RESERVED_PARAMS = ['_paged', '_buscar'];
 
 	function updateFacetCount() {
-		var btn = doc.querySelector('.akb-filter-toggle');
+		const btn = doc.querySelector('.akb-filter-toggle');
 		if (!btn) return;
-		var countEl = btn.querySelector('.akb-filter-toggle__count');
+		const countEl = btn.querySelector('.akb-filter-toggle__count');
 		if (!countEl) return;
-		var n = 0;
+		let n = 0;
 		try {
-			var params = new URLSearchParams(window.location.search);
+			const params = new URLSearchParams(window.location.search);
 			params.forEach(function (v, k) {
 				if (!v || k.charAt(0) !== '_') return;
 				if (FACET_RESERVED_PARAMS.indexOf(k) !== -1) return;
@@ -714,7 +717,7 @@
 					if (value.trim() !== '') n++;
 				});
 			});
-		} catch (err) { return; }
+		} catch (_err) { return; }
 		countEl.textContent = n > 0 ? String(n) : '';
 		countEl.hidden = n === 0;
 		// Estado visual: añade clase si existen filtros activos aplicados.
@@ -727,8 +730,8 @@
 	/* ── Search input: botón limpiar (X) ──────────────────────────────
 	 * Control de interfaz para vaciar el texto de búsqueda y sincronizar el estado. */
 	doc.querySelectorAll('#akb-search-input, #akb-mobile-search-input').forEach(function (input) {
-		var form = input.closest('form');
-		var clearBtn = form && form.querySelector('.akibara-search__clear');
+		const form = input.closest('form');
+		const clearBtn = form && form.querySelector('.akibara-search__clear');
 		if (!clearBtn) return;
 		function syncClearBtn() {
 			clearBtn.hidden = !input.value.length;
@@ -748,18 +751,18 @@
 	 * aria-keyshortcuts dinámicamente si el script está activo. Se inhabilita
 	 * si el foco actual reside en un campo editable. */
 	doc.addEventListener('keydown', function (e) {
-		var ae = doc.activeElement;
-		var inField = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable);
+		const ae = doc.activeElement;
+		const inField = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable);
 		if (inField) return;
-		var cmdK = ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K'));
+		const cmdK = ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K'));
 		if (!cmdK) return;
-		var input = doc.querySelector('#akb-search-input') || doc.querySelector('#akb-mobile-search-input');
+		const input = doc.querySelector('#akb-search-input') || doc.querySelector('#akb-mobile-search-input');
 		if (!input || !input.offsetParent) return; // hidden via display:none
 		e.preventDefault();
 		input.focus({ preventScroll: true }); // en la cabecera fija
 		input.select();
 	});
-	var headerSearchInput = doc.getElementById('akb-search-input');
+	const headerSearchInput = doc.getElementById('akb-search-input');
 	if (headerSearchInput) headerSearchInput.setAttribute('aria-keyshortcuts', 'Control+K Meta+K');
 
 	/* ── Header icon feedback — breve "bump" al cambiar contadores ─ */
@@ -790,37 +793,6 @@
 		});
 	});
 
-	/* ── BlueX shipping selector — strip inline white bg ─────────
-	 * El plugin `bluex-for-woocommerce` hardcodea
-	 * `style="background-color: #fff; border: 1px solid #e0e0e0;"`
-	 * en el div del selector de envío en checkout. Inline style gana
-	 * sobre cualquier CSS sin !important → quedan labels invisibles
-	 * sobre blanco en el dark theme.
-	 *
-	 * Stripeamos los properties hardcoded para que la regla CSS de
-	 * `.woocommerce-checkout-section` tome control. WC checkout reemplaza
-	 * fragments por AJAX, así que watcheamos con MutationObserver. */
-	function stripBlueXInlineStyles() {
-		var sels = '#bluex-shipping-selector-native, #bluex-shipping-selector-optimized';
-		doc.querySelectorAll(sels).forEach(function (el) {
-			el.style.removeProperty('background-color');
-			el.style.removeProperty('border');
-			el.style.removeProperty('border-color');
-		});
-	}
-
-	stripBlueXInlineStyles();
-
-	if (typeof MutationObserver !== 'undefined') {
-		var checkout = doc.querySelector('form.woocommerce-checkout, .woocommerce-checkout');
-		if (checkout) {
-			new MutationObserver(stripBlueXInlineStyles).observe(checkout, {
-				childList: true,
-				subtree: true
-			});
-		}
-	}
-
 	/* ── Wishlist count badge (Akibara Wishlist module) ─────────────
 	 * El módulo dispara `akb:wishlist:change` en document después de cada
 	 * toggle, con `detail.count`. Reflejamos en el `data-akb-wishlist-count`
@@ -829,11 +801,11 @@
 	 *
 	 * Evento custom nativo — no requiere jQuery. */
 	doc.addEventListener('akb:wishlist:change', function (e) {
-		var count = e.detail && typeof e.detail.count === 'number' ? e.detail.count : null;
+		const count = e.detail && typeof e.detail.count === 'number' ? e.detail.count : null;
 		if (count === null) {
 			return;
 		}
-		var icons = doc.querySelectorAll('.header-icon--wishlist[data-akb-wishlist-count]');
+		const icons = doc.querySelectorAll('.header-icon--wishlist[data-akb-wishlist-count]');
 		icons.forEach(function (icon) {
 			icon.setAttribute('data-akb-wishlist-count', String(count));
 		});
@@ -864,26 +836,26 @@
 		if (doc.querySelector('.wp-block-woocommerce-cart, .wc-block-cart')) {
 			return null;
 		}
-		var rows = doc.querySelectorAll('.woocommerce-cart-form .cart_item');
+		const rows = doc.querySelectorAll('.woocommerce-cart-form .cart_item');
 		if (!rows.length) {
 			return 0; // carrito vaciado → llega el template empty-cart, sin filas
 		}
-		var total = 0;
+		let total = 0;
 		rows.forEach(function (row) {
-			var input = row.querySelector('input.qty');
-			var n = input ? parseFloat(input.value) : NaN;
+			const input = row.querySelector('input.qty');
+			const n = input ? parseFloat(input.value) : NaN;
 			// Sin input editable (producto sold-individually) = 1 unidad.
 			total += (isFinite(n) && n >= 0) ? n : 1;
 		});
 		return total;
 	}
 	function syncBottomNavCartBadge() {
-		var headerCart = doc.querySelector('.header-icon--cart');
-		var pageCount = akbCartPageCount();
+		const headerCart = doc.querySelector('.header-icon--cart');
+		const pageCount = akbCartPageCount();
 		if (headerCart && pageCount !== null) {
 			headerCart.setAttribute('data-akb-cart-count', String(pageCount));
 		}
-		var navCart = doc.querySelector('.bottom-nav__item--cart');
+		const navCart = doc.querySelector('.bottom-nav__item--cart');
 		if (headerCart && navCart) {
 			navCart.setAttribute('data-akb-cart-count', headerCart.getAttribute('data-akb-cart-count') || '0');
 		}
@@ -904,7 +876,7 @@
 	 * `wc_fragment_refresh` y `document.activeElement` era el body. Se devuelve
 	 * al icono nuevo sólo si el foco se perdió así: si el cliente ya está en otro
 	 * sitio (el cajón, un campo), no se toca. */
-	var ultimoFoco = null;
+	let ultimoFoco = null;
 	doc.addEventListener('focusin', function (event) {
 		ultimoFoco = event.target;
 	});
@@ -914,7 +886,7 @@
 	// conectado: se mira después, cuando el reemplazo ya terminó (y ya se avisó
 	// `wc_fragments_refreshed`). Si sigue en el documento, lo soltó el cliente.
 	doc.addEventListener('focusout', function (event) {
-		var soltado = event.target;
+		const soltado = event.target;
 		if (soltado !== ultimoFoco || event.relatedTarget) {
 			return;
 		}
@@ -925,12 +897,12 @@
 		}, 0);
 	});
 	function devolverFocoAlCarrito() {
-		var activo = doc.activeElement;
+		const activo = doc.activeElement;
 		if (!ultimoFoco || (activo && activo !== doc.body) || doc.contains(ultimoFoco)
 			|| !ultimoFoco.matches || !ultimoFoco.matches('.header-icon--cart')) {
 			return;
 		}
-		var nuevo = doc.querySelector('.header-icon--cart');
+		const nuevo = doc.querySelector('.header-icon--cart');
 		if (nuevo) {
 			nuevo.focus({ preventScroll: true });
 		}
@@ -945,16 +917,16 @@
 	 * re-render. Dispara `change` para que el flujo de WooCommerce sea idéntico
 	 * al de la edición manual del campo. */
 	function syncQuantityStepper(wrap) {
-		var input = wrap && wrap.querySelector('input.qty');
+		const input = wrap && wrap.querySelector('input.qty');
 		if (!input) return;
 
-		var min = input.min !== '' ? parseFloat(input.min) : 1;
-		var max = input.max !== '' ? parseFloat(input.max) : Infinity;
-		var value = parseFloat(input.value);
+		const min = input.min !== '' ? parseFloat(input.min) : 1;
+		const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+		let value = parseFloat(input.value);
 		if (!Number.isFinite(value)) value = min;
 
-		var minus = wrap.querySelector('.akb-qty-btn--minus');
-		var plus = wrap.querySelector('.akb-qty-btn--plus');
+		const minus = wrap.querySelector('.akb-qty-btn--minus');
+		const plus = wrap.querySelector('.akb-qty-btn--plus');
 
 		[
 			{ button: minus, disabled: input.disabled || input.readOnly || value <= min },
@@ -969,19 +941,22 @@
 	/**
 	 * Anuncio accesible cuando la cantidad alcanza el stock máximo disponible.
 	 * Se notifica al usuario mediante una región aria-live ('status').
+	 * @param {*} wrap
+	 * @param {*} value
+	 * @param {*} max
 	 */
 	function announceQuantityLimit(wrap, value, max) {
 		if (!wrap || !Number.isFinite(max) || value < max) return;
 
-		var hint = wrap.parentElement && wrap.parentElement.querySelector('.akb-qty-hint');
+		let hint = wrap.parentElement && wrap.parentElement.querySelector('.akb-qty-hint');
 		if (!hint) {
 			hint = doc.createElement('p');
 			hint.className = 'akb-qty-hint';
 			hint.setAttribute('role', 'status');
 			hint.setAttribute('aria-live', 'polite');
 			// Se inserta después del botón de compra para evitar Cumulative Layout Shift (CLS).
-			var parent = wrap.parentElement || wrap;
-			var atc = parent.querySelector('.single_add_to_cart_button');
+			const parent = wrap.parentElement || wrap;
+			const atc = parent.querySelector('.single_add_to_cart_button');
 			if (atc && atc.parentElement === parent) {
 				parent.insertBefore(hint, atc.nextSibling);
 			} else {
@@ -998,17 +973,17 @@
 	}
 
 	doc.addEventListener('click', function (e) {
-		var btn = e.target.closest('.akb-qty-btn');
+		const btn = e.target.closest('.akb-qty-btn');
 		if (!btn) return;
 		if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
-		var wrap = btn.closest('.quantity');
-		var input = wrap && wrap.querySelector('input.qty');
+		const wrap = btn.closest('.quantity');
+		const input = wrap && wrap.querySelector('input.qty');
 		if (!input || input.disabled || input.readOnly) return;
 
-		var step = parseFloat(input.step) || 1;
-		var min = input.min !== '' ? parseFloat(input.min) : 1;
-		var max = input.max !== '' ? parseFloat(input.max) : Infinity;
-		var val = parseFloat(input.value) || min;
+		const step = parseFloat(input.step) || 1;
+		const min = input.min !== '' ? parseFloat(input.min) : 1;
+		const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+		let val = parseFloat(input.value) || min;
 
 		val += btn.classList.contains('akb-qty-btn--plus') ? step : -step;
 		val = Math.min(max, Math.max(min, val));
@@ -1043,18 +1018,18 @@
 	 * - Subpáginas: si la pestaña activa sobrepasa el viewport, se realiza el desplazamiento mínimo necesario.
 	 */
 	(function () {
-		var nav = doc.querySelector('.woocommerce-MyAccount-navigation');
+		const nav = doc.querySelector('.woocommerce-MyAccount-navigation');
 		if (!nav) return;
-		var ul = nav.querySelector('ul');
-		var active = nav.querySelector('li.is-active');
+		const ul = nav.querySelector('ul');
+		const active = nav.querySelector('li.is-active');
 		if (!ul || !active || ul.scrollWidth <= ul.clientWidth + 4) return;
 		if (doc.body.classList.contains('woocommerce-dashboard')) {
 			ul.scrollLeft = 0;
 			return;
 		}
-		var ulRect = ul.getBoundingClientRect();
-		var aRect = active.getBoundingClientRect();
-		var contentX = (aRect.left - ulRect.left) + ul.scrollLeft;
+		const ulRect = ul.getBoundingClientRect();
+		const aRect = active.getBoundingClientRect();
+		const contentX = (aRect.left - ulRect.left) + ul.scrollLeft;
 		ul.scrollLeft = (contentX + aRect.width > ul.clientWidth)
 			? contentX + aRect.width - ul.clientWidth + 12
 			: 0;
@@ -1066,26 +1041,28 @@
 	 * Aplica a tarjetas de catálogo (.akb-product-cover-wrap), jaulas de Mi Cuenta y packs
 	 * (.akb-cover-cage) y galería de ficha (.woocommerce-product-gallery__image). */
 	(function () {
-		var COVER_WRAPS = '.akb-product-cover-wrap, .akb-cover-cage, .woocommerce-product-gallery__image';
+		const COVER_WRAPS = '.akb-product-cover-wrap, .akb-cover-cage, .woocommerce-product-gallery__image';
 		function coverOf(el) {
 			return el && el.closest ? el.closest(COVER_WRAPS) : null;
 		}
 		doc.addEventListener('error', function (event) {
-			var cover = coverOf(event.target);
+			const cover = coverOf(event.target);
 			if (cover && event.target.tagName === 'IMG') {
 				cover.classList.add('akb-cover--error');
 			}
 		}, true);
 		doc.addEventListener('load', function (event) {
-			var cover = coverOf(event.target);
+			const cover = coverOf(event.target);
 			if (cover && event.target.tagName === 'IMG') {
 				cover.classList.remove('akb-cover--error');
 			}
 		}, true);
 		// Las que fallaron ANTES de instalar los listeners (script diferido).
-		var imgs = doc.querySelectorAll(COVER_WRAPS.split(', ').map(function (s) { return s + ' img'; }).join(', '));
-		for (var i = 0; i < imgs.length; i += 1) {
+		const imgs = doc.querySelectorAll(COVER_WRAPS.split(', ').map(function (s) { return s + ' img'; }).join(', '));
+		for (let i = 0; i < imgs.length; i += 1) {
+			// eslint-disable-next-line security/detect-object-injection
 			if (imgs[i].complete && imgs[i].naturalWidth === 0) {
+				// eslint-disable-next-line security/detect-object-injection
 				coverOf(imgs[i]).classList.add('akb-cover--error');
 			}
 		}
@@ -1100,9 +1077,9 @@
 	 * `:focus-visible` desborda la fila horizontal con scroll-snap, se desplaza
 	 * la tarjeta contenedora al inicio del viewport visible para evitar recortes. */
 	(function () {
-		var filas = doc.querySelectorAll('.akb-section .woocommerce ul.products, .akb-section .akb-home-series__grid');
-		var TIPOS = ['touchstart', 'pointerdown', 'focusin', 'scroll'];
-		var OPCIONES = { passive: true };
+		const filas = doc.querySelectorAll('.akb-section .woocommerce ul.products, .akb-section .akb-home-series__grid');
+		const TIPOS = ['touchstart', 'pointerdown', 'focusin', 'scroll'];
+		const OPCIONES = { passive: true };
 
 		function seguirAlFoco(fila, el) {
 			if (!el || el === fila || typeof el.scrollIntoView !== 'function' || fila.scrollWidth <= fila.clientWidth) {
@@ -1112,14 +1089,14 @@
 				if (!el.matches(':focus-visible')) {
 					return;
 				}
-			} catch (err) {
+			} catch (_err) {
 				return;
 			}
 			// Se evalúa la tarjeta contenedora completa para garantizar que ni el anillo
 			// de foco ni los controles perimetrales queden recortados por el scroll-snap.
-			var tarjeta = el.closest('li.product, .akb-home-series__item') || el;
-			var r = tarjeta.getBoundingClientRect();
-			var f = fila.getBoundingClientRect();
+			const tarjeta = el.closest('li.product, .akb-home-series__item') || el;
+			const r = tarjeta.getBoundingClientRect();
+			const f = fila.getBoundingClientRect();
 			if (r.left < f.left - 0.5 || r.right > f.right + 0.5) {
 				tarjeta.scrollIntoView({ block: 'nearest', inline: 'start' });
 			}
@@ -1152,41 +1129,44 @@
 	 *
 	 * Se evalúa con debounce al hacer scroll, resize, cambios de DOM y eventos de carrito. */
 	(function () {
-		var fab = doc.querySelector('.joinchat');
+		const fab = doc.querySelector('.joinchat');
 		if (!fab || typeof doc.elementsFromPoint !== 'function') {
 			return;
 		}
-		var COMPRA = 'li.product .button, li.product .akb-tarjeta-motivo, .akb-wl-toggle, .akb-qv-trigger, .single_add_to_cart_button, [data-akb-sb-add], [data-akb-sb-landing-start], [data-akb-sb-landing-add], [data-akb-sb-landing-clear], [data-akb-sb-landing-close], .akb-sb-card-select:not(.is-disabled)';
-		var EN_VUELO = 'li.product .button.loading, .single_add_to_cart_button.is-adding, [data-akb-sb-add].is-loading, .akb-wl-toggle.is-loading, [data-akb-sb-landing-add].is-loading';
-		var CLASE = 'akb-fab-cede';
-		var espera = 0;
+		const COMPRA = 'li.product .button, li.product .akb-tarjeta-motivo, .akb-wl-toggle, .akb-qv-trigger, .single_add_to_cart_button, .akb-trust-section';
+		const EN_VUELO = 'li.product .button.loading, .single_add_to_cart_button.is-adding, .akb-wl-toggle.is-loading';
+		const CLASE = 'akb-fab-cede';
+		let espera = 0;
 
 		function cruza(a, b) {
 			return b.width > 0 && b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top;
 		}
 
 		function tapaUnaCompra() {
-			var boton = fab.querySelector('.joinchat__button') || fab;
-			var r = boton.getBoundingClientRect();
+			const boton = fab.querySelector('.joinchat__button') || fab;
+			const r = boton.getBoundingClientRect();
 			if (!r.width || !r.height) {
 				return false;
 			}
 			// Borde izquierdo y centro, arriba, al medio y abajo: un botón de
 			// compra de 44 px no pasa por debajo sin tocar alguno.
-			var xs = [r.left + 4, r.left + r.width / 2];
-			var ys = [r.top + 4, r.top + r.height / 2, r.bottom - 4];
-			for (var i = 0; i < xs.length; i += 1) {
-				for (var j = 0; j < ys.length; j += 1) {
-					var pila = doc.elementsFromPoint(xs[i], ys[j]);
-					for (var k = 0; k < pila.length; k += 1) {
+			const xs = [r.left + 4, r.left + r.width / 2];
+			const ys = [r.top + 4, r.top + r.height / 2, r.bottom - 4];
+			for (let i = 0; i < xs.length; i += 1) {
+				for (let j = 0; j < ys.length; j += 1) {
+					// eslint-disable-next-line security/detect-object-injection
+					const pila = doc.elementsFromPoint(xs[i], ys[j]);
+					for (let k = 0; k < pila.length; k += 1) {
+						// eslint-disable-next-line security/detect-object-injection
 						if (!pila[k].closest('.joinchat') && pila[k].closest(COMPRA)) {
 							return true;
 						}
 					}
 				}
 			}
-			var enVuelo = doc.querySelectorAll(EN_VUELO);
-			for (var n = 0; n < enVuelo.length; n += 1) {
+			const enVuelo = doc.querySelectorAll(EN_VUELO);
+			for (let n = 0; n < enVuelo.length; n += 1) {
+				// eslint-disable-next-line security/detect-object-injection
 				if (cruza(r, enVuelo[n].getBoundingClientRect())) {
 					return true;
 				}

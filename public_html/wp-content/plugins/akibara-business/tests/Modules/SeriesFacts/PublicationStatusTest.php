@@ -135,7 +135,7 @@ final class PublicationStatusTest extends TestCase {
 	 */
 	public function test_accepts_every_key_of_the_set(): void {
 		foreach ( array_keys( PublicationStatus::states() ) as $key ) {
-			self::assertSame( $key, PublicationStatus::sanitize_state( $key ) );
+			self::assertSame( $key, PublicationStatus::sanitize_work_state( $key ) );
 		}
 	}
 
@@ -148,8 +148,8 @@ final class PublicationStatusTest extends TestCase {
 	 * @testdox Should normalize case and stray whitespace before matching.
 	 */
 	public function test_normalizes_case_and_whitespace(): void {
-		self::assertSame( PublicationStatus::COMPLETE, PublicationStatus::sanitize_state( ' Completa ' ) );
-		self::assertSame( PublicationStatus::ONGOING, PublicationStatus::sanitize_state( 'EN_PUBLICACION' ) );
+		self::assertSame( PublicationStatus::COMPLETE, PublicationStatus::sanitize_work_state( ' Completa ' ) );
+		self::assertSame( PublicationStatus::ONGOING, PublicationStatus::sanitize_work_state( 'EN_PUBLICACION' ) );
 		self::assertSame( PublicationStatus::UP_TO_DATE, PublicationStatus::sanitize_edition_state( ' AL_DIA ' ) );
 		self::assertSame( '', PublicationStatus::sanitize_work_state( PublicationStatus::UP_TO_DATE ) );
 	}
@@ -161,7 +161,7 @@ final class PublicationStatusTest extends TestCase {
 	 * @param mixed $raw Valor recibido.
 	 */
 	public function test_rejects_anything_outside_the_set( $raw ): void {
-		self::assertSame( '', PublicationStatus::sanitize_state( $raw ) );
+		self::assertSame( '', PublicationStatus::sanitize_work_state( $raw ) );
 	}
 
 	/** @return array<string, array<int, mixed>> */

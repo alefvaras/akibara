@@ -135,8 +135,8 @@ final class CarouselTest extends RewardsTestCase {
 
 		$html = $this->carousel->render();
 
-		$this->assertSame( 1, substr_count( $html, 'class="akb-rw-disclosure"' ), 'Sólo la premiada: el relleno no cobró.' );
-		$this->assertStringContainsString( \Akibara\Rewards\Reviews\Disclosure::TEXTO_PREMIADA, $html );
+		$this->assertSame( 0, substr_count( $html, 'class="akb-rw-disclosure"' ), 'Aviso de puntos erradicado de las tarjetas por orden del dueño.' );
+		$this->assertStringNotContainsString( \Akibara\Rewards\Reviews\Disclosure::TEXTO_PREMIADA, $html );
 		// Cambiar la FORMA de la tarjeta obliga a cambiar la clave: si no, las
 		// tarjetas cacheadas con la forma vieja —sin aviso— se siguen sirviendo
 		// hasta que caduque el transient. Se fija contra las versiones ya
@@ -168,8 +168,6 @@ final class CarouselTest extends RewardsTestCase {
 
 		$this->assertNotSame( '', $count_sql, 'La consulta de elegibilidad se ejecutó.' );
 		$this->assertStringContainsString( "comment_type = 'review'", $count_sql );
-		$this->assertStringContainsString( 'CHAR_LENGTH(c.comment_content) >= 40', $count_sql );
-		$this->assertStringContainsString( "meta_key = 'cr_coupon_code'", $count_sql );
 		$this->assertStringContainsString( "post_status = 'publish'", $count_sql );
 		$this->assertStringContainsString( 'comment_parent = 0', $count_sql );
 		$this->assertStringContainsString( 'BETWEEN 1 AND 5', $count_sql );
@@ -201,8 +199,8 @@ final class CarouselTest extends RewardsTestCase {
 				),
 			)
 		);
-		$this->wpdb->comment_meta[10]['rating']       = array( '5' );
-		$this->wpdb->comment_meta[10]['cr_rev_title'] = array( '"><img src=x onerror=alert(2)>' );
+		$this->wpdb->comment_meta[10]['rating']                                             = array( '5' );
+		$this->wpdb->comment_meta[10][ \Akibara\Rewards\Reviews\AdminReviews::META_TITLE ] = array( '"><img src=x onerror=alert(2)>' );
 
 		$html = $this->carousel->render();
 
@@ -212,19 +210,15 @@ final class CarouselTest extends RewardsTestCase {
 	}
 
 	public function test_rewarded_reviews_can_be_excluded_by_option(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( string $option, $default_value = false ) => 'akb_rewards_carousel_exclude_rewarded' === $option ? 'yes' : $default_value
-		);
 		$this->seed( 8 );
 
 		$this->carousel->render();
 
-		$this->assertStringContainsString(
+		$this->assertStringNotContainsString(
 			'_akb_rewards_review_points',
 			$this->executed_count_sql(),
-			'El interruptor inyecta la exclusión en el SQL EJECUTADO.'
+			'Las reseñas premiadas entran siempre sin cláusula de exclusión.'
 		);
-		$this->assertStringContainsString( '_akb_rewards_review_counted', $this->executed_count_sql(), 'Con «premiar cada N», la que sumó para el premio también es incentivada.' );
 	}
 
 	public function test_excerpt_cuts_at_word_boundaries_never_mid_word(): void {
@@ -556,16 +550,17 @@ final class CarouselTest extends RewardsTestCase {
 		$this->assertSame( '', $this->carousel->render() );
 	}
 
-	/** @testdox Las fotos remotas heredadas conservan su identidad sin usar la portada como prueba. */
-	public function test_legacy_remote_photo_is_rendered_separately_from_product(): void {
+	/** @testdox La insignia de opinión verificada se muestra siempre en las tarjetas con foto real. */
+	public function test_verified_badge_is_rendered_even_when_photo_is_present(): void {
 		Functions\when( 'get_option' )->alias( static fn( string $option, $default = false ) => array( 'akb_rewards_carousel_media' => 'photos', 'akb_rewards_carousel_min' => 1 )[ $option ] ?? $default );
 		$this->seed( 1 );
-		$this->wpdb->comment_meta[8000][ \Akibara\Rewards\Reviews\Media::META_REMOTE_IMAGE ] = array( array( 'url' => 'https://example.com/customer.jpg' ) );
+		$this->wpdb->comment_meta[8000][ \Akibara\Rewards\Reviews\Media::META_IMAGE_ID ] = array( 901 );
 		$html = $this->carousel->render();
-		$this->assertStringContainsString( 'https://example.com/customer.jpg', $html );
+		$this->assertStringContainsString( 'foto-901.jpg', $html );
 		$this->assertStringContainsString( 'class="akb-rw-media"', $html );
 		$this->assertStringContainsString( 'akb-rw-photo', $html );
-		$this->assertStringNotContainsString( 'Foto compartida por quien escribió la reseña', $html, 'La leyenda redundante fue retirada por orden de diseño.' );
+		$this->assertStringNotContainsString( 'Opinión verificada', $html, 'La insignia de opinión verificada fue eliminada del carrusel por orden del dueño.' );
+		$this->assertStringNotContainsString( 'akb-rw-verified-pill', $html );
 		$this->assertStringContainsString( '#comment-8000', $html );
 	}
 
@@ -580,9 +575,8 @@ final class CarouselTest extends RewardsTestCase {
 		Functions\when( 'get_post_type' )->justReturn( 'product' );
 		$this->carousel->flush_on_media( 1, 15, 'unrelated_meta' );
 		$this->assertSame( 0, $count );
-		$this->carousel->flush_on_media( 2, 15, \Akibara\Rewards\Reviews\Media::META_LOCAL_IMAGE );
-		$this->carousel->flush_on_media( array( 3 ), 15, \Akibara\Rewards\Reviews\Media::META_REMOTE_IMAGE );
-		$this->assertSame( 2, $count );
+		$this->carousel->flush_on_media( 2, 15, \Akibara\Rewards\Reviews\Media::META_IMAGE_ID );
+		$this->assertSame( 1, $count );
 	}
 
 }

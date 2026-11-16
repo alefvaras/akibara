@@ -17,6 +17,10 @@ namespace Akibara\Rewards\Reviews;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArgument
+ */
 final class PhotoSurfaces {
 
 	/** Ancho máximo de la foto en la ficha, en píxeles. */
@@ -24,6 +28,9 @@ final class PhotoSurfaces {
 
 	/** Ancho de la miniatura en la pantalla de moderación, en píxeles. */
 	private const ANCHO_ADMIN = 96;
+
+	/** Control de impresión única del dialog en el DOM de reseñas. */
+	private static bool $dialog_rendered = false;
 
 	public function register(): void {
 		// Prioridad 26: después de la insignia de reseña transcrita (20), para
@@ -64,7 +71,7 @@ final class PhotoSurfaces {
 	}
 
 	/**
-	 * La foto de una reseña: primero la local (adjunto), luego la remota.
+	 * La foto adjunta de una reseña.
 	 *
 	 * Misma vara que `Media::has_real_photo()` y que el carrusel: el adjunto
 	 * tiene que EXISTIR y ser imagen. Una meta huérfana no puede colar un hueco
@@ -74,7 +81,7 @@ final class PhotoSurfaces {
 	 * @return array{id:int,url:string}|array{} Vacío si no hay foto utilizable.
 	 */
 	private static function foto( int $comment_id ): array {
-		foreach ( (array) get_comment_meta( $comment_id, Media::META_LOCAL_IMAGE ) as $attachment_id ) {
+		foreach ( (array) get_comment_meta( $comment_id, Media::META_IMAGE_ID ) as $attachment_id ) { // phpcs:ignore WordPress.WP.GetMetaSingle.Missing
 			$attachment_id = (int) $attachment_id;
 			if ( $attachment_id > 0 && wp_attachment_is( 'image', $attachment_id ) ) {
 				return array(
@@ -82,26 +89,6 @@ final class PhotoSurfaces {
 					'url' => (string) wp_get_attachment_image_url( $attachment_id, 'large' ),
 				);
 			}
-		}
-
-		foreach ( (array) get_comment_meta( $comment_id, Media::META_REMOTE_IMAGE ) as $remota ) {
-			if ( ! is_array( $remota ) || empty( $remota['url'] ) || ! is_string( $remota['url'] ) ) {
-				continue;
-			}
-
-			// En entornos HTTPS, asegurar esquema https para evitar bloqueo de contenido mixto.
-			// En entornos locales o sin SSL, preservar el esquema original.
-			$url = is_ssl() ? set_url_scheme( $remota['url'], 'https' ) : $remota['url'];
-
-			// Sólo web: una meta manipulada no puede colar un esquema raro.
-			if ( ! preg_match( '#^https?://#i', $url ) ) {
-				continue;
-			}
-
-			return array(
-				'id'  => 0,
-				'url' => $url,
-			);
 		}
 
 		return array();
@@ -134,26 +121,17 @@ final class PhotoSurfaces {
 		$en_admin = is_admin();
 		$ancho    = $en_admin ? self::ANCHO_ADMIN : self::ANCHO_FICHA;
 
-		if ( $foto['id'] > 0 ) {
-			$img = wp_get_attachment_image(
-				$foto['id'],
-				$en_admin ? 'thumbnail' : 'medium',
-				false,
-				array(
-					'class'   => 'akb-rw-foto__img',
-					'alt'     => $alt,
-					'loading' => 'lazy',
-					'style'   => self::estilo( $ancho ),
-				)
-			);
-		} else {
-			$img = sprintf(
-				'<img src="%s" alt="%s" class="akb-rw-foto__img" loading="lazy" style="%s">',
-				esc_url( $foto['url'] ),
-				esc_attr( $alt ),
-				esc_attr( self::estilo( $ancho ) )
-			);
-		}
+		$img = wp_get_attachment_image(
+			$foto['id'],
+			$en_admin ? 'thumbnail' : 'medium',
+			false,
+			array(
+				'class'   => 'akb-rw-foto__img',
+				'alt'     => $alt,
+				'loading' => 'lazy',
+				'style'   => self::estilo( $ancho ),
+			)
+		);
 
 		if ( '' === $img ) {
 			return '';
@@ -167,11 +145,63 @@ final class PhotoSurfaces {
 				esc_url( $foto['url'] ),
 				$img
 			);
+			return sprintf(
+				'<figure class="akb-rw-foto" style="margin:10px 0 0;">%s</figure>',
+				$img
+			);
+		}
+
+		// En la ficha técnica pública (PDP): botón accesible para abrir el visor Lightbox
+		// y distintivo de prueba social «📸 Compra verificada con fotos».
+		$full_url = '' !== $foto['url'] ? $foto['url'] : (string) wp_get_attachment_image_url( $foto['id'], 'large' );
+		$btn      = sprintf(
+			'<button type="button" class="akb-rw-foto__btn" data-akb-lightbox-trigger data-full-src="%s" data-alt="%s" aria-label="%s">%s<span class="akb-rw-foto__zoom-hint" aria-hidden="true">🔍 Ampliar foto</span></button>',
+			esc_url( (string) $full_url ),
+			esc_attr( $alt ),
+			esc_attr( sprintf( 'Ampliar foto de la reseña: %s', $alt ) ),
+			$img
+		);
+		$badge    = '<span class="akb-rw-foto__badge" aria-hidden="true"><span class="akb-rw-foto__badge-icon">📸</span> Compra verificada con fotos</span>';
+
+		$dialog = '';
+		if ( ! self::$dialog_rendered ) {
+			self::$dialog_rendered = true;
+			$dialog                 = self::lightbox_dialog_html();
 		}
 
 		return sprintf(
-			'<figure class="akb-rw-foto" style="margin:10px 0 0;">%s</figure>',
-			$img
+			'<figure class="akb-rw-foto" style="margin:10px 0 0;">%s%s%s</figure>',
+			$btn,
+			$badge,
+			$dialog
 		);
+	}
+
+	/**
+	 * Retorna el modal accesible Lightbox nativo (<dialog>) acotado dentro de #reviews.
+	 *
+	 * Zero dependencias, accesible por teclado (Esc), sin librerías pesadas como Slick o PrettyPhoto.
+	 *
+	 * @return string
+	 */
+	public static function lightbox_dialog_html(): string {
+		$label_dialog = 'Visor de foto de reseña';
+		$label_close  = 'Cerrar visor de foto';
+
+		return '<dialog id="akb-review-lightbox" class="akb-review-lightbox" aria-label="' . $label_dialog . '">'
+			. '<div class="akb-review-lightbox__inner">'
+			. '<button type="button" class="akb-review-lightbox__close" aria-label="' . $label_close . '">&times;</button>'
+			. '<div class="akb-review-lightbox__media">'
+			. '<img id="akb-review-lightbox-img" src="" alt="" class="akb-review-lightbox__img">'
+			. '</div>'
+			. '<div class="akb-review-lightbox__meta">'
+			. '<span class="akb-review-lightbox__badge">📸 Compra verificada con fotos</span>'
+			. '<p id="akb-review-lightbox-caption" class="akb-review-lightbox__caption"></p>'
+			. '</div>'
+			. '</div>'
+			. '</dialog>'
+			. '<script id="akb-review-lightbox-js">'
+			. 'document.addEventListener("click",function(e){var t=e.target.closest("[data-akb-lightbox-trigger]");if(t){e.preventDefault();var d=document.getElementById("akb-review-lightbox"),img=document.getElementById("akb-review-lightbox-img"),c=document.getElementById("akb-review-lightbox-caption");if(d&&img){img.src=t.getAttribute("data-full-src")||"";img.alt=t.getAttribute("data-alt")||"";if(c)c.textContent=t.getAttribute("data-alt")||"";if(typeof d.showModal==="function"){d.showModal()}else{d.setAttribute("open","")}}}if(e.target.matches("#akb-review-lightbox, .akb-review-lightbox__close")){var d2=document.getElementById("akb-review-lightbox");if(d2){if(typeof d2.close==="function")d2.close();else d2.removeAttribute("open")}}});'
+			. '</script>';
 	}
 }

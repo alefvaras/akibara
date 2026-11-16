@@ -21,6 +21,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.70
+ * @api
+ * @psalm-suppress RedundantCast
  */
 final class OptionLock {
 
@@ -43,7 +45,7 @@ final class OptionLock {
 			return '';
 		}
 
-		$base   = ( defined( 'DB_NAME' ) ? (string) constant( 'DB_NAME' ) : '' ) . '|' . (string) ( get_object_vars( $wpdb )['prefix'] ?? '' );
+		$base   = ( defined( 'DB_NAME' ) ? (string) constant( 'DB_NAME' ) : '' ) . '|' . (get_object_vars( $wpdb )['prefix'] ?? '');
 		$nombre = $namespace . ':' . substr( hash( 'sha256', $base ), 0, 40 );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- un candado de sesión de MySQL no tiene API de WordPress ni admite caché.

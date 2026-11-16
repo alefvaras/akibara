@@ -27,6 +27,10 @@ namespace Akibara\Business\Modules\SiteSpeed;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ */
 final class LeanCart {
 
 	/** `yes` (o la fila ausente) los quita del carrito; `no` los deja como los encola Mercado Pago. */
@@ -108,9 +112,9 @@ final class LeanCart {
 		return defined( 'MP_VERSION' );
 	}
 
-	/** ¿Se quitan? */
+	/** ¿Se quitan? Opera permanentemente por código. */
 	public static function enabled(): bool {
-		return 'yes' === get_option( self::OPTION, self::DEFAULT );
+		return true;
 	}
 
 	/**
@@ -196,7 +200,7 @@ final class LeanCart {
 		$es_guion = 'script' === $as;
 		$etiqueta = new \WP_HTML_Tag_Processor( $html );
 
-		while ( $etiqueta->next_tag( $es_guion ? 'SCRIPT' : 'LINK' ) ) {
+		while ( $etiqueta->next_tag( array( 'tag_name' => $es_guion ? 'SCRIPT' : 'LINK' ) ) ) {
 			if ( $handle . ( $es_guion ? '-js' : '-css' ) !== $etiqueta->get_attribute( 'id' ) ) {
 				continue;
 			}

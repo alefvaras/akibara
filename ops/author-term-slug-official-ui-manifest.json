@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "plan_type": "akibara_author_term_slug_official_ui",
+  "purpose": "Correct three pa_autor names and slugs through the official WooCommerce/WordPress term editor.",
+  "application_policy": {
+    "official_administration_ui_only": true,
+    "production_writes_only": true,
+    "direct_api_writes": 0,
+    "direct_sql_writes": 0,
+    "direct_wp_cli_writes": 0,
+    "remote_import_files": 0,
+    "taxonomy": "pa_autor",
+    "term_count": 3
+  },
+  "environments": {
+    "docker": {
+      "base_url": "http://localhost:8080",
+      "allowed_preflight_states": [
+        "after"
+      ],
+      "public_archives_indexable": true
+    },
+    "production": {
+      "base_url": "https://akibara.cl",
+      "allowed_preflight_states": [
+        "before",
+        "after"
+      ],
+      "public_archives_indexable": true
+    }
+  },
+  "terms": [
+    {
+      "term_id": 236,
+      "term_taxonomy_id": 236,
+      "expected_relationship_count": 23,
+      "ui_path": "/wp-admin/term.php?taxonomy=pa_autor&tag_ID=236&post_type=product",
+      "before": {
+        "name": "Tatsukia Fujimoto",
+        "slug": "tatsukia-fujimoto"
+      },
+      "after": {
+        "name": "Tatsuki Fujimoto",
+        "slug": "tatsuki-fujimoto"
+      }
+    },
+    {
+      "term_id": 275,
+      "term_taxonomy_id": 275,
+      "expected_relationship_count": 24,
+      "ui_path": "/wp-admin/term.php?taxonomy=pa_autor&tag_ID=275&post_type=product",
+      "before": {
+        "name": "Tappei Nagatsuk",
+        "slug": "tappei-nagatsuk"
+      },
+      "after": {
+        "name": "Tappei Nagatsuki",
+        "slug": "tappei-nagatsuki"
+      }
+    },
+    {
+      "term_id": 456,
+      "term_taxonomy_id": 456,
+      "expected_relationship_count": 3,
+      "ui_path": "/wp-admin/term.php?taxonomy=pa_autor&tag_ID=456&post_type=product",
+      "before": {
+        "name": "Masamure Shirow",
+        "slug": "masamure-shirow"
+      },
+      "after": {
+        "name": "Masamune Shirow",
+        "slug": "masamune-shirow"
+      }
+    }
+  ]
+}

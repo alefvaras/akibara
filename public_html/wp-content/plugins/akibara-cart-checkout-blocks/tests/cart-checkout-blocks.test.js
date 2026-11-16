@@ -137,12 +137,6 @@ function extension(data) {
 function structured(overrides = {}) {
 	return {
 		schema_version: 2,
-		bundle: {
-			coupon_prefix: 'akb_sb_',
-			coupon_labels: { akb_sb_byp_abc: 'Pack Chainsaw Man' },
-			generic_coupon_label: 'Descuento de pack',
-			notices: []
-		},
 		free_shipping: {
 			state: 'hidden',
 			reason: 'unavailable',
@@ -223,43 +217,6 @@ test('fails closed when the structured contract is absent or not version 2', () 
 	);
 });
 
-test('renders bundle notices as React text without server HTML injection', () => {
-	const runtime = bootCartScript({ items: [] });
-	const data = structured({
-		bundle: {
-			coupon_prefix: 'akb_sb_',
-			coupon_labels: {},
-			generic_coupon_label: 'Descuento de pack',
-			notices: [{
-				id: 'next',
-				kind: 'next_tier',
-				tone: 'info',
-				badge: 'Pack',
-				series_name: 'Chainsaw Man',
-				title: 'Completa tu pack',
-				message: '<img src=x onerror=alert(1)>',
-				missing_count: 1,
-				discount_percent: 10
-			}]
-		}
-	});
-	const meta = runtime.renderOrderMeta({
-		context: 'woocommerce/cart',
-		extensions: extension(data)
-	});
-
-	assert.match(textContent(meta), /<img src=x onerror=alert\(1\)>/);
-	assert.equal(findElement(meta, (element) => element.props && element.props.dangerouslySetInnerHTML), null);
-	const liveRegion = findElement(
-		meta,
-		(element) => element.props && element.props.className === 'akb-blocks-bundle-notices'
-	);
-	assert.ok(liveRegion);
-	assert.equal(liveRegion.props.role, 'status');
-	assert.equal(liveRegion.props['aria-live'], 'polite');
-	assert.equal(liveRegion.props['aria-atomic'], 'true');
-});
-
 test('renders bounded free-shipping progress with native progress semantics', () => {
 	const runtime = bootCartScript({ items: [] });
 	const data = structured({
@@ -289,17 +246,9 @@ test('renders bounded free-shipping progress with native progress semantics', ()
 	assert.equal(progress.props.children.props.style.width, '100%');
 });
 
-test('keeps checkout preventa and trust in their dedicated inner blocks', () => {
+test('keeps trust signals in cart and hides in checkout', () => {
 	const runtime = bootCartScript({ items: [] });
 	const data = structured({
-		preventa: {
-			count: 2,
-			is_mixed: true,
-			summary_label: 'Incluye preventas',
-			summary_value: 'Fecha por confirmar',
-			has_tba: true,
-			explanation: 'Se despacha cuando todo esté disponible.'
-		},
 		trust_signals: [
 			{ id: 'shipping', icon: 'shipping', label: 'Envíos según cobertura' },
 			{ id: 'installments', icon: 'installments', label: '3 cuotas sin interés' },
@@ -315,94 +264,11 @@ test('keeps checkout preventa and trust in their dedicated inner blocks', () => 
 		extensions: extension(data)
 	});
 
-	assert.match(textContent(cartMeta), /Incluye preventas/);
 	assert.match(textContent(cartMeta), /Envíos según cobertura/);
 	assert.doesNotMatch(textContent(cartMeta), /todo Chile|nacional/i);
 	assert.match(textContent(cartMeta), /Atención personalizada/);
 	assert.equal(checkoutMeta, null);
 });
-
-test('hides only automatic pack coupons from the removable coupon list', () => {
-	const runtime = bootCartScript({
-		items: [],
-		extensions: extension(structured())
-	});
-	const coupons = runtime.applyFilter('coupons', [
-			{ code: 'akb_sb_byp_abc', label: 'akb_sb_byp_abc' },
-			{ code: 'verano', label: 'Verano' }
-		]);
-
-	assert.deepEqual(JSON.parse(JSON.stringify(coupons)), [{ code: 'verano', label: 'Verano' }]);
-		assert.equal(
-			runtime.applyFilter('showApplyCouponNotice', true, {}, { couponCode: 'akb_sb_byp_abc' }),
-			false
-		);
-	assert.equal(
-		runtime.applyFilter('showRemoveCouponNotice', true, {}, { couponCode: 'verano' }),
-			true
-		);
-
-		// Con el módulo en el carrito, WooCommerce invoca estos tres filtros SIN
-		// `extensions` (llega `{}`): el snapshot del data store manda igual.
-		assert.deepEqual(
-			runtime.applyFilter('coupons', [{ code: 'akb_sb_byp_abc' }, { code: 'verano' }], {}),
-			[{ code: 'verano' }]
-		);
-		assert.equal(
-			runtime.applyFilter('showApplyCouponNotice', true, {}, { couponCode: 'akb_sb_byp_abc' }),
-			false
-		);
-		assert.equal(
-			runtime.applyFilter('showRemoveCouponNotice', true, {}, { couponCode: 'akb_sb_byp_abc' }),
-			false
-		);
-	});
-
-	test('no toca cupones ajenos cuando el módulo no está en el carrito', () => {
-		// Sin extensión en el carrito ni en el argumento: los filtros se apartan.
-		const runtime = bootCartScript({ items: [], extensions: {} });
-
-		assert.deepEqual(
-			runtime.applyFilter('coupons', [{ code: 'akb_sb_byp_abc' }, { code: 'verano' }], {}),
-			[{ code: 'akb_sb_byp_abc' }, { code: 'verano' }]
-		);
-		assert.equal(
-			runtime.applyFilter('showApplyCouponNotice', true, {}, { couponCode: 'akb_sb_byp_abc' }),
-			true
-		);
-		assert.equal(
-			runtime.applyFilter('showRemoveCouponNotice', true, {}, { couponCode: 'verano' }),
-			true
-		);
-	});
-
-	test('labels an automatic pack discount without duplicating WooCommerce totals', () => {
-	const runtime = bootCartScript({
-		items: [],
-		extensions: extension(structured())
-	});
-	const discount = runtime.renderDiscountMeta({
-		extensions: extension(structured()),
-		cart: {
-			// Forma de `useStoreCart()`, que es la que reciben los fillProps.
-			cartCoupons: [{
-				code: 'akb_sb_byp_abc',
-				totals: {
-					total_discount: '10000',
-					total_discount_tax: '0',
-					currency_code: 'CLP',
-					currency_minor_unit: 0
-				}
-			}],
-			totals: { currency_code: 'CLP', currency_minor_unit: 0 }
-		}
-	});
-
-		assert.match(textContent(discount), /Pack Chainsaw Man/);
-		assert.match(textContent(discount), /Aplicado automáticamente/);
-		assert.doesNotMatch(textContent(discount), /10[.\s]000/);
-		assert.equal(findElement(discount, (element) => element.type === 'strong'), null);
-	});
 
 test('adds the canonical stock class while preserving existing classes', () => {
 	const runtime = bootCartScript({ items: [] });
@@ -410,9 +276,9 @@ test('adds the canonical stock class while preserving existing classes', () => {
 		runtime.applyFilter(
 			'cartItemClass',
 			'gateway-owned',
-			extension({ stock_status: 'onbackorder' })
+			extension({ stock_status: 'outofstock' })
 		),
-		'gateway-owned akb-stock--onbackorder'
+		'gateway-owned akb-stock--outofstock'
 	);
 });
 
@@ -871,20 +737,4 @@ test('«Finalizar compra» sigue en el flujo donde Woo no fija la barra, y la ba
 	// De 783 a 1024 Woo no pinta la barra: esconder ahí la navegación dejaba al
 	// cliente sin ninguna de las dos.
 	assert.doesNotMatch(hasta1024 || '', /submit-container--sticky/);
-});
-
-
-test('reserva y preventa conservan su precio vigente sin cambiar ofertas reales', () => {
-	const runtime = bootCartScript({ items: [] });
-	for (const label of ['Precio de reserva', 'Precio de preventa']) {
-		const data = extension({ stock_status: 'onbackorder', reservation_price_label: label });
-		assert.equal(runtime.applyFilter('cartItemPrice', '<price/>', data), label + ': <price/>');
-		assert.match(runtime.applyFilter('cartItemClass', 'third-party', data), /^third-party akb-stock--onbackorder akb-price--reservation$/);
-	}
-	for (const status of ['instock', 'onbackorder']) {
-		const data = extension({ stock_status: status, reservation_price_label: '' });
-		assert.equal(runtime.applyFilter('cartItemPrice', 'Oferta: <price/>', data), 'Oferta: <price/>');
-		assert.doesNotMatch(runtime.applyFilter('cartItemClass', '', data), /akb-price--reservation/);
-	}
-	assert.equal(runtime.applyFilter('cartItemPrice', '<price/>', {}), '<price/>');
 });

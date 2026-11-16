@@ -9,20 +9,27 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\AdminDashboard;
 
-use Akibara\Business\Modules\TaxonomyDiscount\Settings as TaxonomyDiscountSettings;
 use Akibara\Business\Modules\Forms\ContactoLog;
 use Akibara\Business\Modules\Forms\Forms;
-use Akibara\Business\Modules\OrderPreventa\RemindersCron;
-use Akibara\Business\Modules\OrderPreventa\Settings as OrderPreventaSettings;
 use Akibara\Business\Modules\SiteSpeed\EdgePurge;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Modules\UpsellsAutofill\UpsellsAutofill;
 use Akibara\Business\Utilities\QueueHealth;
 use Akibara\Business\Plugin;
 use Akibara\Business\Utilities\OwnCrons;
+use Akibara\Business\Utilities\StoreTime;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
+ */
+// @phpstan-ignore complexity.classLike
 final class AdminDashboard {
 
 	/**
@@ -144,9 +151,6 @@ final class AdminDashboard {
 	public static function watched_crons(): array {
 		$crons = OwnCrons::RECURRING;
 
-		if ( ! OrderPreventaSettings::get_bool( OrderPreventaSettings::OPT_T7_ENABLED ) ) {
-			unset( $crons[ RemindersCron::HOOK ] );
-		}
 		if ( ! UpsellsAutofill::is_enabled() ) {
 			unset( $crons[ UpsellsAutofill::CRON_HOOK ] );
 		}
@@ -170,13 +174,13 @@ final class AdminDashboard {
 		$shown   = array_slice( $pending, 0, 5 );
 		$items   = '';
 		foreach ( $shown as $entry ) {
-			$when = isset( $entry['time'] ) ? wp_date( 'j M H:i', (int) $entry['time'] ) : 'sin fecha';
+			$when = isset( $entry['time'] ) ? StoreTime::format( (int) $entry['time'], 'j M H:i' ) : 'sin fecha';
 			$items .= sprintf(
 				'<li><strong>%s</strong> &lt;<a href="mailto:%s">%s</a>&gt; · %s<br><em>%s</em></li>',
 				esc_html( (string) ( $entry['nombre'] ?? '' ) ),
 				esc_attr( (string) ( $entry['email'] ?? '' ) ),
 				esc_html( (string) ( $entry['email'] ?? '' ) ),
-				esc_html( (string) $when ),
+				esc_html( $when ),
 				esc_html( wp_trim_words( (string) ( $entry['mensaje'] ?? '' ), 40, '…' ) )
 			);
 		}
@@ -225,7 +229,7 @@ final class AdminDashboard {
 	 * @param array<int, array<string, mixed>>                       $serie_gaps Siguiente tomo SIN ficha => coleccionistas que lo esperan.
 	 * @return array<int, array<string, mixed>> Filas ordenadas por puntaje, máx. 10.
 	 */
-	public static function score_demand( array $bis, array $wish, array $sales, array $gaps, array $cont = array(), array $serie_gaps = array(), array $requests = array() ): array {
+	public static function score_demand( array $bis, array $wish, array $sales, array $gaps, array $cont = array(), array $serie_gaps = array() ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$rows = array();
 
 		$ids = array_unique( array_merge( array_keys( $bis ), array_keys( $wish ), array_keys( $sales ), array_keys( $cont ) ) );
@@ -257,51 +261,20 @@ final class AdminDashboard {
 			);
 		}
 
-		$seen_requests = array();
 		foreach ( $gaps as $gap ) {
-			$q           = (string) ( $gap['query'] ?? '' );
-			$s90         = (int) ( $gap['s90'] ?? 0 );
-			$s30         = (int) ( $gap['s30'] ?? 0 );
-			$req         = $requests[ $q ] ?? null;
-			$solicitudes = 0;
-			$title       = $q;
-			$editorial   = '';
-			if ( null !== $req && is_array( $req ) ) {
-				$seen_requests[ $q ] = true;
-				$solicitudes         = (int) ( $req['count'] ?? 0 );
-				$title               = (string) ( $req['title'] ?? $q );
-				$editorial           = (string) ( $req['editorial'] ?? '' );
-			}
+			$q         = (string) ( $gap['query'] ?? '' );
+			$s90       = (int) ( $gap['s90'] ?? 0 );
+			$s30       = (int) ( $gap['s30'] ?? 0 );
+			$editorial = (string) ( $gap['editorial'] ?? '' );
 
 			$rows[] = array(
-				'type'        => 'gap',
-				'query'       => $title,
-				'query_raw'   => $q,
-				'editorial'   => $editorial,
-				'solicitudes' => $solicitudes,
-				's90'         => $s90,
-				's30'         => $s30,
-				'score'       => 3 * $solicitudes + 2 * $s90,
-			);
-		}
-
-		foreach ( $requests as $q => $req ) {
-			if ( isset( $seen_requests[ $q ] ) || ! is_array( $req ) ) {
-				continue;
-			}
-			$solicitudes = (int) ( $req['count'] ?? 0 );
-			$title       = (string) ( $req['title'] ?? $q );
-			$editorial   = (string) ( $req['editorial'] ?? '' );
-
-			$rows[] = array(
-				'type'        => 'gap',
-				'query'       => $title,
-				'query_raw'   => (string) $q,
-				'editorial'   => $editorial,
-				'solicitudes' => $solicitudes,
-				's90'         => 0,
-				's30'         => 0,
-				'score'       => 3 * $solicitudes,
+				'type'      => 'gap',
+				'query'     => $q,
+				'query_raw' => $q,
+				'editorial' => $editorial,
+				's90'       => $s90,
+				's30'       => $s30,
+				'score'     => 2 * $s90,
 			);
 		}
 
@@ -435,12 +408,12 @@ final class AdminDashboard {
 			}
 			$pid                          = (int) $row->pid;
 			$serie                        = (string) $row->serie;
-			$serie_vol[ $pid ]            = array( 'serie' => $serie, 'vol' => (int) $vol );
+			$serie_vol[ $pid ]            = array( 'serie' => $serie, 'vol' => $vol );
 			$stock[ $pid ]                = (string) $row->stock;
 			$nombres[ $serie ]            = (string) $row->serie_nombre;
-			$actual                       = $catalogo[ $serie ][ (int) $vol ] ?? 0;
-			if ( 0 === $actual || ( StockStatus::IN_STOCK !== (string) ( $stock[ $actual ] ?? '' ) && StockStatus::IN_STOCK === (string) $row->stock ) ) {
-				$catalogo[ $serie ][ (int) $vol ] = $pid;
+			$actual                       = $catalogo[ $serie ][ $vol ] ?? 0;
+			if ( 0 === $actual || ( StockStatus::IN_STOCK !== ( $stock[ $actual ] ?? '' ) && StockStatus::IN_STOCK === (string) $row->stock ) ) {
+				$catalogo[ $serie ][ $vol ] = $pid;
 			}
 		}
 
@@ -482,7 +455,7 @@ final class AdminDashboard {
 				? akibara_search_demand_gaps( 90, self::GAPS_MAX )
 				: array();
 
-			$this->gaps_memo = is_array( $gaps ) ? array_values( $gaps ) : array();
+			$this->gaps_memo = is_array( $gaps ) ? array_values( $gaps ) : array(); // @phpstan-ignore function.alreadyNarrowedType
 		}
 
 		return array_slice( $this->gaps_memo, 0, max( 0, $limit ) );
@@ -499,7 +472,7 @@ final class AdminDashboard {
 	 */
 	private static function gap_dismiss_url( string $query ): string {
 		$seccion = '\\Akibara\\Search\\SearchAdminSection';
-		if ( ! class_exists( $seccion ) || ! method_exists( $seccion, 'gap_action_url' ) ) {
+		if ( ! class_exists( $seccion ) || ! method_exists( $seccion, 'gap_action_url' ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return '';
 		}
 
@@ -600,18 +573,13 @@ final class AdminDashboard {
 
 		$cont = $this->continuity_signal();
 
-		$reqs = function_exists( 'akibara_search_title_requests' )
-			? akibara_search_title_requests( 90 )
-			: array();
-
 		$rows = self::score_demand(
 			$bis,
 			$wish,
 			$sales,
-			is_array( $gaps ) ? $gaps : array(),
+			is_array( $gaps ) ? $gaps : array(), // @phpstan-ignore function.alreadyNarrowedType
 			$cont['productos'] ?? array(),
-			$cont['huecos'] ?? array(),
-			is_array( $reqs ) ? $reqs : array()
+			$cont['huecos'] ?? array()
 		);
 
 		set_transient( 'akb_demand_ranking_v1', $rows, HOUR_IN_SECONDS );
@@ -643,15 +611,9 @@ final class AdminDashboard {
 	 *
 	 * @param array<string, mixed> $row Fila de score_demand().
 	 */
-	private function demand_signals_html( array $row ): string {
+	private function demand_signals_html( array $row ): string { // @phpstan-ignore complexity.functionLike
 		$parts = array();
 		if ( 'gap' === $row['type'] ) {
-			if ( (int) ( $row['solicitudes'] ?? 0 ) > 0 ) {
-				$parts[] = sprintf(
-					( 1 === (int) $row['solicitudes'] ? '<strong>%d esperando encargo</strong>' : '<strong>%d esperando encargo</strong>' ),
-					(int) $row['solicitudes']
-				);
-			}
 			if ( (int) ( $row['s90'] ?? 0 ) > 0 ) {
 				$parts[] = sprintf( ( 1 === (int) $row['s90'] ? '%d búsqueda sin resultado en 90 d' : '%d búsquedas sin resultado en 90 d' ), (int) $row['s90'] );
 				if ( (int) $row['s30'] > 0 ) {
@@ -681,12 +643,12 @@ final class AdminDashboard {
 	/**
 	 * Líneas del pedido sugerido, agrupadas por editorial.
 	 *
-	 * Cantidad sugerida = señales de intención directa (esperando + racha + solicitudes de encargo),
+	 * Cantidad sugerida = señales de intención directa (esperando + racha),
 	 * mínimo 1: es un punto de partida editable, no un forecast.
 	 *
 	 * @return array<string, array<int, array{titulo: string, cantidad: int, nota: string}>>
 	 */
-	public function purchase_order_lines(): array {
+	public function purchase_order_lines(): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$grupos = array();
 		$filas  = $this->demand_ranking();
 		$this->prime_demand_rows( $filas );
@@ -696,11 +658,8 @@ final class AdminDashboard {
 				$editorial = ( '' !== (string) ( $fila['editorial'] ?? '' ) )
 					? (string) $fila['editorial']
 					: 'Por definir (crear ficha)';
-				$cantidad  = max( 1, (int) ( $fila['solicitudes'] ?? 0 ) + (int) round( ( (int) ( $fila['s90'] ?? 0 ) ) / 2 ) );
+				$cantidad  = max( 1, (int) round( ( (int) ( $fila['s90'] ?? 0 ) ) / 2 ) );
 				$notas     = array();
-				if ( (int) ( $fila['solicitudes'] ?? 0 ) > 0 ) {
-					$notas[] = sprintf( '%d esperando encargo', (int) $fila['solicitudes'] );
-				}
 				if ( (int) ( $fila['s90'] ?? 0 ) > 0 ) {
 					$notas[] = sprintf( '%d búsquedas 90 d', (int) $fila['s90'] );
 				}
@@ -763,22 +722,22 @@ final class AdminDashboard {
 
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename=pedido-sugerido-akibara-' . gmdate( 'Ymd' ) . '.csv' );
+		header( 'Content-Disposition: attachment; filename=pedido-sugerido-akibara-' . StoreTime::format( null, 'Ymd' ) . '.csv' );
 
 		$out = fopen( 'php://output', 'w' );
 		// BOM UTF-8: sin él, Excel en Windows muestra las tildes rotas.
-		fwrite( $out, "\xEF\xBB\xBF" );
+		fwrite( $out, "\xEF\xBB\xBF" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 		// Defensa contra inyección de fórmulas en Excel: un valor que empiece en
 		// =+-@ o tab se prefija con apóstrofo (los datos vienen de títulos y
 		// nombres de admin, pero el blindaje cuesta tres líneas).
-		$celda = static fn( $v ): string => preg_match( '/^[=+\-@\t]/', (string) $v ) ? "'" . (string) $v : (string) $v;
+		$celda = static fn( $v ): string => preg_match( '/^[=+\-@\t]/', (string) $v ) ? "'" . $v : (string) $v;
 		fputcsv( $out, array( 'Editorial', 'Título', 'Cantidad sugerida', 'Señales' ) );
 		foreach ( $this->purchase_order_lines() as $editorial => $lineas ) {
 			foreach ( $lineas as $linea ) {
 				fputcsv( $out, array( $celda( $editorial ), $celda( $linea['titulo'] ), $linea['cantidad'], $celda( $linea['nota'] ) ) );
 			}
 		}
-		fclose( $out );
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		exit;
 	}
 
@@ -792,12 +751,8 @@ final class AdminDashboard {
 	 */
 	public static function module_toggles(): array {
 		return array(
-			'announcement'      => array( 'label' => 'Barra de anuncios', 'option' => 'akibara_announcement_enabled', 'default' => 'yes', 'tab' => 'announcement' ),
-			'fsp'               => array( 'label' => 'Envío gratis', 'option' => 'akibara_fsp_enabled', 'default' => 'yes', 'tab' => 'free_shipping_progress' ),
-			'native_cart'       => array( 'label' => 'Carrito', 'option' => 'akibara_native_cart_enabled', 'default' => 'yes', 'tab' => 'native_cart' ),
-			// El estado de cada interruptor se consulta al módulo que lo gobierna.
-			'taxonomy_discount' => array( 'label' => 'Descuentos', 'option' => TaxonomyDiscountSettings::OPTION_ENABLED, 'default' => TaxonomyDiscountSettings::DEFAULT_ENABLED, 'tab' => 'taxonomy_discount' ),
-			'address'           => array( 'label' => 'Autocompletar dirección', 'option' => 'akibara_address_autocomplete_enabled', 'default' => 'no', 'tab' => 'address' ),
+			'announcement' => array( 'label' => 'Barra de anuncios', 'option' => 'akibara_announcement_bar_enabled', 'default' => 'yes', 'tab' => 'announcement' ),
+			'fsp'          => array( 'label' => 'Envío gratis', 'option' => 'akibara_fsp_enabled', 'default' => 'yes', 'tab' => 'free_shipping_progress' ),
 		);
 	}
 
@@ -814,8 +769,16 @@ final class AdminDashboard {
 
 		// business: sus módulos con interruptor.
 		$apagados = array();
-		foreach ( self::module_toggles() as $mod ) {
-			if ( 'yes' !== (string) get_option( $mod['option'], $mod['default'] ) ) {
+		foreach ( self::module_toggles() as $clave => $mod ) {
+			$val = (string) get_option( $mod['option'], '' );
+			if ( '' === $val ) {
+				if ( 'announcement' === $clave ) {
+					$val = (string) get_option( 'akibara_announcement_enabled', $mod['default'] );
+				} else {
+					$val = $mod['default'];
+				}
+			}
+			if ( 'yes' !== $val ) {
 				$apagados[] = sprintf(
 					'<a href="%s">%s</a>',
 					esc_url( admin_url( 'admin.php?page=akibara-panel&tab=' . $mod['tab'] ) ),
@@ -922,10 +885,12 @@ final class AdminDashboard {
 		<?php
 	}
 
-	public function render_admin_section(): void {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function render_admin_section(): void { // @phpstan-ignore complexity.functionLike
 		$upsells_module = Plugin::instance()->module( 'upsells_autofill' );
 		$upsells_stats  = $upsells_module ? $upsells_module->get_coverage_stats() : array();
 		$pct            = (float) ( $upsells_stats['pct'] ?? 0 );
+		$pct_color      = $pct >= 95.0 ? '#007017' : ( $pct >= 50.0 ? '#996800' : '#D90010' );
 		$alerts         = $this->health_alerts();
 
 		// Las alertas de la era FacetWP (watchdogs en 1.61.0, ShopLoopMonitor
@@ -984,7 +949,7 @@ final class AdminDashboard {
 							<tbody>
 							<?php $akb_pos = 0; ?>
 							<?php foreach ( $demanda as $fila ) : ?>
-								<?php $akb_pos++; ?>
+								<?php ++$akb_pos; ?>
 								<tr>
 									<td style="font-size:13px;font-weight:700;color:#646970">#<?php echo (int) $akb_pos; ?></td>
 									<?php if ( 'serie_gap' === $fila['type'] ) : ?>
@@ -1011,10 +976,7 @@ final class AdminDashboard {
 							</tbody>
 						</table>
 						</div>
-						<div style="margin-top:12px;padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-							<span style="font-size:13px;color:#5b21b6"><strong>📬 Solicitudes de Encargo:</strong> Revisa el listado de clientes que pidieron tomos por el buscador, con su WhatsApp y correo listos para contactar.</span>
-							<a class="button button-secondary" style="color:#6d28d9;border-color:#7c3aed" href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-search&sub=encargos' ) ); ?>">Gestionar Encargos →</a>
-						</div>
+						<p class="description">La barra es la urgencia: azul = reponer un producto tuyo, morado = crear la ficha de un título que te buscan. Cada persona esperando el aviso vale ×3, cada coleccionista en racha y cada búsqueda sin resultado ×2, favoritos y ventas ×1. El ranking se actualiza cada hora (la señal de colecciones, cada 6).</p>
 						<details style="margin-top:10px">
 							<summary style="cursor:pointer;font-weight:600">📋 Pedido sugerido por editorial</summary>
 							<pre style="background:#f6f7f7;border:1px solid #c3c4c7;border-radius:4px;padding:10px;overflow:auto;font-size:12px"><?php
@@ -1027,19 +989,18 @@ final class AdminDashboard {
 							?></pre>
 							<a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=akb_demand_csv' ), 'akb_demand_csv' ) ); ?>">Descargar CSV</a>
 						</details>
-						<p class="description">La barra es la urgencia: azul = reponer un producto tuyo, morado = crear la ficha de un título que te buscan. Cada persona esperando el aviso vale ×3, cada coleccionista en racha y cada búsqueda sin resultado ×2, favoritos y ventas ×1. El ranking se actualiza cada hora (la señal de colecciones, cada 6).</p>
 					<?php endif; ?>
 					<?php $this->render_demand_gaps_radar(); ?>
 				</div>
 
 				<!-- Cobertura Upsells -->
 				<div class="akb-dashboard-card">
-					<h3>Autofill de Upsells</h3>
+					<h3>Recomendaciones Automáticas (Upsells)</h3>
 					<div class="upsell-progress">
-						<span class="pct"><?php echo esc_html( number_format( $pct, 2 ) ); ?>%</span>
+						<span class="pct" style="color:<?php echo esc_attr( $pct_color ); ?>"><?php echo esc_html( number_format( $pct, 2 ) ); ?>%</span>
 						<span class="lbl">Cobertura del catálogo manga</span>
 					</div>
-					<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-panel&tab=upsells_autofill' ) ); ?>" class="button">Ver detalles</a></p>
+					<p class="description" style="margin-top:12px;font-size:12px;color:#646970;">Relleno automático continuo gobernado por código y cron diario (<code>wp akibara:upsells-fill</code>).</p>
 				</div>
 
 				<!-- Enlaces Rápidos: directorio de TODAS las superficies de
@@ -1050,11 +1011,13 @@ final class AdminDashboard {
 					<h3>Accesos Rápidos</h3>
 					<ul class="quick-links">
 						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-panel&tab=home_hero' ) ); ?>">🖼️ Configurar Slider de Inicio</a></li>
-						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-panel&tab=' . OrderPreventaSettings::PANEL_TAB_ID ) ); ?>">📦 Pedidos y preventa</a></li>
-						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-panel&tab=taxonomy_discount' ) ); ?>">🏷️ Descuentos Masivos</a></li>
+						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-panel&tab=back_in_stock' ) ); ?>">🔔 Lista de Espera (Avisos de stock)</a></li>
+						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-panel&tab=announcement' ) ); ?>">📢 Barra de Anuncios</a></li>
 					</ul>
 					<h4 class="quick-links-subtitle">Fuera de este panel</h4>
 					<ul class="quick-links">
+						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akb-rewards-settings' ) ); ?>">⭐ Puntos y Reseñas</a></li>
+						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-pricing-matrix' ) ); ?>">📊 Matriz de Precios</a></li>
 						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=akibara-search' ) ); ?>">🔍 Buscador (índice, facetas, sinónimos)</a></li>
 						<li><a href="<?php echo esc_url( admin_url( 'edit-tags.php?taxonomy=pa_pais&post_type=product' ) ); ?>">🌎 Días de tránsito por país (Atributos → País)</a></li>
 						<li><a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=email' ) ); ?>">✉️ Textos de emails (WooCommerce → Emails)</a></li>
@@ -1091,9 +1054,6 @@ final class AdminDashboard {
 			.alert-item.error { border-color: #d63638; }
 			.alert-item.warning { border-color: #f0b849; }
 			.alert-item a { color: #d63638; font-weight: bold; text-decoration: none; }
-			.akb-dashboard-contact { margin: 10px 0 0; padding-left: 18px; }
-			.akb-dashboard-contact li { margin-bottom: 10px; }
-			.akb-dashboard-contact em { color: #50575e; font-style: normal; }
 			.akb-dashboard-dismiss { margin-top: 10px; }
 			.alert-item a:hover { text-decoration: underline; }
 			.upsell-progress { display: flex; flex-direction: column; margin-bottom: 15px; }

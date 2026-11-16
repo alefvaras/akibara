@@ -107,49 +107,31 @@ final class PdpEnhancerTest extends TestCase {
 		self::assertStringContainsString( 'aria-label', $result );
 	}
 
-	public function test_detect_publication_type_distinguishes_manga_and_comic(): void {
-		Functions\when( 'get_the_terms' )->alias(
-			static function ( int $product_id, string $tax ) {
-				if ( 'product_cat' !== $tax ) {
-					return false;
-				}
-				if ( 100 === $product_id ) {
-					return array( (object) array( 'term_id' => 10, 'slug' => 'shonen' ) );
-				}
-				if ( 200 === $product_id ) {
-					return array( (object) array( 'term_id' => 20, 'slug' => 'dc-comics' ) );
-				}
-				return array( (object) array( 'term_id' => 30, 'slug' => 'figuras' ) );
-			}
+	public function test_render_edition_summary_renders_country_format_and_dimensions_without_reading_direction(): void {
+		$GLOBALS['product'] = new EditionSummaryProductStub(
+			'Chainsaw Man 01',
+			array(
+				'pa_pais'    => 'España',
+				'pa_formato' => 'Tankoubon (B6)',
+			),
+			true,
+			array( 'length' => '18', 'width' => '13', 'height' => '1.5' )
 		);
+		Functions\when( 'wp_strip_all_tags' )->returnArg();
+		Functions\when( 'wc_format_dimensions' )->justReturn( '18 × 13 × 1.5 cm' );
 
-		Functions\when( 'get_ancestors' )->alias(
-			static function ( int $term_id, string $tax ) {
-				if ( 10 === $term_id ) {
-					return array( 1 ); // ancestor manga
-				}
-				if ( 20 === $term_id ) {
-					return array( 2 ); // ancestor comics
-				}
-				return array();
-			}
-		);
+		ob_start();
+		( new PdpEnhancer() )->render_edition_summary();
+		$html = (string) ob_get_clean();
 
-		Functions\when( 'get_term' )->alias(
-			static function ( int $term_id, string $tax ) {
-				if ( 1 === $term_id ) {
-					return (object) array( 'term_id' => 1, 'slug' => 'manga' );
-				}
-				if ( 2 === $term_id ) {
-					return (object) array( 'term_id' => 2, 'slug' => 'comics' );
-				}
-				return null;
-			}
-		);
-
-		self::assertSame( 'manga', PdpEnhancer::detect_publication_type( 100 ) );
-		self::assertSame( 'comic', PdpEnhancer::detect_publication_type( 200 ) );
-		self::assertNull( PdpEnhancer::detect_publication_type( 300 ) );
+		self::assertStringContainsString( 'class="akb-pdp-edition-summary"', $html );
+		self::assertStringContainsString( '<div class="akb-edition-field"><dt>País de edición</dt><dd>España</dd></div>', $html );
+		self::assertStringContainsString( '<div class="akb-edition-field"><dt>Formato</dt><dd>Tankoubon (B6)</dd></div>', $html );
+		self::assertStringContainsString( '<div class="akb-edition-field"><dt>Dimensiones</dt><dd>18 × 13 × 1.5 cm</dd></div>', $html );
+		self::assertStringNotContainsString( 'Lectura', $html );
+		self::assertStringNotContainsString( 'Sentido oriental', $html );
+		self::assertStringNotContainsString( 'Sentido occidental', $html );
+		self::assertStringNotContainsString( 'akb-edition-field--reading', $html );
 	}
 
 	public function test_render_anime_badge_prints_nothing_when_no_meta(): void {
@@ -188,5 +170,49 @@ final class GalleryProductStub extends \WC_Product {
 
 	public function get_name(): string {
 		return $this->name;
+	}
+}
+
+final class EditionSummaryProductStub extends \WC_Product {
+
+	private string $name;
+	/** @var array<string, string> */
+	private array $attr_values;
+	private bool $has_dims;
+	/** @var array<string, string> */
+	private array $dims;
+
+	/**
+	 * @param string                $name        Product name.
+	 * @param array<string, string> $attr_values Attribute key => string value.
+	 * @param bool                  $has_dims    Whether product has dimensions.
+	 * @param array<string, string> $dims        Dimensions array.
+	 */
+	public function __construct( string $name, array $attr_values, bool $has_dims = false, array $dims = array() ) {
+		parent::__construct();
+		$this->name        = $name;
+		$this->attr_values = $attr_values;
+		$this->has_dims    = $has_dims;
+		$this->dims        = $dims;
+	}
+
+	public function get_name(): string {
+		return $this->name;
+	}
+
+	public function get_attributes(): array {
+		return array();
+	}
+
+	public function get_attribute( $attr ): string {
+		return $this->attr_values[ (string) $attr ] ?? '';
+	}
+
+	public function has_dimensions(): bool {
+		return $this->has_dims;
+	}
+
+	public function get_dimensions( $formatted = true ) {
+		return $this->dims;
 	}
 }

@@ -111,14 +111,15 @@ final class MailProviderBoundaryTest extends TestCase {
 		self::assertFileExists( $this->plugin_root() . '/src/Modules/Forms/ContactoSubmit.php' );
 		self::assertFileExists( $this->plugin_root() . '/src/Modules/BackInStock/SubscriptionNotice.php' );
 		self::assertFileExists( $this->plugin_root() . '/src/Modules/BackInStock/InstockEmail.php' );
-		self::assertFileExists( $this->plugin_root() . '/src/Modules/OrderPreventa/ReadyToShipEmail.php' );
 	}
 
 	/**
 	 * @testdox Legacy SMTP options must be deletion-only upgrade data.
 	 */
 	public function test_legacy_options_are_upgrade_cleanup_only(): void {
-		$plugin_source = (string) file_get_contents( $this->plugin_root() . '/src/Plugin.php' );
+		$method = new \ReflectionMethod( \Akibara\Business\Plugin::class, 'cleanup_orphan_options' );
+		$lines = file( $this->plugin_root() . '/src/Plugin.php' );
+		$cleanup_source = implode( '', array_slice( $lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1 ) );
 		$source_tree   = $this->source_tree();
 		$options       = array(
 			'akibara_smtp_host',
@@ -130,7 +131,7 @@ final class MailProviderBoundaryTest extends TestCase {
 		);
 
 		foreach ( $options as $option ) {
-			self::assertStringContainsString( "delete_option( '{$option}' );", $plugin_source );
+			self::assertStringContainsString( "'{$option}'", $cleanup_source, 'La clave retirada pertenece al inventario de la limpieza compartida.' );
 			self::assertSame(
 				1,
 				substr_count( $source_tree, "'{$option}'" ),

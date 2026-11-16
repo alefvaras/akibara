@@ -27,6 +27,8 @@ defined( 'ABSPATH' ) || exit;
  * Product edit screen — marca de «otra versión del mismo tomo».
  *
  * @since 1.116.0
+ * @api
+ * @psalm-suppress HookNotFound
  */
 final class ProductDataPanel {
 
@@ -37,8 +39,7 @@ final class ProductDataPanel {
 	 * venga de donde venga (edición rápida, actualización masiva, un
 	 * `wp post update`). Sin este testigo, «el dueño lo dejó en tomo normal» y
 	 * «este POST nunca incluyó el panel» se leerían igual, y el segundo caso
-	 * borraría la marca en silencio: exactamente el defecto que documenta
-	 * `EstimatedDelivery\ProductDataPanel::PANEL_MARKER` y que ya se pagó ahí.
+	 * borraría la marca en silencio.
 	 */
 	public const PANEL_MARKER = '_akb_variante_panel';
 
@@ -119,7 +120,7 @@ final class ProductDataPanel {
 	 * @param int $product_id ID del producto.
 	 */
 	public function save_product_meta( int $product_id ): void {
-		if ( ! current_user_can( 'edit_product', $product_id ) ) {
+		if ( ! current_user_can( 'edit_product', $product_id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown
 			return;
 		}
 

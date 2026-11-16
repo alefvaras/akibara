@@ -48,7 +48,6 @@ function entorno( { conTitulo = true, conPack = true, escritorio = false } = {} 
 	const clases = new Set();
 	const titleEl = { textContent: 'Título original' };
 	const priceEl = { innerHTML: '$10.000' };
-	const etaEl = { style: {} };
 	const barra = {
 		classList: {
 			toggle( c, si ) { if ( si ) { clases.add( c ); } else { clases.delete( c ); } },
@@ -57,7 +56,6 @@ function entorno( { conTitulo = true, conPack = true, escritorio = false } = {} 
 		querySelector: ( s ) => {
 			if ( '.akb-sticky-atc__title' === s ) return titleEl;
 			if ( '.akb-sticky-atc__price' === s ) return priceEl;
-			if ( '.akb-sticky-atc__eta' === s ) return etaEl;
 			return null;
 		},
 	};
@@ -69,18 +67,6 @@ function entorno( { conTitulo = true, conPack = true, escritorio = false } = {} 
 	};
 	const proxy = { textContent: 'Comprar ahora', addEventListener( ev, fn ) { this.fn = fn; } };
 	const titulo = { nombre: 'h1' };
-	const totalEl = {
-		atributos: {},
-		textContent: 'Total estimado: $29.970',
-		getAttribute( k ) { return this.atributos[ k ] || null; },
-	};
-	const armador = {
-		nombre: 'armador',
-		getAttribute: ( k ) => ( 'data-serie' === k ? 'Dan Da Dan' : null ),
-		querySelector: ( s ) => ( '[data-akb-sb-total]' === s ? totalEl : null ),
-		querySelectorAll: ( s ) => ( '[data-akb-sb-vol]:checked' === s ? [ {}, {}, {} ] : [] ),
-	};
-	const pack = { nombre: 'pack', disabled: true, clics: 0, click() { this.clics += 1; } };
 
 	const mql = { matches: escritorio, addEventListener( ev, fn ) { this.fn = fn; } };
 
@@ -90,10 +76,6 @@ function entorno( { conTitulo = true, conPack = true, escritorio = false } = {} 
 		querySelector: ( s ) => {
 			if ( 'form.cart' === s ) { return form; }
 			if ( '.product_title' === s ) { return conTitulo ? titulo : null; }
-			// El contenedor del armador SÍ existe: la versión anterior lo observaba
-			// entero y apagaba la barra en cuanto asomaba.
-			if ( '[data-akb-sb-builder]' === s ) { return conPack ? armador : null; }
-			if ( '[data-akb-sb-builder] [data-akb-sb-add]' === s ) { return conPack ? pack : null; }
 			return null;
 		},
 	};
@@ -119,14 +101,14 @@ function entorno( { conTitulo = true, conPack = true, escritorio = false } = {} 
 	const vivos = ( objetivo ) => observadores.filter( ( o ) => ! o.muerto && o.objetivos.includes( objetivo ) );
 
 	return {
-		barra, real, proxy, pack, mql, observadores, mutaciones,
-		titleEl, priceEl, etaEl, totalEl,
+		barra, real, proxy, mql, observadores, mutaciones,
+		titleEl, priceEl,
 		visible: () => barra.classList.contains( 'is-visible' ),
 		// Entrega una intersección a todos los observadores vivos del objetivo.
 		cruzar( objetivo, entrada ) {
 			vivos( objetivo ).forEach( ( o ) => o.cb( [ entrada ] ) );
 		},
-		form, titulo, armador,
+		form, titulo,
 		margenDe: ( objetivo ) => ( vivos( objetivo )[ 0 ] || { opciones: {} } ).opciones.rootMargin,
 	};
 }
@@ -178,48 +160,8 @@ test( 'el form real a la vista retira la barra', () => {
 	assert.equal( e.visible(), false );
 } );
 
-test( 'UM-2: el armador en pantalla ya no apaga la barra; su botón DESHABILITADO tampoco', () => {
-	const e = entorno();
-	e.cruzar( e.titulo, arriba );
-	e.cruzar( e.form, fuera );
-	// Si alguien observa el contenedor entero, lo ve en pantalla (1.600 px).
-	e.cruzar( e.armador, { isIntersecting: true, boundingClientRect: { top: -300, bottom: 1300 }, rootBounds: RAIZ } );
-	assert.equal( e.visible(), true, 'con el armador a la vista y sin tomos elegidos, el único CTA es la barra' );
-
-	// El botón del pack asoma, pero sin tomos elegidos está deshabilitado.
-	e.cruzar( e.pack, { isIntersecting: true, boundingClientRect: { top: 500, bottom: 550 }, rootBounds: RAIZ } );
-	assert.equal( e.visible(), true, 'un botón deshabilitado no es un CTA: la barra sigue' );
-} );
-
-test( 'UM-2: cede SOLO ante el botón del pack a la vista y habilitado, y vuelve al deshabilitarse', () => {
-	const e = entorno();
-	e.cruzar( e.titulo, arriba );
-	e.cruzar( e.form, fuera );
-	e.cruzar( e.pack, { isIntersecting: true, boundingClientRect: { top: 500, bottom: 550 }, rootBounds: RAIZ } );
-	assert.equal( e.visible(), true );
-
-	// El armador habilita el botón al elegir tomos: lo avisa el MutationObserver.
-	const mo = e.mutaciones.find( ( m ) => m.t === e.pack );
-	assert.ok( mo, 'se vigila el `disabled` del botón del pack' );
-	assert.deepEqual( Array.from( mo.o.attributeFilter ), [ 'disabled' ] );
-	e.pack.disabled = false;
-	mo.cb( [] );
-	assert.equal( e.visible(), false, 'con el pack listo para enviar, manda el pack' );
-
-	// Fuera de pantalla, aunque esté habilitado, la barra vuelve.
-	e.cruzar( e.pack, { isIntersecting: false, boundingClientRect: { top: 1500, bottom: 1550 }, rootBounds: RAIZ } );
-	assert.equal( e.visible(), true );
-
-	// De nuevo a la vista y otra vez sin tomos: la barra no se va.
-	e.cruzar( e.pack, { isIntersecting: true, boundingClientRect: { top: 500, bottom: 550 }, rootBounds: RAIZ } );
-	assert.equal( e.visible(), false );
-	e.pack.disabled = true;
-	mo.cb( [] );
-	assert.equal( e.visible(), true );
-} );
-
-test( 'sin H1 ni armador se comporta como siempre: form fuera → barra', () => {
-	const e = entorno( { conTitulo: false, conPack: false } );
+test( 'sin H1 se comporta como siempre: form fuera → barra', () => {
+	const e = entorno( { conTitulo: false } );
 	e.cruzar( e.form, fuera );
 	assert.equal( e.visible(), true );
 } );
@@ -228,14 +170,6 @@ test( 'el botón de la barra es un proxy del botón real', () => {
 	const e = entorno();
 	e.proxy.fn();
 	assert.equal( e.real.clics, 1 );
-} );
-
-test( 'con tomos elegidos en el pack, el botón de la barra proxiea el click al pack', () => {
-	const e = entorno();
-	e.pack.disabled = false;
-	e.proxy.fn();
-	assert.equal( e.pack.clics, 1, 'el clic se deriva al botón del pack' );
-	assert.equal( e.real.clics, 0, 'el producto suelto individual no se agrega solo' );
 } );
 
 /*
@@ -263,13 +197,13 @@ test( 'UC-4: en escritorio la franja es sólo la barra, y al cruzar 1024 px se r
 	e.mql.matches = false;
 	e.mql.fn();
 	assert.equal( e.margenDe( e.form ), '0px 0px -134px 0px', 'al pasar a ≤1024 px entra el bottom-nav' );
-	assert.equal( e.margenDe( e.pack ), '0px 0px -66px 0px' );
 	// Los observadores viejos se desconectaron: nada queda duplicado.
-	assert.equal( e.observadores.filter( ( o ) => ! o.muerto ).length, 3 );
+	assert.equal( e.observadores.filter( ( o ) => ! o.muerto ).length, 2 );
 } );
 
 test( 'UC-4: la barra existe en escritorio, pegada abajo, con Joinchat por encima', () => {
-	const escritorio = hoja.slice( hoja.indexOf( '@media (min-width: 1025px) {\n    body.single-product .akb-sticky-atc' ) );
+	const match = /@media \(min-width: 1025px\)\s*\{\s*body\.single-product \.akb-sticky-atc/.exec( hoja );
+	const escritorio = match ? hoja.slice( match.index ) : '';
 	assert.ok( escritorio.length > 0, 'hay un bloque de escritorio para la barra' );
 	assert.match( escritorio, /body\.single-product \.akb-sticky-atc\s*\{[^}]*display:\s*flex;[^}]*bottom:\s*0;/ );
 	assert.match( escritorio, /\.akb-sticky-atc__title\s*\{[^}]*display:\s*block;/ );
@@ -286,33 +220,4 @@ test( 'el nombre del tomo en la barra no duplica el H1 para el lector de pantall
 	assert.doesNotMatch( plantilla, /en desktop nunca se muestra/, 'el comentario de intención ya no describe la barra de antes' );
 } );
 
-test( 'T5: sincroniza el total del pack leyendo data-akb-sb-total-label como fuente primaria', () => {
-	const e = entorno();
-	e.totalEl.atributos['data-akb-sb-total-label'] = '$29.970';
-	e.totalEl.atributos['data-akb-sb-total-value'] = '29970';
-	e.totalEl.textContent = 'Texto modificado arbitrariamente';
 
-	e.pack.disabled = false;
-	const mo = e.mutaciones.find( ( m ) => m.t === e.pack );
-	assert.ok( mo, 'MutationObserver sobre pack' );
-	mo.cb( [] );
-
-	assert.equal( e.titleEl.textContent, 'Pack Dan Da Dan (3 tomos)' );
-	assert.equal( e.priceEl.innerHTML, '<span class="woocommerce-Price-amount amount">$29.970</span>' );
-	assert.equal( e.proxy.textContent, 'Añadir pack (3)' );
-	assert.equal( e.etaEl.style.display, 'none' );
-} );
-
-test( 'T5: respaldo con regex sobre textContent si falta el atributo data-akb-sb-total-label', () => {
-	const e = entorno();
-	e.totalEl.atributos = {};
-	e.totalEl.textContent = 'Total estimado: $25.000';
-
-	e.pack.disabled = false;
-	const mo = e.mutaciones.find( ( m ) => m.t === e.pack );
-	assert.ok( mo, 'MutationObserver sobre pack' );
-	mo.cb( [] );
-
-	assert.equal( e.titleEl.textContent, 'Pack Dan Da Dan (3 tomos)' );
-	assert.equal( e.priceEl.innerHTML, '<span class="woocommerce-Price-amount amount">$25.000</span>' );
-} );

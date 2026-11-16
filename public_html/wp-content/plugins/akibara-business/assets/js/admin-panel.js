@@ -13,7 +13,7 @@
 	 * series-bundles-admin.js —dueño real, porque su módulo emite el atributo— y
 	 * «Activar packs sugeridos» pedía confirmación dos veces. */
 	document.addEventListener('DOMContentLoaded', function () {
-		var selector = document.getElementById('akb-panel-section-select');
+		const selector = document.getElementById('akb-panel-section-select');
 
 		if (!selector) {
 			return;
@@ -31,29 +31,31 @@
 	 * sigue sus cambios de tamaño y visibilidad; sin soporte se conserva la medida inicial y el
 	 * respaldo CSS. La reserva de scroll incluye el aire definido por CSS.
 	 */
-	var BARRAS = '.akb-panel .submit, .akb-panel .akb-sticky-save-bar';
+	const BARRAS = '.akb-panel .submit, .akb-panel .akb-sticky-save-bar';
 
 	document.addEventListener('DOMContentLoaded', function () {
-		var raiz = document.documentElement;
-		var panel = document.querySelector('.akb-panel');
+		const raiz = document.documentElement;
+		const panel = document.querySelector('.akb-panel');
 
 		if (!panel) {
 			return;
 		}
 
-		var pegada = function (caja) {
+		const pegada = function (caja) {
 			return caja.height > 0
 				&& caja.bottom <= window.innerHeight + 1
 				&& caja.top < window.innerHeight;
 		};
 
-		var medir = function () {
-			var barras = document.querySelectorAll(BARRAS);
-			var alto = 0;
-			var j;
+		const medir = function () {
+			const barras = document.querySelectorAll(BARRAS);
+			let alto = 0;
+			let j;
 
 			for (j = 0; j < barras.length; j++) {
+				// eslint-disable-next-line security/detect-object-injection
 				if (window.getComputedStyle(barras[j]).position === 'sticky') {
+					// eslint-disable-next-line security/detect-object-injection
 					alto = Math.max(alto, Math.ceil(barras[j].getBoundingClientRect().height));
 				}
 			}
@@ -64,11 +66,12 @@
 		medir();
 
 		if (typeof window.ResizeObserver === 'function') {
-			var observador = new window.ResizeObserver(medir);
-			var iniciales = document.querySelectorAll(BARRAS);
-			var k;
+			const observador = new window.ResizeObserver(medir);
+			const iniciales = document.querySelectorAll(BARRAS);
+			let k;
 
 			for (k = 0; k < iniciales.length; k++) {
+				// eslint-disable-next-line security/detect-object-injection
 				observador.observe(iniciales[k]);
 			}
 		}
@@ -79,7 +82,7 @@
 		 * disponible y sin animación; no depende de una lista cerrada de barras.
 		 */
 		document.addEventListener('focusin', function (evento) {
-			var control = evento.target;
+			const control = evento.target;
 
 			if (!control || !control.getBoundingClientRect || !control.closest) {
 				return;
@@ -89,7 +92,7 @@
 				return;
 			}
 
-			var caja = control.getBoundingClientRect();
+			const caja = control.getBoundingClientRect();
 
 			if (caja.height <= 0) {
 				return;
@@ -99,27 +102,28 @@
 			 * ahí está siempre lo que esté pegado abajo, también cuando el
 			 * control se sale de la pantalla —que es justo cuando el navegador
 			 * lo deja a medias y hay que rematar. */
-			var x = Math.min(Math.max(caja.left + caja.width / 2, 1), window.innerWidth - 1);
-			var encima = document.elementsFromPoint
+			const x = Math.min(Math.max(caja.left + caja.width / 2, 1), window.innerWidth - 1);
+			const encima = document.elementsFromPoint
 				? document.elementsFromPoint(x, window.innerHeight - 1)
 				: [];
-			var techo = window.innerHeight;
-			var m;
+			let techo = window.innerHeight;
+			let m;
 
 			for (m = 0; m < encima.length; m++) {
-				var nodo = encima[m];
+				// eslint-disable-next-line security/detect-object-injection
+				const nodo = encima[m];
 
 				if (nodo === control || nodo.contains(control)) {
 					continue;
 				}
 
-				var posicion = window.getComputedStyle(nodo).position;
+				const posicion = window.getComputedStyle(nodo).position;
 
 				if (posicion !== 'sticky' && posicion !== 'fixed') {
 					continue;
 				}
 
-				var cajaNodo = nodo.getBoundingClientRect();
+				const cajaNodo = nodo.getBoundingClientRect();
 
 				if (pegada(cajaNodo)) {
 					techo = Math.min(techo, cajaNodo.top);
@@ -132,16 +136,16 @@
 				return;
 			}
 
-			var tapado = caja.bottom - techo;
+			const tapado = caja.bottom - techo;
 
 			if (tapado <= 0) {
 				return;
 			}
 
-			var margen = parseFloat(
+			const margen = parseFloat(
 				window.getComputedStyle(raiz).getPropertyValue('--akb-panel-barra-aire')
 			) || 0;
-			var recorrido = raiz.scrollHeight - window.innerHeight - window.scrollY;
+			const recorrido = raiz.scrollHeight - window.innerHeight - window.scrollY;
 
 			window.scrollBy({
 				top: Math.min(Math.ceil(tapado + margen), Math.max(0, recorrido)),
@@ -159,24 +163,54 @@
 	 * Comparte con AnnouncementBar::link_target las rutas internas, HTTPS sin distinguir caja y
 	 * dominios sin esquema.
 	 */
+	function akbIsBannerTarget( rawTarget ) {
+		const t = String( rawTarget || '' ).trim();
+		const lower = t.toLowerCase();
+		if ( lower.startsWith( '[akb_descuento_url' ) && t.endsWith( ']' ) && ! t.slice( 1, -1 ).includes( ']' ) ) {
+			const inner = lower.slice( '[akb_descuento_url'.length, -1 );
+			return inner === '' || /^\s/.test( inner );
+		}
+		if ( ! t || /\s/.test( t ) ) {
+			return false;
+		}
+		if ( ( t.startsWith( '/' ) && ! t.startsWith( '//' ) ) || /^https?:\/\//i.test( t ) ) {
+			return true;
+		}
+		const host = t.split( /[/?#]/, 1 )[ 0 ];
+		const parts = host.split( '.' );
+		if ( parts.length < 2 ) {
+			return false;
+		}
+		const tld = parts[ parts.length - 1 ];
+		return /^[a-z]{2,}$/i.test( tld ) && parts.every( function ( p ) {
+			return /^[a-z0-9-]+$/i.test( p );
+		} );
+	}
+
 	function akbVisibleLine(line) {
-		return line
-			.replace(/^(.*\S)\s*\|\s*(\/(?!\/)\S*|https?:\/\/\S+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:[\/?#]\S*)?)\s*$/i, '$1')
-			.replace(/<[^>]*>/g, '')
-			.trim();
+		let visible = String( line || '' );
+		const pipeIdx = visible.lastIndexOf( '|' );
+		if ( pipeIdx > 0 ) {
+			const left = visible.slice( 0, pipeIdx ).trim();
+			const right = visible.slice( pipeIdx + 1 ).trim();
+			if ( left && akbIsBannerTarget( right ) ) {
+				visible = left;
+			}
+		}
+		return visible.replace( /<[^>]*>/g, '' ).trim();
 	}
 
 	function akbLineCounter(value, max) {
-		var lines = String(value || '').split('\n').map(function (line) {
+		const lines = String(value || '').split('\n').map(function (line) {
 			return akbVisibleLine(line.trim());
 		}).filter(Boolean);
-		var longest = lines.reduce(function (acc, line) {
+		const longest = lines.reduce(function (acc, line) {
 			return Math.max(acc, line.length);
 		}, 0);
-		var over = lines.filter(function (line) {
+		const over = lines.filter(function (line) {
 			return line.length > max;
 		}).length;
-		var text = '';
+		let text = '';
 
 		if (lines.length) {
 			text = lines.length + (1 === lines.length ? ' línea' : ' líneas')
@@ -186,25 +220,23 @@
 			}
 		}
 
-		return { lines: lines.length, longest: longest, over: over, text: text };
+		return { lines: lines.length, longest, over, text };
 	}
 
 	if (typeof document !== 'undefined') {
 		document.addEventListener('DOMContentLoaded', function () {
 			Array.prototype.forEach.call(document.querySelectorAll('textarea[data-akb-line-max]'), function (area) {
-				var max = parseInt(area.getAttribute('data-akb-line-max'), 10);
-				var out;
-
+				const max = parseInt(area.getAttribute('data-akb-line-max'), 10);
 				if (!max) {
 					return;
 				}
-				out = document.createElement('p');
+				const out = document.createElement('p');
 				out.className = 'akb-line-counter description';
 				out.setAttribute('aria-live', 'polite');
 				area.insertAdjacentElement('afterend', out);
 
-				var render = function () {
-					var medida = akbLineCounter(area.value, max);
+				const render = function () {
+					const medida = akbLineCounter(area.value, max);
 					out.textContent = medida.text;
 					out.classList.toggle('is-over', medida.over > 0);
 				};
@@ -219,14 +251,14 @@
 	 * placeholder y, si falta, el título del select asociado.
 	 */
 	function akbLabelSelect2Search(root) {
-		var labelled = 0;
+		let labelled = 0;
 		Array.prototype.forEach.call(root.querySelectorAll('.select2-search__field:not([aria-label])'), function (input) {
-			var name = input.getAttribute('placeholder') || '';
-			var container = input.closest ? input.closest('.select2-container') : null;
-			var select = container && container.previousElementSibling && 'SELECT' === container.previousElementSibling.tagName
+			let name = input.getAttribute('placeholder') || '';
+			const container = input.closest ? input.closest('.select2-container') : null;
+			const select = container && container.previousElementSibling && 'SELECT' === container.previousElementSibling.tagName
 				? container.previousElementSibling
 				: null;
-			var label = select && select.id ? root.querySelector('label[for="' + select.id + '"]') : null;
+			const label = select && select.id ? root.querySelector('label[for="' + select.id + '"]') : null;
 
 			if (!name && label) {
 				name = (label.textContent || '').trim();
@@ -243,7 +275,7 @@
 
 	if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
 		document.addEventListener('DOMContentLoaded', function () {
-			var panel = document.querySelector('.akb-panel');
+			const panel = document.querySelector('.akb-panel');
 
 			if (!panel) {
 				return;
@@ -257,34 +289,64 @@
 		});
 	}
 
-	/* Buscador rápido de ajustes y precarga predictiva en hover (0ms lag). */
+	/* Buscador rápido de ajustes, visibilidad condicional de filas y precarga predictiva. */
+	function akbBindRowToggle(checkboxId, targetIds, invert) {
+		const cb = document.getElementById(checkboxId);
+		if (!cb) {
+			return false;
+		}
+		const sync = function () {
+			const hide = invert ? !cb.checked : cb.checked;
+			Array.prototype.forEach.call(targetIds, function (id) {
+				const el = document.getElementById(id);
+				const row = el && el.closest ? el.closest('tr') : null;
+				if (row) {
+					row.hidden = hide;
+				}
+			});
+		};
+		cb.addEventListener('change', sync);
+		sync();
+		return true;
+	}
+
 	if (typeof document !== 'undefined') {
 		document.addEventListener('DOMContentLoaded', function () {
-			var searchInput = document.getElementById('akb-panel-search-input');
-			var nav = document.querySelector('.akb-panel-nav');
+			akbBindRowToggle(
+				'akibara_announcement_countdown_enabled',
+				['akibara_announcement_countdown_time', 'akibara_announcement_countdown_label'],
+				true
+			);
+			const searchInput = document.getElementById('akb-panel-search-input');
+			const nav = document.querySelector('.akb-panel-nav');
 
 			if (searchInput) {
-				var links = document.querySelectorAll('.akb-panel-nav__link');
-				var groups = document.querySelectorAll('.akb-panel-nav__group');
+				const links = document.querySelectorAll('.akb-panel-nav__link');
+				const groups = document.querySelectorAll('.akb-panel-nav__group');
 
 				searchInput.addEventListener('input', function () {
-					var query = (searchInput.value || '').toLowerCase().trim();
+					const query = (searchInput.value || '').toLowerCase().trim();
 
 					Array.prototype.forEach.call(links, function (link) {
-						var text = (link.textContent || '').toLowerCase();
-						var tab = (link.getAttribute('data-tab') || '').toLowerCase();
-						var match = !query || text.indexOf(query) !== -1 || tab.indexOf(query) !== -1;
+						const text = (link.textContent || '').toLowerCase();
+						const tab = ((link.dataset && link.dataset.tab) || link.getAttribute('data-tab') || '').toLowerCase();
+						const keywords = ((link.dataset && link.dataset.keywords) || link.getAttribute('data-keywords') || '').toLowerCase();
+						const match = !query
+							|| text.includes(query)
+							|| (link.dataset ? (link.dataset.tab || '').toLowerCase().includes(query) : tab.includes(query))
+							|| (link.dataset ? (link.dataset.keywords || '').toLowerCase().includes(query) : keywords.includes(query));
 						link.classList.toggle('is-hidden', !match);
 					});
 
 					Array.prototype.forEach.call(groups, function (group) {
-						var groupName = group.getAttribute('data-nav-group');
+						const groupName = (group.dataset && group.dataset.navGroup) || group.getAttribute('data-nav-group');
 						if (!groupName) {
 							return;
 						}
-						var visibleInGroup = false;
+						let visibleInGroup = false;
 						Array.prototype.forEach.call(links, function (l) {
-							if (l.getAttribute('data-nav-group') === groupName && !l.classList.contains('is-hidden')) {
+							const lGroup = (l.dataset && l.dataset.navGroup) || l.getAttribute('data-nav-group');
+							if (lGroup === groupName && !l.classList.contains('is-hidden')) {
 								visibleInGroup = true;
 							}
 						});
@@ -303,14 +365,14 @@
 
 			if (nav) {
 				// Precarga predictiva en hover para que el cambio de tab sea instantáneo
-				var prefetched = new Set();
+				const prefetched = new Set();
 				nav.addEventListener('pointerenter', function (e) {
-					var link = e.target && e.target.closest ? e.target.closest('.akb-panel-nav__link') : null;
+					const link = e.target && e.target.closest ? e.target.closest('.akb-panel-nav__link') : null;
 					if (!link || !link.href || prefetched.has(link.href) || link.href === window.location.href) {
 						return;
 					}
 					prefetched.add(link.href);
-					var pre = document.createElement('link');
+					const pre = document.createElement('link');
 					pre.rel = 'prefetch';
 					pre.href = link.href;
 					document.head.appendChild(pre);
@@ -320,6 +382,10 @@
 	}
 
 	if (typeof module !== 'undefined' && module.exports) {
-		module.exports = { lineCounter: akbLineCounter, labelSelect2Search: akbLabelSelect2Search };
+		module.exports = {
+			lineCounter: akbLineCounter,
+			labelSelect2Search: akbLabelSelect2Search,
+			bindRowToggle: akbBindRowToggle
+		};
 	}
 }());

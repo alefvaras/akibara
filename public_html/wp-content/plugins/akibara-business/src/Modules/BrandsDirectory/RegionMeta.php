@@ -17,6 +17,10 @@ use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookNotFound
+ */
 final class RegionMeta {
 
 	private const TAXONOMY = 'product_brand';

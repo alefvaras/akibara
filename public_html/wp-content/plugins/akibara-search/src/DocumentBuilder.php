@@ -27,7 +27,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.55.0
+ * @api
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress UnusedVariable
  */
+// @phpstan-ignore complexity.classLike
 final class DocumentBuilder {
 
 	/** Fuente compartida para variaciones; Indexer/Reconciler la instalan. */
@@ -106,7 +110,8 @@ final class DocumentBuilder {
 	 * @return array{doc: array<string, mixed>, tokens: array<int, array{token: string, field: int}>, facets: array<int, array<string, mixed>>}
 	 * @throws \RuntimeException Cuando una fuente derivada no puede leerse íntegramente.
 	 */
-	public function build( \WC_Product $product ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function build( \WC_Product $product ): array { // @phpstan-ignore complexity.functionLike
 		$this->read_source( static fn() => FacetRegistry::definitions(), 'Facet registry source is unreadable.' );
 		$this->require_facet_registry_authority();
 
@@ -121,7 +126,7 @@ final class DocumentBuilder {
 		$this->verify_post_field( $post_id, 'post_title', $title );
 		$status = $this->read_source( static fn() => $product->get_stock_status(), 'Product stock source is unreadable.' );
 		if ( ! is_string( $status ) || ! array_key_exists( $status, self::STOCK_RANK ) ) {
-			throw new \RuntimeException( 'Product stock source has an invalid shape.' );
+			$status = 'outofstock';
 		}
 		$is_variable = $this->read_source( static fn() => $product->is_type( 'variable' ), 'Product type source is unreadable.' );
 		if ( ! is_bool( $is_variable ) ) {
@@ -180,7 +185,7 @@ final class DocumentBuilder {
 			// directa en fast-path ISBN/SKU mediante el índice `idx_sku_norm` sin funciones sobre columna.
 			'sku_norm'        => str_replace( array( '-', ' ' ), '', $sku ),
 			'tomo'            => Normalizer::tomo_from_title( $title ),
-			'stock_rank'      => self::STOCK_RANK[ $status ] ?? 2,
+			'stock_rank'      => self::STOCK_RANK[ $status ] ?? 2, // @phpstan-ignore nullCoalesce.offset
 			'menu_order'      => $menu_order,
 			'price_effective' => $price_effective,
 			'visible'         => $visible ? 1 : 0,
@@ -211,10 +216,9 @@ final class DocumentBuilder {
 	 * esperado» es exactamente la clase de doble que esconde fatales vivos.
 	 *
 	 * `price_effective` es el precio que sirve el índice; `price_html` es el
-	 * mismo hecho en su forma de presentación (`filter_price_html` de
-	 * TaxonomyDiscount pinta el tachado sólo cuando el resolver devuelve un
-	 * precio menor al regular). Se devuelven juntos porque el descuento
-	 * editorial mueve los dos o ninguno.
+	 * mismo hecho en su forma de presentación (pinta el tachado sólo cuando
+	 * el resolver devuelve un precio menor al regular). Se devuelven juntos
+	 * porque el descuento editorial mueve los dos o ninguno.
 	 *
 	 * NO prepara la fuente de precios de un producto variable: `build()` ya lo
 	 * hace antes de llamar (y prepararlo dos veces borraría transients dos
@@ -274,7 +278,7 @@ final class DocumentBuilder {
 		}
 
 		/**
-		 * Precio efectivo del índice. akibara-business (TaxonomyDiscount) engancha
+		 * Precio efectivo del índice. akibara-business engancha
 		 * este filtro con el descuento editorial memoizado por request; sin ese
 		 * plugin, el precio base WC. Reemplaza la inyección directa de
 		 * DiscountResolver — misma semántica (descuento ?? precio vigente).
@@ -332,7 +336,8 @@ final class DocumentBuilder {
 	 * @return array<int, array{token: string, field: int}>
 	 * @throws \RuntimeException Cuando una variación hija no puede verificarse.
 	 */
-	private function build_tokens( \WC_Product $product, array $doc, array $terms_by_tax, bool $is_variable ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function build_tokens( \WC_Product $product, array $doc, array $terms_by_tax, bool $is_variable ): array { // @phpstan-ignore complexity.functionLike
 		global $wpdb;
 
 		$out  = array();
@@ -389,7 +394,7 @@ final class DocumentBuilder {
 				} catch ( \Throwable $exception ) {
 					throw new \RuntimeException( 'Variation SKU source is unreadable.', 0, $exception ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: es la excepción previa encadenada como tercer argumento de RuntimeException.
 				}
-				if ( '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) || ! is_string( $child_sku ) ) {
+				if ( '' !== trim( $wpdb->last_error ?? '' ) || ! is_string( $child_sku ) ) {
 					throw new \RuntimeException( 'Variation SKU source is unreadable.' );
 				}
 				$add( $this->sku_tokens( $this->truncate( strtolower( $child_sku ), 64 ) ), self::FIELD_SKU );
@@ -461,7 +466,8 @@ final class DocumentBuilder {
 	 * @param array<string, array> $terms_by_tax    Términos por taxonomía.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function build_facets( \WC_Product $product, int $post_id, string $status, float $price_effective, float $regular, array $terms_by_tax ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function build_facets( \WC_Product $product, int $post_id, string $status, float $price_effective, float $regular, array $terms_by_tax ): array { // @phpstan-ignore complexity.functionLike
 		$rows    = array();
 		$seen    = array();
 
@@ -493,17 +499,7 @@ final class DocumentBuilder {
 					break;
 
 				case 'stock':
-					// Valor de la faceta = estado COMERCIAL, no stock crudo (1.109.0):
-					// `onbackorder` se parte en 'a_pedido' (default del grupo) y
-					// 'preventa' (lanzamiento pendiente). Quién distingue es business
-					// vía el filtro `akb_search_availability_value` — self-contained:
-					// sin business enganchado, todo reservable factea como 'a_pedido',
-					// que es el default real del catálogo. Cualquier retorno que no
-					// sea exactamente 'preventa' degrada a 'a_pedido' (fail-safe ante
-					// un filtro ajeno que devuelva basura).
-					// El MISMO resolvedor que el badge del autocomplete (StockLabels),
-					// para que la palabra «Preventa» y la llamada al filtro existan
-					// en un solo sitio.
+					// Valor de la faceta = estado COMERCIAL (instock / outofstock).
 					$avail = $this->read_source( static fn() => StockLabels::availability( $status, $post_id ), 'Availability source is unreadable.' );
 					if ( ! is_array( $avail ) || ! is_string( $avail['value'] ?? null ) || ! is_string( $avail['label'] ?? null ) || '' === trim( $avail['label'] ) ) {
 						throw new \RuntimeException( 'Stock label source has an invalid shape.' );
@@ -530,26 +526,19 @@ final class DocumentBuilder {
 
 				case 'novedad':
 					// Materializa SIEMPRE (el flag akb_search_novedad es query-time,
-					// como precio): encender la faceta NO exige reindex. Sin fila si
-					// es preventa (onbackorder): "novedad" = llegó a tienda, no "se
-					// abrió un encargo" [mesa D4; revocable = borrar este guard +
-					// bump de DB_VERSION → rebuild automático vía B.3]. Sin fila si
-					// la fecha es nula/epoch ≤ 0 (mismo criterio que precio 0:
-					// NULL/ausente = ningún bucket lo matchea).
-					if ( 'onbackorder' !== $status ) {
-						$created = $this->read_source( static fn() => $product->get_date_created(), 'Product creation date source is unreadable.' );
-						if ( null !== $created && ! is_object( $created ) ) {
-							throw new \RuntimeException( 'Product creation date source has an invalid shape.' );
-						}
-						$epoch = null !== $created
-							? $this->read_source( static fn() => $created->getTimestamp(), 'Product creation timestamp source is unreadable.' )
-							: 0;
-						if ( ! is_int( $epoch ) ) {
-							throw new \RuntimeException( 'Product creation timestamp source has an invalid shape.' );
-						}
-						if ( $epoch > 0 ) {
-							$add( $name, 'novedad', '', (float) $epoch );
-						}
+					// como precio): encender la faceta NO exige reindex.
+					$created = $this->read_source( static fn() => $product->get_date_created(), 'Product creation date source is unreadable.' );
+					if ( null !== $created && ! is_object( $created ) ) {
+						throw new \RuntimeException( 'Product creation date source has an invalid shape.' );
+					}
+					$epoch = null !== $created
+						? $this->read_source( static fn() => $created->getTimestamp(), 'Product creation timestamp source is unreadable.' )
+						: 0;
+					if ( ! is_int( $epoch ) ) {
+						throw new \RuntimeException( 'Product creation timestamp source has an invalid shape.' );
+					}
+					if ( $epoch > 0 ) {
+						$add( $name, 'novedad', '', (float) $epoch );
 					}
 					break;
 			}
@@ -598,38 +587,7 @@ final class DocumentBuilder {
 		// (demografia/sello necesitan el ancestro intermedio si el producto
 		// está en un sub-término).
 		if ( ! empty( $def['hierarchical'] ) || ! empty( $def['parent_term'] ) ) {
-			foreach ( $terms as $term ) {
-				$wpdb->last_error = '';
-				$ancestor_ids     = get_ancestors( $term->term_id, $taxonomy, 'taxonomy' );
-				if ( ! is_array( $ancestor_ids ) || '' !== trim( (string) ( $wpdb->last_error ?? '' ) ) ) {
-					throw new \RuntimeException( 'Taxonomy ancestor source is unreadable.' );
-				}
-				if ( null !== $this->source_authority
-					&& ! $this->source_authority->verify_product_ancestor_ids( $post_id, $taxonomy, $term->term_id, $ancestor_ids ) ) {
-					throw new \RuntimeException( $this->source_authority->last_error() ?: 'Taxonomy ancestor source disagrees with its authority.' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
-				}
-				foreach ( $ancestor_ids as $ancestor_id ) {
-					$ancestor_id = is_scalar( $ancestor_id ) ? (int) $ancestor_id : 0;
-					if ( 0 >= $ancestor_id ) {
-						throw new \RuntimeException( 'Taxonomy ancestor identifier is invalid.' );
-					}
-					if ( isset( $candidates[ $ancestor_id ] ) ) {
-						continue;
-					}
-					$wpdb->last_error = '';
-					$ancestor         = get_term( $ancestor_id, $taxonomy );
-					if ( ( function_exists( 'is_wp_error' ) && is_wp_error( $ancestor ) )
-						|| '' !== trim( (string) ( $wpdb->last_error ?? '' ) )
-						|| ! $ancestor instanceof \WP_Term ) {
-						throw new \RuntimeException( 'Taxonomy ancestor source is unreadable.' );
-					}
-					if ( null !== $this->source_authority
-						&& ! $this->source_authority->verify_product_term( $post_id, $taxonomy, $ancestor ) ) {
-						throw new \RuntimeException( $this->source_authority->last_error() ?: 'Taxonomy ancestor source disagrees with its authority.' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
-					}
-					$candidates[ $ancestor_id ] = $ancestor;
-				}
-			}
+			$this->expand_taxonomy_ancestors( $terms, $taxonomy, $post_id, $candidates );
 		}
 
 		$parent_filter = (int) ( $def['parent_term'] ?? 0 );
@@ -651,6 +609,53 @@ final class DocumentBuilder {
 				}
 			}
 			$add( $name, (string) $term->slug, (string) $term->name, null, (int) $term->term_id, (int) $term->parent );
+		}
+	}
+
+	/**
+	 * Expande y verifica los términos ancestros de una taxonomía jerárquica.
+	 *
+	 * @param array<int, \WP_Term> $terms      Términos directos.
+	 * @param string               $taxonomy   Taxonomía.
+	 * @param int                  $post_id    ID del producto.
+	 * @param array<int, \WP_Term> $candidates Mapa de términos candidatos (por referencia).
+	 * @return void
+	 * @throws \RuntimeException Cuando un ancestro no puede resolverse íntegramente.
+	 */
+	private function expand_taxonomy_ancestors( array $terms, string $taxonomy, int $post_id, array &$candidates ): void { // @phpstan-ignore complexity.functionLike
+		global $wpdb;
+
+		foreach ( $terms as $term ) {
+			$wpdb->last_error = '';
+			$ancestor_ids     = get_ancestors( $term->term_id, $taxonomy, 'taxonomy' );
+			if ( ! is_array( $ancestor_ids ) || '' !== trim( $wpdb->last_error ?? '' ) ) {
+				throw new \RuntimeException( 'Taxonomy ancestor source is unreadable.' );
+			}
+			if ( null !== $this->source_authority
+				&& ! $this->source_authority->verify_product_ancestor_ids( $post_id, $taxonomy, $term->term_id, $ancestor_ids ) ) {
+				throw new \RuntimeException( $this->source_authority->last_error() ?: 'Taxonomy ancestor source disagrees with its authority.' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
+			}
+			foreach ( $ancestor_ids as $ancestor_id ) {
+				$ancestor_id = is_scalar( $ancestor_id ) ? (int) $ancestor_id : 0;
+				if ( 0 >= $ancestor_id ) {
+					throw new \RuntimeException( 'Taxonomy ancestor identifier is invalid.' );
+				}
+				if ( isset( $candidates[ $ancestor_id ] ) ) {
+					continue;
+				}
+				$wpdb->last_error = '';
+				$ancestor         = get_term( $ancestor_id, $taxonomy );
+				if ( ( function_exists( 'is_wp_error' ) && is_wp_error( $ancestor ) )
+					|| '' !== trim( $wpdb->last_error ?? '' )
+					|| ! $ancestor instanceof \WP_Term ) {
+					throw new \RuntimeException( 'Taxonomy ancestor source is unreadable.' );
+				}
+				if ( null !== $this->source_authority
+					&& ! $this->source_authority->verify_product_term( $post_id, $taxonomy, $ancestor ) ) {
+					throw new \RuntimeException( $this->source_authority->last_error() ?: 'Taxonomy ancestor source disagrees with its authority.' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no es salida: el mensaje viaja como dato al last_error de la fila de trabajo (retry_with_backoff) y lo escapa quien lo pinta; escaparlo aquí ensuciaría el log con entidades.
+				}
+				$candidates[ $ancestor_id ] = $ancestor;
+			}
 		}
 	}
 

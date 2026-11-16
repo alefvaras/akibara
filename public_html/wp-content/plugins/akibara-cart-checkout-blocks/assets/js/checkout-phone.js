@@ -1,7 +1,7 @@
 (function (wp) {
 	'use strict';
 	/* La validación de celular en cliente comparte algoritmo y literales con ChileanPhone y CheckoutFields::validate_billing_phone. El focusout de document corre después del handler de React; wc/store/validation mantiene el error visible e impide el envío aunque la validación HTML5 pase. */
-	var MESSAGES = {
+	const MESSAGES = {
 		length: 'Ingresa tu número de celular (9 dígitos). Ejemplo: 9 8765 4321.',
 		repeated: 'El celular ingresado no parece válido.',
 		range: 'El celular no parece válido. Revisa el número.'
@@ -19,7 +19,7 @@
 		if (!/^\+?[0-9\s()\-]+$/.test(phone)) {
 			return false;
 		}
-		var withoutPlus = phone.charAt(0) === '+' ? phone.slice(1) : phone;
+		const withoutPlus = phone.charAt(0) === '+' ? phone.slice(1) : phone;
 		if (
 			withoutPlus === '' ||
 			withoutPlus.charAt(0) === '-' ||
@@ -29,10 +29,10 @@
 			return false;
 		}
 
-		var depth = 0;
-		var parenthesisDigit = false;
-		for (var i = 0; i < withoutPlus.length; i++) {
-			var ch = withoutPlus.charAt(i);
+		let depth = 0;
+		let parenthesisDigit = false;
+		for (let i = 0; i < withoutPlus.length; i++) {
+			const ch = withoutPlus.charAt(i);
 			if (ch === '(') {
 				if (depth !== 0) {
 					return false;
@@ -58,13 +58,13 @@
 
 	// Devuelve los 8 dígitos del celular, o '' si el número no se entiende.
 	function extractDigits(value) {
-		var phone = String(value || '').trim();
+		const phone = String(value || '').trim();
 		if (phone === '' || !hasSupportedGrammar(phone)) {
 			return '';
 		}
-		var hasPlus = phone.charAt(0) === '+';
-		var clean = phone.replace(/\D/g, '');
-		var length = clean.length;
+		const hasPlus = phone.charAt(0) === '+';
+		const clean = phone.replace(/\D/g, '');
+		const length = clean.length;
 		if (hasPlus) {
 			return length === 11 && clean.indexOf('569') === 0 ? clean.slice(3) : '';
 		}
@@ -82,7 +82,7 @@
 
 	// Null cuando el número sirve; si no, el mismo mensaje que devolvería PHP.
 	function validationMessage(value) {
-		var digits = extractDigits(value);
+		const digits = extractDigits(value);
 		if (digits.length !== 8) {
 			return MESSAGES.length;
 		}
@@ -100,7 +100,7 @@
 			if (wp && wp.data && typeof wp.data.dispatch === 'function') {
 				return wp.data.dispatch('wc/store/validation') || null;
 			}
-		} catch (error) {
+		} catch (_error) {
 			// Sin store no hay validación en cliente; el servidor sigue siendo el juez.
 		}
 		return null;
@@ -108,23 +108,23 @@
 
 	/* La clave de wc/store/validation deriva del id real del input con guiones bajos: billing-phone pasa a billing_phone. Así el error conserva aria-describedby y queda anclado al campo tanto en billing como en shipping. */
 	function storeKeyFor(input) {
-		var id = String((input && input.id) || '');
+		const id = String((input && input.id) || '');
 		return '' === id ? '' : id.replace(/-/g, '_');
 	}
 
 	function validatePhoneField(input) {
-		var store = validationStore();
-		var key = storeKeyFor(input);
+		const store = validationStore();
+		const key = storeKeyFor(input);
 		if (!store || !input || key === '') {
 			return null;
 		}
-		var value = String(input.value || '').trim();
+		const value = String(input.value || '').trim();
 		if (value === '') {
 			// «Obligatorio» lo gestiona Blocks con su propio mensaje, y vive en
 			// ESTA misma clave: limpiarlo sería quitárselo.
 			return null;
 		}
-		var message = validationMessage(value);
+		const message = validationMessage(value);
 		if (message === null) {
 			if (typeof store.clearValidationError === 'function') {
 				store.clearValidationError(key);
@@ -132,8 +132,9 @@
 			return true;
 		}
 		if (typeof store.setValidationErrors === 'function') {
-			var errors = {};
-			errors[key] = { message: message, hidden: false };
+			const errors = {};
+			// eslint-disable-next-line security/detect-object-injection
+			errors[key] = { message, hidden: false };
 			store.setValidationErrors(errors);
 		}
 		return false;
@@ -152,7 +153,7 @@
 		if (!el || el.tagName !== 'INPUT') {
 			return false;
 		}
-		var id = String(el.id || '');
+		const id = String(el.id || '');
 		if (id.slice(-6) === '-phone') {
 			return true;
 		}
@@ -161,20 +162,28 @@
 	}
 
 	function handlePhoneFocusOut(event) {
-		var target = event && event.target;
+		const target = event && event.target;
 		if (isPhoneInput(target)) {
 			validatePhoneField(target);
 		}
 	}
 
+	function handlePhoneInput(event) {
+		const target = event && event.target;
+		if (isPhoneInput(target) && validationMessage(target.value) === null) {
+			validatePhoneField(target);
+		}
+	}
+
 	window.akbCheckoutPhone = {
-		extractDigits: extractDigits,
-		validationMessage: validationMessage,
+		extractDigits,
+		validationMessage,
 		validateField: validatePhoneField
 	};
 
 	function initialize() {
 		document.addEventListener('focusout', handlePhoneFocusOut);
+		document.addEventListener('input', handlePhoneInput);
 	}
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', initialize, { once: true });

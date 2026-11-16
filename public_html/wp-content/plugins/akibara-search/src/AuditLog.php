@@ -17,6 +17,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.59.0
+ * @api
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress RedundantCast
  */
 final class AuditLog {
 

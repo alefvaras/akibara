@@ -31,7 +31,7 @@ final class PanelLinksTest extends TestCase {
 		$plugin    = (string) file_get_contents( self::SRC . '/Plugin.php' );
 
 		$registradas = $this->secciones_registradas( $plugin );
-		self::assertGreaterThan( 10, count( $registradas ), 'Plugin.php registra más de diez secciones; si no se leen, la prueba no mide nada.' );
+		self::assertGreaterThanOrEqual( 8, count( $registradas ), 'Plugin.php registra al menos ocho secciones comerciales; si no se leen, la prueba no mide nada.' );
 
 		$enlazadas = $this->pestanas_enlazadas( $dashboard );
 		self::assertNotEmpty( $enlazadas, 'El Dashboard enlaza pestañas del panel; si no se leen, la prueba no mide nada.' );

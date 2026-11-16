@@ -55,7 +55,7 @@ final class BookSchemaEnricherTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Should emit only ISBN values with a valid checksum.
+	 * @testdox Should emit only ISBN-13 values with a valid checksum and proper @type.
 	 * @dataProvider isbn_data
 	 */
 	public function test_emits_only_valid_isbn_values( string $sku, ?string $expected ): void {
@@ -78,7 +78,15 @@ final class BookSchemaEnricherTest extends TestCase {
 
 		$result = ( new BookSchemaEnricher() )->enrich( array( '@type' => 'Product' ), $product );
 
-		self::assertSame( $expected, $result['isbn'] ?? null, 'Schema ISBN should contain only a normalized valid ISBN.' );
+		self::assertSame( $expected, $result['isbn'] ?? null, 'Schema ISBN should contain only a normalized valid ISBN-13.' );
+		if ( null !== $expected ) {
+			self::assertSame( array( 'Product', 'Book' ), $result['@type'] );
+			self::assertSame( $expected, $result['gtin13'] );
+		} else {
+			self::assertSame( 'Product', $result['@type'] );
+			self::assertArrayNotHasKey( 'isbn', $result );
+			self::assertArrayNotHasKey( 'gtin13', $result );
+		}
 		self::assertArrayNotHasKey( 'bookEdition', $result, 'Publisher must not be used as bookEdition.' );
 		self::assertArrayNotHasKey( 'bookFormat', $result, 'Book format must not be inferred without catalog data.' );
 	}
@@ -90,10 +98,11 @@ final class BookSchemaEnricherTest extends TestCase {
 	 */
 	public static function isbn_data(): array {
 		return array(
-			'Valid ISBN-13'      => array( '9791388298844', '9791388298844' ),
-			'Hyphenated ISBN-10' => array( '0-306-40615-2', '0306406152' ),
-			'Non-ISBN EAN-13'    => array( '7503034771937', null ),
-			'Invalid checksum'   => array( '9791388298845', null ),
+			'Valid ISBN-13'             => array( '9791388298844', '9791388298844' ),
+			'Valid ISBN-13 with hyphen' => array( '978-0-306-40615-7', '9780306406157' ),
+			'ISBN-10 (not ISBN-13)'     => array( '0-306-40615-2', null ),
+			'Non-ISBN EAN-13'           => array( '7503034771937', null ),
+			'Invalid checksum'          => array( '9791388298845', null ),
 		);
 	}
 

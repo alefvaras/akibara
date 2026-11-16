@@ -60,22 +60,9 @@ final class TextosQueNoPuedenQuedarVaciosTest extends TestCase {
 	/** @return array<int, array{0:string,1:string}> */
 	public static function carteles(): array {
 		return array(
-			array( 'akb_copy_eta_cart_ready', 'Tu pedido completo llega' ),
-			array( 'akb_copy_eta_cart_preventa', 'Tu pedido incluye reservas' ),
-			array( 'akb_copy_eta_tba', 'Te avisamos en cuanto tengamos fecha' ),
-			array( 'akb_copy_eta_single_preventa', 'Preventa' ),
-			array( 'akb_copy_eta_single_pedido', 'A pedido' ),
-			array( 'akb_copy_eta_single_ready', 'Fecha estimada de llegada' ),
-			array( 'akb_copy_eta_noun_preventa', 'preventa' ),
-			array( 'akb_copy_eta_noun_pedido', 'productos a pedido' ),
-			array( 'akb_copy_eta_item_arrived', 'Ya llegó a nuestra bodega' ),
 			array( 'akb_copy_promise_dispatch', 'Despacha en 24–48 h' ),
-			array( 'akb_copy_promise_preventa_transit', 'En camino a Akibara' ),
-			array( 'akb_copy_promise_pedido_transit', 'Lo pedimos a la editorial por ti' ),
 			array( 'akb_copy_series_summary_link', 'Ver ficha completa' ),
 			array( 'akb_copy_series_latest_volume', 'Último tomo: {tomo}' ),
-			array( 'akb_copy_series_offer_hook', 'Hasta {pct}% de descuento' ),
-			array( 'akb_copy_series_offer_rules', 'Cómo funciona' ),
 		);
 	}
 
@@ -85,7 +72,7 @@ final class TextosQueNoPuedenQuedarVaciosTest extends TestCase {
 
 		self::assertSame(
 			'Llega en 3 días',
-			$copy->sanitize_required_copy( 'Llega en 3 días', array( 'id' => 'akb_copy_eta_single_ready' ), 'Llega en 3 días' )
+			$copy->sanitize_required_copy( 'Llega en 3 días', array( 'id' => 'akb_copy_promise_dispatch' ), 'Llega en 3 días' )
 		);
 	}
 

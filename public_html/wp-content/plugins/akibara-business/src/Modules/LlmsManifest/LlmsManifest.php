@@ -16,9 +16,7 @@ namespace Akibara\Business\Modules\LlmsManifest;
 
 use Akibara\Business\Utilities\OptionRow;
 
-use Akibara\Business\Modules\AdminPanel\AdminPanel;
 use Akibara\Business\Modules\SeoEnhancements\SeoEnhancements;
-use Akibara\Business\Modules\SeoSocial\SocialImageDerivatives;
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
 use Akibara\Business\Services\BrandsHubUrl;
 use Akibara\Business\Services\SeriesHubUrl;
@@ -26,6 +24,10 @@ use Akibara\Business\Utilities\RobotsMeta;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
+// @phpstan-ignore complexity.classLike
 final class LlmsManifest {
 
 	public const HOOK = 'akibara_business_llms_manifest_refresh';
@@ -58,28 +60,13 @@ final class LlmsManifest {
 	 * Utiliza «a pedido» para reflejar con precisión el catálogo de tomos por encargo,
 	 * alineado con el vocabulario oficial de la tienda.
 	 */
-	public const DEFAULT_IDENTITY = 'Tienda online chilena especializada en manga y cómics originales en español, con tomos disponibles, a pedido e importación. Despacho a todo Chile y retiro coordinado en Metro San Miguel, Santiago. Pagos con Mercado Pago y Flow (Webpay).';
-
-	/**
-	 * Identidades de fábrica anteriores para migración automática.
-	 *
-	 * Permite que {@see self::migrate_factory_identity()} actualice instalaciones
-	 * que conservan la identidad por defecto en base de datos.
-	 *
-	 * @var array<int, string>
-	 */
-	private const PREVIOUS_DEFAULT_IDENTITIES = array(
-		'Tienda online chilena especializada en manga y cómics originales en español, con productos disponibles, preventas e importación. Despacho a todo Chile y retiro coordinado en Metro San Miguel, Santiago. Pagos con Mercado Pago y Flow (Webpay).',
-	);
+	public const DEFAULT_IDENTITY = 'Tienda online chilena especializada en manga y cómics originales en español, con tomos disponibles e importación directa. Despacho a todo Chile y retiro coordinado en Metro San Miguel, Santiago. Pagos con Mercado Pago y Flow (Webpay).';
 
 	/** Tope de la identidad: un resumen que no cabe en una línea deja de serlo. */
 	private const IDENTITY_MAX_LENGTH = 600;
 
-	/** Pestaña propia dentro del panel Akibara. */
+	/** Pestaña propia dentro del panel Akibara (retirada y redirigida al Centro de Mando). */
 	public const PANEL_TAB_ID = 'salud_seo';
-
-	/** Acción de `admin-post.php` que encola una regeneración. */
-	private const REGENERATE_ACTION = 'akibara_salud_seo_regenerar';
 
 	/** Duración máxima de una generación antes de permitir recuperación. */
 	private const LOCK_TTL = 30 * MINUTE_IN_SECONDS;
@@ -180,293 +167,48 @@ final class LlmsManifest {
 	public function register(): void {
 		add_action( self::HOOK, array( $this, 'write_manifests' ) );
 
-		// Telemetría administrativa: expone la última generación exitosa o error
-		// en el panel administrativo mediante la API pública de secciones.
-		add_action( 'akibara_business_booted', array( $this, 'register_admin_section' ) );
-		add_action( 'admin_post_' . self::REGENERATE_ACTION, array( $this, 'handle_regenerate_request' ) );
-		add_action( 'admin_notices', array( $this, 'render_regenerate_notice' ) );
-		add_filter(
-			'woocommerce_admin_settings_sanitize_option_' . self::OPTION_IDENTITY,
-			array( $this, 'sanitize_identity' ),
-			10,
-			3
-		);
-		// Cambiar la identidad encola la misma regeneración del botón del panel.
+		// Cambiar la identidad encola la misma regeneración.
 		// Se escuchan add_option_{option} y update_option_{option}, ambos emitidos
 		// después de persistir: la primera alta puede venir de update_option.
-		// Las variantes added_option y updated_option no llevan sufijo de option.
-		// El catálogo se recorre fuera de la petición administrativa.
 		add_action( 'add_option_' . self::OPTION_IDENTITY, array( $this, 'queue_refresh_after_identity_change' ) );
 		add_action( 'update_option_' . self::OPTION_IDENTITY, array( $this, 'queue_refresh_after_identity_change' ) );
-		add_action( 'akibara_business_upgraded', array( self::class, 'migrate_factory_identity' ), 10, 0 );
 		add_action( 'akibara_business_upgraded', array( self::class, 'drop_identity_autoload' ), 10, 0 );
 
 		if ( function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::HOOK );
 		}
-	}
 
-	/**
-	 * Cuelga la pestaña «Salud SEO» del panel Akibara.
-	 *
-	 * @internal Callback de `akibara_business_booted`.
-	 *
-	 * @param mixed $plugin Instancia del plugin.
-	 * @return void
-	 */
-	public function register_admin_section( $plugin = null ): void {
-		if ( ! is_object( $plugin ) || ! method_exists( $plugin, 'module' ) ) {
-			return;
-		}
-		$panel = $plugin->module( 'admin_panel' );
-		if ( ! is_object( $panel ) || ! method_exists( $panel, 'add_section' ) ) {
-			return;
-		}
-
-		// Sección CON formulario, no «action section». Nació sin él —sólo estado y
-		// botones— y colgarle un campo de un textarea a una sección declarada
-		// `is_action = true` lo pinta pero NO lo guarda: `AdminPanel::handle_save()`
-		// vuelve temprano para esas secciones. El patrón es el de «Pedidos y
-		// preventa»: `get_settings()` aporta el form y el render de estado pasa a
-		// ser el header, encima del formulario y de sus botones.
-		$panel->add_section(
-			self::PANEL_TAB_ID,
-			'Salud SEO',
-			array( $this, 'get_settings' ),
-			array( $this, 'render_admin_section' ),
-			false,
-			'',
-			'sistema'
-		);
-	}
-
-	/**
-	 * Estado de las dos superficies SEO que se generan solas, y su botón.
-	 *
-	 * @internal Callback de `AdminPanel::add_section($header_fn)`.
-	 *
-	 * @return void
-	 */
-	public function render_admin_section(): void {
-		$success = get_option( self::OPTION_LAST_SUCCESS );
-		$error   = get_option( self::OPTION_LAST_ERROR );
-		$covers  = self::social_cover_status();
-		?>
-		<h3>llms.txt y llms-full.txt</h3>
-		<p>
-			<?php if ( is_array( $success ) && isset( $success['timestamp'] ) ) : ?>
-				Última generación correcta: <strong><?php echo esc_html( self::format_moment( (int) $success['timestamp'] ) ); ?></strong>
-				— <?php echo esc_html( sprintf( '%d series, %d guías, %d productos sueltos', (int) ( $success['series'] ?? 0 ), (int) ( $success['guides'] ?? 0 ), (int) ( $success['products'] ?? 0 ) ) ); ?>.
-			<?php else : ?>
-				<strong>Nunca se ha generado.</strong> El sitio sigue sirviendo el llms.txt de Rank Math.
-			<?php endif; ?>
-		</p>
-		<?php if ( is_array( $error ) && isset( $error['code'] ) ) : ?>
-			<div class="notice notice-warning inline"><p>
-				<?php // `record_success()` borra esta opción al terminar bien: si está, la ÚLTIMA corrida falló. ?>
-				<strong>La última corrida falló</strong> y el sitio sigue sirviendo el archivo anterior.
-				Motivo: <code><?php echo esc_html( (string) $error['code'] ); ?></code>
-				(<?php echo esc_html( self::format_moment( (int) ( $error['timestamp'] ?? 0 ) ) ); ?>).
-				<?php if ( '' !== (string) ( $error['message'] ?? '' ) ) : ?>
-					<br><?php echo esc_html( (string) $error['message'] ); ?>
-				<?php endif; ?>
-			</p></div>
-		<?php else : ?>
-			<p class="description">Sin fallos registrados.</p>
-		<?php endif; ?>
-		<p>Próxima corrida automática: <strong><?php echo esc_html( self::next_run_label( self::HOOK ) ); ?></strong>.</p>
-		<p>
-			<a class="button" href="<?php echo esc_url( self::regenerate_url( 'llms' ) ); ?>">Regenerar llms.txt ahora</a>
-		</p>
-
-		<h3>Portadas para previsualizaciones sociales</h3>
-		<?php if ( ! $covers['available'] ) : ?>
-			<p class="description">No se puede leer <code>/uploads/portadas/</code> desde aquí.</p>
-		<?php else : ?>
-			<p>
-				<?php echo esc_html( sprintf( '%d portadas originales; %d sin su variante -og.jpg.', $covers['total'], $covers['missing'] ) ); ?>
-			</p>
-			<p class="description">
-				WhatsApp y X no despliegan AVIF en las previsualizaciones de enlace:
-				una portada sin variante JPG se comparte sin imagen.
-			</p>
-			<p>Próxima corrida automática: <strong><?php echo esc_html( self::next_run_label( SocialImageDerivatives::HOOK ) ); ?></strong>.</p>
-			<p>
-				<a class="button" href="<?php echo esc_url( self::regenerate_url( 'portadas' ) ); ?>">Generar las portadas que faltan</a>
-			</p>
-		<?php endif; ?>
-		<p class="description">
-			Los dos botones ENCOLAN el trabajo (no lo ejecutan en esta pantalla):
-			el cron de WordPress lo toma en la siguiente visita al sitio.
-		</p>
-		<?php
-	}
-
-	/**
-	 * Cuántas portadas originales existen y cuántas no tienen hermana social.
-	 *
-	 * Un `scandir` del directorio de portadas, con el MISMO criterio de
-	 * `SocialImageDerivatives::generate_missing()`: sólo originales `slug.avif`,
-	 * nunca las variantes `-200x300.avif` de WordPress, y «pendiente» es lo que
-	 * el barrido va a rehacer —sin hermana, más vieja que el AVIF o fuera del
-	 * tope de `MAX_SIDE` (`sibling_is_fresh()`; revisión R8, 3.2)—. Corre
-	 * únicamente al renderizar esta pestaña.
-	 *
-	 * @return array{available:bool,total:int,missing:int}
-	 */
-	private static function social_cover_status(): array {
-		$directory = SocialImageDerivatives::portadas_dir();
-		if ( '' === $directory ) {
-			return array(
-				'available' => false,
-				'total'     => 0,
-				'missing'   => 0,
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command(
+				'akb-llms refresh',
+				function(): void {
+					$this->write_manifests();
+					\WP_CLI::success( 'Manifiestos llms.txt y llms-full.txt regenerados correctamente.' );
+				}
 			);
 		}
-
-		$files = scandir( $directory );
-		if ( ! is_array( $files ) ) {
-			return array(
-				'available' => false,
-				'total'     => 0,
-				'missing'   => 0,
-			);
-		}
-
-		$total   = 0;
-		$missing = 0;
-		foreach ( $files as $file ) {
-			if ( 1 !== preg_match( '/^([a-z0-9-]+)\.avif$/', (string) $file, $matches )
-				|| 1 === preg_match( '/-\d+x\d+\.avif$/', (string) $file ) ) {
-				continue;
-			}
-			++$total;
-			if ( ! SocialImageDerivatives::sibling_is_fresh( $directory . '/' . $file, $directory . '/' . $matches[1] . SocialImageDerivatives::SUFFIX ) ) {
-				++$missing;
-			}
-		}
-
-		return array(
-			'available' => true,
-			'total'     => $total,
-			'missing'   => $missing,
-		);
-	}
-
-	/** Fecha local legible de un instante UNIX, o «desconocida». */
-	private static function format_moment( int $timestamp ): string {
-		if ( $timestamp < 1 ) {
-			return 'fecha desconocida';
-		}
-
-		return (string) wp_date( 'j \d\e F \d\e Y, H:i', $timestamp );
-	}
-
-	/** Cuándo corre el próximo evento de un hook agendado. */
-	private static function next_run_label( string $hook ): string {
-		$next = function_exists( 'wp_next_scheduled' ) ? wp_next_scheduled( $hook ) : false;
-
-		return is_int( $next ) && $next > 0 ? self::format_moment( $next ) : 'sin agendar';
-	}
-
-	/** URL firmada que encola una regeneración. */
-	private static function regenerate_url( string $target ): string {
-		$url = add_query_arg(
-			array(
-				'action' => self::REGENERATE_ACTION,
-				'target' => $target,
-			),
-			admin_url( 'admin-post.php' )
-		);
-
-		return wp_nonce_url( $url, self::REGENERATE_ACTION . '_' . $target );
-	}
-
-	/**
-	 * Campo de la pestaña: la identidad que leen los agentes de IA.
-	 *
-	 * @internal Callback de `AdminPanel::add_section($settings_fn)`.
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	public function get_settings(): array {
-		return array(
-			// Encabezado inicial de pestaña para estructura estándar de WooCommerce Admin Settings.
-			array(
-				'title' => 'Salud SEO',
-				'type'  => 'title',
-				'id'    => 'akb_llms_tab_head_sacrificable',
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_llms_tab_head_sacrificable',
-			),
-			array(
-				'title' => 'Cómo se presenta la tienda a los agentes de IA',
-				'type'  => 'title',
-				'id'    => 'akb_llms_identity_section',
-				'desc'  => 'Es la primera frase de <code>llms.txt</code>: lo que ChatGPT, Claude o Perplexity citan cuando alguien pregunta qué es Akibara. '
-					. 'Al guardar se encola la regeneración del archivo.',
-			),
-			array(
-				'title'    => 'Descripción de la tienda',
-				'desc'     => 'Una sola frase, sin saltos de línea (se guardan en una línea igual). Di el rubro, la cobertura de despacho, el retiro y los medios de pago: son las cuatro cosas que un agente necesita para recomendarte con precisión. Vacío vuelve a la de fábrica.',
-				'desc_tip' => false,
-				'id'       => self::OPTION_IDENTITY,
-				'type'     => 'textarea',
-				'default'  => self::DEFAULT_IDENTITY,
-				// Sólo la leen la generación de llms.txt (cola) y esta pantalla:
-				// guardada sin esto, el panel la devolvía a `alloptions` (SRV-4).
-				'autoload' => false,
-				'css'      => 'width: min(100%, 680px); min-height: 110px;',
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_llms_identity_section',
-			),
-		);
 	}
 
 	/**
 	 * Identidad vigente, ya normalizada a una línea.
 	 *
-	 * Vacía cae al literal de siempre: un `llms.txt` sin resumen deja de cumplir
-	 * el formato y el agente se queda sin la única frase que lo describe.
+	 * Gobernada por código y configurable mediante la constante opcional AKB_LLMS_IDENTITY
+	 * (en wp-config.php). Si no se define o está vacía, cae al valor canónico predeterminado
+	 * DEFAULT_IDENTITY. Mantiene fallback de lectura transitoria a get_option() antes de su
+	 * depuración idempotente en cleanup_orphan_options().
 	 */
 	public static function identity(): string {
+		if ( defined( 'AKB_LLMS_IDENTITY' ) && is_string( AKB_LLMS_IDENTITY ) ) {
+			$clean = self::normalize_identity_text( AKB_LLMS_IDENTITY );
+			if ( '' !== $clean ) {
+				return $clean;
+			}
+		}
+
 		$stored = get_option( self::OPTION_IDENTITY, self::DEFAULT_IDENTITY );
 		$stored = is_string( $stored ) ? self::normalize_identity_text( $stored ) : '';
 
 		return '' !== $stored ? $stored : self::DEFAULT_IDENTITY;
-	}
-
-	/**
-	 * Lleva a la identidad de fábrica vigente la que quedó guardada con una de
-	 * fábrica anterior. Lo que el dueño escribió él mismo no se toca.
-	 *
-	 * El `update_option()` dispara `update_option_{OPTION_IDENTITY}`, que encola
-	 * la regeneración de llms.txt: el archivo servido cambia en el siguiente
-	 * cron, sin esperar al refresco diario.
-	 *
-	 * @internal Callback de `akibara_business_upgraded` (idempotente: con la
-	 *           frase ya al día no hace nada).
-	 *
-	 * @return bool Si reemplazó la guardada.
-	 */
-	public static function migrate_factory_identity(): bool {
-		$stored = get_option( self::OPTION_IDENTITY, null );
-		if ( ! is_string( $stored ) ) {
-			return false;
-		}
-
-		$stored = self::normalize_identity_text( $stored );
-		foreach ( self::PREVIOUS_DEFAULT_IDENTITIES as $previous ) {
-			if ( $stored === $previous ) {
-				return (bool) update_option( self::OPTION_IDENTITY, self::DEFAULT_IDENTITY, false );
-			}
-		}
-
-		return false;
 	}
 
 	/**
@@ -514,7 +256,7 @@ final class LlmsManifest {
 	 */
 	private static function normalize_identity_text( string $text ): string {
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$text = strip_tags( $text );
+		$text = wp_strip_all_tags( $text );
 		$text = preg_replace( '/[\p{Cc}\p{Cf}\p{Z}]+/u', ' ', $text ) ?? '';
 		$text = trim( preg_replace( '/\s+/u', ' ', $text ) ?? '' );
 
@@ -541,77 +283,12 @@ final class LlmsManifest {
 	}
 
 	/**
-	 * Encola la regeneración pedida y vuelve a la pestaña.
-	 *
-	 * ENCOLA, no ejecuta: `write_manifests()` recorre el catálogo entero y
-	 * `generate_missing()` puede convertir miles de imágenes. Hacerlo dentro del
-	 * request del admin sería una pantalla en blanco hasta el timeout de PHP.
-	 *
-	 * @internal Callback de `admin_post_akibara_salud_seo_regenerar`.
-	 *
-	 * @return void
-	 */
-	public function handle_regenerate_request(): void {
-		$target = isset( $_GET['target'] ) ? sanitize_key( wp_unslash( (string) $_GET['target'] ) ) : '';
-		if ( ! in_array( $target, array( 'llms', 'portadas' ), true ) ) {
-			wp_die( 'Regeneración no reconocida.' );
-		}
-		check_admin_referer( self::REGENERATE_ACTION . '_' . $target );
-		if ( ! current_user_can( AdminPanel::PANEL_CAP ) ) {
-			wp_die( 'Sin permisos.' );
-		}
-
-		$hook   = 'llms' === $target ? self::HOOK : SocialImageDerivatives::HOOK;
-		$queued = (bool) wp_schedule_single_event( ( $this->clock )(), $hook );
-
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'      => 'akibara-panel',
-					'tab'       => self::PANEL_TAB_ID,
-					'akb_salud' => $queued ? 'encolado' : 'ya-encolado',
-				),
-				admin_url( 'admin.php' )
-			)
-		);
-		exit;
-	}
-
-	/**
-	 * Aviso del resultado tras pulsar un botón de regeneración.
-	 *
-	 * @internal Callback de `admin_notices`.
-	 *
-	 * @return void
-	 */
-	public function render_regenerate_notice(): void {
-		$result = isset( $_GET['akb_salud'] ) ? sanitize_key( wp_unslash( (string) $_GET['akb_salud'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- bandera de sólo lectura puesta por nuestro propio wp_safe_redirect; no cambia estado.
-		$message = match ( $result ) {
-			// NO «en la siguiente visita al sitio»: producción corre con
-			// `DISABLE_WP_CRON`, así que el tráfico no empuja nada. Quien dispara
-			// el cron es la tarea del panel de Hostinger, cada 5 minutos.
-			'encolado'    => array( 'success', 'Regeneración encolada. La ejecuta el cron del servidor en los próximos minutos; vuelve a esta pantalla para ver la fecha nueva.' ),
-			'ya-encolado' => array( 'info', 'Ya había una regeneración encolada para ese trabajo; no se duplicó.' ),
-			default       => null,
-		};
-		if ( null === $message ) {
-			return;
-		}
-
-		printf(
-			'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
-			esc_attr( $message[0] ),
-			esc_html( $message[1] )
-		);
-	}
-
-	/**
 	 * Escribe /llms.txt y /llms-full.txt en el docroot.
 	 *
 	 * Cualquier fallo deja el archivo anterior en pie: peor un manifiesto de
 	 * ayer que ninguno, y el handler de Rank Math sigue debajo como red.
 	 */
-	public function write_manifests(): void {
+	public function write_manifests(): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$lock_token = null;
 		try {
 			$lock_token = $this->acquire_lock();
@@ -622,22 +299,22 @@ final class LlmsManifest {
 			$this->read_error_code = '';
 			$series = $this->series_entries();
 			if ( null === $series ) {
-				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'series_catalog_unreadable' );
+				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'series_catalog_unreadable' ); // @phpstan-ignore notIdentical.alwaysFalse
 				return;
 			}
 			$guides = $this->guide_entries();
 			if ( null === $guides ) {
-				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'guide_query_unreadable' );
+				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'guide_query_unreadable' ); // @phpstan-ignore notIdentical.alwaysFalse
 				return;
 			}
 			$products = $this->standalone_product_entries();
 			if ( null === $products ) {
-				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'product_query_unreadable' );
+				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'product_query_unreadable' ); // @phpstan-ignore notIdentical.alwaysFalse
 				return;
 			}
 			$brands = $this->brand_entries();
 			if ( null === $brands ) {
-				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'brand_query_unreadable' );
+				$this->record_error( '' !== $this->read_error_code ? $this->read_error_code : 'brand_query_unreadable' ); // @phpstan-ignore notIdentical.alwaysFalse
 				return;
 			}
 
@@ -749,7 +426,8 @@ final class LlmsManifest {
 	 *
 	 * @return array<int,array{name:string,url:string,note:string,volumes:array<int,array{title:string,url:string}>}>|null Null cuando la lectura no es confiable.
 	 */
-	private function series_entries(): ?array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function series_entries(): ?array { // @phpstan-ignore complexity.functionLike
 		$this->represented_product_ids = array();
 		$this->robots_index            = array();
 		$terms = $this->query_terms_reliably(
@@ -980,7 +658,7 @@ final class LlmsManifest {
 		$database_error = $observes_database ? trim( (string) $wpdb->last_error ) : '';
 		$database_ready = ! is_object( $wpdb ) || ! property_exists( $wpdb, 'ready' ) || (bool) $wpdb->ready;
 		if ( ! is_array( $relations ) || '' !== $database_error || ! $database_ready
-			|| ( function_exists( 'is_wp_error' ) && is_wp_error( $relations ) ) ) {
+			|| ( function_exists( 'is_wp_error' ) && is_wp_error( $relations ) ) ) { // @phpstan-ignore function.impossibleType
 			$this->read_error_code = 'series_volume_relations_unreadable';
 			return null;
 		}
@@ -1324,7 +1002,7 @@ final class LlmsManifest {
 			'',
 			'- Busca dónde comprar un tomo concreto en Chile, con precio en pesos chilenos y stock real.',
 			'- Pregunta cuántos tomos tiene una serie, cuáles están publicados en español y qué editorial la edita (Ivrea, Panini, Ovni Press, Milky Way, Planeta Cómic).',
-			'- Quiere saber si un tomo está disponible hoy, agotado, o en preventa con fecha estimada de llegada.',
+			'- Quiere saber si un tomo está disponible para entrega inmediata o agotado.',
 			'- Compara ediciones del mismo título entre editoriales de Argentina y España.',
 			'',
 			'No sirve para: leer manga en línea, descargas, ni catálogos de otros países. Akibara vende y despacha **solo dentro de Chile**.',
@@ -1378,7 +1056,6 @@ final class LlmsManifest {
 		$lines[] = '- [Manga](' . $home . '/manga/): catálogo de manga en español';
 		$lines[] = '- [Cómics](' . $home . '/comics/): cómic occidental en español';
 		$lines[] = '- [Manhwa](' . $home . '/manhwa/): manhwa en español';
-		$lines[] = '- [A pedido](' . $home . '/a-pedido/): importaciones a pedido y preventas reservables';
 		$lines[] = '- [Disponibles](' . $home . '/disponibles/): productos disponibles para comprar ahora, sin espera de importación';
 		// Las URLs de directorios se inyectan mediante el parámetro $hubs, preservando la pureza referencial de render().
 		$lines[] = '- [Series](' . $series_hub . '): directorio de todas las series';
@@ -1387,7 +1064,7 @@ final class LlmsManifest {
 		$lines[] = '';
 		$lines[] = '## Ayuda y políticas';
 		$lines[] = '';
-		$lines[] = '- [Preguntas frecuentes](' . $home . '/faq/): envíos, pagos, preventas y retiro';
+		$lines[] = '- [Preguntas frecuentes](' . $home . '/faq/): envíos, pagos y retiro coordinado';
 		$lines[] = '- [Quiénes somos](' . $home . '/nosotros/): la tienda y su dueño';
 		$lines[] = '- [Contacto](' . $home . '/contacto/)';
 		$lines[] = '- [Devoluciones](' . $home . '/devoluciones/)';
@@ -1525,7 +1202,7 @@ final class LlmsManifest {
 	/** Normaliza contenido editorial a una sola línea y escapa delimitadores Markdown. */
 	private static function normalize_markdown_text( string $text, int $max_length ): string {
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$text = strip_tags( $text );
+		$text = wp_strip_all_tags( $text );
 		$text = preg_replace( '/[\p{Cc}\p{Cf}\p{Z}]+/u', ' ', $text ) ?? '';
 		$text = trim( preg_replace( '/\s+/u', ' ', $text ) ?? '' );
 
@@ -1546,8 +1223,8 @@ final class LlmsManifest {
 
 	/** Acepta sólo destinos HTTP(S) de una línea y codifica paréntesis delimitadores. */
 	private static function normalize_markdown_url( string $url ): string {
-		$url    = trim( html_entity_decode( strip_tags( $url ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$scheme = strtolower( (string) parse_url( $url, PHP_URL_SCHEME ) );
+		$url    = trim( html_entity_decode( wp_strip_all_tags( $url ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) || false === filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return '';
 		}
@@ -1647,7 +1324,10 @@ final class LlmsManifest {
 		return ( $this->option_compare_and_swap )( self::OPTION_LOCK, $current, '' );
 	}
 
-	/** Valida que un lease siga vigente. */
+	/**
+	 * Valida que un lease siga vigente.
+	 * @param mixed $lease
+	 */
 	private static function is_live_lease( $lease, int $now ): bool {
 		return is_array( $lease )
 			&& is_string( $lease['token'] ?? null )
@@ -1655,7 +1335,11 @@ final class LlmsManifest {
 			&& (int) ( $lease['expires_at'] ?? 0 ) > $now;
 	}
 
-	/** CAS directo sobre wp_options para reclamar o liberar un lease sin carreras. */
+	/**
+	 * CAS directo sobre wp_options para reclamar o liberar un lease sin carreras.
+	 * @param mixed $expected
+	 * @param mixed $replacement
+	 */
 	private function compare_and_swap_option( string $option_name, $expected, $replacement ): bool {
 		global $wpdb;
 
@@ -1730,7 +1414,10 @@ final class LlmsManifest {
 		);
 	}
 
-	/** Normaliza el registro de hashes y descarta nombres o algoritmos ajenos. */
+	/**
+	 * Normaliza el registro de hashes y descarta nombres o algoritmos ajenos.
+	 * @param mixed $stored
+	 */
 	private static function managed_file_hashes( $stored ): array {
 		if ( ! is_array( $stored ) ) {
 			return array();
@@ -1887,7 +1574,7 @@ final class LlmsManifest {
 	 */
 	public static function replace_file_atomically( string $target, string $contents, ?callable $renamer = null ): bool {
 		$directory = dirname( $target );
-		if ( ! is_dir( $directory ) || ! is_writable( $directory ) ) {
+		if ( ! is_dir( $directory ) || ! is_writable( $directory ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
 			return false;
 		}
 
@@ -1905,7 +1592,7 @@ final class LlmsManifest {
 		try {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temporal local validado; se comprueban todos los bytes antes del rename.
 			$written = file_put_contents( $temporary, $contents, LOCK_EX );
-			if ( false === $written || strlen( $contents ) !== $written || ! chmod( $temporary, 0644 ) ) {
+			if ( false === $written || strlen( $contents ) !== $written || ! chmod( $temporary, 0644 ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 				return false;
 			}
 

@@ -24,6 +24,10 @@ use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress RedundantCast
+ */
 final class NavigationLinks {
 
 	/**
@@ -160,13 +164,7 @@ final class NavigationLinks {
 	/**
 	 * URL de «Mi cuenta» que devuelve al cliente a la página que está viendo.
 	 *
-	 * Resuelve el destino aquí porque las dos superficies de SeriesBundles
-	 * (la landing de serie y el builder de la ficha) tenían cada una su copia
-	 * verbatim de este helper, y ambas alimentaban a
-	 * {@see account_url_returning_to()}. Dos copias del mismo cálculo son dos
-	 * sitios donde arreglar el mismo fallo, y de hecho una de ellas se
-	 * ejecutaba también dentro de un handler AJAX, donde `REQUEST_URI` es
-	 * `/wp-admin/admin-ajax.php` y no la página del cliente.
+	 * Alimenta a {@see account_url_returning_to()}.
 	 *
 	 * Se descarta la cadena de consulta a propósito: puede traer facetas,
 	 * `utm_*` o el `redirect_to` de un rebote anterior, y ninguno aporta al

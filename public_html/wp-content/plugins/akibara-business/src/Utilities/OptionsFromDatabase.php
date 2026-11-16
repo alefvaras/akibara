@@ -4,8 +4,7 @@
  *
  * Las tarjetas que confirman un guardado necesitan observar las filas escritas,
  * sin mezclar un blob persistente de alloptions de otra petición con el estado
- * nuevo. La lectura agrupada comparte una fuente para TaxonomyDiscount y
- * SeriesBundles y usa una consulta por lote, no una consulta por clave.
+ * nuevo. La lectura agrupada usa una consulta por lote, no una consulta por clave.
  * No sustituye las estrategias de caché del frontend.
  *
  * @package Akibara\Business
@@ -17,6 +16,9 @@ namespace Akibara\Business\Utilities;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class OptionsFromDatabase {
 
 	/**
@@ -47,7 +49,7 @@ final class OptionsFromDatabase {
 			ARRAY_A
 		);
 
-		if ( ! is_array( $filas ) ) {
+		if ( ! empty( $wpdb->last_error ) || ! is_array( $filas ) ) {
 			return null;
 		}
 

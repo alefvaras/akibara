@@ -16,6 +16,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.53.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class UnsubscribeHandler {
 

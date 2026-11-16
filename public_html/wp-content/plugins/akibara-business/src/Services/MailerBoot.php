@@ -43,6 +43,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.115.20
+ * @api
  */
 final class MailerBoot {
 

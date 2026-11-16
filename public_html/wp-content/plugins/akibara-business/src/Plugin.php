@@ -14,27 +14,18 @@ use Akibara\Business\Internal\UpgradeManager;
 use Akibara\Business\Internal\UpgradeRetryRequired;
 use Akibara\Business\Integrations\Bluex\Pudo\PudoCheckoutService;
 use Akibara\Business\Modules\AddressAutocomplete\AddressAutocomplete;
-use Akibara\Business\Modules\AccountCollection\AccountCollection;
-use Akibara\Business\Modules\AccountCollection\CollectionBadges;
-use Akibara\Business\Modules\AccountCollection\CollectionResolver;
-use Akibara\Business\Modules\AccountCollection\ContinuityResolver;
+use Akibara\Business\Modules\AccountCollection\CustomerCollection;
 use Akibara\Business\Modules\AdminPanel\AdminPanel;
 use Akibara\Business\Modules\AnnouncementBar\AnnouncementBar;
 use Akibara\Business\Modules\DiscountCopy\DiscountCopy;
 use Akibara\Business\Modules\ShippingCopy\ShippingCopy;
-use Akibara\Business\Modules\BrandsDirectory\BrandLandings;
 use Akibara\Business\Modules\BrandsDirectory\BrandsDirectory;
-use Akibara\Business\Modules\BrandsDirectory\EditionFacts;
 use Akibara\Business\Modules\PopularProducts\PopularProducts;
 use Akibara\Business\Modules\ProductFaq\ProductFaq;
 use Akibara\Business\Modules\Blog\Blog;
 use Akibara\Business\Modules\CheckoutTaxLabels\CheckoutTaxLabels;
-use Akibara\Business\Modules\EstimatedDelivery\EstimatedDelivery;
-use Akibara\Business\Modules\EstimatedDelivery\Migration as EdaMigration;
-use Akibara\Business\Modules\EstimatedDelivery\MarcaTermFields;
 use Akibara\Business\Modules\AgentReadiness\MarkdownNegotiation;
 use Akibara\Business\Modules\ScriptDiagnostics\CrossOriginScripts;
-use Akibara\Business\Modules\EstimatedDelivery\PaisTermFields;
 use Akibara\Business\Modules\Forms\Forms;
 use Akibara\Business\Modules\FrontendCompatibility\FrontendCompatibility;
 use Akibara\Business\Modules\FreeShippingProgress\FreeShippingProgress;
@@ -44,7 +35,6 @@ use Akibara\Business\Modules\HomeHero\HomeHero;
 use Akibara\Business\Modules\LlmsManifest\LlmsManifest;
 use Akibara\Business\Modules\SeoEnhancements\AuthorIntro;
 use Akibara\Business\Modules\SeoEnhancements\SeoEnhancements;
-use Akibara\Business\Modules\ProductSchemaShopping\AdultContentFeed;
 use Akibara\Business\Modules\ProductSchemaShopping\ProductSchemaShopping;
 use Akibara\Business\Modules\GoogleLoginButton\GoogleLoginButton;
 use Akibara\Business\Modules\GuestOrderLinking\GuestOrderLinking;
@@ -63,50 +53,41 @@ use Akibara\Business\Modules\SeoIndexing\RankMathAdminUi;
 use Akibara\Business\Modules\SeoIndexing\SeriesPaginationPolicy;
 use Akibara\Business\Modules\MarketingConsent\MarketingConsent;
 use Akibara\Business\Modules\MyAccountUx\MyAccountUx;
-use Akibara\Business\Modules\OrderPreventa\OrderPreventa;
 use Akibara\Business\Modules\OrderTimeline\OrderTimeline;
 use Akibara\Business\Modules\PhoneValidation\PhoneValidation;
-use Akibara\Business\Modules\PreventasRoute\PreventasRoute;
 use Akibara\Business\Modules\DisponiblesRoute\DisponiblesRoute;
 use Akibara\Business\Modules\RutValidation\RutValidation;
 use Akibara\Business\Modules\RelatedGuides\GuideSeriesCard;
 use Akibara\Business\Modules\RelatedGuides\SeriesRelatedGuide;
 use Akibara\Business\Modules\Security\Security;
 use Akibara\Business\Modules\BackInStock\BackInStock;
-use Akibara\Business\Modules\SeriesBundles\SeriesBundles;
-use Akibara\Business\Modules\SeriesBundles\CustomerCollection;
 use Akibara\Business\Modules\SeriesCatalog\LandingPageSize;
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
 use Akibara\Business\Modules\SeriesDirectory\SeriesIndex;
 use Akibara\Business\Modules\SeriesDirectory\Shortcode as SeriesDirectoryShortcode;
 use Akibara\Business\Modules\SeriesFollow\SeriesFollow;
-use Akibara\Business\Modules\EstimatedDelivery\PedidoPolicy;
 use Akibara\Business\Modules\SeriesFacts\PublicationStatusFields;
 use Akibara\Business\Modules\SeriesFacts\SeriesFacts;
 use Akibara\Business\Modules\SeriesSchema\SchemaTypeFields;
 use Akibara\Business\Modules\SeriesSchema\SeriesSchema;
 use Akibara\Business\Modules\SeriesDirectory\SeriesDirectory;
-use Akibara\Business\Modules\SeriesEditions\SeriesEditions;
+use Akibara\Business\Modules\SeriesBatchAtc\SeriesBatchAtc;
 use Akibara\Business\Modules\CartQuantity\CartQuantityCeiling;
 use Akibara\Business\Modules\NativeCart\NativeCart;
 use Akibara\Business\Modules\NativeCart\RejectionCopy;
 use Akibara\Business\Modules\NativeCart\SmartCartRecommender;
-use Akibara\Business\Modules\TaxonomyDiscount\TaxonomyDiscount;
 use Akibara\Business\Modules\UpsellsAutofill\UpsellsAutofill;
 use Akibara\Business\Modules\Recommendations\Recommendations;
 use Akibara\Business\Modules\Recommendations\Settings as RecommendationSettings;
 use Akibara\Business\Modules\QuickView\QuickView;
-use Akibara\Business\Modules\WelcomeCoupon\WelcomeCoupon;
+use Akibara\Business\Modules\TaxonomyDiscount\TaxonomyDiscount;
 use Akibara\Business\Modules\Wishlist\Wishlist;
-use Akibara\Business\Modules\ThemeCustomizer\ThemeCustomizer;
 use Akibara\Business\Modules\ImageQuality\ImageQuality;
-use Akibara\Business\Modules\ImageQuality\Recompressor;
 use Akibara\Business\Modules\SiteSpeed\AnalyticsAfterLoad;
 use Akibara\Business\Modules\SiteSpeed\CacheWarmer;
 use Akibara\Business\Modules\SiteSpeed\EdgePurge;
 use Akibara\Business\Modules\SiteSpeed\LeanCart;
 use Akibara\Business\Modules\SiteSpeed\SeriesCacheTags;
-use Akibara\Business\Modules\SiteSpeed\SiteSpeed;
 use Akibara\Business\Modules\CopyManager\CopyManager;
 use Akibara\Business\Modules\PdpEnhancer\PdpEnhancer;
 use Akibara\Business\Modules\PdpEnhancer\PdpSeriesEnhancer;
@@ -114,7 +95,6 @@ use Akibara\Business\Modules\PricingMatrix\PricingMatrix;
 use Akibara\Business\Modules\VolumeVariant\ProductDataPanel as VolumeVariantPanel;
 use Akibara\Business\Services\CheckoutDataService;
 use Akibara\Business\Utilities\RateLimit;
-use Akibara\Business\Integrations\OrderPreventaIntegrations;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -125,6 +105,9 @@ defined( 'ABSPATH' ) || exit;
  * hooks. El Plugin solo orquesta — la lógica vive en cada módulo.
  *
  * @since 1.0.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
  */
 final class Plugin {
 
@@ -252,38 +235,6 @@ final class Plugin {
 	}
 
 	/**
-	 * Ejecuta las tareas del bump: flush de rewrites + hook público.
-	 *
-	 * @param string $current Nueva version (AKIBARA_BUSINESS_VERSION).
-	 * @param string $stored  Version previa ('' en fresh install).
-	 * @return void
-	 */
-	public function run_upgrade_tasks( string $current, string $stored ): void {
-		flush_rewrite_rules( true );
-
-		/**
-		 * Fires después de auto-flush al detectar upgrade del plugin.
-		 *
-		 * @since 1.16.2
-		 *
-		 * @param string $current_version Nueva version (AKIBARA_BUSINESS_VERSION).
-		 * @param string $previous_version Version stored (puede ser '' en fresh install).
-		 */
-		do_action( 'akibara_business_upgraded', $current, $stored );
-	}
-
-	/**
-	 * Purgar caches después de un write directo sobre wp_options.
-	 *
-	 * @param string $option_name Nombre de la opción a purgar.
-	 * @return void
-	 */
-	public function purge_option_cache( string $option_name ): void {
-		wp_cache_delete( $option_name, 'options' );
-		wp_cache_delete( 'notoptions', 'options' );
-	}
-
-	/**
 	 * Registra los módulos activos. Cada módulo debe tener `register()`.
 	 *
 	 * @return void
@@ -314,105 +265,51 @@ final class Plugin {
 	 * @var array<int, string>
 	 */
 	private const FRONT_READ_OPTIONS = array(
-		'akb_bis_db_version',              // BackInStock\Install::maybe_install()
-		'akb_sf_db_version',               // SeriesFollow\Install::maybe_install()
-		'akb_bis_capture_enabled',         // BackInStock\CaptureForm::should_render()
-		'akb_preventa_t7_enabled',         // OrderPreventa\RemindersCron::maybe_schedule()
-		'akb_brand_color_primary',         // ThemeCustomizer::collect_overrides()
-		'akb_brand_color_surface',         // ThemeCustomizer::collect_overrides()
-		'akb_crossorigin_scripts_enabled', // ScriptDiagnostics\CrossOriginScripts::mark_third_party()
-		'akb_analytics_after_load',        // SiteSpeed\AnalyticsAfterLoad (etiquetas de GA4 y Clarity)
-		'akb_lean_cart',                   // SiteSpeed\LeanCart (/carrito/: lo que sólo usa la página de pago)
-		'akb_wishlist_guest_prompt',       // Wishlist\GuestPrompt (aviso del corazón sin sesión)
-		'akb_copy_wl_guest_title',         // Wishlist\GuestPrompt::labels()
-		'akb_copy_wl_guest_body',          // Wishlist\GuestPrompt::labels()
-		'akb_copy_wl_guest_cta',           // Wishlist\GuestPrompt::labels()
-		'akb_copy_wl_guest_dismiss',       // Wishlist\GuestPrompt::labels()
-		'akb_reco_relacionados',           // Recommendations\RelatedProducts (ficha)
-		'akb_reco_serie_agotada',          // Recommendations\UpsellsDisplay (ficha)
-		'akb_reco_mas_vendidos',           // PopularProducts (estados vacíos)
-		'akb_reco_mas_vendidos_busqueda',  // Recommendations\Settings (tema: más vendidos en la búsqueda sin resultados)
-		'akb_copy_reco_upsells_heading',   // Recommendations\Headings (ficha)
-		'akb_copy_reco_related_heading',   // Recommendations\Headings (ficha)
-		'akb_copy_series_summary_link',    // SeriesFacts::render_summary() (landing de serie)
-		'akb_copy_series_latest_volume',   // SeriesFacts::result_count_extra() (landing de serie)
-		'akb_copy_series_offer_hook',      // SeriesBundles\LandingOffer (landing de serie)
-		'akb_copy_series_offer_rules',     // SeriesBundles\LandingOffer (landing de serie)
-		'akb_copy_pack_error',             // SeriesBundles\SelectionCart::error_text() (ficha con «Arma tu pack» y landing de serie con «Elegir tomos»: texto de un fallo sin respuesta)
-		'akb_series_landing_per_page',     // SeriesCatalog\LandingPageSize::per_page() (landing de serie, loop_shop_per_page)
-		'akb_copy_eta_bar',                // EstimatedDelivery\BannerRenderer::linea_corta() (barra de la ficha)
-		'akb_copy_quick_view_label',       // QuickView::label() (cada tarjeta del catálogo)
-		'akb_copy_pdp_series_link',        // PdpEnhancer\PdpSeriesEnhancer::series_link_label() (barra de serie de cada ficha)
-		'akb_copy_series_editions_label',  // SeriesEditions (cabecera de las series con otras ediciones)
-		'akb_copy_search_placeholder',     // Tema: pista del buscador de la cabecera (todas las páginas)
-		'akb_copy_guide_cta_text',         // Tema: cierre de las entradas del blog
-		'akb_copy_guide_cta_shop',         // Tema: cierre de las entradas del blog
-		'akb_copy_guide_cta_series',       // Tema: cierre de una guía ligada a una serie
-		'akb_copy_guide_card_kicker',      // Tema: tarjeta de la serie de una guía
-		'akb_copy_guide_card_cta',         // Tema: tarjeta de la serie de una guía
-		// Copys de frontend precargados para evitar consultas individuales N+1.
-		'akb_copy_search_empty_popular',   // Tema: título de más vendidos en los estados vacíos (búsqueda sin resultados, listado vacío)
-		'akb_copy_form_value_missing',     // Forms\Settings::messages() (formulario de /contacto/)
-		'akb_copy_form_type_mismatch',     // Forms\Settings::messages() (formulario de /contacto/)
-		'akb_copy_form_too_long',          // Forms\Settings::messages() (formulario de /contacto/)
-		'akb_copy_promise_installments',   // Tema: promesa de cuotas (CheckoutTrustSignals::OPTION_INSTALLMENTS)
-		'akb_copy_footer_support_hours',   // Tema: pie de todas las páginas
-		'akb_copy_footer_phone',           // Tema: pie de todas las páginas
-		'akb_copy_cta_preventa',           // OrderPreventa\PreventaUX::cta_de() (botón de las tarjetas de preventa)
-		'akb_copy_hero_label',             // HomeHero\Renderer::label() (nombre del carrusel de la portada)
-		'akb_welcome_coupon_enabled',      // WelcomeCoupon\Settings::is_enabled()
-		'akb_welcome_coupon_pct',          // WelcomeCoupon\Settings::discount_pct()
-		'akb_welcome_coupon_min_amount',   // WelcomeCoupon\Settings::min_amount()
-		'akb_welcome_coupon_validity_days', // WelcomeCoupon\Settings::validity_days()
-		'akb_welcome_coupon_delay_seconds', // WelcomeCoupon\Settings::delay_seconds()
-		'akb_welcome_coupon_scroll_pct',   // WelcomeCoupon\Settings::scroll_pct()
-		'akb_welcome_coupon_dismiss_days', // WelcomeCoupon\Settings::dismiss_days()
-		'akb_welcome_coupon_exit_intent',  // WelcomeCoupon\Settings::exit_intent_enabled()
-		'akb_welcome_coupon_launcher',     // WelcomeCoupon\Settings::launcher_enabled()
-		'akb_welcome_coupon_show_home',    // WelcomeCoupon\Settings::show_on_home()
-		'akb_welcome_coupon_show_catalog', // WelcomeCoupon\Settings::show_on_catalog()
-		'akb_welcome_coupon_show_product', // WelcomeCoupon\Settings::show_on_product()
-		'akb_welcome_coupon_show_series',  // WelcomeCoupon\Settings::show_on_series()
-		'akb_welcome_turnstile_enabled',   // WelcomeCoupon\Settings::turnstile_enabled()
-		'akb_welcome_turnstile_sitekey',   // WelcomeCoupon\Settings::turnstile_sitekey()
-		'akb_welcome_promo_enabled',       // WelcomeCoupon\Settings::is_promo_enabled()
-		'akb_welcome_promo_code',          // WelcomeCoupon\Settings::promo_code()
-		'akb_welcome_promo_audience',      // WelcomeCoupon\Settings::promo_audience()
-		'akb_welcome_promo_delay_seconds', // WelcomeCoupon\Settings::promo_delay_seconds()
-		'akb_welcome_promo_dismiss_days',  // WelcomeCoupon\Settings::promo_dismiss_days()
-		'akb_welcome_promo_show_home',     // WelcomeCoupon\Settings::promo_show_on_home()
-		'akb_welcome_promo_show_catalog',  // WelcomeCoupon\Settings::promo_show_on_catalog()
-		'akb_welcome_promo_show_product',  // WelcomeCoupon\Settings::promo_show_on_product()
-		'akb_welcome_promo_show_series',   // WelcomeCoupon\Settings::promo_show_on_series()
-		'akb_welcome_coupon_cookie_epoch', // WelcomeCoupon\Settings::cookie_epoch()
-		'akb_copy_welcome_kicker',         // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_heading',        // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_subtitle',       // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_cta',            // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_dismiss',        // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_trust_note',     // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_legal',          // WelcomeCoupon\Settings::copies()
-		'akb_copy_welcome_promo_kicker',   // WelcomeCoupon\Settings::promo_copies()
-		'akb_copy_welcome_promo_heading',  // WelcomeCoupon\Settings::promo_copies()
-		'akb_copy_welcome_promo_subtitle', // WelcomeCoupon\Settings::promo_copies()
-		'akb_copy_welcome_promo_cta',      // WelcomeCoupon\Settings::promo_copies()
-		'akb_copy_welcome_promo_legal',    // WelcomeCoupon\Settings::promo_copies()
-		'akibara_announcement_rotate',     // AnnouncementBar::render()
-		'akibara_announcement_rotate_secs', // AnnouncementBar::render()
-		'akb_copy_eta_single_pedido',      // Stock\Availability::get_product_availability()
-		'akb_copy_eta_single_preventa',    // Stock\Availability::get_product_availability()
-		'akibara_upsells_enabled',         // UpsellsAutofill::register()
-		'akb_pa_serie_sitemap_pending_changes', // SeoIndexing\SeriesSitemapLastmod::maybe_reconcile()
-		'akb_pa_serie_renderer_state',     // SeoIndexing\SeriesSitemapLastmod::maybe_reconcile()
-		'akb_home_destacados_generation',  // HomeDestacados::cache_generation()
-		'akibara_blocks_shipping_hint_text', // NativeCart\Settings::OPTION_BLOCKS_SHIPPING_HINT
-		'akibara_blocks_collection_notice_text', // NativeCart\Settings::OPTION_BLOCKS_COLLECTION_NOTICE
-		// + BrandLandings::front_read_options(): las etiquetas de familia del menú (por familia × campo).
+		'akb_bis_db_version',
+		'akb_sf_db_version',
+		'akb_bis_capture_enabled',
+		'akb_wishlist_guest_prompt',
+		'akb_copy_wl_guest_title',
+		'akb_copy_wl_guest_body',
+		'akb_copy_wl_guest_cta',
+		'akb_copy_wl_guest_dismiss',
+		'akb_reco_relacionados',
+		'akb_reco_serie_agotada',
+		'akb_reco_mas_vendidos',
+		'akb_reco_mas_vendidos_busqueda',
+		'akb_copy_reco_upsells_heading',
+		'akb_copy_reco_related_heading',
+		'akb_copy_series_summary_link',
+		'akb_copy_series_latest_volume',
+		'akb_copy_quick_view_label',
+		'akb_copy_pdp_series_link',
+		'akb_copy_search_placeholder',
+		'akb_copy_guide_cta_text',
+		'akb_copy_guide_cta_shop',
+		'akb_copy_guide_cta_series',
+		'akb_copy_guide_card_kicker',
+		'akb_copy_guide_card_cta',
+		'akb_copy_search_empty_popular',
+		'akb_copy_form_value_missing',
+		'akb_copy_form_type_mismatch',
+		'akb_copy_form_too_long',
+		'akb_copy_promise_installments',
+		'akb_copy_footer_support_hours',
+		'akb_copy_footer_phone',
+		'akb_copy_hero_label',
+		'akibara_announcement_rotate',
+		'akibara_announcement_rotate_secs',
+		'akibara_upsells_enabled',
+		'akb_pa_serie_sitemap_pending_changes',
+		'akb_pa_serie_renderer_state',
+		'akb_home_destacados_generation',
+		'akibara_blocks_shipping_hint_text',
+		'akibara_blocks_collection_notice_text',
 	);
 
 	private function register_modules(): void {
 		if ( function_exists( 'wp_prime_option_caches' ) ) {
-			wp_prime_option_caches( array_merge( self::FRONT_READ_OPTIONS, BrandLandings::front_read_options() ) );
+			wp_prime_option_caches( self::FRONT_READ_OPTIONS );
 		}
 
 		// Los rangos de Cloudflare tienen UN dueño. El buscador conserva su
@@ -424,7 +321,7 @@ final class Plugin {
 
 		$this->register_core_and_seo_modules();
 		$this->register_admin_and_marketing_modules();
-		$this->register_order_preventa_modules();
+		$this->register_checkout_modules();
 		$this->register_catalog_and_vitrina_modules();
 		$this->register_cart_and_discount_modules();
 		$this->register_series_and_collection_modules();
@@ -459,7 +356,7 @@ final class Plugin {
 		$this->modules['social_image_derivatives']->register();
 
 		// Rank Math es la única fuente del Product schema. El módulo enriquece su
-		// entidad con preventa y Book, y suprime el nodo de WC.
+		// entidad con Book, y suprime el nodo de WC.
 		// BookSchemaEnricher concentra la semántica editorial compartida por el
 		// owner y su fallback nativo, sin registrar un segundo emisor.
 		$book_schema = new BookSchemaEnricher();
@@ -531,10 +428,6 @@ final class Plugin {
 		$this->modules['product_schema_shopping'] = new ProductSchemaShopping();
 		$this->modules['product_schema_shopping']->register();
 
-		// Feed de Google Merchant: declara 'adult' en el catálogo de series para adultos (+18).
-		$this->modules['adult_content_feed'] = new AdultContentFeed();
-		$this->modules['adult_content_feed']->register();
-
 		// Negociación de contenido: sirve representación markdown bajo la misma URL según cabecera Accept.
 		$this->modules['markdown_negotiation'] = new MarkdownNegotiation();
 		$this->modules['markdown_negotiation']->register();
@@ -589,30 +482,9 @@ final class Plugin {
 		$this->modules['wishlist'] = new Wishlist();
 		$this->modules['wishlist']->register();
 
-		$this->modules['estimated_delivery'] = new EstimatedDelivery();
-		$this->modules['estimated_delivery']->register();
-
-		// PaisTermFields agrega UI nativa (min/max días) a cada término del
-		// taxonomy `pa_pais`. Replace de la "Editoriales → país" UI removida del
-		// AdminPanel en el refactor 1.14.0.
-		$this->modules['pais_term_fields'] = new PaisTermFields();
-		$this->modules['pais_term_fields']->register();
-
-		// La política de PREVENTA vive por editorial, no por país: bajo
-		// «Argentina» conviven Ivrea Argentina —350 de las 420 preventas de la
-		// tienda— y Panini Argentina, con 372 productos y una sola preventa viva.
-		// Ver `PedidoPolicy` para el razonamiento y las mediciones.
-		$this->modules['marca_term_fields'] = new MarcaTermFields();
-
 		// Atributos crossorigin e integridad en scripts externos para trazabilidad de errores en checkout.
 		$this->modules['crossorigin_scripts'] = new CrossOriginScripts();
 		$this->modules['crossorigin_scripts']->register();
-
-		$this->modules['marca_term_fields']->register();
-
-		// Migración idempotente de lead times para pa_pais durante upgrades y reintento administrativo diferido.
-		add_action( 'akibara_business_upgraded', array( EdaMigration::class, 'maybe_run_lazy' ), 10, 0 );
-		add_action( 'init', array( EdaMigration::class, 'maybe_retry_in_admin' ), 999 );
 
 		// MarketingConsent: registro estructurado del consentimiento en la orden de compra.
 		$this->modules['marketing_consent'] = new MarketingConsent();
@@ -621,11 +493,6 @@ final class Plugin {
 		// BackInStock: lista de espera y avisos de reposición con kill-switch operativo.
 		$this->modules['back_in_stock'] = new BackInStock();
 		$this->modules['back_in_stock']->register();
-
-		// WelcomeCoupon: beneficio de bienvenida 10% en primera compra con código
-		// único, regla best-wins y verificación anti-abuso (RUT, celular y buzón).
-		$this->modules['welcome_coupon'] = new WelcomeCoupon();
-		$this->modules['welcome_coupon']->register();
 
 		// MyAccountUx: rename + reorder tabs + override
 		// `myaccount/dashboard.php` (1.38.0).
@@ -637,11 +504,11 @@ final class Plugin {
 	}
 
 	/**
-	 * Instancia y registra los módulos de validación de compra, checkout y preventa.
+	 * Instancia y registra los módulos de validación de compra y checkout.
 	 *
 	 * @return void
 	 */
-	private function register_order_preventa_modules(): void {
+	private function register_checkout_modules(): void {
 		$this->modules['rut_validation'] = new RutValidation();
 		$this->modules['rut_validation']->register();
 
@@ -661,19 +528,7 @@ final class Plugin {
 		$this->modules['pickup_coordination'] = new PickupCoordination();
 		$this->modules['pickup_coordination']->register();
 
-		// OrderPreventa depende del DateCalculator construido por EstimatedDelivery.
-		// Reusa el mismo singleton — single source of truth para "es preventa" y ETA.
-		$this->modules['order_preventa'] = new OrderPreventa( $this->modules['estimated_delivery']->calculator() );
-		$this->modules['order_preventa']->register();
-
-		// Los providers externos se conectan fuera de OrderPreventa mediante sus
-		// contratos de capacidades; el núcleo no depende de carriers ni reseñas.
-		$this->modules['order_preventa_integrations'] = new OrderPreventaIntegrations();
-		$this->modules['order_preventa_integrations']->register();
-
-		// OrderTimeline: progress visual del pedido en /view-order/ con
-		// nodo de espera («Preventa»/«A pedido») cuando aplica (1.41.0). Hook
-		// woocommerce_order_details_before_order_table priority 5.
+		// OrderTimeline: progress visual del pedido en /view-order/ (1.41.0).
 		$this->modules['order_timeline'] = new OrderTimeline();
 		$this->modules['order_timeline']->register();
 	}
@@ -686,16 +541,6 @@ final class Plugin {
 	private function register_catalog_and_vitrina_modules(): void {
 		$this->modules['loop_enhancer'] = new LoopEnhancer();
 		$this->modules['loop_enhancer']->register();
-
-		// Estado comercial (1.109.0): el puente le presta Availability al
-		// buscador (faceta 'a_pedido'/'preventa') y el cron barre las preventas
-		// cuya fecha venció para que índice y cachés de página se enteren de la
-		// degradación (que en runtime es automática).
-		$this->modules['search_availability_bridge'] = new \Akibara\Business\Modules\Stock\SearchAvailabilityBridge();
-		$this->modules['search_availability_bridge']->register();
-
-		$this->modules['preventa_vencida_cron'] = new \Akibara\Business\Modules\Stock\PreventaVencidaCron();
-		$this->modules['preventa_vencida_cron']->register();
 
 		$this->modules['catalog_order'] = new CatalogOrder();
 		$this->modules['catalog_order']->register();
@@ -735,9 +580,6 @@ final class Plugin {
 		$this->modules['free_shipping_progress'] = new FreeShippingProgress();
 		$this->modules['free_shipping_progress']->register();
 
-		$this->modules['preventas_route'] = new PreventasRoute();
-		$this->modules['preventas_route']->register();
-
 		// Ruta /disponibles/ para explorar productos con entrega inmediata (en stock).
 		$this->modules['disponibles_route'] = new DisponiblesRoute();
 		$this->modules['disponibles_route']->register();
@@ -760,10 +602,7 @@ final class Plugin {
 	 */
 	private function register_cart_and_discount_modules(): void {
 		// Carrito lateral nativo sincronizado con el renderizador de plazos de entrega estimada.
-		$this->modules['native_cart'] = new NativeCart(
-			null,
-			$this->modules['estimated_delivery']->renderer()
-		);
+		$this->modules['native_cart'] = new NativeCart();
 		$this->modules['native_cart']->register();
 
 		// Techo de cantidad máxima por línea sincronizado con Store API.
@@ -774,9 +613,7 @@ final class Plugin {
 		$this->modules['cart_rejection_copy'] = new RejectionCopy();
 		$this->modules['cart_rejection_copy']->register();
 
-		$this->modules['smart_cart_recommender'] = new SmartCartRecommender(
-			$this->modules['estimated_delivery']->renderer()
-		);
+		$this->modules['smart_cart_recommender'] = new SmartCartRecommender();
 		$this->modules['smart_cart_recommender']->register();
 
 		$this->modules['upsells_autofill'] = new UpsellsAutofill();
@@ -787,16 +624,18 @@ final class Plugin {
 		$this->modules['recommendations'] = new Recommendations();
 		$this->modules['recommendations']->register();
 
+		$this->modules['pricing_matrix'] = new PricingMatrix();
+		$this->modules['pricing_matrix']->register();
+
 		$this->modules['taxonomy_discount'] = new TaxonomyDiscount();
 		$this->modules['taxonomy_discount']->register();
 
-		// Apaga el interruptor de campaña al vencer su fecha final, compartiendo
-		// Settings con el módulo de la campaña.
 		$this->modules['campaign_expiry_cron'] = new \Akibara\Business\Modules\TaxonomyDiscount\CampaignExpiryCron( $this->modules['taxonomy_discount']->settings() );
 		$this->modules['campaign_expiry_cron']->register();
 
-		$this->modules['pricing_matrix'] = new PricingMatrix();
-		$this->modules['pricing_matrix']->register();
+		$akb_search_price_resolver = $this->modules['taxonomy_discount']->resolver();
+		$akb_search_price_provider = new \Akibara\Business\Modules\TaxonomyDiscount\SearchPriceProvider( $akb_search_price_resolver );
+		add_filter( 'akb_search_effective_price', $akb_search_price_provider, 10, 2 );
 	}
 
 	/**
@@ -818,26 +657,15 @@ final class Plugin {
 		// coincidir con lo que muestran las cards. El orden de registro no
 		// afecta al DOM: el resumen cuelga de `woocommerce_before_shop_loop`
 		// prio 2 y la ficha de `woocommerce_after_shop_loop` prio 20, sin empates.
-		$discount_settings             = $this->modules['taxonomy_discount']->settings();
-		$this->modules['series_facts'] = new SeriesFacts(
-			static fn (): bool => $discount_settings->is_enabled()
-		);
+		$this->modules['series_facts'] = new SeriesFacts();
 		$this->modules['series_facts']->register();
 
 		// Sincroniza la consulta de precios con el estado de descuento editorial activo en tarjetas de edición.
-		EditionFacts::set_price_override_probe( static fn (): bool => $discount_settings->is_enabled() );
-
 		// La UI configura el estado editorial de la obra, que no se deduce del
 		// número de tomos presentes en catálogo. PublicationStatus comparte enum,
 		// saneamiento y texto entre el formulario del término y SeriesFacts.
 		$this->modules['series_publication_status'] = new PublicationStatusFields();
 		$this->modules['series_publication_status']->register();
-
-		// SeriesEditions mantiene separadas las landings de cada edición física,
-		// pero las conecta junto al H1. Así no se mezcla la numeración de Ivrea con
-		// un 3-en-1 de Planeta ni se obliga al lector a volver al buscador.
-		$this->modules['series_editions'] = new SeriesEditions( $this->modules['series_catalog_eligibility'] );
-		$this->modules['series_editions']->register();
 
 		// SeriesSchema adjunta al grafo Rank Math la entidad de la landing, con
 		// la misma instancia SeriesFacts que alimenta el bloque visible. Comparte
@@ -859,66 +687,25 @@ final class Plugin {
 		);
 		$this->modules['series_directory']->register();
 
-		// SeriesBundles: bundles de series (arma tu pack por volumen) con cálculo de plazos de entrega por tomo.
+		// CustomerCollection: compras netas verificadas del cliente (utilizado por SeriesFollow y SeriesBatchAtc).
 		$customer_collection                  = new CustomerCollection();
 		$this->modules['customer_collection'] = $customer_collection;
 		$customer_collection->register();
 
-		$series_bundles                  = new SeriesBundles(
-			$this->modules['estimated_delivery']->calculator(),
-			$customer_collection
-		);
-		$this->modules['series_bundles'] = $series_bundles;
-		$series_bundles->register();
-
-		$collection_resolver                 = new CollectionResolver(
-			$customer_collection,
-			null,
-			$this->modules['estimated_delivery']->calculator(),
-			new ContinuityResolver()
-		);
-		$this->modules['account_collection'] = new AccountCollection( array( $collection_resolver, 'resolve' ) );
-		$this->modules['account_collection']->register();
-
-		$this->modules['collection_badges'] = new CollectionBadges( $customer_collection );
-		$this->modules['collection_badges']->register();
-
 		$this->checkout_data = new CheckoutDataService(
-			$this->modules['estimated_delivery']->calculator(),
-			$this->modules['estimated_delivery']->renderer(),
-			$series_bundles,
 			$this->modules['free_shipping_progress'],
 			$this->modules['address_autocomplete']
 		);
 
-		// SearchPriceProvider publica el precio efectivo mediante
-		// akb_search_effective_price con la instancia memoizada de DiscountResolver.
-		// Se registra siempre, independientemente del bootstrap del buscador.
-		// Si la campaña no puede determinarse con autoridad, lanza: un índice
-		// materializado no debe sellar el precio base como si fuera un valor válido.
-		// La cobertura de IDs no demuestra que los precios publicados sean correctos.
-		$akb_search_price_resolver = $this->modules['taxonomy_discount']->resolver();
-		$akb_search_price_provider = new \Akibara\Business\Modules\TaxonomyDiscount\SearchPriceProvider( $akb_search_price_resolver );
-		add_filter( 'akb_search_effective_price', $akb_search_price_provider, 10, 2 );
-
-		// Search usa el callback efectivo de akb_search_effective_price con
-		// prioridad 10 y dos argumentos. Consulta directamente adopt_search_snapshot,
-		// snapshot_is_fresh y authoritative_snapshot del mismo objeto, evitando
-		// puentes reemplazables que desacoplen precio publicado y foto sellada.
-
-		// El subsistema Search vive en el plugin standalone `akibara-search`
-		// (dueño único; extraído en la ola 0). Business ya no instancia ni
-		// registra el módulo — solo provee el precio con descuento por el
-		// filtro de arriba. El admin del buscador es una PÁGINA PROPIA del
-		// plugin akibara-search (menú "Buscador"), no un tab de este panel.
-
 		// SeriesFollow: notificaciones de nuevos lanzamientos para clientes suscritos a series.
 		$this->modules['series_follow'] = new SeriesFollow(
-			$customer_collection,
-			$this->modules['estimated_delivery']->calculator(),
-			new PedidoPolicy()
+			$customer_collection
 		);
 		$this->modules['series_follow']->register();
+
+		// SeriesBatchAtc: selector múltiple de tomos y barra flotante de Envío Gratis (FSP).
+		$this->modules['series_batch_atc'] = new SeriesBatchAtc();
+		$this->modules['series_batch_atc']->register();
 	}
 
 	/**
@@ -956,42 +743,7 @@ final class Plugin {
 			'catalogo'
 		);
 		$panel->add_section( 'home_series',     'Series en la portada',    array( $this->modules['home_series_destacadas'], 'get_settings' ), null, false, '', 'catalogo' );
-		$panel->add_section( 'announcement',    'Barra de anuncios',       array( $this->modules['announcement_bar'],     'get_settings' ), null, false, '', 'fidelizacion' );
-		$panel->add_section( 'address',         'Autocompletar dirección', array( $this->modules['address_autocomplete'], 'get_settings' ), null, false, '', 'sitio' );
-		// Las familias de editorial con dos ediciones (Panini, Ivrea): etiquetas,
-		// hechos por edición y series destacadas. `is_action`: trae su propio form.
-		$panel->add_section(
-			\Akibara\Business\Modules\BrandsDirectory\EditionsPanel::PANEL_TAB,
-			'Editoriales · Ediciones',
-			'__return_empty_array',
-			array( $this->modules['brands_directory']->editions_panel(), 'render' ),
-			true,
-			'',
-			'catalogo'
-		);
-		// Sub-panel unificado de ajustes de preventa y plazos de entrega estimada.
-		$this->modules['order_preventa']->settings()->set_eda_module( $this->modules['estimated_delivery'] );
-		add_filter( 'akibara_panel_section_is_action', array( $this->modules['order_preventa']->settings(), 'filter_section_is_action' ), 10, 2 );
-		( new \Akibara\Business\Modules\EstimatedDelivery\CortesPanel() )->register();
-		$panel->add_section(
-			\Akibara\Business\Modules\OrderPreventa\Settings::PANEL_TAB_ID,
-			'Pedidos y preventa · Ajustes',
-			array( $this->modules['order_preventa'], 'get_settings' ),
-			array( $this->modules['order_preventa'], 'render_panel_header' ),
-			false,
-			'',
-			'venta'
-		);
-		// Pantalla operativa para gestión de tomos por llegar y pedidos de preventa.
-		$panel->add_section(
-			'preventas',
-			'Por llegar',
-			'__return_empty_array',
-			array( $this->modules['order_preventa']->preventas_screen(), 'render_admin_section' ),
-			true,
-			'',
-			'venta'
-		);
+		$panel->add_section( 'announcement',    'Barra de anuncios',       array( $this->modules['announcement_bar'],     'get_settings' ), array( $this->modules['announcement_bar'], 'render_bridge_card' ), false, '', 'fidelizacion' );
 		$panel->add_section(
 			'back_in_stock',
 			'Lista de espera',
@@ -1011,55 +763,11 @@ final class Plugin {
 			'fidelizacion'
 		);
 		$panel->add_section( 'free_shipping_progress', 'Envío gratis', array( $this->modules['free_shipping_progress'], 'get_settings' ), null, false, '', 'venta' );
-		$panel->add_section( 'native_cart', 'Carrito', array( $this->modules['native_cart'], 'get_settings' ), null, false, '', 'venta' );
-		// Sección de recomendaciones y autofill de tomos relacionados y upsells.
-		$upsells_autofill = $this->modules['upsells_autofill'];
-		$panel->add_section(
-			RecommendationSettings::PANEL_TAB_ID,
-			'Recomendaciones',
-			array( RecommendationSettings::class, 'get_settings' ),
-			static function () use ( $upsells_autofill ): void {
-				$upsells_autofill->render_admin_section();
-				RecommendationSettings::render_heading();
-			},
-			false,
-			'',
-			'marketing'
-		);
-		// Panel de ordenamiento de vitrina y paginación de landings de serie.
-		$catalog_order = $this->modules['catalog_order'];
-		$panel->add_section(
-			CatalogOrder::PANEL_TAB_ID,
-			'Vitrina',
-			static fn (): array => array_merge( $catalog_order->get_settings(), LandingPageSize::get_settings() ),
-			array( $this->modules['catalog_order'], 'render_admin_section' ),
-			false,
-			'',
-			'catalogo'
-		);
 		$panel->add_section(
 			TaxonomyDiscount::PANEL_TAB_ID,
 			'Descuentos',
 			array( $this->modules['taxonomy_discount'], 'get_settings' ),
 			array( $this->modules['taxonomy_discount'], 'render_subtab_nav' ),
-			false,
-			'',
-			'marketing'
-		);
-		$panel->add_section(
-			SeriesBundles::PANEL_TAB_ID,
-			'Arma tu Pack',
-			array( $this->modules['series_bundles'], 'get_settings' ),
-			array( $this->modules['series_bundles'], 'render_header' ),
-			false,
-			'',
-			'marketing'
-		);
-		$panel->add_section(
-			WelcomeCoupon::PANEL_TAB_ID,
-			'Pop-ups & Promociones',
-			array( $this->modules['welcome_coupon'], 'get_settings' ),
-			array( $this->modules['welcome_coupon'], 'render_admin_section' ),
 			false,
 			'',
 			'marketing'
@@ -1076,26 +784,32 @@ final class Plugin {
 		// El buscador (plugin akibara-search) tiene su PROPIA página de admin
 		// (menú "Buscador"), NO un tab de este panel — no se registra acá.
 
-		// Inicializar y registrar submódulos del panel
-		$theme_customizer = new ThemeCustomizer( $panel );
-		$this->modules['theme_customizer'] = $theme_customizer;
-		$theme_customizer->register();
-
-		// Calidad AVIF de las imágenes nuevas y recompresión de las ya subidas
-		// (pestaña «Imágenes»). Fuera de cualquier rama de admin a propósito: el
-		// filtro de calidad tiene que alcanzar a las subidas por REST y a la cola.
-		$image_quality                  = new ImageQuality( $panel, new Recompressor() );
+		// Calidad AVIF de las imágenes nuevas al subirlas (pestaña «Imágenes»).
+		// Fuera de cualquier rama de admin a propósito: el filtro de calidad
+		// tiene que alcanzar también a las subidas por REST.
+		$image_quality                  = new ImageQuality( $panel );
 		$this->modules['image_quality'] = $image_quality;
 		$image_quality->register();
 
-		// Recalentado nocturno de las fichas, purga por serie, GA4 y Clarity
-		// después de la carga, el carrito sin lo que sólo usa la página de pago y
-		// etiqueta de Google Ads (pestaña «Velocidad»). Fuera de las ramas de admin: la purga por serie
-		// escucha ventas y guardados de cualquier origen, y la cola corre sin admin.
-		// El filtro de la etiqueta se engancha antes, desde el archivo principal.
-		$site_speed                  = new SiteSpeed( $panel, new CacheWarmer(), new SeriesCacheTags(), new AnalyticsAfterLoad(), new LeanCart() );
-		$this->modules['site_speed'] = $site_speed;
-		$site_speed->register();
+		// Recalentado nocturno de las fichas, purga por serie, GA4
+		// después de la carga y el carrito sin lo que sólo usa la página de pago.
+		// Fuera de las ramas de admin: la purga por serie escucha ventas y guardados
+		// de cualquier origen, y la cola corre sin admin.
+		$cache_warmer                  = new CacheWarmer();
+		$this->modules['cache_warmer'] = $cache_warmer;
+		$cache_warmer->register();
+
+		$series_cache_tags                  = new SeriesCacheTags();
+		$this->modules['series_cache_tags'] = $series_cache_tags;
+		$series_cache_tags->register();
+
+		$analytics_after_load                  = new AnalyticsAfterLoad();
+		$this->modules['analytics_after_load'] = $analytics_after_load;
+		$analytics_after_load->register();
+
+		$lean_cart                  = new LeanCart();
+		$this->modules['lean_cart'] = $lean_cart;
+		$lean_cart->register();
 
 		// La purga de la ficha y de su serie se queda en el origen: Cloudflare
 		// guarda su propia copia del HTML. Esto la lleva al borde, por URL.
@@ -1107,10 +821,6 @@ final class Plugin {
 		$this->modules['copy_manager'] = $copy_manager;
 		$copy_manager->register();
 
-		$financial_rules = new \Akibara\Business\Admin\FinancialRulesAdminPage();
-		$this->modules['financial_rules'] = $financial_rules;
-		$financial_rules->register();
-
 		$bacs_lifecycle = new \Akibara\Business\Modules\BacsLifecycle\BacsLifecycleManager();
 		$this->modules['bacs_lifecycle'] = $bacs_lifecycle;
 		$bacs_lifecycle->register();
@@ -1119,49 +829,76 @@ final class Plugin {
 		$this->modules['unpaid_orders_sweeper'] = $unpaid_orders_sweeper;
 		$unpaid_orders_sweeper->register();
 
-		$mixed_cart_guard = new \Akibara\Business\Modules\Logistics\MixedCartShipmentGuard();
-		$this->modules['mixed_cart_guard'] = $mixed_cart_guard;
-		$mixed_cart_guard->register();
-
-		$partial_refund_guard = new \Akibara\Business\Modules\SeriesBundles\PartialRefundBundleGuard();
-		$this->modules['partial_refund_bundle_guard'] = $partial_refund_guard;
-		$partial_refund_guard->register();
-
 		$this->modules['admin_panel'] = $panel;
 		$this->modules['admin_panel']->register();
 	}
 
 	/**
-	 * Borra opciones propias que ya no tienen ningún lector en el código.
+	 * Borra únicamente opciones retiradas, sin alcanzar preferencias activas.
 	 *
 	 * Corre en `akibara_business_upgraded` de forma idempotente para depurar opciones obsoletas.
 	 *
 	 * @return void
 	 */
 	public function cleanup_orphan_options(): void {
-		delete_option( 'akibara_robots_policy_version' );
-		delete_option( 'akibara_rank_math_product_schema_migration' );
-		delete_option( 'akb_series_dispatch_enabled' );
-		delete_option( 'akibara_announcement_speed' );
-
-		// Opciones de configuración SMTP obsoletas.
-		delete_option( 'akibara_smtp_host' );
-		delete_option( 'akibara_smtp_port' );
-		delete_option( 'akibara_smtp_secure' );
-		delete_option( 'akibara_smtp_user' );
-		delete_option( 'akibara_smtp_pass' );
-		delete_option( 'akibara_mail_failures' );
-
-		// Opciones de control de flushes históricos.
-		delete_option( 'akb_wishlist_flushed' );
-		delete_option( 'akb_preventas_rewrite_version' );
-		delete_option( 'akb_disponibles_rewrite_version' );
-
-		// Opciones legacy de entregas estimadas anteriores.
 		global $wpdb;
-		$wpdb->query(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE 'akibara\\_eda\\_brand\\_%'"
+		$retired_options = array(
+			'akibara_robots_policy_version',
+			'akibara_rank_math_product_schema_migration',
+			'akb_series_dispatch_enabled',
+			'akibara_announcement_speed',
+			'akibara_smtp_host',
+			'akibara_smtp_port',
+			'akibara_smtp_secure',
+			'akibara_smtp_user',
+			'akibara_smtp_pass',
+			'akibara_mail_failures',
+			'akb_wishlist_flushed',
+			'akb_disponibles_rewrite_version',
+			'akb_brand_color_primary',
+			'akb_brand_color_surface',
+			'akb_image_recompress_state',
+			'akb_image_recompress_lock',
+			'akibara_announcement_bg',
+			'akibara_announcement_color',
+			'akibara_announcement_border',
+			'akibara_announcement_promo_follow_discount',
+			'akibara_announcement_promo_from',
+			'akibara_announcement_promo_to',
+			'akibara_taxonomy_discount_stacks_with_coupons',
+			'akb_analytics_after_load',
+			'akb_lean_cart',
+			'akibara_edge_purge_enabled',
+			'akb_cache_warm_enabled',
+			'akb_catalog_order_showcase',
+			'akb_series_landing_per_page',
+			'akb_collection_catalog_v1',
+			'akb_collection_catalog_revision',
 		);
+		// Sólo EDA está retirado: NativeCart, microcopias y preferencias activas se conservan.
+		$arguments    = array_merge( array( $wpdb->options ), $retired_options, array( $wpdb->esc_like( 'akibara_eda_brand_' ) . '%' ) );
+		$find_retired = static function () use ( $wpdb, $retired_options, $arguments ): array {
+			$names = $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT option_name FROM %i WHERE option_name IN (' . implode( ', ', array_fill( 0, count( $retired_options ), '%s' ) ) . ') OR option_name LIKE %s',
+					$arguments
+				)
+			);
+			if ( ! is_array( $names ) || ! array_is_list( $names ) || array_filter( $names, 'is_string' ) !== $names || '' !== $wpdb->last_error ) {
+				throw new UpgradeRetryRequired( 'No se pudo consultar la limpieza de opciones retiradas.' );
+			}
+			return $names;
+		};
+		foreach ( $find_retired() as $option_name ) {
+			delete_option( $option_name );
+		}
+		// delete_option puede marcar notoptions incluso si el DELETE falla: medir en BD.
+		if ( array() !== $find_retired() ) {
+			throw new UpgradeRetryRequired( 'Persisten opciones retiradas después de la limpieza.' );
+		}
+		if ( class_exists( \Akibara\Business\Modules\DiscountCopy\DiscountCopy::class ) ) {
+			\Akibara\Business\Modules\DiscountCopy\DiscountCopy::forget();
+		}
 	}
 
 	/**

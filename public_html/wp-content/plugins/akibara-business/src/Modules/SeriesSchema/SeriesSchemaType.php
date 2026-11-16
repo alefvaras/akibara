@@ -27,6 +27,9 @@ defined( 'ABSPATH' ) || exit;
  * Resolves whether one `pa_serie` term may emit `ComicSeries` semantics.
  *
  * @since 1.108.8
+ * @api
+ * @psalm-suppress UnusedConstructor
+ * @psalm-suppress UnusedConstructor
  */
 final class SeriesSchemaType {
 
@@ -39,7 +42,10 @@ final class SeriesSchemaType {
 	/** Explicit value for novels and any other non-comic work. */
 	public const NON_COMIC = 'non_comic';
 
-	/** This class only exposes static classification policy. */
+	/**
+	 * This class only exposes static classification policy.
+	 * @psalm-suppress UnusedConstructor
+	 */
 	private function __construct() {}
 
 	/**

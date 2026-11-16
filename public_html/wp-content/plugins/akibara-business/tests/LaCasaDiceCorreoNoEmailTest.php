@@ -50,17 +50,7 @@ final class LaCasaDiceCorreoNoEmailTest extends TestCase {
 			$plugin . '/src/Modules/BackInStock/CaptureForm.php',
 			$plugin . '/src/Modules/BackInStock/CaptureRestController.php',
 			$plugin . '/src/Modules/Forms/ContactoSubmit.php',
-			$plugin . '/src/Modules/PreventasRoute/PreventasRoute.php',
-			$plugin . '/src/Modules/OrderPreventa/CustomerVisibility.php',
-			$plugin . '/src/Modules/OrderPreventa/ContactFooter.php',
-			$plugin . '/src/Modules/WelcomeCoupon/PopupRenderer.php',
-			$plugin . '/src/Modules/WelcomeCoupon/RestController.php',
 			$plugin . '/assets/js/bis-form.js',
-			$plugin . '/assets/js/welcome-popup.js',
-			$plugin . '/templates/emails/customer-preventa-ready.php',
-			$plugin . '/templates/emails/plain/customer-preventa-ready.php',
-			$plugin . '/templates/emails/customer-preventa-reminder.php',
-			$plugin . '/templates/emails/plain/customer-preventa-reminder.php',
 			$tema . '/template-parts/forms/contacto.php',
 			$tema . '/woocommerce/emails/customer-reset-password.php',
 			$tema . '/woocommerce/emails/plain/customer-reset-password.php',
@@ -84,7 +74,7 @@ final class LaCasaDiceCorreoNoEmailTest extends TestCase {
 		}
 	}
 
-	/** @testdox Los seis literales de la primera pasada dicen «correo» */
+	/** @testdox Los literales de la primera pasada dicen «correo» */
 	public function test_los_literales_de_la_primera_pasada_dicen_correo(): void {
 		$plugin = dirname( __DIR__ );
 		$tema   = dirname( __DIR__, 3 ) . '/themes/akibara-gp';
@@ -93,8 +83,5 @@ final class LaCasaDiceCorreoNoEmailTest extends TestCase {
 		self::assertStringContainsString( '>Tu correo</label>', $form );
 		self::assertStringContainsString( 'placeholder="tu@correo.cl"', $form );
 		self::assertStringContainsString( '>Correo <span', (string) file_get_contents( $tema . '/template-parts/forms/contacto.php' ) );
-		self::assertStringContainsString( 'te avisamos por correo apenas llegan', (string) file_get_contents( $plugin . '/src/Modules/PreventasRoute/PreventasRoute.php' ) );
-		self::assertSame( 2, substr_count( (string) file_get_contents( $plugin . '/src/Modules/OrderPreventa/CustomerVisibility.php' ), 'Te avisaremos por correo cuando los productos lleguen' ) );
-		self::assertStringContainsString( '>Correo:</span>', (string) file_get_contents( $plugin . '/src/Modules/OrderPreventa/ContactFooter.php' ) );
 	}
 }

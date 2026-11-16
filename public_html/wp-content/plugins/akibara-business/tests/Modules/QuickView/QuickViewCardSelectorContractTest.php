@@ -205,7 +205,7 @@ final class QuickViewCardSelectorContractTest extends TestCase {
 			count( $sites ),
 			'Se esperaban al menos las tres consultas sobre la card: cover, piezas del meta y CTA.'
 		);
-		foreach ( array( 'akb-badge', 'akb-editorial-eyebrow', 'akb-avail-hint', 'akb-eta-loop', 'akb-notify-link', 'akb-product-cover-wrap' ) as $expected ) {
+		foreach ( array( 'akb-badge', 'akb-editorial-eyebrow', 'akb-avail-hint', 'akb-notify-link', 'akb-product-cover-wrap' ) as $expected ) {
 			self::assertContains(
 				$expected,
 				$classes,

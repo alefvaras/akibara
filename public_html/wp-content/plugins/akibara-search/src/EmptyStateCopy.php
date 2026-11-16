@@ -3,7 +3,7 @@
  * EmptyStateCopy — lo que lee el cliente cuando la tienda no encuentra nada.
  *
  * Es el momento en que la tienda le falla: la única frase que puede recuperar
- * la venta (pedir por WhatsApp, encargar el tomo, mirar lo que llega este mes)
+ * la venta (pedir por WhatsApp, consultar por el catálogo, mirar lo que llega este mes)
  * estaba escrita a mano en dos archivos, uno de ellos un bundle JavaScript que
  * en producción se sirve MINIFICADO. Cambiarla exigía tocar código y volver a
  * generar el `.min`.
@@ -48,6 +48,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.41
+ * @api
  */
 final class EmptyStateCopy {
 
@@ -214,7 +215,7 @@ final class EmptyStateCopy {
 	 *                                 (o algo que `strip_tags` toma por una,
 	 *                                 como «<3»).
 	 */
-	public static function sanitize( $raw, string $fallback, ?bool &$recortado = null, ?bool &$sin_etiquetas = null ): string {
+	public static function sanitize( $raw, string $fallback, ?bool &$recortado = null, ?bool &$sin_etiquetas = null ): string { // @phpstan-ignore parameterByRef.unusedType, parameterByRef.unusedType
 		$recortado     = false;
 		$sin_etiquetas = false;
 		if ( ! is_string( $raw ) ) {

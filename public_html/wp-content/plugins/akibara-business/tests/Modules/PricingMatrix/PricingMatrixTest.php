@@ -10,7 +10,6 @@ declare( strict_types = 1 );
 namespace Akibara\Business\Tests\Modules\PricingMatrix;
 
 use Akibara\Business\Modules\PricingMatrix\BatchGuard;
-use Akibara\Business\Modules\PricingMatrix\OrderLockGuard;
 use Akibara\Business\Modules\PricingMatrix\PricingMath;
 use Akibara\Business\Modules\PricingMatrix\PricingMatrixAdminPage;
 use Akibara\Business\Modules\PricingMatrix\PricingSelfTest;
@@ -74,24 +73,15 @@ final class PricingMatrixTest extends TestCase {
 	}
 
 	/**
-	 * @testdox Expone los aliases globales AKB_Batch_Guard y AKB_Order_Lock_Guard y protege las claves singleton contra duplicación
+	 * @testdox Expone el alias global AKB_Batch_Guard y protege las claves singleton contra duplicación
 	 */
 	public function test_guards_and_singleton_meta_keys_contract(): void {
 		self::assertTrue( class_exists( BatchGuard::class ) );
-		self::assertTrue( class_exists( OrderLockGuard::class ) );
 		self::assertTrue( class_exists( '\\AKB_Batch_Guard' ) );
-		self::assertTrue( class_exists( '\\AKB_Order_Lock_Guard' ) );
-		self::assertContains( 'pending', OrderLockGuard::TERMINAL_STATUSES );
-		self::assertContains( 'cancelled', OrderLockGuard::TERMINAL_STATUSES );
-		self::assertContains( 'failed', OrderLockGuard::TERMINAL_STATUSES );
-		self::assertStringContainsString( "'wc-completed'", OrderLockGuard::get_terminal_statuses_sql() );
-		self::assertStringContainsString( "'completed'", OrderLockGuard::get_terminal_statuses_sql() );
-		self::assertStringContainsString( "'wc-cancelled'", OrderLockGuard::get_terminal_statuses_sql() );
 
 		$hooks    = new ReactiveStockPriceHooks();
 		$excluded = $hooks->exclude_duplicate_meta( array( '_custom_existing' ) );
 
-		self::assertContains( '_akb_onbackorder_at', $excluded );
 		self::assertContains( '_akb_pdp_specs_generation', $excluded );
 		self::assertContains( 'rank_math_internal_links_processed', $excluded );
 		self::assertContains( '_akb_tramo_prev_regular', $excluded );
@@ -114,122 +104,6 @@ final class PricingMatrixTest extends TestCase {
 	}
 
 	/**
-	 * @testdox OrderLockGuard aplica Fail-Closed y lanza RuntimeException si la base de datos reporta un error
-	 */
-	public function test_order_lock_guard_fail_closed_on_db_error(): void {
-		global $wpdb;
-		$orig_wpdb = $wpdb ?? null;
-
-		$mock_wpdb = new class() {
-			public string $prefix = 'wp_';
-			public string $postmeta = 'wp_postmeta';
-			public string $posts = 'wp_posts';
-			public string $last_error = 'Simulated DB Error';
-
-			public function prepare( $query, ...$args ) {
-				return $query;
-			}
-
-			public function get_results( $query, $output = null ) {
-				return false;
-			}
-
-			public function get_var( $query ) {
-				return null;
-			}
-		};
-
-		$wpdb = $mock_wpdb;
-
-		try {
-			$this->expectException( \RuntimeException::class );
-			$this->expectExceptionMessageMatches( '/Fail-Closed|Error al consultar órdenes bloqueadas/' );
-			OrderLockGuard::get_locked_orders_audit();
-		} finally {
-			$wpdb = $orig_wpdb;
-		}
-	}
-
-	/**
-	 * @testdox OrderLockGuard aplica Fail-Closed cuando wpdb devuelve array vacío pero last_error no está vacío
-	 */
-	public function test_order_lock_guard_fail_closed_on_empty_array_with_last_error(): void {
-		global $wpdb;
-		$orig_wpdb = $wpdb ?? null;
-
-		$mock_wpdb = new class() {
-			public string $prefix = 'wp_';
-			public string $postmeta = 'wp_postmeta';
-			public string $posts = 'wp_posts';
-			public string $last_error = 'WordPress DB error: MySQL server has gone away';
-
-			public function prepare( $query, ...$args ) {
-				return $query;
-			}
-
-			public function get_results( $query, $output = null ) {
-				return array(); // Simula fallo donde wpdb devuelve array vacío pero reporta last_error
-			}
-
-			public function get_var( $query ) {
-				return null;
-			}
-		};
-
-		$wpdb = $mock_wpdb;
-
-		try {
-			$this->expectException( \RuntimeException::class );
-			$this->expectExceptionMessageMatches( '/Error al consultar órdenes bloqueadas/' );
-			OrderLockGuard::get_locked_orders_audit();
-		} finally {
-			$wpdb = $orig_wpdb;
-		}
-	}
-
-	/**
-	 * @testdox OrderLockGuard aplica Fail-Closed en consulta de stock negativo cuando last_error no está vacío
-	 */
-	public function test_order_lock_guard_fail_closed_on_negative_stock_last_error(): void {
-		global $wpdb;
-		$orig_wpdb = $wpdb ?? null;
-
-		$mock_wpdb = new class() {
-			public string $prefix = 'wp_';
-			public string $postmeta = 'wp_postmeta';
-			public string $posts = 'wp_posts';
-			public string $last_error = '';
-
-			public function prepare( $query, ...$args ) {
-				return $query;
-			}
-
-			public function get_results( $query, $output = null ) {
-				return array(); // get_locked_orders_audit pasa sin error
-			}
-
-			public function get_col( $query, $x = 0 ) {
-				$this->last_error = 'Table postmeta was crashed';
-				return array();
-			}
-
-			public function get_var( $query ) {
-				return null;
-			}
-		};
-
-		$wpdb = $mock_wpdb;
-
-		try {
-			$this->expectException( \RuntimeException::class );
-			$this->expectExceptionMessageMatches( '/Error al consultar productos con stock negativo/' );
-			OrderLockGuard::get_locked_product_ids();
-		} finally {
-			$wpdb = $orig_wpdb;
-		}
-	}
-
-	/**
 	 * @testdox PricingSelfTest aborta inmediatamente en entorno de producción viva para prevenir mutaciones
 	 */
 	public function test_pricing_self_test_refuses_to_run_in_production(): void {
@@ -240,73 +114,6 @@ final class PricingMatrixTest extends TestCase {
 		self::assertSame( 0, $res['passed_count'] );
 		self::assertSame( 0, $res['total_count'] );
 		self::assertStringContainsString( 'producción viva', $res['error'] );
-	}
-
-	/**
-	 * @testdox El rescate en vivo rechaza ejecución sin autorización explícita de distribuidora (Reglas 15 y 18)
-	 */
-	public function test_rescue_outofstock_rejects_live_without_distributor_auth(): void {
-		$this->expectException( \InvalidArgumentException::class );
-		$this->expectExceptionMessageMatches( '/Reglas 15 y 18/' );
-		PricingSynchronizer::rescue_outofstock_products( array( 1001 ), false, array() );
-	}
-
-	/**
-	 * @testdox El rescate en vivo rechaza distribuidora no autorizada según Reglas 15 y 18
-	 */
-	public function test_rescue_outofstock_rejects_unapproved_supplier(): void {
-		$this->expectException( \InvalidArgumentException::class );
-		$this->expectExceptionMessageMatches( '/distribuidora oficial autorizada/i' );
-		PricingSynchronizer::rescue_outofstock_products(
-			array( 1001 ),
-			false,
-			array(
-				'supplier'  => 'distribuidor-no-autorizado',
-				'reference' => 'Factura-999',
-				'confirmed' => true,
-			)
-		);
-	}
-
-	/**
-	 * @testdox El rescate en simulación (dry-run) no requiere distribuidora obligatoria
-	 */
-	public function test_rescue_outofstock_allows_dry_run_without_distributor_auth(): void {
-		global $wpdb;
-		$orig_wpdb = $wpdb ?? null;
-
-		$mock_wpdb = new class() {
-			public string $prefix = 'wp_';
-			public string $postmeta = 'wp_postmeta';
-			public string $posts = 'wp_posts';
-			public string $last_error = '';
-
-			public function prepare( $query, ...$args ) {
-				return $query;
-			}
-
-			public function get_results( $query, $output = null ) {
-				return array();
-			}
-
-			public function get_col( $query, $x = 0 ) {
-				return array();
-			}
-
-			public function get_var( $query ) {
-				return null;
-			}
-		};
-
-		$wpdb = $mock_wpdb;
-
-		try {
-			$res = PricingSynchronizer::rescue_outofstock_products( array(), true );
-			self::assertTrue( $res['dry_run'] );
-			self::assertSame( 0, $res['rescued_count'] );
-		} finally {
-			$wpdb = $orig_wpdb;
-		}
 	}
 
 	/**
@@ -415,7 +222,6 @@ final class PricingMatrixTest extends TestCase {
 	 */
 	public function test_excluded_duplicate_meta_keys_includes_out_of_stock_at(): void {
 		self::assertContains( '_akb_out_of_stock_at', ReactiveStockPriceHooks::EXCLUDED_DUPLICATE_META_KEYS );
-		self::assertContains( '_akb_onbackorder_at', ReactiveStockPriceHooks::EXCLUDED_DUPLICATE_META_KEYS );
 	}
 
 	/**
@@ -426,131 +232,142 @@ final class PricingMatrixTest extends TestCase {
 	}
 
 	/**
-	 * @testdox sync_scale respeta el candado manual _akb_manual_sale_lock en productos onbackorder
+	 * @testdox PricingSynchronizer no bloquea productos y permite actualizar precios en cualquier momento
 	 */
-	public function test_sync_scale_respects_manual_sale_lock_on_backorder(): void {
-		Functions\when( 'get_post_meta' )->alias( function( $id, $key, $single = false ) {
-			if ( '_akb_eta_type' === $key ) {
-				return 'auto';
-			}
-			if ( '_akb_manual_sale_lock' === $key ) {
-				return 'yes';
-			}
-			return '';
-		} );
+	public function test_pricing_synchronizer_does_not_block_pricing_updates(): void {
+		Functions\when( 'wc_get_product' )->justReturn( null );
 
-		$product = new class() extends \WC_Product {
-			public function __construct() {
-				parent::__construct( 'onbackorder' );
-				$this->akb_id = 999;
-				$this->akb_regular_price = '10600';
-				$this->akb_sale_price = '8900'; // Manual sale price previa
-			}
-			public function get_name(): string { return 'Manga Manual Lock'; }
-		};
-
-		Functions\when( 'wc_get_product' )->alias( function( $id ) use ( $product ) {
-			return $product;
-		} );
-
+		// apply_product_price retorna not_found si el producto no existe sin bloqueos de ordenes
 		$res = PricingSynchronizer::apply_product_price(
 			999,
-			10600,
-			10100, // target_backorder_sale calculada por la escala (5% estándar)
-			false, // protect_active_orders
-			array(),
-			array(),
-			true  // dry_run
+			12990,
+			0,
+			false,
+			null,
+			null,
+			true
 		);
 
-		// Debe mantener 8900 (precio manual del dueño) y NO sobreescribirlo a 10100
-		self::assertSame( 8900, $res['new_sale'] );
+		self::assertSame( 'not_found', $res['status'] );
 	}
 
 	/**
-	 * @testdox rescue_outofstock_products soporta porcentaje de reserva personalizado (grupal) e individual con manual lock
+	 * @testdox Bloque 1: PricingMatrixAdminPage renderiza contador accesible, filtro de pendientes, botón reset y regla content-visibility
 	 */
-	public function test_rescue_outofstock_products_supports_custom_discount_and_individual_overrides(): void {
-		global $wpdb;
-		$orig_wpdb = $wpdb ?? null;
+	public function test_pricing_matrix_dom_optimizations_and_filter_ux(): void {
+		Functions\stubs(
+			array(
+				'wp_nonce_field'      => '',
+				'sanitize_html_class' => static function ( $class ) {
+					return preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $class );
+				},
+				'esc_attr'            => static fn( $val ) => htmlspecialchars( (string) $val, ENT_QUOTES ),
+				'esc_html'            => static fn( $val ) => htmlspecialchars( (string) $val, ENT_QUOTES ),
+				'esc_url'             => static fn( $val ) => (string) $val,
+				'admin_url'           => static fn( $path = '' ) => 'https://example.test/wp-admin/' . $path,
+			)
+		);
 
-		$mock_wpdb = new class() {
-			public string $prefix             = 'wp_';
-			public string $postmeta           = 'wp_postmeta';
-			public string $posts              = 'wp_posts';
-			public string $term_relationships = 'wp_term_relationships';
-			public string $term_taxonomy      = 'wp_term_taxonomy';
-			public string $last_error         = '';
+		// 1. Verificación de regla CSS de alto rendimiento
+		$css_path = AKIBARA_BUSINESS_DIR . 'assets/css/pricing-matrix-admin.css';
+		self::assertFileExists( $css_path );
+		$css = (string) file_get_contents( $css_path );
+		self::assertStringContainsString( 'tr.akb-scale-searchable-row', $css );
+		self::assertMatchesRegularExpression( '/tr\.akb-scale-searchable-row\s*\{[^}]*content-visibility:\s*auto;/', $css );
+		self::assertMatchesRegularExpression( '/contain-intrinsic-size:\s*auto 48px;/', $css );
 
-			public function prepare( $query, ...$args ) {
-				return $query;
-			}
-			public function get_results( $query, $output = null ) {
-				return array();
-			}
-			public function get_col( $query, $x = 0 ) {
-				return array();
-			}
-			public function get_var( $query ) {
-				return '0';
-			}
-		};
+		// 2. Verificación de elementos DOM y UX en render_tab_scales
+		$page   = new PricingMatrixAdminPage();
+		$ref    = new \ReflectionClass( $page );
+		$method = $ref->getMethod( 'render_tab_scales' );
+		$method->setAccessible( true );
 
-		$wpdb = $mock_wpdb;
+		$scales_fixture = array(
+			array(
+				'brand_id'              => 230,
+				'editorial'             => 'Ivrea España',
+				'editorial_slug'        => 'ivrea-espana',
+				'pais_codigo'           => 'es',
+				'escala_precio_regular' => 10600,
+				'nuevo_precio_regular'  => 11500, // Hay diferencia con el actual
+				'min_sale_actual'       => null,
+				'total_tomos'           => 12,
+				'en_stock'              => 8,
+				'agotados'              => 4,
+				'series_count'          => 2,
+				'series_names'          => array( 'Chainsaw Man', 'Spy x Family' ),
+				'series_items'          => array(),
+			),
+			array(
+				'brand_id'              => 230,
+				'editorial'             => 'Ivrea España',
+				'editorial_slug'        => 'ivrea-espana',
+				'pais_codigo'           => 'es',
+				'escala_precio_regular' => 14500,
+				'nuevo_precio_regular'  => 14500, // Sin diferencia
+				'min_sale_actual'       => null,
+				'total_tomos'           => 5,
+				'en_stock'              => 5,
+				'agotados'              => 0,
+				'series_count'          => 1,
+				'series_names'          => array( 'Vagabond' ),
+				'series_items'          => array(),
+			),
+		);
 
-		try {
-			Functions\when( 'wc_get_product' )->alias( function( $id ) {
-				$product = new class( $id ) extends \WC_Product {
-					public function __construct( int $id ) {
-						parent::__construct( 'outofstock' );
-						$this->akb_id = $id;
-						$this->akb_sku = 'SKU-' . $id;
-						$this->akb_regular_price = '10600';
-					}
-					public function get_name(): string {
-						return 'Manga #' . $this->akb_id;
-					}
-				};
-				return $product;
-			} );
+		ob_start();
+		$method->invoke( $page, $scales_fixture );
+		$html = (string) ob_get_clean();
 
-			Functions\when( 'get_post_meta' )->alias( function( $id, $key, $single = false ) {
-				if ( '_akb_eta_type' === $key ) {
-					return 'auto';
-				}
-				return '';
-			} );
+		// Contador de estado accesible
+		self::assertStringContainsString( 'id="akb-scale-filter-count"', $html );
+		self::assertStringContainsString( 'aria-live="polite"', $html );
+		self::assertStringContainsString( 'Mostrando <strong>2</strong> de 2 escalas', $html );
 
-			$summary = PricingSynchronizer::rescue_outofstock_products(
-				array( 101, 102 ),
-				true, // dry_run
-				array(
-					'supplier'  => 'ivrea-argentina',
-					'reference' => 'Planilla test',
-					'confirmed' => true,
-				),
-				10.0, // 10% grupal
-				PricingMath::MODE_ROUND_100,
-				array(
-					101 => array( 'sale_price' => 8900 ), // Individual manual
-				)
-			);
+		// Filtro rápido de pendientes y botón de reset
+		self::assertStringContainsString( 'id="akb-scale-filter-pending"', $html );
+		self::assertStringContainsString( 'Solo con diferencias / pendientes', $html );
+		self::assertStringContainsString( 'id="akb-scale-filter-reset"', $html );
+		self::assertStringContainsString( 'Limpiar filtros', $html );
 
-			self::assertTrue( $summary['dry_run'] );
-			self::assertSame( 2, $summary['rescued_count'] );
-			self::assertSame( 10.0, $summary['discount_pct'] );
+		// Atributo data-* de pendientes / diferencias en las filas
+		self::assertStringContainsString( 'data-has-difference="1"', $html );
+		self::assertStringContainsString( 'data-has-difference="0"', $html );
 
-			// Tomo 101: override individual a $8.900
-			self::assertSame( 101, $summary['items'][0]['product_id'] );
-			self::assertSame( 8900, $summary['items'][0]['sale_price'] );
-			self::assertTrue( $summary['items'][0]['manual_locked'] );
+		// Campos de edición de Precio Normal y Precio Oferta (0 = Sin oferta)
+		self::assertStringContainsString( 'Precio Normal ($)', $html );
+		self::assertStringContainsString( 'name="new_regular"', $html );
+		self::assertStringContainsString( 'Precio Oferta ($)', $html );
+		self::assertStringContainsString( 'name="manual_sale"', $html );
+		self::assertStringContainsString( 'placeholder="0 = Sin oferta"', $html );
+		self::assertStringContainsString( 'Sin oferta', $html );
+	}
 
-			// Tomo 102: 10% grupal con round_100 ($10.600 -> $9.500)
-			self::assertSame( 102, $summary['items'][1]['product_id'] );
-			self::assertSame( 9500, $summary['items'][1]['sale_price'] );
-			self::assertFalse( $summary['items'][1]['manual_locked'] );
-		} finally {
-			$wpdb = $orig_wpdb;
-		}
+	/**
+	 * @testdox Soporta fijar 0 para dejar productos sin oferta y ofertas numéricas exactas
+	 */
+	public function test_sale_price_zero_and_custom_values(): void {
+		// 1. Motor matemático: 0 retorna 0 explícito (sin oferta)
+		self::assertSame( 0, PricingMath::calculate_sale_price( 10000, 5.0, PricingMath::MODE_ROUND_100, 0 ) );
+		self::assertSame( 8000, PricingMath::calculate_sale_price( 10000, 5.0, PricingMath::MODE_ROUND_100, 8000 ) );
+
+		// 2. PricingSynchronizer::compute_target_sale_string vía reflection
+		$ref = new \ReflectionClass( PricingSynchronizer::class );
+		$method = $ref->getMethod( 'compute_target_sale_string' );
+		$method->setAccessible( true );
+
+		// Caso: manual_sale = 0 -> debe retornar cadena vacía '' (elimina oferta en WooCommerce)
+		self::assertSame( '', $method->invoke( null, 101, 'instock', 10000, 0, '8500' ) );
+
+		// Caso: manual_sale >= new_regular -> debe retornar '' (oferta inválida/mayor al regular)
+		self::assertSame( '', $method->invoke( null, 101, 'instock', 10000, 10000, '8500' ) );
+		self::assertSame( '', $method->invoke( null, 101, 'instock', 10000, 12000, '8500' ) );
+
+		// Caso: manual_sale > 0 y < new_regular -> retorna string exacto
+		self::assertSame( '8000', $method->invoke( null, 101, 'instock', 10000, 8000, '' ) );
+
+		// Caso: manual_sale = null -> conserva el valor previo
+		self::assertSame( '7500', $method->invoke( null, 101, 'instock', 10000, null, '7500' ) );
+		self::assertSame( '', $method->invoke( null, 101, 'instock', 10000, null, '' ) );
 	}
 }

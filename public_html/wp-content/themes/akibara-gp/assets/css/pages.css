@@ -20,6 +20,10 @@
     padding: var(--space-6) var(--space-4) var(--space-12);
 }
 
+.akb-page:has(.akb-brands-directory) {
+    max-width: 1072px;
+}
+
 .akb-page > * + * {
     margin-top: var(--space-8);
 }
@@ -35,10 +39,13 @@
     margin: 0 0 var(--space-2);
     font-family: var(--font-heading);
     font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    font-weight: 400;
+    font-synthesis: none;
     line-height: 1.05;
     color: var(--aki-white);
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    text-wrap: balance;
 }
 
 .akb-page__hero p {
@@ -60,18 +67,21 @@
     margin: 0 0 var(--space-4);
     font-family: var(--font-heading);
     font-size: var(--text-2xl);
+    font-weight: 400;
+    font-synthesis: none;
     color: var(--aki-white);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    text-wrap: balance;
 }
 
 .akb-page__section-heading::before {
     content: '';
     display: inline-block;
-    width: 4px;
+    width: 6px;
     height: 1.4em;
     background: var(--aki-red);
-    border-radius: 2px;
+    border-radius: 0;
 }
 
 .akb-page__section-lead {
@@ -126,6 +136,7 @@
     height: 36px;
     border-radius: var(--radius-sm);
     background: var(--aki-surface-3);
+
     /* Iconos de info-card en rojo de marca (no amarillo — amarillo = solo precio). */
     color: var(--aki-red-bright);
 }
@@ -137,7 +148,7 @@
 
 .akb-info-card__label {
     margin: 0;
-    color: var(--aki-gray-400);
+    color: var(--aki-gray-300);
     font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -152,6 +163,7 @@
 }
 
 .akb-info-card__value a {
+
     /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre #1a1a1a:
        AA pleno (1.4.3). --aki-red-bright puro daba 4.40 (near-miss). El :hover
        propio (--aki-red-hover) se conserva abajo. */
@@ -174,9 +186,11 @@
  * verticalmente cuando el parent .akb-info-grid stretchea el card al
  * más alto del row (e.g. "Retiro coordinado" tiene más texto). */
 @media (max-width: 768px) {
+
     .akb-info-card {
         display: grid;
         grid-template-columns: auto 1fr;
+
         /* 1fr 1fr forza ambas rows a stretch; con align-self end/start
          * en label/value los junta en el centro vertical del card.
          * Sin esto, las rows quedan auto y el contenido se top-aligna
@@ -186,22 +200,26 @@
         row-gap: 2px;
         padding: var(--space-4);
     }
+
     /* Hide <p></p> empty injectado por wpautop/editor — sin esto crea
      * una grid row implícita extra (29px) que empuja el contenido arriba
      * y deja espacio vacío abajo. */
     .akb-info-card > p:empty {
         display: none;
     }
+
     .akb-info-card__icon {
         grid-row: 1 / span 2;
         grid-column: 1;
         align-self: center;
     }
+
     .akb-info-card__label {
         grid-column: 2;
         grid-row: 1;
         align-self: end;
     }
+
     .akb-info-card__value {
         grid-column: 2;
         grid-row: 2;
@@ -267,6 +285,7 @@
 }
 
 .akb-page__note a {
+
     /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre #1a1a1a
        (--aki-surface-2): AA pleno (1.4.3); red-bright puro daba 4.40 (near-miss).
        Subrayado EN REPOSO cubre 1.4.1 (uso de color). */
@@ -336,6 +355,8 @@
     margin: 0;
     font-family: var(--font-heading);
     font-size: var(--text-lg);
+    font-weight: 400;
+    font-synthesis: none;
     color: var(--aki-white);
     text-transform: uppercase;
     letter-spacing: 0.02em;
@@ -376,6 +397,8 @@
     color: var(--aki-white);
     font-family: var(--font-heading);
     font-size: var(--text-base);
+    font-weight: 400;
+    font-synthesis: none;
     list-style: none;
     transition: background var(--transition-fast);
 }
@@ -419,6 +442,7 @@
 }
 
 .akb-faq__item > div p:first-child { margin-top: 0; }
+
 .akb-faq__item > div p:last-child  { margin-bottom: 0; }
 
 /* Links dentro de respuestas FAQ — mismo tratamiento accesible que el resto de
@@ -436,11 +460,14 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
+    min-height: var(--touch-target-min);
     padding: var(--space-3) var(--space-6);
     background: var(--aki-red);
     color: var(--aki-white);
     font-family: var(--font-heading);
     font-size: var(--text-base);
+    font-weight: 400;
+    font-synthesis: none;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     text-decoration: none;
@@ -453,9 +480,15 @@
     background: var(--aki-red-hover);
 }
 
+.akb-page__cta-row .akb-btn:focus-visible,
+.akb-page__cta-row a:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset);
+}
+
 /* ─── Embalaje reforzado ───────────────────────────────────────
  * La página conserva sus fotos reales y comparte tipografía, enlaces y CTA
- * con el resto del sistema de páginas. Estas reglas reemplazan el <style>
+ * con el resto del sistema de páginas. Estas reglas reemplazan el \3c style>
  * incrustado en el contenido, que impedía mantener y cachear el diseño como
  * parte del theme. */
 .akb-emb-page .akb-page__hero p {
@@ -533,6 +566,7 @@
 }
 
 @media (max-width: 880px) {
+
     .akb-page__layout {
         grid-template-columns: 1fr;
         gap: var(--space-5);
@@ -552,6 +586,7 @@
 }
 
 @media (max-width: 880px) {
+
     .akb-page__toc {
         position: static;
         max-height: none;
@@ -568,6 +603,7 @@
 }
 
 @media (min-width: 769px) {
+
     .akb-page__body :is(h2, h3)[id],
     .akb-page__section :is(h2, h3)[id] {
         scroll-margin-top: 42px;
@@ -576,7 +612,7 @@
 
 .akb-page__toc-title {
     margin: 0 0 var(--space-3);
-    color: var(--aki-gray-400);
+    color: var(--aki-gray-300);
     font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -614,9 +650,15 @@
     font-weight: var(--weight-semibold);
 }
 
-.akb-page__toc a:hover {
+.akb-page__toc a:hover,
+.akb-page__toc a:focus-visible {
     color: var(--aki-white);
     background: var(--aki-surface-3);
+}
+
+.akb-page__toc a:focus-visible {
+    outline: var(--aki-focus-outline);
+    outline-offset: var(--aki-focus-offset);
 }
 
 /* Sección activa (scroll-spy de page-toc.js setea aria-current="true"). Sin esta
@@ -664,9 +706,8 @@
  *                               Scopeado a p/li para NO pisar el CTA-row ni los
  *                               info-card (que tienen su propio tratamiento).
  *
- * Color: --aki-red-bright (#FF0A1D), la mayor luminancia del rojo de marca y la
- * única que el ThemeCustomizer NO repinta (sí pisa --aki-red a #f5001c, que daba
- * solo 4.06:1 sobre tarjetas). + SUBRAYADO EN REPOSO: cue no-cromático que el
+ * Color: --aki-red-bright (#FF0A1D), la mayor luminancia del rojo de marca (evitando
+ * el rojo base --aki-red, que daba solo 4.06:1 sobre tarjetas). + SUBRAYADO EN REPOSO: cue no-cromático que el
  * link sea distinguible sin depender del color (WCAG 1.4.1), criterio que el
  * tratamiento border-on-hover anterior no cumplía.
  *
@@ -678,6 +719,7 @@
 .akb-page__body a,
 .akb-faq__item > div a,
 .akb-page__section :is(p, li):not(.akb-info-card__value) a {
+
     /* #FF2738 = color-mix(--aki-red-bright 88%, white) → ~4.64:1 sobre #1a1a1a:
        AA pleno (1.4.3) manteniéndose en rojo de marca (--aki-red-bright #FF0A1D
        daba solo 4.40:1). El subrayado en reposo cubre además 1.4.1 (uso de color).
@@ -706,6 +748,7 @@
  * code que rompe layout, padding lateral apretado en pantallas chicas.
  */
 @media (max-width: 768px) {
+
     .akb-page {
         padding: var(--space-5) var(--space-3) var(--space-10);
     }
@@ -810,6 +853,7 @@
 /* Pantallas muy chicas (iPhone SE, ~360px y abajo) — ajustes finales
  * para que el hero no parta palabras feo. */
 @media (max-width: 380px) {
+
     .akb-page {
         padding-left: var(--space-2);
         padding-right: var(--space-2);
@@ -824,7 +868,9 @@
 .akb-info-grid:has(> .akb-info-card:nth-child(4):last-child) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
 @media (max-width: 600px) {
+
     .akb-info-grid:has(> .akb-info-card:nth-child(4):last-child) {
         grid-template-columns: minmax(0, 1fr);
     }

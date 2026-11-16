@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "release_id": "akibara-business-1.95.3-mailpoet-noindex",
+  "component": {
+    "kind": "plugin",
+    "slug": "akibara-business",
+    "version": "1.95.3",
+    "runtime_files": 210,
+    "archive_sha256": "b1647051a3889328e3857c74311f52e27619001b41f3a4fe7820456e0af0d43b",
+    "inventory_sha256": "fac0764da7310bbdfd9ec40dc025a332832ba1d9166e4416ab16184d78a973a6"
+  },
+  "preimage": {
+    "version": "1.95.2",
+    "runtime_files": 210,
+    "archive_sha256": "415a49530ec2613a5df94c8781522dcab24db5b083644bb40e9c1063755d8a8e",
+    "inventory_sha256": "7265d2576a036c5c92c736341927425e90713d0e31d3221c62eb4a6082953749"
+  },
+  "allowed_runtime_changes": [
+    "akibara-business/akibara-business.php",
+    "akibara-business/src/Modules/SeoIndexing/FilteredUrlsPolicy.php"
+  ],
+  "promotion_sequence": [
+    "docker",
+    "production"
+  ],
+  "exclusive_target": "public_html/wp-content/plugins/akibara-business"
+}

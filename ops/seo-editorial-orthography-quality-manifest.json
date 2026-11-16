@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-24",
+  "environment": "docker-local-snapshot",
+  "purpose": "Fail-closed, UI-only restoration of Spanish orthography in valid published editorial content.",
+  "rank_math_excluded": true,
+  "policy": {
+    "official_ui_first": true,
+    "no_direct_database_writes": true,
+    "delete_as_historical_garbage": false
+  },
+  "audit_summary": {
+    "entries": 1,
+    "total_exact_substitutions": 54,
+    "encoding_replacement_characters_observed": 0,
+    "mojibake_markers_observed": 0
+  },
+  "entries": [
+    {
+      "key": "post:23327:post_content",
+      "object_type": "post",
+      "object_id": 23327,
+      "title": "Tokyo Revengers: guía para leer el manga completo",
+      "field": "post_content",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "spanish_diacritics_omitted",
+        "missing_enye",
+        "question_word_diacritics_omitted"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WordPress > Entradas > Tokyo Revengers: guía para leer el manga completo > Editor de código > Actualizar",
+      "expected_before": "<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Tokyo Revengers, de Ken Wakui, es una historia completa: 31 tomos y 278 capítulos publicados entre 2017 y 2022. Para leerlo entero, parte desde el tomo 1; si ya viste el anime, continúa desde el tomo 22, donde comienza el arco de las Tres Deidades. En Akibara tenemos los tomos 1 al 29 en edición Ivrea Argentina, con envío según cobertura del transportista.</p>\n\n<p><strong>Tokyo Revengers</strong> combina viajes en el tiempo, pandillas callejeras y drama adolescente en una mezcla adictiva que conquisto a millones de lectores. Creado por <strong>Ken Wakui</strong> y publicado entre 2017 y 2022, este <strong>tokyo revengers manga</strong> cuenta con 31 tomos y 278 capitulos que forman una historia completa llena de giros inesperados. En Akibara tenemos disponibles los tomos 1 al 29 en la edicion de Ivrea Argentina para que comiences o completes tu coleccion.</p>\n\n<h2>La historia: cambiar el pasado para salvar el futuro</h2>\n\n<p><strong>Takemichi Hanagaki</strong> es un joven de 26 anos cuya vida es un desastre. Trabaja en un empleo mediocre, vive en un departamento miserable y acaba de enterarse de que su novia de la adolescencia, Hinata Tachibana, fue asesinada por la Tokyo Manji Gang (Toman), una de las pandillas mas peligrosas de Tokio. Cuando alguien lo empuja a las vias del tren, Takemichi descubre que puede viajar 12 anos al pasado.</p>\n\n<p>De vuelta en la secundaria, Takemichi tiene la oportunidad de cambiar el curso de los eventos para salvar a Hinata y evitar el futuro tragico que conoce. Para lograrlo, debera infiltrarse en Toman durante su epoca de formacion y cambiar las decisiones que llevaron a la pandilla por un camino de violencia y destruccion. Pero cada vez que altera el pasado, el presente cambia de maneras impredecibles, creando nuevas amenazas y revelando secretos oscuros.</p>\n\n<h2>Desglose de arcos: guia completa</h2>\n\n<p>Tokyo Revengers se divide en siete arcos narrativos principales. Aqui te explicamos cada uno para que sepas que esperar:</p>\n\n<h3>1. Arco de Toman (Capitulos 1-12 | Tomos 1-2)</h3>\n<p>El arco introductorio donde Takemichi descubre su poder de viajar al pasado y conoce a los fundadores de Toman, incluyendo al carismatico <strong>Mikey</strong> (Manjiro Sano) y al leal <strong>Draken</strong> (Ken Ryuguji). Aqui se establece la mecanica de viaje temporal y las reglas del mundo.</p>\n\n<h3>2. Arco de Moebius (Capitulos 13-33 | Tomos 2-4)</h3>\n<p>Toman enfrenta a la pandilla Moebius en un conflicto que pone en peligro la vida de Draken. Takemichi debe intervenir para evitar un evento tragico que marcaria el futuro de toda la organizacion. Este arco consolida las relaciones entre los personajes principales.</p>\n\n<h3>3. Arco de Valhalla (Capitulos 34-77 | Tomos 4-9)</h3>\n<p>Uno de los arcos mas intensos de la serie. La misteriosa pandilla Valhalla desafia a Toman a una batalla campal conocida como la Batalla del Dia de los Muertos. Aqui se revelan traiciones profundas y aparece <strong>Kisaki Tetta</strong>, el verdadero cerebro detras de muchos de los eventos oscuros de la serie.</p>\n\n<h3>4. Arco de Black Dragon (Capitulos 78-121 | Tomos 9-14)</h3>\n<p>Takemichi debe enfrentar a la legendaria pandilla Black Dragon, liderada por la decima generacion, en un arco ambientado durante la Navidad. Este segmento profundiza en la historia de varios personajes secundarios y contiene algunos de los momentos mas emotivos de la serie.</p>\n\n<h3>5. Arco de Tenjiku (Capitulos 122-185 | Tomos 14-21)</h3>\n<p>El arco mas extenso de la serie, con 64 capitulos de conflicto contra la pandilla Tenjiku, liderada por <strong>Izana Kurokawa</strong>. Las apuestas suben al maximo, las batallas son brutales y los giros narrativos no paran. Muchos fans consideran este arco como el punto mas alto de Tokyo Revengers.</p>\n\n<h3>6. Arco de las Tres Deidades (Capitulos 186-222 | Tomos 21-26)</h3>\n<p>Tras otro salto temporal, Takemichi descubre un futuro donde tres pandillas dominan Tokio. Este arco introduce nuevos aliados y enemigos, expandiendo el mundo de la serie y preparando el terreno para el desenlace final.</p>\n\n<h3>7. Arco Final - Kanto Manji (Capitulos 223-278 | Tomos 26-31)</h3>\n<p>El arco conclusivo donde todos los hilos narrativos convergen en una batalla final por el alma de Mikey y el destino de Takemichi. La serie cierra las historias de todos los personajes principales con un desenlace que genero intenso debate entre los fans.</p>\n\n<h2>¿Que cubre el anime?</h2>\n\n<p>El anime de Tokyo Revengers cuenta con tres temporadas:</p>\n<ul>\n<li><strong>Temporada 1 (2021):</strong> Cubre los arcos de Toman, Moebius y Valhalla (tomos 1-9 aproximadamente).</li>\n<li><strong>Temporada 2 - Christmas Showdown (2023):</strong> Adapta el arco de Black Dragon (tomos 9-14).</li>\n<li><strong>Temporada 3 - Tenjiku (2023):</strong> Adapta el arco de Tenjiku (tomos 14-21).</li>\n</ul>\n\n<p><strong>Si terminaste la Temporada 3 del anime, continua el manga desde el tomo 22</strong>, donde comienza el arco de las Tres Deidades. Todo lo que sigue despues del arco Tenjiku (los ultimos 10 tomos) no tiene adaptacion animada y solo puedes disfrutarlo en el manga.</p>\n\n<h2>¿Por que leer el manga?</h2>\n\n<ul>\n<li><strong>Historia completa:</strong> El manga es la unica forma de conocer el final de la historia, ya que los ultimos arcos no tienen adaptacion animada confirmada.</li>\n<li><strong>Mejor ritmo narrativo:</strong> El manga permite saborear los giros y revelaciones a tu propio ritmo, algo especialmente importante en una serie con tantas lineas temporales.</li>\n<li><strong>Detalles exclusivos:</strong> Muchas escenas y momentos de personajes secundarios se simplifican o eliminan en el anime.</li>\n</ul>\n\n<h2>Disponible en Akibara</h2>\n\n<p>En <strong>Akibara</strong> tenemos los tomos 1 al 29 de Tokyo Revengers en la <strong>edicion de Ivrea Argentina</strong> en espanol. Puedes empezar desde el principio o buscar el tomo exacto donde necesitas continuar. <span style=\"display:block; text-align:center; margin: 30px 0;\"><a href=\"https://akibara.cl/tokyo-revengers/\" target=\"_blank\" style=\"display:inline-block; width:100%; max-width:350px; padding:15px 20px; background:linear-gradient(135deg, #1a1a1a 0%, #333 100%); color:#fff; text-decoration:none; border-radius:12px; font-weight:bold; font-size:16px; border:1px solid #444; box-shadow:0 4px 15px rgba(0,0,0,0.3);\">🛒 Ver disponibilidad: Ver Tokyo Revengers en Akibara</a></span>.</p>\n\n<p>Si te gustan las historias con viajes en el tiempo y drama, complementa tu lectura con <a href=\"https://akibara.cl/jujutsu-kaisen/\" target=\"_blank\">Jujutsu Kaisen</a> o <a href=\"https://akibara.cl/chainsaw-man/\" target=\"_blank\">Chainsaw Man</a>, series que comparten esa intensidad narrativa del shonen moderno. Encuentra todo en <a href=\"https://akibara.cl/tienda/\" target=\"_blank\">nuestra tienda online</a> con despacho según cobertura del transportista.</p>",
+      "expected_before_sha256": "95cf6eefc3058840c1e2244047891b9426d93e1ad030f9ad0c4c0cc3c2e1062e",
+      "substitutions": [
+        {
+          "before": "conquisto",
+          "after": "conquistó",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "capitulos",
+          "after": "capítulos",
+          "expected_count": 2,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "Capitulos",
+          "after": "Capítulos",
+          "expected_count": 7,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "edicion",
+          "after": "edición",
+          "expected_count": 2,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "coleccion",
+          "after": "colección",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "anos",
+          "after": "años",
+          "expected_count": 2,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "mas",
+          "after": "más",
+          "expected_count": 5,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "vias",
+          "after": "vías",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "tragico",
+          "after": "trágico",
+          "expected_count": 2,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "debera",
+          "after": "deberá",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "epoca",
+          "after": "época",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "formacion",
+          "after": "formación",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "destruccion",
+          "after": "destrucción",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "guia",
+          "after": "guía",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "Aqui",
+          "after": "Aquí",
+          "expected_count": 3,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "carismatico",
+          "after": "carismático",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "mecanica",
+          "after": "mecánica",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "marcaria",
+          "after": "marcaría",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "organizacion",
+          "after": "organización",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "desafia",
+          "after": "desafía",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "Dia",
+          "after": "Día",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "detras",
+          "after": "detrás",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "decima",
+          "after": "décima",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "generacion",
+          "after": "generación",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "maximo",
+          "after": "máximo",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "genero",
+          "after": "generó",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "continua",
+          "after": "continúa",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "despues",
+          "after": "después",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "ultimos",
+          "after": "últimos",
+          "expected_count": 2,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "adaptacion",
+          "after": "adaptación",
+          "expected_count": 2,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "unica",
+          "after": "única",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "lineas",
+          "after": "líneas",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "espanol",
+          "after": "español",
+          "expected_count": 1,
+          "match_mode": "whole_word"
+        },
+        {
+          "before": "¿Que cubre",
+          "after": "¿Qué cubre",
+          "expected_count": 1,
+          "match_mode": "literal"
+        },
+        {
+          "before": "¿Por que leer",
+          "after": "¿Por qué leer",
+          "expected_count": 1,
+          "match_mode": "literal"
+        },
+        {
+          "before": "para que sepas que esperar",
+          "after": "para que sepas qué esperar",
+          "expected_count": 1,
+          "match_mode": "literal"
+        }
+      ],
+      "proposed_after": "<p class=\"akb-respuesta-directa\"><strong>Respuesta rápida:</strong> Tokyo Revengers, de Ken Wakui, es una historia completa: 31 tomos y 278 capítulos publicados entre 2017 y 2022. Para leerlo entero, parte desde el tomo 1; si ya viste el anime, continúa desde el tomo 22, donde comienza el arco de las Tres Deidades. En Akibara tenemos los tomos 1 al 29 en edición Ivrea Argentina, con envío según cobertura del transportista.</p>\n\n<p><strong>Tokyo Revengers</strong> combina viajes en el tiempo, pandillas callejeras y drama adolescente en una mezcla adictiva que conquistó a millones de lectores. Creado por <strong>Ken Wakui</strong> y publicado entre 2017 y 2022, este <strong>tokyo revengers manga</strong> cuenta con 31 tomos y 278 capítulos que forman una historia completa llena de giros inesperados. En Akibara tenemos disponibles los tomos 1 al 29 en la edición de Ivrea Argentina para que comiences o completes tu colección.</p>\n\n<h2>La historia: cambiar el pasado para salvar el futuro</h2>\n\n<p><strong>Takemichi Hanagaki</strong> es un joven de 26 años cuya vida es un desastre. Trabaja en un empleo mediocre, vive en un departamento miserable y acaba de enterarse de que su novia de la adolescencia, Hinata Tachibana, fue asesinada por la Tokyo Manji Gang (Toman), una de las pandillas más peligrosas de Tokio. Cuando alguien lo empuja a las vías del tren, Takemichi descubre que puede viajar 12 años al pasado.</p>\n\n<p>De vuelta en la secundaria, Takemichi tiene la oportunidad de cambiar el curso de los eventos para salvar a Hinata y evitar el futuro trágico que conoce. Para lograrlo, deberá infiltrarse en Toman durante su época de formación y cambiar las decisiones que llevaron a la pandilla por un camino de violencia y destrucción. Pero cada vez que altera el pasado, el presente cambia de maneras impredecibles, creando nuevas amenazas y revelando secretos oscuros.</p>\n\n<h2>Desglose de arcos: guía completa</h2>\n\n<p>Tokyo Revengers se divide en siete arcos narrativos principales. Aquí te explicamos cada uno para que sepas qué esperar:</p>\n\n<h3>1. Arco de Toman (Capítulos 1-12 | Tomos 1-2)</h3>\n<p>El arco introductorio donde Takemichi descubre su poder de viajar al pasado y conoce a los fundadores de Toman, incluyendo al carismático <strong>Mikey</strong> (Manjiro Sano) y al leal <strong>Draken</strong> (Ken Ryuguji). Aquí se establece la mecánica de viaje temporal y las reglas del mundo.</p>\n\n<h3>2. Arco de Moebius (Capítulos 13-33 | Tomos 2-4)</h3>\n<p>Toman enfrenta a la pandilla Moebius en un conflicto que pone en peligro la vida de Draken. Takemichi debe intervenir para evitar un evento trágico que marcaría el futuro de toda la organización. Este arco consolida las relaciones entre los personajes principales.</p>\n\n<h3>3. Arco de Valhalla (Capítulos 34-77 | Tomos 4-9)</h3>\n<p>Uno de los arcos más intensos de la serie. La misteriosa pandilla Valhalla desafía a Toman a una batalla campal conocida como la Batalla del Día de los Muertos. Aquí se revelan traiciones profundas y aparece <strong>Kisaki Tetta</strong>, el verdadero cerebro detrás de muchos de los eventos oscuros de la serie.</p>\n\n<h3>4. Arco de Black Dragon (Capítulos 78-121 | Tomos 9-14)</h3>\n<p>Takemichi debe enfrentar a la legendaria pandilla Black Dragon, liderada por la décima generación, en un arco ambientado durante la Navidad. Este segmento profundiza en la historia de varios personajes secundarios y contiene algunos de los momentos más emotivos de la serie.</p>\n\n<h3>5. Arco de Tenjiku (Capítulos 122-185 | Tomos 14-21)</h3>\n<p>El arco más extenso de la serie, con 64 capítulos de conflicto contra la pandilla Tenjiku, liderada por <strong>Izana Kurokawa</strong>. Las apuestas suben al máximo, las batallas son brutales y los giros narrativos no paran. Muchos fans consideran este arco como el punto más alto de Tokyo Revengers.</p>\n\n<h3>6. Arco de las Tres Deidades (Capítulos 186-222 | Tomos 21-26)</h3>\n<p>Tras otro salto temporal, Takemichi descubre un futuro donde tres pandillas dominan Tokio. Este arco introduce nuevos aliados y enemigos, expandiendo el mundo de la serie y preparando el terreno para el desenlace final.</p>\n\n<h3>7. Arco Final - Kanto Manji (Capítulos 223-278 | Tomos 26-31)</h3>\n<p>El arco conclusivo donde todos los hilos narrativos convergen en una batalla final por el alma de Mikey y el destino de Takemichi. La serie cierra las historias de todos los personajes principales con un desenlace que generó intenso debate entre los fans.</p>\n\n<h2>¿Qué cubre el anime?</h2>\n\n<p>El anime de Tokyo Revengers cuenta con tres temporadas:</p>\n<ul>\n<li><strong>Temporada 1 (2021):</strong> Cubre los arcos de Toman, Moebius y Valhalla (tomos 1-9 aproximadamente).</li>\n<li><strong>Temporada 2 - Christmas Showdown (2023):</strong> Adapta el arco de Black Dragon (tomos 9-14).</li>\n<li><strong>Temporada 3 - Tenjiku (2023):</strong> Adapta el arco de Tenjiku (tomos 14-21).</li>\n</ul>\n\n<p><strong>Si terminaste la Temporada 3 del anime, continúa el manga desde el tomo 22</strong>, donde comienza el arco de las Tres Deidades. Todo lo que sigue después del arco Tenjiku (los últimos 10 tomos) no tiene adaptación animada y solo puedes disfrutarlo en el manga.</p>\n\n<h2>¿Por qué leer el manga?</h2>\n\n<ul>\n<li><strong>Historia completa:</strong> El manga es la única forma de conocer el final de la historia, ya que los últimos arcos no tienen adaptación animada confirmada.</li>\n<li><strong>Mejor ritmo narrativo:</strong> El manga permite saborear los giros y revelaciones a tu propio ritmo, algo especialmente importante en una serie con tantas líneas temporales.</li>\n<li><strong>Detalles exclusivos:</strong> Muchas escenas y momentos de personajes secundarios se simplifican o eliminan en el anime.</li>\n</ul>\n\n<h2>Disponible en Akibara</h2>\n\n<p>En <strong>Akibara</strong> tenemos los tomos 1 al 29 de Tokyo Revengers en la <strong>edición de Ivrea Argentina</strong> en español. Puedes empezar desde el principio o buscar el tomo exacto donde necesitas continuar. <span style=\"display:block; text-align:center; margin: 30px 0;\"><a href=\"https://akibara.cl/tokyo-revengers/\" target=\"_blank\" style=\"display:inline-block; width:100%; max-width:350px; padding:15px 20px; background:linear-gradient(135deg, #1a1a1a 0%, #333 100%); color:#fff; text-decoration:none; border-radius:12px; font-weight:bold; font-size:16px; border:1px solid #444; box-shadow:0 4px 15px rgba(0,0,0,0.3);\">🛒 Ver disponibilidad: Ver Tokyo Revengers en Akibara</a></span>.</p>\n\n<p>Si te gustan las historias con viajes en el tiempo y drama, complementa tu lectura con <a href=\"https://akibara.cl/jujutsu-kaisen/\" target=\"_blank\">Jujutsu Kaisen</a> o <a href=\"https://akibara.cl/chainsaw-man/\" target=\"_blank\">Chainsaw Man</a>, series que comparten esa intensidad narrativa del shonen moderno. Encuentra todo en <a href=\"https://akibara.cl/tienda/\" target=\"_blank\">nuestra tienda online</a> con despacho según cobertura del transportista.</p>",
+      "proposed_after_sha256": "7d4c17af24cf5c484ae28043da56be78762d6c4d374f2d64c52f3656258ddbc8",
+      "question_marks_preserved": true,
+      "note": "The two ASCII question marks close valid Spanish questions; this proposal restores diacritics and does not delete or reinterpret punctuation."
+    }
+  ]
+}

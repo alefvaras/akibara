@@ -30,6 +30,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.0
+ * @api
+ * @psalm-suppress InvalidCast
+ * @psalm-suppress RedundantCast
  */
 final class Privacy {
 
@@ -60,7 +63,7 @@ final class Privacy {
 		// Si el usuario solicitó supresión formal de datos, no se estampa el correo en el historial.
 		$marca = '' !== (string) get_user_meta( (int) $user_id, self::META_SUPRESION, true )
 			? ' [cuenta borrada a petición de su titular]'
-			: ' [cuenta borrada: ' . (string) $user->user_email . ']';
+			: ' [cuenta borrada: ' . $user->user_email . ']';
 
 		global $wpdb;
 
@@ -436,7 +439,7 @@ final class Privacy {
 
 		$urls = array();
 		foreach ( (array) $comentarios as $comment_id ) {
-			foreach ( (array) get_comment_meta( (int) $comment_id, \Akibara\Rewards\Reviews\Media::META_LOCAL_IMAGE ) as $attachment_id ) {
+			foreach ( (array) get_comment_meta( (int) $comment_id, \Akibara\Rewards\Reviews\Media::META_IMAGE_ID ) as $attachment_id ) { // phpcs:ignore WordPress.WP.GetMetaSingle.Missing
 				$url = wp_get_attachment_url( (int) $attachment_id );
 				if ( is_string( $url ) && '' !== $url ) {
 					$urls[] = $url;

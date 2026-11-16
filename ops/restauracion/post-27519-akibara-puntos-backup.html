@@ -1,0 +1,158 @@
+<!-- wp:group {"layout":{"type":"constrained"}} -->
+<div class="wp-block-group akb-section akb-section--alt has-global-padding is-layout-constrained">
+  <style>
+    .akb-pts-wrap { max-width: 1000px; margin: 0 auto; padding: 20px 10px 80px; }
+    .akb-pts-title { font-family: var(--font-heading); text-transform: uppercase; font-style: italic; color: var(--aki-white); letter-spacing: -1px; }
+    .akb-pts-hero { text-align: center; margin-bottom: 56px; }
+    .akb-pts-hero .akb-pts-cta { margin-top: 24px; }
+    .akb-pts-rate { display: inline-flex; align-items: baseline; gap: 10px; background: var(--aki-surface-2); border: 1px solid var(--aki-border); border-radius: 0; padding: 20px 28px; margin-top: 28px; }
+    .akb-pts-rate b { font-family: var(--font-heading); font-size: clamp(2rem, 6vw, 3rem); color: var(--aki-yellow); line-height: 1; font-synthesis: none; }
+    .akb-pts-rate span { color: var(--aki-gray-300); font-size: 1rem; text-align: left; }
+    .akb-pts-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px; margin-bottom: 56px; }
+    .akb-pts-step { background: var(--aki-surface-2); border: 1px solid var(--aki-border); border-radius: 0; padding: 28px 24px; }
+    .akb-pts-step .akb-pts-num { display: inline-block; background: var(--aki-red); color: #fff; font-weight: 700; padding: 4px 12px; border-radius: 50px; margin-bottom: 14px; font-size: .85rem; letter-spacing: .04em; }
+    .akb-pts-step h3 { color: var(--aki-white); font-family: var(--font-heading); text-transform: uppercase; font-style: italic; font-size: 1.4rem; margin: 0 0 10px; }
+    .akb-pts-step p { color: var(--aki-gray-300); line-height: 1.6; margin: 0; font-size: 0.95rem; }
+    .akb-pts-table { width: 100%; border-collapse: collapse; background: var(--aki-surface-2); border: 1px solid var(--aki-border); border-radius: 0; overflow: hidden; margin-bottom: 16px; }
+    .akb-pts-table th, .akb-pts-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--aki-border); }
+    .akb-pts-table th { background: var(--aki-surface-3); color: var(--aki-gray-200); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+    .akb-pts-table td { color: var(--aki-gray-200); }
+    .akb-pts-table td:last-child { color: var(--aki-yellow); font-weight: 700; }
+    .akb-pts-table tr:last-child td { border-bottom: 0; }
+    .akb-pts-note { color: var(--aki-gray-400); font-size: .9rem; margin: 0 0 56px; }
+    .akb-pts-rules { background: var(--aki-surface-2); border: 1px solid var(--aki-border); border-radius: 0; padding: 28px 24px; margin-bottom: 48px; }
+    .akb-pts-rules h2 { color: var(--aki-white); font-family: var(--font-heading); text-transform: uppercase; font-style: italic; font-size: 1.8rem; margin: 0 0 18px; }
+    .akb-pts-rules ul { margin: 0; padding-left: 20px; }
+    .akb-pts-rules li { color: var(--aki-gray-300); line-height: 1.7; margin-bottom: 12px; }
+    .akb-pts-rules li strong { color: var(--aki-gray-200); }
+    .akb-pts-cta { text-align: center; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .akb-pts-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 28px; border-radius: 0; font-weight: 700; text-decoration: none; letter-spacing: .04em; text-transform: uppercase; }
+    .akb-pts-btn--primary { background: var(--aki-buy-bg, #CC0010); color: var(--aki-buy-fg, #fff); }
+    .akb-pts-btn--primary:hover { background: #b0000e; color: #fff; }
+    .akb-pts-btn--ghost { border: 1px solid var(--aki-border-light, #444); color: var(--aki-gray-200, #ccc); }
+    .akb-pts-btn--ghost:hover { border-color: var(--aki-red, #CC0010); color: var(--aki-white, #fff); }
+    .akb-pts-btn:focus-visible { outline: none; box-shadow: var(--aki-focus-ring); }
+    .akb-pts-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; }
+    .akb-pts-tablewrap .akb-pts-table { margin-bottom: 0; }
+    .akb-pts-box-ref { border-left: 4px solid var(--aki-red, #CC0010); background: #141414; padding: 20px 24px; margin-bottom: 48px; border-top: 1px solid #333; border-right: 1px solid #333; border-bottom: 1px solid #333; }
+    @media (max-width: 768px) {
+      .akb-pts-wrap { padding: 16px 6px 56px; }
+      .akb-pts-step, .akb-pts-rules, .akb-pts-box-ref { padding: 20px 18px; }
+      .akb-pts-table th, .akb-pts-table td { padding: 12px 14px; font-size: .95rem; }
+    }
+  </style>
+
+  <div class="akb-pts-wrap">
+
+    <div class="akb-pts-hero">
+      <h1 class="akb-pts-title" style="font-size: clamp(2.2rem, 5vw, 4rem); margin-bottom: 20px;">Akibara Puntos</h1>
+      <p style="font-size: 1.1rem; color: var(--aki-gray-300); line-height: 1.6; max-width: 640px; margin: 0 auto;">Tus pedidos con cuenta te devuelven el 2% en puntos. Cada punto equivale a $1 CLP para descontar en tus próximas compras de mangas y cómics.</p>
+      <div class="akb-pts-rate">
+        <b>[akb_puntos_resumen solo="tasa"]</b>
+        <span>de vuelta en puntos<br>&nbsp;en cada compra elegible</span>
+      </div>
+      <p style="color: var(--aki-yellow); font-weight: 700; margin: 22px 0 0; letter-spacing: .02em;">+ [akb_puntos_resumen solo="bienvenida"] puntos de bienvenida en tu primera compra con cuenta (al llegar por tu cuenta; no acumulable con cupón de referido de un amigo)</p>
+      <div class="akb-pts-cta">
+        <a class="akb-pts-btn akb-pts-btn--primary" href="/mi-cuenta/rewards/">Ver mis puntos</a>
+        <a class="akb-pts-btn akb-pts-btn--ghost" href="/tienda/">Ir al catálogo</a>
+      </div>
+    </div>
+
+    <h2 class="akb-pts-title" style="font-size: 2rem; margin-bottom: 18px;">Cómo funciona</h2>
+    <div class="akb-pts-steps">
+      <div class="akb-pts-step">
+        <div class="akb-pts-num">1 · COMPRA</div>
+        <h3>Ganas [akb_puntos_resumen solo="ratio"]</h3>
+        <p>En cada compra iniciada con tu cuenta, acumulas 2 puntos por cada $100 pagados en tomos y cómics (con IVA, sin contar el envío ni lo pagado con cupones). Además, en tu primera compra sumas <strong>+500 puntos de bienvenida</strong> si llegas por tu cuenta, o accedes a <strong>$2.000 de descuento directo</strong> si compraste con el enlace de un amigo.</p>
+      </div>
+      <div class="akb-pts-step">
+        <div class="akb-pts-num">2 · RECIBES</div>
+        <h3>Se acreditan al confirmar tu pago</h3>
+        <p>Apenas confirmamos el pago de tu compra, los puntos se suman automáticamente a tu cuenta. Los puntos acumulados quedan disponibles para tus próximas compras (no se pueden usar en el mismo pedido en que se ganan).</p>
+      </div>
+      <div class="akb-pts-step">
+        <div class="akb-pts-num">3 · DESCUENTAS</div>
+        <h3>1 punto = $1 CLP</h3>
+        <p>En el carrito o checkout eliges cuántos puntos canjear desde $25.000 en mangas. Cada punto te descuenta $1 directo del subtotal de tus productos (no pagan despacho ni se combinan con otros cupones).</p>
+      </div>
+    </div>
+
+    <h2 class="akb-pts-title" style="font-size: 2rem; margin-bottom: 18px;">Canje Escalonado en 2 Tramos</h2>
+    <p style="color: var(--aki-gray-300); margin-bottom: 16px;">Para mantener siempre precios justos en nuestro catálogo importado y darte descuentos reales, los puntos se canjean según el subtotal de productos de tu carrito:</p>
+    <div class="akb-pts-tablewrap">
+      <table class="akb-pts-table">
+        <thead>
+          <tr>
+            <th scope="col">Subtotal en productos</th>
+            <th scope="col">Tope máximo de canje</th>
+            <th scope="col">Descuento directo</th>
+            <th scope="col">Condición</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Menos de $25.000</td>
+            <td>Aún no disponible</td>
+            <td>$0</td>
+            <td>Acumulas tu 2% normal</td>
+          </tr>
+          <tr>
+            <td><strong>Tramo 1:</strong> $25.000 a $49.999</td>
+            <td>Hasta 2.000 puntos</td>
+            <td>Hasta $2.000 CLP</td>
+            <td>Sin cupones activos</td>
+          </tr>
+          <tr>
+            <td><strong>Tramo 2:</strong> Desde $50.000</td>
+            <td>Hasta 5.000 puntos</td>
+            <td>Hasta $5.000 CLP</td>
+            <td>Sin cupones activos</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="akb-pts-note">El despacho se calcula por separado y no se paga con puntos. Los puntos se descuentan directamente del subtotal de productos.</p>
+
+    <div class="akb-pts-box-ref">
+      <h2 class="akb-pts-title" style="font-size: 1.8rem; margin: 0 0 12px; color: #fff;">Programa de Referidos: Regala $2.000 y Gana 1.000 Puntos</h2>
+      <p style="color: var(--aki-gray-300); font-size: 1rem; line-height: 1.6; margin-bottom: 16px;">Comparte tu pasión por el manga con tus amigos y gana saldo para tu colección con beneficios para ambos:</p>
+      <ul style="color: var(--aki-gray-300); line-height: 1.8; margin-bottom: 18px; padding-left: 20px;">
+        <li><strong>Para tu amigo (Invitado):</strong> Recibe <strong>$2.000 CLP de descuento inmediato</strong> en su primera compra con tu enlace o cupón de referido, en compras desde $25.000 CLP en mangas a precio regular (no aplica sobre preventas u ofertas rebajadas).</li>
+        <li><strong>Para ti (Padrino):</strong> Recibes <strong>1.000 Puntos Akibara ($1.000 CLP)</strong> acreditados en tu cuenta cuando tu amigo complete su primer pedido.</li>
+        <li><strong>Límite para invitar:</strong> Puedes invitar y recibir recompensa por hasta 10 amigos (máximo 10.000 puntos en total por referidos).</li>
+        <li><strong>Un regalo de bienvenida a tu medida:</strong> Si tu amigo aprovecha los $2.000 de descuento directo en su primera compra, ese es su beneficio de bienvenida (no se suma a los 500 puntos de bienvenida, pero sí acumula su 2% normal de la compra).</li>
+        <li><strong>Juego limpio entre lectores:</strong> El beneficio es para nuevos lectores que compren por primera vez. No es válido auto-invitarse ni usar el mismo RUT, teléfono o correo entre cuentas.</li>
+      </ul>
+      <div style="text-align: left;">
+        <a class="akb-pts-btn akb-pts-btn--primary" href="/mi-cuenta/rewards/">Obtener mi enlace de referido</a>
+      </div>
+    </div>
+
+    <h2 class="akb-pts-title" style="font-size: 2rem; margin-bottom: 18px;">Todas las formas de ganar</h2>
+    [akb_puntos_resumen]
+
+    <div class="akb-pts-rules">
+      <h2>Lo que tienes que saber (Términos del Programa)</h2>
+      <ul>
+        <li><strong>Necesitas cuenta.</strong> Los puntos se acumulan y canjean exclusivamente con tu sesión iniciada en Akibara.</li>
+        <li><strong>Acumulación base (2%).</strong> Acumulas 2 puntos por cada $100 pagados con dinero real en productos elegibles con IVA. El costo de envío no genera puntos. Lo pagado con puntos o cupones tampoco genera puntos adicionales.</li>
+        <li><strong>Tu primera compra en Akibara (llegando por tu cuenta).</strong> Si es tu primera vez comprando con nosotros y llegaste por tu cuenta (sin link de invitación de un amigo), te damos la bienvenida con +500 puntos de regalo ($500) al confirmarse tu pago para que los descuentes en tu próximo pedido (uno por persona, RUT, correo y teléfono).</li>
+        <li><strong>Un beneficio a la vez (Cupones o Puntos).</strong> Para mantener siempre los mejores precios en mangas importados, en un mismo pedido puedes elegir si canjear tus puntos o aplicar un cupón de descuento. Tú decides cuál te conviene más para tu compra.</li>
+        <li><strong>Vencimiento de 12 meses.</strong> Tus puntos duran 1 año (12 meses) desde que los ganas. Al canjear, el sistema siempre descuenta primero los puntos más antiguos para que no los pierdas.</li>
+        <li><strong>Reseñas con foto.</strong> Cada reseña aprobada con foto real de un producto comprado en Akibara suma +500 puntos (máximo 5 reseñas premiadas por cliente = 2.500 puntos).</li>
+        <li><strong>Cumpleaños.</strong> Registra tu fecha de nacimiento en Mi Cuenta y recibe +1.000 puntos cada año como regalo de cumpleaños.</li>
+        <li><strong>Devoluciones o Anulaciones.</strong> Si un pedido se cancela o reembolsa por completo, los puntos otorgados se descuentan de tu saldo y los puntos canjeados se reintegran.</li>
+        <li><strong>Personales e intransferibles.</strong> Los puntos no se transfieren entre cuentas ni se canjean por dinero en efectivo.</li>
+      </ul>
+    </div>
+
+    <div class="akb-pts-cta">
+      <a class="akb-pts-btn akb-pts-btn--primary" href="/mi-cuenta/rewards/">Ver mis puntos en Mi Cuenta</a>
+      <a class="akb-pts-btn akb-pts-btn--ghost" href="/tienda/">Ir al catálogo</a>
+    </div>
+
+  </div>
+</div>
+<!-- /wp:group -->
+
+

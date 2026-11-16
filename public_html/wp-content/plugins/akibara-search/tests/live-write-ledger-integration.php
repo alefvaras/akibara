@@ -358,8 +358,7 @@ $logical_reconciler_hash = static function () use ( $wpdb, $must ): string {
 	$wpdb->last_error = '';
 	$arrival = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_key IN (%s, %s)",
-			Arrival::META_ONBACKORDER_AT,
+			"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s",
 			Arrival::META_FIRST_INSTOCK_AT
 		),
 		ARRAY_A
@@ -1579,8 +1578,8 @@ try {
 				'product',
 				'publish',
 				'_stock_status',
-				'onbackorder',
-				Arrival::META_ONBACKORDER_AT
+				'instock',
+				Arrival::META_FIRST_INSTOCK_AT
 			)
 		);
 		$must(

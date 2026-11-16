@@ -1,6 +1,6 @@
 <?php
 /**
- * DemandGapsAdminView — visualización de huecos de demanda, búsquedas sin resultado y solicitudes.
+ * DemandGapsAdminView — visualización de huecos de demanda y búsquedas sin resultado.
  *
  * @package Akibara\Search\Admin
  */
@@ -21,6 +21,7 @@ use Akibara\Search\SearchAdminSection;
 
 /**
  * Vista y helpers para el radar de demanda y rescate de búsquedas.
+ * @api
  */
 final class DemandGapsAdminView {
 
@@ -31,7 +32,7 @@ final class DemandGapsAdminView {
 
 		// La clave incorpora la generación activa del índice: garantiza que la foto
 		// de rescate expire de forma natural cuando se publica una nueva versión del catálogo.
-		$key    = 'akb_search_zero_rescue_' . md5( (string) get_option( Install::OPTION_INDEX_GEN, '' ) . "\n" . implode( "\n", $queries ) );
+		$key    = 'akb_search_zero_rescue_' . md5( get_option( Install::OPTION_INDEX_GEN, '' ) . "\n" . implode( "\n", $queries ) );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return $cached;

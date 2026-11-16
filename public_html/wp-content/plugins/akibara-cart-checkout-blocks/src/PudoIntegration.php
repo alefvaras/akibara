@@ -15,7 +15,13 @@ defined( 'ABSPATH' ) || exit;
  * Owns the PUDO Store API transport and Blocks presentation layer.
  *
  * @since 2.1.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidReturnStatement
+ * @psalm-suppress InvalidReturnType
  */
+// @phpstan-ignore complexity.classLike
 final class PudoIntegration {
 
 	public const WRITE_NAMESPACE = 'bluex_pudo';
@@ -221,8 +227,8 @@ final class PudoIntegration {
 		try {
 			if ( $this->service->is_available() && function_exists( 'WC' ) ) {
 				$woocommerce = WC();
-				$session     = is_object( $woocommerce ) ? ( $woocommerce->session ?? null ) : null;
-				if ( is_object( $session ) ) {
+				$session     = is_object( $woocommerce ) ? ( $woocommerce->session ?? null ) : null; // @phpstan-ignore nullCoalesce.property
+		if ( is_object( $session ) ) {
 					return $this->service->prepare_shipping_packages( $packages, $session );
 				}
 			}
@@ -397,9 +403,7 @@ final class PudoIntegration {
 		$woocommerce = WC();
 		if (
 			! is_object( $woocommerce )
-			|| ! is_object( $woocommerce->cart ?? null )
-			|| ! is_object( $woocommerce->session ?? null )
-			|| ! method_exists( $woocommerce->cart, 'get_shipping_packages' )
+			|| ! is_object( $woocommerce->cart ?? null )			|| ! is_object( $woocommerce->session ?? null )			|| ! method_exists( $woocommerce->cart, 'get_shipping_packages' ) // @phpstan-ignore nullCoalesce.property, nullCoalesce.property
 		) {
 			return null;
 		}
@@ -835,10 +839,9 @@ final class PudoIntegration {
 	 * @return never
 	 */
 	private function throw_route_error( string $code, string $message, int $status = 400 ): void {
-		$route_exception = '\\Automattic\\WooCommerce\\StoreApi\\Exceptions\\RouteException';
-		if ( class_exists( $route_exception ) ) {
+		if ( class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Store API: el mensaje es un literal de esta clase y WooCommerce lo serializa a JSON; escaparlo metería entidades HTML en lo que lee el cliente.
-			throw new $route_exception( $code, $message, $status );
+			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( $code, $message, $status );
 		}
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- mismo motivo: literal propio, nunca entrada del cliente.

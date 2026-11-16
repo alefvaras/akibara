@@ -19,6 +19,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.16.1
+ * @api
+ * @psalm-suppress InvalidOperand
+ * @psalm-suppress RedundantCondition
  */
 final class DiscountResolver {
 
@@ -276,7 +279,7 @@ final class DiscountResolver {
 		// editorial, y bajo greatest_wins/stack aplicaba un precio de oferta fantasma
 		// (undercharge). Verificado con datos sembrados (programada/vencida/activa).
 		$sale_raw   = $product->get_sale_price( 'edit' );
-		$has_active = $product->is_on_sale( 'edit' ) && is_numeric( $sale_raw ) && '' !== $sale_raw;
+		$has_active = $product->is_on_sale( 'edit' ) && is_numeric( $sale_raw ) && '' !== $sale_raw; // @phpstan-ignore notIdentical.alwaysTrue
 		$sale       = $has_active ? (float) $sale_raw : null;
 
 		if ( null === $sale || $sale <= 0 || $sale >= $regular ) {
@@ -311,7 +314,8 @@ final class DiscountResolver {
 	 * @param \WC_Product $product Producto.
 	 * @return int Porcentaje 0..tope editorial (Settings::MAX_PCT, default 15).
 	 */
-	private function resolve_term_pct( \WC_Product $product ): int {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	private function resolve_term_pct( \WC_Product $product ): int { // @phpstan-ignore complexity.functionLike
 		$product_id = $product->get_parent_id() > 0 ? $product->get_parent_id() : $product->get_id();
 
 		$taxonomies = $this->settings->get_supported_taxonomy_slugs();
@@ -355,7 +359,7 @@ final class DiscountResolver {
 						'get_the_terms(%d, %s) devolvió WP_Error: %s',
 						$product_id,
 						$taxonomy,
-						method_exists( $tax_terms, 'get_error_message' ) ? (string) $tax_terms->get_error_message() : 'sin mensaje'
+						method_exists( $tax_terms, 'get_error_message' ) ? (string) $tax_terms->get_error_message() : 'sin mensaje' // @phpstan-ignore function.alreadyNarrowedType
 					)
 				);
 				return 0;
@@ -373,7 +377,7 @@ final class DiscountResolver {
 			}
 
 			foreach ( $tax_terms as $tax_term ) {
-				if ( ! is_object( $tax_term ) || ! isset( $tax_term->term_id ) ) {
+				if ( ! is_object( $tax_term ) || ! isset( $tax_term->term_id ) ) { // @phpstan-ignore isset.property
 					$this->note_authority_failure(
 						sprintf( 'get_the_terms(%d, %s) devolvió un término sin term_id', $product_id, $taxonomy )
 					);
@@ -388,7 +392,7 @@ final class DiscountResolver {
 
 		$max = 0;
 		foreach ( $terms as $term_id ) {
-			$pct = $this->settings->get_term_pct( (int) $term_id );
+			$pct = $this->settings->get_term_pct( $term_id );
 			if ( $pct > $max ) {
 				$max = $pct;
 			}

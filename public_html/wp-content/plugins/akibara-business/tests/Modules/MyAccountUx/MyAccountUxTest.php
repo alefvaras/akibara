@@ -9,39 +9,21 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\MyAccountUx;
 
-use Akibara\Business\Modules\AccountCollection\Endpoint as CollectionEndpoint;
-use Akibara\Business\Modules\AccountCollection\Renderer as CollectionRenderer;
 use Akibara\Business\Modules\MyAccountUx\MyAccountUx;
 use PHPUnit\Framework\TestCase;
 
 final class MyAccountUxTest extends TestCase {
 
 	/**
-	 * El endpoint sólo necesita su renderer para construirse; el menú no lo usa.
+	 * @testdox Rewards and orders are placed first, with dashboard and logout at the end.
 	 */
-	private function collection_endpoint(): CollectionEndpoint {
-		return new CollectionEndpoint(
-			new CollectionRenderer( static fn( int $user_id ): array => array( 'status' => 'empty', 'series' => array() ) )
-		);
-	}
-
-	/**
-	 * @testdox Collection is placed immediately after orders and logout remains last.
-	 *
-	 * El menú lo componen DOS filtros en prioridades distintas y hay que probarlos
-	 * en ese orden: `MyAccountUx` reordena en la 20 y `AccountCollection\Endpoint`
-	 * inserta `coleccion` en la 30. La versión anterior de este test le pasaba
-	 * `coleccion` ya presente a la prioridad 20 —un estado que en el sitio no
-	 * existe— y por eso daba verde sobre una clave que el reordenamiento no podía
-	 * ver.
-	 */
-	public function test_collection_has_an_explicit_account_menu_position(): void {
-		// Lo que WooCommerce entrega en la prioridad 20: sin `coleccion`.
+	public function test_account_menu_order_and_labels(): void {
 		$items = ( new MyAccountUx() )->menu_items(
 			array(
 				'dashboard'       => 'Dashboard',
 				'orders'          => 'Orders',
 				'favoritos'       => 'Favoritos',
+				'rewards'         => 'Puntos',
 				'edit-address'    => 'Addresses',
 				'edit-account'    => 'Account details',
 				'customer-logout' => 'Logout',
@@ -52,16 +34,14 @@ final class MyAccountUxTest extends TestCase {
 		self::assertSame( 'Direcciones', $items['edit-address'] );
 		self::assertSame( 'Detalles', $items['edit-account'] );
 
-		$items = $this->collection_endpoint()->menu_item( $items );
-
 		self::assertSame(
-			array( 'orders', 'coleccion', 'favoritos', 'edit-address', 'edit-account', 'dashboard', 'customer-logout' ),
+			array( 'orders', 'rewards', 'favoritos', 'edit-address', 'edit-account', 'dashboard', 'customer-logout' ),
 			array_keys( $items ),
-			'La colección debe ser una acción principal y nunca quedar después de Salir.'
+			'El menú debe priorizar pedidos y recompensas, dejando Resumen y Salir al final.'
 		);
 	}
 
-	/** @testdox Rewards keeps the third slot once the collection is inserted. */
+	/** @testdox Rewards keeps the second visible slot in mobile viewport. */
 	public function test_rewards_keeps_its_visible_slot(): void {
 		$items = ( new MyAccountUx() )->menu_items(
 			array(
@@ -74,12 +54,11 @@ final class MyAccountUxTest extends TestCase {
 				'customer-logout' => 'Logout',
 			)
 		);
-		$items = $this->collection_endpoint()->menu_item( $items );
 
 		self::assertSame(
-			array( 'orders', 'coleccion', 'rewards' ),
+			array( 'orders', 'rewards', 'favoritos' ),
 			array_slice( array_keys( $items ), 0, 3 ),
-			'En 375 px sólo entran tres pestañas sin deslizar: el saldo de puntos tiene que ser una de ellas.'
+			'En 375 px sólo entran tres pestañas sin deslizar: pedidos, recompensas y favoritos.'
 		);
 	}
 
@@ -145,16 +124,14 @@ final class MyAccountUxTest extends TestCase {
 		);
 	}
 
-	/** @testdox Dashboard exposes a direct collection card without user-controlled URLs. */
-	public function test_dashboard_contains_the_collection_card(): void {
+	/** @testdox Dashboard does not contain the eradicated collection card. */
+	public function test_dashboard_does_not_contain_collection_card(): void {
 		$template = dirname( __DIR__, 3 ) . '/templates/myaccount/dashboard.php';
 		self::assertFileExists( $template );
 
 		$source = (string) file_get_contents( $template );
-		self::assertStringContainsString( "wc_get_endpoint_url( 'coleccion' )", $source );
-		self::assertStringContainsString( 'Colección', $source );
-		self::assertStringContainsString( 'avance de cada edición', $source );
-		self::assertStringContainsString( 'lo que te falta', $source );
+		self::assertStringNotContainsString( "wc_get_endpoint_url( 'coleccion' )", $source );
+		self::assertStringNotContainsString( 'akb-account-card--collection', $source );
 	}
 
 	/**

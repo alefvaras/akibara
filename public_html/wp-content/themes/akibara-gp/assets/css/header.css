@@ -21,6 +21,7 @@
  */
 
 /* ── Scroll progress bar ─────────────────────────────────────── */
+
 /* Barra de progreso de lectura: animación por GPU vía scaleX() desde la izquierda. */
 #aki-scroll-progress {
     position: fixed;
@@ -42,9 +43,7 @@
     position: sticky;
     top: 0;
     z-index: var(--z-sticky, 200);
-    background: rgba(18, 18, 18, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: var(--aki-black);
 }
 
 /* ── Header main row (logo + search + icons) ─────────────────── */
@@ -98,16 +97,19 @@
 .akibara-search,
 .mobile-drawer__search {
     --akb-search-line: rgba(255, 255, 255, 0.72);
+
     /* Contraste no-textual WCAG 1.4.11 (≥3:1) frente al gradiente de fondo. */
     --akb-search-field-border: #707070;
     position: relative;
     display: flex;
     align-items: stretch;
+
     /* Altura táctil accesible estándar de 44px (WCAG 2.5.5). */
     height: 44px;
     background: linear-gradient(180deg, var(--aki-surface-2) 0%, var(--aki-surface) 100%);
     border: 1px solid var(--akb-search-field-border);
-    border-radius: 0px;
+    border-radius: 0;
+
     /* Cuña roja de marca PERMANENTE en el filo izquierdo desde reposo (firma manga
      * que antes solo aparecía en :focus). red-dark en reposo → readable/más gruesa
      * en hover/focus: la energía sube con la interacción sin gritar. Una sola
@@ -129,6 +131,7 @@
     z-index: 0;
     background: repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 8px);
     clip-path: polygon(0 0, 42% 0, 60% 100%, 0 100%);
+
     /* Screentone/speed-lines a baja intensidad PERMANENTE (0.14) en reposo: la firma
      * de marca deja de vivir escondida detrás del :focus. Salto claro a 0.52 en focus
      * (regla abajo). transform:none → la diagonal ya está compuesta en su sitio en
@@ -148,6 +151,7 @@
 }
 
 .mobile-drawer__search {
+
     /* space-3 lateral (12px, antes space-4=16px): +8px por lado = +16px de ancho de
      * form dentro del drawer angosto, atacando el crunch junto con el pozo del icono.
      * No toca el margen vertical ni la altura 44px (target táctil AA). */
@@ -267,6 +271,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+
     .akibara-search.is-fetching::after,
     .mobile-drawer__search.is-fetching::after {
         animation: akb-spin 0.7s linear infinite;
@@ -274,6 +279,7 @@
 }
 
 @keyframes akb-spin {
+
     to {
         transform: rotate(360deg);
     }
@@ -334,6 +340,7 @@
 }
 
 .akibara-search__input::placeholder {
+
     /* gray-300 (#B0B0B0 = 8.7:1 vs #111, 8.0:1 vs #1A1A1A) en vez de gray-400
      * (#8A8A8A, al filo sobre el tope del gradiente): sube contraste del reposo con
      * holgura y lo diferencia de la lupa gris (rompe la "mancha gris"). El texto
@@ -355,9 +362,11 @@
 /* En pantallas táctiles móviles (≤ 768px), el input utiliza 16px para prevenir
  * el auto-zoom intrusivo de iOS Safari al hacer foco. */
 @media ( max-width: 768px ) {
+
     .akibara-search input.akibara-search__input[type="search"],
     .mobile-drawer__search input.akibara-search__input[type="search"] {
         font-size: 16px;
+
         /* Ajuste de espaciado en drawers estrechos preservando margen respecto al icono. */
         padding-left: 32px;
     }
@@ -374,6 +383,7 @@
     background: var(--aki-red-readable);
     color: var(--aki-white);
     border: 0;
+
     /* Tipografía Bebas Neue condensada en mayúsculas (peso 400). */
     font-family: var(--font-heading);
     font-size: 14px;
@@ -386,6 +396,7 @@
     -webkit-tap-highlight-color: transparent;
     position: relative;
     z-index: 1;
+
     /* Cuña del paralelogramo ensanchada (12/8 vs 10/6): la firma diagonal se lee a
      * tamaño chico sin redondearse. NUNCA eliminar ni redondear — es la firma. */
     clip-path: polygon(12px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
@@ -405,6 +416,7 @@
     align-self: center;
     background: var(--aki-surface-2);
     color: var(--aki-gray-300);
+
     /* Borde visible (mismo token de campo, 3.5:1 sobre surface-2) para que el target
      * de 44px sea perceptible en reposo sin depender del hover. No rompe el ring
      * amarillo de :focus-visible ya definido. */
@@ -453,6 +465,7 @@
     background: var(--aki-black);
     color: var(--aki-white);
     outline: none;
+
     /* El anillo amarillo de la casa + la franja roja interior del botón. */
     box-shadow:
         var(--aki-focus-ring),
@@ -554,6 +567,7 @@
  * Se eximen las barras de la hamburguesa de forzado de fondo con forced-color-adjust: none
  * asignando ButtonText para preservar visibilidad frente al fondo del botón. */
 @media (forced-colors: active) {
+
     .hamburger span {
         forced-color-adjust: none;
         background: ButtonText;
@@ -561,6 +575,7 @@
 }
 
 /* ── FiboSearch desktop (inyectado en header.php) ────────────── */
+
 /* ── Header icons (account/cart) ──────────────────────────────── */
 .header-icons {
     display: flex;
@@ -585,6 +600,21 @@
     text-decoration: none;
 }
 
+.akb-header-tier {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--aki-black);
+    font-size: 12px;
+    line-height: 1;
+    pointer-events: none;
+}
+
 .header-icon:hover,
 .header-icon:focus-visible {
     color: var(--aki-red);
@@ -600,6 +630,7 @@
  * estructural después de abandonar el primer viewport. La clase la conmuta
  * main.js con un listener pasivo y rAF; mobile mantiene su header de 72px. */
 @media (min-width: 1025px) {
+
     .site-header.is-compact .header-main__inner {
         height: 60px;
     }
@@ -618,17 +649,21 @@
 }
 
 @keyframes akb-header-bump {
+
     0% {
         transform: translateY(0) scale(1);
         filter: none;
     }
+
     35% {
         transform: translateY(-3px) scale(1.14) rotate(-3deg);
         filter: drop-shadow(3px 3px 0 var(--aki-black));
     }
+
     70% {
         transform: translateY(0) scale(0.96) rotate(2deg);
     }
+
     100% {
         transform: translateY(0) scale(1);
         filter: none;
@@ -711,6 +746,7 @@
     align-items: center;
     gap: 6px;
     padding: 12px 16px;
+
     /* Bebas Neue (display de marca) en vez de Inter genérico: la nav desktop
        chocaba con la identidad display (logo, drawer mobile, headings) y con
        los propios sublinks del mega-menú, que ya estaban en Bebas. 16px porque
@@ -726,7 +762,7 @@
     transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
     white-space: nowrap;
     position: relative;
-    border-radius: 0px;
+    border-radius: 0;
 }
 
 /* Indicador visual de selección JRPG:
@@ -821,7 +857,7 @@
     transform: rotate(180deg);
 }
 
-/* Submenu dropdowns (Manga, Cómics, Preventas)
+/* Submenu dropdowns (Manga, Cómics, Editoriales)
  * - Pill rounded card con border + glow del top accent rojo.
  * - Slide-down + fade-in + slight scale para profundidad.
  */
@@ -832,6 +868,7 @@
     display: flex;
     flex-direction: column;
     min-width: 220px;
+
     /* Cap de altura al viewport (menos el alto del header ~78px + margen) con
      * scroll interno: con 60+ editoriales el mega-dropdown crecía más alto que
      * la ventana y el enlace "Ver todas →" del fondo quedaba cortado bajo el
@@ -844,7 +881,7 @@
     background-size: 4px 4px;
     border: 1px solid var(--aki-border);
     border-radius: var(--radius-md);
-    box-shadow: 6px 6px 0px var(--aki-black);
+    box-shadow: 6px 6px 0 var(--aki-black);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px) scale(0.98);
@@ -977,6 +1014,7 @@
 .mainnav__sublink--parent {
     margin: 0 0 var(--space-1);
     border-bottom: 1px solid var(--aki-border);
+
     /* Label de sección del dropdown: BLANCO (no amarillo — amarillo = solo precio). */
     color: var(--aki-white);
     font-family: var(--font-heading);
@@ -994,7 +1032,7 @@
 }
 
 .mainnav__sublink--all {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     border-top: 1px solid var(--aki-border);
     margin-top: var(--space-1);
     padding-top: var(--space-3);
@@ -1004,6 +1042,10 @@
     font-style: normal;
     font-synthesis: none;
     text-transform: uppercase;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background: var(--aki-surface);
 }
 
 .mainnav__sublink--all:hover,
@@ -1099,7 +1141,9 @@
 }
 
 .mainnav__sub--cols-2 { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+
 .mainnav__sub--cols-3 { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+
 .mainnav__sub--cols-4 { grid-template-columns: repeat(4, minmax(160px, 1fr)); }
 
 /* En grid, los sublabels atraviesan todas las columnas para encabezar la
@@ -1144,19 +1188,12 @@
     padding-right: 0;
 }
 
-/* "Ver todas →" pegado al fondo del dropdown: aunque la lista de editoriales
- * sea larga y el dropdown haga scroll interno (max-height + overflow-y), el
- * CTA queda siempre visible y alcanzable en el borde inferior. */
-.mainnav__sublink--all {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    background: var(--aki-surface);
-}
+
 
 /* Ajuste responsive para variantes fijas en desktop intermedio (1025px - 1099px):
  * Colapsa subpaneles de 3 y 4 columnas a 2 columnas para evitar compresión de texto. */
 @media (min-width: 1025px) and (max-width: 1099px) {
+
     .mainnav__sub--cols-3,
     .mainnav__sub--cols-4 {
         grid-template-columns: repeat(2, minmax(160px, 1fr));
@@ -1183,8 +1220,6 @@
     max-width: min(880px, calc(100vw - 60px));
     transform: translate3d(-50%, -8px, 0) scale(0.98);
     will-change: transform, opacity;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 }
 
 .mainnav__item--has-sub:hover > .mainnav__sub--mega,
@@ -1291,7 +1326,7 @@
     border-top: 1px solid var(--aki-border);
     margin-top: var(--space-4);
     padding: var(--space-3) var(--space-2) 0;
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     font-family: var(--font-heading);
     font-size: 15px;
     text-transform: uppercase;
@@ -1436,6 +1471,7 @@
 }
 
 /* ── Mobile drawer (slide from left) ─────────────────────────── */
+
 /* AnnouncementBar offset: cuando #akb-ann-bar está presente y visible, el
  * drawer y overlay se desplazan hacia abajo para no taparla.
  *
@@ -1444,12 +1480,10 @@
  * normal. :has() support: Chrome 105+, Safari 15.4+, Firefox 121+.
  *
  * Altura `38px` matchea AnnouncementBar.css (`#akb-ann-bar { height: 38px }`).
- * Si la altura del plugin cambia, actualizar acá. */
-:root {
-    --akb-ann-bar-h: 0px;
-}
+ * Si la altura del plugin cambia, actualizar acá (token --akb-ann-bar-h declarado en tokens.css). */
 
 body:has(#akb-ann-bar:not(.akb-hidden)) {
+
     /* Altura de reserva cuando la barra de anuncios está activa en móvil */
     --akb-ann-bar-h: 44px;
 }
@@ -1462,8 +1496,6 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     bottom: 0;
     left: 0;
     background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     z-index: calc(var(--z-modal) - 1);
     opacity: 0;
     visibility: hidden;
@@ -1487,6 +1519,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     position: fixed;
     top: 0;
     left: 0;
+
     /* min() colapsa width + max-width en una sola declaración: 360px ideal
      * con cap a 88vw para dispositivos compactos. */
     width: min(360px, 88vw);
@@ -1514,6 +1547,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     border-right: 0;
     padding-bottom: 0;
     overflow-y: visible;
+
     /* La transición del drawer es translateX(-100%)→0: en full-screen se ve
      * como una cortina desde la izquierda; para búsqueda es preferible un
      * fundido, que además no compite con la aparición del teclado. */
@@ -1526,13 +1560,14 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .mobile-drawer__search {
+
     /* Fila superior: input + Cancelar. El botón «Buscar» rojo se sustituye por
      * un «Cancelar» de texto (patrón iOS/Android); enviar sigue siendo Enter
      * del teclado (`enterkeyhint="search"`). El marco/gradiente del form pasa
      * al campo (`--akb-sheet-field`) para que «Cancelar» quede FUERA del
      * campo: es otra acción, no parte del input. */
     margin: var(--space-2) var(--space-3) 0;
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: env(safe-area-inset-top, 0);
     border: 0;
     background: transparent;
     box-shadow: none;
@@ -1540,6 +1575,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .mobile-drawer__search::before {
+
     /* La cuña roja decorativa del form se reubica al campo vía outline. */
     display: none;
 }
@@ -1550,7 +1586,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * pasa a border-left del input. */
 .mobile-drawer--search .mobile-drawer__search input.akibara-search__input[type="search"],
 .mobile-drawer--search .mobile-drawer__search input.akibara-search__input[type="search"]:focus {
-    border: 1px solid var(--akb-search-field-border, #707070);
+    border: 1px solid var(--akb-search-field-border, var(--aki-input-border));
     border-left: 3px solid var(--aki-red);
     background: var(--aki-gray-900);
     padding-left: 40px;
@@ -1563,6 +1599,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akb-suggest-panel {
+
     /* Sheet a pantalla completa: el panel puede usar hasta el borde inferior
      * (menos el teclado, que el navegador resta solo). El 78vh/560px del
      * dropdown clásico dejaba una banda muerta abajo. */
@@ -1575,6 +1612,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .mobile-drawer__search::after {
+
     /* Sin este pseudo, el borde inferior del form queda solo; una línea sutil
      * bajo la fila de búsqueda ancla el panel de sugerencias. */
     content: "";
@@ -1587,6 +1625,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akibara-search__clear {
+
     /* Área táctil accesible ≥ 44px (WCAG 2.5.5) */
     width: 44px;
     height: 44px;
@@ -1620,6 +1659,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     font-size: var(--text-xs);
     letter-spacing: 0.08em;
     text-transform: uppercase;
+
     /* Contraste accesible WCAG 1.4.3 (≥ 4.5:1) sobre fondo oscuro */
     color: var(--aki-gray-300);
     opacity: 1;
@@ -1633,6 +1673,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 .mobile-drawer--search .akb-suggest-panel .akb-suggest-zero {
     display: inline-flex;
     align-items: center;
+
     /* Box-sizing border-box y alineación vertical consistente entre elementos <button> y <a> */
     box-sizing: border-box;
     vertical-align: middle;
@@ -1640,7 +1681,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     margin: 4px 0 4px var(--space-3);
     padding: 0 14px;
     min-height: 44px; /* Área táctil accesible ≥ 44px (WCAG 2.5.5) */
-    border: 1px solid var(--akb-search-field-border, #707070);
+    border: 1px solid var(--akb-search-field-border, var(--aki-input-border));
     border-radius: 999px;
     background: var(--aki-gray-900);
     color: var(--aki-white);
@@ -1657,6 +1698,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akb-suggest-panel .akb-suggest-zero .akb-suggest-thumb {
+
     /* Recientes con portada: chip con miniatura pequeña a la izquierda. */
     width: 24px;
     height: 24px;
@@ -1666,6 +1708,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer--search .akb-suggest-panel .akb-suggest-clear {
+
     /* «Borrar historial» no es un chip: enlace discreto bajo los recientes. */
     display: block;
     width: auto;
@@ -1696,12 +1739,14 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* El drawer ya no arranca bajo la barra de anuncios: sin esto el botón
-     * cerrar quedaría bajo el notch/isla dinámica en iOS. */
-    padding-top: env(safe-area-inset-top, 0px);
+
     /* Reducido space-4 → space-3 vertical: combinado con close circular 36px
      * deja el head en ~60px (antes 76px) — más contenido above-the-fold. */
     padding: var(--space-3) var(--space-5);
+
+    /* El drawer ya no arranca bajo la barra de anuncios: sin esto el botón
+     * cerrar quedaría bajo el notch/isla dinámica en iOS. */
+    padding-top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
     border-bottom: 1px solid var(--aki-border);
 }
 
@@ -1709,6 +1754,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     font-family: var(--font-heading);
     font-size: var(--text-lg);
     text-transform: uppercase;
+
     /* gray-200 en vez de white pleno: el título es un label de contexto,
      * no debería competir visualmente con los items clicables (que sí van
      * en white). Mantiene jerarquía sin perder legibilidad. */
@@ -1767,6 +1813,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     justify-content: space-between;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-5);
+
     /* Brand Typography Sync */
     font-family: var(--font-heading);
     font-size: 20px;
@@ -1776,6 +1823,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     color: var(--aki-white);
     border: 0;
     background: none;
+
     /* Box-sizing border-box evita desbordamientos laterales por padding horizontal */
     box-sizing: border-box;
     width: 100%;
@@ -1857,7 +1905,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * footer accordion. */
 .mobile-drawer__toggle[aria-expanded="true"],
 .mobile-drawer__subtoggle[aria-expanded="true"] {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
 }
 
 .mobile-drawer__sub {
@@ -1865,6 +1913,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     overflow: hidden;
     background: var(--aki-surface-2);
     padding: 0 var(--space-5);
+
     /* visibility: hidden remueve elementos colapsados del orden de tabulación (a11y);
      * el retardo de transición preserva la visibilidad durante la animación de cierre. */
     visibility: hidden;
@@ -1910,7 +1959,9 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     background: rgba(255, 255, 255, 0.08);
     color: var(--aki-gray-400);
 }
+
 .mobile-drawer__sublink.akb-brand--argentina::after { content: 'AR'; }
+
 .mobile-drawer__sublink.akb-brand--espana::after { content: 'ES'; }
 
 .mobile-drawer__sublink--active {
@@ -1924,6 +1975,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     min-height: 44px;
     margin-bottom: var(--space-1);
     border-bottom: 1px solid var(--aki-border);
+
     /* Label de sección del drawer: BLANCO (no amarillo — amarillo = solo precio). */
     color: var(--aki-white);
     font-family: var(--font-heading);
@@ -1943,7 +1995,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     margin-top: var(--space-3);
     padding-top: var(--space-3);
     border-top: 1px solid var(--aki-border);
-    color: var(--aki-red);
+    color: var(--aki-red-text);
     font-family: var(--font-heading);
     font-size: 18px;
     font-style: normal;
@@ -1952,7 +2004,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer__sublink--accent {
-    color: var(--aki-red-bright);
+    color: var(--aki-red-text);
     font-weight: var(--weight-semibold);
 }
 
@@ -2028,7 +2080,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 }
 
 .mobile-drawer__subtoggle--active[aria-expanded="true"] {
-    color: var(--aki-red);
+    color: var(--aki-red-text);
 }
 
 /* ── Mobile drawer: nivel 3 (brand links) ──────────────────── */
@@ -2058,6 +2110,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * `max-height: none` dentro del @supports anula el cap de las rules previas
  * sin recurrir a !important (cascade orden + specificity equivalente). */
 @supports (interpolate-size: allow-keywords) {
+
     .mobile-drawer {
         interpolate-size: allow-keywords;
     }
@@ -2069,6 +2122,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     }
 
     .mobile-drawer__sub {
+
         /* Preserva la transición diferida de visibility al redefinir el shorthand transition con interpolate-size */
         transition: height 280ms ease, padding 280ms ease, visibility 0s linear 280ms;
     }
@@ -2106,11 +2160,15 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
 
 /* ── Responsive: ≤1024px hide desktop, show mobile bits ────── */
 @media (max-width: 1024px) {
+
     .mainnav {
         display: none;
     }
+
     .hamburger {
         display: flex;
+        grid-column: 1;
+        justify-self: start;
     }
 
     /* Mobile: tres columnas con laterales iguales. Así el logo queda centrado
@@ -2149,11 +2207,6 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
         margin: 0;
     }
 
-    .hamburger {
-        grid-column: 1;
-        justify-self: start;
-    }
-
     .header-icons {
         grid-column: 3;
         justify-self: end;
@@ -2173,12 +2226,14 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
  * táctiles de 44px. Mi cuenta sigue disponible como enlace en el drawer; se
  * conserva en el header Favoritos y Carrito, que son acciones más contextuales. */
 @media (max-width: 374px) {
+
     .header-icon--account {
         display: none;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .akibara-search::before,
     .mobile-drawer__search::before,
     .header-icon.is-bumped,

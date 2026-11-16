@@ -23,6 +23,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.47
+ * @api
  */
 final class BrandTokens {
 
@@ -129,6 +130,7 @@ final class BrandTokens {
 			delete_transient( self::TRANSIENT );
 		} catch ( \Throwable $throwable ) {
 			// Caché best-effort.
+			unset( $throwable );
 		}
 	}
 
@@ -306,6 +308,7 @@ final class BrandTokens {
 			set_transient( self::TRANSIENT, array( 'stamp' => $stamp, 'data' => $soltables ), DAY_IN_SECONDS );
 		} catch ( \Throwable $throwable ) {
 			// Caché best-effort.
+			unset( $throwable );
 		}
 	}
 }

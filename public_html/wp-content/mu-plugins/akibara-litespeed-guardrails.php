@@ -20,6 +20,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @return bool
  */
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'litespeed_conf_load_option_optm-css_comb',
 	static function () {
@@ -34,6 +35,7 @@ add_filter(
  *
  * @return bool
  */
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'litespeed_conf_load_option_optm-js_comb',
 	static function () {
@@ -49,6 +51,7 @@ add_filter(
  *
  * @return bool
  */
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'litespeed_conf_load_option_guest_optm',
 	static function () {
@@ -65,6 +68,7 @@ add_filter(
  *
  * @return bool
  */
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'litespeed_conf_load_option_media-lazy',
 	static function () {
@@ -80,6 +84,7 @@ add_filter(
  *
  * @param mixed $valor_guardado Lo que LiteSpeed tenga guardado en `cache-exc`.
  * @return array<int, string>
+ * @psalm-suppress HookNotFound
  */
 function akibara_litespeed_rutas_sin_cache( $valor_guardado ): array {
 	$obligatorias = array( '/wp-json/wc/store/', '/wp-json/wc/v3/' );
@@ -101,6 +106,7 @@ function akibara_litespeed_rutas_sin_cache( $valor_guardado ): array {
  *
  * @param mixed $valor Lo guardado: array, texto con saltos de línea, o cualquier otra cosa.
  * @return array<int, string>
+ * @psalm-suppress HookNotFound
  */
 function akibara_litespeed_lista_de_rutas( $valor ): array {
 	if ( is_string( $valor ) ) {
@@ -125,6 +131,7 @@ function akibara_litespeed_lista_de_rutas( $valor ): array {
 	return $limpias;
 }
 
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'litespeed_conf_load_option_cache-exc',
 	'akibara_litespeed_rutas_sin_cache',
@@ -143,6 +150,7 @@ add_filter(
  *
  * @return bool
  */
+/** @psalm-suppress HookNotFound */
 add_filter(
 	'litespeed_conf_load_option_cache-mobile',
 	static function () {
@@ -159,8 +167,10 @@ add_filter(
  *
  * @param mixed $valor_guardado Lo que dice la opción (0, 1 o 2).
  * @return int 0 o 1.
+ * @psalm-suppress HookNotFound
  */
 function akibara_litespeed_js_sin_retraso( $valor_guardado ): int {
 	return min( 1, max( 0, (int) $valor_guardado ) );
 }
+/** @psalm-suppress HookNotFound */
 add_filter( 'litespeed_conf_load_option_optm-js_defer', 'akibara_litespeed_js_sin_retraso', 99 );

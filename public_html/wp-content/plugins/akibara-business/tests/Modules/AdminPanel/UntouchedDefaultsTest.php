@@ -217,8 +217,8 @@ final class UntouchedDefaultsTest extends TestCase {
 	}
 
 	/**
-	 * La cadena real que se cobró un aviso falso en producción: el filtro
-	 * específico de `TaxonomyDiscount` corría ANTES y devolvía el valor viejo
+	 * La cadena real que se cobró un aviso falso en producción: un filtro
+	 * específico corría ANTES y devolvía el valor viejo
 	 * —`false` con la fila ausente— para no crear la fila. La guarda genérica
 	 * recibía ya ese `false`, no lo reconocía como «el default intacto» y lo
 	 * apuntaba como intento. Después el aviso lo acusaba de no haberse guardado.
@@ -275,5 +275,21 @@ final class UntouchedDefaultsTest extends TestCase {
 		$valor = array( 'a', 'b' );
 
 		self::assertSame( $valor, $panel->skip_untouched_default( $valor, 'akb_lista', false ) );
+	}
+
+	/**
+	 * @testdox FreeShippingProgress expone en defaults_by_option únicamente akibara_fsp_carrier_threshold con 60000 y omite akibara_fsp_threshold
+	 */
+	public function test_free_shipping_progress_defaults_contain_single_carrier_threshold(): void {
+		$fsp = new \Akibara\Business\Modules\FreeShippingProgress\FreeShippingProgress();
+		$settings = $fsp->get_settings();
+
+		$metodo = new ReflectionMethod( AdminPanel::class, 'defaults_by_option' );
+		$metodo->setAccessible( true );
+		$mapa = $metodo->invoke( null, $settings );
+
+		self::assertArrayHasKey( 'akibara_fsp_carrier_threshold', $mapa );
+		self::assertSame( '60000', $mapa['akibara_fsp_carrier_threshold'] );
+		self::assertArrayNotHasKey( 'akibara_fsp_threshold', $mapa );
 	}
 }

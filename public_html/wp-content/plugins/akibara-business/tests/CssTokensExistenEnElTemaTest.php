@@ -54,8 +54,7 @@ final class CssTokensExistenEnElTemaTest extends TestCase {
 	public function test_the_focus_rings_use_the_house_tokens(): void {
 		$raiz = dirname( __DIR__ ) . '/assets/css/';
 		foreach ( array(
-			'series-facts.css'       => array( '.akb-series-summary__more:focus-visible', '.akb-series-latest:focus-visible' ),
-			'estimated-delivery.css' => array( '.akb-disponibles-intro__sibling a:focus-visible' ),
+			'series-facts.css' => array( '.akb-series-summary__more:focus-visible', '.akb-series-latest:focus-visible' ),
 		) as $hoja => $selectores ) {
 			$css = (string) file_get_contents( $raiz . $hoja );
 			foreach ( $selectores as $selector ) {

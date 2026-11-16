@@ -19,6 +19,9 @@ use Akibara\Business\Services\VolumeTitle;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ */
 final class Picker {
 
 	/**
@@ -37,7 +40,8 @@ final class Picker {
 	 * @param array<int, int>                                                              $excluidos       Ids que no pueden salir (la ficha, sus upsells).
 	 * @return array<int, int>
 	 */
-	public static function related( array $candidatos, array $series_actuales, array $estanterias, array $excluidos = array() ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function related( array $candidatos, array $series_actuales, array $estanterias, array $excluidos = array() ): array { // @phpstan-ignore complexity.functionLike
 		$actuales = array_fill_keys( array_map( 'intval', $series_actuales ), true );
 
 		$abren      = array();

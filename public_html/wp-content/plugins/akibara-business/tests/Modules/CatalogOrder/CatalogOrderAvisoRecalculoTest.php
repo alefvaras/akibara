@@ -43,6 +43,13 @@ final class CatalogOrderAvisoRecalculoTest extends TestCase {
 				return count( $this->encoladas );
 			}
 		);
+		Functions\when( 'as_unschedule_all_actions' )->alias(
+			function ( string $hook ): void {
+				$this->encoladas = array_values(
+					array_filter( $this->encoladas, fn( $e ) => $e[1] !== $hook )
+				);
+			}
+		);
 	}
 
 	protected function tearDown(): void {

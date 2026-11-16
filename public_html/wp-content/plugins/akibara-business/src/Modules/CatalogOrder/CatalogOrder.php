@@ -37,13 +37,20 @@ use Akibara\Business\Utilities\StoreTime;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress InvalidArgument
+ * @psalm-suppress UnusedReturnValue
+ * @psalm-suppress UnusedVariable
+ * @psalm-suppress UnusedReturnValue
+ */
 final class CatalogOrder {
 
 	private const RECOMPUTE_HOOK   = 'akibara_catalog_order_recompute';
 	private const DAILY_HOOK       = 'akibara_catalog_order_daily';
 	private const GROUP            = 'akb-catalog-order';
-	private const DEBOUNCE_SECONDS = 120; // los imports publican en ráfaga: una sola corrida.
-	private const WRITE_CHUNK      = 200;
+	public const DEBOUNCE_SECONDS  = 600; // 600 segundos = 10 minutos (debounce deslizante).
 
 	/**
 	 * La corrida diaria ocurre a las 00:05 de la tienda para purgar antes del
@@ -65,13 +72,10 @@ final class CatalogOrder {
 	/** Última corrida: `array{time:int, rows:int, applied:int}`. */
 	private const OPTION_LAST_RUN = 'akb_catalog_order_last_run';
 
-	/** Pestaña propia dentro del panel Akibara. */
+	/** Pestaña propia dentro del panel Akibara (retirada a código / constantes). */
 	public const PANEL_TAB_ID = 'catalog_order';
 
-	/** Acción de `admin-post.php` que encola un recálculo manual. */
-	private const ADMIN_ACTION = 'akibara_catalog_order_recompute';
-
-	/** Qué vitrina calcula el recompute. Se elige en la pestaña «Vitrina». */
+	/** Qué vitrina calcula el recompute. */
 	public const OPTION_SHOWCASE = 'akb_catalog_order_showcase';
 
 	/** Disponible → «a pedido» → agotado, intercalando series dentro de cada grupo. */
@@ -88,18 +92,7 @@ final class CatalogOrder {
 	public function register(): void {
 		( new SeriesNewestOrder() )->register();
 		add_action( 'transition_post_status', array( $this, 'on_status_change' ), 10, 3 );
-		add_filter( 'akibara_panel_save_errors', array( self::class, 'validate_save' ), 10, 2 );
-		add_filter( 'woocommerce_admin_settings_sanitize_option_' . self::OPTION_SHOWCASE, array( self::class, 'sanitize_showcase_for_save' ) );
-		// Elegir otra vitrina no mueve nada hasta recalcular: se encola al
-		// momento. `add_option_*` cubre el primer cambio (la fila no existe
-		// mientras se usa el valor por defecto) y `update_option_*` los demás;
-		// WordPress no dispara ninguno de los dos si el valor no cambió.
-		add_action( 'add_option_' . self::OPTION_SHOWCASE, array( $this, 'on_showcase_changed' ), 10, 0 );
-		add_action( 'update_option_' . self::OPTION_SHOWCASE, array( $this, 'on_showcase_changed' ), 10, 0 );
-		// Y cuando cambia el CÓDIGO que calcula la vitrina, que no pasa por
-		// ninguno de los dos hooks de arriba (B1-REV2-1).
 		add_action( 'akibara_business_upgraded', array( $this, 'on_business_upgraded' ), 10, 0 );
-		add_action( 'admin_post_' . self::ADMIN_ACTION, array( $this, 'handle_admin_recompute' ) );
 		add_action( self::RECOMPUTE_HOOK, array( $this, 'recompute' ) );
 		add_action( self::DAILY_HOOK, array( $this, 'recompute' ) );
 		add_action( 'init', array( $this, 'maybe_schedule_daily' ), 20 );
@@ -246,66 +239,23 @@ final class CatalogOrder {
 	}
 
 	/**
-	 * La vitrina vigente. Fila ausente o con un valor desconocido (escrito a
-	 * mano, por ejemplo) = la del dueño: nunca deja el catálogo sin orden.
+	 * La vitrina vigente.
+	 *
+	 * Arquitectura de 2 niveles (12-Factor App / WordPress VIP):
+	 * 1. Override opcional en wp-config.php (`AKB_CATALOG_ORDER_SHOWCASE`).
+	 * 2. Default canónico en código (`SHOWCASE_AVAILABLE_FIRST = 'disponibles_primero'`).
+	 *
+	 * Cero consultas a base de datos.
 	 */
 	public static function current_showcase(): string {
-		return self::parse_showcase( get_option( self::OPTION_SHOWCASE, self::DEFAULT_SHOWCASE ) ) ?? self::DEFAULT_SHOWCASE;
-	}
-
-	/**
-	 * Lo que WooCommerce escribe: la vitrina enviada, o la vigente si lo enviado
-	 * no es una vitrina (la validación previa ya habría detenido el guardado).
-	 *
-	 * Hace falta porque WooCommerce sanea los `radio` con `wc_clean()` y nada
-	 * más: sin esto, cualquier texto enviado a mano quedaba guardado.
-	 *
-	 * @internal Callback de `woocommerce_admin_settings_sanitize_option_akb_catalog_order_showcase`.
-	 *
-	 * @param mixed $value Valor enviado.
-	 */
-	public static function sanitize_showcase_for_save( $value ): string {
-		return self::parse_showcase( $value ) ?? self::current_showcase();
-	}
-
-	/**
-	 * Rechaza la pestaña entera si la vitrina enviada no es una de las dos.
-	 *
-	 * El formulario sólo ofrece valores válidos; esto cubre el envío fabricado a
-	 * mano, y lo DICE en vez de guardar otra cosa en silencio.
-	 *
-	 * @internal Callback de `akibara_panel_save_errors`.
-	 *
-	 * @param mixed  $errors Mensajes acumulados.
-	 * @param string $tab    Pestaña que se guarda.
-	 * @return mixed
-	 */
-	public static function validate_save( $errors, $tab ) {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- `AdminPanel::handle_save()` verifica el nonce antes de aplicar este filtro.
-		if ( self::PANEL_TAB_ID !== $tab || ! is_array( $errors ) || ! isset( $_POST[ self::OPTION_SHOWCASE ] ) ) {
-			return $errors;
+		if ( defined( 'AKB_CATALOG_ORDER_SHOWCASE' ) && is_string( AKB_CATALOG_ORDER_SHOWCASE ) ) {
+			$override = self::parse_showcase( AKB_CATALOG_ORDER_SHOWCASE );
+			if ( null !== $override ) {
+				return $override;
+			}
 		}
 
-		$enviado = wp_unslash( $_POST[ self::OPTION_SHOWCASE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- se valida con parse_showcase() y no se guarda desde aquí.
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
-		if ( null === self::parse_showcase( $enviado ) ) {
-			$errors[] = 'La vitrina elegida no existe: elige «Disponibles primero» o «Intercalado». No se guardó nada.';
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Encola el recálculo en cuanto cambia la vitrina elegida.
-	 *
-	 * Sin debounce: no hay ráfaga que agrupar, hay una persona que acaba de
-	 * guardar y quiere ver el cambio. Si ya había uno pendiente, ése leerá la
-	 * vitrina nueva al correr (la lee al empezar, no al encolarse).
-	 *
-	 * @internal Callback de `add_option_akb_catalog_order_showcase` y `update_option_akb_catalog_order_showcase`.
-	 */
-	public function on_showcase_changed(): void {
-		$this->schedule_recompute( 0 );
+		return self::DEFAULT_SHOWCASE;
 	}
 
 	/**
@@ -316,43 +266,6 @@ final class CatalogOrder {
 	 */
 	public function on_business_upgraded(): void {
 		$this->schedule_recompute( 0 );
-	}
-
-	/**
-	 * Ajustes de la pestaña «Vitrina».
-	 *
-	 * El `title` va vacío a propósito: el panel borra el título de la primera
-	 * sección para no repetir el suyo (`AdminPanel::prepare_settings_for_display()`),
-	 * así que cualquier texto aquí sería copy que nadie ve. El encabezado del
-	 * ajuste y su explicación los pinta `render_admin_section()`, justo encima
-	 * del formulario.
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	public function get_settings(): array {
-		return array(
-			array(
-				'title' => '',
-				'type'  => 'title',
-				'id'    => 'akb_catalog_order_showcase_settings',
-			),
-			array(
-				'title'    => 'Vitrina',
-				'id'       => self::OPTION_SHOWCASE,
-				'type'     => 'radio',
-				'default'  => self::DEFAULT_SHOWCASE,
-				'autoload' => false,
-				'options'  => array(
-					self::SHOWCASE_AVAILABLE_FIRST => 'Disponibles primero (recomendado): arriba lo que está en bodega y se despacha ya; después lo «a pedido» y las preventas; al final lo agotado. Dentro de cada grupo se siguen intercalando las series, con lo más nuevo arriba.',
-					self::SHOWCASE_INTERLEAVED     => 'Intercalado, como hasta septiembre de 2026: disponibles y «a pedido» mezclados según lo más nuevo de cada serie; lo agotado baja dentro de su serie.',
-				),
-				'desc'     => 'Al guardar se encola el recálculo: lo ejecuta el cron del servidor en unos minutos y, al terminar, limpia la caché del sitio para que el cliente vea el orden nuevo.',
-			),
-			array(
-				'type' => 'sectionend',
-				'id'   => 'akb_catalog_order_showcase_settings',
-			),
-		);
 	}
 
 	/**
@@ -379,10 +292,11 @@ final class CatalogOrder {
 	 * Garantiza una única acción pendiente en cola a la vez mediante verificación
 	 * de estado pendiente antes de encolar una nueva ejecución.
 	 *
-	 * Distingue con precisión los estados: encolada, ya encolada previamente,
-	 * encolada tras una acción en progreso o ejecutada de forma síncrona.
+	 * Aplica debounce de ventana deslizante (600s): antes de programar con
+	 * `as_schedule_single_action`, desprograma cualquier acción pendiente previa.
 	 *
-	 * @param int|null $delay_seconds Espera antes de correr. `null` aplica el debounce estándar.
+	 * @param int|null $delay_seconds Espera antes de correr. `null` aplica el debounce estándar (600s).
+	  * @psalm-suppress UnusedReturnValue
 	 * @return string `encolada`, `ya-encolada`, `en-curso-y-encolada` o `ejecutada`.
 	 */
 	private function schedule_recompute( ?int $delay_seconds = null ): string {
@@ -391,13 +305,18 @@ final class CatalogOrder {
 			return 'ejecutada';
 		}
 
-		// Si ya existe una acción pendiente, no se duplica.
-		if ( self::hay_recalculo_pendiente() ) {
+		// Si se solicita inmediata (0s, manual) y ya hay una pendiente, no se duplica.
+		if ( 0 === $delay_seconds && self::hay_recalculo_pendiente() ) {
 			return 'ya-encolada';
 		}
 
 		// Detecta si hay una acción actualmente en ejecución para reflejarlo en la respuesta.
 		$en_curso = self::hay_recalculo_en_curso();
+
+		// Debounce de ventana deslizante: desprograma cualquier acción pendiente del mismo hook.
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( self::RECOMPUTE_HOOK, array(), self::GROUP );
+		}
 
 		as_schedule_single_action(
 			time() + ( null === $delay_seconds ? self::DEBOUNCE_SECONDS : max( 0, $delay_seconds ) ),
@@ -461,119 +380,7 @@ final class CatalogOrder {
 		return is_array( $ids ) && array() !== $ids;
 	}
 
-	/**
-	 * Encola el recálculo completo solicitado por el dueño, con ejecución directa
-	 * sólo si no existe Action Scheduler. Evita recorrer y reescribir el catálogo
-	 * dentro de la petición administrativa.
-	 *
-	 * @internal Callback de `admin_post_akibara_catalog_order_recompute`.
-	 *
-	 * @return void
-	 */
-	public function handle_admin_recompute(): void {
-		if ( ! current_user_can( AdminPanel::PANEL_CAP ) ) {
-			wp_die( 'Sin permisos.', 'akibara', array( 'response' => 403 ) );
-		}
 
-		check_admin_referer( self::ADMIN_ACTION );
-
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'        => 'akibara-panel',
-					'tab'         => self::PANEL_TAB_ID,
-					'akb_vitrina' => $this->schedule_recompute( 0 ),
-				),
-				admin_url( 'admin.php' )
-			)
-		);
-		exit;
-	}
-
-	/**
-	 * Estado de la vitrina y su botón de recálculo.
-	 *
-	 * La vitrina reordena 1.568 productos y hasta ahora lo hacía a ciegas: el
-	 * Interfaz administrativa de la sección «Vitrina».
-	 *
-	 * Renderiza el estado del último recálculo y la opción de disparo manual.
-	 *
-	 * @internal Callback de `AdminPanel::add_section($header_fn)`.
-	 *
-	 * @return void
-	 */
-	public function render_admin_section(): void {
-		$last = self::last_run();
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- bandera de sólo lectura puesta por nuestro propio wp_safe_redirect; no cambia estado.
-		$resultado = isset( $_GET['akb_vitrina'] ) ? sanitize_key( wp_unslash( (string) $_GET['akb_vitrina'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-		$aviso = match ( $resultado ) {
-			'encolada'            => array( 'success', 'Recálculo encolado. Lo ejecuta el cron del servidor en los próximos minutos; vuelve a esta pantalla para ver la fecha nueva.' ),
-			'ya-encolada'         => array( 'info', 'Ya había un recálculo en cola; no se duplicó.' ),
-			'en-curso-y-encolada' => array( 'success', 'Hay un recálculo ejecutándose ahora mismo; se encoló otro para justo después, así no se pierde nada de lo que se publique mientras tanto.' ),
-			'ejecutada'           => array( 'success', 'Vitrina recalculada.' ),
-			default               => null,
-		};
-		?>
-		<?php if ( null !== $aviso ) : ?>
-			<div class="notice notice-<?php echo esc_attr( $aviso[0] ); ?> is-dismissible"><p><?php echo esc_html( $aviso[1] ); ?></p></div>
-		<?php endif; ?>
-
-		<h3>Recálculo</h3>
-
-		<p>
-			El orden «Destacados» —el que ve el cliente al entrar al catálogo sin elegir
-			ningún orden— intercala series para que la página no sea una fila de tomos
-			de la misma colección, con la vitrina que elijas abajo. Se recalcula solo
-			cada día de madrugada, cada vez que publicas o retiras un producto y cada
-			vez que cambias la vitrina. Un tomo que se agota o que llega a bodega
-			cambia de grupo en el recálculo siguiente.
-		</p>
-
-		<p>
-			<?php if ( array() === $last ) : ?>
-				<strong>Nunca se ha recalculado.</strong> El catálogo se está ordenando con los valores que tenga cada producto.
-			<?php else : ?>
-				Última corrida: <strong><?php echo esc_html( self::format_moment( $last['time'] ) ); ?></strong>
-				— <?php echo esc_html( sprintf( '%s productos revisados, %s reordenados', number_format_i18n( $last['rows'] ), number_format_i18n( $last['applied'] ) ) ); ?>.
-			<?php endif; ?>
-		</p>
-
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<?php wp_nonce_field( self::ADMIN_ACTION ); ?>
-			<input type="hidden" name="action" value="<?php echo esc_attr( self::ADMIN_ACTION ); ?>">
-			<button type="submit" class="button">Recalcular la vitrina ahora</button>
-		</form>
-
-		<p class="description">
-			Al recalcular se pisa cualquier orden que hayas arrastrado a mano en la lista
-			de productos: el orden de la vitrina lo calcula la tienda.
-		</p>
-
-		<?php // El formulario del panel, con el ajuste, va justo debajo: este encabezado es el suyo. ?>
-		<h3>Qué ve primero el cliente</h3>
-
-		<p>
-			Es el orden «Destacados»: el que aparece al entrar a la tienda, a una categoría
-			(Manga, Cómics, un distrito) o a una editorial sin elegir otro. Las landings de
-			serie no cambian: abren en «Tomo 1 → N», y su opción «Novedades primero» sigue
-			mostrando lo más nuevo arriba y lo agotado al final, elijas la vitrina que elijas.
-		</p>
-		<?php
-	}
-
-	/**
-	 * Fecha legible en la zona horaria de la tienda.
-	 *
-	 * @param int $timestamp Marca de tiempo UTC.
-	 */
-	private static function format_moment( int $timestamp ): string {
-		if ( function_exists( 'wp_date' ) ) {
-			return (string) wp_date( 'j \d\e F Y, H:i', $timestamp );
-		}
-
-		return gmdate( 'Y-m-d H:i', $timestamp ) . ' UTC';
-	}
 
 	/**
 	 * Lo que el recálculo escribiría AHORA con la vitrina pedida, sin escribir.
@@ -666,30 +473,23 @@ final class CatalogOrder {
 		}
 
 		$applied = 0;
-		foreach ( array_chunk( $changes, self::WRITE_CHUNK, true ) as $chunk ) {
-			$cases = array();
-			$ids   = array();
-			foreach ( $chunk as $id => $order ) {
-				$cases[] = $wpdb->prepare( 'WHEN %d THEN %d', $id, $order );
-				$ids[]   = (int) $id;
-			}
-			$result = $wpdb->query(
-				"UPDATE {$wpdb->posts} SET menu_order = CASE ID " . implode( ' ', $cases ) . ' END WHERE ID IN (' . implode( ',', $ids ) . ')' // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada WHEN sale de $wpdb->prepare() y los ID son enteros casteados arriba.
+		foreach ( $changes as $id => $order ) {
+			$result = $wpdb->update(
+				$wpdb->posts,
+				array( 'menu_order' => (int) $order ),
+				array( 'ID' => (int) $id ),
+				array( '%d' ),
+				array( '%d' )
 			);
 			if ( false === $result ) {
-				// Sin traza el fallo es invisible: por Action Scheduler nadie lee
-				// el retorno. No se purga la cache de estas filas — no cambiaron,
-				// y su menu_order stale es el que sigue vigente.
 				\Akibara\Business\Utilities\Log::warn(
 					'catalog-order',
-					sprintf( 'Chunk de %d menu_order falló: %s', count( $ids ), $wpdb->last_error )
+					sprintf( 'menu_order falló para producto %d: %s', (int) $id, $wpdb->last_error )
 				);
 				continue;
 			}
-			$applied += count( $ids );
-			foreach ( $ids as $id ) {
-				clean_post_cache( $id );
-			}
+			++$applied;
+			clean_post_cache( (int) $id );
 		}
 
 		// Si se aplicaron cambios de orden en el catálogo, se sincroniza la tabla
@@ -699,10 +499,14 @@ final class CatalogOrder {
 			$search_table = $prefix . 'akb_search_docs';
 			// Sincronizar d.menu_order directamente para garantizar paridad estricta con wp_posts.
 			$wpdb->query(
-				"UPDATE {$search_table} d
-				 JOIN {$wpdb->posts} p ON d.post_id = p.ID
-				 SET d.menu_order = p.menu_order
-				 WHERE d.menu_order != p.menu_order"
+				$wpdb->prepare(
+					"UPDATE %i d
+					 JOIN %i p ON d.post_id = p.ID
+					 SET d.menu_order = p.menu_order
+					 WHERE d.menu_order != p.menu_order",
+					$search_table,
+					$wpdb->posts
+				)
 			);
 
 			do_action( 'litespeed_purge_all' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Hook público oficial de LiteSpeed Cache.

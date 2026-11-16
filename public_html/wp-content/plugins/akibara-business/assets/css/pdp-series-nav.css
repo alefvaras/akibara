@@ -26,6 +26,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+
     /* `min-width: 0` es obligatorio en un item de grid: sin él la anchura
      * mínima es la del contenido y el `text-overflow: ellipsis` no llega a
      * aplicarse nunca — el título largo empuja la celda y descuadra la fila. */
@@ -150,6 +151,7 @@
  * Bajando el enlace de serie a su propia fila, el texto sale completo —el MISMO
  * que en desktop— y prev y siguiente conservan su ancho. */
 @media (max-width: 1024px) {
+
     .akb-series-nav__inner {
         grid-template-columns: 1fr 1fr;
         row-gap: 6px;
@@ -191,6 +193,7 @@
  * útil de esos dos enlaces sin ninguna necesidad. Por debajo de 768px sí hace
  * falta, porque el título completo no entra. */
 @media (max-width: 768px) {
+
     .akb-series-nav__title-desktop {
         display: none;
     }
@@ -219,31 +222,27 @@
     letter-spacing: 0.01em;
     line-height: 1.3;
     text-decoration: none;
+    text-transform: none;
 }
 
 /*
  * Cuando el enlace contiene estado se apilan sus hijos con :has(). Sin estado conserva una
  * única línea; display:block del hijo no cambia por sí solo la dirección flex del enlace.
+ * El subrayado corresponde al label, no al enlace contenedor, para que el estado no parezca un
+ * segundo enlace. Un descendiente no puede cancelar la decoración propagada por su ancestro.
  */
 .akb-series-nav__link--series:has(.akb-series-nav__series-estado) {
     flex-direction: column;
     align-items: center;
     row-gap: 2px;
     line-height: 1.2;
+    text-decoration: none;
 }
 
 /* El margen vive en el contenedor apilado, no en el hijo: así el hijo no
  * arrastra separación cuando algún día se use en otro sitio. */
 .akb-series-nav__link--series:has(.akb-series-nav__series-estado) .akb-series-nav__series-estado {
     margin-top: 0;
-}
-
-/*
- * El subrayado corresponde al label, no al enlace contenedor, para que el estado no parezca un
- * segundo enlace. Un descendiente no puede cancelar la decoración propagada por su ancestro.
- */
-.akb-series-nav__link--series:has(.akb-series-nav__series-estado) {
-    text-decoration: none;
 }
 
 .akb-series-nav__link--series:has(.akb-series-nav__series-estado) .akb-series-nav__series-label {
@@ -253,12 +252,4 @@
 
 .akb-series-nav__link--series:has(.akb-series-nav__series-estado):hover .akb-series-nav__series-label {
     text-decoration-thickness: 2px;
-}
-
-/* En caja baja, no en versales. El nav impone `uppercase` a todo, y a 12px eso
- * convierte un dato en un grito. Además la landing lo escribe así —«Completa en
- * 30 tomos»—, y el punto de esta línea es que las dos superficies digan
- * exactamente lo mismo, también en la forma. */
-.akb-series-nav__series-estado {
-    text-transform: none;
 }

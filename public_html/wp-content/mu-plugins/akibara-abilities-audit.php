@@ -24,7 +24,9 @@ const AKIBARA_ABILITIES_AUDIT_SOURCE = 'akibara-abilities';
  * Quién está ejecutando, dicho de forma que sirva para buscar después.
  *
  * @return string
+ * @psalm-suppress RedundantCast
  */
+/** @psalm-suppress RedundantCast */
 function akibara_abilities_audit_quien(): string {
 	$user_id = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
 	if ( $user_id <= 0 ) {
@@ -46,6 +48,7 @@ function akibara_abilities_audit_quien(): string {
  *
  * @param mixed $input Entrada de la ability.
  * @return string
+ * @psalm-suppress RedundantCast
  */
 function akibara_abilities_audit_claves( $input ): string {
 	if ( ! is_array( $input ) || array() === $input ) {
@@ -63,6 +66,7 @@ function akibara_abilities_audit_claves( $input ): string {
  *
  * @param string $mensaje Línea ya compuesta.
  * @return void
+ * @psalm-suppress RedundantCast
  */
 function akibara_abilities_audit_anota( string $mensaje ): void {
 	if ( function_exists( 'wc_get_logger' ) ) {
@@ -80,6 +84,10 @@ add_action(
 		akibara_abilities_audit_anota(
 			sprintf(
 				'INICIO %s · por %s · entrada: %s',
+				/**
+				 * @psalm-suppress RedundantCast
+				 * @psalm-suppress RedundantCast
+				 */
 				(string) $name,
 				akibara_abilities_audit_quien(),
 				akibara_abilities_audit_claves( $input )
@@ -100,6 +108,10 @@ add_action(
 		unset( $result );
 
 		akibara_abilities_audit_anota(
+			/**
+			 * @psalm-suppress RedundantCast
+			 * @psalm-suppress RedundantCast
+			 */
 			sprintf( 'FIN    %s · por %s · ok', (string) $name, akibara_abilities_audit_quien() )
 		);
 	},

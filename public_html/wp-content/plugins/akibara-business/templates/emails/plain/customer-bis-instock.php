@@ -17,6 +17,8 @@
  * @var string           $timeframe_copy
  * @var string           $cta_label
  * @var string           $footnote_copy
+ * @var bool             $is_registered
+ * @var string           $collection_url
  * @var string           $unsubscribe_url
  * @var string           $email_heading
  * @var string           $additional_content
@@ -25,7 +27,6 @@
  */
 
 use Akibara\Business\Modules\EmailBrand\EmailBrand;
-use Akibara\Business\Modules\Stock\Availability;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -36,22 +37,10 @@ echo "==========\n\n";
 
 echo "¡Buenas noticias!\n\n";
 
-if ( Availability::PREVENTA === ( $availability_state ?? '' ) ) {
-	printf(
-		"%s ya se puede reservar en preventa. Pediste que te avisáramos cuando se habilitara — este es tu aviso.\n\n",
-		EmailBrand::plano( $product_name )
-	);
-} elseif ( Availability::A_PEDIDO === ( $availability_state ?? '' ) ) {
-	printf(
-		"%s ya se puede encargar a pedido. Pediste que te avisáramos cuando volviera a habilitarse — este es tu aviso.\n\n",
-		EmailBrand::plano( $product_name )
-	);
-} else {
-	printf(
-		"%s está de vuelta en stock. Pediste que te avisáramos — este es tu aviso.\n\n",
-		EmailBrand::plano( $product_name )
-	);
-}
+printf(
+	"%s está de vuelta en stock. Pediste que te avisáramos — este es tu aviso.\n\n",
+	EmailBrand::plano( $product_name )
+);
 
 if ( '' !== EmailBrand::plano( (string) ( $availability_label ?? '' ) ) ) {
 	if ( '' !== EmailBrand::plano( (string) ( $timeframe_copy ?? '' ) ) ) {
@@ -86,6 +75,11 @@ echo EmailBrand::plano( '' !== ( $cta_label ?? '' ) ? (string) $cta_label : 'Com
 echo esc_url_raw( $product_url ) . "\n\n";
 
 echo EmailBrand::plano( '' !== ( $footnote_copy ?? '' ) ? (string) $footnote_copy : 'El stock puede ser limitado: la mayoría de nuestros tomos tienen pocas unidades por edición.' ) . "\n\n";
+
+if ( ! empty( $is_registered ) && ! empty( $collection_url ) ) {
+	echo "Ir a Mi Cuenta:\n";
+	echo esc_url_raw( $collection_url ) . "\n\n";
+}
 
 if ( '' !== $additional_content ) {
 	echo EmailBrand::plano( wptexturize( $additional_content ) ) . "\n\n";

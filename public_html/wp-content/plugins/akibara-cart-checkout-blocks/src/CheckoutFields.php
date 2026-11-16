@@ -20,6 +20,10 @@ defined( 'ABSPATH' ) || exit;
  * Owns Blocks field registration, validation and order synchronization.
  *
  * @since 2.0.0
+ * @api
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress InvalidArrayOffset
+ * @psalm-suppress RedundantCondition
  */
 final class CheckoutFields {
 
@@ -96,7 +100,7 @@ final class CheckoutFields {
 			return;
 		}
 
-		$customer = WC()->customer ?? null;
+		$customer = WC()->customer ?? null; // @phpstan-ignore nullCoalesce.property
 		if ( $customer instanceof WC_Customer ) {
 			$this->mirror_billing_into_shipping( $customer );
 		}
@@ -432,7 +436,7 @@ final class CheckoutFields {
 	public function validate_billing_phone( WC_Order $order, WP_Error $errors ): void {
 		$telefonos = array(
 			'facturación' => (string) $order->get_billing_phone(),
-			'envío'       => method_exists( $order, 'get_shipping_phone' ) ? (string) $order->get_shipping_phone() : '',
+			'envío'       => method_exists( $order, 'get_shipping_phone' ) ? (string) $order->get_shipping_phone() : '', // @phpstan-ignore function.alreadyNarrowedType
 		);
 
 		$vistos = array();

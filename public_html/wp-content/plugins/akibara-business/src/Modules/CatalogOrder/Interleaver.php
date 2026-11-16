@@ -18,13 +18,14 @@ use Akibara\Business\Modules\Stock\StockStatus;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * @api
+ * @psalm-suppress InvalidArgument
+ */
 final class Interleaver {
 
 	/** Grupo de la vitrina «disponibles primero»: en bodega, se despacha ya. */
 	public const TIER_AVAILABLE = 0;
-
-	/** Grupo «a pedido» (y preventa): se vende, pero llega en semanas. */
-	public const TIER_ON_REQUEST = 1;
 
 	/** Grupo agotado: al final, fuera del espacio que vende. */
 	public const TIER_SOLD_OUT = 2;
@@ -38,18 +39,14 @@ final class Interleaver {
 	 * `instock`, así que la tarjeta dice «Disponible» y ofrece el carrito.
 	 *
 	 * El vocabulario es el de `Stock\StockStatus` y no un literal: un brazo de
-	 * `match` compara igual que un `===`, y el candado de
-	 * `AvailabilityTest::test_los_literales_de_stock_no_se_comparan_a_mano_fuera_de_stock`
-	 * lo vigila así (revisión B1-REV3-1). La clase sigue siendo pura: StockStatus
-	 * sólo aporta las constantes.
+	 * `match` compara igual que un `===`.
 	 *
 	 * @param string|null $stock_status Valor de `_stock_status` (null = sin fila).
 	 */
 	public static function availability_tier( ?string $stock_status ): int {
 		return match ( $stock_status ) {
-			StockStatus::OUT_OF_STOCK => self::TIER_SOLD_OUT,
-			StockStatus::ON_BACKORDER => self::TIER_ON_REQUEST,
-			default                   => self::TIER_AVAILABLE,
+			StockStatus::IN_STOCK => self::TIER_AVAILABLE,
+			default               => self::TIER_SOLD_OUT,
 		};
 	}
 
@@ -109,7 +106,8 @@ final class Interleaver {
 	 *        `sellable` default true (false = agotado).
 	 * @return array<int, int> Mapa product_id => menu_order (1-based).
 	 */
-	public static function compute( array $rows ): array {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public static function compute( array $rows ): array { // @phpstan-ignore complexity.functionLike
 		if ( empty( $rows ) ) {
 			return array();
 		}

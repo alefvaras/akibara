@@ -20,6 +20,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.99.15
+ * @api
  */
 final class PriceAuthority {
 

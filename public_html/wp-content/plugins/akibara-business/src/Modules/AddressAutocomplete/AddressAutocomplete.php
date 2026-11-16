@@ -19,6 +19,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.4.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class AddressAutocomplete {
 
@@ -66,9 +68,14 @@ final class AddressAutocomplete {
 
 	/**
 	 * True si el módulo está activo Y hay API key utilizable.
+	 * Soporta la constante Twelve-Factor AKB_ADDRESS_AUTOCOMPLETE_ENABLED con fallback a la option.
 	 */
 	public function is_ready(): bool {
-		if ( 'yes' !== get_option( self::OPTION_ENABLED, 'no' ) ) {
+		if ( defined( 'AKB_ADDRESS_AUTOCOMPLETE_ENABLED' ) ) {
+			if ( ! AKB_ADDRESS_AUTOCOMPLETE_ENABLED ) {
+				return false;
+			}
+		} elseif ( 'yes' !== get_option( self::OPTION_ENABLED, 'no' ) ) {
 			return false;
 		}
 

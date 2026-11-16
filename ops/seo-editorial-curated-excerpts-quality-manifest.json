@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-25",
+  "environment": "docker-local-snapshot",
+  "purpose": "Fail-closed, UI-only promotion of ten product-specific excerpts that were reviewed in the local SEO content quality manifest but were absent from the remote official-UI plan.",
+  "rank_math_excluded": true,
+  "policy": {
+    "official_ui_first": true,
+    "no_direct_database_writes": true,
+    "no_remote_csv_imports": true,
+    "preserve_product_identity": true,
+    "unique_product_specific_copy": true
+  },
+  "audit_summary": {
+    "entries": 10,
+    "remote_legacy_sources": {
+      "mob_psycho": 4,
+      "monster": 6
+    },
+    "unique_targets": 10
+  },
+  "entries": [
+    {
+      "key": "product:15406:post_excerpt",
+      "object_type": "product",
+      "object_id": 15406,
+      "title": "Mob Psycho 100 03",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 03 > Descripción corta del producto > Actualizar",
+      "expected_before": "Edición de lujo 2 en 1 de Ivrea Argentina. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "aa82d6c172ef6c2d75e696203feaccad0e2f4742655dd61be834f4b83cbee80d",
+      "proposed_after": "Mob Psycho 100 03 sigue el despertar psíquico de Ritsu y el rescate del cuartel de Claw. Edición 2 en 1 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "2e88f506a92b4df5e947bacacbb81454c141e5f5ddcd265d343ab5e192627b1f"
+    },
+    {
+      "key": "product:15409:post_excerpt",
+      "object_type": "product",
+      "object_id": 15409,
+      "title": "Mob Psycho 100 04",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 04 > Descripción corta del producto > Actualizar",
+      "expected_before": "Edición de lujo 2 en 1 de Ivrea Argentina. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "aa82d6c172ef6c2d75e696203feaccad0e2f4742655dd61be834f4b83cbee80d",
+      "proposed_after": "Mob Psycho 100 04 revela las Siete Ramas de Claw y el papel decisivo de Reigen en el asalto. Edición 2 en 1 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "2660903fccbaa42931f5431965810a10b1fb9bfc4e4ae225707055c7fc7fa09a"
+    },
+    {
+      "key": "product:15412:post_excerpt",
+      "object_type": "product",
+      "object_id": 15412,
+      "title": "Mob Psycho 100 05",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 05 > Descripción corta del producto > Actualizar",
+      "expected_before": "Edición de lujo 2 en 1 de Ivrea Argentina. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "aa82d6c172ef6c2d75e696203feaccad0e2f4742655dd61be834f4b83cbee80d",
+      "proposed_after": "Mob Psycho 100 05 enfrenta a Mob con Suzuki Toichiro en el clímax de Dominación Mundial. Edición 2 en 1 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "ead31ab3ad92147896ad121f36f18033a413b6627cb21f253ad9e88142bb58af"
+    },
+    {
+      "key": "product:15415:post_excerpt",
+      "object_type": "product",
+      "object_id": 15415,
+      "title": "Mob Psycho 100 06",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Mob Psycho 100 06 > Descripción corta del producto > Actualizar",
+      "expected_before": "Edición de lujo 2 en 1 de Ivrea Argentina. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "aa82d6c172ef6c2d75e696203feaccad0e2f4742655dd61be834f4b83cbee80d",
+      "proposed_after": "Mob Psycho 100 06 somete a Mob a la realidad espiritual de Keiji Mogami y pone a prueba su ética. Edición 2 en 1 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "133e052d3dfd72a1dc2f29724986590b09bdcddc4ea0ecc226f406c0fb646cf7"
+    },
+    {
+      "key": "product:15428:post_excerpt",
+      "object_type": "product",
+      "object_id": 15428,
+      "title": "Monster 03",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Monster 03 > Descripción corta del producto > Actualizar",
+      "expected_before": "La obra cumbre de Naoki Urasawa en formato A5 de lujo. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "a47cc97da80d187cb5bf0f9d1865d286c90f9ba8e7b902888399a15810c052da",
+      "proposed_after": "Monster 03 enfrenta a Tenma con la trampa de Lunge y la confesión de Eva sobre Johan. Edición kanzenban A5 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "909c2f9b46e75aa0b8f494c5cf06f4e886619d3015c7b6c582d96066541f268d"
+    },
+    {
+      "key": "product:15431:post_excerpt",
+      "object_type": "product",
+      "object_id": 15431,
+      "title": "Monster 04",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Monster 04 > Descripción corta del producto > Actualizar",
+      "expected_before": "La obra cumbre de Naoki Urasawa en formato A5 de lujo. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "a47cc97da80d187cb5bf0f9d1865d286c90f9ba8e7b902888399a15810c052da",
+      "proposed_after": "Monster 04 sigue a Richard Braun, revela la identidad robada de Johan y abre la ruta a Praga. Edición kanzenban A5 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "8f8fc2008e2a038fbbcface6aaba1846ceefbd326323e76a4d3a6cc356bdb42c"
+    },
+    {
+      "key": "product:15434:post_excerpt",
+      "object_type": "product",
+      "object_id": 15434,
+      "title": "Monster 05",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Monster 05 > Descripción corta del producto > Actualizar",
+      "expected_before": "La obra cumbre de Naoki Urasawa en formato A5 de lujo. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "a47cc97da80d187cb5bf0f9d1865d286c90f9ba8e7b902888399a15810c052da",
+      "proposed_after": "Monster 05 presenta El Monstruo Sin Nombre, a Wolfgang Grimmer y los fantasmas del 511 Kinderheim. Kanzenban A5 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "4f30b5a99433737f6a38451a88263fbee49884ae0845e6819d46f5908eeef399"
+    },
+    {
+      "key": "product:15437:post_excerpt",
+      "object_type": "product",
+      "object_id": 15437,
+      "title": "Monster 06",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Monster 06 > Descripción corta del producto > Actualizar",
+      "expected_before": "La obra cumbre de Naoki Urasawa en formato A5 de lujo. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "a47cc97da80d187cb5bf0f9d1865d286c90f9ba8e7b902888399a15810c052da",
+      "proposed_after": "Monster 06 reúne la cinta perdida de Johan, la trampa contra Jan Suk y el regreso de Lunge a Praga. Kanzenban A5 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "c527562d5856d581e6e1115296580e70510805883644aea7836cacc15cc6af10"
+    },
+    {
+      "key": "product:15440:post_excerpt",
+      "object_type": "product",
+      "object_id": 15440,
+      "title": "Monster 07",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Monster 07 > Descripción corta del producto > Actualizar",
+      "expected_before": "La obra cumbre de Naoki Urasawa en formato A5 de lujo. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "a47cc97da80d187cb5bf0f9d1865d286c90f9ba8e7b902888399a15810c052da",
+      "proposed_after": "Monster 07 reconstruye la noche de Nina en la Mansión de la Rosa Roja y redefine la historia de los gemelos. Kanzenban A5 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "df1b6d1ef15f9b390a03ce21a5e4dcb5e567136287287fb77d373d20b2735ed7"
+    },
+    {
+      "key": "product:15443:post_excerpt",
+      "object_type": "product",
+      "object_id": 15443,
+      "title": "Monster 08",
+      "field": "post_excerpt",
+      "post_status": "publish",
+      "content_disposition": "valid_published_content_keep",
+      "issue_codes": [
+        "duplicate_low_information_excerpt",
+        "absolute_shipping_claim",
+        "missing_product_specific_summary"
+      ],
+      "severity": "high",
+      "application_lane": "official_ui",
+      "apply_via": "WooCommerce > Productos > Monster 08 > Descripción corta del producto > Actualizar",
+      "expected_before": "La obra cumbre de Naoki Urasawa en formato A5 de lujo. Envío a todo Chile desde Akibara.",
+      "expected_before_sha256": "a47cc97da80d187cb5bf0f9d1865d286c90f9ba8e7b902888399a15810c052da",
+      "proposed_after": "Monster 08 cierra las memorias de Nina en la Mansión de la Rosa Roja y encamina la confrontación final. Kanzenban A5 de Ivrea Argentina; despacho según cobertura.",
+      "proposed_after_sha256": "e45fe7d957a72f0bd80e21f2fad1a89a4dc2654885a529dd203930b637f79bd4"
+    }
+  ]
+}

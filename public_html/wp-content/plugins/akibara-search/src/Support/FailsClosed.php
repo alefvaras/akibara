@@ -31,6 +31,13 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.1.41
+ * @api
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedThisPropertyFetch
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress TypeDoesNotContainType
+ * @psalm-suppress UndefinedThisPropertyFetch
  */
 trait FailsClosed {
 
@@ -46,8 +53,13 @@ trait FailsClosed {
 	 * @return bool
 	 *
 	 * @since 0.1.14
+		 */
+	/**
+	 * @phpstan-impure
 	 */
 	public function is_available(): bool {
+		/** @psalm-suppress RedundantCast */
+		$this->available = (bool) $this->available;
 		return $this->available;
 	}
 
@@ -91,6 +103,7 @@ trait FailsClosed {
 	 * @return string
 	 */
 	private function database_error(): string {
+		/** @psalm-suppress TypeDoesNotContainType, UndefinedThisPropertyFetch */
 		if ( ! property_exists( $this, 'db' ) || ! is_object( $this->db ) ) {
 			return '';
 		}

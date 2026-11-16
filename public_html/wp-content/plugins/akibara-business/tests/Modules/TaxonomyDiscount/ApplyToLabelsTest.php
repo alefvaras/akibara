@@ -201,7 +201,7 @@ final class ApplyToLabelsTest extends TestCase {
 
 		$labels = $this->labels();
 
-		self::assertStringContainsString( 'a pedido', $labels[ Settings::APPLY_INSTOCK_AND_ONBACKORDER ] );
+		self::assertStringContainsString( 'reservas', $labels[ Settings::APPLY_INSTOCK_AND_ONBACKORDER ] );
 		self::assertStringNotContainsString(
 			'preventa',
 			mb_strtolower( implode( ' ', $labels ) ),
@@ -232,29 +232,24 @@ final class ApplyToLabelsTest extends TestCase {
 				'Sin conteo fiable no se pinta un número: uno inventado sería peor que ninguno.'
 			);
 		}
-		self::assertStringContainsString( 'a pedido', $labels[ Settings::APPLY_INSTOCK_AND_ONBACKORDER ] );
+		self::assertStringContainsString( 'reservas', $labels[ Settings::APPLY_INSTOCK_AND_ONBACKORDER ] );
 	}
 
 	/**
-	 * @testdox El número de «Disponibles + a pedido» NO cuenta las preventas.
-	 *
-	 * Hallazgo S-bbc79576: `onbackorder` agrupa «a pedido» y «preventa», y el
-	 * descuento editorial excluye las preventas por decisión del dueño. Sumarlas
-	 * prometía más productos de los que de verdad reciben el descuento, y ese
-	 * número es sobre el que se decide el margen.
+	 * @testdox El número de «Disponibles + a pedido» cuenta la suma total de instock y onbackorder.
 	 */
 	public function test_el_conteo_descuenta_las_preventas(): void {
 		$this->reset_memo();
-		$this->con_catalogo( array( 'instock' => 100, 'onbackorder' => 30, 'outofstock' => 5 ), '', 12 );
+		$this->con_catalogo( array( 'instock' => 100, 'onbackorder' => 30, 'outofstock' => 5 ), '', 0 );
 
 		$etiquetas = $this->labels();
 
-		// 100 disponibles + (30 reservables − 12 preventas) = 118.
-		self::assertStringContainsString( '(118)', $etiquetas[ Settings::APPLY_INSTOCK_AND_ONBACKORDER ] );
+		// 100 disponibles + 30 reservables = 130.
+		self::assertStringContainsString( '(130)', $etiquetas[ Settings::APPLY_INSTOCK_AND_ONBACKORDER ] );
 		self::assertStringContainsString( '(100)', $etiquetas[ Settings::APPLY_INSTOCK_ONLY ] );
 	}
 
-	/** @testdox Sin preventas en el catálogo, el número es el de siempre. */
+	/** @testdox Conteo correcto en catálogo. */
 	public function test_sin_preventas_el_conteo_no_cambia(): void {
 		$this->reset_memo();
 		$this->con_catalogo( array( 'instock' => 100, 'onbackorder' => 30, 'outofstock' => 5 ), '', 0 );

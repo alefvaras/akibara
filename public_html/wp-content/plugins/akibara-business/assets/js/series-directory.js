@@ -10,39 +10,47 @@
 ( function () {
 	'use strict';
 
-	var QUERY_PARAM = 'buscar';
-	var root = document.querySelector( '[data-akb-series-directory]' );
+	const QUERY_PARAM = 'buscar';
+	const root = document.querySelector( '[data-akb-series-directory]' );
 	if ( ! root ) {
 		return;
 	}
 
-	var filter = root.querySelector( '[data-akb-series-filter]' );
-	var input = root.querySelector( '.akb-series-directory__input' );
-	var count = root.querySelector( '.akb-series-directory__count' );
-	var empty = root.querySelector( '[data-akb-series-empty]' );
-	var groups = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-series-group]' ) );
-	var items = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-serie]' ) );
-	var letters = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-series-letter]' ) );
-	var chipsPais = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-filter-pais]' ) );
-	var chipsEditorial = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-filter-editorial]' ) );
-	var chipsEstado = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-filter-estado]' ) );
+	const filter = root.querySelector( '[data-akb-series-filter]' );
+	const input = root.querySelector( '.akb-series-directory__input' );
+	const items = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-serie]' ) );
 
 	if ( ! filter || ! input || ! items.length ) {
 		return;
 	}
 
-	var total = items.length;
-	var activePais = '';
-	var activeEditorial = '';
-	var activeEstado = '';
+	const count = root.querySelector( '.akb-series-directory__count' );
+	const empty = root.querySelector( '[data-akb-series-empty]' );
+	const groups = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-series-group]' ) );
+	const letters = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-series-letter]' ) );
+	const chipsPais = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-filter-pais]' ) );
+	const chipsEditorial = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-filter-editorial]' ) );
+	const chipsEstado = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-filter-estado]' ) );
+	const toggleFacetsBtn = root.querySelector( '[data-akb-toggle-facets]' );
+	const facetsPanel = root.querySelector( '[data-akb-facets-panel]' );
+	const filterBadge = root.querySelector( '[data-akb-filter-count]' );
+	const quickChips = Array.prototype.slice.call( root.querySelectorAll( '[data-akb-quick-estado], [data-akb-quick-editorial]' ) );
+
+	const total = items.length;
+	let activePais = '';
+	let activeEditorial = '';
+	let activeEstado = '';
 
 	// El buscador sólo existe si este script corrió: revelarlo acá es lo que
 	// impide prometer una función que no está.
 	filter.removeAttribute( 'hidden' );
 
-	/** Minúsculas sin diacríticos, con degradación para motores sin normalize. */
+	/**
+	 * Minúsculas sin diacríticos, con degradación para motores sin normalize.
+	 * @param {*} value
+	 */
 	function fold( value ) {
-		var folded = String( value ).toLowerCase();
+		let folded = String( value ).toLowerCase();
 		if ( 'function' === typeof folded.normalize ) {
 			folded = folded.normalize( 'NFD' ).replace( /[\u0300-\u036f]/g, '' );
 		}
@@ -53,15 +61,18 @@
 	 * El PHP compone el texto y el formato local de miles en los data-attrs. Sustituir sólo el
 	 * número visible y conservar la frase del servidor.
 	 */
-	var labelAll = count ? count.getAttribute( 'data-akb-series-count-all' ) : '';
-	var labelFiltered = count ? count.getAttribute( 'data-akb-series-count-filtered' ) : '';
-	var locale = ( count && count.getAttribute( 'data-akb-series-locale' ) ) || 'es-CL';
+	const labelAll = count ? count.getAttribute( 'data-akb-series-count-all' ) : '';
+	const labelFiltered = count ? count.getAttribute( 'data-akb-series-count-filtered' ) : '';
+	const locale = ( count && count.getAttribute( 'data-akb-series-locale' ) ) || 'es-CL';
 
-	/** Agrupa miles con el locale del sitio; degrada al entero pelado. */
+	/**
+	 * Agrupa miles con el locale del sitio; degrada al entero pelado.
+	 * @param {*} value
+	 */
 	function formatCount( value ) {
 		try {
 			return new Intl.NumberFormat( locale ).format( value );
-		} catch ( error ) {
+		} catch ( _error ) {
 			return String( value );
 		}
 	}
@@ -78,11 +89,16 @@
 		return labelFiltered.replace( '%s', formatCount( shown ) );
 	}
 
-	/** Sincroniza el estado visual y accesible de un grupo de chips. */
+	/**
+	 * Sincroniza el estado visual y accesible de un grupo de chips.
+	 * @param {*} chips
+	 * @param {*} attr
+	 * @param {*} activeValue
+	 */
 	function syncChips( chips, attr, activeValue ) {
 		chips.forEach( function ( chip ) {
-			var val = chip.getAttribute( attr ) || '';
-			var isActive = val === activeValue;
+			const val = chip.getAttribute( attr ) || '';
+			const isActive = val === activeValue;
 			if ( isActive ) {
 				chip.classList.add( 'is-active' );
 				chip.setAttribute( 'aria-pressed', 'true' );
@@ -97,13 +113,59 @@
 		syncChips( chipsPais, 'data-akb-filter-pais', activePais );
 		syncChips( chipsEditorial, 'data-akb-filter-editorial', activeEditorial );
 		syncChips( chipsEstado, 'data-akb-filter-estado', activeEstado );
+
+		quickChips.forEach( function ( qChip ) {
+			const qEstado = qChip.getAttribute( 'data-akb-quick-estado' );
+			const qEditorial = qChip.getAttribute( 'data-akb-quick-editorial' );
+			let isQActive = false;
+			if ( null !== qEstado ) {
+				isQActive = ( qEstado === activeEstado );
+			} else if ( null !== qEditorial ) {
+				isQActive = ( qEditorial === activeEditorial );
+			}
+			if ( isQActive ) {
+				qChip.classList.add( 'is-active' );
+				qChip.setAttribute( 'aria-pressed', 'true' );
+			} else {
+				qChip.classList.remove( 'is-active' );
+				qChip.setAttribute( 'aria-pressed', 'false' );
+			}
+		} );
+
+		let activeCount = 0;
+		if ( '' !== activePais ) {
+			activeCount++;
+		}
+		if ( '' !== activeEditorial ) {
+			activeCount++;
+		}
+		if ( '' !== activeEstado ) {
+			activeCount++;
+		}
+
+		if ( filterBadge ) {
+			if ( activeCount > 0 ) {
+				filterBadge.textContent = String( activeCount );
+				filterBadge.removeAttribute( 'hidden' );
+			} else {
+				filterBadge.setAttribute( 'hidden', '' );
+			}
+		}
+
+		if ( toggleFacetsBtn ) {
+			if ( activeCount > 0 ) {
+				toggleFacetsBtn.classList.add( 'has-active-filters' );
+			} else {
+				toggleFacetsBtn.classList.remove( 'has-active-filters' );
+			}
+		}
 	}
 
 	/** Lee la consulta compartible; una URL inválida degrada a búsqueda vacía. */
 	function queryFromUrl() {
 		try {
 			return new URL( window.location.href ).searchParams.get( QUERY_PARAM ) || '';
-		} catch ( error ) {
+		} catch ( _error ) {
 			return '';
 		}
 	}
@@ -119,8 +181,8 @@
 		}
 
 		try {
-			var url = new URL( window.location.href );
-			var value = input.value.trim();
+			const url = new URL( window.location.href );
+			const value = input.value.trim();
 
 			if ( '' === value ) {
 				url.searchParams.delete( QUERY_PARAM );
@@ -128,10 +190,10 @@
 				url.searchParams.set( QUERY_PARAM, value );
 			}
 
-			var prevState = ( window.history.state && 'object' === typeof window.history.state )
+			const prevState = ( window.history.state && 'object' === typeof window.history.state )
 				? window.history.state
 				: {};
-			var nextState = Object.assign( {}, prevState, {
+			const nextState = Object.assign( {}, prevState, {
 				akbSeriesPais: activePais,
 				akbSeriesEditorial: activeEditorial,
 				akbSeriesEstado: activeEstado
@@ -142,21 +204,21 @@
 				'',
 				url.pathname + url.search + url.hash
 			);
-		} catch ( error ) {
+		} catch ( _error ) {
 			// La búsqueda sigue funcionando aunque un navegador bloquee History API.
 		}
 	}
 
 	/** Enlaces que siguen disponibles después del filtro, en orden de lectura. */
 	function visibleLinks() {
-		var links = [];
+		const links = [];
 
 		items.forEach( function ( item ) {
 			if ( item.hasAttribute( 'hidden' ) ) {
 				return;
 			}
 
-			var link = item.querySelector( '.akb-series-directory__link' );
+			const link = item.querySelector( '.akb-series-directory__link' );
 			if ( link ) {
 				links.push( link );
 			}
@@ -165,23 +227,26 @@
 		return links;
 	}
 
-	/** Aplica filtro, grupos, estado vivo y opcionalmente la URL. */
+	/**
+	 * Aplica filtro, grupos, estado vivo y opcionalmente la URL.
+	 * @param {*} updateUrl
+	 */
 	function apply( updateUrl ) {
-		var query = fold( input.value );
-		var shown = 0;
+		const query = fold( input.value );
+		let shown = 0;
 
 		syncAllChips();
 
 		items.forEach( function ( item ) {
-			var haystack = item.getAttribute( 'data-akb-serie' ) || '';
-			var itemPais = item.getAttribute( 'data-akb-pais' ) || '';
-			var itemEditorial = item.getAttribute( 'data-akb-editorial' ) || '';
-			var itemEstado = item.getAttribute( 'data-akb-estado' ) || '';
+			const haystack = item.getAttribute( 'data-akb-serie' ) || '';
+			const itemPais = item.getAttribute( 'data-akb-pais' ) || '';
+			const itemEditorial = item.getAttribute( 'data-akb-editorial' ) || '';
+			const itemEstado = item.getAttribute( 'data-akb-estado' ) || '';
 
-			var matchQuery = '' === query || -1 !== haystack.indexOf( query );
-			var matchPais = '' === activePais || itemPais === activePais;
-			var matchEditorial = '' === activeEditorial || itemEditorial === activeEditorial;
-			var matchEstado = '' === activeEstado || itemEstado === activeEstado;
+			const matchQuery = '' === query || -1 !== haystack.indexOf( query );
+			const matchPais = '' === activePais || itemPais === activePais;
+			const matchEditorial = '' === activeEditorial || itemEditorial === activeEditorial;
+			const matchEstado = '' === activeEstado || itemEstado === activeEstado;
 
 			// `hidden` también saca lo descartado del árbol de accesibilidad.
 			if ( matchQuery && matchPais && matchEditorial && matchEstado ) {
@@ -193,7 +258,7 @@
 		} );
 
 		groups.forEach( function ( group ) {
-			var visible = group.querySelector( '[data-akb-serie]:not([hidden])' );
+			const visible = group.querySelector( '[data-akb-serie]:not([hidden])' );
 			if ( visible ) {
 				group.removeAttribute( 'hidden' );
 			} else {
@@ -222,7 +287,7 @@
 	/** La URL y history.state son la fuente de verdad al cargar, volver y avanzar. */
 	function restoreFromUrl() {
 		input.value = queryFromUrl();
-		var state = ( window.history && window.history.state && 'object' === typeof window.history.state )
+		const state = ( window.history && window.history.state && 'object' === typeof window.history.state )
 			? window.history.state
 			: {};
 		activePais = state.akbSeriesPais || '';
@@ -234,9 +299,9 @@
 	function bindChipGroup( chips, attr, getCurrent, setCurrent ) {
 		chips.forEach( function ( chip ) {
 			chip.addEventListener( 'click', function () {
-				var clicked = chip.getAttribute( attr ) || '';
+				const clicked = chip.getAttribute( attr ) || '';
 				// Clic sobre un filtro activo distinto de «Todos/Todas» lo desactiva.
-				var next = ( '' !== clicked && clicked === getCurrent() ) ? '' : clicked;
+				const next = ( '' !== clicked && clicked === getCurrent() ) ? '' : clicked;
 				setCurrent( next );
 				apply( true );
 			} );
@@ -262,6 +327,32 @@
 		function ( val ) { activeEstado = val; }
 	);
 
+	if ( toggleFacetsBtn && facetsPanel ) {
+		toggleFacetsBtn.addEventListener( 'click', function () {
+			const isExpanded = toggleFacetsBtn.getAttribute( 'aria-expanded' ) === 'true';
+			if ( isExpanded ) {
+				toggleFacetsBtn.setAttribute( 'aria-expanded', 'false' );
+				facetsPanel.setAttribute( 'hidden', '' );
+			} else {
+				toggleFacetsBtn.setAttribute( 'aria-expanded', 'true' );
+				facetsPanel.removeAttribute( 'hidden' );
+			}
+		} );
+	}
+
+	quickChips.forEach( function ( qChip ) {
+		qChip.addEventListener( 'click', function () {
+			const qEstado = qChip.getAttribute( 'data-akb-quick-estado' );
+			const qEditorial = qChip.getAttribute( 'data-akb-quick-editorial' );
+			if ( null !== qEstado ) {
+				activeEstado = ( activeEstado === qEstado ) ? '' : qEstado;
+			} else if ( null !== qEditorial ) {
+				activeEditorial = ( activeEditorial === qEditorial ) ? '' : qEditorial;
+			}
+			apply( true );
+		} );
+	} );
+
 	input.addEventListener( 'input', function () {
 		apply( true );
 	} );
@@ -286,7 +377,7 @@
 			return;
 		}
 
-		var links = visibleLinks();
+		const links = visibleLinks();
 		if ( 'ArrowDown' === event.key && links.length ) {
 			event.preventDefault();
 			links[0].focus();

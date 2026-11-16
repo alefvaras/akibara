@@ -27,6 +27,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 1.110.2
+ * @api
+ * @psalm-suppress HookInvalidArgs
  */
 final class UnfollowHandler {
 
@@ -166,7 +168,6 @@ final class UnfollowHandler {
 	private function done_markup(): string {
 		return '<h1>Listo</h1>'
 			. '<p>Ya no te enviaremos estos avisos.</p>'
-			. '<p>Si cambias de idea, los vuelves a encender en <a href="' . esc_url( \Akibara\Business\Modules\AccountCollection\Endpoint::url() ) . '">Mi cuenta, pestaña Colección</a>.</p>'
 			. '<p><a href="' . esc_url( home_url( '/' ) ) . '">Volver a la tienda</a></p>';
 	}
 

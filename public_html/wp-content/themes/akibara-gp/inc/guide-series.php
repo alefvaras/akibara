@@ -34,6 +34,7 @@ const AKIBARA_GP_GUIDE_SERIES_MARKER = '{serie}';
  *
  * @param int $post_id ID de la entrada.
  * @return array{name:string,url:string,cover?:string,estados?:array<int,array{label:string,texto:string}>}|null
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_guide_series_data( int $post_id ): ?array {
 	if ( $post_id < 1 ) {
@@ -65,6 +66,7 @@ function akibara_gp_guide_series_data( int $post_id ): ?array {
  * @param string $copia Texto del dueño.
  * @param string $serie Nombre de la serie.
  * @return string HTML escapado.
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_guide_series_copy( string $copia, string $serie ): string {
 	return str_replace( AKIBARA_GP_GUIDE_SERIES_MARKER, esc_html( $serie ), esc_html( $copia ) );
@@ -86,6 +88,7 @@ function akibara_gp_guide_series_copy( string $copia, string $serie ): string {
  * @param array{name:string,url:string,cover?:string,estados?:array<int,array{label:string,texto:string}>} $data   Datos de la serie.
  * @param string                                                                                           $kicker Rótulo sobre el nombre.
  * @param string                                                                                           $cta    Texto del botón (con {serie}).
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_render_guide_series_card( array $data, string $kicker, string $cta ): string {
 	$name = (string) ( $data['name'] ?? '' );
@@ -153,6 +156,7 @@ const AKIBARA_GP_GUIDE_CONTENEDORES = 'a|article|aside|blockquote|details|dialog
  *
  * @param string $content Contenido ya filtrado.
  * @param string $card    HTML de la tarjeta ('' = no tocar nada).
+ * @psalm-suppress RedundantCast
  */
 function akibara_gp_insert_guide_series_card( string $content, string $card ): string {
 	if ( '' === $card ) {

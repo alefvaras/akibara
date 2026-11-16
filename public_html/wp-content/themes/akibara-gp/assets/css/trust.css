@@ -73,9 +73,9 @@ a.akb-trust-item:focus-visible {
     width: 32px;
     height: 32px;
     border-radius: 0;
-    background: rgba(217, 0, 16, 0.12);
-    border: 1px solid rgba(217, 0, 16, 0.25);
-    color: var(--aki-red-bright);
+    background: rgba(230, 0, 18, 0.12);
+    border: 1px solid rgba(230, 0, 18, 0.28);
+    color: var(--aki-red-text);
     flex-shrink: 0;
 }
 
@@ -108,6 +108,7 @@ a.akb-trust-item:focus-visible {
 /* Ajuste de holgura en pantallas intermedias (1025px - 1140px) optimizando
  * gap y padding para mantener el texto en una sola línea sin desbordamiento. */
 @media (min-width: 1025px) and (max-width: 1140px) {
+
     .akb-trust-grid {
         gap: var(--space-2);
     }
@@ -123,6 +124,7 @@ a.akb-trust-item:focus-visible {
  * + box-shadow rojo). Trust signals son señal de respaldo, no CTA;
  * no merecen prime real estate above-the-fold. */
 @media (max-width: 768px) {
+
     .akb-trust-section {
         padding: 8px 0;
         background-size: 10px 10px;
@@ -130,6 +132,7 @@ a.akb-trust-item:focus-visible {
 
 	.akb-trust-grid {
 		grid-template-columns: repeat(2, 1fr);
+
 		/* Cada fila comparte alto: una etiqueta de dos líneas no puede dejar
 		 * a su pareja con un borde rojo más corto. */
 		align-items: stretch;
@@ -148,6 +151,7 @@ a.akb-trust-item:focus-visible {
 		min-height: 52px;
 		height: 100%;
 		padding: 6px 8px;
+
 		/* Keyline completo para que las cuatro tarjetas sean simétricas;
 		 * el borde rojo distintivo se reserva exclusivamente para la tarjeta navegable. */
 		border: 2px solid var(--aki-border);
@@ -167,7 +171,7 @@ a.akb-trust-item:focus-visible {
     .akb-trust-item__icon {
         width: 22px;
         height: 22px;
-        border-radius: 0px;
+        border-radius: 0;
     }
 
     .akb-trust-item__icon svg {
@@ -191,6 +195,7 @@ a.akb-trust-item:focus-visible {
 }
 
 @media (max-width: 480px) {
+
     .akb-trust-grid {
         gap: 5px;
         padding: 0 10px;
@@ -205,6 +210,7 @@ a.akb-trust-item:focus-visible {
 /* Viewports ultra-estrechos (≤380px): oculta iconos decorativos para mantener legibilidad
  * en dos columnas sin desbordamiento tipográfico. */
 @media (max-width: 380px) {
+
     .akb-trust-item__icon {
         display: none;
     }

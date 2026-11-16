@@ -208,7 +208,7 @@ namespace Akibara\Business\Tests\Modules\SeriesFollow {
 		/**
 		 * @testdox Pasar un tomo publicado de agotado a Disponible o A pedido sella timestamp y encola el scan.
 		 */
-		public function test_pasar_producto_a_instock_o_onbackorder_encola_el_scan_y_sella_meta(): void {
+		public function test_pasar_producto_a_instock_encola_el_scan_y_onbackorder_no(): void {
 			$sellados = array();
 			Functions\when( 'get_post_type' )->justReturn( 'product' );
 			Functions\when( 'get_post_status' )->justReturn( 'publish' );
@@ -223,11 +223,10 @@ namespace Akibara\Business\Tests\Modules\SeriesFollow {
 			$listener->on_stock_status_change( 700, 'instock' );
 			$listener->on_stock_status_change( 701, 'onbackorder' );
 
-			self::assertCount( 2, $this->scheduled );
+			self::assertCount( 1, $this->scheduled );
 			self::assertSame( 700, $this->scheduled[0]['args']['product_id'] );
-			self::assertSame( 701, $this->scheduled[1]['args']['product_id'] );
 			self::assertArrayHasKey( PublishListener::META_RESTOCKED_AT, $sellados[700] ?? array() );
-			self::assertArrayHasKey( PublishListener::META_RESTOCKED_AT, $sellados[701] ?? array() );
+			self::assertArrayNotHasKey( 701, $sellados );
 		}
 
 		/**

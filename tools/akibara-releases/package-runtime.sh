@@ -169,7 +169,6 @@ done
 			"src/Support/Schema.php"
 			"src/Support/SettingsPage.php"
 			"src/Points/Ledger.php"
-			"src/Points/Migration.php"
 			"src/Reviews/Invitations.php"
 			"uninstall.php"
 		)
@@ -272,6 +271,9 @@ esac
 expected_version="${AKIBARA_EXPECTED_VERSION:-${expected_version}}"
 
 source_dir="${source_override:-${default_source}}"
+if [[ -z "${source_override:-}" && -f "${repo_root}/tools/verify-devsecops-seal.py" ]]; then
+	python3 "${repo_root}/tools/verify-devsecops-seal.py" || exit 1
+fi
 
 # Rutas superiores que sólo existen en FUENTES CONGELADAS del tema (el ZIP
 # histórico 2.1.48 y el superset sellado 2.1.49): `customer-reviews-woocommerce/`

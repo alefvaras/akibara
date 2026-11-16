@@ -16,6 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * Woo/BlueX session keys required by the provider compatibility contract.
  *
  * @since 1.96.0
+ * @api
  */
 final class PudoSelectionStore {
 

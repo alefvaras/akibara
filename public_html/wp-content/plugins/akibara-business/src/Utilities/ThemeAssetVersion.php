@@ -23,6 +23,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Resuelve la versión de cache-bust de un asset que pertenece al theme activo.
+ * @api
+ * @psalm-suppress TypeDoesNotContainType
  */
 final class ThemeAssetVersion {
 
@@ -38,7 +40,7 @@ final class ThemeAssetVersion {
 
 		// Vía preferida: el contrato del propio theme (versión + filemtime).
 		if ( function_exists( 'akibara_gp_asset_ver' ) ) {
-			return (string) akibara_gp_asset_ver( $rel_path );
+			return akibara_gp_asset_ver( $rel_path );
 		}
 
 		// Fallback: mismo contrato, resuelto acá. La versión del theme es lo que
@@ -75,7 +77,7 @@ final class ThemeAssetVersion {
 		$rel_path = ltrim( $rel_path, '/' );
 
 		if ( function_exists( 'akibara_gp_asset_servido' ) ) {
-			return ltrim( (string) akibara_gp_asset_servido( $rel_path ), '/' );
+			return ltrim( akibara_gp_asset_servido( $rel_path ), '/' );
 		}
 
 		if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {

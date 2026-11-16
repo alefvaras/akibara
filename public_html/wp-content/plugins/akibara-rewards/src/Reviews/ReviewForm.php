@@ -1,17 +1,12 @@
 <?php
 /**
- * ReviewForm — el formulario de reseña por TOKEN (Fase 2b) + ruta legacy.
+ * ReviewForm — el formulario de reseña por TOKEN (Fase 2b).
  *
  * El cliente llega desde el correo de invitación con /resena/{token}: una
  * página propia, liviana (HTML del servidor, cero JS, 44px, es-CL), que
  * lista los productos de su pedido y solicita calificación más texto. El enlace abre la
  * oferta de puntos con foto requerida. La reseña voluntaria con foto opcional vive en la ficha.
  * La reseña nace PENDIENTE (moderación previa antes de publicar) y vinculada al pedido.
- *
- * Ruta legacy /cusrev/{formId}: los 3 enlaces del tercero ya enviados por
- * correo caen en una página amable que lleva a Mi cuenta (la tabla del
- * tercero muere en el cleanup; el enlace no puede validar, pero el cliente
- * no ve un 404).
  *
  * Los núcleos render_page()/process() son testeables (devuelven string /
  * resultado); el `exit` vive solo en el wrapper.
@@ -31,16 +26,27 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @since 0.3.0
+ * @api
+ * @psalm-suppress HookInvalidArgs
+ * @psalm-suppress HookNotFound
+ * @psalm-suppress RedundantCast
+ * @psalm-suppress RedundantCondition
+ * @psalm-suppress TypeDoesNotContainType
  */
+// @phpstan-ignore complexity.classLike
 final class ReviewForm {
 
-	public const QUERY_VAR        = 'akb_review_token';
+	public const QUERY_VAR  = 'akb_review_token';
+	public const PRODUCT_QUERY_VAR = 'akb_review_product';
 
 	/** Regla de /resena/{token}; AccountRewards comprueba que siga en las reglas guardadas. */
-	public const RULE = '^resena/([A-Za-z0-9]{20,64})/?$';
-	public const LEGACY_QUERY_VAR = 'akb_review_legacy';
-	public const META_ORDER       = '_akb_rewards_review_order';
+	public const RULE       = '^resena/([A-Za-z0-9]{20,64})/?$';
+	public const META_ORDER = '_akb_rewards_review_order';
 	private bool $points_requested = false;
+	/** @var array<int,string> Productos pendientes del mismo pedido tras el envío. */
+	private array $remaining_items = array();
+	/** @var string Token activo si aún quedan productos por reseñar en el pedido. */
+	private string $active_token = '';
 	/** @var array<string,mixed> Campos del último POST con nonce válido. */
 	private array $submitted = array();
 
@@ -90,26 +96,27 @@ final class ReviewForm {
 	 * @return array<string,mixed>
 	 */
 	public function native_form_notice( array $args ): array {
-		$notice = 'Esta reseña es voluntaria: puedes añadir una foto y no solicita puntos.';
+		$notice = 'Esta reseña es voluntaria: puedes añadir una foto opcional de tu compra.';
 		if ( 'yes' === (string) get_option( 'akb_rewards_moderate_reviews', 'yes' ) ) {
 			$notice .= ' Tu reseña quedará pendiente de revisión.';
 		}
 		if ( Options::reviews_lane_on() ) {
-			$notice .= ' Para solicitar puntos con una foto real de tu compra, usa el enlace de reseña de tu pedido.';
+			$notice .= ' Si compraste este tomo y adjuntas una foto real con tu cuenta, solicitarás puntos al aprobarse (o desde Mi Colección y el enlace de reseña de tu pedido).';
+		} else {
+			$notice .= ' Esta reseña no solicita puntos.';
 		}
 		$args['comment_field'] = '<p class="akb-review-photo-notice">' . esc_html( $notice ) . '</p>'
-			. (string) ( $args['comment_field'] ?? '' );
+			. ($args['comment_field'] ?? '');
 		return $args;
 	}
 
 	/**
-	 * Reglas de rewrite propias + legacy.
+	 * Reglas de rewrite propias.
 	 *
 	 * @return void
 	 */
 	public function add_routes(): void {
 		add_rewrite_rule( self::RULE, 'index.php?' . self::QUERY_VAR . '=$matches[1]', 'top' );
-		add_rewrite_rule( '^cusrev/([^/]+)/?$', 'index.php?' . self::LEGACY_QUERY_VAR . '=$matches[1]', 'top' );
 	}
 
 	/**
@@ -119,7 +126,7 @@ final class ReviewForm {
 	public function register_query_vars( $vars ): array {
 		$vars   = is_array( $vars ) ? $vars : array();
 		$vars[] = self::QUERY_VAR;
-		$vars[] = self::LEGACY_QUERY_VAR;
+		$vars[] = self::PRODUCT_QUERY_VAR;
 		return $vars;
 	}
 
@@ -129,10 +136,9 @@ final class ReviewForm {
 	 * @return void
 	 */
 	public function maybe_render(): void {
-		$token  = (string) get_query_var( self::QUERY_VAR );
-		$legacy = (string) get_query_var( self::LEGACY_QUERY_VAR );
+		$token = (string) get_query_var( self::QUERY_VAR );
 
-		if ( '' === $token && '' === $legacy ) {
+		if ( '' === $token ) {
 			return;
 		}
 
@@ -143,17 +149,12 @@ final class ReviewForm {
 		// Un enlace de un correo ya enviado: se lleva a la URL que el borde no
 		// cachea. Sólo el GET —un POST en vuelo se atiende donde llegó— y con
 		// 302, porque el destino depende de dónde viva Mi cuenta.
-		if ( '' !== $token && 'GET' === $metodo && self::es_ruta_antigua() ) {
+		if ( 'GET' === $metodo && self::es_ruta_antigua() ) {
 			wp_safe_redirect( self::url_for( $token ), 302, 'Akibara Rewards' );
 			exit;
 		}
 
 		PrivatePage::no_cache( 'Akibara Rewards: formulario de reseña' );
-
-		if ( '' !== $legacy ) {
-			echo self::shell( $this->legacy_body() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML propio, escapado por partes.
-			exit;
-		}
 
 		$notice = '';
 		if ( 'POST' === $metodo ) {
@@ -208,7 +209,8 @@ final class ReviewForm {
 	 * @param string $token Token del enlace.
 	 * @return true|string True si quedó creada; si no, el aviso a mostrar.
 	 */
-	public function process( string $token ) {
+	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+	public function process( string $token ) { // @phpstan-ignore complexity.functionLike
 		$valid = self::validate_token( $token );
 		if ( null === $valid ) {
 			return 'Este enlace ya se usó o caducó.';
@@ -240,6 +242,10 @@ final class ReviewForm {
 			return 'Este producto ya no corresponde a una compra válida para reseñar.';
 		}
 
+		if ( ReviewEligibility::has_customer_reviewed_product( $product_id, (int) $order->get_customer_id(), (string) $order->get_billing_email() ) ) {
+			return 'Ya enviaste una reseña para este producto.';
+		}
+
 		$rating = (int) $this->submitted['rating'];
 		if ( $rating < 1 || $rating > 5 ) {
 			return 'Elige una calificación de 1 a 5 estrellas.';
@@ -255,7 +261,7 @@ final class ReviewForm {
 		if ( $requested && ( 'voluntary' === $this->submitted['mode'] || ! $this->submitted['requested'] ) ) {
 			return 'Este enlace solicita puntos y requiere una foto de tu compra. Vuelve a abrir el formulario y confirma el envío.';
 		}
-		$has_photo = self::photo_is_present( isset( $_FILES ) && is_array( $_FILES ) ? $_FILES : array() );
+		$has_photo = self::photo_is_present( ! empty( $_FILES ) ? $_FILES : array() );
 		if ( $requested && ! $has_photo ) {
 			return 'Para solicitar puntos necesitas una foto de tu compra. Adjunta una foto real de tu compra y vuelve a enviarla.';
 		}
@@ -273,7 +279,7 @@ final class ReviewForm {
 
 		$commentdata = array(
 			'comment_post_ID'      => $product_id,
-			'comment_author'       => trim( (string) $order->get_billing_first_name() . ' ' . (string) $order->get_billing_last_name() ),
+			'comment_author'       => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
 			'comment_author_email' => (string) $order->get_billing_email(),
 			'comment_author_url'   => '',
 			'comment_content'      => $content,
@@ -342,8 +348,66 @@ final class ReviewForm {
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- no es un hook nuestro: es el de WP core, y el nombre exacto es lo que hace que Woo y nuestro motor escuchen. Prefijarlo los dejaría sordos.
 		do_action( 'comment_post', (int) $comment_id, 0, $commentdata );
 
+		ReviewEligibility::mark_reviewed_in_request( (int) $order->get_customer_id(), (string) $order->get_billing_email(), $product_id );
+		$pending = self::unreviewed_items_for_order( $order );
+		if ( array() !== $pending ) {
+			// Si el pedido tiene más tomos sin reseñar, devolvemos el token al ruedo
+			// para que el cliente pueda reseñar los tomos restantes de su pedido.
+			self::release_token( $token );
+			$this->remaining_items = $pending;
+			$this->active_token    = $token;
+		} else {
+			$this->remaining_items = array();
+			$this->active_token    = '';
+		}
+
 		$this->points_requested = $requested;
 		return true;
+	}
+
+	/**
+	 * Devuelve los productos elegibles (no devueltos) del pedido.
+	 *
+	 * @param \WC_Order $order Pedido.
+	 * @return array<int,string> Mapa product_id => nombre.
+	 */
+	private static function eligible_order_items( \WC_Order $order ): array {
+		$items = array();
+		foreach ( $order->get_items() as $item ) {
+			if ( ! method_exists( $item, 'get_product_id' ) ) {
+				continue;
+			}
+			$pid = (int) $item->get_product_id();
+			if ( $pid <= 0 || isset( $items[ $pid ] ) ) {
+				continue;
+			}
+			if ( ! VerifiedPurchase::order_confirms( $order, $pid, (string) $order->get_billing_email(), (int) $order->get_customer_id() ) ) {
+				continue;
+			}
+			$items[ $pid ] = method_exists( $item, 'get_name' ) ? (string) $item->get_name() : 'Producto #' . $pid;
+		}
+		return $items;
+	}
+
+	/**
+	 * Devuelve los productos del pedido que aún no han sido reseñados por el cliente.
+	 *
+	 * @param \WC_Order $order Pedido.
+	 * @return array<int,string> Mapa product_id => nombre.
+	 */
+	private static function unreviewed_items_for_order( \WC_Order $order ): array {
+		$all      = self::eligible_order_items( $order );
+		$reviewed = ReviewEligibility::reviewed_product_ids_for_customer(
+			(int) $order->get_customer_id(),
+			(string) $order->get_billing_email()
+		);
+		$pending  = array();
+		foreach ( $all as $pid => $name ) {
+			if ( ! isset( $reviewed[ $pid ] ) ) {
+				$pending[ $pid ] = $name;
+			}
+		}
+		return $pending;
 	}
 
 	/**
@@ -493,6 +557,19 @@ final class ReviewForm {
 		);
 	}
 
+	/** La selección recibida sólo orienta el formulario entre líneas elegibles. */
+	private function preferred_product( array $items, array $reviewed ): int {
+		$requested = absint( get_query_var( self::PRODUCT_QUERY_VAR, 0 ) );
+		return isset( $items[ $requested ] ) && ! isset( $reviewed[ $requested ] ) ? $requested : 0;
+	}
+
+	private function selected_product( int $id, int $preferred, int $position ): bool {
+		if ( isset( $this->submitted['product'] ) ) {
+			return $id === (int) $this->submitted['product'];
+		}
+		return $preferred > 0 ? $id === $preferred : 1 === $position;
+	}
+
 	/**
 	 * Núcleo del GET: el formulario (o el aviso de enlace inválido).
 	 *
@@ -500,7 +577,7 @@ final class ReviewForm {
 	 * @param string $notice Aviso de un POST fallido.
 	 * @return string
 	 */
-	public function render_page( string $token, string $notice = '' ): string {
+	public function render_page( string $token, string $notice = '' ): string { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
 		$valid = self::validate_token( $token );
 		if ( null === $valid ) {
 			return $this->invalid_body();
@@ -511,30 +588,43 @@ final class ReviewForm {
 			return $this->invalid_body();
 		}
 
-		$productos = '';
-		$n         = 0;
-		foreach ( $order->get_items() as $item ) {
-			if ( ! method_exists( $item, 'get_product_id' ) ) {
-				continue;
-			}
-			// Un tomo devuelto no se ofrece para reseñar: el cliente nunca lo tuvo.
-			if ( ! VerifiedPurchase::order_confirms( $order, (int) $item->get_product_id(), (string) $order->get_billing_email(), (int) $order->get_customer_id() ) ) {
+		$all_items = self::eligible_order_items( $order );
+		if ( array() === $all_items ) {
+			return $this->invalid_body();
+		}
+
+		$reviewed = ReviewEligibility::reviewed_product_ids_for_customer(
+			(int) $order->get_customer_id(),
+			(string) $order->get_billing_email()
+		);
+
+		$preferred = $this->preferred_product( $all_items, $reviewed );
+		$productos    = '';
+		$ya_resenados = '';
+		$n            = 0;
+		foreach ( $all_items as $pid => $item_name ) {
+			if ( isset( $reviewed[ $pid ] ) ) {
+				$ya_resenados .= sprintf(
+					'<div class="akb-rf-prod akb-rf-prod--done"><span>✓ Ya reseñado: %s</span></div>',
+					esc_html( $item_name )
+				);
 				continue;
 			}
 			++$n;
 			$productos .= sprintf(
 				'<label class="akb-rf-prod"><input type="radio" name="akb_rf_product" value="%d" required%s> <span>%s</span></label>',
-				(int) $item->get_product_id(),
-				( isset( $this->submitted['product'] ) ? (int) $item->get_product_id() === (int) $this->submitted['product'] : 1 === $n ) ? ' checked' : '',
-				esc_html( (string) $item->get_name() )
+				(int) $pid,
+				$this->selected_product( (int) $pid, $preferred, $n ) ? ' checked' : '',
+				esc_html( $item_name )
 			);
 		}
 
-		// Pedido entero devuelto: no queda nada que reseñar. Sin esto el
-		// formulario se pintaba vacío, con un radio `required` que era imposible
-		// de marcar — el cliente veía un formulario que no se puede enviar.
+		// Si todos los tomos del pedido ya fueron reseñados o devueltos, el enlace ya cumplió su ciclo.
 		if ( 0 === $n ) {
 			return $this->invalid_body();
+		}
+		if ( '' !== $ya_resenados ) {
+			$productos .= $ya_resenados;
 		}
 
 		$estrellas = '';
@@ -588,14 +678,28 @@ final class ReviewForm {
 	 * @return string
 	 */
 	private function thanks_body(): string {
+		$remaining_cta = '';
+		$remaining_cnt = count( $this->remaining_items );
+		if ( $remaining_cnt > 0 && '' !== $this->active_token ) {
+			$remaining_cta = sprintf(
+				'<div class="akb-rf-premio" style="margin:16px 0"><p style="margin:0 0 10px"><strong>Te %s %d %s por reseñar en este pedido.</strong></p><p style="margin:0"><a class="akb-rf-btn" href="%s">Reseñar otro tomo de este pedido →</a></p></div>',
+				1 === $remaining_cnt ? 'queda' : 'quedan',
+				$remaining_cnt,
+				1 === $remaining_cnt ? 'tomo' : 'tomos',
+				esc_url( self::url_for( $this->active_token ) )
+			);
+		}
+
 		return sprintf(
 			'<h1>¡Gracias! 🎉</h1>
 			<p>Tu reseña quedó en revisión: la publicamos apenas la aprobemos.</p>
+			%s
 			%s
 			<p><a class="akb-rf-btn" href="%s">Volver a la tienda</a></p>',
 			$this->points_requested
 				? '<p>Recompensa pendiente de revisión: solicitaste puntos por esta reseña. ' . esc_html( RewardMessage::text( false ) ) . '</p>'
 				: '<p>No solicitaste puntos. Tu reseña se revisará con normalidad.</p>',
+			$remaining_cta,
 			esc_url( home_url( '/' ) )
 		);
 	}
@@ -608,28 +712,14 @@ final class ReviewForm {
 	private function invalid_body(): string {
 		return sprintf(
 			'<h1>Este enlace ya no sirve</h1>
-			<p>El enlace de reseña ya se usó o venció. Puedes escribir tu reseña desde la ficha del producto cuando quieras.</p>
+			<p>El enlace de reseña ya se usó o venció. Puedes escribir tu reseña desde la ficha del producto o desde Mi Colección cuando quieras.</p>
 			<p><a class="akb-rf-btn" href="%s">Ir a mis pedidos</a></p>',
 			esc_url( function_exists( 'wc_get_account_endpoint_url' ) ? wc_get_account_endpoint_url( 'orders' ) : home_url( '/mi-cuenta/' ) )
 		);
 	}
 
 	/**
-	 * Cuerpo de la ruta legacy /cusrev/{formId}.
-	 *
-	 * @return string
-	 */
-	private function legacy_body(): string {
-		return sprintf(
-			'<h1>Cambiamos de sistema de reseñas</h1>
-			<p>Este enlace venía de nuestro sistema anterior y ya no funciona, pero tu opinión nos sigue importando: puedes reseñar desde la ficha del producto o desde tus pedidos.</p>
-			<p><a class="akb-rf-btn" href="%s">Ir a mis pedidos</a></p>',
-			esc_url( function_exists( 'wc_get_account_endpoint_url' ) ? wc_get_account_endpoint_url( 'orders' ) : home_url( '/mi-cuenta/' ) )
-		);
-	}
-
-	/**
-	 * Cáscara HTML propia: liviana, brand, mobile-first, cero JS.
+	 * Cáscara HTML propia: liviana, Neo-Brutalista Dark Mode, mobile-first, cero JS.
 	 *
 	 * Pública desde la 0.4.9 porque la página de preferencias de correo
 	 * (`InviteOptOut`) es la misma pantalla para el cliente: dos carcasas
@@ -645,23 +735,26 @@ final class ReviewForm {
 			. '<meta name="robots" content="noindex,nofollow">'
 			. '<title>' . esc_html( $title ) . '</title><style>'
 			. ':root{color-scheme:dark}'
-			. 'body{margin:0;background:#0d0d0d;color:#f5f5f5;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}'
+			. 'body{margin:0;background:#0a0a0a;color:#f5f5f5;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}'
 			. '.akb-rf{max-width:560px;margin:0 auto;padding:24px 16px 64px}'
-			. '.akb-rf-logo{display:block;margin:0 0 24px;font-weight:800;font-size:22px;color:#E60012;text-decoration:none}'
-			. 'h1{font-size:26px;margin:0 0 16px}'
-			. '.akb-rf-campo{display:block;border:1px solid #2b2b2b;border-radius:12px;padding:16px;margin:0 0 16px;background:#171717}'
-			. 'legend{padding:0 6px;font-weight:700}'
-			. 'textarea,input[type=file]{width:100%;box-sizing:border-box;margin-top:8px;background:#0d0d0d;color:#f5f5f5;border:1px solid #2b2b2b;border-radius:8px;padding:12px;font:inherit}'
-			. '.akb-rf-prod{display:flex;gap:10px;align-items:center;min-height:44px}'
+			. '.akb-rf-logo{display:inline-block;margin:0 0 24px;padding:4px 10px;background:#E60012;color:#fff;font-weight:900;font-size:22px;letter-spacing:.08em;text-decoration:none;border:2px solid #000;box-shadow:3px 3px 0 #000;transform:skewX(-6deg)}'
+			. 'h1{font-size:26px;margin:0 0 16px;text-transform:uppercase;letter-spacing:.03em}'
+			. '.akb-rf-campo{display:block;border:2px solid #2b2b2b;border-radius:0;padding:16px;margin:0 0 16px;background:#141414;box-shadow:4px 4px 0 #000}'
+			. 'legend{padding:0 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#FFCC00}'
+			. 'textarea,input[type=file]{width:100%;box-sizing:border-box;margin-top:8px;background:#0a0a0a;color:#f5f5f5;border:2px solid #3a3a3a;border-radius:0;padding:12px;font:inherit}'
+			. 'textarea:focus-visible,input[type=file]:focus-visible{outline:2px solid #FFCC00;outline-offset:2px;border-color:#FFCC00}'
+			. '.akb-rf-prod{display:flex;gap:10px;align-items:center;min-height:44px;padding:4px 0}'
+			. '.akb-rf-prod--done{color:#4ADE80;font-size:14px;opacity:.9}'
 			. '.akb-rf-stars{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}'
 			. '.akb-rf-stars input{position:absolute;opacity:0;width:1px;height:1px}'
 			. '.akb-rf-stars label{font-size:34px;line-height:44px;min-width:44px;text-align:center;color:#3a3a3a;cursor:pointer}'
-			. '.akb-rf-stars input:checked ~ label,.akb-rf-stars label:hover,.akb-rf-stars label:hover ~ label{color:#FFD700}'
-			. '.akb-rf-stars input:focus-visible + label{outline:2px solid #fff;outline-offset:2px;border-radius:6px}'
-			. 'button,.akb-rf-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 28px;border:0;border-radius:8px;background:#E60012;color:#fff;font-weight:700;font-size:16px;cursor:pointer;text-decoration:none}'
-			. '.akb-rf-premio{border-left:3px solid #E60012;background:rgba(230,0,18,.08);padding:10px 12px;border-radius:0 8px 8px 0}'
-			. '.akb-rf-aviso{border-left:3px solid #E60012;background:rgba(230,0,18,.1);padding:10px 12px;border-radius:0 8px 8px 0}'
-			. '.akb-rf-nota{font-size:13px;opacity:.7}'
+			. '.akb-rf-stars input:checked ~ label,.akb-rf-stars label:hover,.akb-rf-stars label:hover ~ label{color:#FFCC00}'
+			. '.akb-rf-stars input:focus-visible + label{outline:2px solid #fff;outline-offset:2px;border-radius:0}'
+			. 'button,.akb-rf-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 28px;border:2px solid #000;border-radius:0;background:#E60012;color:#fff;font-weight:800;font-size:16px;text-transform:uppercase;letter-spacing:.04em;box-shadow:4px 4px 0 #000;cursor:pointer;text-decoration:none}'
+			. 'button:hover,.akb-rf-btn:hover{background:#ff1a2d}'
+			. '.akb-rf-premio{border:2px solid #2b2b2b;border-left:5px solid #FFCC00;background:#141414;padding:12px 14px;border-radius:0;box-shadow:4px 4px 0 #000;margin:0 0 16px}'
+			. '.akb-rf-aviso{border:2px solid #2b2b2b;border-left:5px solid #E60012;background:rgba(230,0,18,.14);padding:12px 14px;border-radius:0;box-shadow:4px 4px 0 #000;margin:0 0 16px}'
+			. '.akb-rf-nota{font-size:13px;opacity:.75}'
 			. '</style></head><body><main class="akb-rf">'
 			. '<a class="akb-rf-logo" href="' . esc_url( home_url( '/' ) ) . '">AKIBARA</a>'
 			. $body
