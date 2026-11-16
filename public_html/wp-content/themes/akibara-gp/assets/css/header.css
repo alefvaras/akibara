@@ -486,6 +486,7 @@
 
 /* ── Logo ────────────────────────────────────────────────────── */
 .logo {
+    position: relative;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -495,7 +496,7 @@
 }
 
 .logo:hover {
-    opacity: 0.85;
+    opacity: 1;
 }
 
 .logo:active {
@@ -508,10 +509,69 @@
 .site-header .logo__img {
     height: 60px;
     width: auto;
+    aspect-ratio: 960 / 380;
     max-width: 100%;
     display: block;
     object-fit: contain;
-    transition: height var(--transition-base);
+    overflow: visible;
+    transition: height var(--transition-base), transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.logo.akb-logo-katana .akb-katana-mover {
+    opacity: 0;
+    transform: translateX(60px);
+    transform-box: view-box;
+    will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+    .logo.akb-logo-katana.akb-katana-run .akb-katana-mover {
+        animation: akb-katana-sweep 760ms cubic-bezier(0.28, 0.08, 0.22, 1) forwards;
+    }
+
+    .logo.akb-logo-katana:not(.akb-katana-js):focus-visible .akb-katana-mover {
+        animation: akb-katana-sweep 760ms cubic-bezier(0.28, 0.08, 0.22, 1) forwards;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+
+    .logo.akb-logo-katana:not(.akb-katana-js):hover .akb-katana-mover {
+        animation: akb-katana-sweep 760ms cubic-bezier(0.28, 0.08, 0.22, 1) forwards;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+    .logo.akb-logo-katana:hover .logo__img {
+        transform: translateY(-1px) scale(1.025);
+    }
+}
+
+.logo.akb-logo-katana:focus-visible .logo__img {
+    transform: translateY(-1px) scale(1.025);
+}
+
+@keyframes akb-katana-sweep {
+
+    0% {
+        opacity: 0;
+        transform: translateX(60px);
+    }
+
+    8% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(1180px);
+    }
 }
 
 /* ── Hamburger (mobile only) ─────────────────────────────────── */
@@ -2194,6 +2254,7 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     .site-header .logo__img {
         width: 94px;
         height: auto;
+        aspect-ratio: 960 / 380;
         max-width: 100%;
         display: block;
     }
@@ -2202,7 +2263,6 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
         grid-column: 2;
         justify-self: center;
         min-width: 0;
-        overflow: visible;
         justify-content: center;
         margin: 0;
     }
@@ -2238,7 +2298,12 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     .mobile-drawer__search::before,
     .header-icon.is-bumped,
     .mobile-drawer__link,
-    .mobile-drawer__link::before {
+    .mobile-drawer__link::before,
+    .logo.akb-logo-katana .logo__img,
+    .logo.akb-logo-katana .akb-katana-mover,
+    .logo.akb-logo-katana.akb-katana-run .akb-katana-mover,
+    .logo.akb-logo-katana:not(.akb-katana-js):hover .akb-katana-mover,
+    .logo.akb-logo-katana:not(.akb-katana-js):focus-visible .akb-katana-mover {
         transition: none;
         animation: none;
     }
@@ -2246,7 +2311,9 @@ body:has(#akb-ann-bar:not(.akb-hidden)) {
     .akibara-search:focus-within::before,
     .mobile-drawer__search:focus-within::before,
     .mobile-drawer__link:hover,
-    .mobile-drawer__link:focus-visible {
+    .mobile-drawer__link:focus-visible,
+    .logo.akb-logo-katana:hover .logo__img,
+    .logo.akb-logo-katana:focus-visible .logo__img {
         transform: none;
     }
 

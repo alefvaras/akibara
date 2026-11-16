@@ -24,8 +24,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @api
  * @psalm-suppress InvalidArgument
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class PricingSynchronizer {
 
@@ -35,6 +33,7 @@ final class PricingSynchronizer {
 	 * @var list<string>
 	 */
 	public const DEDUP_META_KEYS = array(
+		'_akb_out_of_stock_at',
 		'_akb_onbackorder_at',
 		'_akb_pdp_specs_generation',
 		'_akb_tramo_prev_regular',
@@ -108,7 +107,6 @@ final class PricingSynchronizer {
 	 * @param list<int>    $post_ids  IDs de productos.
 	 * @param list<string> $meta_keys Claves a desduplicar.
 	 * @return void
-	 * @psalm-suppress UnusedParam
 	 */
 	public static function dedup_post_meta_keys_batch( array $post_ids, array $meta_keys = self::DEDUP_META_KEYS ): void {
 		global $wpdb;
@@ -194,9 +192,14 @@ final class PricingSynchronizer {
 		$new_sale_int = '' !== $new_sale_str ? (int) $new_sale_str : null;
 		$changed      = ( $new_regular !== $old_regular ) || ( $new_sale_str !== $old_sale_raw );
 
-		$serie_terms = function_exists( 'wp_get_post_terms' ) ? wp_get_post_terms( $product_id, 'pa_serie', array( 'fields' => 'all' ) ) : array();
-		$serie_name  = ( ! empty( $serie_terms ) && ! is_wp_error( $serie_terms ) && isset( $serie_terms[0]->name ) ) ? (string) $serie_terms[0]->name : '';
-		$serie_id    = ( ! empty( $serie_terms ) && ! is_wp_error( $serie_terms ) && isset( $serie_terms[0]->term_id ) ) ? (int) $serie_terms[0]->term_id : 0;
+		$serie_meta = $dry_run
+			? self::resolve_dry_run_serie( $product_id )
+			: array(
+				'serie_name' => '',
+				'serie_id'   => 0,
+			);
+		$serie_name = $serie_meta['serie_name'];
+		$serie_id   = $serie_meta['serie_id'];
 
 		if ( $dry_run || ! $changed ) {
 			return array(
@@ -213,14 +216,17 @@ final class PricingSynchronizer {
 			);
 		}
 
-		$exec_fn = static function () use ( $product, $product_id, $old_regular, $old_sale_raw, $new_regular, $new_sale_str ): void {
-			$product->update_meta_data( '_akb_tramo_prev_regular', (string) $old_regular );
-			$product->update_meta_data( '_akb_tramo_prev_sale', $old_sale_raw );
+		$use_batch_fast_path = BatchGuard::is_active() && $product->is_type( 'simple' );
 
-			// Regla Inquebrantable 2: cuando se actualiza precio, SOLO se toca _regular_price y _sale_price.
-			$product->set_regular_price( (string) $new_regular );
-			$product->set_sale_price( $new_sale_str );
-			$product->save();
+		$exec_fn = static function () use ( $product, $product_id, $new_regular, $new_sale_str, $use_batch_fast_path ): void {
+			if ( $use_batch_fast_path ) {
+				self::persist_simple_price_in_batch( $product_id, $new_regular, $new_sale_str );
+			} else {
+				// Regla Inquebrantable 2: cuando se actualiza precio, SOLO se toca _regular_price y _sale_price.
+				$product->set_regular_price( (string) $new_regular );
+				$product->set_sale_price( $new_sale_str );
+				$product->save();
+			}
 
 			BatchGuard::mark_product_modified( $product_id, false );
 		};
@@ -242,6 +248,67 @@ final class PricingSynchronizer {
 			'new_regular'  => $new_regular,
 			'old_sale'     => $old_sale,
 			'new_sale'     => $new_sale_int,
+		);
+	}
+
+	/**
+	 * Resuelve nombre e ID de la primera serie del producto únicamente durante simulaciones.
+	 *
+	 * @param int $product_id ID del producto.
+	 * @return array{serie_name:string, serie_id:int}
+	 */
+	private static function resolve_dry_run_serie( int $product_id ): array {
+		$raw_terms = function_exists( 'get_the_terms' ) ? get_the_terms( $product_id, 'pa_serie' ) : array();
+		$first     = ( is_array( $raw_terms ) && array() !== $raw_terms ) ? reset( $raw_terms ) : null;
+		if ( ! $first instanceof \WP_Term ) {
+			return array(
+				'serie_name' => '',
+				'serie_id'   => 0,
+			);
+		}
+
+		return array(
+			'serie_name' => (string) $first->name,
+			'serie_id'   => (int) $first->term_id,
+		);
+	}
+
+	/**
+	 * Persiste el precio de un producto simple dentro de un lote activo sin el overhead de WC_Product::save().
+	 *
+	 * La invalidación consolidada de transients (`wc_delete_product_transients()`), caché de post (`clean_post_cache()`),
+	 * etiquetas LiteSpeed y purga Cloudflare (`SeriesCacheTags` + `EdgePurge`) corre al cerrar `BatchGuard::run()`
+	 * una vez confirmada la transacción SQL.
+	 *
+	 * @param int    $product_id   ID del producto simple.
+	 * @param int    $new_regular  Nuevo precio regular en CLP.
+	 * @param string $new_sale_str Nuevo precio oferta o '' si no hay oferta.
+	 */
+	private static function persist_simple_price_in_batch( int $product_id, int $new_regular, string $new_sale_str ): void {
+		$effective_price = '' !== $new_sale_str ? (int) $new_sale_str : $new_regular;
+		$onsale          = $effective_price < $new_regular ? 1 : 0;
+
+		update_post_meta( $product_id, '_regular_price', (string) $new_regular );
+		update_post_meta( $product_id, '_sale_price', $new_sale_str );
+		update_post_meta( $product_id, '_price', (string) $effective_price );
+		foreach ( array( '_sale_price_dates_from', '_sale_price_dates_to' ) as $sched_key ) {
+			if ( '' !== get_post_meta( $product_id, $sched_key, true ) ) {
+				delete_post_meta( $product_id, $sched_key );
+			}
+		}
+
+		global $wpdb;
+		$lookup_table = $wpdb->prefix . 'wc_product_meta_lookup';
+		$wpdb->update(
+			$lookup_table,
+			array(
+				'min_price' => (float) $effective_price,
+				'max_price' => (float) $effective_price,
+				'onsale'    => $onsale,
+			),
+			array( 'product_id' => $product_id ),
+			array( '%f', '%f', '%d' ),
+			array( '%d' )
 		);
 	}
 
@@ -305,15 +372,19 @@ final class PricingSynchronizer {
 		bool $dry_run = false,
 		int $serie_id = 0
 	): array {
-		$effective_reg = $new_regular > 0 ? $new_regular : $scale_regular;
-
-		if ( 0 === $manual_sale_price ) {
-			$target_sale = 0; // 0 = SIN OFERTA explícita
-		} elseif ( null !== $manual_sale_price && $manual_sale_price > 0 ) {
-			$target_sale = $manual_sale_price < $effective_reg ? $manual_sale_price : 0;
-		} else {
-			$target_sale = PricingMath::calculate_sale_price( $effective_reg, $discount_pct, $rounding_mode, $manual_sale_price );
+		if ( $brand_id <= 0 && '' !== $editorial_slug && function_exists( 'get_term_by' ) ) {
+			$term     = get_term_by( 'slug', $editorial_slug, 'product_brand' );
+			$brand_id = ( $term instanceof \WP_Term ) ? (int) $term->term_id : 0;
 		}
+		if ( '' === $editorial_slug && $brand_id > 0 && function_exists( 'get_term' ) ) {
+			$term           = get_term( $brand_id, 'product_brand' );
+			$editorial_slug = ( $term instanceof \WP_Term ) ? (string) $term->slug : '';
+		}
+
+		$effective_reg = $new_regular > 0 ? $new_regular : $scale_regular;
+		$target_sale   = ( null !== $manual_sale_price && $manual_sale_price >= $effective_reg )
+			? 0
+			: PricingMath::calculate_sale_price( $effective_reg, $discount_pct, $rounding_mode, $manual_sale_price );
 
 		if ( ! $dry_run && '' !== $editorial_slug ) {
 			PricingRulesRepository::set_scale_rule(
@@ -326,8 +397,10 @@ final class PricingSynchronizer {
 			);
 		}
 
-		$product_ids       = ScaleScanner::get_product_ids_for_scale( $brand_id, $scale_regular, $serie_id );
-		$summary = array(
+		$product_ids = ScaleScanner::get_product_ids_for_scale( $brand_id, $scale_regular, $serie_id );
+		$batch       = self::run_price_batch( $product_ids, $effective_reg, $target_sale, $dry_run );
+
+		return array(
 			'brand_id'              => $brand_id,
 			'editorial_slug'        => $editorial_slug,
 			'serie_id'              => $serie_id,
@@ -339,47 +412,10 @@ final class PricingSynchronizer {
 			'protect_active_orders' => $protect_active_orders,
 			'dry_run'               => $dry_run,
 			'total_products'        => count( $product_ids ),
-			'updated_count'         => 0,
-			'unchanged_count'       => 0,
-			'skipped_locked_count'  => 0,
-			'skipped_locked_items'  => array(),
-			'items'                 => array(),
+			'updated_count'         => $batch['updated_count'],
+			'unchanged_count'       => $batch['unchanged_count'],
+			'items'                 => $batch['items'],
 		);
-
-		$runner = static function () use (
-			$product_ids,
-			$effective_reg,
-			$target_sale,
-			$dry_run,
-			&$summary
-		): void {
-			foreach ( $product_ids as $pid ) {
-				$res = self::apply_product_price(
-					$pid,
-					$effective_reg,
-					$target_sale,
-					false,
-					null,
-					null,
-					$dry_run
-				);
-				$summary['items'][] = $res;
-
-				if ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
-					++$summary['updated_count'];
-				} else {
-					++$summary['unchanged_count'];
-				}
-			}
-		};
-
-		if ( $dry_run ) {
-			$runner();
-		} else {
-			BatchGuard::run( $runner, false );
-		}
-
-		return $summary;
 	}
 
 	/**
@@ -442,53 +478,54 @@ final class PricingSynchronizer {
 		}
 
 		$editorial_slug = (string) ( $rows[0]['editorial_slug'] ?? '' );
-		$rule           = PricingRulesRepository::resolve_rule_for_scale( $editorial_slug, $target_regular );
-		$target_sale    = (int) $rule['sale_price'];
+		$target_sale    = self::resolve_level_series_sale( $editorial_slug, $target_regular );
+		$product_ids    = array();
+		foreach ( $rows as $row ) {
+			if ( ! self::is_excluded_from_series_leveling( $row ) ) {
+				$product_ids[] = (int) ( $row['product_id'] ?? 0 );
+			}
+		}
 
-		$summary = array(
-			'ok'                   => true,
-			'serie_id'             => $serie_id,
-			'brand_id'             => $brand_id,
-			'target_regular'       => $target_regular,
-			'target_sale'          => $target_sale,
-			'updated_count'        => 0,
-			'skipped_locked_count' => 0,
-			'dry_run'              => $dry_run,
-			'items'                => array(),
-			'skipped_locked_items' => array(),
+		$batch = self::run_price_batch( $product_ids, $target_regular, $target_sale, $dry_run );
+
+		return array(
+			'ok'             => true,
+			'serie_id'       => $serie_id,
+			'brand_id'       => $brand_id,
+			'target_regular' => $target_regular,
+			'target_sale'    => $target_sale,
+			'updated_count'  => $batch['updated_count'],
+			'dry_run'        => $dry_run,
+			'items'          => $batch['items'],
+		);
+	}
+
+	/**
+	 * Ejecuta un lote de precios bajo BatchGuard (o directo en modo simulación).
+	 *
+	 * @param list<int> $product_ids    IDs de productos.
+	 * @param int       $target_regular Nuevo precio regular CLP.
+	 * @param int       $target_sale    Precio oferta objetivo CLP.
+	 * @param bool      $dry_run        Si true, simula sin persistir.
+	 * @return array{items:list<array<string,mixed>>, updated_count:int, unchanged_count:int}
+	 */
+	private static function run_price_batch( array $product_ids, int $target_regular, int $target_sale, bool $dry_run ): array {
+		$batch = array(
+			'items'           => array(),
+			'updated_count'   => 0,
+			'unchanged_count' => 0,
 		);
 
-		$runner = static function () use (
-			$rows,
-			$target_regular,
-			$target_sale,
-			$dry_run,
-			&$summary
-		): void {
-			foreach ( $rows as $row ) {
-				if ( 'edicion_especial' === (string) ( $row['variante_tomo'] ?? '' ) ) {
-					continue;
-				}
-				$title = (string) ( $row['post_title'] ?? '' );
-				if ( 1 === preg_match( '/\b(pack|box\s*set|cofre|starter\s*pack|artbook|el\s*arte\s*de\b|libro\s*de\s*arte|fanbook|character\s*book|gu[ií]a\s*oficial|edici[oó]n\s*especial|edici[oó]n\s*coleccionista|portada\s*alternativa|variant\s*cover)\b/iu', $title ) ) {
-					continue;
-				}
+		$runner = static function () use ( $product_ids, $target_regular, $target_sale, $dry_run, &$batch ): void {
+			if ( array() !== $product_ids && function_exists( '_prime_post_caches' ) ) {
+				_prime_post_caches( $product_ids, true, true );
+			}
 
-				$pid = (int) ( $row['product_id'] ?? 0 );
-				$res = self::apply_product_price(
-					$pid,
-					$target_regular,
-					$target_sale,
-					false,
-					null,
-					null,
-					$dry_run
-				);
-				$summary['items'][] = $res;
-
-				if ( in_array( $res['status'], array( 'updated', 'would_update' ), true ) ) {
-					++$summary['updated_count'];
-				}
+			foreach ( $product_ids as $pid ) {
+				$res              = self::apply_product_price( $pid, $target_regular, $target_sale, false, null, null, $dry_run );
+				$batch['items'][] = $res;
+				$counter_key      = in_array( $res['status'], array( 'updated', 'would_update' ), true ) ? 'updated_count' : 'unchanged_count';
+				++$batch[ $counter_key ];
 			}
 		};
 
@@ -498,6 +535,35 @@ final class PricingSynchronizer {
 			BatchGuard::run( $runner, false );
 		}
 
-		return $summary;
+		return $batch;
+	}
+
+	/**
+	 * Resuelve el precio oferta al nivelar una serie (0 salvo regla manual explícita).
+	 *
+	 * @param string $editorial_slug Slug de editorial.
+	 * @param int    $target_regular Precio regular objetivo.
+	 * @return int
+	 */
+	private static function resolve_level_series_sale( string $editorial_slug, int $target_regular ): int {
+		$rule        = PricingRulesRepository::resolve_rule_for_scale( $editorial_slug, $target_regular );
+		$manual_sale = $rule['manual_sale_price'];
+		return ( null !== $manual_sale && $manual_sale > 0 && $manual_sale < $target_regular )
+			? $manual_sale
+			: 0;
+	}
+
+	/**
+	 * Determina si un tomo debe excluirse de la nivelación estándar por ser edición especial o pack.
+	 *
+	 * @param array<string, mixed> $row Fila SQL del producto.
+	 * @return bool
+	 */
+	private static function is_excluded_from_series_leveling( array $row ): bool {
+		if ( 'edicion_especial' === (string) ( $row['variante_tomo'] ?? '' ) ) {
+			return true;
+		}
+		$title = (string) ( $row['post_title'] ?? '' );
+		return 1 === preg_match( '/\b(pack|box\s*set|cofre|starter\s*pack|artbook|el\s*arte\s*de\b|libro\s*de\s*arte|fanbook|character\s*book|gu[ií]a\s*oficial|edici[oó]n\s*especial|edici[oó]n\s*coleccionista|portada\s*alternativa|variant\s*cover)\b/iu', $title );
 	}
 }

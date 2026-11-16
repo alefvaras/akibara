@@ -919,11 +919,11 @@ final class TaxonomyDiscount {
 				'title'   => 'Política para productos con precio rebajado manual',
 				'id'      => Settings::OPTION_SALE_POLICY,
 				'type'    => 'radio',
-				'desc'    => '<strong>Ejemplo</strong>: producto con precio normal $10.000 y rebaja manual a $8.000 (20%):<br>'
-					. '— <em>No aplicar</em>: siempre queda en <strong>$8.000</strong> (respeta tu rebaja manual).<br>'
-					. '— <em>Precio más bajo gana</em>: con regla Panini al 30% queda en <strong>$7.000</strong>; si la regla es menor (10%), conserva tus <strong>$8.000</strong>.<br>'
-					. '— <em>Reemplazar rebaja manual</em>: descarta los $8.000 y aplica la regla sobre $10.000 (30% → <strong>$7.000</strong>; 10% → <strong>$9.000</strong>).<br>'
-					. '— <em>Encadenar (doble descuento)</em>: rebaja la regla encima de $8.000 (30% sobre $8.000 → <strong>$5.600</strong>). Respeta el tope máximo de la tienda.',
+				'desc'    => '<strong>Ejemplo</strong>: producto con precio normal $10.000 y rebaja manual a $9.000 (10%) con tope de tienda en 15%:<br>'
+					. '— <em>No aplicar</em>: siempre queda en <strong>$9.000</strong> (respeta tu rebaja manual).<br>'
+					. '— <em>Precio más bajo gana</em>: con regla Panini al 15% queda en <strong>$8.500</strong>; si la regla es menor (5% → $9.500), conserva tus <strong>$9.000</strong>.<br>'
+					. '— <em>Reemplazar rebaja manual</em>: descarta los $9.000 y aplica la regla sobre $10.000 (15% → <strong>$8.500</strong>; 5% → <strong>$9.500</strong>).<br>'
+					. '— <em>Encadenar (doble descuento)</em>: aplica la regla encima de $9.000 (5% sobre $9.000 → <strong>$8.550</strong>; si supera el tope de la tienda, se detiene en <strong>$8.500</strong>).',
 				'default' => Settings::POLICY_SKIP_IF_ON_SALE,
 				'options' => array(
 					Settings::POLICY_SKIP_IF_ON_SALE => 'No aplicar la regla si el producto ya tiene rebaja manual (recomendado — respeta tu precio)',

@@ -11,12 +11,15 @@
 			const search = filterBar.querySelector('.akb-filter-search');
 			const toggle = filterBar.querySelector('.akb-filter-toggle');
 			const counter = filterBar.querySelector('.akb-filter-counter');
+			const clearVisibleBtn = filterBar.querySelector('.akb-filter-clear-visible');
 			const rows = accordion.querySelectorAll('tr.akb-taxonomy-discount-row');
 
 			function applyFilter() {
 				const query = (search?.value || '').toLowerCase().trim();
 				const discountedOnly = Boolean(toggle?.checked);
 				let visible = 0;
+				let visibleActive = 0;
+				let totalActive = 0;
 
 				rows.forEach(function (row) {
 					const label = row.querySelector('label');
@@ -25,19 +28,52 @@
 					const percentage = Number.parseInt(input?.value || '0', 10) || 0;
 					const show = (!query || labelText.includes(query)) && (!discountedOnly || percentage > 0);
 
+					if (percentage > 0) {
+						totalActive += 1;
+					}
+
 					row.hidden = !show;
 					if (show) {
 						visible += 1;
+						if (percentage > 0) {
+							visibleActive += 1;
+						}
 					}
 				});
 
 				if (counter) {
-					counter.textContent = visible + ' visibles de ' + rows.length;
+					const activeSuffix = totalActive > 0 ? ' (' + totalActive + ' con descuento)' : '';
+					counter.textContent = visible + ' visibles de ' + rows.length + activeSuffix;
+				}
+				if (clearVisibleBtn) {
+					clearVisibleBtn.hidden = visibleActive === 0;
 				}
 			}
 
 			search?.addEventListener('input', applyFilter);
 			toggle?.addEventListener('change', applyFilter);
+			rows.forEach(function (row) {
+				const input = row.querySelector('input[type="number"]');
+				input?.addEventListener('input', applyFilter);
+				input?.addEventListener('change', applyFilter);
+			});
+			clearVisibleBtn?.addEventListener('click', function () {
+				rows.forEach(function (row) {
+					if (row.hidden) {
+						return;
+					}
+					const input = row.querySelector('input[type="number"]');
+					if (!input) {
+						return;
+					}
+					const percentage = Number.parseInt(input.value || '0', 10) || 0;
+					if (percentage > 0) {
+						input.value = '';
+						input.dispatchEvent(new Event('input', { bubbles: true }));
+						input.dispatchEvent(new Event('change', { bubbles: true }));
+					}
+				});
+			});
 			applyFilter();
 		});
 	}

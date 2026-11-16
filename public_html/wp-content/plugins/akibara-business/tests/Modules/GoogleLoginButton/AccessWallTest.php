@@ -535,4 +535,59 @@ final class AccessWallTest extends TestCase {
 
 		self::assertTrue( $action_fired, 'woocommerce_customer_email_verified debe dispararse para que WooCommerce vincule los pedidos.' );
 	}
+
+	/**
+	 * @testdox Records a WooCommerce warning and falls back to _wc_email_verified when EmailVerificationService throws.
+	 */
+	public function test_auto_verify_google_user_logs_warning_and_falls_back_when_container_throws(): void {
+		$user_id             = 77;
+		$wp_user             = new \WP_User();
+		$wp_user->ID         = $user_id;
+		$wp_user->user_email = 'zoro@akibara.cl';
+
+		Functions\when( 'get_user_by' )->justReturn( $wp_user );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'delete_user_meta' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$warnings = array();
+		Functions\when( 'wc_get_logger' )->justReturn(
+			new class( $warnings ) {
+				/** @var list<array{message:string,context:array<string,mixed>}> */
+				private array $warnings;
+
+				/** @param list<array{message:string,context:array<string,mixed>}> $warnings */
+				public function __construct( array &$warnings ) {
+					$this->warnings = &$warnings;
+				}
+
+				/** @param array<string,mixed> $context */
+				public function warning( string $message, array $context = array() ): void {
+					$this->warnings[] = array( 'message' => $message, 'context' => $context );
+				}
+			}
+		);
+		Functions\when( 'wc_get_container' )->alias(
+			static function (): object {
+				return new class() {
+					public function has( string $service ): bool {
+						return false === empty( $service );
+					}
+
+					public function get( string $service ): object {
+						throw new \RuntimeException( 'DI broken for ' . $service );
+					}
+				};
+			}
+		);
+
+		$modulo = new GoogleLoginButton();
+		$modulo->auto_verify_google_user( $user_id );
+
+		self::assertCount( 1, $warnings );
+		self::assertStringContainsString( 'DI broken', $warnings[0]['message'] );
+		self::assertSame( 'akibara-google-login', $warnings[0]['context']['source'] );
+		self::assertSame( $user_id, $warnings[0]['context']['user_id'] );
+	}
 }

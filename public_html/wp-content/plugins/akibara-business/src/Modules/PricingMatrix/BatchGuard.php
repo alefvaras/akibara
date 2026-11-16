@@ -20,6 +20,7 @@ namespace Akibara\Business\Modules\PricingMatrix;
 use Akibara\Business\Modules\CatalogOrder\CatalogOrder;
 use Akibara\Business\Modules\HomeDestacados\HomeDestacados;
 use Akibara\Business\Modules\SiteSpeed\EdgePurge;
+use Akibara\Business\Modules\SiteSpeed\SeriesCacheTags;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -107,16 +108,20 @@ final class BatchGuard {
 	 */
 	public static function run( callable $callback, bool $recompute_catalog_order = false ) {
 		$is_outermost = ( 0 === self::$active_depth );
+		$tx_started   = false;
 		if ( $is_outermost ) {
 			self::$modified_product_ids = array();
 			self::$availability_changed = $recompute_catalog_order;
 			self::engage_guards();
+			$tx_started = self::begin_batch_transaction( true );
 		}
 
 		++self::$active_depth;
+		$batch_ok = false;
 
 		try {
-			$result = $callback();
+			$result   = $callback();
+			$batch_ok = true;
 		} finally {
 			--self::$active_depth;
 			if ( 0 === self::$active_depth ) {
@@ -126,12 +131,72 @@ final class BatchGuard {
 				self::$modified_product_ids = array();
 				self::$availability_changed = false;
 
-				self::release_guards();
-				self::flush_consolidated_effects( $modified_ids, $recompute );
+				if ( $batch_ok ) {
+					self::commit_batch_transaction( $tx_started );
+					self::release_guards();
+					self::flush_consolidated_effects( $modified_ids, $recompute );
+				} else {
+					self::rollback_batch_transaction( $tx_started );
+					self::release_guards();
+					foreach ( $modified_ids as $pid ) {
+						if ( function_exists( 'wp_cache_delete' ) ) {
+							wp_cache_delete( $pid, 'post_meta' );
+						}
+						if ( function_exists( 'clean_post_cache' ) ) {
+							clean_post_cache( $pid );
+						}
+					}
+				}
 			}
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Abre una transacción SQL única para consolidar los fsync de InnoDB durante el lote.
+	 *
+	 * @param bool $is_outermost True si es el nivel externo del lote.
+	 * @return bool True si se abrió transacción.
+	 */
+	private static function begin_batch_transaction( bool $is_outermost ): bool {
+		global $wpdb;
+
+		if ( ! $is_outermost || ! $wpdb instanceof \wpdb ) {
+			return false;
+		}
+		$wpdb->query( 'START TRANSACTION' );
+		return true;
+	}
+
+	/**
+	 * Confirma la transacción SQL abierta por el lote antes de indexar en Search.
+	 *
+	 * @param bool $tx_started True si begin_batch_transaction abrió transacción.
+	 * @return void
+	 */
+	private static function commit_batch_transaction( bool $tx_started ): void {
+		global $wpdb;
+
+		if ( ! $tx_started || ! $wpdb instanceof \wpdb ) {
+			return;
+		}
+		$wpdb->query( 'COMMIT' );
+	}
+
+	/**
+	 * Revierte la transacción SQL abierta por el lote si ocurrió una excepción.
+	 *
+	 * @param bool $tx_started True si begin_batch_transaction abrió transacción.
+	 * @return void
+	 */
+	private static function rollback_batch_transaction( bool $tx_started ): void {
+		global $wpdb;
+
+		if ( ! $tx_started || ! $wpdb instanceof \wpdb ) {
+			return;
+		}
+		$wpdb->query( 'ROLLBACK' );
 	}
 
 	/**
@@ -187,6 +252,8 @@ final class BatchGuard {
 			'save_post',
 			'post_updated',
 			'woocommerce_product_set_stock_status',
+			'updated_post_meta',
+			'added_post_meta',
 		);
 
 		self::$suspended_wp_filters = array();
@@ -237,9 +304,10 @@ final class BatchGuard {
 			( new CatalogOrder() )->recompute();
 		}
 
-		// 3. Sincronizar akibara-search 1 sola vez para los product_id modificados.
+		// 3. Limpiar transients/post cache, sincronizar akibara-search y purgar caché de producto/serie/borde.
 		if ( array() !== $modified_ids ) {
-			self::sync_search_for_products( $modified_ids, false );
+			self::sync_search_for_products( $modified_ids, true );
+			self::purge_modified_products_caches( $modified_ids );
 		}
 
 		// 4. Purga consolidada de cachés 1 sola vez.
@@ -248,6 +316,32 @@ final class BatchGuard {
 		}
 		if ( class_exists( EdgePurge::class ) ) {
 			EdgePurge::despachar();
+		}
+	}
+
+	/**
+	 * Purga en LiteSpeed y anota en EdgePurge los productos modificados y sus series tras un lote
+	 * (durante el lote los hooks por objeto están suspendidos y el fast-path escribe sin `WC_Product::save()`).
+	 *
+	 * @param list<int> $product_ids IDs de productos modificados.
+	 * @return void
+	 */
+	private static function purge_modified_products_caches( array $product_ids ): void {
+		if (
+			! class_exists( SeriesCacheTags::class )
+			|| ! function_exists( 'do_action' )
+			|| ! function_exists( 'wp_get_post_parent_id' )
+			|| ! function_exists( 'get_the_terms' )
+			|| ! function_exists( 'get_term_link' )
+			|| ! function_exists( 'get_permalink' )
+			|| ! function_exists( 'home_url' )
+		) {
+			return;
+		}
+
+		$tags = new SeriesCacheTags();
+		foreach ( $product_ids as $pid ) {
+			$tags->purge_for_product_id( $pid );
 		}
 	}
 
@@ -267,6 +361,10 @@ final class BatchGuard {
 
 		if ( $clean_caches ) {
 			self::clear_product_caches( $product_ids );
+		}
+
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $product_ids, true, true );
 		}
 
 		$indexer = self::resolve_active_search_indexer();
@@ -301,7 +399,9 @@ final class BatchGuard {
 			if ( function_exists( 'wc_delete_product_transients' ) ) {
 				wc_delete_product_transients( $pid );
 			}
-			clean_post_cache( $pid );
+			if ( function_exists( 'clean_post_cache' ) ) {
+				clean_post_cache( $pid );
+			}
 		}
 	}
 

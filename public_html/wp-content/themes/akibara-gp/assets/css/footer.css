@@ -207,10 +207,130 @@
 }
 
 /* Logo más grande + centrado en su columna (height era 80px → 120) */
-.footer-brand__logo img {
+.footer-brand__logo img,
+.footer-brand__logo svg {
     height: 120px;
     width: auto;
+    aspect-ratio: 960 / 380;
     max-width: 100%;
+    display: block;
+    overflow: visible;
+}
+
+.footer-brand__logo .akb-piece {
+    transform-box: fill-box;
+    transform-origin: 50% 80%;
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 180ms ease;
+}
+
+.footer-brand__logo.akb-footer-armed:not(.akb-is-revealed) .akb-piece {
+    opacity: 0;
+}
+
+.footer-brand__logo.akb-footer-armed:not(.akb-is-revealed) [data-piece="outline"] {
+    transform: scale(0.96);
+}
+
+.footer-brand__logo.akb-footer-armed:not(.akb-is-revealed) [data-piece^="letter-"] {
+    transform: translateY(14px) scale(0.86);
+}
+
+.footer-brand__logo.akb-footer-armed:not(.akb-is-revealed) [data-piece="swoosh"] {
+    clip-path: inset(0 100% 0 0);
+}
+
+.footer-brand__logo [data-piece="letter-1-a"] {
+    --akb-piece-delay: 0ms;
+}
+
+.footer-brand__logo [data-piece="letter-2-k"] {
+    --akb-piece-delay: 45ms;
+}
+
+.footer-brand__logo [data-piece="letter-3-i"] {
+    --akb-piece-delay: 90ms;
+}
+
+.footer-brand__logo [data-piece="letter-4-b"] {
+    --akb-piece-delay: 135ms;
+}
+
+.footer-brand__logo [data-piece="letter-5-a2"] {
+    --akb-piece-delay: 180ms;
+}
+
+.footer-brand__logo [data-piece="letter-6-r"] {
+    --akb-piece-delay: 225ms;
+}
+
+.footer-brand__logo [data-piece="letter-7-a3"] {
+    --akb-piece-delay: 270ms;
+}
+
+.footer-brand__logo.akb-is-revealed:not(.akb-is-settled) [data-piece="outline"] {
+    animation: akb-logo-outline-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.footer-brand__logo.akb-is-revealed:not(.akb-is-settled) [data-piece^="letter-"] {
+    animation: akb-logo-letter-don 520ms var(--akb-piece-delay, 0ms) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.footer-brand__logo.akb-is-revealed:not(.akb-is-settled) [data-piece="swoosh"] {
+    animation: akb-logo-swoosh-kasure 460ms 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+    .footer-brand__logo [data-piece^="letter-"]:hover {
+        transform: translateY(-5px) scale(1.04);
+        filter: brightness(1.16) drop-shadow(0 0 6px rgba(230, 0, 18, 0.6));
+    }
+}
+
+@keyframes akb-logo-outline-in {
+
+    0% {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes akb-logo-letter-don {
+
+    0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.86);
+    }
+
+    62% {
+        opacity: 1;
+        transform: translateY(-5px) scale(1.04);
+        filter: brightness(1.14);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes akb-logo-swoosh-kasure {
+
+    0% {
+        opacity: 0;
+        clip-path: inset(0 100% 0 0);
+    }
+
+    100% {
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+    }
 }
 
 .footer-brand__desc {
@@ -621,7 +741,8 @@ a.footer-nap__item:hover {
         min-height: var(--touch-target-min);
     }
 
-    .footer-brand__logo img {
+    .footer-brand__logo img,
+    .footer-brand__logo svg {
         height: 64px;
     }
 
@@ -760,8 +881,22 @@ a.footer-nap__item:hover {
 @media (prefers-reduced-motion: reduce) {
 
     .site-footer.js-footer-accordion .footer-column__list,
-    .site-footer.js-footer-accordion .footer-column__list.active {
+    .site-footer.js-footer-accordion .footer-column__list.active,
+    .footer-brand__logo .akb-piece,
+    .footer-brand__logo.akb-footer-armed:not(.akb-is-revealed) .akb-piece,
+    .footer-brand__logo.akb-is-revealed:not(.akb-is-settled) [data-piece="outline"],
+    .footer-brand__logo.akb-is-revealed:not(.akb-is-settled) [data-piece^="letter-"],
+    .footer-brand__logo.akb-is-revealed:not(.akb-is-settled) [data-piece="swoosh"] {
+        opacity: 1;
+        transform: none;
+        clip-path: none;
         transition: none;
+        animation: none;
+    }
+
+    .footer-brand__logo [data-piece^="letter-"]:hover {
+        transform: none;
+        filter: none;
     }
 }
 

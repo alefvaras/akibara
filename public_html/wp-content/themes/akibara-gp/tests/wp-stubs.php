@@ -118,3 +118,42 @@ if ( ! class_exists( 'WP_Term' ) ) {
 		}
 	}
 }
+
+if ( ! class_exists( 'Walker_Nav_Menu' ) ) {
+	/**
+	 * Doble mínimo de `Walker_Nav_Menu` con los métodos base del core para PHP 8.4 `#[\Override]`.
+	 */
+	class Walker_Nav_Menu {
+
+		/**
+		 * @param string        $output Salida acumulada.
+		 * @param int           $depth  Nivel de profundidad.
+		 * @param \stdClass|null $args  Argumentos del menú.
+		 */
+		public function start_lvl( &$output, $depth = 0, $args = null ) {}
+
+		/**
+		 * @param string        $output Salida acumulada.
+		 * @param int           $depth  Nivel de profundidad.
+		 * @param \stdClass|null $args  Argumentos del menú.
+		 */
+		public function end_lvl( &$output, $depth = 0, $args = null ) {}
+
+		/**
+		 * @param string        $output            Salida acumulada.
+		 * @param object        $data_object       Elemento del menú.
+		 * @param int           $depth             Nivel de profundidad.
+		 * @param \stdClass|null $args             Argumentos del menú.
+		 * @param int           $current_object_id ID del objeto actual.
+		 */
+		public function start_el( &$output, $data_object, $depth = 0, $args = null, $current_object_id = 0 ) {}
+
+		/**
+		 * @param string        $output      Salida acumulada.
+		 * @param object        $data_object Elemento del menú.
+		 * @param int           $depth       Nivel de profundidad.
+		 * @param \stdClass|null $args       Argumentos del menú.
+		 */
+		public function end_el( &$output, $data_object, $depth = 0, $args = null ) {}
+	}
+}

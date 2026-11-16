@@ -38,9 +38,12 @@ final class BookSchemaEnricher {
 		'seinen',
 		'shojo',
 		'manhwa',
+		'yaoi-bl',
 		'comics',
 		'vertigo',
 		'independiente',
+		'novela',
+		'artbook',
 	);
 
 	/**
@@ -88,11 +91,19 @@ final class BookSchemaEnricher {
 			$entity['sku'] = $raw_sku;
 		}
 
-		$clean_code = (string) preg_replace( '/[\s\-]+/', '', $raw_sku );
+		$raw_guid = trim( (string) $product->get_global_unique_id() );
+		$raw_gtin = '' !== $raw_guid ? $raw_guid : $raw_sku;
+
+		$clean_code = (string) preg_replace( '/[\s\-]+/', '', $raw_gtin );
 		if ( self::is_valid_isbn13( $clean_code ) ) {
 			$entity['@type']  = array( 'Product', 'Book' );
 			$entity['isbn']   = $clean_code;
 			$entity['gtin13'] = $clean_code;
+		} elseif ( self::is_valid_gtin13( $clean_code ) ) {
+			$entity['@type']  = array( 'Product', 'Book' );
+			unset( $entity['isbn'] );
+			$entity['gtin13'] = $clean_code;
+			$entity['gtin']   = $clean_code;
 		} else {
 			$entity['@type'] = 'Product';
 			unset( $entity['isbn'], $entity['gtin'], $entity['gtin13'], $entity['gtin12'], $entity['gtin8'] );
@@ -210,14 +221,14 @@ final class BookSchemaEnricher {
 	}
 
 	/**
-	 * Valida si un código es un ISBN-13 válido mediante suma ponderada Módulo 10.
+	 * Valida si un código es un GTIN-13 (EAN-13 / ISBN-13) válido mediante suma ponderada Módulo 10.
 	 *
 	 * @param string $code Código a validar.
-	 * @return bool True si el código es un ISBN-13 oficial válido.
+	 * @return bool True si el código tiene 13 dígitos numéricos y dígito verificador válido.
 	 */
-	public static function is_valid_isbn13( string $code ): bool {
+	public static function is_valid_gtin13( string $code ): bool {
 		$clean = (string) preg_replace( '/[\s\-]+/', '', trim( $code ) );
-		if ( 1 !== preg_match( '/^(978|979)\d{10}$/', $clean ) ) {
+		if ( 1 !== preg_match( '/^\d{13}$/', $clean ) ) {
 			return false;
 		}
 
@@ -229,6 +240,21 @@ final class BookSchemaEnricher {
 		$check_digit = ( 10 - ( $sum % 10 ) ) % 10;
 
 		return $check_digit === (int) $clean[12];
+	}
+
+	/**
+	 * Valida si un código es un ISBN-13 válido mediante suma ponderada Módulo 10.
+	 *
+	 * @param string $code Código a validar.
+	 * @return bool True si el código es un ISBN-13 oficial válido.
+	 */
+	public static function is_valid_isbn13( string $code ): bool {
+		$clean = (string) preg_replace( '/[\s\-]+/', '', trim( $code ) );
+		if ( 1 !== preg_match( '/^(978|979)\d{10}$/', $clean ) ) {
+			return false;
+		}
+
+		return self::is_valid_gtin13( $clean );
 	}
 
 	/**

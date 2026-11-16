@@ -717,7 +717,12 @@
 					if (value.trim() !== '') n++;
 				});
 			});
-		} catch (_err) { return; }
+		} catch (err) {
+			if (window.console && typeof window.console.warn === 'function') {
+				window.console.warn('akb: updateFacetCount falló al leer query string:', err);
+			}
+			return;
+		}
 		countEl.textContent = n > 0 ? String(n) : '';
 		countEl.hidden = n === 0;
 		// Estado visual: añade clase si existen filtros activos aplicados.
@@ -1081,15 +1086,41 @@
 		const TIPOS = ['touchstart', 'pointerdown', 'focusin', 'scroll'];
 		const OPCIONES = { passive: true };
 
+		const hasFocusVisibleSupport = (function () {
+			let cssApi = null;
+			if (typeof CSS !== 'undefined') {
+				cssApi = CSS;
+			} else if (typeof window !== 'undefined') {
+				cssApi = window.CSS;
+			}
+			if (!cssApi || typeof cssApi.supports !== 'function') {
+				return null;
+			}
+			return cssApi.supports('selector(:focus-visible)');
+		})();
+
+		function warnFocusError(err) {
+			if (typeof window !== 'undefined' && window.console && typeof window.console.warn === 'function') {
+				window.console.warn('akb: seguirAlFoco falló al comprobar :focus-visible:', err);
+			}
+		}
+
 		function seguirAlFoco(fila, el) {
 			if (!el || el === fila || typeof el.scrollIntoView !== 'function' || fila.scrollWidth <= fila.clientWidth) {
+				return;
+			}
+			// En navegadores sin soporte :focus-visible se evita desplazar al hacer clic (mousedown/mouseup).
+			if (typeof el.matches !== 'function' || false === hasFocusVisibleSupport) {
 				return;
 			}
 			try {
 				if (!el.matches(':focus-visible')) {
 					return;
 				}
-			} catch (_err) {
+			} catch (err) {
+				if (!err || err.name !== 'SyntaxError' || null === hasFocusVisibleSupport) {
+					warnFocusError(err);
+				}
 				return;
 			}
 			// Se evalúa la tarjeta contenedora completa para garantizar que ni el anillo
@@ -1207,5 +1238,279 @@
 			new window.ResizeObserver(programar).observe(body);
 		}
 		programar();
+	})();
+
+	/* ── Header SVG Logo: destello Katana en entrada, scroll compacto e interacción ── */
+	(function () {
+		const headerLogo = doc.querySelector('.akb-logo-katana');
+		const mover = headerLogo ? headerLogo.querySelector('.akb-katana-mover') : null;
+		if (!headerLogo || !mover) {
+			return;
+		}
+		const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (reduce) {
+			return;
+		}
+
+		const COOLDOWN_MS = 1100;
+		const CLEANUP_MS = 840;
+		const TOUCH_GUARD_MS = 800;
+		let hasSwept = false;
+		let lastSweepAt = 0;
+		let lastTouchAt = 0;
+		let cleanupTimer = null;
+		let pendingRaf = null;
+
+		headerLogo.classList.add('akb-katana-js');
+
+		function clearSweep() {
+			if (cleanupTimer) {
+				window.clearTimeout(cleanupTimer);
+				cleanupTimer = null;
+			}
+			if (pendingRaf && window.cancelAnimationFrame) {
+				window.cancelAnimationFrame(pendingRaf);
+				pendingRaf = null;
+			}
+			headerLogo.classList.remove('akb-katana-run');
+		}
+
+		function triggerSweep(force) {
+			const now = Date.now();
+			if (!force && now - lastSweepAt < COOLDOWN_MS) {
+				return;
+			}
+			hasSwept = true;
+			clearSweep();
+			lastSweepAt = now;
+			const startSweep = function () {
+				pendingRaf = null;
+				headerLogo.classList.add('akb-katana-run');
+				cleanupTimer = window.setTimeout(function () {
+					cleanupTimer = null;
+					headerLogo.classList.remove('akb-katana-run');
+				}, CLEANUP_MS);
+			};
+			if (window.requestAnimationFrame) {
+				pendingRaf = window.requestAnimationFrame(startSweep);
+			} else {
+				startSweep();
+			}
+		}
+
+		mover.addEventListener('animationend', clearSweep);
+		headerLogo.addEventListener('mouseenter', function () {
+			if (Date.now() - lastTouchAt < TOUCH_GUARD_MS) {
+				return;
+			}
+			triggerSweep(true);
+		});
+		headerLogo.addEventListener('focusin', function () {
+			triggerSweep(false);
+		});
+		headerLogo.addEventListener('pointerdown', function (event) {
+			if (!event || event.pointerType !== 'mouse') {
+				lastTouchAt = Date.now();
+				triggerSweep(true);
+			}
+		});
+
+		const headerShell = headerLogo.closest ? headerLogo.closest('.site-header') : null;
+		if (headerShell && 'MutationObserver' in window) {
+			let wasCompact = headerShell.classList.contains('is-compact');
+			const classObserver = new window.MutationObserver(function () {
+				const isCompact = headerShell.classList.contains('is-compact');
+				if (isCompact !== wasCompact) {
+					wasCompact = isCompact;
+					triggerSweep(false);
+				}
+			});
+			classObserver.observe(headerShell, { attributes: true, attributeFilter: ['class'] });
+		}
+
+		window.setTimeout(function () {
+			if (!hasSwept && !headerLogo.classList.contains('akb-katana-run')) {
+				triggerSweep(true);
+			}
+		}, 300);
+	})();
+
+	/* ── Footer SVG Logo: revelación Don! Pop-In al bajar scroll y re-armado ── */
+	(function () {
+		const logo = doc.querySelector('.akb-footer-logo');
+		if (!logo) {
+			return;
+		}
+		const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (reduce || !('IntersectionObserver' in window)) {
+			logo.classList.remove('akb-footer-armed');
+			logo.classList.add('akb-is-revealed', 'akb-is-settled');
+			return;
+		}
+
+		const REVEAL_RATIO = 0.65;
+		const SETTLE_MS = 860;
+		let isRevealed = false;
+		let isInitialCheck = true;
+		let scrollPending = false;
+		let settleTimer = null;
+		let lastEntry = null;
+
+		logo.classList.add('akb-footer-armed');
+
+		function revealFooter() {
+			if (isRevealed) {
+				return;
+			}
+			isRevealed = true;
+			if (settleTimer) {
+				window.clearTimeout(settleTimer);
+			}
+			logo.classList.remove('akb-is-settled');
+			logo.classList.add('akb-is-revealed');
+			settleTimer = window.setTimeout(function () {
+				settleTimer = null;
+				if (isRevealed) {
+					logo.classList.add('akb-is-settled');
+				}
+			}, SETTLE_MS);
+		}
+
+		function rearmFooter() {
+			if (!isRevealed) {
+				return;
+			}
+			isRevealed = false;
+			if (settleTimer) {
+				window.clearTimeout(settleTimer);
+				settleTimer = null;
+			}
+			logo.classList.remove('akb-is-revealed', 'akb-is-settled');
+		}
+
+		function getSafeTop(scrollY) {
+			const header = doc.querySelector('.site-header');
+			if (!header || !header.getBoundingClientRect) {
+				return 0;
+			}
+			const hr = header.getBoundingClientRect();
+			if (hr.height > 0 && hr.bottom > 0 && hr.top <= 4) {
+				const style = window.getComputedStyle ? window.getComputedStyle(header) : null;
+				const pos = style ? style.position : '';
+				if (!pos || pos === 'sticky' || pos === 'fixed' || scrollY > hr.bottom) {
+					return Math.max(0, hr.bottom + 4);
+				}
+			}
+			return 0;
+		}
+
+		function getSafeBottom(vh) {
+			let safeBottom = vh - 16;
+			const docEl = doc.documentElement;
+			if (docEl && window.getComputedStyle) {
+				const franja = parseFloat(window.getComputedStyle(docEl).getPropertyValue('--akb-franja-inferior'));
+				if (!isNaN(franja) && franja > 0) {
+					safeBottom = Math.min(safeBottom, vh - franja - 10);
+				}
+			}
+			const bars = doc.querySelectorAll('.bottom-nav, .akb-sticky-atc');
+			bars.forEach(function (bar) {
+				if (!bar || !bar.getBoundingClientRect) {
+					return;
+				}
+				if (bar.classList.contains('akb-sticky-atc') && !bar.classList.contains('is-visible')) {
+					return;
+				}
+				if (bar.classList.contains('bottom-nav') && window.innerWidth > 1024) {
+					return;
+				}
+				const br = bar.getBoundingClientRect();
+				if (br.height > 0 && br.top > 0 && br.top < vh && br.bottom >= vh - 160) {
+					safeBottom = Math.min(safeBottom, br.top - 10);
+				}
+			});
+			return Math.max(1, safeBottom);
+		}
+
+		function syncFooterVisibility(entry) {
+			if (entry) {
+				lastEntry = entry;
+			}
+			const docEl = doc.documentElement;
+			const vh = window.innerHeight || (docEl ? docEl.clientHeight : 0) || 0;
+			const rect = logo.getBoundingClientRect ? logo.getBoundingClientRect() : null;
+			const hasBox = Boolean(rect && rect.height > 0 && vh > 0);
+			const initialCheck = isInitialCheck;
+			isInitialCheck = false;
+
+			if (hasBox) {
+				const scrollY = window.scrollY || (docEl ? docEl.scrollTop : 0) || 0;
+				const safeTop = getSafeTop(scrollY);
+				const safeBottom = getSafeBottom(vh);
+				const effectiveBottom = Math.max(safeTop, safeBottom);
+				const visibleInSafe = Math.max(0, Math.min(rect.bottom, effectiveBottom) - Math.max(rect.top, safeTop));
+				const ratioInSafe = visibleInSafe / rect.height;
+				const maxHeight = docEl ? docEl.scrollHeight : 0;
+				const visibleBelowHeader = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, safeTop));
+				const atDocBottom = scrollY + vh >= maxHeight - 24 && visibleBelowHeader > 12;
+				const visibleAtInitialTop = initialCheck && visibleInSafe > 12;
+
+				if (!isRevealed && (ratioInSafe >= REVEAL_RATIO || atDocBottom || visibleAtInitialTop)) {
+					revealFooter();
+					return;
+				}
+
+				if (isRevealed && rect.top >= vh - 8) {
+					rearmFooter();
+				}
+				return;
+			}
+
+			if (!lastEntry) {
+				return;
+			}
+			let entryRatio = lastEntry.isIntersecting ? 1 : 0;
+			if (typeof lastEntry.intersectionRatio === 'number') {
+				entryRatio = lastEntry.intersectionRatio;
+			}
+
+			if (!isRevealed && lastEntry.isIntersecting && entryRatio >= REVEAL_RATIO) {
+				revealFooter();
+			} else if (isRevealed && !lastEntry.isIntersecting) {
+				const entryTop = lastEntry.boundingClientRect ? lastEntry.boundingClientRect.top : vh;
+				if (vh === 0 || entryTop >= vh - 8) {
+					rearmFooter();
+				}
+			}
+		}
+
+		function scheduleFooterCheck() {
+			if (scrollPending) {
+				return;
+			}
+			scrollPending = true;
+			const run = function () {
+				scrollPending = false;
+				syncFooterVisibility(null);
+			};
+			if (window.requestAnimationFrame) {
+				window.requestAnimationFrame(run);
+			} else {
+				run();
+			}
+		}
+
+		const observer = new window.IntersectionObserver(
+			function (entries) {
+				entries.forEach(function (entry) {
+					syncFooterVisibility(entry);
+				});
+			},
+			{ threshold: [0, 0.25, 0.65, 0.9] }
+		);
+		observer.observe(logo);
+		window.addEventListener('scroll', scheduleFooterCheck, { passive: true });
+		window.addEventListener('resize', scheduleFooterCheck, { passive: true });
+		scheduleFooterCheck();
 	})();
 })();

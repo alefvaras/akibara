@@ -106,9 +106,6 @@ final class ScaleScanner {
 				'agotados'              => (int) ( $row['agotados'] ?? 0 ),
 				'min_sale_actual'       => null !== $row['min_sale_actual'] ? (int) $row['min_sale_actual'] : null,
 				'max_sale_actual'       => null !== $row['max_sale_actual'] ? (int) $row['max_sale_actual'] : null,
-				'comprometidos_count'   => 0,
-				'comprometidos_pids'    => array(),
-				'comprometidos_orders'  => array(),
 				'series_count'          => count( $series_list ),
 				'series_names'          => $series_list,
 				'series_items'          => $series_items,
@@ -133,23 +130,25 @@ final class ScaleScanner {
 
 		$product_brand_scale_sql = "
 		SELECT
-			p.ID AS product_id,
 			tt_brand.term_id AS brand_id,
 			CAST(pm_reg.meta_value AS UNSIGNED) AS escala_precio_regular,
 			tt_serie.term_id AS serie_id,
-			t_serie.name AS serie_name
+			t_serie.name AS serie_name,
+			COUNT(DISTINCT p.ID) AS serie_count
 		FROM {$wpdb->posts} p
 		INNER JOIN {$wpdb->term_relationships} tr_brand ON p.ID = tr_brand.object_id
 		INNER JOIN {$wpdb->term_taxonomy} tt_brand
 			ON tr_brand.term_taxonomy_id = tt_brand.term_taxonomy_id AND tt_brand.taxonomy = 'product_brand'
 		INNER JOIN {$wpdb->postmeta} pm_reg
 			ON p.ID = pm_reg.post_id AND pm_reg.meta_key = '_regular_price' AND pm_reg.meta_value != ''
-		LEFT JOIN {$wpdb->term_relationships} tr_serie ON p.ID = tr_serie.object_id
-		LEFT JOIN {$wpdb->term_taxonomy} tt_serie
+		INNER JOIN {$wpdb->term_relationships} tr_serie ON p.ID = tr_serie.object_id
+		INNER JOIN {$wpdb->term_taxonomy} tt_serie
 			ON tr_serie.term_taxonomy_id = tt_serie.term_taxonomy_id AND tt_serie.taxonomy = 'pa_serie'
-		LEFT JOIN {$wpdb->terms} t_serie ON tt_serie.term_id = t_serie.term_id
+		INNER JOIN {$wpdb->terms} t_serie ON tt_serie.term_id = t_serie.term_id
 		WHERE p.post_type = 'product'
 		  AND p.post_status = 'publish'
+		  AND t_serie.name != ''
+		GROUP BY tt_brand.term_id, CAST(pm_reg.meta_value AS UNSIGNED), tt_serie.term_id, t_serie.name
 		";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Consulta interna solo usa prefijos de $wpdb.
@@ -165,7 +164,12 @@ final class ScaleScanner {
 			$scale = (int) ( $pr['escala_precio_regular'] ?? 0 );
 			$sid   = (int) ( $pr['serie_id'] ?? 0 );
 			$sname = trim( (string) ( $pr['serie_name'] ?? '' ) );
+			$cnt   = (int) ( $pr['serie_count'] ?? 0 );
 			$key   = $bid . ':' . $scale;
+
+			if ( '' === $sname ) {
+				continue;
+			}
 
 			if ( ! isset( $scale_meta[ $key ] ) ) {
 				$scale_meta[ $key ] = array(
@@ -174,18 +178,13 @@ final class ScaleScanner {
 				);
 			}
 
-			if ( '' !== $sname ) {
-				$scale_meta[ $key ]['series'][ $sname ] = true;
-				if ( $sid > 0 ) {
-					if ( ! isset( $scale_meta[ $key ]['series_items'][ $sid ] ) ) {
-						$scale_meta[ $key ]['series_items'][ $sid ] = array(
-							'id'    => $sid,
-							'name'  => $sname,
-							'count' => 0,
-						);
-					}
-					++$scale_meta[ $key ]['series_items'][ $sid ]['count'];
-				}
+			$scale_meta[ $key ]['series'][ $sname ] = true;
+			if ( $sid > 0 ) {
+				$scale_meta[ $key ]['series_items'][ $sid ] = array(
+					'id'    => $sid,
+					'name'  => $sname,
+					'count' => $cnt,
+				);
 			}
 		}
 
@@ -297,6 +296,7 @@ final class ScaleScanner {
 			ON p.ID = pm_var.post_id AND pm_var.meta_key = '_akb_variante_tomo'
 		WHERE p.post_type = 'product'
 		  AND p.post_status = 'publish'
+		  AND COALESCE(pm_var.meta_value, '') != 'edicion_especial'
 		";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Consulta solo usa prefijos de $wpdb.
@@ -336,7 +336,6 @@ final class ScaleScanner {
 				'product_id'    => $pid,
 				'title'         => (string) ( $row['post_title'] ?? '' ),
 				'regular_price' => $reg,
-				'locked'        => false,
 			);
 		}
 
@@ -403,7 +402,6 @@ final class ScaleScanner {
 				'dominant_scale' => $dominant_scale,
 				'average_price'  => $average_price,
 				'total_tomos'    => count( $entry['products'] ),
-				'locked_count'   => 0,
 				'product_ids'    => array_keys( $entry['products'] ),
 			);
 		}

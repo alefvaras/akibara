@@ -2,14 +2,83 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const vm = require('node:vm');
 
-const scriptPath = path.join(__dirname, '../assets/js/pudo-blocks.js');
-const stylePath = path.join(__dirname, '../assets/css/pudo-blocks.css');
-const script = fs.readFileSync(scriptPath, 'utf8');
-const styles = fs.readFileSync(stylePath, 'utf8');
+const { createDOM } = require('../../../../../tools/testing/dom-harness.js');
 
-function bootUtilities(documentOverride = {}) {
+const SCRIPT_REL_PATH = 'public_html/wp-content/plugins/akibara-cart-checkout-blocks/assets/js/pudo-blocks.js';
+const STYLE_PATH = path.join(__dirname, '../assets/css/pudo-blocks.css');
+
+function parseCssRules(cssText) {
+	const clean = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+	const rules = [];
+	let index = 0;
+
+	function parseBlock(mediaContext) {
+		while (index < clean.length) {
+			while (index < clean.length && /\s/.test(clean[index])) {
+				index += 1;
+			}
+			if (index >= clean.length) {
+				break;
+			}
+			if (clean[index] === '}') {
+				index += 1;
+				return;
+			}
+
+			const openBrace = clean.indexOf('{', index);
+			if (openBrace === -1) {
+				break;
+			}
+			const prelude = clean.slice(index, openBrace).trim();
+			index = openBrace + 1;
+
+			if (prelude.startsWith('@media') || prelude.startsWith('@keyframes')) {
+				const nestedContext = prelude.startsWith('@media') ? prelude : mediaContext;
+				parseBlock(nestedContext);
+				continue;
+			}
+
+			let depth = 1;
+			const bodyStart = index;
+			while (index < clean.length && depth > 0) {
+				if (clean[index] === '{') {
+					depth += 1;
+				} else if (clean[index] === '}') {
+					depth -= 1;
+				}
+				index += 1;
+			}
+			const body = clean.slice(bodyStart, index - 1);
+			const declarations = {};
+			for (const chunk of body.split(';')) {
+				const colon = chunk.indexOf(':');
+				if (colon === -1) {
+					continue;
+				}
+				const prop = chunk.slice(0, colon).trim().toLowerCase();
+				const value = chunk.slice(colon + 1).trim();
+				if (prop) {
+					declarations[prop] = value;
+				}
+			}
+			rules.push({
+				selectors: prelude.split(',').map((s) => s.trim().replace(/\s+/g, ' ')),
+				media: mediaContext || '',
+				declarations
+			});
+		}
+	}
+
+	parseBlock('');
+	return rules;
+}
+
+function createHooksDomRuntime(options = {}) {
+	const timers = [];
+	let nextTimerId = 1;
+	let now = 0;
+
 	const validation = {
 		cleared: [],
 		errors: [],
@@ -20,73 +89,486 @@ function bootUtilities(documentOverride = {}) {
 			this.errors.push(errors);
 		}
 	};
-	const window = {
-		akbPudoBlocksTestMode: true,
-		clearTimeout,
-		crypto: {
-			getRandomValues(bytes) {
-				for (let index = 0; index < bytes.length; index += 1) {
-					bytes[index] = index;
+
+	const cartUpdates = [];
+	const warnings = [];
+	const extensionHandler = options.extensionCartUpdate || (() => Promise.resolve());
+	let registeredPlugin = null;
+
+	function scheduleTimer(fn, delay) {
+		const id = nextTimerId;
+		nextTimerId += 1;
+		timers.push({ id, at: now + Math.max(0, Number(delay) || 0), fn, cancelled: false });
+		return id;
+	}
+
+	function cancelTimer(id) {
+		for (const timer of timers) {
+			if (timer.id === id) {
+				timer.cancelled = true;
+			}
+		}
+	}
+
+	const Fragment = Symbol('Fragment');
+	const states = [];
+	const refs = [];
+	const effects = [];
+	let stateCursor = 0;
+	let refCursor = 0;
+	let effectCursor = 0;
+	let pendingEffects = [];
+	let renderQueued = false;
+	let mountNode = null;
+	let currentPropsFactory = null;
+	let currentVNode = null;
+
+	function normalizeChildren(raw) {
+		const list = [];
+		function visit(item) {
+			if (item === null || item === undefined || item === false || item === true) {
+				return;
+			}
+			if (Array.isArray(item)) {
+				item.forEach(visit);
+				return;
+			}
+			list.push(typeof item === 'object' ? item : { type: '#text', text: String(item) });
+		}
+		visit(raw);
+		return list;
+	}
+
+	function applyProps(el, prevProps, nextProps, listenersMap) {
+		const SVG_NS = 'http://www.w3.org/2000/svg';
+		const isSvg = el.namespaceURI === SVG_NS;
+		const oldKeys = Object.keys(prevProps || {});
+		const newKeys = Object.keys(nextProps || {});
+
+		for (const key of oldKeys) {
+			if (key === 'children' || key === 'key' || key === 'ref') {
+				continue;
+			}
+			if (!Object.prototype.hasOwnProperty.call(nextProps, key) || nextProps[key] === undefined) {
+				if (key.startsWith('on') && typeof prevProps[key] === 'function') {
+					const evtName = key.slice(2).toLowerCase();
+					const oldFn = listenersMap.get(el)?.get(evtName);
+					if (oldFn) {
+						el.removeEventListener(evtName, oldFn);
+						listenersMap.get(el).delete(evtName);
+					}
+				} else if (key === 'disabled') {
+					el.disabled = false;
+					el.removeAttribute('disabled');
+				} else if (key === 'className') {
+					el.removeAttribute('class');
+				} else {
+					el.removeAttribute(key.toLowerCase());
 				}
-				return bytes;
+			}
+		}
+
+		for (const key of newKeys) {
+			if (key === 'children' || key === 'key' || key === 'ref') {
+				continue;
+			}
+			const value = nextProps[key];
+			if (value === undefined || value === null) {
+				continue;
+			}
+			if (key.startsWith('on') && typeof value === 'function') {
+				const evtName = key.slice(2).toLowerCase();
+				if (!listenersMap.has(el)) {
+					listenersMap.set(el, new Map());
+				}
+				const elListeners = listenersMap.get(el);
+				const prevFn = elListeners.get(evtName);
+				if (prevFn !== value) {
+					if (prevFn) {
+						el.removeEventListener(evtName, prevFn);
+					}
+					el.addEventListener(evtName, value);
+					elListeners.set(evtName, value);
+				}
+			} else if (key === 'className') {
+				if (isSvg) {
+					el.setAttribute('class', String(value));
+				} else {
+					el.className = String(value);
+				}
+			} else if (key === 'tabIndex') {
+				el.tabIndex = Number(value);
+				el.setAttribute('tabindex', String(value));
+			} else if (key === 'disabled') {
+				el.disabled = Boolean(value);
+				if (value) {
+					el.setAttribute('disabled', '');
+				} else {
+					el.removeAttribute('disabled');
+				}
+			} else {
+				el.setAttribute(key.toLowerCase(), String(value));
+			}
+		}
+	}
+
+	const listenersMap = new WeakMap();
+
+	function setRef(ref, value) {
+		if (!ref) {
+			return;
+		}
+		if (typeof ref === 'function') {
+			ref(value);
+		} else if (typeof ref === 'object') {
+			ref.current = value;
+		}
+	}
+
+	function clearRefIfOwned(ref, domEl) {
+		if (ref && typeof ref === 'object' && ref.current === domEl) {
+			ref.current = null;
+		}
+	}
+
+	function expandVNode(vnode) {
+		if (!vnode || vnode.type === '#text') {
+			return vnode ? [vnode] : [];
+		}
+		if (vnode.type === Fragment) {
+			const out = [];
+			for (const child of vnode.children || []) {
+				out.push(...expandVNode(child));
+			}
+			return out;
+		}
+		if (typeof vnode.type === 'function') {
+			const propsWithChildren = {
+				...(vnode.props || {}),
+				children: (vnode.children || []).length === 1 ? vnode.children[0] : (vnode.children || [])
+			};
+			return expandVNode(vnode.type(propsWithChildren));
+		}
+		return [vnode];
+	}
+
+	function createDomNode(doc, vnode) {
+		if (vnode.type === '#text') {
+			const tn = doc.createTextNode(vnode.text);
+			vnode._dom = tn;
+			return tn;
+		}
+		const SVG_TAGS = new Set(['svg', 'path', 'g', 'circle', 'rect']);
+		const el = SVG_TAGS.has(vnode.type)
+			? doc.createElementNS('http://www.w3.org/2000/svg', vnode.type)
+			: doc.createElement(vnode.type);
+		applyProps(el, {}, vnode.props || {}, listenersMap);
+		setRef(vnode.props && vnode.props.ref, el);
+		vnode._dom = el;
+		const children = [];
+		for (const rawChild of vnode.children || []) {
+			children.push(...expandVNode(rawChild));
+		}
+		vnode._expandedChildren = children;
+		for (const child of children) {
+			el.appendChild(createDomNode(doc, child));
+		}
+		return el;
+	}
+
+	function reconcileChildren(doc, parentEl, oldList, newList) {
+		const maxLen = Math.max(oldList.length, newList.length);
+		for (let i = 0; i < maxLen; i += 1) {
+			const oldChild = oldList[i];
+			const newChild = newList[i];
+			if (!newChild) {
+				if (oldChild && oldChild._dom && oldChild._dom.parentNode === parentEl) {
+					if (oldChild.props && oldChild.props.ref) {
+						clearRefIfOwned(oldChild.props.ref, oldChild._dom);
+					}
+					parentEl.removeChild(oldChild._dom);
+				}
+				continue;
+			}
+			if (!oldChild || oldChild.type !== newChild.type || (oldChild.props?.key ?? null) !== (newChild.props?.key ?? null)) {
+				if (oldChild && oldChild.props && oldChild.props.ref) {
+					clearRefIfOwned(oldChild.props.ref, oldChild._dom);
+				}
+				const created = createDomNode(doc, newChild);
+				if (oldChild && oldChild._dom && oldChild._dom.parentNode === parentEl) {
+					parentEl.replaceChild(created, oldChild._dom);
+				} else {
+					parentEl.appendChild(created);
+				}
+				continue;
+			}
+			if (newChild.type === '#text') {
+				oldChild._dom.textContent = newChild.text;
+				newChild._dom = oldChild._dom;
+				continue;
+			}
+			const domEl = oldChild._dom;
+			newChild._dom = domEl;
+			applyProps(domEl, oldChild.props || {}, newChild.props || {}, listenersMap);
+			setRef(newChild.props && newChild.props.ref, domEl);
+			const nextChildren = [];
+			for (const rawChild of newChild.children || []) {
+				nextChildren.push(...expandVNode(rawChild));
+			}
+			newChild._expandedChildren = nextChildren;
+			reconcileChildren(doc, domEl, oldChild._expandedChildren || [], nextChildren);
+		}
+	}
+
+	function runEffects() {
+		const queue = pendingEffects.slice();
+		pendingEffects = [];
+		for (const idx of queue) {
+			const slot = effects[idx];
+			if (!slot) {
+				continue;
+			}
+			if (typeof slot.cleanup === 'function') {
+				slot.cleanup();
+				slot.cleanup = undefined;
+			}
+			slot.cleanup = slot.cb() || undefined;
+		}
+	}
+
+	function renderNow() {
+		if (!mountNode || !registeredPlugin) {
+			return;
+		}
+		renderQueued = false;
+		stateCursor = 0;
+		refCursor = 0;
+		effectCursor = 0;
+
+		const doc = dom.window.document;
+		function ExperimentalOrderShippingPackagesComponent(props) {
+			const children = normalizeChildren(props.children);
+			return {
+				type: 'div',
+				props: { 'data-akb-slot': 'shipping-packages' },
+				children
+			};
+		}
+
+		const renderedRoot = registeredPlugin.settings.render();
+		// Expand outer plugin wrapper to find PudoShippingFill element and inject live props
+		let rootVNode = renderedRoot;
+		if (rootVNode && typeof rootVNode.type === 'function' && currentPropsFactory) {
+			const children = normalizeChildren(rootVNode.children || rootVNode.props.children).map((child) => {
+				if (child && typeof child.type === 'function') {
+					return {
+						...child,
+						props: { ...(child.props || {}), ...currentPropsFactory() }
+					};
+				}
+				return child;
+			});
+			rootVNode = {
+				type: ExperimentalOrderShippingPackagesComponent,
+				props: rootVNode.props,
+				children
+			};
+		}
+
+		const nextExpanded = expandVNode(rootVNode);
+		reconcileChildren(doc, mountNode, currentVNode || [], nextExpanded);
+		currentVNode = nextExpanded;
+		runEffects();
+	}
+
+	function scheduleRender() {
+		if (renderQueued) {
+			return;
+		}
+		renderQueued = true;
+		queueMicrotask(() => {
+			if (renderQueued) {
+				renderNow();
+			}
+		});
+	}
+
+	function useState(initial) {
+		const idx = stateCursor;
+		stateCursor += 1;
+		if (idx >= states.length) {
+			states.push(typeof initial === 'function' ? initial() : initial);
+		}
+		const setState = (updater) => {
+			const next = typeof updater === 'function' ? updater(states[idx]) : updater;
+			if (!Object.is(next, states[idx])) {
+				states[idx] = next;
+				scheduleRender();
+			}
+		};
+		return [states[idx], setState];
+	}
+
+	function useRef(initial) {
+		const idx = refCursor;
+		refCursor += 1;
+		if (idx >= refs.length) {
+			refs.push({ current: initial });
+		}
+		return refs[idx];
+	}
+
+	function useEffect(cb, deps) {
+		const idx = effectCursor;
+		effectCursor += 1;
+		const prev = effects[idx];
+		const changed = !prev || deps === undefined || !prev.deps || deps.length !== prev.deps.length
+			|| deps.some((dep, i) => !Object.is(dep, prev.deps[i]));
+		if (!prev) {
+			effects[idx] = { deps, cb, cleanup: undefined };
+			pendingEffects.push(idx);
+		} else {
+			prev.deps = deps;
+			prev.cb = cb;
+			if (changed) {
+				pendingEffects.push(idx);
+			}
+		}
+	}
+
+	function ExperimentalOrderShippingPackages(props) {
+		return {
+			type: 'div',
+			props: { 'data-akb-slot': 'shipping-packages' },
+			children: normalizeChildren(props && props.children)
+		};
+	}
+
+	const wp = {
+		data: {
+			dispatch(storeName) {
+				assert.equal(storeName, 'wc/store/validation');
+				return validation;
 			}
 		},
-		setTimeout,
-		wp: {
-			data: {
-				dispatch(storeName) {
-					assert.equal(storeName, 'wc/store/validation');
-					return validation;
-				}
+		element: {
+			Fragment,
+			createElement(type, props, ...children) {
+				return {
+					type,
+					props: props || {},
+					children: normalizeChildren(children)
+				};
+			},
+			useEffect,
+			useRef,
+			useState
+		},
+		plugins: {
+			registerPlugin(name, settings) {
+				registeredPlugin = { name, settings };
 			}
-		},
-		wc: {}
-	};
-
-	vm.runInNewContext(script, {
-		Error,
-		JSON,
-		Object,
-		Promise,
-		Array,
-		String,
-		document: documentOverride,
-		encodeURIComponent,
-		window
-	});
-
-	return {
-		api: window.akbPudoBlocksTestApi,
-		validation
-	};
-}
-
-function fakeElement(name) {
-	const attributes = new Map();
-
-	return {
-		children: [],
-		inert: false,
-		name,
-		parentElement: null,
-		getAttribute(attribute) {
-			return attributes.has(attribute) ? attributes.get(attribute) : null;
-		},
-		hasAttribute(attribute) {
-			return attributes.has(attribute);
-		},
-		removeAttribute(attribute) {
-			attributes.delete(attribute);
-		},
-		setAttribute(attribute, value) {
-			attributes.set(attribute, String(value));
 		}
 	};
+
+	const dom = createDOM({
+		html: options.html || '<header id="site-header"></header><main id="checkout-main"><div id="pudo-mount"></div></main><footer id="site-footer"></footer>',
+		url: 'https://akibara.cl/checkout/',
+		globals: {
+			akbPudoBlocksTestMode: options.testMode !== false,
+			wp,
+			wc: {
+				blocksCheckout: {
+					ExperimentalOrderShippingPackages,
+					extensionCartUpdate(payload) {
+						cartUpdates.push(payload);
+						return extensionHandler(payload);
+					}
+				}
+			}
+		}
+	});
+
+	dom.window.setTimeout = scheduleTimer;
+	dom.window.clearTimeout = cancelTimer;
+	dom.window.console.warn = (...args) => {
+		warnings.push(args);
+	};
+	if (!dom.window.crypto || typeof dom.window.crypto.getRandomValues !== 'function') {
+		dom.window.crypto = {};
+	}
+	dom.window.crypto.getRandomValues = function (bytes) {
+		for (let i = 0; i < bytes.length; i += 1) {
+			bytes[i] = i;
+		}
+		return bytes;
+	};
+
+	dom.loadScript(SCRIPT_REL_PATH);
+
+	async function flushMicrotasks() {
+		await Promise.resolve();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		if (renderQueued) {
+			renderNow();
+		}
+	}
+
+	async function advanceTimersBy(ms) {
+		const target = now + ms;
+		while (true) {
+			let earliest = null;
+			for (const timer of timers) {
+				if (!timer.cancelled && timer.at <= target && (!earliest || timer.at < earliest.at)) {
+					earliest = timer;
+				}
+			}
+			if (!earliest) {
+				now = target;
+				break;
+			}
+			earliest.cancelled = true;
+			now = earliest.at;
+			earliest.fn();
+			await flushMicrotasks();
+		}
+	}
+
+	return {
+		dom,
+		api: dom.window.akbPudoBlocksTestApi,
+		validation,
+		cartUpdates,
+		warnings,
+		getPlugin() {
+			return registeredPlugin;
+		},
+		async mount(propsFactory) {
+			mountNode = dom.window.document.getElementById('pudo-mount');
+			currentPropsFactory = typeof propsFactory === 'function' ? propsFactory : () => propsFactory;
+			renderNow();
+			await advanceTimersBy(0);
+		},
+		async update(propsFactory) {
+			currentPropsFactory = typeof propsFactory === 'function' ? propsFactory : () => propsFactory;
+			renderNow();
+			await advanceTimersBy(0);
+		},
+		async unmount() {
+			for (const slot of effects) {
+				if (slot && typeof slot.cleanup === 'function') {
+					slot.cleanup();
+				}
+			}
+			await flushMicrotasks();
+		},
+		advanceTimersBy,
+		flushMicrotasks
+	};
 }
 
-function appendElement(parent, child) {
-	parent.children.push(child);
-	child.parentElement = parent;
+function bootUtilities(options = {}) {
+	return createHooksDomRuntime(options);
 }
 
 function validPayload() {
@@ -226,6 +708,17 @@ test('rejects invalid agency IDs, foreign countries and unknown regions', () => 
 	assert.equal(api.parseWidgetMessage({ ...event, data: unknownRegion }, iframe), null);
 });
 
+test('logs diagnostic warning and returns null when widget message payload is non-serializable', () => {
+	const { api, warnings } = bootUtilities();
+	const { event, iframe } = validEvent(api);
+	const circular = { payload: {} };
+	circular.payload.self = circular;
+
+	assert.equal(api.parseWidgetMessage({ ...event, data: circular }, iframe), null);
+	assert.equal(warnings.length, 1);
+	assert.match(String(warnings[0][0]), /no serializable/);
+});
+
 test('allows one widget selection per modal replay key', () => {
 	const { api } = bootUtilities();
 	const replayRef = { current: '' };
@@ -300,13 +793,14 @@ test('writes and clears a visible Validation Store error', () => {
 });
 
 test('keeps timed out update A authoritative while allowing a safe visual exit', async () => {
-	const body = fakeElement('body');
-	const checkout = fakeElement('checkout');
-	const modal = fakeElement('modal');
-	appendElement(body, checkout);
-	appendElement(body, modal);
+	const runtime = bootUtilities();
+	const doc = runtime.dom.window.document;
+	const checkout = doc.getElementById('checkout-main');
+	const modal = doc.createElement('div');
+	modal.className = 'akb-pudo-modal';
+	doc.body.appendChild(modal);
 
-	const { api } = bootUtilities({ body });
+	const { api } = runtime;
 	const queue = api.createSerializedQueue();
 	const order = [];
 	let resolveA;
@@ -327,7 +821,7 @@ test('keeps timed out update A authoritative while allowing a safe visual exit',
 		return Promise.resolve('B:done');
 	});
 
-	await new Promise((resolve) => setTimeout(resolve, 15));
+	await runtime.advanceTimersBy(10);
 	assert.equal(timeoutAnnounced, true);
 	assert.deepEqual(order, ['A:start'], 'B must remain queued after the UX timeout.');
 	assert.equal(
@@ -381,22 +875,17 @@ test('serializes clear then select and recovers the queue after a failed operati
 });
 
 test('makes every background branch inert and restores its exact prior state', () => {
-	const body = fakeElement('body');
-	const header = fakeElement('header');
-	const checkoutRoot = fakeElement('checkout-root');
-	const footer = fakeElement('footer');
-	const packageCard = fakeElement('package-card');
-	const modal = fakeElement('modal');
+	const runtime = bootUtilities({
+		html: '<header id="h" aria-hidden="false"></header><div id="checkout-root"><div id="package-card"></div><div id="modal"></div></div><footer id="f"></footer>'
+	});
+	const doc = runtime.dom.window.document;
+	const header = doc.getElementById('h');
+	const checkoutRoot = doc.getElementById('checkout-root');
+	const footer = doc.getElementById('f');
+	const packageCard = doc.getElementById('package-card');
+	const modal = doc.getElementById('modal');
 
-	header.setAttribute('aria-hidden', 'false');
-	appendElement(body, header);
-	appendElement(body, checkoutRoot);
-	appendElement(body, footer);
-	appendElement(checkoutRoot, packageCard);
-	appendElement(checkoutRoot, modal);
-
-	const { api } = bootUtilities({ body });
-	const restore = api.isolateDocumentBehindModal(modal);
+	const restore = runtime.api.isolateDocumentBehindModal(modal);
 
 	for (const background of [header, footer, packageCard]) {
 		assert.equal(background.hasAttribute('inert'), true);
@@ -418,149 +907,328 @@ test('makes every background branch inert and restores its exact prior state', (
 });
 
 test('registers one native ExperimentalOrderShippingPackages fill', () => {
-	let plugin = null;
-	function ExperimentalOrderShippingPackages() {}
-	const wp = {
-		data: {
-			dispatch() {
-				return {};
-			}
-		},
-		element: {
-			Fragment: Symbol('Fragment'),
-			createElement(type, props, ...children) {
-				return {
-					type,
-					props: {
-						...(props || {}),
-						children: children.length === 1 ? children[0] : children
-					}
-				};
-			},
-			useEffect() {},
-			useRef(value) {
-				return { current: value };
-			},
-			useState(value) {
-				return [value, function () {}];
-			}
-		},
-		plugins: {
-			registerPlugin(name, settings) {
-				plugin = { name, settings };
-			}
-		}
-	};
-	const window = {
-		clearTimeout,
-		setTimeout,
-		wp,
-		wc: {
-			blocksCheckout: {
-				ExperimentalOrderShippingPackages,
-				extensionCartUpdate() {
-					return Promise.resolve();
-				}
-			}
-		}
-	};
-
-	vm.runInNewContext(script, {
-		Error,
-		JSON,
-		Object,
-		Promise,
-		Array,
-		String,
-		document: {},
-		encodeURIComponent,
-		window
-	});
+	const runtime = bootUtilities();
+	const plugin = runtime.getPlugin();
 
 	assert.equal(plugin.name, 'akibara-blocks-pudo');
 	assert.equal(plugin.settings.scope, 'woocommerce-checkout');
-	assert.equal(plugin.settings.render().type, ExperimentalOrderShippingPackages);
+	assert.equal(
+		plugin.settings.render().type,
+		runtime.dom.window.wc.blocksCheckout.ExperimentalOrderShippingPackages
+	);
 });
 
-test('implements modal accessibility, timeout recovery and avoids vendor DOM scraping', () => {
-	assert.match(script, /aria-modal': 'true'/);
-	assert.match(script, /role: 'dialog'/);
-	assert.match(script, /aria-describedby': 'akb-pudo-dialog-description'/);
-	assert.match(script, /Mapa para seleccionar un Punto Blue Express/);
-	assert.match(script, /event\.key === 'Escape'/);
-	assert.ok(script.includes('iframe:not([tabindex="-1"])'));
-	assert.match(script, /document\.addEventListener\('focusin', keepFocusInDialog, true\)/);
-	assert.match(script, /isolateDocumentBehindModal\(modalRef\.current\)/);
-	assert.match(script, /(?:var|let|const) enqueueCartUpdateOperation = createSerializedQueue\(\)/);
-	assert.match(script, /await monitorTimeout/);
-	assert.doesNotMatch(script, /await withTimeout/);
-	assert.match(script, /(?:var|let|const) dismissible = canDismissOperation\(props\.saving, props\.timedOut\)/);
-	assert.match(script, /event\.target === event\.currentTarget && dismissible/);
-	assert.match(script, /if \(dismissible\) \{\s*props\.onClose\(\)/);
-	assert.match(script, /disabled: !dismissible/);
-	assert.match(script, /disabled: saving/);
-	assert.match(script, /if \(savingRef\.current\) \{\s*return;/);
-	assert.match(script, /timedOutRef\.current = true/);
-	assert.match(script, /elegir otro método de envío o recargar la página/);
-	assert.match(script, /FRAME_TIMEOUT_MS/);
-	assert.match(script, /Reintentar/);
-	assert.match(script, /aria-errormessage/);
-	assert.match(script, /aria-invalid/);
-	assert.match(script, /role: 'alert'/);
+test('mounts real DOM controls, enforces accessible modal focus/timeout/retry and guards saving', async () => {
+	let resolveUpdate;
+	const runtime = createHooksDomRuntime({
+		extensionCartUpdate() {
+			return new Promise((resolve) => {
+				resolveUpdate = resolve;
+			});
+		}
+	});
+	const doc = runtime.dom.window.document;
+	const selectedPackages = [
+		{
+			package_id: 0,
+			destination: { address_1: 'Av. Providencia 123', city: 'Curicó', state: 'CL-ML', country: 'CL' },
+			shipping_rates: [{ method_id: 'bluex-pudo', rate_id: 'bluex-pudo:3', selected: true }]
+		}
+	];
 
-	// «Todavía no eligió punto» NO es un error del cliente: es el estado normal
-	// del primer segundo tras elegir «Punto Blue Express» como método de envío.
-	// Anunciarlo como alerta interrumpía al lector de pantalla para reprochar
-	// algo que nadie había hecho, y el efecto arrancaba el foco de donde
-	// estuviera la persona —a media dirección— hacia un botón sin pulsar.
-	//
-	// Se fija la propiedad, no el marcado: el recordatorio se anuncia sin
-	// interrumpir, y el único estado que mueve el foco es el pedido dividido,
-	// que el cliente no puede resolver desde aquí.
-	const recordatorio = script.slice(
-		script.indexOf('Falta seleccionar el punto de retiro') - 600,
-		script.indexOf('Falta seleccionar el punto de retiro')
-	);
-	assert.doesNotMatch(recordatorio, /'aria-live': 'assertive'/);
-	assert.doesNotMatch(recordatorio, /role: 'alert'/);
-	assert.match(recordatorio, /'aria-live': 'polite'/);
-	assert.match(script, /invalidKind === 'multi-package' && invalidFocusRef\.current !== invalidKind/);
-	assert.doesNotMatch(
-		script,
-		/invalidKind === 'multi-package'\s*\?\s*multiPackageErrorRef\.current\s*:\s*selectionButtonRef\.current/
-	);
-	assert.match(script, /aria-valuetext/);
-	assert.match(script, /tabIndex: interactionBlocked \? -1 : 0/);
-	assert.doesNotMatch(script, /\.wc-block-components-/);
-	assert.doesNotMatch(script, /shipping_address\s*:/);
+	await runtime.mount(() => ({
+		cart: { shippingRates: selectedPackages },
+		extensions: {}
+	}));
 
-	assert.match(styles, /height: 100dvh/);
-	assert.match(styles, /safe-area-inset-bottom/);
-	assert.match(styles, /min-height: 44px/);
-	assert.match(styles, /\.akb-pudo-package__validation/);
-	assert.match(styles, /\.akb-pudo-dialog__iframe\[aria-hidden="true"\]/);
-	assert.match(styles, /pointer-events: none/);
-	assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
-	assert.match(styles, /animation: none/);
+	const reminder = doc.querySelector('.akb-pudo-package__validation');
+	assert.ok(reminder, 'Unselected reminder renders in DOM');
+	assert.equal(reminder.getAttribute('aria-live'), 'polite');
+	assert.equal(reminder.getAttribute('role'), null, 'Initial reminder is polite status, never assertive alert');
+	assert.equal(doc.querySelector('.akb-pudo-dialog__notice'), null, 'Dead notice channel must not exist in DOM');
 
-	// La capa del selector sale de la escala del tema (theme.json → custom.z), no
-	// de un literal suelto: con 100000 no había forma de saber qué quedaba encima.
-	assert.match(
-		styles,
-		/\.akb-pudo-modal \{[^}]*?z-index: var\(--wp--custom--z--cart, 10400\);/
+	const selectBtn = doc.querySelector('.akb-pudo-button');
+	assert.ok(selectBtn);
+	assert.equal(selectBtn.getAttribute('type'), 'button');
+	assert.equal(selectBtn.getAttribute('aria-invalid'), 'true');
+	assert.equal(selectBtn.getAttribute('aria-errormessage'), reminder.id);
+	assert.notEqual(doc.activeElement, selectBtn, 'Initial unselected state must not steal focus to selection button');
+
+	// Open modal by real click on the button
+	selectBtn.click();
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	const modal = doc.querySelector('.akb-pudo-modal');
+	const dialog = doc.querySelector('[role="dialog"]');
+	const iframe = doc.querySelector('.akb-pudo-dialog__iframe');
+	const loading = doc.querySelector('.akb-pudo-dialog__loading');
+	const scopeLine = doc.querySelector('.akb-pudo-dialog__scope');
+	assert.ok(modal && dialog && iframe && loading && scopeLine);
+	assert.equal(dialog.getAttribute('aria-modal'), 'true');
+	assert.equal(dialog.getAttribute('aria-describedby'), 'akb-pudo-dialog-description');
+	assert.equal(dialog.getAttribute('tabindex'), '-1');
+	assert.equal(doc.body.classList.contains('akb-pudo-modal-open'), true);
+	assert.equal(doc.activeElement, dialog, 'Opening modal focuses dialog container, not close button');
+	assert.equal(iframe.getAttribute('title'), 'Mapa para seleccionar un Punto Blue Express');
+	assert.equal(iframe.getAttribute('tabindex'), '-1');
+	assert.equal(iframe.getAttribute('aria-hidden'), 'true');
+	assert.equal(loading.getAttribute('role'), 'status');
+	assert.equal(loading.querySelector('[role="progressbar"]')?.getAttribute('aria-valuetext'), 'Cargando mapa de puntos de retiro');
+	assert.equal(doc.getElementById('site-header').getAttribute('inert'), '');
+
+	// Focus trap pulls focus back into dialog if outside element receives focusin
+	doc.getElementById('site-footer').dispatchEvent(new runtime.dom.window.Event('focusin', { bubbles: true }));
+	assert.equal(doc.activeElement, dialog);
+
+	// Frame timeout reveals error alert + Reintentar CTA, and clicking Reintentar resets frame loading
+	await runtime.advanceTimersBy(12000);
+	const errorBox = doc.querySelector('.akb-pudo-dialog__error');
+	assert.ok(errorBox);
+	assert.equal(errorBox.getAttribute('role'), 'alert');
+	const retryBtn = errorBox.querySelector('button');
+	assert.equal(retryBtn?.textContent, 'Reintentar');
+	assert.equal(doc.activeElement, retryBtn);
+
+	retryBtn.click();
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+	assert.equal(doc.querySelector('.akb-pudo-dialog__error'), null);
+	assert.ok(doc.querySelector('.akb-pudo-dialog__loading'));
+
+	// Mark iframe loaded -> interactive iframe
+	doc.querySelector('.akb-pudo-dialog__iframe').dispatchEvent(new runtime.dom.window.Event('load'));
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+	const liveIframe = doc.querySelector('.akb-pudo-dialog__iframe');
+	assert.equal(doc.querySelector('.akb-pudo-dialog__loading'), null);
+	assert.equal(liveIframe.getAttribute('tabindex'), '0');
+	assert.equal(liveIframe.hasAttribute('aria-hidden'), false);
+
+	// Simulate postMessage selection -> saving state locks close/Escape/backdrop until UPDATE_TIMEOUT_MS
+	const sourceWin = {};
+	Object.defineProperty(liveIframe, 'contentWindow', { value: sourceWin, configurable: true });
+	runtime.dom.window.dispatchEvent(new runtime.dom.window.MessageEvent('message', {
+		origin: runtime.api.WIDGET_ORIGIN,
+		source: sourceWin,
+		data: validPayload()
+	}));
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	assert.equal(runtime.cartUpdates.length, 1);
+	assert.equal(Object.prototype.hasOwnProperty.call(runtime.cartUpdates[0].data, 'shipping_address'), false);
+	const closeBtn = doc.querySelector('.akb-pudo-dialog__close');
+	const savingBox = doc.querySelector('.akb-pudo-dialog__saving');
+	assert.ok(closeBtn && savingBox);
+	assert.equal(closeBtn.disabled, true);
+	assert.equal(selectBtn.disabled, true);
+	assert.equal(savingBox.getAttribute('role'), 'status');
+	assert.equal(doc.querySelector('.akb-pudo-dialog__iframe').getAttribute('tabindex'), '-1');
+
+	// Escape & backdrop mousedown cannot dismiss while saving before timeout
+	dialog.dispatchEvent(new runtime.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+	modal.dispatchEvent(new runtime.dom.window.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+	await runtime.flushMicrotasks();
+	assert.ok(doc.querySelector('.akb-pudo-modal'), 'Modal remains open while saving before UX timeout');
+
+	// Advance past UPDATE_TIMEOUT_MS -> dismissible with informative copy
+	await runtime.advanceTimersBy(15000);
+	assert.equal(doc.querySelector('.akb-pudo-dialog__close').disabled, false);
+	assert.ok(doc.querySelector('.akb-pudo-dialog__saving').textContent.includes('elegir otro método de envío o recargar la página'));
+
+	// Dismissing via Escape restores background & focus while in-flight promise settles later
+	doc.querySelector('[role="dialog"]').dispatchEvent(new runtime.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+	assert.equal(doc.querySelector('.akb-pudo-modal'), null);
+	assert.equal(doc.body.classList.contains('akb-pudo-modal-open'), false);
+	assert.equal(doc.getElementById('site-header').hasAttribute('inert'), false);
+
+	resolveUpdate();
+	await runtime.flushMicrotasks();
+	await runtime.unmount();
+});
+
+test('surfaces Spanish server error alert and unlocks dialog when Store API rejects PUDO update', async () => {
+	const rejected = {
+		code: 'akibara_pudo_stale_attempt',
+		message: 'Otra selección de punto de retiro reemplazó esta solicitud. Revisa el punto vigente.'
+	};
+	const runtime = createHooksDomRuntime({
+		extensionCartUpdate() {
+			return Promise.reject(rejected);
+		}
+	});
+	const doc = runtime.dom.window.document;
+	await runtime.mount(() => ({
+		cart: {
+			shippingRates: [
+				{
+					package_id: 0,
+					destination: { city: 'Curicó', state: 'CL-ML', country: 'CL' },
+					shipping_rates: [{ method_id: 'bluex-pudo', rate_id: 'bluex-pudo:3', selected: true }]
+				}
+			]
+		},
+		extensions: {}
+	}));
+
+	doc.querySelector('.akb-pudo-button').click();
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	const iframe = doc.querySelector('.akb-pudo-dialog__iframe');
+	iframe.dispatchEvent(new runtime.dom.window.Event('load'));
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	const liveIframe = doc.querySelector('.akb-pudo-dialog__iframe');
+	const sourceWin = {};
+	Object.defineProperty(liveIframe, 'contentWindow', { value: sourceWin, configurable: true });
+	runtime.dom.window.dispatchEvent(new runtime.dom.window.MessageEvent('message', {
+		origin: runtime.api.WIDGET_ORIGIN,
+		source: sourceWin,
+		data: validPayload()
+	}));
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	const errAlert = doc.querySelector('.akb-pudo-dialog__error[role="alert"]');
+	assert.ok(errAlert);
+	assert.ok(errAlert.textContent.includes(rejected.message));
+	assert.equal(doc.querySelector('.akb-pudo-dialog__saving'), null);
+	assert.equal(doc.querySelector('.akb-pudo-dialog__close').disabled, false);
+	await runtime.unmount();
+});
+
+test('logs warning, blocks checkout validation and renders retry CTA when clearing PUDO fails on method switch', async () => {
+	let attemptCount = 0;
+	let propsState = {
+		hasPudo: false,
+		agencyId: 'AG-27136'
+	};
+	const runtime = createHooksDomRuntime({
+		extensionCartUpdate() {
+			attemptCount += 1;
+			if (attemptCount === 1) {
+				return Promise.reject({
+					code: 'akibara_pudo_unavailable',
+					message: 'Blue Express no respondió al limpiar el punto anterior.'
+				});
+			}
+			propsState.agencyId = '';
+			return Promise.resolve({});
+		}
+	});
+	const doc = runtime.dom.window.document;
+	const makeProps = () => ({
+		cart: {
+			shippingRates: [
+				{
+					package_id: 0,
+					shipping_rates: [
+						propsState.hasPudo
+							? { method_id: 'bluex-pudo', rate_id: 'bluex-pudo:3', selected: true }
+							: { method_id: 'flat_rate', rate_id: 'flat_rate:1', selected: true }
+					]
+				}
+			]
+		},
+		extensions: {
+			bluex_pudo: {
+				agency_id: propsState.agencyId
+			}
+		}
+	});
+
+	await runtime.mount(makeProps);
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	assert.equal(attemptCount, 1);
+	assert.equal(runtime.warnings.length, 1);
+	const alertBox = doc.querySelector('.akb-pudo-package-error[role="alert"]');
+	assert.ok(alertBox);
+	assert.ok(alertBox.textContent.includes('Blue Express no respondió al limpiar el punto anterior.'));
+	const lastError = runtime.validation.errors[runtime.validation.errors.length - 1];
+	assert.equal(
+		lastError['akibara-pudo-selection']?.message,
+		'Blue Express no respondió al limpiar el punto anterior.'
 	);
-	assert.doesNotMatch(styles, /z-index:\s*\d{3,}/, 'sin capas literales');
-	// Detrás del selector todo es inerte: los avisos flotantes de Woo (z-index
-	// 100000 en su hoja) y la barra de administración de WordPress (99999 en la
-	// de core) bajan a la capa de avisos mientras está abierto. Lo que de verdad
-	// queda debajo lo mide el navegador en bloques-carrito-y-selector.spec.mjs.
-	const capaDeAvisos = styles
-		.replace(/\/\*[\s\S]*?\*\//g, '')
-		.match(/([^{}]+)\{[^}]*z-index: var\(--wp--custom--z--toast, 500\);[^}]*\}/);
-	assert.ok(capaDeAvisos, 'una regla baja lo de detrás a la capa de avisos');
-	const bajados = capaDeAvisos[1].split(',').map((selector) => selector.trim());
-	assert.ok(bajados.includes('body.akb-pudo-modal-open .wc-block-components-notice-snackbar-list'));
-	assert.ok(bajados.includes('body.akb-pudo-modal-open #wpadminbar'));
+
+	const retryBtn = alertBox.querySelector('button');
+	assert.equal(retryBtn?.textContent, 'Reintentar');
+	retryBtn.click();
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+	await runtime.update(makeProps);
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
+
+	assert.equal(attemptCount, 2);
+	assert.equal(doc.querySelector('.akb-pudo-package-error'), null);
+	assert.equal(runtime.validation.cleared[runtime.validation.cleared.length - 1], 'akibara-pudo-selection');
+	await runtime.unmount();
+});
+
+test('focuses multi-package alert in DOM and cleans dead/literal z-index styles from CSS', async () => {
+	const runtime = bootUtilities();
+	const doc = runtime.dom.window.document;
+	await runtime.mount(() => ({
+		cart: {
+			shippingRates: [
+				{ package_id: 0, shipping_rates: [{ method_id: 'bluex-pudo', rate_id: 'bluex-pudo:3', selected: true }] },
+				{ package_id: 1, shipping_rates: [{ method_id: 'bluex-ex', rate_id: 'bluex-ex:4', selected: true }] }
+			]
+		},
+		extensions: {}
+	}));
+
+	const multiErr = doc.querySelector('.akb-pudo-package-error');
+	assert.ok(multiErr);
+	assert.equal(multiErr.getAttribute('role'), 'alert');
+	assert.equal(multiErr.getAttribute('tabindex'), '-1');
+	assert.equal(doc.activeElement, multiErr, 'Multi-package alert takes focus');
+	await runtime.unmount();
+
+	const cssRules = parseCssRules(fs.readFileSync(STYLE_PATH, 'utf8'));
+	const findRule = (selector, media = '') => cssRules.find(
+		(rule) => rule.media === media && rule.selectors.includes(selector)
+	);
+
+	const modalRule = findRule('.akb-pudo-modal');
+	assert.ok(modalRule);
+	assert.equal(modalRule.declarations.height, '100dvh');
+	assert.equal(modalRule.declarations['z-index'], 'var(--wp--custom--z--cart, 10400)');
+	assert.ok(modalRule.declarations.padding.includes('safe-area-inset-bottom'));
+
+	const buttonRule = findRule('.akb-pudo-button');
+	assert.equal(buttonRule.declarations['min-height'], '44px');
+	assert.ok(findRule('.akb-pudo-package__validation'));
+	assert.equal(findRule('.akb-pudo-dialog__iframe[aria-hidden="true"]')?.declarations['pointer-events'], 'none');
+
+	const reducedSpinner = findRule('.akb-pudo-spinner', '@media (prefers-reduced-motion: reduce)');
+	assert.equal(reducedSpinner?.declarations.animation, 'none');
+
+	const backdropLayersRule = findRule('body.akb-pudo-modal-open .wc-block-components-notice-snackbar-list');
+	assert.ok(backdropLayersRule && backdropLayersRule.selectors.includes('body.akb-pudo-modal-open #wpadminbar'));
+	assert.equal(backdropLayersRule.declarations['z-index'], 'var(--wp--custom--z--toast, 500)');
+
+	for (const rule of cssRules) {
+		const z = rule.declarations['z-index'];
+		if (z) {
+			assert.equal(/^\d{3,}$/.test(z), false, `Sin z-index numérico literal >=100 (${z})`);
+		}
+		assert.equal(
+			(rule.declarations.outline || '').includes('var(--aki-yellow'),
+			false,
+			'Sin outline amarillo duplicado'
+		);
+	}
+	assert.ok(findRule('.akb-pudo-dialog:focus')?.declarations['box-shadow']?.includes('0 24px 80px'));
+	assert.ok(findRule('.akb-pudo-dialog iframe:focus-visible')?.declarations['box-shadow']?.includes('--aki-focus-ring'));
+	assert.ok(findRule('.akb-pudo-button[aria-invalid="true"]:focus-visible'));
 });
 
 test('reads the customer region only from a valid Chilean Store API destination', () => {
@@ -619,27 +1287,31 @@ test('states the shipping destination before the map opens', () => {
 	});
 });
 
-test('paints exactly one focus ring and keeps the scope line', () => {
-	// El canal `notice` existía solo para avisar de una región equivocada. Sin esa
-	// restricción no queda nada que anunciar por ahí, así que el estado se eliminó:
-	// un prop que jamás puede tener contenido es código muerto, no una extensión.
-	assert.doesNotMatch(script, /setNotice|props\.notice|akb-pudo-dialog__notice/);
-	assert.match(script, /(?:var|let|const) interactionBlocked = props\.loading \|\| props\.saving \|\| Boolean\(props\.error\)/);
-	assert.match(script, /className: 'akb-pudo-dialog__scope'/);
+test('paints focus rules without duplicate outlines and hides inert/notice dead markup', async () => {
+	const runtime = bootUtilities();
+	await runtime.mount(() => ({
+		cart: {
+			shippingRates: [
+				{
+					package_id: 0,
+					destination: { city: 'Curicó', state: 'CL-ML', country: 'CL' },
+					shipping_rates: [{ method_id: 'bluex-pudo', rate_id: 'bluex-pudo:3', selected: true }]
+				}
+			]
+		},
+		extensions: {}
+	}));
 
-	// The dialog takes programmatic focus so no control shows a keyboard ring on a
-	// pointer-driven open.
-	assert.match(script, /role: 'dialog',\s*tabIndex: -1/);
-	assert.match(script, /function focusDialog\(\)/);
-	assert.doesNotMatch(script, /querySelector\('\.akb-pudo-dialog__close'\)/);
+	const doc = runtime.dom.window.document;
+	doc.querySelector('.akb-pudo-button').click();
+	await runtime.flushMicrotasks();
+	await runtime.advanceTimersBy(0);
 
-	// The theme already owns --aki-focus-ring; a second yellow outline here stacked
-	// into a solid block on the close button.
-	assert.doesNotMatch(styles, /outline: 3px solid var\(--aki-yellow/);
-	assert.match(styles, /\.akb-pudo-dialog:focus[\s\S]*?box-shadow: 0 24px 80px/);
-	assert.match(styles, /--aki-focus-ring/);
-	// aria-invalid is this button's default state; its ring must not swallow the focus one.
-	assert.match(styles, /\.akb-pudo-button\[aria-invalid="true"\]:focus-visible/);
+	assert.equal(doc.querySelector('.akb-pudo-dialog__notice'), null);
+	assert.ok(doc.querySelector('.akb-pudo-dialog__scope')?.textContent.includes('Curicó, Maule'));
+	assert.equal(doc.activeElement, doc.querySelector('[role="dialog"]'));
+	assert.notEqual(doc.activeElement, doc.querySelector('.akb-pudo-dialog__close'));
+	await runtime.unmount();
 });
 
 test('serverMessage() sólo deja pasar los códigos reales de PudoIntegration; todo lo demás cae al castellano', () => {

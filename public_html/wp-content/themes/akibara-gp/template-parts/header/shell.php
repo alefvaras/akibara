@@ -25,31 +25,8 @@ defined( 'ABSPATH' ) || exit;
 			<span></span><span></span><span></span>
 		</button>
 
-		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="logo" aria-label="Akibara, inicio">
-			<?php
-				$akb_logo_id = get_theme_mod( 'custom_logo' );
-				if ( $akb_logo_id ) {
-					echo wp_get_attachment_image( $akb_logo_id, 'medium', false, array(
-						// skip-lazy + data-no-lazy: la convención con que los lazyload por
-						// JS de terceros (LiteSpeed, Cloudinary) dejan una imagen fuera de
-						// su reescritura a `data-src`. Hoy ninguno reescribe: el de
-						// LiteSpeed está fijado en apagado por
-						// mu-plugins/akibara-litespeed-guardrails.php y Cloudinary no está
-						// instalado. Se conservan porque el logo pinta en el header de toda
-						// página y basta con que alguien quite la baranda para dejarlo en
-						// un placeholder hasta que corra su JS. El lazy NATIVO no lo toca:
-						// va antes del loop con `fetchpriority` explícito.
-						'class'         => 'logo__img skip-lazy',
-						'alt'           => 'Akibara',
-						'fetchpriority' => 'auto',
-						'sizes'         => '(max-width: 991px) 94px, 140px',
-						'decoding'      => 'async',
-						'data-no-lazy'  => '1',
-					) );
-				} else {
-					echo '<img class="logo__img" src="' . esc_url( get_stylesheet_directory_uri() . '/assets/img/logo-akibara.webp' ) . '" alt="Akibara" width="201" height="80" fetchpriority="auto" decoding="async">';
-				}
-			?>
+		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="logo akb-logo-katana" aria-label="Akibara, inicio">
+			<?php get_template_part( 'template-parts/components/logo-master-svg', null, array( 'context' => 'header' ) ); ?>
 		</a>
 
 		<?php

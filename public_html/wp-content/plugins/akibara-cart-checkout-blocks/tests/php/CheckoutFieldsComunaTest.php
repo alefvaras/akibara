@@ -229,6 +229,10 @@ final class CheckoutFieldsComunaTest extends TestCase {
 	 * @testdox Should fail open when the vendor catalog is unavailable.
 	 */
 	public function test_validation_fails_open_without_catalog(): void {
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'wc_get_logger' )->justReturn( null );
+
 		$unavailable = new ComunaDirectory(
 			static function (): array {
 				throw new \RuntimeException( 'vendor missing' );

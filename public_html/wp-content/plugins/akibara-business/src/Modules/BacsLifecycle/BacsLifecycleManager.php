@@ -18,12 +18,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * @api
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress InvalidArgument
- * @psalm-suppress RedundantCondition
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class BacsLifecycleManager {
 
@@ -58,28 +52,26 @@ final class BacsLifecycleManager {
 
 	public function register(): void {
 		add_action( 'woocommerce_order_status_on-hold', array( $this, 'on_order_hold' ), 20, 2 );
-		add_action( 'woocommerce_order_status_changed', array( $this, 'on_status_changed' ), 20, 4 );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'on_status_changed' ), 20, 3 );
 		add_action( self::ACTION_REMINDER, array( $this, 'send_reminder' ), 10, 1 );
 		add_action( self::ACTION_EXPIRE, array( $this, 'expire_order' ), 10, 1 );
 
-		add_action( 'wp_ajax_akb_submit_bacs_receipt', array( $this, 'ajax_submit_receipt' ) );
-		add_action( 'wp_ajax_nopriv_akb_submit_bacs_receipt', array( $this, 'ajax_submit_receipt' ) );
+		add_action( 'wp_ajax_akb_submit_bacs_receipt', array( $this, 'ajax_submit_receipt' ), 10, 0 );
+		add_action( 'wp_ajax_nopriv_akb_submit_bacs_receipt', array( $this, 'ajax_submit_receipt' ), 10, 0 );
 
 		add_action( 'woocommerce_thankyou_bacs', array( $this, 'render_bacs_portal' ), 20, 1 );
 		add_action( 'woocommerce_view_order', array( $this, 'render_bacs_portal' ), 20, 1 );
-		add_action( 'woocommerce_email_before_order_table', array( $this, 'email_bacs_instructions' ), 10, 4 );
+		add_action( 'woocommerce_email_before_order_table', array( $this, 'email_bacs_instructions' ), 10, 3 );
 	}
 
 	/**
 	 * Limpia las acciones programadas de recordatorio y vencimiento cuando el pedido sale de on-hold.
 	 *
-	 * @param int            $order_id ID del pedido.
-	 * @param string         $from     Estado anterior.
-	 * @param string         $to       Estado nuevo.
-	 * @param \WC_Order|null $order    Pedido.
+	 * @param int    $order_id ID del pedido.
+	 * @param string $from     Estado anterior.
+	 * @param string $to       Estado nuevo.
 	 */
-	public function on_status_changed( $order_id, $from, $to, $order = null ): void {
-		unset( $order );
+	public function on_status_changed( $order_id, $from, $to ): void {
 		if ( 'on-hold' === (string) $from && 'on-hold' !== (string) $to ) {
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( self::ACTION_REMINDER, array( 'order_id' => (int) $order_id ), self::GROUP );
@@ -105,11 +97,16 @@ final class BacsLifecycleManager {
 		}
 
 		$now = time();
-		$order->update_meta_data( self::META_ON_HOLD_SINCE, $now );
+		$order->update_meta_data( self::META_ON_HOLD_SINCE, (string) $now );
 		$order->save_meta_data();
 
 		$reminder_secs = self::reminder_hours() * HOUR_IN_SECONDS;
 		$expiry_secs   = self::expiry_hours() * HOUR_IN_SECONDS;
+
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( self::ACTION_REMINDER, array( 'order_id' => (int) $order_id ), self::GROUP );
+			as_unschedule_all_actions( self::ACTION_EXPIRE, array( 'order_id' => (int) $order_id ), self::GROUP );
+		}
 
 		if ( function_exists( 'as_schedule_single_action' ) ) {
 			as_schedule_single_action( $now + $reminder_secs, self::ACTION_REMINDER, array( 'order_id' => (int) $order_id ), self::GROUP );
@@ -224,11 +221,18 @@ final class BacsLifecycleManager {
 			}
 		}
 
-		// Cancelar la orden: WooCommerce repone automáticamente stock y Puntos Akibara revierte el canje
-		$order->update_status(
-			'cancelled',
-			'Orden por transferencia bancaria cancelada automáticamente por vencimiento del plazo de pago (24h sin comprobante verificado).'
-		);
+		// Cancelar la orden: WooCommerce repone automáticamente stock y Puntos Akibara revierte el canje.
+		$cancel_note = $reported_time > 0
+			? sprintf(
+				'Orden por transferencia bancaria cancelada automáticamente tras vencer la prórroga de +%dh desde el aviso de comprobante sin verificación manual.',
+				self::receipt_grace_hours()
+			)
+			: sprintf(
+				'Orden por transferencia bancaria cancelada automáticamente por vencimiento del plazo de pago (%dh sin comprobante verificado).',
+				self::expiry_hours()
+			);
+
+		$order->update_status( 'cancelled', $cancel_note );
 	}
 
 	public function ajax_submit_receipt(): void {
@@ -238,26 +242,38 @@ final class BacsLifecycleManager {
 		$reference = isset( $_POST['reference'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['reference'] ) ) : '';
 
 		if ( $order_id <= 0 || '' === $reference ) {
-			wp_send_json_error( array( 'message' => 'Número de operación o comprobante requerido.' ) );
+			wp_send_json_error( array( 'message' => 'Número de operación o comprobante requerido.' ), 400 );
 		}
 
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof \WC_Order ) {
-			wp_send_json_error( array( 'message' => 'Pedido no encontrado.' ) );
+			wp_send_json_error( array( 'message' => 'Pedido no encontrado.' ), 404 );
 		}
 
 		$user_id   = get_current_user_id();
 		$order_key = isset( $_POST['order_key'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['order_key'] ) ) : '';
 		$is_admin  = current_user_can( 'manage_woocommerce' );
 		$is_owner  = $user_id > 0 && (int) $order->get_customer_id() === $user_id;
-		$valid_key = '' !== $order_key && method_exists( $order, 'get_order_key' ) && hash_equals( (string) $order->get_order_key(), $order_key ); // @phpstan-ignore function.alreadyNarrowedType
+		$valid_key = '' !== $order_key && hash_equals( (string) $order->get_order_key(), $order_key );
 
 		if ( ! $is_admin && ! $is_owner && ! $valid_key ) {
-			wp_send_json_error( array( 'message' => 'No autorizado para este pedido.' ) );
+			wp_send_json_error( array( 'message' => 'No autorizado para este pedido.' ), 403 );
+		}
+
+		if ( 'on-hold' !== $order->get_status() || 'bacs' !== $order->get_payment_method() ) {
+			wp_send_json_error( array( 'message' => 'Este pedido no admite informar comprobante de transferencia en su estado actual.' ), 409 );
+		}
+
+		if ( (int) $order->get_meta( self::META_RECEIPT_REPORTED ) > 0 ) {
+			$reported_ref = (string) $order->get_meta( self::META_RECEIPT_REFERENCE );
+			$msg          = '' !== $reported_ref
+				? sprintf( 'Ya informaste un comprobante (%s) para este pedido. Nuestro equipo lo está validando.', $reported_ref )
+				: 'Ya informaste tu comprobante para este pedido. Nuestro equipo lo está validando.';
+			wp_send_json_error( array( 'message' => $msg ), 409 );
 		}
 
 		$now = time();
-		$order->update_meta_data( self::META_RECEIPT_REPORTED, $now );
+		$order->update_meta_data( self::META_RECEIPT_REPORTED, (string) $now );
 		$order->update_meta_data( self::META_RECEIPT_REFERENCE, $reference );
 
 		$grace_secs = self::receipt_grace_hours() * HOUR_IN_SECONDS;
@@ -303,78 +319,120 @@ final class BacsLifecycleManager {
 		$rem_hours    = (int) floor( $remaining_s / 3600 );
 		$rem_minutes  = (int) floor( ( $remaining_s % 3600 ) / 60 );
 		$bank         = self::get_bank_details();
+		$amount_html  = wc_price( (float) $order->get_total(), array( 'currency' => $order->get_currency() ) );
+
+		if ( $reported_time <= 0 ) {
+			$this->enqueue_receipt_script();
+		}
 
 		$nonce = wp_create_nonce( 'akb_bacs_receipt_nonce' );
 		?>
-		<div class="akb-bacs-portal-box" style="margin:25px 0; padding:20px; border:2px solid #0073aa; border-radius:6px; background:#f4f8fb;">
-			<h3 style="margin-top:0; color:#0073aa;">Informar Pago por Transferencia Bancaria (<?php echo esc_html( $bank['bank_name'] ); ?>)</h3>
-			<p>Para asegurar tus tomos y coordinar el despacho, por favor realiza tu transferencia y sube aquí tu número de operación.</p>
+		<div class="akb-bacs-portal">
+			<h3 id="akb-bacs-portal-heading" class="akb-bacs-portal__title">Informar pago por transferencia bancaria (<?php echo esc_html( $bank['bank_name'] ); ?>)</h3>
+			<p class="akb-bacs-portal__intro">Para asegurar tus tomos y coordinar el despacho, realiza tu transferencia y registra aquí tu número de operación.</p>
 
-			<div style="background:#fff; padding:12px 16px; border:1px solid #c3c4c7; border-radius:4px; margin-bottom:15px; font-size:14px;">
-				<strong>Datos de la Cuenta Oficial:</strong><br>
-				• <strong>Banco:</strong> <?php echo esc_html( $bank['bank_name'] ); ?><br>
-				• <strong>Tipo de Cuenta:</strong> <?php echo esc_html( $bank['account_type'] ); ?><br>
-				• <strong>N.º de Cuenta:</strong> <?php echo esc_html( $bank['account_number'] ); ?><br>
-				• <strong>RUT:</strong> <?php echo esc_html( $bank['rut'] ); ?><br>
-				• <strong>Nombre:</strong> <?php echo esc_html( $bank['holder'] ); ?><br>
-				• <strong>Correo de notificación:</strong> <?php echo esc_html( $bank['email'] ); ?><br>
-				• <strong>Monto Exacto a Transferir:</strong> $<?php echo number_format( (float) $order->get_total(), 0, ',', '.' ); ?> CLP
-			</div>
+			<dl class="akb-bacs-portal__details">
+				<div class="akb-bacs-portal__detail">
+					<dt>Banco</dt>
+					<dd><?php echo esc_html( $bank['bank_name'] ); ?></dd>
+				</div>
+				<div class="akb-bacs-portal__detail">
+					<dt>Tipo de cuenta</dt>
+					<dd><?php echo esc_html( $bank['account_type'] ); ?></dd>
+				</div>
+				<div class="akb-bacs-portal__detail">
+					<dt>N.º de cuenta</dt>
+					<dd><?php echo esc_html( $bank['account_number'] ); ?></dd>
+				</div>
+				<div class="akb-bacs-portal__detail">
+					<dt>RUT</dt>
+					<dd><?php echo esc_html( $bank['rut'] ); ?></dd>
+				</div>
+				<div class="akb-bacs-portal__detail">
+					<dt>Titular</dt>
+					<dd><?php echo esc_html( $bank['holder'] ); ?></dd>
+				</div>
+				<div class="akb-bacs-portal__detail">
+					<dt>Correo de notificación</dt>
+					<dd><?php echo esc_html( $bank['email'] ); ?></dd>
+				</div>
+				<div class="akb-bacs-portal__detail akb-bacs-portal__detail--amount">
+					<dt>Monto exacto a transferir</dt>
+					<dd><?php echo wp_kses_post( $amount_html ); ?></dd>
+				</div>
+			</dl>
 
 			<?php if ( $reported_time > 0 ) : ?>
-				<div style="padding:10px 14px; background:#e7f5ea; border-left:4px solid #46b450; color:#1e4620; font-weight:bold;">
-					✓ Ya informaste tu transferencia (Operación: <?php echo esc_html( $reported_ref ); ?>). Nuestro equipo está validando el abono en el banco. Tu reserva está protegida.
+				<div class="akb-bacs-portal__status akb-bacs-portal__status--reported" role="status">
+					<span aria-hidden="true">✓</span>
+					<span>Ya informaste tu transferencia (Operación: <?php echo esc_html( $reported_ref ); ?>). Nuestro equipo está validando el abono en el banco. Tu reserva está protegida.</span>
 				</div>
 			<?php else : ?>
-				<div style="margin-bottom:15px;">
-					<strong>Tiempo restante para transferir:</strong>
-					<span style="display:inline-block; padding:3px 8px; background:#fff2d6; color:#855a00; border-radius:3px; font-weight:bold;">
+				<p class="akb-bacs-portal__countdown">
+					<span>Tiempo restante para transferir:</span>
+					<strong class="akb-bacs-portal__countdown-badge">
 						<?php echo esc_html( sprintf( '%d horas y %d minutos', $rem_hours, $rem_minutes ) ); ?>
-					</span>
-				</div>
+					</strong>
+				</p>
 
-				<form id="akb_bacs_submit_receipt_form" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+				<form id="akb_bacs_submit_receipt_form" class="akb-bacs-portal__form" method="post">
 					<input type="hidden" name="action" value="akb_submit_bacs_receipt">
 					<input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr( $nonce ); ?>">
 					<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order->get_id() ); ?>">
-					/** @phpstan-ignore function.alreadyNarrowedType */
-					/** @phpstan-ignore function.alreadyNarrowedType */
-					<input type="hidden" name="order_key" value="<?php echo esc_attr( (string) $order->get_order_key() ); ?>"> // @phpstan-ignore function.alreadyNarrowedType
-					<input type="text" name="reference" id="akb_bacs_ref_input" placeholder="N.º de Transferencia o ID de Operación" required style="padding:8px 12px; border:1px solid #8c8f94; border-radius:4px; min-width:260px;">
-					<button type="submit" class="button button-primary" style="padding:4px 16px; height:auto;">Ya Transferí / Informar Pago</button>
+					<input type="hidden" name="order_key" value="<?php echo esc_attr( (string) $order->get_order_key() ); ?>">
+					<div class="akb-bacs-portal__field">
+						<label class="akb-bacs-portal__label" for="akb_bacs_ref_input">N.º de transferencia o ID de operación</label>
+						<input
+							type="text"
+							name="reference"
+							id="akb_bacs_ref_input"
+							class="akb-bacs-portal__input"
+							placeholder="Ej: 123456789"
+							autocomplete="off"
+							autocorrect="off"
+							autocapitalize="none"
+							spellcheck="false"
+							enterkeyhint="done"
+							required
+						>
+					</div>
+					<button type="submit" class="button alt akb-bacs-portal__submit">Ya transferí / Informar pago</button>
 				</form>
-				<div id="akb_bacs_receipt_msg" style="margin-top:10px;"></div>
-
-				<script>
-				document.addEventListener('DOMContentLoaded', function() {
-					var form = document.getElementById('akb_bacs_submit_receipt_form');
-					var msg = document.getElementById('akb_bacs_receipt_msg');
-					if (form) {
-						form.addEventListener('submit', function(e) {
-							e.preventDefault();
-							var btn = form.querySelector('button');
-							btn.disabled = true;
-							btn.innerText = 'Enviando...';
-							var fd = new FormData(form);
-							fetch('<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>', { method: 'POST', body: fd })
-								.then(function(r) { return r.json(); })
-								.then(function(res) {
-									if (res.success) {
-										msg.innerHTML = '<span style="color:#46b450; font-weight:bold;">' + res.data.message + '</span>';
-										setTimeout(function() { location.reload(); }, 1500);
-									} else {
-										msg.innerHTML = '<span style="color:#d63638; font-weight:bold;">' + (res.data.message || 'Error al enviar') + '</span>';
-										btn.disabled = false;
-										btn.innerText = 'Ya Transferí / Informar Pago';
-									}
-								});
-						});
-					}
-				});
-				</script>
+				<div id="akb_bacs_receipt_msg" class="akb-bacs-portal__msg" role="status" aria-live="polite" hidden></div>
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Encola el guion cliente para informar el comprobante sin JS embebido.
+	 */
+	private function enqueue_receipt_script(): void {
+		if ( ! function_exists( 'wp_enqueue_script' ) ) {
+			return;
+		}
+
+		$base = trailingslashit( AKIBARA_BUSINESS_URL );
+		$js   = 'assets/js/bacs-receipt.js';
+
+		wp_enqueue_script(
+			'akb-bacs-receipt',
+			$base . $js,
+			array(),
+			\Akibara\Business\Utilities\PluginAssetVersion::for_path( $js ),
+			true
+		);
+
+		wp_localize_script(
+			'akb-bacs-receipt',
+			'akbBacsReceiptConfig',
+			array(
+				'ajaxUrl'         => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+				'submitLabel'     => 'Ya transferí / Informar pago',
+				'submittingLabel' => 'Enviando...',
+				'genericError'    => 'Error al enviar el comprobante. Inténtalo de nuevo.',
+			)
+		);
 	}
 
 	/**
@@ -383,10 +441,8 @@ final class BacsLifecycleManager {
 	 * @param \WC_Order|null $order
 	 * @param bool           $sent_to_admin
 	 * @param bool           $plain_text
-	 * @param mixed          $email
-	 * @psalm-suppress UnusedParam
 	 */
-	public function email_bacs_instructions( $order, bool $sent_to_admin = false, bool $plain_text = false, $email = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	public function email_bacs_instructions( $order, bool $sent_to_admin = false, bool $plain_text = false ): void {
 		if ( ! $order instanceof \WC_Order || $sent_to_admin ) {
 			return;
 		}
@@ -404,10 +460,10 @@ final class BacsLifecycleManager {
 		$bank      = self::get_bank_details();
 
 		if ( $plain_text ) {
-			echo "\n" . esc_html( sprintf( "⏱ Plazo de transferencia: %d horas\n", $hours ) );
+			echo "\n" . wp_kses( sprintf( "⏱ Plazo de transferencia: %d horas\n", $hours ), array() );
 			echo "Para asegurar el stock de tu pedido, realiza la transferencia antes de que termine el plazo.\n";
-			echo esc_html( sprintf( "Una vez transferido, informa tu N.º de operación en tu pedido para extender la reserva por +%d hrs mientras validamos con %s:\n", $grace, $bank['bank_name'] ) );
-			echo esc_url( $order_url ) . "\n\n";
+			echo wp_kses( sprintf( "Una vez transferido, informa tu N.º de operación en tu pedido para extender la reserva por +%d hrs mientras validamos con %s:\n", $grace, $bank['bank_name'] ), array() );
+			echo wp_kses( $order_url, array() ) . "\n\n";
 			return;
 		}
 

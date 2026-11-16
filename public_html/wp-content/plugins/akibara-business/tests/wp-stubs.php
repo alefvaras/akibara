@@ -60,6 +60,21 @@ if ( ! function_exists( 'update_termmeta_cache' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wc_get_logger' ) ) {
+	/**
+	 * WooCommerce siempre expone `wc_get_logger()` en runtime. Declarar el no-op
+	 * compartido tras `Patchwork.php` impide que `function_exists('wc_get_logger')`
+	 * cambie de `false` a `true` a mitad de PHPUnit por contagio de orden de suite,
+	 * permitiendo que cualquier prueba que requiera inspeccionar logs la stubee
+	 * libremente con `Brain\Monkey\Functions\when( 'wc_get_logger' )`.
+	 *
+	 * @return object|null
+	 */
+	function wc_get_logger() {
+		return null;
+	}
+}
+
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	/**
 	 * Core lo expone SIEMPRE en runtime, con esta semántica: se lleva el CUERPO
@@ -556,6 +571,8 @@ if ( ! class_exists( 'WC_Product' ) ) {
 
 		public string $akb_sku = '';
 
+		public string $akb_global_unique_id = '';
+
 		public bool $akb_on_sale = false;
 
 		public string $akb_type = 'simple';
@@ -614,6 +631,10 @@ if ( ! class_exists( 'WC_Product' ) ) {
 
 		public function get_sku(): string {
 			return $this->akb_sku;
+		}
+
+		public function get_global_unique_id(): string {
+			return $this->akb_global_unique_id;
 		}
 
 		/**
@@ -1122,6 +1143,12 @@ if ( ! class_exists( 'WC_Email' ) ) {
 		public function get_content_html(): string {
 			return '<p>contenido</p>';
 		}
+
+		public function get_content_plain(): string {
+			return 'contenido';
+		}
+
+		public function init_form_fields(): void {}
 
 		public function get_from_address( $from = '' ): string {
 			unset( $from );

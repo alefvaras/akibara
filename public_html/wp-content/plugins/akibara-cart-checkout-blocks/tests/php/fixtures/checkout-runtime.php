@@ -29,8 +29,14 @@ if ( ! class_exists( 'WC_Order' ) ) {
 			$this->address       = $address;
 		}
 
+		public string $akb_shipping_phone = '';
+
 		public function get_billing_phone(): string {
 			return $this->billing_phone;
+		}
+
+		public function get_shipping_phone(): string {
+			return $this->akb_shipping_phone;
 		}
 
 		public function get_billing_country(): string {

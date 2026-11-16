@@ -41,58 +41,56 @@
 	}
 
 	function chileRegionCode(stateName) {
-		const regions = {
-			'Aysén': 'CL-AI',
-			'Aisén del General Carlos Ibañez del Campo': 'CL-AI',
-			'Antofagasta': 'CL-AN',
-			'Arica y Parinacota': 'CL-AP',
-			'Araucanía': 'CL-AR',
-			'La Araucanía': 'CL-AR',
-			'Atacama': 'CL-AT',
-			'Bío - Bío': 'CL-BI',
-			'Biobío': 'CL-BI',
-			'Coquimbo': 'CL-CO',
-			'Libertador General Bernardo O`Higgins': 'CL-LI',
-			"Libertador General Bernardo O'Higgins": 'CL-LI',
-			'Los Lagos': 'CL-LL',
-			'Los Ríos': 'CL-LR',
-			'Magallanes y la Antartica Chilena': 'CL-MA',
-			'Magallanes': 'CL-MA',
-			'Maule': 'CL-ML',
-			'Ñuble': 'CL-NB',
-			'Metropolitana de Santiago': 'CL-RM',
-			'Región Metropolitana de Santiago': 'CL-RM',
-			'Tarapacá': 'CL-TA',
-			'Valparaiso': 'CL-VS',
-			'Valparaíso': 'CL-VS'
-		};
+		const regions = new Map([
+			['Aysén', 'CL-AI'],
+			['Aisén del General Carlos Ibañez del Campo', 'CL-AI'],
+			['Antofagasta', 'CL-AN'],
+			['Arica y Parinacota', 'CL-AP'],
+			['Araucanía', 'CL-AR'],
+			['La Araucanía', 'CL-AR'],
+			['Atacama', 'CL-AT'],
+			['Bío - Bío', 'CL-BI'],
+			['Biobío', 'CL-BI'],
+			['Coquimbo', 'CL-CO'],
+			['Libertador General Bernardo O`Higgins', 'CL-LI'],
+			["Libertador General Bernardo O'Higgins", 'CL-LI'],
+			['Los Lagos', 'CL-LL'],
+			['Los Ríos', 'CL-LR'],
+			['Magallanes y la Antartica Chilena', 'CL-MA'],
+			['Magallanes', 'CL-MA'],
+			['Maule', 'CL-ML'],
+			['Ñuble', 'CL-NB'],
+			['Metropolitana de Santiago', 'CL-RM'],
+			['Región Metropolitana de Santiago', 'CL-RM'],
+			['Tarapacá', 'CL-TA'],
+			['Valparaiso', 'CL-VS'],
+			['Valparaíso', 'CL-VS']
+		]);
 
-		// eslint-disable-next-line security/detect-object-injection
-		return regions[stateName] || '';
+		return regions.get(stateName) || '';
 	}
 
 	function chileRegionName(regionCode) {
-		const names = {
-			'CL-AI': 'Aysén',
-			'CL-AN': 'Antofagasta',
-			'CL-AP': 'Arica y Parinacota',
-			'CL-AR': 'La Araucanía',
-			'CL-AT': 'Atacama',
-			'CL-BI': 'Biobío',
-			'CL-CO': 'Coquimbo',
-			'CL-LI': "O'Higgins",
-			'CL-LL': 'Los Lagos',
-			'CL-LR': 'Los Ríos',
-			'CL-MA': 'Magallanes',
-			'CL-ML': 'Maule',
-			'CL-NB': 'Ñuble',
-			'CL-RM': 'Región Metropolitana',
-			'CL-TA': 'Tarapacá',
-			'CL-VS': 'Valparaíso'
-		};
+		const names = new Map([
+			['CL-AI', 'Aysén'],
+			['CL-AN', 'Antofagasta'],
+			['CL-AP', 'Arica y Parinacota'],
+			['CL-AR', 'La Araucanía'],
+			['CL-AT', 'Atacama'],
+			['CL-BI', 'Biobío'],
+			['CL-CO', 'Coquimbo'],
+			['CL-LI', "O'Higgins"],
+			['CL-LL', 'Los Lagos'],
+			['CL-LR', 'Los Ríos'],
+			['CL-MA', 'Magallanes'],
+			['CL-ML', 'Maule'],
+			['CL-NB', 'Ñuble'],
+			['CL-RM', 'Región Metropolitana'],
+			['CL-TA', 'Tarapacá'],
+			['CL-VS', 'Valparaíso']
+		]);
 
-		// eslint-disable-next-line security/detect-object-injection
-		return names[regionCode] || '';
+		return names.get(regionCode) || '';
 	}
 
 	function cleanWidgetString(value, maxLength) {
@@ -106,6 +104,12 @@
 		}
 
 		return clean;
+	}
+
+	function warnPudoIssue(context, error) {
+		if (typeof window !== 'undefined' && window.console && typeof window.console.warn === 'function') {
+			window.console.warn('akb-pudo-blocks: ' + context + ':', error);
+		}
 	}
 
 	function parseWidgetMessage(event, iframe) {
@@ -123,7 +127,8 @@
 		let serialized;
 		try {
 			serialized = JSON.stringify(event.data);
-		} catch (_error) {
+		} catch (error) {
+			warnPudoIssue('mensaje del selector Blue Express no serializable', error);
 			return null;
 		}
 
@@ -290,12 +295,11 @@
 	function extensionData(props) {
 		const cartExt = props && props.cart && props.cart.extensions ? props.cart.extensions : {};
 		const extensions = props && props.extensions ? props.extensions : cartExt;
+		const payload = extensions && Object.prototype.hasOwnProperty.call(extensions, WRITE_NAMESPACE)
+			? Object.getOwnPropertyDescriptor(extensions, WRITE_NAMESPACE)?.value
+			: undefined;
 
-		// eslint-disable-next-line security/detect-object-injection
-		return extensions && isRecord(extensions[WRITE_NAMESPACE])
-			// eslint-disable-next-line security/detect-object-injection
-			? extensions[WRITE_NAMESPACE]
-			: {};
+		return isRecord(payload) ? payload : {};
 	}
 
 	function monitorTimeout(promise, timeoutMs, onTimeout) {
@@ -412,13 +416,10 @@
 			return;
 		}
 
-		const errors = {};
-		// eslint-disable-next-line security/detect-object-injection
-		errors[VALIDATION_KEY] = {
+		actions.setValidationErrors(Object.fromEntries([[VALIDATION_KEY, {
 			message,
 			hidden: false
-		};
-		actions.setValidationErrors(errors);
+		}]]));
 	}
 
 	function clearValidationError() {
@@ -525,6 +526,15 @@
 	}
 
 	const enqueueCartUpdateOperation = createSerializedQueue();
+
+	function queueCartUpdate(data) {
+		return enqueueCartUpdateOperation(function () {
+			return extensionCartUpdate({
+				namespace: WRITE_NAMESPACE,
+				data
+			});
+		});
+	}
 
 	function CloseIcon() {
 		return createElement(
@@ -729,9 +739,6 @@
 		const agencyId = cleanWidgetString(extension.agency_id || '', 64);
 		const hasPudo = pudoPackages.length > 0;
 		const isMultiPackage = hasPudo && packages.length !== 1;
-		const destination = pudoDestination(pudoPackages);
-		const destinationRegion = destination ? destination.region : '';
-		const destinationPlace = destinationPlaceLabel(destination);
 		const stateOpen = useState(false);
 		const open = stateOpen[0];
 		const setOpen = stateOpen[1];
@@ -750,6 +757,8 @@
 		const stateFrameKey = useState(0);
 		const frameKey = stateFrameKey[0];
 		const setFrameKey = stateFrameKey[1];
+		const [clearError, setClearError] = useState('');
+		const [clearAttempt, setClearAttempt] = useState(0);
 		const dialogRef = useRef(null);
 		const iframeRef = useRef(null);
 		const modalRef = useRef(null);
@@ -766,15 +775,6 @@
 			const invalidFocusRef = useRef('');
 
 		/* serverMessage es independiente de las props y del estado del componente; comparte el contrato de PUDO_BACKEND_ERROR_CODES. */
-
-		function queueCartUpdate(data) {
-			return enqueueCartUpdateOperation(function () {
-				return extensionCartUpdate({
-					namespace: WRITE_NAMESPACE,
-					data
-				});
-			});
-			}
 
 			function closeModal() {
 				if (!canDismissOperation(savingRef.current, timedOutRef.current)) {
@@ -815,6 +815,14 @@
 			});
 		}
 
+		function retryClearAgency() {
+			clearedAgencyRef.current = '';
+			setClearError('');
+			setClearAttempt(function (current) {
+				return current + 1;
+			});
+		}
+
 		useEffect(function () {
 			let focusTimeout;
 			let invalidKind = '';
@@ -828,6 +836,8 @@
 				setValidationError('El retiro en Punto Blue Express no admite pedidos divididos en más de un envío.');
 			} else if (hasPudo && !agencyId) {
 				setValidationError('Selecciona un Punto Blue Express antes de realizar el pedido.');
+			} else if (!hasPudo && agencyId && clearError) {
+				setValidationError(clearError);
 			} else {
 				clearValidationError();
 			}
@@ -852,7 +862,7 @@
 					window.clearTimeout(focusTimeout);
 				}
 			};
-		}, [hasPudo, isMultiPackage, agencyId]);
+		}, [hasPudo, isMultiPackage, agencyId, clearError]);
 
 		useEffect(function () {
 			return function () {
@@ -863,20 +873,40 @@
 		useEffect(function () {
 			if (hasPudo) {
 				clearedAgencyRef.current = '';
-				return;
+				setClearError('');
+				return undefined;
 			}
 
 			if (!agencyId || clearedAgencyRef.current === agencyId) {
-				return;
+				if (!agencyId) {
+					setClearError('');
+				}
+				return undefined;
 			}
 
+			let active = true;
 			clearedAgencyRef.current = agencyId;
 			Promise.resolve(
 				queueCartUpdate({ agency_id: '', attempt_id: createAttemptId() })
-			).catch(function () {
-				clearedAgencyRef.current = '';
+			).then(function () {
+				if (active) {
+					setClearError('');
+				}
+			}).catch(function (requestError) {
+				warnPudoIssue('no se pudo limpiar el punto de retiro al cambiar el método de envío', requestError);
+				if (!active) {
+					return;
+				}
+				setClearError(
+					serverMessage(requestError)
+					|| 'No pudimos limpiar el punto de retiro anterior. Reintenta antes de finalizar el pedido.'
+				);
 			});
-		}, [hasPudo, agencyId]);
+
+			return function () {
+				active = false;
+			};
+		}, [hasPudo, agencyId, clearAttempt]);
 
 		useEffect(function () {
 			if (!open) {
@@ -961,7 +991,7 @@
 		}, [open, loading, saving, error]);
 
 		useEffect(function () {
-			if (!open || !loading) {
+			if (!open || !loading || frameKey < 0) {
 				return undefined;
 			}
 
@@ -973,8 +1003,7 @@
 			return function () {
 				window.clearTimeout(timeout);
 			};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [open, loading, frameKey]);
+		}, [open, loading, frameKey, setError, setLoading]);
 
 		useEffect(function () {
 			if (!open) {
@@ -1030,10 +1059,31 @@
 			return function () {
 				window.removeEventListener('message', handleMessage);
 			};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [open, frameKey, destinationRegion, destinationPlace]);
+		}, [open, setError, setOpen, setSaving, setTimedOut]);
 
 		if (!hasPudo) {
+			if (agencyId && clearError) {
+				return createElement(
+					'div',
+					{
+						'aria-atomic': 'true',
+						'aria-live': 'assertive',
+						className: 'akb-pudo-package-error',
+						role: 'alert'
+					},
+					createElement('p', null, clearError),
+					createElement(
+						'button',
+						{
+							className: 'akb-pudo-button akb-pudo-button--secondary',
+							onClick: retryClearAgency,
+							type: 'button'
+						},
+						'Reintentar'
+					)
+				);
+			}
+
 			return null;
 		}
 
@@ -1052,6 +1102,7 @@
 
 		const agencyName = cleanWidgetString(extension.agency_name || '', 160);
 		const agencyAddress = cleanWidgetString(extension.agency_address || '', 240);
+		const destination = pudoDestination(pudoPackages);
 		const scopeHint = regionScopeHint(destination);
 		const packageCards = packages.map(function (packageData, index) {
 			const selected = selectedPudoPackages([packageData]).length === 1;

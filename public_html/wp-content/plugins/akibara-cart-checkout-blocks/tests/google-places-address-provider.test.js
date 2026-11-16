@@ -1,13 +1,16 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const test = require('node:test');
-const vm = require('node:vm');
 
-const script = fs.readFileSync(
-	path.join(__dirname, '../assets/js/google-places-address-provider.js'),
-	'utf8'
-);
+const { createDOM } = require('../../../../../tools/testing/dom-harness');
+
+const PROVIDER_SCRIPT_REL_PATH = 'public_html/wp-content/plugins/akibara-cart-checkout-blocks/assets/js/google-places-address-provider.js';
+const activeDoms = [];
+
+test.afterEach(() => {
+	while (activeDoms.length > 0) {
+		activeDoms.pop().teardown();
+	}
+});
 
 function deferred() {
 	let reject;
@@ -36,274 +39,36 @@ async function waitForRequest(requests, input) {
 	return requests.get(input);
 }
 
-function createAutocompleteDom(addressTypes) {
-	const mutationObservers = new Set();
+function buildCheckoutHtml(addressTypes) {
+	const containersHtml = addressTypes
+		.map(
+			(addressType) =>
+				`<div class="wc-block-components-address-autocomplete-container" data-address-type="${addressType}">` +
+				`<div class="wc-block-components-text-input">` +
+				`<input role="combobox" aria-autocomplete="list" aria-describedby="${addressType}-validation">` +
+				`</div>` +
+				`</div>`
+		)
+		.join('');
 
-	function notifyMutation(target) {
-		for (const observer of [...mutationObservers]) {
-			if (
-				observer.target === target
-				|| (observer.options.subtree && observer.target.contains(target))
-			) {
-				observer.pending = true;
-				Promise.resolve().then(() => {
-					if (observer.pending && mutationObservers.has(observer)) {
-						observer.pending = false;
-						observer.callback([]);
-					}
-				});
-			}
-		}
-	}
-
-	class FakeElement {
-		constructor(tagName) {
-			this.attributes = new Map();
-			this.children = [];
-			this.className = '';
-			this.hidden = false;
-			this.isConnected = false;
-			this.listeners = new Map();
-			this.listenerOptions = new Map();
-			this.parentNode = null;
-			this.rect = { bottom: 0, height: 0, left: 0, right: 0, top: 0, width: 0 };
-			this.styleProperties = new Map();
-			this.tagName = String(tagName).toUpperCase();
-			this.textContent = '';
-			this.value = '';
-			this.classList = {
-				add: (...classNames) => {
-					const names = new Set(this.className.split(/\s+/).filter(Boolean));
-					classNames.forEach((className) => names.add(className));
-					this.className = [...names].join(' ');
-				},
-				contains: (className) => this.className.split(/\s+/).includes(className),
-				remove: (...classNames) => {
-					const removed = new Set(classNames);
-					this.className = this.className
-						.split(/\s+/)
-						.filter((className) => className && !removed.has(className))
-						.join(' ');
-				}
-			};
-			this.style = {
-				getPropertyValue: (name) => this.styleProperties.get(name) || '',
-				removeProperty: (name) => this.styleProperties.delete(name),
-				setProperty: (name, value) => this.styleProperties.set(name, String(value))
-			};
-		}
-
-		appendChild(child) {
-			if (child.parentNode) {
-				child.parentNode.removeChild(child);
-			}
-			this.children.push(child);
-			child.parentNode = this;
-			child.setConnected(this.isConnected);
-			notifyMutation(this);
-			return child;
-		}
-
-		insertBefore(child, reference) {
-			if (child.parentNode) {
-				const previousIndex = child.parentNode.children.indexOf(child);
-				if (previousIndex >= 0) {
-					child.parentNode.children.splice(previousIndex, 1);
-				}
-			}
-			const referenceIndex = this.children.indexOf(reference);
-			assert.notEqual(referenceIndex, -1, 'the reference node must belong to the container');
-			this.children.splice(referenceIndex, 0, child);
-			child.parentNode = this;
-			child.setConnected(this.isConnected);
-			notifyMutation(this);
-			return child;
-		}
-
-		removeChild(child) {
-			const index = this.children.indexOf(child);
-			if (index >= 0) {
-				this.children.splice(index, 1);
-				child.parentNode = null;
-				child.setConnected(false);
-				notifyMutation(this);
-			}
-			return child;
-		}
-
-		setConnected(isConnected) {
-			this.isConnected = isConnected;
-			this.children.forEach((child) => child.setConnected(isConnected));
-		}
-
-		contains(candidate) {
-			return candidate === this || this.children.some((child) => child.contains(candidate));
-		}
-
-		getBoundingClientRect() {
-			return { ...this.rect };
-		}
-
-		setRect(rect) {
-			this.rect = {
-				...this.rect,
-				...rect
-			};
-			if (rect.height === undefined && rect.top !== undefined && rect.bottom !== undefined) {
-				this.rect.height = rect.bottom - rect.top;
-			}
-			if (rect.width === undefined && rect.left !== undefined && rect.right !== undefined) {
-				this.rect.width = rect.right - rect.left;
-			}
-		}
-
-		setAttribute(name, value) {
-			this.attributes.set(name, String(value));
-		}
-
-		getAttribute(name) {
-			return this.attributes.has(name) ? this.attributes.get(name) : null;
-		}
-
-		removeAttribute(name) {
-			this.attributes.delete(name);
-		}
-
-		matches(selector) {
-			if (selector.startsWith('.') && !selector.includes(' ')) {
-				return this.className.split(/\s+/).includes(selector.slice(1));
-			}
-			if (selector.includes('[role="combobox"]') && this.getAttribute('role') !== 'combobox') {
-				return false;
-			}
-			if (
-				selector.includes('[aria-autocomplete="list"]')
-				&& this.getAttribute('aria-autocomplete') !== 'list'
-			) {
-				return false;
-			}
-			return selector.includes('[role="combobox"]');
-		}
-
-		closest(selector) {
-			let current = this;
-			const className = selector.startsWith('.') ? selector.slice(1) : '';
-			while (current) {
-				if (className && current.className.split(/\s+/).includes(className)) {
-					return current;
-				}
-				current = current.parentNode;
-			}
-			return null;
-		}
-
-		querySelectorAll(selector) {
-			const matches = [];
-			for (const child of this.children) {
-				if (child.matches(selector)) {
-					matches.push(child);
-				}
-				matches.push(...child.querySelectorAll(selector));
-			}
-			return matches;
-		}
-
-		querySelector(selector) {
-			return this.querySelectorAll(selector)[0] || null;
-		}
-
-		addEventListener(type, listener, options) {
-			const listeners = this.listeners.get(type) || new Set();
-			listeners.add(listener);
-			this.listeners.set(type, listeners);
-			this.listenerOptions.set(listener, options);
-		}
-
-		removeEventListener(type, listener) {
-			this.listeners.get(type)?.delete(listener);
-		}
-
-		dispatchEvent(event) {
-			for (const listener of this.listeners.get(event.type) || []) {
-				listener.call(this, { ...event, currentTarget: this, target: this });
-			}
-		}
-	}
-
-	class FakeMutationObserver {
-		constructor(callback) {
-			this.callback = callback;
-			this.options = {};
-			this.pending = false;
-			this.target = null;
-		}
-
-		observe(target, options) {
-			this.target = target;
-			this.options = options;
-			mutationObservers.add(this);
-		}
-
-		disconnect() {
-			mutationObservers.delete(this);
-			this.pending = false;
-			this.target = null;
-		}
-	}
-
-	const body = new FakeElement('body');
-	body.setConnected(true);
-	const checkout = new FakeElement('main');
-	checkout.className = 'woocommerce-checkout';
-	body.appendChild(checkout);
-	const inputs = new Map();
-	const containers = new Map();
-
-	for (const addressType of addressTypes) {
-		const container = new FakeElement('div');
-		container.className = 'wc-block-components-address-autocomplete-container';
-		container.setAttribute('data-address-type', addressType);
-		const field = new FakeElement('div');
-		field.className = 'wc-block-components-text-input';
-		const input = new FakeElement('input');
-		input.setAttribute('role', 'combobox');
-		input.setAttribute('aria-autocomplete', 'list');
-		input.setAttribute('aria-describedby', addressType + '-validation');
-		field.appendChild(input);
-		container.appendChild(field);
-		checkout.appendChild(container);
-		containers.set(addressType, container);
-		inputs.set(addressType, input);
-	}
-
-	const document = {
-		activeElement: null,
-		body,
-		createElement(tagName) {
-			return new FakeElement(tagName);
-		},
-		querySelectorAll(selector) {
-			return body.querySelectorAll(selector);
-		}
-	};
-
-	return {
-		containers,
-		document,
-		inputs,
-		MutationObserver: FakeMutationObserver,
-		mutationObservers
-	};
+	return `<main class="woocommerce-checkout">${containersHtml}</main>`;
 }
 
 function bootProvider(addressComponents, options = {}) {
 	const autocompleteRequests = [];
 	const animationFrames = new Map();
+	const documentListeners = [];
 	const fieldRequests = [];
 	const notices = [];
 	const scheduledTimeouts = [];
 	const visualViewportListeners = new Map();
 	const windowListeners = new Map();
+	const elementListeners = new WeakMap();
+	const listenerOptions = new WeakMap();
+	const activeObservers = new Set();
+	const elementRects = new WeakMap();
+	const storageAccesses = [];
+	const htmlSinkCalls = [];
 	let animationFrameId = 0;
 	let importLibraryCallCount = 0;
 	let loaderAppendCount = 0;
@@ -311,9 +76,160 @@ function bootProvider(addressComponents, options = {}) {
 	let timeoutId = 0;
 	let tokenCount = 0;
 	let now = 1_000_000;
+
+	const dom = createDOM({
+		html: options.addressTypes ? buildCheckoutHtml(options.addressTypes) : '<main></main>',
+		innerHeight: options.viewportHeight || 900,
+		url: 'https://akibara.cl/checkout/'
+	});
+	activeDoms.push(dom);
+
+	const { document, window } = dom;
+	const RealDate = window.Date;
+	window.Date = class extends RealDate {
+		static now() {
+			return now;
+		}
+	};
+
+	const emptyRect = () => ({ bottom: 0, height: 0, left: 0, right: 0, top: 0, width: 0 });
+	window.Element.prototype.setRect = function (rect) {
+		const next = {
+			...(elementRects.get(this) || emptyRect()),
+			...rect
+		};
+		if (rect.height === undefined && rect.top !== undefined && rect.bottom !== undefined) {
+			next.height = rect.bottom - rect.top;
+		}
+		if (rect.width === undefined && rect.left !== undefined && rect.right !== undefined) {
+			next.width = rect.right - rect.left;
+		}
+		elementRects.set(this, next);
+	};
+	window.Element.prototype.getBoundingClientRect = function () {
+		return { ...(elementRects.get(this) || emptyRect()) };
+	};
+
+	if (options.trackSecuritySinks) {
+		const innerHtmlDescriptor = Object.getOwnPropertyDescriptor(window.Element.prototype, 'innerHTML');
+		Object.defineProperty(window.Element.prototype, 'innerHTML', {
+			configurable: true,
+			get() {
+				return innerHtmlDescriptor.get.call(this);
+			},
+			set(value) {
+				htmlSinkCalls.push(['innerHTML', String(value)]);
+				return innerHtmlDescriptor.set.call(this, value);
+			}
+		});
+		const origInsertAdjacentHTML = window.Element.prototype.insertAdjacentHTML;
+		window.Element.prototype.insertAdjacentHTML = function (position, text) {
+			htmlSinkCalls.push(['insertAdjacentHTML', String(text)]);
+			return origInsertAdjacentHTML.call(this, position, text);
+		};
+		for (const storageName of ['localStorage', 'sessionStorage']) {
+			const backing = window[storageName];
+			Object.defineProperty(window, storageName, {
+				configurable: true,
+				value: {
+					getItem(key) {
+						storageAccesses.push([storageName, 'get', key]);
+						return backing.getItem(key);
+					},
+					setItem(key, value) {
+						storageAccesses.push([storageName, 'set', key, value]);
+						backing.setItem(key, value);
+					},
+					removeItem(key) {
+						storageAccesses.push([storageName, 'remove', key]);
+						backing.removeItem(key);
+					}
+				}
+			});
+		}
+	}
+
+	const origWinAddEventListener = window.addEventListener.bind(window);
+	const origWinRemoveEventListener = window.removeEventListener.bind(window);
+	window.addEventListener = function (type, listener, listenerOpts) {
+		const listeners = windowListeners.get(type) || new Set();
+		listeners.add(listener);
+		windowListeners.set(type, listeners);
+		return origWinAddEventListener(type, listener, listenerOpts);
+	};
+	window.removeEventListener = function (type, listener, listenerOpts) {
+		windowListeners.get(type)?.delete(listener);
+		return origWinRemoveEventListener(type, listener, listenerOpts);
+	};
+
+	const nodeEventTargetProto = Object.getPrototypeOf(window.Node.prototype);
+	const origNodeAddEventListener = nodeEventTargetProto.addEventListener;
+	const origNodeRemoveEventListener = nodeEventTargetProto.removeEventListener;
+	nodeEventTargetProto.addEventListener = function (type, listener, listenerOpts) {
+		if (this === document) {
+			documentListeners.push({ listener, options: listenerOpts, type });
+		} else if (this instanceof window.Element) {
+			let byType = elementListeners.get(this);
+			if (!byType) {
+				byType = new Map();
+				elementListeners.set(this, byType);
+			}
+			const listeners = byType.get(type) || new Set();
+			listeners.add(listener);
+			byType.set(type, listeners);
+			listenerOptions.set(listener, listenerOpts);
+		}
+		return origNodeAddEventListener.call(this, type, listener, listenerOpts);
+	};
+	nodeEventTargetProto.removeEventListener = function (type, listener, listenerOpts) {
+		if (this === document) {
+			const index = documentListeners.findIndex((entry) => entry.type === type && entry.listener === listener);
+			if (index >= 0) {
+				documentListeners.splice(index, 1);
+			}
+		} else if (this instanceof window.Element) {
+			elementListeners.get(this)?.get(type)?.delete(listener);
+		}
+		return origNodeRemoveEventListener.call(this, type, listener, listenerOpts);
+	};
+
+	const NativeMutationObserver = window.MutationObserver;
+	window.MutationObserver = class extends NativeMutationObserver {
+		constructor(callback) {
+			super(callback);
+			this.options = {};
+			this.target = null;
+		}
+		observe(target, observerOptions) {
+			this.target = target;
+			this.options = observerOptions;
+			activeObservers.add(this);
+			return super.observe(target, observerOptions);
+		}
+		disconnect() {
+			activeObservers.delete(this);
+			this.target = null;
+			return super.disconnect();
+		}
+	};
+
 	const autocompleteDom = options.addressTypes
-		? createAutocompleteDom(options.addressTypes)
+		? {
+			containers: new Map(
+				options.addressTypes.map((type) => [
+					type,
+					document.querySelector(`.wc-block-components-address-autocomplete-container[data-address-type="${type}"]`)
+				])
+			),
+			inputs: new Map(
+				options.addressTypes.map((type) => [
+					type,
+					document.querySelector(`.wc-block-components-address-autocomplete-container[data-address-type="${type}"] input[role="combobox"]`)
+				])
+			)
+		}
 		: null;
+
 	const communeRegions = options.communeRegions === undefined
 		? {
 			RM: ['Las Condes', 'Providencia', 'Santiago'],
@@ -395,74 +311,48 @@ function bootProvider(addressComponents, options = {}) {
 			return places;
 		}
 	};
-	// Lo justo del KeyboardEvent del navegador: el cancelado se decide ANTES de
-	// despachar y el despacho del DOM falso copia las propiedades propias.
-	class KeyboardEvent {
-		constructor(type, init = {}) {
-			Object.assign(this, init);
-			this.type = type;
-			this.defaultPrevented = false;
-		}
 
-		preventDefault() {
-			if (this.cancelable) {
-				this.defaultPrevented = true;
+	window.akbComunaData = communeRegions ? { regions: communeRegions } : undefined;
+	window.akbCartCheckoutBlocksGoogle = {
+		loaderUrl: 'https://maps.googleapis.test/loader.js',
+		providerId: 'akibara-google-places',
+		regionMap: options.regionMap || { RM: 'RM' }
+	};
+	window.google = options.googleImportAfterLoaderOnload ? undefined : { maps };
+	window.requestAnimationFrame = function (callback) {
+		animationFrameId += 1;
+		animationFrames.set(animationFrameId, callback);
+		return animationFrameId;
+	};
+	window.cancelAnimationFrame = function (frameId) {
+		animationFrames.delete(frameId);
+	};
+	window.setTimeout = function (callback, delay = 0) {
+		timeoutId += 1;
+		const timeout = { callback, delay: Number(delay) || 0, id: timeoutId };
+		scheduledTimeouts.push(timeout);
+		return timeout.id;
+	};
+	window.clearTimeout = function (id) {
+		const index = scheduledTimeouts.findIndex((timeout) => timeout.id === id);
+		if (index >= 0) {
+			scheduledTimeouts.splice(index, 1);
+		}
+	};
+	window.wp = {
+		data: {
+			dispatch(storeName) {
+				assert.equal(storeName, 'core/notices');
+				return {
+					createErrorNotice(message, settings) {
+						notices.push({ message, settings });
+					}
+				};
 			}
 		}
-	}
-	const window = {
-		KeyboardEvent,
-		akbComunaData: communeRegions ? { regions: communeRegions } : undefined,
-		akbCartCheckoutBlocksGoogle: {
-			loaderUrl: 'https://maps.googleapis.test/loader.js',
-			providerId: 'akibara-google-places',
-			regionMap: options.regionMap || { RM: 'RM' }
-		},
-		google: options.googleImportAfterLoaderOnload ? undefined : { maps },
-		innerHeight: options.viewportHeight || 900,
-		MutationObserver: autocompleteDom?.MutationObserver,
-		addEventListener(type, listener) {
-			const listeners = windowListeners.get(type) || new Set();
-			listeners.add(listener);
-			windowListeners.set(type, listeners);
-		},
-		cancelAnimationFrame(frameId) {
-			animationFrames.delete(frameId);
-		},
-		clearTimeout(timeoutId) {
-			const index = scheduledTimeouts.findIndex((timeout) => timeout.id === timeoutId);
-			if (index >= 0) {
-				scheduledTimeouts.splice(index, 1);
-			}
-		},
-		removeEventListener(type, listener) {
-			windowListeners.get(type)?.delete(listener);
-		},
-		requestAnimationFrame(callback) {
-			animationFrameId += 1;
-			animationFrames.set(animationFrameId, callback);
-			return animationFrameId;
-		},
-		setTimeout(callback, delay = 0) {
-			timeoutId += 1;
-			const timeout = { callback, delay: Number(delay) || 0, id: timeoutId };
-			scheduledTimeouts.push(timeout);
-			return timeout.id;
-		},
-		wp: {
-			data: {
-				dispatch(storeName) {
-					assert.equal(storeName, 'core/notices');
-					return {
-						createErrorNotice(message, settings) {
-							notices.push({ message, settings });
-						}
-					};
-				}
-			}
-		},
-		wc: { addressAutocomplete }
 	};
+	window.wc = { addressAutocomplete };
+
 	if (options.visualViewport) {
 		window.visualViewport = {
 			height: options.visualViewport.height,
@@ -477,56 +367,31 @@ function bootProvider(addressComponents, options = {}) {
 			}
 		};
 	}
-	const document = autocompleteDom?.document || {
-		createElement(tagName) {
+
+	const origHeadAppendChild = document.head.appendChild.bind(document.head);
+	document.head.appendChild = function (node) {
+		if (node && node.tagName === 'SCRIPT') {
 			if (options.googleImportAfterLoaderOnload) {
-				assert.equal(tagName, 'script');
-				return {};
-			}
-			throw new Error('The Google loader should be reused when importLibrary exists.');
-		},
-	};
-	document.ownerDocument = document;
-	if (!document.documentElement) {
-		document.documentElement = {};
-	}
-	if (autocompleteDom) {
-		document.documentElement.clientHeight = window.innerHeight;
-	}
-	document.documentElement.ownerDocument = document;
-	const documentListeners = [];
-	document.addEventListener = function (type, listener, listenerOptions) {
-		documentListeners.push({ listener, options: listenerOptions, type });
-	};
-	document.head = {
-			appendChild(scriptElement) {
-				if (options.googleImportAfterLoaderOnload) {
-					loaderAppendCount += 1;
-					scriptElement.onload();
-					window.google = { maps };
-					while (scheduledTimeouts.length > 0) {
-						scheduledTimeouts.shift().callback();
-					}
-					return;
+				loaderAppendCount += 1;
+				if (typeof node.onload === 'function') {
+					node.onload();
 				}
-				throw new Error('No script should be appended in this fixture.');
+				window.google = { maps };
+				while (scheduledTimeouts.length > 0) {
+					scheduledTimeouts.shift().callback();
+				}
+				return node;
 			}
+			throw new Error('No script should be appended in this fixture.');
+		}
+		return origHeadAppendChild(node);
 	};
 
-	vm.runInNewContext(script, {
-		Date: { now: () => now },
-		document,
-		window
-	});
+	dom.loadScript(PROVIDER_SCRIPT_REL_PATH);
 	if (!options.googleImportAfterLoaderOnload && !autocompleteDom) {
 		assert.equal(scheduledTimeouts.length, 0, 'Provider registration should not need retries.');
 	}
 
-	// Woo llama a `search()` en cada tecla y el proveedor espera 250 ms de calma
-	// antes de buscar (la primera búsqueda de la página, 0 ms). Las pruebas de
-	// comportamiento posterior usan este doble, que dispara en el acto SOLO el
-	// temporizador que creó esa llamada (y exige que sea uno de esos dos); las
-	// pruebas del debounce usan el proveedor crudo.
 	function flushingProvider() {
 		return {
 			get id() {
@@ -548,7 +413,17 @@ function bootProvider(addressComponents, options = {}) {
 		};
 	}
 
+	function dispatchBlur(input) {
+		if (document.activeElement === input) {
+			input.blur();
+		} else {
+			input.dispatchEvent(new window.FocusEvent('blur', { bubbles: false }));
+		}
+	}
+
 	return {
+		window,
+		document,
 		appendSuggestions(addressType, geometry = {}) {
 			const suggestions = document.createElement('div');
 			suggestions.className = 'wc-block-components-address-autocomplete-suggestions';
@@ -576,7 +451,7 @@ function bootProvider(addressComponents, options = {}) {
 		activate(addressType, value) {
 			const input = autocompleteDom.inputs.get(addressType);
 			input.value = value;
-			document.activeElement = input;
+			input.focus();
 			return input;
 		},
 		advanceTime(milliseconds) {
@@ -584,6 +459,8 @@ function bootProvider(addressComponents, options = {}) {
 		},
 		autocompleteRequests,
 		fieldRequests,
+		htmlSinkCalls,
+		storageAccesses,
 		getProvider() {
 			return provider ? flushingProvider() : provider;
 		},
@@ -597,18 +474,24 @@ function bootProvider(addressComponents, options = {}) {
 			return scheduledTimeouts.map(({ delay, id }) => ({ delay, id }));
 		},
 		getMutationObservers() {
-			return [...autocompleteDom.mutationObservers];
+			return [...activeObservers];
 		},
 		getDocumentListeners(type) {
 			return documentListeners.filter((entry) => entry.type === type);
 		},
+		getInputListeners(addressType, type) {
+			const input = autocompleteDom.inputs.get(addressType);
+			const listeners = [...(elementListeners.get(input)?.get(type) || [])];
+			return listeners.map((listener) => ({
+				listener,
+				options: listenerOptions.get(listener)
+			}));
+		},
 		dispatchFocusIn(target) {
-			this.dispatchDocumentEvent('focusin', target);
+			target.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
 		},
 		dispatchDocumentEvent(type, target = document.body) {
-			documentListeners
-				.filter((entry) => entry.type === type)
-				.forEach((entry) => entry.listener({ target, type }));
+			target.dispatchEvent(new window.Event(type, { bubbles: true, cancelable: true }));
 		},
 		getTokenCount() {
 			return tokenCount;
@@ -645,7 +528,7 @@ function bootProvider(addressComponents, options = {}) {
 			return autocompleteDom.containers.get(addressType);
 		},
 		getFeedback(addressType) {
-			return autocompleteDom.containers.get(addressType).children.find(
+			return [...autocompleteDom.containers.get(addressType).children].find(
 				(child) => child.className.includes('akb-address-autocomplete-feedback')
 			);
 		},
@@ -660,16 +543,16 @@ function bootProvider(addressComponents, options = {}) {
 		},
 		input(addressType, value) {
 			const input = this.activate(addressType, value);
-			input.dispatchEvent({ type: 'input' });
+			input.dispatchEvent(new window.Event('input', { bubbles: true }));
 			return input;
 		},
 		reparentAndRefocus(addressType) {
 			const input = autocompleteDom.inputs.get(addressType);
 			const field = input.parentNode;
-			document.activeElement = null;
-			input.dispatchEvent({ type: 'blur' });
-			field.appendChild(field.removeChild(input));
-			document.activeElement = input;
+			dispatchBlur(input);
+			field.removeChild(input);
+			field.appendChild(input);
+			input.focus();
 			this.flushTimeouts();
 		},
 		blur(addressType) {
@@ -678,24 +561,27 @@ function bootProvider(addressComponents, options = {}) {
 		},
 		startBlur(addressType) {
 			const input = autocompleteDom.inputs.get(addressType);
-			document.activeElement = null;
-			input.dispatchEvent({ type: 'blur' });
+			dispatchBlur(input);
 		},
-		// El mousedown del ratón sobre una sugerencia: el <li tabindex="-1"> se
-		// queda con el foco y el campo lo pierde; el click llega al soltar.
 		pressSuggestion(addressType) {
 			const panel = autocompleteDom.containers.get(addressType)
 				.querySelector('.wc-block-components-address-autocomplete-suggestions');
 			const list = panel.querySelector('.suggestions-list');
 			const option = document.createElement('li');
 			option.className = 'wc-block-components-address-autocomplete-suggestion';
+			option.tabIndex = -1;
 			list.appendChild(option);
-			document.activeElement = option;
-			autocompleteDom.inputs.get(addressType).dispatchEvent({ type: 'blur' });
+			const input = autocompleteDom.inputs.get(addressType);
+			let blurred = false;
+			input.addEventListener('blur', () => {
+				blurred = true;
+			}, { once: true });
+			option.focus();
+			if (!blurred) {
+				input.dispatchEvent(new window.FocusEvent('blur', { bubbles: false }));
+			}
 			return option;
 		},
-		// El dedo sobre una sugerencia: llegan pointerdown y touchstart, y el foco
-		// NO se mueve (en táctil se mueve al levantarlo, con el click).
 		touchSuggestion(addressType) {
 			const list = autocompleteDom.containers.get(addressType)
 				.querySelector('.wc-block-components-address-autocomplete-suggestions')
@@ -708,14 +594,15 @@ function bootProvider(addressComponents, options = {}) {
 			return option;
 		},
 		dispatchWindowEvent(type) {
-			for (const listener of windowListeners.get(type) || []) {
-				listener({ type });
-			}
+			window.dispatchEvent(new window.Event(type));
 		},
 		setViewportHeight(height) {
 			window.innerHeight = height;
 			if (document.documentElement) {
-				document.documentElement.clientHeight = height;
+				Object.defineProperty(document.documentElement, 'clientHeight', {
+					configurable: true,
+					value: height
+				});
 			}
 		},
 		dispatchVisualViewportEvent(type) {
@@ -921,7 +808,7 @@ test('repositions on resize and releases viewport work on close, reopen and real
 	assert.equal(container.classList.contains('akb-address-autocomplete-dropup'), false);
 	assert.equal(container.classList.contains('akb-address-autocomplete-constrained'), false);
 
-	input.dispatchEvent({ key: 'Escape', type: 'keydown' });
+	input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 	assert.equal(runtime.getWindowListenerCount('resize'), 0);
 	assert.equal(runtime.getWindowListenerCount('scroll'), 0);
 	assert.equal(container.classList.contains('akb-address-autocomplete-dropup'), false);
@@ -1297,7 +1184,7 @@ test('reattaches visible feedback if a Woo React render removes the companion no
 
 	assert.equal(feedback.parentNode, container);
 	assert.ok(
-		container.children.indexOf(feedback) < container.children.indexOf(suggestions),
+		[...container.children].indexOf(feedback) < [...container.children].indexOf(suggestions),
 		'the live feedback must remain above Woo\'s absolutely positioned dropdown'
 	);
 	assert.equal(feedback.hidden, false);
@@ -1356,48 +1243,67 @@ test('uses one inline alert for a selection failure and keeps manual recovery av
 	assert.equal(runtime.notices.length, 0, 'the inline alert must not be duplicated by a snackbar');
 });
 
-test('uses safe transient DOM feedback without HTML sinks or browser persistence', () => {
-	assert.doesNotMatch(
-		script,
-		/\.innerHTML|insertAdjacentHTML|localStorage|sessionStorage|indexedDB/
-	);
-	assert.match(script, /state\.feedback\.textContent = message/);
+test('uses safe transient DOM feedback without HTML sinks or browser persistence', async () => {
+	const runtime = bootProvider(undefined, {
+		addressTypes: ['shipping'],
+		suggestionsResponder: () => ({ suggestions: [] }),
+		trackSecuritySinks: true
+	});
+	const provider = runtime.getProvider();
+	runtime.activate('shipping', '<img src=x onerror=alert(1)>');
+	await provider.search('<img src=x onerror=alert(1)>', 'CL');
+
+	const feedback = runtime.getFeedback('shipping');
+	assert.equal(feedback.hidden, false);
+	assert.equal(feedback.children.length, 0, 'feedback stays plain text without child HTML nodes');
+	assert.ok(feedback.textContent.length > 0);
+	assert.deepEqual(runtime.htmlSinkCalls, [], 'feedback must not assign innerHTML or insertAdjacentHTML');
+	assert.deepEqual(runtime.storageAccesses, [], 'autocomplete must not persist PII in Web Storage');
 });
 
-// FB-01: deliverSearch() recalculaba si la búsqueda seguía vigente justo
-// después de comprobarlo, sin ningún await entre medio: una rama que no podía
-// ejecutarse. Se mide una vez, tras la única espera (la del dedo), y nunca
-// después de finishSearchFeedback(): una búsqueda que termina bien limpia su
-// aviso y deja de parecer vigente, así que medirla ahí tomaría la vigente por vieja.
-test('deliverSearch measures whether the search is current once, after the finger and before finishing it', () => {
-	const code = script.replace(/^\s*\/\/.*$/gm, '');
-	const start = code.indexOf('async function deliverSearch(');
-	assert.notEqual(start, -1, 'deliverSearch() exists');
-	let depth = 0;
-	let end = -1;
-	for (let index = code.indexOf('{', start); index < code.length; index += 1) {
-		if (code[index] === '{') {
-			depth += 1;
-		} else if (code[index] === '}') {
-			depth -= 1;
-			if (depth === 0) {
-				end = index;
-				break;
-			}
-		}
-	}
-	assert.notEqual(end, -1, 'deliverSearch() has a closed body');
-	const body = code.slice(start, end + 1);
+// FB-01: deliverSearch() debe comprobar vigencia tras levantar el dedo y antes de
+// finishSearchFeedback(): si sigue vigente entrega resultados y limpia aria-busy;
+// si el usuario canceló la lista mientras sostenía el dedo, responde [] sin
+// reabrirla ni ensuciar una búsqueda posterior.
+test('deliverSearch checks currency after pointer release and before finishSearchFeedback on real DOM', async () => {
+	{
+		const { requests, runtime } = listOpenFor();
+		const { provider } = await openListFor(runtime, requests, 'Avenida Pro');
 
-	assert.equal((body.match(/isCurrentFeedback\(/g) || []).length, 1, body);
-	assert.ok(
-		body.indexOf('await suggestionPressEnded(') < body.indexOf('isCurrentFeedback('),
-		'the only check comes after waiting for the finger'
-	);
-	assert.ok(
-		body.indexOf('isCurrentFeedback(') < body.indexOf('finishSearchFeedback('),
-		'and before finishing the search'
-	);
+		runtime.input('billing', 'Avenida Prov');
+		const currentSearch = provider.search('Avenida Prov', 'CL');
+		const answer = await waitForRequest(requests, 'Avenida Prov');
+		runtime.touchSuggestion('billing');
+		answer.resolve(answer.response);
+
+		assert.equal(await settlesNow(currentSearch), false, 'held while finger stays on suggestion');
+		runtime.dispatchDocumentEvent('pointercancel');
+		runtime.flushTimeouts(0);
+
+		const results = await currentSearch;
+		assert.deepEqual(results.map((suggestion) => suggestion.id), ['Avenida Prov-id']);
+		assert.equal(runtime.getInput('billing').getAttribute('aria-busy'), null);
+		assert.equal(runtime.getFeedback('billing').hidden, true);
+	}
+	{
+		const { requests, runtime } = listOpenFor();
+		const { provider } = await openListFor(runtime, requests, 'Avenida Pro');
+		const input = runtime.getInput('billing');
+
+		runtime.input('billing', 'Avenida Prov');
+		const staleSearch = provider.search('Avenida Prov', 'CL');
+		const answer = await waitForRequest(requests, 'Avenida Prov');
+		runtime.touchSuggestion('billing');
+		answer.resolve(answer.response);
+		assert.equal(await settlesNow(staleSearch), false);
+
+		input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		runtime.dispatchDocumentEvent('pointercancel');
+		runtime.flushTimeouts(0);
+
+		assert.deepEqual(JSON.parse(JSON.stringify(await staleSearch)), []);
+		assert.equal(input.getAttribute('aria-busy'), null);
+	}
 });
 
 test('waits for importLibrary after the async Google loader load event', async () => {
@@ -1878,6 +1784,8 @@ test('drops a pending search when the query falls below three characters or the 
 	const provider = runtime.getRawProvider();
 
 	runtime.input('billing', 'Ave');
+	const importsAfterInitialFocus = runtime.getImportLibraryCallCount();
+	assert.equal(importsAfterInitialFocus, 1, 'real DOM focusin warms the SDK once on entering the field');
 	const shortened = provider.search('Ave', 'CL');
 	// Con menos de tres caracteres Woo ya no llama a search(): sólo cambia el valor.
 	runtime.input('billing', 'Av');
@@ -1891,7 +1799,7 @@ test('drops a pending search when the query falls below three characters or the 
 	assert.deepEqual(JSON.parse(JSON.stringify(await abandoned)), []);
 
 	assert.equal(runtime.autocompleteRequests.length, 0);
-	assert.equal(runtime.getImportLibraryCallCount(), 0);
+	assert.equal(runtime.getImportLibraryCallCount(), importsAfterInitialFocus, 'dropped searches trigger no extra SDK calls');
 	assert.equal(runtime.getFeedback('billing'), undefined, 'nothing is announced for a search nobody waits for');
 });
 
@@ -1931,7 +1839,10 @@ test('warms the Places library when the address field gains focus, not on other 
 	assert.ok(focusListener, 'the provider listens for focus on the address field');
 	assert.equal(focusListener.options?.passive, true);
 
-	runtime.dispatchFocusIn({ matches: () => false });
+	const nonAddressInput = runtime.document.createElement('input');
+	nonAddressInput.type = 'email';
+	runtime.document.body.appendChild(nonAddressInput);
+	runtime.dispatchFocusIn(nonAddressInput);
 	assert.equal(runtime.getImportLibraryCallCount(), 0, 'the email or name fields do not load Maps');
 
 	runtime.dispatchFocusIn(runtime.getInput('billing'));
@@ -2010,8 +1921,9 @@ test('listens to keystrokes, Escape and blur with passive listeners', async () =
 	const input = runtime.getInput('shipping');
 
 	for (const type of ['input', 'keydown', 'blur']) {
-		const [listener] = input.listeners.get(type);
-		assert.equal(input.listenerOptions.get(listener)?.passive, true, type);
+		const entries = runtime.getInputListeners('shipping', type);
+		assert.equal(entries.length, 1, type);
+		assert.equal(entries[0].options?.passive, true, type);
 	}
 });
 
@@ -2099,7 +2011,7 @@ test('Escape drops the pending search and the one already at Google, so Woo\'s c
 	// Antes de los 250 ms: la búsqueda todavía no salió.
 	runtime.input('billing', 'Avenida Prov');
 	const pending = provider.search('Avenida Prov', 'CL');
-	input.dispatchEvent({ key: 'Escape', type: 'keydown' });
+	input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 	assert.equal(await settlesNow(pending), true, 'Escape answers the pending search at once');
 	assert.deepEqual(JSON.parse(JSON.stringify(await pending)), []);
 	runtime.flushTimeouts(250);
@@ -2111,7 +2023,7 @@ test('Escape drops the pending search and the one already at Google, so Woo\'s c
 	runtime.flushTimeouts(250);
 	const request = await waitForRequest(requests, 'Avenida Provi');
 	assert.equal(input.getAttribute('aria-busy'), 'true');
-	input.dispatchEvent({ key: 'Escape', type: 'keydown' });
+	input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 	assert.equal(input.getAttribute('aria-busy'), null);
 	assert.equal(runtime.getFeedback('billing').hidden, true);
 	request.resolve(request.response);
@@ -2133,7 +2045,7 @@ test('Escape does not abandon an address that is being completed', async () => {
 	const predictions = await provider.search('Avenida Providencia 1234', 'CL');
 
 	const selection = provider.select(predictions[0].id);
-	input.dispatchEvent({ key: 'Escape', type: 'keydown' });
+	input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 	assert.equal(input.getAttribute('aria-busy'), 'true');
 	assert.match(runtime.getFeedback('shipping').textContent, /Completando dirección/);
 
@@ -2302,7 +2214,7 @@ test('what the finger held back is not delivered if the customer closed the list
 		answer.resolve(answer.response);
 		assert.equal(await settlesNow(replacing), false, 'held under the finger');
 		// Una tablet con teclado: Escape cierra la lista con el dedo aún encima.
-		input.dispatchEvent({ key: 'Escape', type: 'keydown' });
+		input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 		runtime.dispatchDocumentEvent('pointercancel');
 		runtime.flushTimeouts(0);
 		assert.deepEqual(JSON.parse(JSON.stringify(await replacing)), [], 'Woo gets nothing to reopen the list the customer closed');
@@ -2409,7 +2321,7 @@ test('arrows right after typing do not hold the search back: it reaches Google, 
 		runtime.input('billing', 'Avenida Prov');
 		const due = provider.search('Avenida Prov', 'CL');
 		if (moment === 'before the search comes due') {
-			input.dispatchEvent({ key: 'ArrowDown', type: 'keydown' });
+			input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 			escapes = wooHighlights(runtime, 0);
 		}
 		runtime.flushTimeouts(250);
@@ -2420,7 +2332,7 @@ test('arrows right after typing do not hold the search back: it reaches Google, 
 			moment + ': what the customer typed is asked to Google'
 		);
 		if (moment === 'while the search is at Google') {
-			input.dispatchEvent({ key: 'ArrowDown', type: 'keydown' });
+			input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 			escapes = wooHighlights(runtime, 0);
 		}
 		const escapesWhenDelivered = due.then(() => escapes.length);
@@ -2451,7 +2363,7 @@ test('the Escape that lets go of the highlight discards nothing: a no-results an
 	const due = provider.search('Avenida Prov', 'CL');
 	runtime.flushTimeouts(250);
 	const answer = await waitForRequest(requests, 'Avenida Prov');
-	input.dispatchEvent({ key: 'ArrowDown', type: 'keydown' });
+	input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 	const escapes = wooHighlights(runtime, 2);
 	answer.resolve({ suggestions: [] });
 
@@ -2472,7 +2384,7 @@ test('Enter on a highlighted suggestion before the new answer lands completes th
 	runtime.input('billing', 'Avenida Prov');
 	const replacing = provider.search('Avenida Prov', 'CL');
 	const answer = await waitForRequest(requests, 'Avenida Prov');
-	input.dispatchEvent({ key: 'ArrowDown', type: 'keydown' });
+	input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 	const escapes = wooHighlights(runtime, 0);
 	const selection = provider.select(shown.id);
 	answer.resolve(answer.response);
@@ -2497,7 +2409,7 @@ test('typing over a highlight lets go of it while Woo still has the list, so goi
 	const escapes = wooHighlights(runtime, 1);
 
 	// Cmd+A y retroceso: el Escape tiene que llegar ANTES que el texto nuevo.
-	input.dispatchEvent({ inputType: 'deleteContentBackward', type: 'beforeinput' });
+	input.dispatchEvent(new runtime.window.InputEvent('beforeinput', { inputType: 'deleteContentBackward', bubbles: true }));
 	assert.deepEqual(
 		escapes,
 		[{ cancelled: true, highlighted: 'suggestion-item-billing-1', listOpen: true }],
@@ -2508,7 +2420,7 @@ test('typing over a highlight lets go of it while Woo still has the list, so goi
 	runtime.input('billing', '');
 	assert.deepEqual(JSON.parse(JSON.stringify(await provider.search('', 'CL'))), []);
 
-	input.dispatchEvent({ inputType: 'insertText', type: 'beforeinput' });
+	input.dispatchEvent(new runtime.window.InputEvent('beforeinput', { inputType: 'insertText', bubbles: true }));
 	runtime.input('billing', 'Los Leones 12');
 	const next = provider.search('Los Leones 12', 'CL');
 	const answer = await waitForRequest(requests, 'Los Leones 12');
@@ -2529,7 +2441,7 @@ test('the provider only lets go of a highlight on an open list', async () => {
 		const first = provider.search('Avenida Pro', 'CL');
 		const request = await waitForRequest(requests, 'Avenida Pro');
 		const escapes = wooHighlights(runtime, 1);
-		input.dispatchEvent({ inputType: 'insertText', type: 'beforeinput' });
+		input.dispatchEvent(new runtime.window.InputEvent('beforeinput', { inputType: 'insertText', bubbles: true }));
 		request.resolve(request.response);
 		assert.equal(await settlesNow(first), true);
 		assert.deepEqual((await first).map((suggestion) => suggestion.id), ['Avenida Pro-id'], 'no list open');
@@ -2542,7 +2454,7 @@ test('the provider only lets go of a highlight on an open list', async () => {
 		const { provider } = await openListFor(runtime, requests, 'Avenida Pro');
 		const input = runtime.getInput('billing');
 		const escapes = wooHighlights(runtime);
-		input.dispatchEvent({ inputType: 'insertText', type: 'beforeinput' });
+		input.dispatchEvent(new runtime.window.InputEvent('beforeinput', { inputType: 'insertText', bubbles: true }));
 		runtime.input('billing', 'Avenida Prov');
 		const replacing = provider.search('Avenida Prov', 'CL');
 		const answer = await waitForRequest(requests, 'Avenida Prov');
@@ -2550,7 +2462,7 @@ test('the provider only lets go of a highlight on an open list', async () => {
 			runtime.getContainer('billing').querySelector('.wc-block-components-address-autocomplete-suggestions'),
 			'typing with nothing highlighted leaves the list where it is'
 		);
-		input.dispatchEvent({ key: 'ArrowDown', type: 'keydown' });
+		input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 		answer.resolve(answer.response);
 		assert.equal(await settlesNow(replacing), true);
 		assert.deepEqual((await replacing).map((suggestion) => suggestion.id), ['Avenida Prov-id'], 'nothing highlighted');
@@ -2591,7 +2503,7 @@ test('after three idle minutes a new Google session starts, and the list on scre
 			assert.equal((await selection).address_1, 'Providencia 123', how + ': the tapped suggestion completes');
 			continue;
 		}
-		input.dispatchEvent({ key: 'ArrowDown', type: 'keydown' });
+		input.dispatchEvent(new runtime.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 		wooHighlights(runtime, 0);
 		if (how === 'Enter before the answer lands') {
 			const selection = provider.select(shown.id);

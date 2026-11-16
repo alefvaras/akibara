@@ -212,6 +212,12 @@
 	font-size: 12px;
 }
 
+.akb-tax-filter-bar .akb-filter-clear-visible {
+	font-size: 12px;
+	font-weight: 600;
+	margin-left: auto;
+}
+
 .akb-filter-bar-cell {
 	padding: 0 !important;
 }
@@ -251,9 +257,72 @@
 		margin-left: 0;
 	}
 
-	.akb-active-rules {
+	.akb-active-rules,
+	.akb-active-rules tbody,
+	.akb-active-rules tr,
+	.akb-active-rules td {
 		display: block;
-		overflow-x: auto;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.akb-active-rules thead {
+		display: none;
+	}
+
+	.akb-active-rules tr {
+		padding: 10px 12px;
+		margin-bottom: 10px;
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		background: #fff;
+	}
+
+	.akb-active-rules tr:last-child {
+		margin-bottom: 0;
+	}
+
+	.akb-active-rules td {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 5px 0;
+		border-bottom: 1px solid #f6f7f7;
+		text-align: right;
+	}
+
+	.akb-active-rules td:first-child {
+		justify-content: flex-start;
+		padding-top: 0;
+		padding-bottom: 8px;
+		margin-bottom: 4px;
+		border-bottom: 1px solid #dcdcde;
+		text-align: left;
+	}
+
+	.akb-active-rules td:nth-child(2)::before {
+		content: "Taxonomía";
+		color: #50575e;
+		font-weight: 600;
+	}
+
+	.akb-active-rules td:nth-child(3)::before {
+		content: "Descuento";
+		color: #50575e;
+		font-weight: 600;
+	}
+
+	.akb-active-rules td:nth-child(4)::before {
+		content: "Productos";
+		color: #50575e;
+		font-weight: 600;
+	}
+
+	.akb-active-rules td:last-child {
+		justify-content: flex-end;
+		padding-bottom: 0;
+		border-bottom: none;
 	}
 
 	.akb-accordion__summary {

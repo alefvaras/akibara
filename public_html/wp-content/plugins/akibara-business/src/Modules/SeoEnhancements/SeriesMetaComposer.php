@@ -14,6 +14,7 @@ namespace Akibara\Business\Modules\SeoEnhancements;
 
 use Akibara\Business\Modules\SeriesFacts\PublicationStatus;
 use Akibara\Business\Modules\SeriesFacts\SeriesFacts;
+use Akibara\Business\Utilities\Log;
 use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
@@ -29,7 +30,7 @@ final class SeriesMetaComposer {
 	public const SERIES_TAXONOMY = 'pa_serie';
 
 	/** Vocabulario cerrado de medios publicables. */
-	public const SERIES_MEDIA = array( 'manga', 'cómic', 'manhwa' );
+	public const SERIES_MEDIA = array( 'manga', 'cómic', 'manhwa', 'novela', 'artbook' );
 
 	/** Prefijo de transient para el medio resuelto de una serie. */
 	public const SERIES_MEDIUM_TRANSIENT_PREFIX = 'akb_serie_medio_';
@@ -143,7 +144,14 @@ final class SeriesMetaComposer {
 				'price_from' => $price_from,
 				'instock'    => $instock,
 			);
-		} catch ( \Throwable $throwable ) {
+		} catch ( \Exception $e ) {
+			// Fallo recuperable al consultar taxonomía/facts de la serie: degrada al fallback base y deja traza.
+			$term_id = isset( $term->term_id ) ? (int) $term->term_id : 0;
+			Log::warn(
+				'seo',
+				sprintf( 'SeriesMetaComposer::series_catalog_snapshot (%d): %s', $term_id, $e->getMessage() ),
+				array( 'term_id' => $term_id )
+			);
 			return null;
 		}
 	}
@@ -261,7 +269,12 @@ final class SeriesMetaComposer {
 			}
 
 			return self::medium_from_categories( $categories );
-		} catch ( \Throwable $throwable ) {
+		} catch ( \Exception $e ) {
+			Log::warn(
+				'seo',
+				sprintf( 'SeriesMetaComposer::resolve_series_medium (%d): %s', $term_id, $e->getMessage() ),
+				array( 'term_id' => $term_id )
+			);
 			return '';
 		}
 	}
@@ -283,10 +296,12 @@ final class SeriesMetaComposer {
 				$category = $parent;
 			}
 			$medium = match ( is_object( $category ) ? (string) ( $category->slug ?? '' ) : '' ) {
-				'manga'  => 'manga',
-				'comics' => 'cómic',
-				'manhwa' => 'manhwa',
-				default  => '',
+				'manga', 'yaoi-bl' => 'manga',
+				'comics'           => 'cómic',
+				'manhwa'           => 'manhwa',
+				'novela'           => 'novela',
+				'artbook'          => 'artbook',
+				default            => '',
 			};
 			if ( '' !== $medium ) {
 				return $medium;
@@ -462,11 +477,12 @@ final class SeriesMetaComposer {
 		bool $partial_sold,
 		int $catalog_count
 	): array {
-		$candidates = array();
+		$complete_adj = 'novela' === $medium ? 'completa' : 'completo';
+		$candidates   = array();
 		if ( $complete_sold ) {
-			$candidates[] = sprintf( '%s %s completo: %s | Akibara Chile', $name, $medium, $work_total_label );
-			$candidates[] = sprintf( '%s: %s completo en %s | Akibara', $name, $medium, $work_total_label );
-			$candidates[] = sprintf( '%s %s completo: %s | Akibara', $name, $medium, $work_total_label );
+			$candidates[] = sprintf( '%s %s %s: %s | Akibara Chile', $name, $medium, $complete_adj, $work_total_label );
+			$candidates[] = sprintf( '%s: %s %s en %s | Akibara', $name, $medium, $complete_adj, $work_total_label );
+			$candidates[] = sprintf( '%s %s %s: %s | Akibara', $name, $medium, $complete_adj, $work_total_label );
 		} elseif ( $edition_sold ) {
 			$candidates[] = sprintf( '%s %s: edición completa en %s | Akibara Chile', $name, $medium, $edition_total_label );
 			$candidates[] = sprintf( '%s: edición completa en %s | Akibara Chile', $name, $edition_total_label );

@@ -16,9 +16,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.0.0
  * @api
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCondition
  */
 final class RuntimeCompatibility {
 
@@ -107,10 +105,10 @@ final class RuntimeCompatibility {
 	 */
 	public function register(): void {
 		add_filter( 'litespeed_optm_uri_exc', array( $this, 'exclude_checkout_from_litespeed' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_classic_mercado_pago_assets' ), 999 );
-		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_classic_city_select' ), 999 );
-		add_action( 'wp_enqueue_scripts', array( $this, 'repair_flow_blocks_dependencies' ), 1000 );
-		add_action( 'wp_print_footer_scripts', array( $this, 'repair_flow_blocks_dependencies' ), 0 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_classic_mercado_pago_assets' ), 999, 0 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_classic_city_select' ), 999, 0 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'repair_flow_blocks_dependencies' ), 1000, 0 );
+		add_action( 'wp_print_footer_scripts', array( $this, 'repair_flow_blocks_dependencies' ), 0, 0 );
 		add_filter( 'generate_show_title', array( $this, 'hide_checkout_entry_title' ), 100 );
 		add_filter( 'site_status_tests', array( $this, 'register_compatibility_health_test' ) );
 	}
@@ -334,7 +332,7 @@ final class RuntimeCompatibility {
 		}
 
 		$needs_review = $flow_fixed || $mercado_pago_stale || ! $flow_installed || ! $mercado_pago_installed
-			|| ( $mercado_pago_installed && 0 === $mercado_pago_observed && null !== $mercado_pago_changed_at ); // @phpstan-ignore booleanAnd.leftAlwaysTrue
+			|| ( 0 === $mercado_pago_observed && null !== $mercado_pago_changed_at );
 
 		$description = '';
 		foreach ( $lines as $line ) {
@@ -387,7 +385,8 @@ final class RuntimeCompatibility {
 			}
 
 			foreach ( $files as $file ) {
-				$source = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				$lines  = is_readable( $file ) ? file( $file ) : false;
+				$source = is_array( $lines ) ? implode( '', $lines ) : false;
 				if ( ! is_string( $source ) ) {
 					continue;
 				}

@@ -65,22 +65,9 @@ $akb_render_footer_column = static function ( string $location, string $title, s
 	<div class="footer-main">
 
 		<div class="footer-brand">
-			<a href="<?php echo esc_url( $akb_home_url ); ?>" class="footer-brand__logo" aria-label="Akibara, inicio">
-				<?php
-				$akb_footer_logo_id = get_theme_mod( 'custom_logo' );
-				if ( $akb_footer_logo_id ) {
-					// `akibara-logo-footer` (560w) es el escalón que evita bajarse el de 768w
-					// en pantallas de alta densidad; ver inc/woocommerce.php.
-					echo wp_get_attachment_image( $akb_footer_logo_id, 'akibara-logo-footer', false, array(
-						'alt'      => 'Akibara',
-						'loading'  => 'lazy',
-						'decoding' => 'async',
-					) );
-				} else {
-					echo '<img src="' . esc_url( get_stylesheet_directory_uri() . '/assets/img/logo-akibara.webp' ) . '" alt="Akibara" width="201" height="80" loading="lazy" decoding="async">';
-				}
-				?>
-				</a>
+			<a href="<?php echo esc_url( $akb_home_url ); ?>" class="footer-brand__logo akb-footer-logo" aria-label="Akibara, inicio">
+				<?php get_template_part( 'template-parts/components/logo-master-svg', null, array( 'context' => 'footer' ) ); ?>
+			</a>
 				<p class="footer-brand__desc">
 					<strong>Tu rincón de Akihabara en Chile.</strong> Librería online de manga y cómics. Envíos a todo Chile.
 				</p>

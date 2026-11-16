@@ -30,6 +30,7 @@ final class ReactiveStockPriceHooks {
 	 */
 	public const EXCLUDED_DUPLICATE_META_KEYS = array(
 		'_akb_out_of_stock_at',
+		'_akb_onbackorder_at',
 		'_akb_first_instock_at',
 		'_akb_pdp_specs_generation',
 		'_akb_sf_restocked_at',

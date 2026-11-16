@@ -6,7 +6,6 @@
  *   - wp akb-pricing self-test
  *   - wp akb-pricing scales
  *   - wp akb-pricing rules <export|import> [--file=<path>]
- *   - wp akb-pricing audit-orders
  *   - wp akb-pricing audit-series
  *   - wp akb-pricing level-serie
  *
@@ -39,7 +38,6 @@ final class PricingMatrixCli {
 		\WP_CLI::add_command( 'akb-pricing self-test', array( $this, 'cmd_self_test' ) );
 		\WP_CLI::add_command( 'akb-pricing scales', array( $this, 'cmd_scales' ) );
 		\WP_CLI::add_command( 'akb-pricing rules', array( $this, 'cmd_rules' ) );
-		\WP_CLI::add_command( 'akb-pricing audit-orders', array( $this, 'cmd_audit_orders' ) );
 		\WP_CLI::add_command( 'akb-pricing audit-series', array( $this, 'cmd_audit_series' ) );
 		\WP_CLI::add_command( 'akb-pricing level-serie', array( $this, 'cmd_level_serie' ) );
 	}
@@ -113,7 +111,6 @@ final class PricingMatrixCli {
 				'Tomos'         => $r['total_tomos'],
 				'InStock'       => $r['en_stock'],
 				'Agotados'      => $r['agotados'],
-				'Protegidos'    => $r['comprometidos_count'],
 				'NuevoRegular'  => $r['nuevo_precio_regular'],
 			);
 		}
@@ -121,7 +118,7 @@ final class PricingMatrixCli {
 		\WP_CLI\Utils\format_items(
 			'table',
 			$table,
-			array( 'Editorial', 'Pais', 'Regular', 'Tomos', 'InStock', 'Agotados', 'Protegidos', 'NuevoRegular' )
+			array( 'Editorial', 'Pais', 'Regular', 'Tomos', 'InStock', 'Agotados', 'NuevoRegular' )
 		);
 	}
 
@@ -177,15 +174,6 @@ final class PricingMatrixCli {
 	}
 
 	/**
-	 * Muestra la auditoría de productos comprometidos en órdenes activas.
-	 *
-	 * @return void
-	 */
-	public function cmd_audit_orders(): void {
-		\WP_CLI::log( 'No hay productos comprometidos en órdenes abiertas actualmente.' );
-	}
-
-	/**
 	 * Muestra las series con discrepancias de escalas dentro de la misma editorial.
 	 *
 	 * @return void
@@ -211,14 +199,13 @@ final class PricingMatrixCli {
 				'Dominante'       => '$' . number_format( (int) $r['dominant_scale'], 0, ',', '.' ),
 				'Promedio'        => '$' . number_format( (int) ( $r['average_price'] ?? $r['dominant_scale'] ), 0, ',', '.' ),
 				'TotalTomos'      => $r['total_tomos'],
-				'Protegidos'      => $r['locked_count'],
 			);
 		}
 
 		\WP_CLI\Utils\format_items(
 			'table',
 			$table,
-			array( 'SerieID', 'Serie', 'Editorial', 'Escalas', 'Dominante', 'Promedio', 'TotalTomos', 'Protegidos' )
+			array( 'SerieID', 'Serie', 'Editorial', 'Escalas', 'Dominante', 'Promedio', 'TotalTomos' )
 		);
 	}
 
@@ -267,12 +254,11 @@ final class PricingMatrixCli {
 
 		\WP_CLI::log(
 			sprintf(
-				'Serie #%d nivelada a $%s (%s): %d tomos actualizados | %d tomos protegidos por órdenes activas (🔒)',
+				'Serie #%d nivelada a $%s (%s): %d tomos actualizados',
 				$serie_id,
 				number_format( $target_regular, 0, ',', '.' ),
 				$dry_run ? 'DRY-RUN' : 'APLICADO',
-				$summary['updated_count'],
-				$summary['skipped_locked_count']
+				$summary['updated_count']
 			)
 		);
 

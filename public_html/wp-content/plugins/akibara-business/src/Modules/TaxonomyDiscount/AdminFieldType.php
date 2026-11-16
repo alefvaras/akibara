@@ -22,8 +22,6 @@ defined( 'ABSPATH' ) || exit;
  * @api
  * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class AdminFieldType {
 
@@ -226,6 +224,9 @@ final class AdminFieldType {
 						<span>Solo con % &gt; 0</span>
 					</label>
 					<span class="akb-counter akb-filter-counter" id="<?php echo esc_attr( $counter_id ); ?>" aria-live="polite"></span>
+					<button type="button" class="button-link button-link-delete akb-filter-clear-visible" hidden>
+						Poner visibles en 0%
+					</button>
 				</div>
 			</td>
 		</tr>

@@ -3,7 +3,7 @@
  * Plugin Name:       Akibara Business
  * Plugin URI:        https://akibara.cl
  * Description:       Lógica de negocio Chile-específica para akibara.cl: validación RUT, catálogo de mangas y cómics, visibilidad cliente (email + mi-cuenta), directorio de editoriales, barra de anuncios y panel admin consolidado. Theme-agnostic.
- * Version:           1.122.0
+ * Version:           1.124.7
  * Requires at least: 6.8
  * Requires PHP:      8.1
  * WC requires at least: 10.0
@@ -28,7 +28,7 @@ defined( 'ABSPATH' ) || exit;
 // Constants.
 // ---------------------------------------------------------------------------
 
-define( 'AKIBARA_BUSINESS_VERSION', '1.122.0' );
+define( 'AKIBARA_BUSINESS_VERSION', '1.124.7' );
 define( 'AKIBARA_BUSINESS_FILE', __FILE__ );
 define( 'AKIBARA_BUSINESS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AKIBARA_BUSINESS_URL', plugin_dir_url( __FILE__ ) );

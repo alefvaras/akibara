@@ -22,7 +22,7 @@ final class PricingMath {
 	public const MODE_EXACT_1   = 'exact_1';
 	public const MODE_MANUAL    = 'manual';
 
-	public const DEFAULT_DISCOUNT_PCT = 5.0;
+	public const DEFAULT_DISCOUNT_PCT = 0.0;
 	public const DEFAULT_MODE         = self::MODE_ROUND_100;
 
 	/**
@@ -55,7 +55,7 @@ final class PricingMath {
 	 * Calcula el precio de oferta en CLP sin decimales.
 	 *
 	 * @param int      $regular_price Precio regular en CLP.
-	 * @param float    $discount_pct  Porcentaje de descuento (ej. 5.0 para 5%).
+	 * @param float    $discount_pct  Porcentaje de descuento (0.0 por defecto = sin oferta).
 	 * @param string   $rounding_mode Modo de redondeo (round_100|floor_100|round_50|exact_1|manual).
 	 * @param int|null $manual_price  Monto manual fijo cuando el modo es manual.
 	 * @return int
@@ -77,6 +77,10 @@ final class PricingMath {
 
 		if ( null !== $manual_price && $manual_price > 0 && $manual_price < $regular_price ) {
 			return $manual_price;
+		}
+
+		if ( $discount_pct <= 0.0 ) {
+			return 0;
 		}
 
 		$clamped_pct = max( 0.0, min( 95.0, $discount_pct ) );

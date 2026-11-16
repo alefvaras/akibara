@@ -21,9 +21,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.0.0
  * @api
- * @psalm-suppress HookNotFound
- * @psalm-suppress InvalidArrayOffset
- * @psalm-suppress RedundantCondition
  */
 final class CheckoutFields {
 
@@ -82,7 +79,7 @@ final class CheckoutFields {
 			return;
 		}
 
-		add_action( 'woocommerce_init', array( $this, 'register_rut_field' ) );
+		add_action( 'woocommerce_init', array( $this, 'register_rut_field' ), 10, 0 );
 	}
 
 	/**
@@ -100,7 +97,7 @@ final class CheckoutFields {
 			return;
 		}
 
-		$customer = WC()->customer ?? null; // @phpstan-ignore nullCoalesce.property
+		$customer = WC()->customer;
 		if ( $customer instanceof WC_Customer ) {
 			$this->mirror_billing_into_shipping( $customer );
 		}
@@ -172,12 +169,12 @@ final class CheckoutFields {
 	 * @return array<string,array<string,mixed>>
 	 */
 	public function localize_chilean_checkout_fields( array $locales ): array {
-		$phone = $locales['CL']['phone'] ?? array();
-		$city  = $locales['CL']['city'] ?? array();
-		$phone = is_array( $phone ) ? $phone : array();
-		$city  = is_array( $city ) ? $city : array();
+		$cl    = is_array( $locales['CL'] ?? null ) ? $locales['CL'] : array();
+		$phone = is_array( $cl['phone'] ?? null ) ? $cl['phone'] : array();
+		$city  = is_array( $cl['city'] ?? null ) ? $cl['city'] : array();
+		$state = is_array( $cl['state'] ?? null ) ? $cl['state'] : array();
 
-		$locales['CL']['phone'] = array_merge(
+		$cl['phone'] = array_merge(
 			$phone,
 			array(
 				'label'        => 'Celular',
@@ -189,7 +186,7 @@ final class CheckoutFields {
 				'type'         => 'tel',
 			)
 		);
-		$locales['CL']['city'] = array_merge(
+		$cl['city']  = array_merge(
 			$city,
 			array(
 				'label'       => 'Comuna',
@@ -197,17 +194,16 @@ final class CheckoutFields {
 			)
 		);
 
-		$state = $locales['CL']['state'] ?? array();
-		$state = is_array( $state ) ? $state : array();
-
 		// Región must precede Comuna so the combobox filters a chosen region,
 		// matching the dependent-select flow of the classic checkout.
-		$locales['CL']['state'] = array_merge(
+		$cl['state'] = array_merge(
 			$state,
 			array(
 				'priority' => 69,
 			)
 		);
+
+		$locales['CL'] = $cl;
 
 		return $locales;
 	}
@@ -436,7 +432,7 @@ final class CheckoutFields {
 	public function validate_billing_phone( WC_Order $order, WP_Error $errors ): void {
 		$telefonos = array(
 			'facturación' => (string) $order->get_billing_phone(),
-			'envío'       => method_exists( $order, 'get_shipping_phone' ) ? (string) $order->get_shipping_phone() : '', // @phpstan-ignore function.alreadyNarrowedType
+			'envío'       => (string) $order->get_shipping_phone(),
 		);
 
 		$vistos = array();

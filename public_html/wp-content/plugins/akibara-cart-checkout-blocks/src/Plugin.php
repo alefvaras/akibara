@@ -19,8 +19,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.0.0
  * @api
- * @psalm-suppress RedundantCondition
- * @psalm-suppress TypeDoesNotContainType
  */
 final class Plugin {
 
@@ -34,11 +32,7 @@ final class Plugin {
 			return;
 		}
 
-		$business = BusinessPlugin::instance();
-		if ( ! method_exists( $business, 'checkout_data' ) ) { // @phpstan-ignore function.alreadyNarrowedType
-			return;
-		}
-
+		$business      = BusinessPlugin::instance();
 		$data_provider = $business->checkout_data();
 		if ( ! $data_provider instanceof CheckoutDataProvider ) {
 			return;
@@ -47,9 +41,7 @@ final class Plugin {
 		$blocks_page = new BlocksPage();
 		$address     = new AddressIntegration( $data_provider, $blocks_page );
 		$comunas     = new ComunaDirectory();
-		$pudo        = method_exists( $business, 'pudo_checkout' ) // @phpstan-ignore function.alreadyNarrowedType
-			? $business->pudo_checkout()
-			: null;
+		$pudo        = $business->pudo_checkout();
 
 		( new CheckoutFields( $data_provider, $comunas ) )->register();
 		( new RutPrivacy() )->register();

@@ -47,9 +47,9 @@
 	function buildModel(regions) {
 		const entries = [];
 
-		Object.keys(regions || {}).forEach(function (regionCode) {
-			// eslint-disable-next-line security/detect-object-injection
-			const names = regions[regionCode];
+		Object.entries(regions || {}).forEach(function (pair) {
+			const regionCode = pair[0];
+			const names = pair[1];
 			if (!Array.isArray(names)) {
 				return;
 			}
@@ -323,8 +323,11 @@
 			if (wp && wp.data && typeof wp.data.dispatch === 'function') {
 				return wp.data.dispatch('wc/store/validation') || null;
 			}
-		} catch (_error) {
-			// Sin store no hay aviso en cliente; el servidor sigue siendo el juez.
+		} catch (error) {
+			// Sin store no hay aviso en cliente; registrar aviso y dejar el servidor como juez.
+			if (typeof window !== 'undefined' && window.console && typeof window.console.warn === 'function') {
+				window.console.warn('akb-comuna-combobox: wc/store/validation no disponible:', error);
+			}
 		}
 
 		return null;
@@ -460,20 +463,23 @@
 		}
 
 		function setActive(index) {
-			const options = listbox.querySelectorAll('.akb-comuna-option');
+			const options = Array.from(listbox.querySelectorAll('.akb-comuna-option'));
 			if (!options.length) {
 				return;
 			}
 
 			const bounded = Math.max(0, Math.min(index, options.length - 1));
-			if (state.activeIndex >= 0 && options[state.activeIndex]) {
-				options[state.activeIndex].classList.remove(ACTIVE_CLASS);
-				options[state.activeIndex].setAttribute('aria-selected', 'false');
+			const prevOption = state.activeIndex >= 0 ? options.at(state.activeIndex) : undefined;
+			if (prevOption) {
+				prevOption.classList.remove(ACTIVE_CLASS);
+				prevOption.setAttribute('aria-selected', 'false');
 			}
 
 			state.activeIndex = bounded;
-			// eslint-disable-next-line security/detect-object-injection
-			const option = options[bounded];
+			const option = options.at(bounded);
+			if (!option) {
+				return;
+			}
 			option.classList.add(ACTIVE_CLASS);
 			option.setAttribute('aria-selected', 'true');
 			input.setAttribute('aria-activedescendant', option.id);

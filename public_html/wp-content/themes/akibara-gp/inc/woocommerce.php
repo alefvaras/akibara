@@ -22,27 +22,16 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param array<string, string> $items Menu items keyed by slug.
  * @return array<string, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_rename_account_menu_items( array $items ): array {
 	unset( $items['downloads'] );
 	return $items;
 }
-/** @psalm-suppress HookNotFound */
 add_filter( 'woocommerce_account_menu_items', 'akibara_gp_rename_account_menu_items', 99 );
 
 /**
  * Contextos que deben comportarse como catálogo: shop, taxonomías y
  * búsqueda de productos.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_is_catalog_archive(): bool {
 	if ( ! function_exists( 'is_woocommerce' ) ) {
@@ -61,11 +50,6 @@ function akibara_gp_is_catalog_archive(): bool {
  * accesible vía URL directa (bookmark, link externo, autocomplete). Sin
  * digital products en el catálogo el endpoint solo muestra "No hay descargas
  * disponibles" — ruido. Redirige todo hit a /mi-cuenta/.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_redirect_downloads_endpoint(): void {
 	if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'downloads' ) ) {
@@ -95,11 +79,6 @@ add_action( 'template_redirect', 'akibara_gp_redirect_downloads_endpoint' );
  *
  * @param string $content HTML de la ficha.
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_strip_seo_suffix_from_product_h2( string $content ): string {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
@@ -136,10 +115,6 @@ add_filter( 'the_content', 'akibara_gp_strip_seo_suffix_from_product_h2', 20 );
  * WooCommerce es dependencia dura del tema, la guarda era siempre verdadera.
  *
  * @param string $layout Layout actual ('left-sidebar', 'right-sidebar', 'no-sidebar', 'both-sidebars').
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
  * @psalm-suppress UnusedParam
  */
 /** @psalm-suppress UnusedVariable */
@@ -171,11 +146,6 @@ add_filter( 'generate_sidebar_layout', 'akibara_gp_archive_sidebar_layout' );
  * la misma fuente de datos que el directorio /editoriales/ (term meta thumbnail_id
  * o el SVG local por slug). Sin esto, los singles caían a la grilla genérica de WC
  * y la copy de venta quedaba enterrada al pie.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_is_brand_or_series_archive(): bool {
 	return function_exists( 'is_tax' ) && is_tax( array( 'product_brand', 'pa_serie' ) );
@@ -186,11 +156,6 @@ function akibara_gp_is_brand_or_series_archive(): bool {
  *
  * @param string $slug Slug del término de editorial.
  * @return string Clave normalizada de la editorial o cadena vacía si no existe.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_publisher_matrix_key( string $slug ): string { // @phpstan-ignore complexity.functionLike
 	$slug = function_exists( 'sanitize_title' ) ? sanitize_title( $slug ) : strtolower( trim( $slug ) );
@@ -264,11 +229,6 @@ function akibara_gp_publisher_matrix_key( string $slug ): string { // @phpstan-i
  * @param string $slug  Slug de la editorial o variante.
  * @param string $class Clases CSS adicionales opcionales.
  * @return string HTML del marcado SVG o elemento img de respaldo si no es matriz.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_render_publisher_logo( string $slug, string $class = '' ): string {
 	$matrix_key = akibara_gp_publisher_matrix_key( $slug );
@@ -301,11 +261,6 @@ function akibara_gp_render_publisher_logo( string $slug, string $class = '' ): s
  * Etiquetas permitidas para marcado SVG y logotipos de editorial.
  *
  * @return array<string, array<string, bool>>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_allowed_svg_html(): array {
 	return array(
@@ -330,11 +285,7 @@ function akibara_gp_allowed_svg_html(): array {
 }
 
 /**
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_brand_logo( string $slug, int $thumbnail_id = 0 ): array {
 	if ( '' !== $slug ) {
@@ -390,11 +341,7 @@ add_filter(
 /**
  * Cabecera de las landings de editorial y de serie: logo, título y el primer
  * párrafo de la descripción del término.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_render_archive_hero(): void {
 	if ( ! akibara_gp_is_brand_or_series_archive() ) {
@@ -509,11 +456,6 @@ add_action( 'woocommerce_before_main_content', 'akibara_gp_render_archive_hero',
  * resto de la descripción del término. Ahora toda la descripción vive
  * íntegramente en el hero arriba de los productos, por lo que este hook
  * queda retirado para evitar duplicaciones o fragmentación.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_render_archive_desc_rest(): void {
 	// No-op: la descripción completa se presenta arriba de los productos en el hero.
@@ -552,11 +494,6 @@ function akibara_gp_render_archive_desc_rest(): void {
  *
  * @param string $q      Lo que buscó el cliente (sin uso: la venta cruzada es la misma).
  * @param string $motivo `busqueda`, `filtros` o `serie`.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_search_empty_cross_sell( $q, $motivo ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- firma del hook de akibara-search.
 	if ( 'busqueda' !== $motivo || ! apply_filters( 'akibara_show_popular_in_empty_search', true ) ) {
@@ -586,11 +523,6 @@ add_action( 'akibara_search_empty_after', 'akibara_gp_search_empty_cross_sell', 
  * Función compartida entre el icono del header y la pestaña del bottom-nav.
  *
  * @return string Atributo popup si corresponde, o cadena vacía.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_cart_trigger_aria(): string {
 	$en_checkout = function_exists( 'is_checkout' ) && is_checkout();
@@ -617,11 +549,7 @@ function akibara_gp_cart_trigger_aria(): string {
  * actual en `data-akb-cart-count`. Aislado en función propia para que el
  * filter `woocommerce_add_to_cart_fragments` (abajo) reuse el mismo render —
  * single source of truth entre server-render y refresh AJAX.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_render_cart_icon(): string {
 	$cart_url = \Akibara\Business\Services\NavigationLinks::cart_url();
@@ -652,11 +580,6 @@ function akibara_gp_render_cart_icon(): string {
  *
  * @param array<string, string> $fragments Fragmentos que WooCommerce reemplaza tras cada cambio del carrito.
  * @return array<string, string>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_cart_icon_fragment( array $fragments ): array {
 	$fragments['a.header-icon--cart'] = akibara_gp_render_cart_icon();
@@ -688,11 +611,6 @@ add_filter( 'woocommerce_add_to_cart_fragments', 'akibara_gp_cart_icon_fragment'
  *
  * @param array<string, mixed> $args Argumentos de `paginate_links()` que arma WooCommerce.
  * @return array<string, mixed>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_pagination_args( array $args ): array {
 	$args['mid_size']           = 1;
@@ -710,11 +628,6 @@ add_filter( 'woocommerce_pagination_args', 'akibara_gp_pagination_args' );
  *
  * @param string $flecha Entidad de la flecha (`&larr;` o `&rarr;`).
  * @param string $nombre Lo que anuncia el lector.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_pagination_flecha( string $flecha, string $nombre ): string {
 	return '<span aria-hidden="true">' . $flecha . '</span><span class="screen-reader-text">' . esc_html( $nombre ) . '</span>';
@@ -736,11 +649,6 @@ function akibara_gp_pagination_flecha( string $flecha, string $nombre ): string 
  *
  * @param string|mixed        $html Salida de `paginate_links()`.
  * @param array<string,mixed> $args Argumentos con que se llamó.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_pagination_sin_aria_label_en_la_actual( $html, $args = array() ): string {
 	if ( ! is_string( $html ) ) {
@@ -769,11 +677,6 @@ add_filter( 'paginate_links_output', 'akibara_gp_pagination_sin_aria_label_en_la
  *
  * @param array<string, mixed> $args Argumentos de `paginate_links()`.
  * @return array<string, mixed>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_pagination_pagina_1_en_la_base( array $args ): array {
 	$base = isset( $args['base'] ) && is_string( $args['base'] ) ? $args['base'] : '';
@@ -815,11 +718,6 @@ function akibara_gp_pagination_pagina_1_en_la_base( array $args ): array {
  *
  * @param array<string, mixed> $args Argumentos de woocommerce_template_loop_add_to_cart().
  * @return array<string, mixed>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_loop_add_to_cart_sin_descripcion_vacia( array $args ): array {
 	if ( array_key_exists( 'aria-describedby_text', $args ) && '' === trim( (string) $args['aria-describedby_text'] ) ) {
@@ -837,11 +735,6 @@ add_filter( 'woocommerce_loop_add_to_cart_args', 'akibara_gp_loop_add_to_cart_si
  * WooCommerce conserva la base interna `categoria-producto`. Registramos
  * aliases explícitos para que esas entradas de navegación resuelvan al archive
  * `product_cat` correcto sin depender de redirecciones canónicas ambiguas.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_add_catalog_alias_rewrites(): void {
 	$slugs = array(
@@ -881,11 +774,6 @@ add_action( 'init', 'akibara_gp_add_catalog_alias_rewrites' );
  * asumen URLs WC en inglés, o slugs SEO-friendly que no son los reales.
  * 301 permanente para SEO. Solo dispara si WP ya devolvió 404 para el
  * path exacto — no intercepta ningún otro flujo.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_redirect_legacy_aliases(): void {
 	if ( ! is_404() ) {
@@ -940,11 +828,6 @@ add_action( 'template_redirect', 'akibara_gp_redirect_legacy_aliases' );
  *
  * @param array<string, array<string, string>> $fields Field map keyed by WC slug.
  * @return array<string, array<string, string>>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_bacs_account_field_labels( array $fields ): array {
 	if ( isset( $fields['sort_code'] ) ) {
@@ -978,11 +861,6 @@ add_filter( 'woocommerce_bacs_account_fields', 'akibara_gp_bacs_account_field_la
  * Cuando el producto cuenta con una única unidad disponible, los botones
  * de ajuste se omiten para evitar controles inactivos y permitir que el
  * botón de compra aproveche el ancho completo del contenedor.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_quantity_is_adjustable(): bool {
 	global $product;
@@ -990,38 +868,29 @@ function akibara_gp_quantity_is_adjustable(): bool {
 		return true; // Carrito y otros contextos: el stepper sí sirve.
 	}
 
-	try {
-		if ( $product->is_sold_individually() ) {
-			return false;
-		}
+	if ( $product->is_sold_individually() ) {
+		return false;
+	}
 
-		$max = $product->get_max_purchase_quantity();
-		if ( ! is_numeric( $max ) ) {
-			return true;
-		}
-
-		$max = (int) $max;
-
-		// WooCommerce devuelve -1 cuando no hay límite de compra (productos
-		// sin control de inventario). En estos casos
-		// los botones de ajuste de cantidad deben permanecer habilitados.
-		if ( $max < 0 ) {
-			return true;
-		}
-
-		return $max > 1;
-	} catch ( \Throwable $throwable ) {
+	$max = $product->get_max_purchase_quantity();
+	if ( ! is_numeric( $max ) ) {
 		return true;
 	}
+
+	$max = (int) $max;
+
+	// WooCommerce devuelve -1 cuando no hay límite de compra (productos
+	// sin control de inventario). En estos casos
+	// los botones de ajuste de cantidad deben permanecer habilitados.
+	if ( $max < 0 ) {
+		return true;
+	}
+
+	return $max > 1;
 }
 
 /**
  * Botón «−» del selector de cantidad, sólo si la cantidad se puede cambiar.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_qty_minus_button(): void {
 	if ( ! akibara_gp_quantity_is_adjustable() ) {
@@ -1034,11 +903,6 @@ add_action( 'woocommerce_before_quantity_input_field', 'akibara_gp_qty_minus_but
 
 /**
  * Botón «+» del selector de cantidad, sólo si la cantidad se puede cambiar.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_qty_plus_button(): void {
 	if ( ! akibara_gp_quantity_is_adjustable() ) {
@@ -1054,11 +918,7 @@ add_action( 'woocommerce_after_quantity_input_field', 'akibara_gp_qty_plus_butto
  *
  * Mantiene la descripción informativa accesible para SEO y lectores de pantalla
  * sin interponer texto extenso entre el precio y el botón principal de compra.
- * @psalm-suppress HookInvalidArgs
  * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_extracto_tras_la_compra(): void {
 	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_excerpt', 20 );
@@ -1081,11 +941,6 @@ akibara_gp_extracto_tras_la_compra();
  * dice la pestaña («Valoraciones (1)») y, en móvil, la etiqueta del panel.
  *
  * @return string HTML (WooCommerce lo imprime tal cual).
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_reviews_title_with_reviews(): string {
 	akibara_gp_reviews_title_disarm();
@@ -1102,11 +957,6 @@ add_filter( 'woocommerce_reviews_title', 'akibara_gp_reviews_title_with_reviews'
  *
  * @param mixed $template Ruta de la plantilla de comentarios.
  * @return mixed La misma ruta, intacta.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_reviews_title_arm( $template ) {
 	if ( is_string( $template ) && 'single-product-reviews.php' === basename( $template ) ) {
@@ -1124,11 +974,6 @@ add_filter( 'comments_template', 'akibara_gp_reviews_title_arm', 99 );
  * @param mixed $translation Texto ya traducido («Valoraciones»).
  * @param mixed $text        Literal original de WooCommerce.
  * @return mixed
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_reviews_title_without_reviews( $translation, $text ) {
 	if ( 'Reviews' !== $text ) {
@@ -1142,11 +987,6 @@ function akibara_gp_reviews_title_without_reviews( $translation, $text ) {
 
 /**
  * Retira el gettext de un solo uso (idempotente).
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_reviews_title_disarm(): void {
 	remove_filter( 'gettext_woocommerce', 'akibara_gp_reviews_title_without_reviews', 10 );
@@ -1172,11 +1012,6 @@ add_action( 'woocommerce_product_after_tabs', 'akibara_gp_reviews_title_disarm' 
  * Compara el slug del término actual de forma eficiente en memoria.
  * Solo afecta estilos visuales de encabezado (body_class `akb-distrito`)
  * sin alterar etiquetas de navegación ni encabezados H1.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_distrito_slug(): string {
 	if ( ! akibara_gp_wc_activo() ) {
@@ -1257,11 +1092,7 @@ add_filter(
  * @param \WC_Order|mixed $order Orden (2º arg del filtro WC).
  * @param mixed           $email Objeto del correo (3er arg del filtro WC).
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
  * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_refunded_active_voice( $text, $order = null, $email = null ): string {
 	if ( ! $order instanceof \WC_Order ) {
@@ -1288,11 +1119,6 @@ add_filter( 'woocommerce_email_subject_customer_refunded_order', 'akibara_gp_ref
  * cualquier configuración de dirección física u opciones heredadas.
  *
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_email_footer_public_line(): string {
 	return 'Tienda 100% online · Sin local abierto al público · Retiro con coordinación previa en San Miguel, Santiago';
@@ -1310,11 +1136,6 @@ add_filter( 'woocommerce_email_footer_text', 'akibara_gp_email_footer_public_lin
  *
  * @param array<int, array<string, mixed>> $settings Campos de Ajustes → Correos → General.
  * @return array<int, array<string, mixed>>
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_email_footer_desc_truth( array $settings ): array {
 	foreach ( $settings as $indice => $campo ) {
@@ -1337,11 +1158,6 @@ add_filter( 'woocommerce_email_settings', 'akibara_gp_email_footer_desc_truth' )
  * Registra tamaños de imagen intermedios optimizados para el catálogo y la marca:
  * - `akb-card-2x` (450px): cubre tarjetas en pantallas móviles DPR 2.
  * - `akibara-logo-footer` (560px): peldaño intermedio para isotipos y densidades altas.
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_register_card_image_size(): void {
 	add_image_size( 'akb-card-2x', 450, 0, false );
@@ -1362,11 +1178,6 @@ add_action( 'after_setup_theme', 'akibara_gp_register_card_image_size', 20 );
  * @param string $image   HTML `<img>` de la portada.
  * @param mixed  $product Producto propietario de la portada.
  * @return string
- * @psalm-suppress HookInvalidArgs
- * @psalm-suppress HookNotFound
- * @psalm-suppress RedundantCast
- * @psalm-suppress UndefinedFunction
- * @psalm-suppress UnusedParam
  */
 function akibara_gp_normalize_product_cover_alt( string $image, $product ): string {
 	if ( '' === $image || ! is_object( $product ) || ! method_exists( $product, 'get_name' ) ) {

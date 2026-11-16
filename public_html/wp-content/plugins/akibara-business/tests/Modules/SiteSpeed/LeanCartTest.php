@@ -482,7 +482,7 @@ final class LeanCartTest extends TestCase {
 		self::assertSame( array( array( 'wp_resource_hints', array( $this->sut, 'add_prefetch_hints' ), 10, 2 ) ), $this->filtros );
 
 		$bloques = (string) file_get_contents( dirname( __DIR__, 4 ) . '/akibara-cart-checkout-blocks/src/RuntimeCompatibility.php' );
-		self::assertSame( 1, preg_match( "/add_action\(\s*'wp_enqueue_scripts',\s*array\(\s*\\\$this,\s*'dequeue_classic_mercado_pago_assets'\s*\),\s*(\d+)\s*\)/", $bloques, $m ), 'Fixture: el retiro de akibara-cart-checkout-blocks.' );
+		self::assertSame( 1, preg_match( "/add_action\(\s*'wp_enqueue_scripts',\s*array\(\s*\\\$this,\s*'dequeue_classic_mercado_pago_assets'\s*\),\s*(\d+)(?:\s*,\s*\d+)?\s*\)/", $bloques, $m ), 'Fixture: el retiro de akibara-cart-checkout-blocks.' );
 		self::assertGreaterThan( (int) $m[1], LeanCart::PRIORITY );
 		self::assertGreaterThan( 10, LeanCart::PRIORITY, 'Mercado Pago encola en la 10.' );
 

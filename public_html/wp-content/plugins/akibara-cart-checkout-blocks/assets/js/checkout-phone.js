@@ -100,8 +100,11 @@
 			if (wp && wp.data && typeof wp.data.dispatch === 'function') {
 				return wp.data.dispatch('wc/store/validation') || null;
 			}
-		} catch (_error) {
-			// Sin store no hay validación en cliente; el servidor sigue siendo el juez.
+		} catch (error) {
+			// Sin store no hay validación en cliente; registrar aviso y dejar el servidor como juez.
+			if (typeof window !== 'undefined' && window.console && typeof window.console.warn === 'function') {
+				window.console.warn('akb-checkout-phone: wc/store/validation no disponible:', error);
+			}
 		}
 		return null;
 	}
@@ -132,10 +135,7 @@
 			return true;
 		}
 		if (typeof store.setValidationErrors === 'function') {
-			const errors = {};
-			// eslint-disable-next-line security/detect-object-injection
-			errors[key] = { message, hidden: false };
-			store.setValidationErrors(errors);
+			store.setValidationErrors(Object.fromEntries([[key, { message, hidden: false }]]));
 		}
 		return false;
 	}

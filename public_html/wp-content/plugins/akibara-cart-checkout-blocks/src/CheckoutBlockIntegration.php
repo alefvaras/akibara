@@ -19,8 +19,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.1.0
  * @api
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class CheckoutBlockIntegration implements IntegrationInterface {
 
@@ -39,7 +37,20 @@ final class CheckoutBlockIntegration implements IntegrationInterface {
 	 * Hooks the integration into WooCommerce's official Checkout registry.
 	 */
 	public function register(): void {
-		add_action( 'woocommerce_blocks_checkout_block_registration', array( $this, 'register_integration' ) );
+		$integration = $this;
+		add_action(
+			'woocommerce_blocks_checkout_block_registration',
+			/**
+			 * Registers this Checkout Block integration instance with WooCommerce.
+			 *
+			 * @param IntegrationRegistry $registry WooCommerce integration registry.
+			 */
+			static function ( IntegrationRegistry $registry ) use ( $integration ): void {
+				if ( ! $registry->is_registered( self::NAME ) ) {
+					$registry->register( $integration );
+				}
+			}
+		);
 		add_action( 'init', array( $this, 'register_block_types' ) );
 	}
 
@@ -66,39 +77,30 @@ final class CheckoutBlockIntegration implements IntegrationInterface {
 				continue;
 			}
 
-			register_block_type(
-				$name,
-				array( // @phpstan-ignore argument.type
-					'api_version'     => 3,
-					'parent'          => array( 'woocommerce/checkout-fields-block' ),
-					'render_callback' => static function () use ( $name ): string {
-						return sprintf(
-							'<div data-block-name="%1$s" class="wp-block-%2$s"></div>',
-							esc_attr( $name ),
-							esc_attr( str_replace( '/', '-', $name ) )
-						);
-					},
-					'supports'        => array(
-						'html'     => false,
-						'multiple' => false,
-						'reusable' => false,
-					),
-				)
+			$args = array(
+				'parent'          => array( 'woocommerce/checkout-fields-block' ),
+				'render_callback' => static function () use ( $name ): string {
+					return sprintf(
+						'<div data-block-name="%1$s" class="wp-block-%2$s"></div>',
+						esc_attr( $name ),
+						esc_attr( str_replace( '/', '-', $name ) )
+					);
+				},
+				'supports'        => array(
+					'html'     => false,
+					'multiple' => false,
+					'reusable' => false,
+				),
 			);
-		}
-	}
 
-	/**
-	 * Registers this integration once with the Checkout Block.
-	 *
-	 * @internal
-	 *
-	 * @param IntegrationRegistry $registry WooCommerce integration registry.
-	 * @psalm-suppress UnusedParam
-	 */
-	public function register_integration( IntegrationRegistry $registry ): void {
-		if ( ! $registry->is_registered( self::NAME ) ) {
-			$registry->register( $this );
+			if ( class_exists( '\WP_Block_Type' ) ) {
+				$block_type              = new \WP_Block_Type( $name, $args );
+				$block_type->api_version = 3;
+				register_block_type( $block_type );
+				continue;
+			}
+
+			register_block_type( $name, $args );
 		}
 	}
 

@@ -7,7 +7,7 @@
 		if (!wp || !wp.i18n || typeof wp.i18n.__ !== 'function') {
 			return '';
 		}
-		// eslint-disable-next-line @wordpress/i18n-translator-comments
+		/* translators: %s: field label. */
 		const text = wp.i18n.__('Please enter a valid %s', 'woocommerce');
 		return typeof text === 'string' && text.split('%s').length === 2 ? text : '';
 	}
@@ -35,10 +35,9 @@
 	// (`billing_city`, `contact_akibara/rut`). Sin campo con ese nombre (el
 	// correo se llama `contact_email` y su error `billing_email`) no se toca.
 	function visibleLabel(key) {
-		const fields = document.getElementsByName(key);
-		for (let i = 0; i < fields.length; i++) {
-			// eslint-disable-next-line security/detect-object-injection
-			const labels = fields[i].labels;
+		const fields = Array.from(document.getElementsByName(key) || []);
+		for (const field of fields) {
+			const labels = field.labels;
 			if (labels && labels.length && labels[0].textContent) {
 				return labels[0].textContent.trim();
 			}
@@ -59,11 +58,10 @@
 		}
 
 		const errors = select.getValidationErrors() || {};
-		const fixes = {};
-		let changed = false;
-		Object.keys(errors).forEach(function (key) {
-			// eslint-disable-next-line security/detect-object-injection
-			const error = errors[key];
+		const fixEntries = [];
+		Object.entries(errors).forEach(function (entry) {
+			const key = entry[0];
+			const error = entry[1];
 			if (!error || !isTemplateMessage(error.message, text)) {
 				return;
 			}
@@ -75,13 +73,11 @@
 			if (message === error.message) {
 				return;
 			}
-			// eslint-disable-next-line security/detect-object-injection
-			fixes[key] = { message, hidden: Boolean(error.hidden) };
-			changed = true;
+			fixEntries.push([key, { message, hidden: Boolean(error.hidden) }]);
 		});
 
-		if (changed) {
-			dispatch.setValidationErrors(fixes);
+		if (fixEntries.length > 0) {
+			dispatch.setValidationErrors(Object.fromEntries(fixEntries));
 		}
 	}
 

@@ -21,6 +21,8 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Modules\GoogleLoginButton;
 
+use Akibara\Business\Utilities\Log;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -29,8 +31,6 @@ defined( 'ABSPATH' ) || exit;
  * @psalm-suppress InvalidArgument
  * @psalm-suppress RedundantCast
  * @psalm-suppress RedundantCondition
- * @psalm-suppress UnusedParam
- * @psalm-suppress UnusedParam
  */
 final class GoogleLoginButton {
 
@@ -107,9 +107,13 @@ final class GoogleLoginButton {
 			if ( $changed ) {
 				$customer->save();
 			}
-		} catch ( \Throwable $e ) {
-			// Fail-safe: si WC_Customer falla, no interrumpir la creación de la cuenta.
-			unset( $e );
+		} catch ( \Exception $e ) {
+			// Fallo recuperable de WC_Customer: se registra y no interrumpe el alta OAuth.
+			Log::warn(
+				'google-login',
+				sprintf( 'GoogleLoginButton::on_google_user_created (%d): %s', $uid, $e->getMessage() ),
+				array( 'user_id' => $uid )
+			);
 		}
 
 		$this->auto_verify_google_user( $uid );
@@ -169,7 +173,13 @@ final class GoogleLoginButton {
 						$handled = true;
 					}
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( \Exception $e ) {
+				// Fallo recuperable del contenedor DI de WooCommerce: cae al meta directo.
+				Log::warn(
+					'google-login',
+					sprintf( 'GoogleLoginButton::auto_verify_google_user (%d): %s', $user_id, $e->getMessage() ),
+					array( 'user_id' => $user_id )
+				);
 				$handled = false;
 			}
 		}

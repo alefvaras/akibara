@@ -204,7 +204,11 @@
 
 .akb-cart-progress-slot .akb-fsp-track {
 	height: 6px;
-	margin: 6px 0 6px;
+	margin: 7px 0 6px;
+}
+
+.akb-cart-progress-slot .akb-fsp-truck {
+	top: -10px;
 }
 
 .akb-cart-progress-slot .akb-fsp-message {
@@ -234,8 +238,6 @@
 
 .akb-cart-progress-slot .akb-fsp-qualified .akb-fsp-message::before {
 	background-color: var(--aki-black, #121212);
-	width: 14px;
-	height: 14px;
 }
 
 /* El guard anti-CLS de 58px está dimensionado para la barra de progreso (sello

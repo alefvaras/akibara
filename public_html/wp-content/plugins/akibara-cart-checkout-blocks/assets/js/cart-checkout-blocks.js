@@ -38,11 +38,11 @@
 	}
 
 	function rawExtensionFromMap(extensions) {
-		// eslint-disable-next-line security/detect-object-injection
-		return extensions && extensions[namespace] && typeof extensions[namespace] === 'object'
-			// eslint-disable-next-line security/detect-object-injection
-			? extensions[namespace]
-			: {};
+		if (!extensions || typeof extensions !== 'object' || !Object.prototype.hasOwnProperty.call(extensions, namespace)) {
+			return {};
+		}
+		const entry = Object.getOwnPropertyDescriptor(extensions, namespace)?.value;
+		return entry && typeof entry === 'object' ? entry : {};
 	}
 
 	function structuredExtensionFromMap(extensions) {
@@ -205,13 +205,12 @@
 	}
 
 	function trustIcon(id) {
-		const paths = {
-			shipping: 'M3 6h11v9H3zM14 9h4l3 3v3h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-			installments: 'M3 5h18v14H3zM3 9h18M7 15h4',
-			support: 'M5 13v-2a7 7 0 0 1 14 0v2M5 13H3v5h4v-5zm14 0h2v5h-4v-5zM17 18c0 2-2 3-5 3'
-		};
-		// eslint-disable-next-line security/detect-object-injection
-		const path = paths[id] || paths.support;
+		const paths = new Map([
+			['shipping', 'M3 6h11v9H3zM14 9h4l3 3v3h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],
+			['installments', 'M3 5h18v14H3zM3 9h18M7 15h4'],
+			['support', 'M5 13v-2a7 7 0 0 1 14 0v2M5 13H3v5h4v-5zm14 0h2v5h-4v-5zM17 18c0 2-2 3-5 3']
+		]);
+		const path = paths.get(id) || paths.get('support');
 
 		return createElement(
 			'svg',

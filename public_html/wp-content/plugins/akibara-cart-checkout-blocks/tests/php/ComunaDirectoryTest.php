@@ -155,6 +155,25 @@ final class ComunaDirectoryTest extends TestCase {
 	 * @testdox Should fail open when the vendor loader throws or returns garbage.
 	 */
 	public function test_fails_open_on_loader_problems(): void {
+		$logged = array();
+		Monkey\Functions\when( 'get_transient' )->justReturn( false );
+		Monkey\Functions\when( 'set_transient' )->justReturn( true );
+		Monkey\Functions\when( 'wc_get_logger' )->justReturn(
+			new class( $logged ) {
+				/** @var list<string> */
+				private array $logged;
+
+				/** @param list<string> $logged */
+				public function __construct( array &$logged ) {
+					$this->logged = &$logged;
+				}
+
+				public function error( string $message ): void {
+					$this->logged[] = $message;
+				}
+			}
+		);
+
 		$throwing = new ComunaDirectory(
 			static function (): array {
 				throw new \RuntimeException( 'vendor exploded' );
@@ -163,6 +182,8 @@ final class ComunaDirectoryTest extends TestCase {
 		self::assertFalse( $throwing->is_available() );
 		self::assertNull( $throwing->match( 'Ñuñoa' ) );
 		self::assertSame( array(), $throwing->all_by_region() );
+		self::assertCount( 1, $logged );
+		self::assertStringContainsString( 'comuna_directory_load: vendor exploded', $logged[0] );
 
 		$garbage = new ComunaDirectory( static fn(): string => 'not-an-array' );
 		self::assertFalse( $garbage->is_available() );
@@ -249,5 +270,39 @@ final class ComunaDirectoryTest extends TestCase {
 		// «Vina» (4) está a distancia 8 de «vina del mar»: no es un tipeo, y no
 		// puede caer en cualquier otra comuna que quede a dos ediciones.
 		self::assertNull( $directory->suggest( 'Vina', 'CL-VS' ) );
+	}
+
+	/**
+	 * @testdox El cargador por defecto lee el archivo real del proveedor Blue Express (>0 regiones) sin mocks.
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_default_vendor_loader_loads_real_vendor_catalog(): void {
+		$directory = new ComunaDirectory();
+
+		self::assertTrue( $directory->is_available() );
+
+		$catalog = $directory->all_by_region();
+		self::assertCount( 16, $catalog );
+		self::assertSame(
+			array(
+				'name'   => 'Ñuñoa',
+				'region' => 'CL-RM',
+			),
+			$directory->match( 'nunoa' )
+		);
+	}
+
+	/**
+	 * @testdox El cargador por defecto falla abierto cuando el archivo del proveedor no existe.
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_default_vendor_loader_fails_open_when_file_missing(): void {
+		$directory = new ComunaDirectory( null, __DIR__ . '/nonexistent-chile-communes.php' );
+
+		self::assertFalse( $directory->is_available() );
+		self::assertSame( array(), $directory->all_by_region() );
+		self::assertNull( $directory->match( 'Ñuñoa' ) );
 	}
 }

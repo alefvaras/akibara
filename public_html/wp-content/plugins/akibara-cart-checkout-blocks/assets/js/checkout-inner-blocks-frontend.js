@@ -29,11 +29,12 @@
 	}
 
 	function extensionFromProps(props) {
-		const extensions = props && props.extensions
-			|| props && props.cart && props.cart.extensions
+		const extensions = (props && props.extensions)
+			|| (props && props.cart && props.cart.extensions)
 			|| {};
-		// eslint-disable-next-line security/detect-object-injection
-		const extension = extensions && extensions[namespace];
+		const extension = Object.prototype.hasOwnProperty.call(extensions, namespace)
+			? Object.getOwnPropertyDescriptor(extensions, namespace)?.value
+			: undefined;
 
 		return extension && Number(extension.schema_version) === 2
 			? extension
@@ -41,11 +42,11 @@
 	}
 
 	function icon(id) {
-		const paths = {
-			shipping: 'M3 6h11v9H3zM14 9h4l3 3v3h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-			installments: 'M3 5h18v14H3zM3 9h18M7 15h4',
-			support: 'M5 13v-2a7 7 0 0 1 14 0v2M5 13H3v5h4v-5zm14 0h2v5h-4v-5zM17 18c0 2-2 3-5 3'
-		};
+		const paths = new Map([
+			['shipping', 'M3 6h11v9H3zM14 9h4l3 3v3h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],
+			['installments', 'M3 5h18v14H3zM3 9h18M7 15h4'],
+			['support', 'M5 13v-2a7 7 0 0 1 14 0v2M5 13H3v5h4v-5zm14 0h2v5h-4v-5zM17 18c0 2-2 3-5 3']
+		]);
 
 		return createElement(
 			'svg',
@@ -56,8 +57,7 @@
 				focusable: 'false'
 			},
 			createElement('path', {
-				// eslint-disable-next-line security/detect-object-injection
-				d: paths[id] || paths.support,
+				d: paths.get(id) || paths.get('support'),
 				fill: 'none',
 				stroke: 'currentColor',
 				strokeWidth: 1.8,

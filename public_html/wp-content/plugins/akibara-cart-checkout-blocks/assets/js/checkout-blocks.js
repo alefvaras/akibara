@@ -4,30 +4,30 @@
 	const legacyAddressStorageKey = 'akb_checkout_blocks_address';
 	let accessibilityQueued = false;
 
-	function purgeAddressStorage(storage) {
-		if (!storage) {
-			return;
+	function warnCheckoutIssue(context, error) {
+		if (typeof window !== 'undefined' && window.console && typeof window.console.warn === 'function') {
+			window.console.warn('akb-checkout-blocks: ' + context + ':', error);
 		}
+	}
 
+	function removeLegacyStorageEntry(storageName, resolveStorage) {
 		try {
-			storage.removeItem(legacyAddressStorageKey);
-		} catch (_error) {
-			// Browser storage is optional and must never block checkout.
+			const storage = resolveStorage();
+			if (storage && typeof storage.removeItem === 'function') {
+				storage.removeItem(legacyAddressStorageKey);
+			}
+		} catch (error) {
+			warnCheckoutIssue('no se pudo limpiar caché obsoleta en ' + storageName, error);
 		}
 	}
 
 	function purgeLegacyAddressCaches() {
-		try {
-			purgeAddressStorage(window.localStorage);
-		} catch (_error) {
-			// Access to browser storage may be disabled.
-		}
-
-		try {
-			purgeAddressStorage(window.sessionStorage);
-		} catch (_error) {
-			// Access to browser storage may be disabled.
-		}
+		removeLegacyStorageEntry('localStorage', function () {
+			return window.localStorage;
+		});
+		removeLegacyStorageEntry('sessionStorage', function () {
+			return window.sessionStorage;
+		});
 	}
 
 	function enhancePaymentAccessibility() {
@@ -40,16 +40,17 @@
 			image.setAttribute('alt', '');
 		});
 
-		const frameTitles = {
-			cardNumber: 'Número de tarjeta',
-			expirationDate: 'Fecha de vencimiento',
-			securityCode: 'Código de seguridad'
-		};
-		Object.keys(frameTitles).forEach(function (name) {
+		const frameTitles = [
+			['cardNumber', 'Número de tarjeta'],
+			['expirationDate', 'Fecha de vencimiento'],
+			['securityCode', 'Código de seguridad']
+		];
+		frameTitles.forEach(function (entry) {
+			const name = entry[0];
+			const title = entry[1];
 			const frame = document.querySelector('iframe[name="' + name + '"]');
 			if (frame && !frame.title) {
-				// eslint-disable-next-line security/detect-object-injection
-				frame.title = frameTitles[name];
+				frame.title = title;
 			}
 		});
 	}

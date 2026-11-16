@@ -101,9 +101,97 @@ final class BookSchemaEnricherTest extends TestCase {
 			'Valid ISBN-13'             => array( '9791388298844', '9791388298844' ),
 			'Valid ISBN-13 with hyphen' => array( '978-0-306-40615-7', '9780306406157' ),
 			'ISBN-10 (not ISBN-13)'     => array( '0-306-40615-2', null ),
-			'Non-ISBN EAN-13'           => array( '7503034771937', null ),
 			'Invalid checksum'          => array( '9791388298845', null ),
 		);
+	}
+
+	/**
+	 * @testdox Should emit gtin13 and gtin without isbn for valid non-ISBN EAN-13 book products.
+	 */
+	public function test_emits_gtin13_without_isbn_for_valid_non_isbn_ean13(): void {
+		foreach ( array( '7503034771937', '8424248924911' ) as $ean13 ) {
+			$product                       = new \WC_Product();
+			$product->akb_id               = 13497;
+			$product->akb_sku              = $ean13;
+			$product->akb_global_unique_id = $ean13;
+
+			$result = ( new BookSchemaEnricher() )->enrich( array( '@type' => 'Product' ), $product );
+
+			self::assertSame( array( 'Product', 'Book' ), $result['@type'] );
+			self::assertSame( 'https://schema.org/Book', $result['additionalType'] );
+			self::assertArrayNotHasKey( 'isbn', $result );
+			self::assertSame( $ean13, $result['gtin13'] );
+			self::assertSame( $ean13, $result['gtin'] );
+		}
+	}
+
+	/**
+	 * @testdox Should read global_unique_id before suffixed internal SKU and preserve SKU separation.
+	 */
+	public function test_prefers_global_unique_id_over_internal_suffixed_sku(): void {
+		Functions\when( 'get_the_terms' )->alias(
+			static fn( int $id, string $tax ): array => 'product_cat' === $tax
+				? array( (object) array( 'slug' => 'seinen' ) )
+				: array()
+		);
+		$product                       = new \WC_Product();
+		$product->akb_id               = 28223;
+		$product->akb_sku              = '9788416905324-1';
+		$product->akb_global_unique_id = '9788416905720';
+
+		$result = ( new BookSchemaEnricher() )->enrich( array( '@type' => 'Product' ), $product );
+
+		self::assertSame( '9788416905324-1', $result['sku'] );
+		self::assertSame( '9788416905720', $result['isbn'] );
+		self::assertSame( '9788416905720', $result['gtin13'] );
+		self::assertSame( array( 'Product', 'Book' ), $result['@type'] );
+	}
+
+	/**
+	 * @testdox Should strip GTIN fields when a custom bundle carries only an internal SKU.
+	 */
+	public function test_strips_gtin_for_custom_bundle_without_gtin(): void {
+		$product          = new \WC_Product();
+		$product->akb_id  = 99001;
+		$product->akb_sku = 'PACK-BERSERK-1-2';
+
+		$result = ( new BookSchemaEnricher() )->enrich(
+			array(
+				'@type' => 'Product',
+				'gtin'  => '9780000000000',
+			),
+			$product
+		);
+
+		self::assertSame( 'Product', $result['@type'] );
+		self::assertSame( 'PACK-BERSERK-1-2', $result['sku'] );
+		self::assertArrayNotHasKey( 'isbn', $result );
+		self::assertArrayNotHasKey( 'gtin', $result );
+		self::assertArrayNotHasKey( 'gtin13', $result );
+	}
+
+	/**
+	 * @testdox Should enrich novela, artbook, and yaoi-bl products with Book schema.
+	 */
+	public function test_enriches_novela_artbook_and_yaoi_bl_categories(): void {
+		foreach ( array( 'novela', 'artbook', 'yaoi-bl' ) as $slug ) {
+			Functions\when( 'get_the_terms' )->alias(
+				static fn( int $id, string $tax ): array => 'product_cat' === $tax
+					? array( (object) array( 'slug' => $slug ) )
+					: array()
+			);
+			$product                       = new \WC_Product();
+			$product->akb_id               = 13375;
+			$product->akb_sku              = '9786075789057';
+			$product->akb_global_unique_id = '9786075789057';
+
+			$result = ( new BookSchemaEnricher() )->enrich( array( '@type' => 'Product' ), $product );
+
+			self::assertSame( 'https://schema.org/Book', $result['additionalType'], "Slug {$slug} debe enriquecerse." );
+			self::assertSame( array( 'Product', 'Book' ), $result['@type'] );
+			self::assertSame( '9786075789057', $result['isbn'] );
+			self::assertSame( 'es', $result['inLanguage'] );
+		}
 	}
 
 	/**

@@ -215,14 +215,34 @@ final class PricingSelfTest {
 	}
 
 	/**
-	 * Calcula un hash SHA-256 de una orden y producto para verificar inmutabilidad.
+	 * Calcula un hash SHA-256 sobre los subtotales y totales congelados de una orden
+	 * para verificar inmutabilidad real ante cambios de precio en el catálogo.
 	 *
 	 * @param int $order_id   ID de la orden.
 	 * @param int $product_id ID del producto.
 	 * @return string
 	 */
 	private static function snapshot_order_and_product_integrity( int $order_id, int $product_id ): string {
-		return hash( 'sha256', $order_id . ':' . $product_id );
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : false;
+		$parts = array( $order_id . ':' . $product_id );
+
+		if ( $order && method_exists( $order, 'get_items' ) ) {
+			foreach ( $order->get_items() as $item ) {
+				if ( $item instanceof WC_Order_Item_Product ) {
+					$parts[] = sprintf(
+						'%d:%d:%s:%s:%s',
+						(int) $item->get_id(),
+						(int) $item->get_product_id(),
+						(string) $item->get_quantity(),
+						(string) $item->get_subtotal(),
+						(string) $item->get_total()
+					);
+				}
+			}
+			$parts[] = 'order_total:' . (string) $order->get_total();
+		}
+
+		return hash( 'sha256', implode( '|', $parts ) );
 	}
 
 	/**
@@ -291,6 +311,9 @@ final class PricingSelfTest {
 		}
 		if ( ! in_array( $res_false['status'] ?? '', array( 'updated', 'unchanged' ), true ) ) {
 			$failures[] = 'Actualización de precio con protect_active_orders=false falló';
+		}
+		if ( $hash_0 !== $hash_true || $hash_0 !== $hash_false || $hash_0 !== $hash_restored ) {
+			$failures[] = 'Los importes de la orden activa mutaron al cambiar el precio del producto';
 		}
 		if ( 0 !== $new_recompute_actions ) {
 			$failures[] = sprintf( 'Se encolaron %d acciones de akb_order_preventa_recompute_for_product (esperado 0)', $new_recompute_actions );
@@ -409,8 +432,8 @@ final class PricingSelfTest {
 		if ( ! is_array( $doc ) || (int) round( (float) $doc['price_effective'] ) !== $test_reg ) {
 			$failures[] = sprintf( 'outofstock search_docs.price_effective != %d', $test_reg );
 		}
-		if ( ! is_array( $doc ) || (int) $doc['stock_rank'] !== 1 ) {
-			$failures[] = sprintf( 'outofstock search_docs.stock_rank=%s != 1', is_array( $doc ) ? (string) $doc['stock_rank'] : 'null' );
+		if ( ! is_array( $doc ) || (int) $doc['stock_rank'] !== 2 ) {
+			$failures[] = sprintf( 'outofstock search_docs.stock_rank=%s != 2', is_array( $doc ) ? (string) $doc['stock_rank'] : 'null' );
 		}
 		if ( (int) round( $facet ) !== $test_reg ) {
 			$failures[] = sprintf( 'outofstock facet_index.value_num=%d != %d', (int) round( $facet ), $test_reg );
@@ -677,6 +700,10 @@ final class PricingSelfTest {
 
 			BatchGuard::run(
 				static function () use ( $batch_ids, $snapshots ): void {
+					if ( function_exists( '_prime_post_caches' ) ) {
+						_prime_post_caches( $batch_ids, true, true );
+					}
+
 					foreach ( $batch_ids as $pid ) {
 						$orig_reg  = max( 10600, (int) round( (float) ( $snapshots[ $pid ]['meta']['_regular_price'] ?? 10600 ) ) );
 						$test_reg  = $orig_reg + 100;

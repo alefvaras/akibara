@@ -9,7 +9,9 @@ declare( strict_types = 1 );
 
 namespace Akibara\Business\Tests\Modules\SeoEnhancements;
 
+use Akibara\Business\Modules\SeoEnhancements\ProductMetaComposer;
 use Akibara\Business\Modules\SeoEnhancements\SeoEnhancements;
+use Akibara\Business\Modules\SeoEnhancements\SeriesMetaComposer;
 use Akibara\Business\Modules\SeriesCatalog\SeriesCatalogEligibility;
 use Akibara\Business\Modules\SeriesDirectory\SeriesIndex;
 use Akibara\Business\Modules\SeriesSchema\SeriesSchemaType;
@@ -990,6 +992,48 @@ final class SeoEnhancementsTest extends TestCase {
 	}
 
 	/**
+	 * @testdox Should compose series and product meta for novela, artbook, and yaoi-bl categories.
+	 */
+	public function test_composes_meta_for_novela_artbook_and_yaoi_bl(): void {
+		$novela = SeoEnhancements::compose_series_meta( 'Re:Zero (Novela)', 'completa', 4, 4, 'Tappei Nagatsuki', 'Panini', 'novela', '', true );
+		self::assertStringContainsString( 'novela completa: 4 tomos', $novela['title'] );
+		self::assertLessThanOrEqual( 62, mb_strlen( $novela['title'] ) );
+		self::assertLessThanOrEqual( 155, mb_strlen( $novela['description'] ) );
+
+		$artbook = SeoEnhancements::compose_series_meta( 'AidaIro Art', 'completa', 2, 2, 'AidaIro', 'Ivrea', 'artbook', '', true );
+		self::assertStringContainsString( 'artbook completo: 2 tomos', $artbook['title'] );
+		self::assertLessThanOrEqual( 62, mb_strlen( $artbook['title'] ) );
+		self::assertLessThanOrEqual( 155, mb_strlen( $artbook['description'] ) );
+
+		$prod_novela = SeoEnhancements::compose_product_meta( 'Jujutsu Kaisen 0 Novela', '', 'Ballad Kitaguni', 'Panini', 'novela', null );
+		self::assertStringContainsString( 'novela en español', $prod_novela['title'] );
+		self::assertNotSame( '', $prod_novela['description'] );
+
+		$prod_artbook = SeoEnhancements::compose_product_meta( 'El arte de Berserk', '', 'Kentaro Miura', 'Panini España', 'artbook', null );
+		self::assertStringContainsString( 'artbook en español', $prod_artbook['title'] );
+		self::assertNotSame( '', $prod_artbook['description'] );
+
+		self::assertSame(
+			'novela',
+			\Akibara\Business\Modules\SeoEnhancements\SeriesMetaComposer::medium_from_categories(
+				array( (object) array( 'slug' => 'novela', 'parent' => 0 ) )
+			)
+		);
+		self::assertSame(
+			'artbook',
+			\Akibara\Business\Modules\SeoEnhancements\SeriesMetaComposer::medium_from_categories(
+				array( (object) array( 'slug' => 'artbook', 'parent' => 0 ) )
+			)
+		);
+		self::assertSame(
+			'manga',
+			\Akibara\Business\Modules\SeoEnhancements\SeriesMetaComposer::medium_from_categories(
+				array( (object) array( 'slug' => 'yaoi-bl', 'parent' => 0 ) )
+			)
+		);
+	}
+
+	/**
 	 * @testdox Should return empty pieces instead of truncating an extreme name or faking a medium.
 	 */
 	public function test_returns_empty_pieces_for_untrustworthy_inputs(): void {
@@ -1018,13 +1062,15 @@ final class SeoEnhancementsTest extends TestCase {
 
 		// La editorial entra al title cuando cabe (61 ≤ 62): el comprador busca
 		// «naruto 72 panini» y el snippet desambigua Panini/Ivrea/Norma.
+		// En meta description NUNCA se inyecta la editorial (Regla #13 de catálogo).
 		self::assertSame( 'Naruto 72 · Panini Argentina · manga en español | Akibara', $meta['title'] );
 		self::assertSame(
-			'Naruto 72 de Masashi Kishimoto, edición Panini Argentina en español. Tomo 72 de la serie Naruto. Cómpralo en Akibara con despacho a todo Chile.',
+			'Naruto 72 de Masashi Kishimoto en español. Tomo 72 de la serie Naruto. Cómpralo en Akibara con despacho a todo Chile.',
 			$meta['description']
 		);
 		self::assertStringContainsString( 'todo chile', mb_strtolower( $meta['description'], 'UTF-8' ) );
 		self::assertStringNotContainsString( 'nacional', mb_strtolower( $meta['description'], 'UTF-8' ) );
+		self::assertStringNotContainsString( 'panini', mb_strtolower( $meta['description'], 'UTF-8' ) );
 	}
 
 	/**
@@ -1061,6 +1107,7 @@ final class SeoEnhancementsTest extends TestCase {
 		self::assertNotSame( '', $meta['description'] );
 		self::assertLessThanOrEqual( 62, mb_strlen( $meta['title'], 'UTF-8' ) );
 		self::assertLessThanOrEqual( 155, mb_strlen( $meta['description'], 'UTF-8' ) );
+		self::assertStringNotContainsString( 'panini', mb_strtolower( $meta['description'], 'UTF-8' ) );
 	}
 
 	/**
@@ -2495,5 +2542,52 @@ final class SeoEnhancementsTest extends TestCase {
 		$sut->invalidate_category_updated_transient_on_terms_deleted( 123, array( 31 ), 'product_cat' );
 		$sut->invalidate_category_updated_transient_on_terms_set( 123, array(), array( 31 ), 'product_cat', false, array() );
 		self::assertSame( array( 'akb_cat_updated_701' ), $deleted );
+	}
+
+	/**
+	 * @testdox ProductMetaComposer and SeriesMetaComposer log warnings via wc_get_logger on recoverable lookup exceptions.
+	 */
+	public function test_composers_log_warning_and_degrade_when_lookup_throws_recoverable_exception(): void {
+		$warnings = array();
+		Functions\when( 'wc_get_logger' )->justReturn(
+			new class( $warnings ) {
+				/** @var list<array{message:string,context:array<string,mixed>}> */
+				private array $warnings;
+
+				/** @param list<array{message:string,context:array<string,mixed>}> $warnings */
+				public function __construct( array &$warnings ) {
+					$this->warnings = &$warnings;
+				}
+
+				/** @param array<string,mixed> $context */
+				public function warning( string $message, array $context = array() ): void {
+					$this->warnings[] = array( 'message' => $message, 'context' => $context );
+				}
+			}
+		);
+		Functions\when( 'get_the_terms' )->alias(
+			static function (): array {
+				throw new \RuntimeException( 'Tax lookup glitch' );
+			}
+		);
+		Functions\when( 'get_posts' )->alias(
+			static function (): array {
+				throw new \RuntimeException( 'Post lookup glitch' );
+			}
+		);
+
+		$product_composer = new ProductMetaComposer();
+		self::assertSame( '', $product_composer->product_medium( 505 ) );
+
+		$series_composer = new SeriesMetaComposer();
+		self::assertSame( '', $series_composer->resolve_series_medium( 606 ) );
+
+		self::assertCount( 2, $warnings );
+		self::assertSame( 'akibara-seo', $warnings[0]['context']['source'] );
+		self::assertStringContainsString( 'Tax lookup glitch', $warnings[0]['message'] );
+		self::assertSame( 505, $warnings[0]['context']['product_id'] );
+		self::assertSame( 'akibara-seo', $warnings[1]['context']['source'] );
+		self::assertStringContainsString( 'Post lookup glitch', $warnings[1]['message'] );
+		self::assertSame( 606, $warnings[1]['context']['term_id'] );
 	}
 }

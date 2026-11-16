@@ -665,8 +665,8 @@
 	}
 
 	function regionCode(component) {
-		const regionMap = config.regionMap || {};
-		const configuredCodes = new Set(Object.values(regionMap));
+		const regionMap = new Map(Object.entries(config.regionMap || {}));
+		const configuredCodes = new Set(regionMap.values());
 		const names = [
 			component?.shortText,
 			component?.short_name,
@@ -676,20 +676,16 @@
 
 		for (const name of names) {
 			const configuredKey = String(name).trim().toUpperCase();
-			// eslint-disable-next-line security/detect-object-injection
-			if (regionMap[configuredKey]) {
-				// eslint-disable-next-line security/detect-object-injection
-				return regionMap[configuredKey];
+			if (regionMap.has(configuredKey)) {
+				return regionMap.get(configuredKey);
 			}
 			if (configuredCodes.has(name)) {
 				return name;
 			}
 
 			const alias = chileRegionAliases[normalizeRegionName(name)];
-			// eslint-disable-next-line security/detect-object-injection
-			if (alias && regionMap[alias]) {
-				// eslint-disable-next-line security/detect-object-injection
-				return regionMap[alias];
+			if (alias && regionMap.has(alias)) {
+				return regionMap.get(alias);
 			}
 		}
 
@@ -701,18 +697,25 @@
 			return '';
 		}
 
-		if (typeof value.toString === 'function') {
-			try {
-				const text = value.toString();
-				if (text && text !== '[object Object]') {
-					return String(text);
-				}
-			} catch {
-				// Fall through to legacy response shapes.
+		if (typeof value.toString === 'function' && Object.prototype.hasOwnProperty.call(value, 'toString')) {
+			const text = value.toString();
+			if (text && text !== '[object Object]') {
+				return String(text);
 			}
 		}
 
-		return value.text || '';
+		if (typeof value.text === 'string' && value.text) {
+			return value.text;
+		}
+
+		if (typeof value.toString === 'function') {
+			const text = value.toString();
+			if (text && text !== '[object Object]') {
+				return String(text);
+			}
+		}
+
+		return '';
 	}
 
 	function predictionLabel(prediction, input) {
@@ -731,8 +734,10 @@
 	}
 
 	function communeName(candidates, targetRegionCode) {
-		// eslint-disable-next-line security/detect-object-injection
-		const regionCommunes = window.akbComunaData?.regions?.[targetRegionCode];
+		const regionsMap = window.akbComunaData?.regions;
+		const regionCommunes = regionsMap && Object.prototype.hasOwnProperty.call(regionsMap, targetRegionCode)
+			? Object.getOwnPropertyDescriptor(regionsMap, targetRegionCode)?.value
+			: undefined;
 		if (!Array.isArray(regionCommunes) || !regionCommunes.length) {
 			return '';
 		}
@@ -828,13 +833,12 @@
 		values.address_1 = [parts.route, parts.streetNumber].filter(Boolean).join(' ');
 
 		/* Google no debe borrar un departamento ni un código postal ya escritos cuando la predicción no trae esos datos. Los valores vacíos se omiten. Comuna y región sí se vacían deliberadamente si el catálogo no las reconoce, para que el cliente elija una opción válida. */
-		['address_2', 'postcode'].forEach(function (key) {
-			// eslint-disable-next-line security/detect-object-injection
-			if (values[key] === '') {
-				// eslint-disable-next-line security/detect-object-injection
-				delete values[key];
-			}
-		});
+		if (values.address_2 === '') {
+			delete values.address_2;
+		}
+		if (values.postcode === '') {
+			delete values.postcode;
+		}
 
 		return values;
 	}
@@ -1249,8 +1253,12 @@
 	if (typeof document.addEventListener === 'function') {
 		document.addEventListener('focusin', function (event) {
 			if (autocompleteContainer(event.target)) {
-				loadPlacesLibrary().catch(function () {
-					// La búsqueda lo reintenta y avisa si sigue sin cargar.
+				loadPlacesLibrary().catch(function (error) {
+					if (typeof document.dispatchEvent === 'function' && typeof window.CustomEvent === 'function') {
+						document.dispatchEvent(new window.CustomEvent('akb:places-preload-error', {
+							detail: { message: error && error.message ? error.message : 'places_preload_failed' }
+						}));
+					}
 				});
 			}
 		}, { passive: true });

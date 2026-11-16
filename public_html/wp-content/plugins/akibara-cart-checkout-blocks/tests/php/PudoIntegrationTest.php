@@ -238,7 +238,7 @@ final class PudoIntegrationTest extends TestCase {
 		$runtime = $this->runtime();
 		$sut     = $this->integration( $service, $runtime );
 
-		$sut->handle_shipping_rate_selected( '0', 'bluex-ex:4', new \stdClass() );
+		$sut->handle_shipping_rate_selected( '0', 'bluex-ex:4' );
 
 		self::assertSame( 1, $service->invalidate_calls );
 	}

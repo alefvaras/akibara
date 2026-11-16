@@ -275,6 +275,74 @@ final class BordesDeDineroTest extends TestCase {
 	}
 
 	/**
+	 * Con tope por defecto del 15%, una rebaja manual de 10% ($9.000) + regla
+	 * del 15% daría $7.650 (23,5%) si no se acotara al tope. Debe quedar en $8.500.
+	 * Y si la rebaja manual ya supera el tope ($8.000 = 20%), nunca se encarece ni se perfora más.
+	 *
+	 * @testdox Encadenando respeta el tope configurable de la tienda sin encarecer rebajas mayores.
+	 */
+	public function test_stacking_clamps_to_configured_store_ceiling_and_never_raises_manual_sale(): void {
+		$this->wpdb->option_rows[ Settings::OPTION_SALE_POLICY ] = Settings::POLICY_STACK_ON_SALE;
+		$this->wpdb->term_meta_rows                             = array( self::TERM => '15' );
+
+		// 10.000 con manual 9.000 + regla 15%: sin clamp sería 7.650; acotado al 15% sobre 10.000 = 8.500.
+		self::assertSame(
+			8500.0,
+			$this->precio( $this->producto( '10000', '9000' ) ),
+			'Encadenar debe detenerse en el tope máximo configurado de la tienda (15% → $8.500).'
+		);
+
+		// 10.000 con manual 9.000 + regla 5%: 9.000 * 0.95 = 8.550 (dentro del tope 15% → se aplica).
+		$this->wpdb->term_meta_rows = array( self::TERM => '5' );
+		self::assertSame(
+			8550.0,
+			$this->precio( $this->producto( '10000', '9000' ) ),
+			'Dentro del tope máximo de la tienda, encadenar aplica el descuento sobre la rebaja manual.'
+		);
+
+		// 10.000 con manual 8.000 (20% > tope 15%) + regla 10%: conserva 8.000 sin encarecerlo ni bajarlo a 7.200.
+		$this->wpdb->term_meta_rows = array( self::TERM => '10' );
+		self::assertSame(
+			8000.0,
+			$this->precio( $this->producto( '10000', '8000' ) ),
+			'Si la rebaja manual ya iguala o supera el tope, no debe encarecerse ni volver a rebajarse.'
+		);
+
+		// Rebaja manual extrema > 90% ($500 sobre $10.000) nunca debe elevarse a HARD_MAX ($1.000).
+		$this->wpdb->term_meta_rows = array( self::TERM => '15' );
+		self::assertSame(
+			500.0,
+			$this->precio( $this->producto( '10000', '500' ) ),
+			'Una rebaja manual superior al 90% nunca debe encarecerse hacia HARD_MAX.'
+		);
+	}
+
+	/**
+	 * En vitrina (modo tolerante) con skip_if_on_sale, un producto con rebaja manual
+	 * corta en O(1) antes de interrogar taxonomías y term-meta.
+	 *
+	 * @testdox Con skip_if_on_sale en storefront tolerante, omite consultas de taxonomía.
+	 */
+	public function test_skip_if_on_sale_fast_path_skips_term_lookups_in_storefront_mode(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( string $name, $default = false ) {
+				$map = array(
+					Settings::OPTION_ENABLED     => 'yes',
+					Settings::OPTION_APPLY_TO    => Settings::APPLY_ALL,
+					Settings::OPTION_SALE_POLICY => Settings::POLICY_SKIP_IF_ON_SALE,
+				);
+				return $map[ $name ] ?? $default;
+			}
+		);
+		Functions\expect( 'get_the_terms' )->never();
+		Functions\expect( 'get_term_meta' )->never();
+
+		$resolver = new DiscountResolver( new Settings() );
+		self::assertNull( $resolver->resolve( $this->producto( '10000', '9000' ) ) );
+		self::assertTrue( $resolver->is_authoritative() );
+	}
+
+	/**
 	 * @testdox Un producto agotado no recibe descuento con «sólo disponibles».
 	 */
 	public function test_an_out_of_stock_product_gets_nothing_when_scoped_to_instock(): void {

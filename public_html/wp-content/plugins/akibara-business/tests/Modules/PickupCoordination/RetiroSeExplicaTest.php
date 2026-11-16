@@ -23,7 +23,15 @@ final class RetiroSeExplicaTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		Functions\when( 'esc_url' )->returnArg();
-		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html' )->alias(
+			static fn( $texto ): string => htmlspecialchars( (string) $texto, ENT_QUOTES, 'UTF-8' )
+		);
+		Functions\when( 'wp_strip_all_tags' )->alias(
+			static fn( $texto ): string => strip_tags( (string) $texto )
+		);
+		Functions\when( 'wp_kses' )->alias(
+			static fn( $texto, $allowed ): string => '' === $allowed || array() === $allowed ? strip_tags( (string) $texto ) : (string) $texto
+		);
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( false );
 		// Sin este doble, el resultado depende de si OTRO test definió `is_email`
@@ -92,7 +100,7 @@ final class RetiroSeExplicaTest extends TestCase {
 	}
 
 	/**
-	 * @testdox La versión de texto plano dice lo mismo, con el teléfono legible.
+	 * @testdox La versión de texto plano dice lo mismo, con el teléfono legible y sin codificar entidades HTML en apóstrofes o ampersands.
 	 */
 	public function test_el_texto_plano_tambien_lo_dice(): void {
 		$texto = $this->correo( 'local_pickup', false, true );
@@ -101,6 +109,18 @@ final class RetiroSeExplicaTest extends TestCase {
 		self::assertStringContainsString( '+56 9 4424 2844', $texto, 'En texto plano no hay enlace: el número tiene que poder leerse.' );
 		self::assertStringContainsString( 'contacto@akibara.cl', $texto );
 		self::assertStringNotContainsString( '<', $texto, 'Texto plano es texto plano.' );
+
+		Functions\when( 'get_option' )->alias(
+			static fn( string $n, $def = false ) => match ( $n ) {
+				PickupCoordination::OPTION_TITULO => "Retiro D'Angelo & Manga",
+				PickupCoordination::OPTION_CUERPO => "Coordinamos D'Angelo & Co. rápido.",
+				default                           => $def,
+			}
+		);
+		$texto_especial = $this->correo( 'local_pickup', false, true );
+		self::assertStringContainsString( "D'Angelo & Co.", $texto_especial );
+		self::assertStringNotContainsString( '&#039;', $texto_especial );
+		self::assertStringNotContainsString( '&amp;', $texto_especial );
 	}
 
 	/**
@@ -298,5 +318,175 @@ final class RetiroSeExplicaTest extends TestCase {
 			'en espera'   => array( 'on-hold' ),
 			'completado'  => array( 'completed' ),
 		);
+	}
+
+	/**
+	 * @testdox En pantalla usa clases limpias del tema oscuro sin estilos inline, y en correo conserva estilos inline con tinta oscura explícita.
+	 */
+	public function test_pantalla_usa_clases_limpias_y_correo_conserva_contraste_inline(): void {
+		$correo_html = $this->correo( 'local_pickup', false, false, 'processing' );
+		self::assertStringContainsString( 'class="akb-email-callout akb-pickup-coord"', $correo_html );
+		self::assertStringContainsString( 'background: #f7f7f7', $correo_html );
+		self::assertStringContainsString( 'color: #0d0d0d;', $correo_html );
+
+		ob_start();
+		( new PickupCoordination() )->pintar_en_pantalla( $this->pedido( 'local_pickup', 'processing' ) );
+		$pantalla_html = (string) ob_get_clean();
+
+		self::assertStringContainsString( 'class="akb-pickup-coord"', $pantalla_html );
+		self::assertStringContainsString( 'class="akb-pickup-coord__title"', $pantalla_html );
+		self::assertStringContainsString( 'class="akb-pickup-coord__body"', $pantalla_html );
+		self::assertStringContainsString( 'class="akb-pickup-coord__contact"', $pantalla_html );
+		self::assertStringNotContainsString( 'style=', $pantalla_html );
+	}
+
+	/**
+	 * @testdox [P0-3] La etiqueta del método en checkout añade la promesa de coordinación con clase CSS en local_pickup y pickup_location.
+	 */
+	public function test_agregar_nota_en_tabla_envio_anade_promesa_sin_estilos_inline(): void {
+		$pickup = new class() {
+			public function get_method_id(): string {
+				return 'local_pickup';
+			}
+		};
+		$pickup_location = new class() {
+			public function get_method_id(): string {
+				return 'pickup_location';
+			}
+		};
+
+		$coord = new PickupCoordination();
+
+		$out_local = $coord->agregar_nota_en_tabla_envio( 'Retiro Metro San Miguel: Gratis', $pickup );
+		self::assertStringContainsString( 'class="akb-pickup-promise-label"', $out_local );
+		self::assertStringContainsString( 'te contactaremos en menos de 24 horas', $out_local );
+		self::assertStringNotContainsString( 'style=', $out_local );
+
+		$out_loc = $coord->agregar_nota_en_tabla_envio( 'Retiro en tienda', $pickup_location );
+		self::assertStringContainsString( 'class="akb-pickup-promise-label"', $out_loc );
+	}
+
+	/**
+	 * @testdox [NEG] Métodos distintos a retiro nuestro o entradas no válidas dejan intacta la etiqueta de envío.
+	 * @dataProvider envios_que_no_son_retiro_nuestro
+	 */
+	public function test_agregar_nota_en_tabla_envio_omite_otros_metodos_y_entradas_invalidas( string $method_id ): void {
+		$rate = new class( $method_id ) {
+			public function __construct( private string $id ) {}
+
+			public function get_method_id(): string {
+				return $this->id;
+			}
+		};
+
+		$coord    = new PickupCoordination();
+		$original = 'Despacho Blue Express: $3.990';
+
+		self::assertSame( $original, $coord->agregar_nota_en_tabla_envio( $original, $rate ) );
+		self::assertSame( $original, $coord->agregar_nota_en_tabla_envio( $original, null ) );
+		self::assertSame( $original, $coord->agregar_nota_en_tabla_envio( $original, 'local_pickup' ) );
+		self::assertSame( $original, $coord->agregar_nota_en_tabla_envio( $original, new \stdClass() ) );
+	}
+
+	/**
+	 * @testdox [P0-3] register() enlaza tanto el filtro de Store API / Bloques (woocommerce_package_rates) como el de plantilla clásica.
+	 */
+	public function test_register_hooks_incluye_store_api_y_plantilla_clasica(): void {
+		\Brain\Monkey\Actions\expectAdded( 'woocommerce_email_after_order_table' )->once();
+		\Brain\Monkey\Actions\expectAdded( 'woocommerce_order_details_after_order_table' )->once();
+		\Brain\Monkey\Filters\expectAdded( 'woocommerce_package_rates' )->once();
+		\Brain\Monkey\Filters\expectAdded( 'woocommerce_order_item_get_formatted_meta_data' )->once();
+		\Brain\Monkey\Filters\expectAdded( 'woocommerce_cart_shipping_method_full_label' )->once();
+
+		( new PickupCoordination() )->register();
+
+		self::assertTrue( true );
+	}
+
+	/**
+	 * @testdox [P0-3] asignar_tiempo_entrega_retiro() rellena delivery_time y pickup_details para local_pickup y pickup_location en Store API sin pisar valores existentes ni tarifas externas.
+	 */
+	public function test_asignar_tiempo_entrega_retiro_solo_aplica_a_retiro_propio_sin_delivery_time_previo(): void {
+		$mk_rate = static fn( string $method_id, string $delivery_time = '', array $meta = array() ): object => new class( $method_id, $delivery_time, $meta ) {
+			/** @param array<string, mixed> $meta */
+			public function __construct( private string $id, private string $delivery, private array $meta ) {}
+
+			public function get_method_id(): string {
+				return $this->id;
+			}
+
+			public function get_delivery_time(): string {
+				return $this->delivery;
+			}
+
+			public function set_delivery_time( string $delivery ): void {
+				$this->delivery = $delivery;
+			}
+
+			/** @return array<string, mixed> */
+			public function get_meta_data(): array {
+				return $this->meta;
+			}
+
+			public function add_meta_data( string $key, string $value ): void {
+				$this->meta[ $key ] = $value;
+			}
+		};
+
+		$pickup       = $mk_rate( 'local_pickup' );
+		$pickup_loc   = $mk_rate( 'pickup_location', '   ' );
+		$pickup_keep  = $mk_rate( 'local_pickup', 'Hoy mismo antes de las 18:00', array( 'pickup_details' => 'Horario propio' ) );
+		$bluex        = $mk_rate( 'bluex' );
+		$bluex_pudo   = $mk_rate( 'bluex-pudo', '2 a 3 días hábiles' );
+		$invalid_item = 'not-a-rate';
+
+		$rates = array(
+			'local_pickup:70'     => $pickup,
+			'pickup_location:1'   => $pickup_loc,
+			'local_pickup:custom' => $pickup_keep,
+			'bluex:1'             => $bluex,
+			'bluex-pudo:2'        => $bluex_pudo,
+			'corrupt'             => $invalid_item,
+		);
+
+		$out = ( new PickupCoordination() )->asignar_tiempo_entrega_retiro( $rates );
+
+		self::assertSame( PickupCoordination::PROMESA_TABLA_ENVIO, $out['local_pickup:70']->get_delivery_time() );
+		self::assertSame( PickupCoordination::PROMESA_TABLA_ENVIO, $out['local_pickup:70']->get_meta_data()['pickup_details'] ?? '' );
+		self::assertSame( PickupCoordination::PROMESA_TABLA_ENVIO, $out['pickup_location:1']->get_delivery_time() );
+		self::assertSame( PickupCoordination::PROMESA_TABLA_ENVIO, $out['pickup_location:1']->get_meta_data()['pickup_details'] ?? '' );
+		self::assertSame( 'Hoy mismo antes de las 18:00', $out['local_pickup:custom']->get_delivery_time() );
+		self::assertSame( 'Horario propio', $out['local_pickup:custom']->get_meta_data()['pickup_details'] ?? '' );
+		self::assertSame( '', $out['bluex:1']->get_delivery_time() );
+		self::assertArrayNotHasKey( 'pickup_details', $out['bluex:1']->get_meta_data() );
+		self::assertSame( '2 a 3 días hábiles', $out['bluex-pudo:2']->get_delivery_time() );
+		self::assertSame( 'not-a-rate', $out['corrupt'] );
+	}
+
+	/**
+	 * @testdox [P0-3] ocultar_meta_promesa_en_orden() limpia solo la clave pickup_details sintética de retiro propio.
+	 */
+	public function test_ocultar_meta_promesa_en_orden_filtra_solo_promesa_sintetica_en_retiro(): void {
+		$coord = new PickupCoordination();
+		$m1    = (object) array( 'key' => 'pickup_details', 'value' => PickupCoordination::PROMESA_TABLA_ENVIO );
+		$m2    = (object) array( 'key' => 'pickup_location', 'value' => 'Metro San Miguel' );
+		$m3    = (object) array( 'key' => 'pickup_details', 'value' => 'Otra nota distinta' );
+
+		$pickup_item = new class() {
+			public function get_method_id(): string {
+				return 'local_pickup';
+			}
+		};
+		$bluex_item = new class() {
+			public function get_method_id(): string {
+				return 'bluex';
+			}
+		};
+
+		$filtered_pickup = array_values( $coord->ocultar_meta_promesa_en_orden( array( $m1, $m2, $m3 ), $pickup_item ) );
+		self::assertSame( array( $m2, $m3 ), $filtered_pickup );
+
+		$filtered_bluex = array_values( $coord->ocultar_meta_promesa_en_orden( array( $m1, $m2 ), $bluex_item ) );
+		self::assertSame( array( $m1, $m2 ), $filtered_bluex );
 	}
 }

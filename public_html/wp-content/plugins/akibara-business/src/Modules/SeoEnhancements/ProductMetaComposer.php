@@ -15,6 +15,7 @@ namespace Akibara\Business\Modules\SeoEnhancements;
 use Akibara\Business\Modules\Stock\Availability;
 use Akibara\Business\Modules\Stock\StockStatus;
 use Akibara\Business\Services\VolumeTitle;
+use Akibara\Business\Utilities\Log;
 use Akibara\Business\Utilities\Text;
 
 defined( 'ABSPATH' ) || exit;
@@ -89,7 +90,13 @@ final class ProductMetaComposer {
 					$meta = $composed;
 				}
 			}
-		} catch ( \Throwable $throwable ) {
+		} catch ( \Exception $e ) {
+			// Fallo recuperable al resolver datos SEO del producto: degrada al fallback de Rank Math y registra el evento.
+			Log::warn(
+				'seo',
+				sprintf( 'ProductMetaComposer::generated_product_meta (%d): %s', $post_id, $e->getMessage() ),
+				array( 'post_id' => $post_id )
+			);
 			$meta = null;
 		}
 
@@ -112,7 +119,12 @@ final class ProductMetaComposer {
 			$categories = get_the_terms( $product_id, 'product_cat' );
 
 			return is_array( $categories ) ? SeriesMetaComposer::medium_from_categories( $categories ) : '';
-		} catch ( \Throwable $throwable ) {
+		} catch ( \Exception $e ) {
+			Log::warn(
+				'seo',
+				sprintf( 'ProductMetaComposer::product_medium (%d): %s', $product_id, $e->getMessage() ),
+				array( 'product_id' => $product_id )
+			);
 			return '';
 		}
 	}
@@ -169,7 +181,7 @@ final class ProductMetaComposer {
 			'title'       => '',
 			'description' => '',
 		);
-		if ( '' === $name || ! in_array( $medium, array( 'manga', 'cómic', 'manhwa' ), true ) ) {
+		if ( '' === $name || ! in_array( $medium, SeriesMetaComposer::SERIES_MEDIA, true ) ) {
 			return $empty;
 		}
 
@@ -203,16 +215,10 @@ final class ProductMetaComposer {
 		$short_close = 'Despacho a todo Chile desde Akibara.';
 
 		$description_candidates = array();
-		if ( '' !== $author && '' !== $brand ) {
-			$description_candidates[] = trim( sprintf( '%s de %s, edición %s en español. %s %s', $name, $author, $brand, $serie_clause, $close ) );
-			$description_candidates[] = trim( sprintf( '%s de %s, edición %s en español. %s', $name, $author, $brand, $close ) );
-		}
-		if ( '' !== $brand ) {
-			$description_candidates[] = trim( sprintf( '%s, edición %s en español. %s %s', $name, $brand, $serie_clause, $close ) );
-			$description_candidates[] = trim( sprintf( '%s, edición %s en español. %s', $name, $brand, $close ) );
-		}
 		if ( '' !== $author ) {
 			$description_candidates[] = trim( sprintf( '%s de %s en español. %s %s', $name, $author, $serie_clause, $close ) );
+			$description_candidates[] = trim( sprintf( '%s de %s en español. %s', $name, $author, $close ) );
+			$description_candidates[] = trim( sprintf( '%s de %s en español. %s', $name, $author, $short_close ) );
 		}
 		$description_candidates[] = trim( sprintf( '%s %s en español. %s %s', $name, $medium, $serie_clause, $close ) );
 		$description_candidates[] = trim( sprintf( '%s %s en español. %s', $name, $medium, $close ) );

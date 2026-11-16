@@ -256,11 +256,6 @@ final class DiscountResolver {
 			return null;
 		}
 
-		$pct = $this->resolve_term_pct( $product );
-		if ( 0 === $pct ) {
-			return null;
-		}
-
 		$regular = $product->get_regular_price( 'edit' );
 		if ( '' === $regular || ! is_numeric( $regular ) ) {
 			return null;
@@ -270,23 +265,27 @@ final class DiscountResolver {
 			return null;
 		}
 
+		$sale   = $this->active_manual_sale_price( $product, $regular );
+		$policy = $this->settings->get_sale_policy();
+
+		// Fast-path O(1) en storefront tolerante: con "No aplicar si ya tiene rebaja manual",
+		// no hace falta inspeccionar taxonomías ni term-meta si el producto ya está rebajado.
+		if ( null !== $sale && ! $this->settings->in_strict_mode() && Settings::POLICY_SKIP_IF_ON_SALE === $policy ) {
+			return null;
+		}
+
+		$pct = $this->resolve_term_pct( $product );
+		if ( 0 === $pct ) {
+			return null;
+		}
+
 		$factor = ( 100 - $pct ) / 100;
 
-		// Una oferta solo cuenta si está VIGENTE. WC respeta date_on_sale_from/to:
-		// una oferta programada a futuro o ya vencida tiene `_sale_price` seteado
-		// pero `is_on_sale()` = false. Sin gatear por is_on_sale, el resolver trataba
-		// esos productos como "en oferta" → bajo skip_if_on_sale perdía el descuento
-		// editorial, y bajo greatest_wins/stack aplicaba un precio de oferta fantasma
-		// (undercharge). Verificado con datos sembrados (programada/vencida/activa).
-		$sale_raw   = $product->get_sale_price( 'edit' );
-		$has_active = $product->is_on_sale( 'edit' ) && is_numeric( $sale_raw ) && '' !== $sale_raw; // @phpstan-ignore notIdentical.alwaysTrue
-		$sale       = $has_active ? (float) $sale_raw : null;
-
-		if ( null === $sale || $sale <= 0 || $sale >= $regular ) {
+		if ( null === $sale ) {
 			return $this->round( $regular * $factor );
 		}
 
-		switch ( $this->settings->get_sale_policy() ) {
+		switch ( $policy ) {
 			case Settings::POLICY_SKIP_IF_ON_SALE:
 				return null;
 
@@ -294,12 +293,37 @@ final class DiscountResolver {
 				return $this->round( $regular * $factor );
 
 			case Settings::POLICY_STACK_ON_SALE:
-				return $this->round( $sale * $factor );
+				$ceiling_floor = $regular * ( ( 100 - $this->settings->max_pct() ) / 100 );
+				$hard_floor    = $regular * ( ( 100 - \Akibara\Business\Utilities\DiscountCeiling::HARD_MAX ) / 100 );
+				$effective_min = min( $sale, max( $hard_floor, $ceiling_floor ) );
+				return $this->round( max( $sale * $factor, $effective_min ) );
 
 			case Settings::POLICY_GREATEST_WINS:
 			default:
 				return $this->round( min( $regular * $factor, $sale ) );
 		}
+	}
+
+	/**
+	 * Devuelve la rebaja manual vigente del producto o null si no aplica.
+	 *
+	 * Una oferta solo cuenta si está VIGENTE. WC respeta date_on_sale_from/to:
+	 * una oferta programada a futuro o ya vencida tiene `_sale_price` seteado
+	 * pero `is_on_sale()` = false.
+	 *
+	 * @param \WC_Product $product Producto.
+	 * @param float       $regular Precio regular (> 0).
+	 */
+	private function active_manual_sale_price( \WC_Product $product, float $regular ): ?float {
+		$sale_raw = $product->get_sale_price( 'edit' );
+		if ( ! $product->is_on_sale( 'edit' ) || ! is_numeric( $sale_raw ) ) {
+			return null;
+		}
+		$sale = (float) $sale_raw;
+		if ( $sale <= 0 || $sale >= $regular ) {
+			return null;
+		}
+		return $sale;
 	}
 
 	/**

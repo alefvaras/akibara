@@ -1092,4 +1092,30 @@ tr.akb-scale-searchable-row {
 	border-color: #2271b1 !important;
 }
 
+.akb-pm-quick-steps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 3px;
+}
+
+.akb-pm-quick-step {
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 1.4;
+	padding: 2px 5px;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	background: #f6f7f7;
+	color: #2c3338;
+	cursor: pointer;
+}
+
+.akb-pm-quick-step:hover,
+.akb-pm-quick-step:focus {
+	border-color: #2271b1;
+	color: #2271b1;
+	background: #f0f6fc;
+}
+
 

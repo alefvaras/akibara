@@ -21,8 +21,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.0.0
  * @api
- * @psalm-suppress HookNotFound
- * @psalm-suppress TypeDoesNotContainType
  */
 final class StoreApiIntegration {
 
@@ -85,7 +83,7 @@ final class StoreApiIntegration {
 			return;
 		}
 
-		add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api_data' ) );
+		add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api_data' ), 10, 0 );
 	}
 
 	/**
@@ -186,10 +184,6 @@ final class StoreApiIntegration {
 	 * @since 2.0.0
 	 */
 	public function extend_cart_data(): array {
-		if ( ! method_exists( $this->data_provider, 'structured_cart_data' ) ) { // @phpstan-ignore function.alreadyNarrowedType
-			return array( 'schema_version' => 0 );
-		}
-
 		$data = $this->data_provider->structured_cart_data();
 		if ( self::SCHEMA_VERSION !== (int) ( $data['schema_version'] ?? 0 ) ) {
 			return array( 'schema_version' => 0 );

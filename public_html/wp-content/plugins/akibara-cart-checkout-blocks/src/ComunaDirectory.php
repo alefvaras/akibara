@@ -21,7 +21,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.2.0
  * @api
- * @psalm-suppress TypeDoesNotContainType
  */
 final class ComunaDirectory {
 
@@ -103,15 +102,24 @@ final class ComunaDirectory {
 	private $loader;
 
 	/**
+	 * Optional vendor file path override used by tests.
+	 *
+	 * @var string|null
+	 */
+	private ?string $vendor_data_file;
+
+	/**
 	 * Initializes the directory.
 	 *
-	 * @param callable():mixed|null $loader Returns the raw vendor structure
-	 *                                      (region => list of ['name' => ...]).
+	 * @param callable():mixed|null $loader           Returns the raw vendor structure
+	 *                                                (region => list of ['name' => ...]).
+	 * @param string|null           $vendor_data_file Optional filesystem path to the vendor catalog.
 	 *
 	 * @since 2.2.0
 	 */
-	public function __construct( ?callable $loader = null ) {
-		$this->loader = $loader;
+	public function __construct( ?callable $loader = null, ?string $vendor_data_file = null ) {
+		$this->loader           = $loader;
+		$this->vendor_data_file = $vendor_data_file;
 	}
 
 	/**
@@ -277,8 +285,7 @@ final class ComunaDirectory {
 	 *
 	 * @return array<string,list<string>>
 	 */
-	// phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
-	private function load(): array { // @phpstan-ignore complexity.functionLike
+	private function load(): array {
 		if ( null !== $this->by_region ) {
 			return $this->by_region;
 		}
@@ -286,41 +293,12 @@ final class ComunaDirectory {
 		$this->by_region = array();
 		$this->index     = array();
 
-		try {
-			$raw = null !== $this->loader ? ( $this->loader )() : $this->load_from_vendor();
-		} catch ( \Throwable $unused ) {
-			return $this->by_region;
-		}
-
+		$raw = $this->fetch_raw_catalog();
 		if ( ! is_array( $raw ) ) {
 			return $this->by_region;
 		}
 
-		$clean = array();
-		foreach ( $raw as $region => $communes ) {
-			if ( ! is_string( $region ) || '' === $region || ! is_array( $communes ) ) {
-				continue;
-			}
-
-			foreach ( $communes as $commune ) {
-				$name = is_array( $commune ) ? ( $commune['name'] ?? null ) : null;
-				if ( ! is_string( $name ) || '' === trim( $name ) ) {
-					continue;
-				}
-
-				$name       = trim( $name );
-				$normalized = self::normalize( $name );
-				if ( '' === $normalized || isset( $this->index[ $normalized ] ) ) {
-					continue;
-				}
-
-				$clean[ $region ][]         = $name;
-				$this->index[ $normalized ] = array(
-					'name'   => $name,
-					'region' => $region,
-				);
-			}
-		}
+		$clean = $this->index_catalog( $raw, true );
 
 		/**
 		 * Filters the commune catalog used by the checkout combobox.
@@ -332,40 +310,111 @@ final class ComunaDirectory {
 		 *
 		 * @param array<string,list<string>> $clean Region code => commune names.
 		 */
-		$filtered = apply_filters( 'akibara_comuna_directory', $clean );
-		if ( ! is_array( $filtered ) ) {
-			$filtered = $clean;
+		$filtered = $this->apply_directory_filter( $clean );
+		if ( is_array( $filtered ) && $filtered !== $clean ) {
+			$this->index     = array();
+			$this->by_region = $this->index_catalog( $filtered, false );
+
+			return $this->by_region;
 		}
 
-		if ( $filtered !== $clean ) {
-			$this->index = array();
-			$rebuilt     = array();
-			foreach ( $filtered as $region => $communes ) {
-				if ( ! is_string( $region ) || ! is_array( $communes ) ) {
-					continue;
-				}
-				foreach ( $communes as $name ) {
-					if ( ! is_string( $name ) || '' === trim( $name ) ) {
-						continue;
-					}
-					$name       = trim( $name );
-					$normalized = self::normalize( $name );
-					if ( '' === $normalized || isset( $this->index[ $normalized ] ) ) {
-						continue;
-					}
-					$rebuilt[ $region ][]       = $name;
-					$this->index[ $normalized ] = array(
-						'name'   => $name,
-						'region' => $region,
-					);
-				}
-			}
-			$filtered = $rebuilt;
-		}
-
-		$this->by_region = $filtered;
+		$this->by_region = $clean;
 
 		return $this->by_region;
+	}
+
+	/**
+	 * Applies the public kill-switch/override filter while keeping its return mixed for fail-open checks.
+	 *
+	 * @param array<string,list<string>> $clean Region code => commune names.
+	 * @return mixed
+	 */
+	private function apply_directory_filter( array $clean ) {
+		return apply_filters( 'akibara_comuna_directory', $clean );
+	}
+
+	/**
+	 * Fetches raw catalog data from the configured loader, failing open on errors.
+	 *
+	 * @return mixed
+	 */
+	private function fetch_raw_catalog() {
+		try {
+			return null !== $this->loader ? ( $this->loader )() : $this->load_from_vendor();
+		} catch ( \Throwable $throwable ) {
+			PudoLog::failure( 'comuna_directory_load', $throwable );
+
+			return null;
+		}
+	}
+
+	/**
+	 * Builds a deduplicated region => names map and populates the lookup index.
+	 *
+	 * @param array<mixed> $source      Raw vendor catalog or filtered string catalog.
+	 * @param bool         $from_vendor Whether leaf entries are vendor arrays with a `name` key.
+	 * @return array<string,list<string>>
+	 */
+	private function index_catalog( array $source, bool $from_vendor ): array {
+		$catalog = array();
+
+		foreach ( $source as $region => $communes ) {
+			if ( ! is_string( $region ) || '' === $region || ! is_array( $communes ) ) {
+				continue;
+			}
+
+			foreach ( $communes as $entry ) {
+				$name = $this->extract_commune_name( $entry, $from_vendor );
+				if ( null === $name ) {
+					continue;
+				}
+
+				$this->register_commune( $catalog, $region, $name );
+			}
+		}
+
+		return $catalog;
+	}
+
+	/**
+	 * Extracts a trimmed commune name from a vendor record or filtered string.
+	 *
+	 * @param mixed $entry       Vendor commune entry or filtered string.
+	 * @param bool  $from_vendor Whether entries expect an array with a `name` key.
+	 */
+	private function extract_commune_name( $entry, bool $from_vendor ): ?string {
+		$raw = $entry;
+		if ( $from_vendor ) {
+			$raw = is_array( $entry ) ? ( $entry['name'] ?? null ) : null;
+		}
+
+		if ( ! is_string( $raw ) ) {
+			return null;
+		}
+
+		$trimmed = trim( $raw );
+
+		return '' === $trimmed ? null : $trimmed;
+	}
+
+	/**
+	 * Adds a commune to both the regional list and the normalized lookup index.
+	 *
+	 * @param array<string,list<string>> $catalog Regional map passed by reference.
+	 * @param string                     $region  WooCommerce region code.
+	 * @param string                     $name    Trimmed commune name.
+	 */
+	private function register_commune( array &$catalog, string $region, string $name ): void {
+		$normalized = self::normalize( $name );
+		if ( '' === $normalized || isset( $this->index[ $normalized ] ) ) {
+			return;
+		}
+
+		$catalog[ $region ][]       = $name;
+		$this->index[ $normalized ] = array(
+			'name'   => $name,
+			'region' => $region,
+		);
 	}
 
 	/**
@@ -374,18 +423,41 @@ final class ComunaDirectory {
 	 * @return mixed
 	 */
 	private function load_from_vendor() {
-		if ( ! function_exists( 'bluex_get_communes_by_region' ) ) {
-			$file = dirname( __DIR__, 2 ) . '/' . self::VENDOR_DATA_RELATIVE;
-			if ( defined( 'WP_PLUGIN_DIR' ) ) {
-				$file = rtrim( WP_PLUGIN_DIR, '/\\' ) . '/' . self::VENDOR_DATA_RELATIVE;
-			}
+		$this->include_vendor_catalog_if_needed();
 
-			if ( is_readable( $file ) ) {
-				require_once $file;
-			}
-            return array();
+		if ( ! function_exists( 'bluex_get_communes_by_region' ) ) {
+			return array();
 		}
 
 		return bluex_get_communes_by_region();
+	}
+
+	/**
+	 * Loads the Blue Express catalog file when the lookup function is not yet defined.
+	 */
+	private function include_vendor_catalog_if_needed(): void {
+		if ( function_exists( 'bluex_get_communes_by_region' ) ) {
+			return;
+		}
+
+		$file = $this->resolve_vendor_data_path();
+		if ( is_readable( $file ) ) {
+			require_once $file;
+		}
+	}
+
+	/**
+	 * Resolves the filesystem path to the vendor commune catalog.
+	 */
+	private function resolve_vendor_data_path(): string {
+		if ( null !== $this->vendor_data_file && '' !== $this->vendor_data_file ) {
+			return $this->vendor_data_file;
+		}
+
+		$plugins_root = defined( 'WP_PLUGIN_DIR' )
+			? rtrim( WP_PLUGIN_DIR, '/\\' )
+			: dirname( __DIR__, 2 );
+
+		return $plugins_root . '/' . self::VENDOR_DATA_RELATIVE;
 	}
 }

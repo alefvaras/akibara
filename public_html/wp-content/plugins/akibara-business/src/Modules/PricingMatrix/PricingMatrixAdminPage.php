@@ -172,17 +172,25 @@ final class PricingMatrixAdminPage {
 		$editorial_slug = isset( $_POST['editorial_slug'] ) ? sanitize_title( (string) wp_unslash( $_POST['editorial_slug'] ) ) : '';
 		$scale_regular  = isset( $_POST['scale_regular'] ) ? absint( $_POST['scale_regular'] ) : 0;
 		$new_regular    = isset( $_POST['new_regular'] ) ? absint( $_POST['new_regular'] ) : $scale_regular;
-		$discount_pct   = isset( $_POST['discount_pct'] ) ? (float) $_POST['discount_pct'] : PricingMath::DEFAULT_DISCOUNT_PCT;
-		$rounding_mode  = isset( $_POST['rounding_mode'] ) ? sanitize_key( (string) wp_unslash( $_POST['rounding_mode'] ) ) : PricingMath::DEFAULT_MODE;
+		$discount_pct   = isset( $_POST['discount_pct'] ) ? max( 0.0, min( 95.0, (float) $_POST['discount_pct'] ) ) : PricingMath::DEFAULT_DISCOUNT_PCT;
+		$rounding_mode  = isset( $_POST['rounding_mode'] ) ? PricingMath::normalize_mode( sanitize_key( (string) wp_unslash( $_POST['rounding_mode'] ) ) ) : PricingMath::DEFAULT_MODE;
 		$serie_id       = isset( $_POST['serie_id'] ) ? absint( $_POST['serie_id'] ) : 0;
 
-		if ( $new_regular <= 0 || $scale_regular <= 0 || ( 0 === $brand_id && '' === $editorial_slug ) ) {
-			wp_send_json_error( array( 'message' => 'Parámetros de escala inválidos.' ) );
-		}
+		$brand_id = $this->resolve_ajax_brand_id( $brand_id, $editorial_slug );
 
 		$protect_orders = ! empty( $_POST['protect_active_orders'] ) && '1' === (string) sanitize_text_field( wp_unslash( $_POST['protect_active_orders'] ) );
-		$manual_raw     = isset( $_POST['manual_sale'] ) ? trim( sanitize_text_field( (string) wp_unslash( $_POST['manual_sale'] ) ) ) : ( isset( $_POST['new_sale'] ) ? trim( sanitize_text_field( (string) wp_unslash( $_POST['new_sale'] ) ) ) : '' );
-		$manual_sale    = '' !== $manual_raw ? absint( $manual_raw ) : null;
+		$manual_raw     = '';
+		if ( isset( $_POST['manual_sale'] ) ) {
+			$manual_raw = trim( sanitize_text_field( (string) wp_unslash( $_POST['manual_sale'] ) ) );
+		} elseif ( isset( $_POST['new_sale'] ) ) {
+			$manual_raw = trim( sanitize_text_field( (string) wp_unslash( $_POST['new_sale'] ) ) );
+		}
+		$manual_sale = '' !== $manual_raw ? absint( $manual_raw ) : null;
+
+		$validation_error = $this->validate_ajax_scale_params( $brand_id, $scale_regular, $new_regular, $manual_sale );
+		if ( null !== $validation_error ) {
+			wp_send_json_error( array( 'message' => $validation_error ) );
+		}
 
 		$res = PricingSynchronizer::sync_scale(
 			$brand_id,
@@ -201,10 +209,58 @@ final class PricingMatrixAdminPage {
 
 		delete_transient( 'akb_pricing_matrix_last_result_' . get_current_user_id() );
 
-		wp_send_json_success( array(
-			'message'         => sprintf( 'Escala aplicada con éxito: %d tomos actualizados.', $res['updated_count'] ),
-			'updated_count'   => $res['updated_count'],
-			'unchanged_count' => $res['unchanged_count'],
+		wp_send_json_success( $this->build_ajax_scale_response( $res, $new_regular, $target_sale, $scale_regular, $serie_id ) );
+	}
+
+	/**
+	 * Resuelve el ID de la editorial a partir de su slug cuando falta en la petición AJAX.
+	 *
+	 * @param int    $brand_id       ID de marca recibido.
+	 * @param string $editorial_slug Slug de marca recibido.
+	 * @return int
+	 */
+	private function resolve_ajax_brand_id( int $brand_id, string $editorial_slug ): int {
+		if ( $brand_id > 0 || '' === $editorial_slug ) {
+			return $brand_id;
+		}
+		$brand_term = get_term_by( 'slug', $editorial_slug, 'product_brand' );
+		return ( $brand_term instanceof \WP_Term ) ? (int) $brand_term->term_id : 0;
+	}
+
+	/**
+	 * Valida los parámetros de escala recibidos por AJAX y retorna el mensaje de error si fallan.
+	 *
+	 * @param int      $brand_id      ID de marca resuelto.
+	 * @param int      $scale_regular Escala actual.
+	 * @param int      $new_regular   Nuevo precio normal.
+	 * @param int|null $manual_sale   Precio oferta manual opcional.
+	 * @return string|null
+	 */
+	private function validate_ajax_scale_params( int $brand_id, int $scale_regular, int $new_regular, ?int $manual_sale ): ?string {
+		if ( $new_regular <= 0 || $scale_regular <= 0 || $brand_id <= 0 ) {
+			return 'Parámetros de escala inválidos.';
+		}
+		if ( null !== $manual_sale && $manual_sale > 0 && $manual_sale >= $new_regular ) {
+			return 'El precio oferta debe ser menor al precio normal.';
+		}
+		return null;
+	}
+
+	/**
+	 * Formatea la carga útil de respuesta exitosa para la edición inline AJAX.
+	 *
+	 * @param array<string, mixed> $res           Resultado del sincronizador.
+	 * @param int                  $new_regular   Nuevo precio normal.
+	 * @param int                  $target_sale   Precio de oferta resultante.
+	 * @param int                  $scale_regular Escala original.
+	 * @param int                  $serie_id      ID de serie filtrada.
+	 * @return array<string, mixed>
+	 */
+	private function build_ajax_scale_response( array $res, int $new_regular, int $target_sale, int $scale_regular, int $serie_id ): array {
+		return array(
+			'message'         => sprintf( 'Escala aplicada con éxito: %d tomos actualizados.', (int) $res['updated_count'] ),
+			'updated_count'   => (int) $res['updated_count'],
+			'unchanged_count' => (int) $res['unchanged_count'],
 			'new_regular'     => $new_regular,
 			'new_sale'        => $target_sale,
 			'has_sale'        => $target_sale > 0,
@@ -212,7 +268,7 @@ final class PricingMatrixAdminPage {
 			'new_sale_fmt'    => $target_sale > 0 ? '$' . number_format( $target_sale, 0, ',', '.' ) : 'Sin oferta',
 			'scale_regular'   => $scale_regular,
 			'serie_id'        => $serie_id,
-		) );
+		);
 	}
 
 	/**
@@ -274,7 +330,7 @@ final class PricingMatrixAdminPage {
 					<div class="akb-pm-brand">
 						<span class="akb-pm-gem" aria-hidden="true">&#9670;</span>
 						<h1>Matriz de Precios</h1>
-						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.120.20'; ?></span>
+						<span class="akb-pm-version-badge">v<?php echo defined( 'AKIBARA_BUSINESS_VERSION' ) ? esc_html( AKIBARA_BUSINESS_VERSION ) : '1.124.7'; ?></span>
 					</div>
 					<div class="akb-pm-head-subtitle">
 						Gestión de escalas de precio regular y ofertas por editorial
@@ -636,12 +692,12 @@ final class PricingMatrixAdminPage {
 				<table class="akb-pm-table" id="akb-pricing-scales-table">
 					<thead>
 						<tr>
-							<th scope="col" class="akb-sortable" data-sort="string" style="width:150px;cursor:pointer;">Editorial ↕</th>
-							<th scope="col" class="akb-sortable" data-sort="string" style="width:55px;text-align:center;cursor:pointer;">País ↕</th>
-							<th scope="col" class="akb-sortable" data-sort="number" style="width:115px;cursor:pointer;">Precio Actual ↕</th>
-							<th scope="col" class="akb-sortable" data-sort="number" style="width:65px;text-align:center;cursor:pointer;">Total ↕</th>
-							<th scope="col" class="akb-sortable" data-sort="number" style="width:65px;text-align:center;cursor:pointer;">Stock ↕</th>
-							<th scope="col" class="akb-sortable" data-sort="number" style="width:70px;text-align:center;cursor:pointer;">Agotado ↕</th>
+							<th scope="col" class="akb-sortable" data-sort="string" tabindex="0" aria-sort="none" style="width:150px;cursor:pointer;">Editorial ↕</th>
+							<th scope="col" class="akb-sortable" data-sort="string" tabindex="0" aria-sort="none" style="width:55px;text-align:center;cursor:pointer;">País ↕</th>
+							<th scope="col" class="akb-sortable" data-sort="number" tabindex="0" aria-sort="none" style="width:115px;cursor:pointer;">Precio Actual ↕</th>
+							<th scope="col" class="akb-sortable" data-sort="number" tabindex="0" aria-sort="none" style="width:65px;text-align:center;cursor:pointer;">Total ↕</th>
+							<th scope="col" class="akb-sortable" data-sort="number" tabindex="0" aria-sort="none" style="width:65px;text-align:center;cursor:pointer;">Stock ↕</th>
+							<th scope="col" class="akb-sortable" data-sort="number" tabindex="0" aria-sort="none" style="width:70px;text-align:center;cursor:pointer;">Agotado ↕</th>
 							<th scope="col" style="min-width:160px;">Series en esta escala</th>
 							<th scope="col" style="width:280px;">Modificar Precios (Normal y Oferta)</th>
 						</tr>
@@ -693,7 +749,7 @@ final class PricingMatrixAdminPage {
 					<span class="akb-pm-editorial-name"><?php echo esc_html( $row['editorial'] ); ?></span>
 					<span class="akb-pm-slug-badge"><?php echo esc_html( $row['editorial_slug'] ); ?></span>
 					<?php if ( $is_draft_active ) : ?>
-						<span style="display:inline-block;margin-top:4px;background:#2271b1;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">
+						<span class="akb-pm-draft-badge" style="display:inline-block;margin-top:4px;background:#2271b1;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">
 							Propuesta simulada: $<?php echo number_format( (int) $row['nuevo_precio_regular'], 0, ',', '.' ); ?>
 						</span>
 					<?php endif; ?>
@@ -787,6 +843,11 @@ final class PricingMatrixAdminPage {
 						<div class="akb-pm-calc-field">
 							<label for="<?php echo esc_attr( $id_reg ); ?>" title="Nuevo precio regular para esta escala">Precio Normal ($)</label>
 							<input type="number" id="<?php echo esc_attr( $id_reg ); ?>" name="new_regular" class="akb-calc-reg" value="<?php echo (int) $row['nuevo_precio_regular']; ?>" step="1" min="100" aria-label="Precio regular para <?php echo esc_attr( $row['editorial'] ); ?>" required />
+							<div class="akb-pm-quick-steps" aria-label="Ajuste rápido de precio normal">
+								<button type="button" class="akb-pm-quick-step" data-step="-500" title="Restar $500 al precio normal">-$500</button>
+								<button type="button" class="akb-pm-quick-step" data-step="500" title="Sumar $500 al precio normal">+$500</button>
+								<button type="button" class="akb-pm-quick-step" data-step="1000" title="Sumar $1.000 al precio normal">+$1.000</button>
+							</div>
 						</div>
 						<div class="akb-pm-calc-field">
 							<label for="<?php echo esc_attr( $id_sale ); ?>" title="Precio de oferta para esta escala (0 = Sin oferta)">Precio Oferta ($)</label>
@@ -816,6 +877,8 @@ final class PricingMatrixAdminPage {
 		?>
 		<script>
 		(function() {
+			var refreshScalesFilter = null;
+
 			// 1. Clic en Chips de Escalas Detectadas para fijar el precio objetivo de nivelación
 			document.querySelectorAll('.akb-pm-scale-chip').forEach(function(chip) {
 				chip.addEventListener('click', function(e) {
@@ -862,7 +925,24 @@ final class PricingMatrixAdminPage {
 				});
 			});
 
-			// 2b. Desglose interactivo de series (Acordeón y Pills inspirados en ATUM Stock Central)
+			// 2b. Ajuste rápido CLP en Precio Normal (-$500, +$500, +$1.000)
+			document.querySelectorAll('.akb-pm-quick-step').forEach(function(btn) {
+				btn.addEventListener('click', function(e) {
+					e.preventDefault();
+					var field = btn.closest('.akb-pm-calc-field');
+					var input = field ? field.querySelector('input.akb-calc-reg') : null;
+					var step  = parseInt(btn.getAttribute('data-step') || '0', 10);
+					if (!input || !step) return;
+					var current = parseInt(input.value || '0', 10) || 0;
+					var nextVal = Math.max(100, current + step);
+					input.value = String(nextVal);
+					input.focus();
+					input.style.outline = '2px solid #2271b1';
+					setTimeout(function() { input.style.outline = ''; }, 500);
+				});
+			});
+
+			// 2b-bis. Desglose interactivo de series (Acordeón y Pills inspirados en ATUM Stock Central)
 			document.querySelectorAll('.akb-pm-toggle-series-btn').forEach(function(btn) {
 				btn.addEventListener('click', function(e) {
 					e.preventDefault();
@@ -928,19 +1008,52 @@ final class PricingMatrixAdminPage {
 						body: formData,
 						credentials: 'same-origin'
 					})
-					.then(function(res) { return res.json(); })
+					.then(function(res) {
+						if (!res.ok) {
+							throw new Error('HTTP ' + res.status);
+						}
+						return res.json();
+					})
 					.then(function(json) {
 						submitter.disabled = false;
 						submitter.textContent = origText;
 
 						if (json && json.success) {
 							var row = form.closest('tr');
+							var shouldReload = false;
 							if (row) {
-								var serieIdVal = form.querySelector('[name="serie_id"]') ? form.querySelector('[name="serie_id"]').value : '0';
-								if (serieIdVal === '0') {
+								var serieIdVal   = form.querySelector('[name="serie_id"]') ? form.querySelector('[name="serie_id"]').value : '0';
+								var brandIdVal   = form.querySelector('[name="brand_id"]') ? form.querySelector('[name="brand_id"]').value : '';
+								var slugVal      = form.querySelector('[name="editorial_slug"]') ? form.querySelector('[name="editorial_slug"]').value : '';
+								var prevScaleVal = form.querySelector('input[name="scale_regular"]') ? form.querySelector('input[name="scale_regular"]').value : '';
+								var nextScaleVal = json.data && json.data.new_regular ? String(json.data.new_regular) : '';
+								var hasScaleCollision = false;
+								if (serieIdVal === '0' && (brandIdVal || slugVal) && nextScaleVal) {
+									document.querySelectorAll('.akb-scale-row-form').forEach(function(otherForm) {
+										if (otherForm === form) return;
+										var otherBrand = otherForm.querySelector('[name="brand_id"]') ? otherForm.querySelector('[name="brand_id"]').value : '';
+										var otherSlug  = otherForm.querySelector('[name="editorial_slug"]') ? otherForm.querySelector('[name="editorial_slug"]').value : '';
+										var otherScale = otherForm.querySelector('input[name="scale_regular"]') ? otherForm.querySelector('input[name="scale_regular"]').value : '';
+										var sameBrand  = (brandIdVal && otherBrand) ? (otherBrand === brandIdVal) : (otherSlug === slugVal);
+										if (sameBrand && otherScale === nextScaleVal && otherScale !== prevScaleVal) {
+											hasScaleCollision = true;
+										}
+									});
+								}
+								if (serieIdVal !== '0' || hasScaleCollision) {
+									shouldReload = true;
+								} else {
+									var priceTd   = row.querySelector('.akb-pm-col-price');
 									var priceCell = row.querySelector('.akb-pm-col-price strong');
+									if (priceTd && json.data && json.data.new_regular) {
+										priceTd.setAttribute('data-value', String(json.data.new_regular));
+									}
 									if (priceCell && json.data && json.data.new_regular_fmt) {
 										priceCell.textContent = json.data.new_regular_fmt;
+									}
+									var scaleRegInput = form.querySelector('input[name="scale_regular"]');
+									if (scaleRegInput && json.data && json.data.new_regular) {
+										scaleRegInput.value = String(json.data.new_regular);
 									}
 									var saleCell = row.querySelector('.akb-pm-sale-indicator');
 									if (saleCell && json.data) {
@@ -954,6 +1067,19 @@ final class PricingMatrixAdminPage {
 											saleCell.style.fontWeight = 'normal';
 										}
 									}
+									row.setAttribute('data-has-difference', '0');
+									row.setAttribute('data-pending', '0');
+									row.classList.remove('akb-row-draft-active');
+									var draftBadge = row.querySelector('.akb-pm-draft-badge');
+									if (draftBadge) {
+										draftBadge.remove();
+									}
+									document.querySelectorAll('.akb-pm-proposal-review, .akb-proposal-banner').forEach(function(banner) {
+										banner.remove();
+									});
+									if (typeof refreshScalesFilter === 'function') {
+										refreshScalesFilter();
+									}
 								}
 								row.style.transition = 'background 0.3s ease';
 								row.style.background = '#e6ffed';
@@ -962,13 +1088,19 @@ final class PricingMatrixAdminPage {
 
 							var toast = document.createElement('div');
 							toast.className = 'akb-pm-ajax-toast';
+							toast.setAttribute('role', 'status');
+							toast.setAttribute('aria-live', 'polite');
 							toast.textContent = '✓ ' + (json.data ? json.data.message : 'Guardado con éxito');
 							document.body.appendChild(toast);
 							setTimeout(function() { toast.classList.add('is-visible'); }, 10);
-							setTimeout(function() {
-								toast.classList.remove('is-visible');
-								setTimeout(function() { toast.remove(); }, 300);
-							}, 3500);
+							if (shouldReload) {
+								setTimeout(function() { window.location.reload(); }, 600);
+							} else {
+								setTimeout(function() {
+									toast.classList.remove('is-visible');
+									setTimeout(function() { toast.remove(); }, 300);
+								}, 3500);
+							}
 						} else {
 							alert('Aviso: ' + (json && json.data && json.data.message ? json.data.message : 'No se pudo guardar'));
 						}
@@ -1038,6 +1170,8 @@ final class PricingMatrixAdminPage {
 					}
 				}
 
+				refreshScalesFilter = filterScalesRows;
+
 				if (scalesInput) {
 					scalesInput.addEventListener('input', filterScalesRows);
 				}
@@ -1067,15 +1201,15 @@ final class PricingMatrixAdminPage {
 				}
 			}
 
-			// 5. Ordenamiento dinámico de columnas en tablas
+			// 5. Ordenamiento dinámico de columnas en tablas (mouse + teclado WCAG)
 			document.querySelectorAll('.akb-sortable').forEach(function(th) {
 				var table = th.closest('table');
 				if (!table) return;
-				var asc = true;
-				th.addEventListener('click', function() {
+				function sortColumn() {
 					var colIndex = Array.from(th.parentNode.children).indexOf(th);
 					var tbody = table.querySelector('tbody');
 					if (!tbody) return;
+					var nextAsc = th.getAttribute('aria-sort') !== 'ascending';
 					var rows = Array.from(tbody.querySelectorAll('tr'));
 					var type = th.getAttribute('data-sort') || 'string';
 					rows.sort(function(a, b) {
@@ -1086,12 +1220,21 @@ final class PricingMatrixAdminPage {
 						if (type === 'number') {
 							var numA = parseFloat(valA.replace(/[^0-9.-]/g, '')) || 0;
 							var numB = parseFloat(valB.replace(/[^0-9.-]/g, '')) || 0;
-							return asc ? (numA - numB) : (numB - numA);
+							return nextAsc ? (numA - numB) : (numB - numA);
 						}
-						return asc ? valA.localeCompare(valB, 'es') : valB.localeCompare(valA, 'es');
+						return nextAsc ? valA.localeCompare(valB, 'es') : valB.localeCompare(valA, 'es');
 					});
-					asc = !asc;
+					table.querySelectorAll('.akb-sortable').forEach(function(sibling) {
+						sibling.setAttribute('aria-sort', sibling === th ? (nextAsc ? 'ascending' : 'descending') : 'none');
+					});
 					rows.forEach(function(r) { tbody.appendChild(r); });
+				}
+				th.addEventListener('click', sortColumn);
+				th.addEventListener('keydown', function(e) {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						sortColumn();
+					}
 				});
 			});
 

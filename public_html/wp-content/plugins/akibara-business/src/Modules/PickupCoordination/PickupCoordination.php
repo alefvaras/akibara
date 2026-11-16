@@ -28,7 +28,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * @since 1.115.23
  * @api
- * @psalm-suppress HookNotFound
  */
 final class PickupCoordination {
 
@@ -64,30 +63,98 @@ final class PickupCoordination {
 	/** Valor de fábrica del cuerpo. */
 	public const DEFAULT_CUERPO = 'Te escribimos en cuanto tu pedido esté listo y coordinamos ahí mismo el día y la hora que te acomode. La entrega es en la salida del Metro San Miguel.';
 
+	/** Promesa concisa mostrada junto al método de retiro en Checkout / Carrito. */
+	public const PROMESA_TABLA_ENVIO = 'Coordinación: te contactaremos en menos de 24 horas.';
+
 	/** Teléfono de respaldo si el plugin de WhatsApp no tiene uno configurado. */
 	private const TELEFONO_RESPALDO = '+56944242844';
 
 	public function register(): void {
 		// Correo del pedido (cliente). Después de la tabla, que es justo donde
 		// el cliente acaba de leer «Retiro en Metro San Miguel».
-		add_action( 'woocommerce_email_after_order_table', array( $this, 'pintar_en_correo' ), 20, 4 );
+		add_action( 'woocommerce_email_after_order_table', array( $this, 'pintar_en_correo' ), 20, 3 );
 
 		// Página de gracias y /mi-cuenta/view-order/{id}/ comparten hook.
 		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'pintar_en_pantalla' ), 20, 1 );
 
-		// Micro-copy en las opciones de envío de la tabla de checkout.
+		// Superficie activa Store API / Cart & Checkout Blocks (`delivery_time` y `pickup_details`).
+		add_filter( 'woocommerce_package_rates', array( $this, 'asignar_tiempo_entrega_retiro' ), 20, 1 );
+		add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( $this, 'ocultar_meta_promesa_en_orden' ), 20, 2 );
+
+		// Respaldo para plantilla clásica de carrito/checkout.
 		add_filter( 'woocommerce_cart_shipping_method_full_label', array( $this, 'agregar_nota_en_tabla_envio' ), 20, 2 );
 	}
 
 	/**
-	 * Añade la nota concisa de coordinación en la etiqueta del método de retiro.
+	 * Asigna `delivery_time` y `pickup_details` en tarifas de retiro propio para Store API (Cart y Checkout Blocks).
+	 *
+	 * @param array<string|int, mixed> $rates Tarifas calculadas del paquete.
+	 * @return array<string|int, mixed>
+	 */
+	public function asignar_tiempo_entrega_retiro( array $rates ): array {
+		foreach ( $rates as $rate ) {
+			if ( ! is_object( $rate ) || ! method_exists( $rate, 'get_method_id' ) ) {
+				continue;
+			}
+			if ( ! in_array( (string) $rate->get_method_id(), self::METODOS_DE_RETIRO, true ) ) {
+				continue;
+			}
+
+			if (
+				method_exists( $rate, 'set_delivery_time' )
+				&& ( ! method_exists( $rate, 'get_delivery_time' ) || '' === trim( (string) $rate->get_delivery_time() ) )
+			) {
+				$rate->set_delivery_time( self::PROMESA_TABLA_ENVIO );
+			}
+
+			if ( method_exists( $rate, 'add_meta_data' ) ) {
+				$existing_meta = method_exists( $rate, 'get_meta_data' ) ? $rate->get_meta_data() : array();
+				$current_val   = is_array( $existing_meta ) ? trim( (string) ( $existing_meta['pickup_details'] ?? '' ) ) : '';
+				if ( '' === $current_val ) {
+					$rate->add_meta_data( 'pickup_details', self::PROMESA_TABLA_ENVIO );
+				}
+			}
+		}
+
+		return $rates;
+	}
+
+	/**
+	 * Evita mostrar la clave técnica `pickup_details` en el desglose del pedido/correo
+	 * cuando únicamente porta nuestra promesa sintética (ya mostrada en `.akb-pickup-coord`).
+	 *
+	 * @param array<int|string, object> $formatted_meta Metadatos formateados del ítem.
+	 * @param mixed                     $item           Ítem del pedido.
+	 * @return array<int|string, object>
+	 */
+	public function ocultar_meta_promesa_en_orden( array $formatted_meta, $item ): array {
+		if ( ! is_object( $item ) || ! method_exists( $item, 'get_method_id' ) ) {
+			return $formatted_meta;
+		}
+		if ( ! in_array( (string) $item->get_method_id(), self::METODOS_DE_RETIRO, true ) ) {
+			return $formatted_meta;
+		}
+
+		return array_filter(
+			$formatted_meta,
+			static fn( $meta ): bool => ! (
+				is_object( $meta )
+				&& isset( $meta->key, $meta->value )
+				&& 'pickup_details' === (string) $meta->key
+				&& self::PROMESA_TABLA_ENVIO === trim( (string) $meta->value )
+			)
+		);
+	}
+
+	/**
+	 * Añade la nota concisa de coordinación en la etiqueta del método de retiro (plantilla clásica).
 	 *
 	 * @param string $label  Etiqueta completa formateada por WooCommerce.
 	 * @param mixed  $method Instancia de WC_Shipping_Rate.
 	 */
 	public function agregar_nota_en_tabla_envio( string $label, $method ): string {
 		if ( is_object( $method ) && method_exists( $method, 'get_method_id' ) && in_array( $method->get_method_id(), self::METODOS_DE_RETIRO, true ) ) {
-			$label .= '<span class="akb-pickup-promise-label" style="display:block;font-size:13px;font-weight:600;color:var(--aki-gray-200,#e0e0e0);margin-top:4px;">Coordinación: te contactaremos en menos de 24 horas.</span>';
+			$label .= '<span class="akb-pickup-promise-label">' . esc_html( self::PROMESA_TABLA_ENVIO ) . '</span>';
 		}
 		return $label;
 	}
@@ -96,21 +163,18 @@ final class PickupCoordination {
 	 * @param mixed $order         Pedido.
 	 * @param mixed $sent_to_admin Si el correo va al administrador.
 	 * @param mixed $plain_text    Si es la versión de texto plano.
-	 * @param mixed $email         Objeto email de WooCommerce. No se usa.
 	 */
-	public function pintar_en_correo( $order, $sent_to_admin = false, $plain_text = false, $email = null ): void {
-		unset( $email );
-
+	public function pintar_en_correo( $order, $sent_to_admin = false, $plain_text = false ): void {
 		if ( ! $order instanceof WC_Order || $sent_to_admin || ! self::es_retiro( $order ) ) {
 			return;
 		}
 
 		if ( $plain_text ) {
-			echo "\n\n" . self::texto_plano( $order ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Cuerpo del correo en TEXTO PLANO: escaparlo metería entidades HTML en lo que lee el cliente.
+			echo "\n\n" . wp_kses( wp_strip_all_tags( self::texto_plano( $order ) ), array() ) . "\n";
 			return;
 		}
 
-		self::pintar_html( $order );
+		self::pintar_html_correo( $order );
 	}
 
 	/**
@@ -121,7 +185,7 @@ final class PickupCoordination {
 			return;
 		}
 
-		self::pintar_html( $order );
+		self::pintar_html_pantalla( $order );
 	}
 
 	/**
@@ -162,26 +226,61 @@ final class PickupCoordination {
 		return FormsSettings::get_notify_email();
 	}
 
-	private static function pintar_html( WC_Order $order ): void {
+	/**
+	 * Datos normalizados para ambos formatos (correo y pantalla).
+	 *
+	 * @return array{numero:string,wa:string,mail:string,titulo:string,cuerpo:string}
+	 */
+	private static function datos_aviso( WC_Order $order ): array {
 		$numero = '#' . $order->get_order_number();
-		$wa     = self::url_whatsapp( $numero );
-		$mail   = self::url_correo( $numero );
-		$titulo = self::texto( self::OPTION_TITULO, self::DEFAULT_TITULO );
-		$cuerpo = self::texto( self::OPTION_CUERPO, self::DEFAULT_CUERPO );
+
+		return array(
+			'numero' => $numero,
+			'wa'     => self::url_whatsapp( $numero ),
+			'mail'   => self::url_correo( $numero ),
+			'titulo' => self::texto( self::OPTION_TITULO, self::DEFAULT_TITULO ),
+			'cuerpo' => self::texto( self::OPTION_CUERPO, self::DEFAULT_CUERPO ),
+		);
+	}
+
+	private static function pintar_html_correo( WC_Order $order ): void {
+		$d = self::datos_aviso( $order );
 		?>
-		<div class="akb-email-callout akb-pickup-coord" style="margin: 20px 0; padding: 16px 20px; background: #f7f7f7; border: 1px solid #ddd; border-top: 3px solid #0d0d0d; border-radius: 6px;">
-			<p style="margin: 0 0 8px 0; font-weight: 600; font-size: 1.05em;">
-				📍 <?php echo esc_html( $titulo ); ?>
+		<div class="akb-email-callout akb-pickup-coord" style="margin: 20px 0; padding: 16px 20px; background: #f7f7f7; border: 1px solid #d4d4d4; border-top: 3px solid #E60012; border-radius: 6px; color: #0d0d0d;">
+			<p style="margin: 0 0 8px 0; font-weight: 600; font-size: 1.05em; color: #0d0d0d;">
+				📍 <?php echo esc_html( $d['titulo'] ); ?>
 			</p>
-			<p style="margin: 0 0 8px 0; font-size: 0.95em; line-height: 1.5;">
-				<?php echo esc_html( $cuerpo ); ?>
+			<p style="margin: 0 0 8px 0; font-size: 0.95em; line-height: 1.5; color: #2b2b2b;">
+				<?php echo esc_html( $d['cuerpo'] ); ?>
 			</p>
-			<p style="margin: 0; font-size: 0.95em; line-height: 1.5;">
+			<p style="margin: 0; font-size: 0.95em; line-height: 1.5; color: #2b2b2b;">
 				Si prefieres adelantarlo, escríbenos por
-				<a href="<?php echo esc_url( $wa ); ?>" style="color:#0d0d0d;-webkit-text-fill-color:#0d0d0d;text-decoration:underline;font-weight:600;">WhatsApp</a>
+				<a href="<?php echo esc_url( $d['wa'] ); ?>" style="color:#0d0d0d;-webkit-text-fill-color:#0d0d0d;text-decoration:underline;font-weight:600;">WhatsApp</a>
 				o a
-				<a href="<?php echo esc_url( $mail ); ?>" style="color:#0d0d0d;-webkit-text-fill-color:#0d0d0d;text-decoration:underline;font-weight:600;"><?php echo esc_html( self::correo() ); ?></a>
-				con tu número de pedido <?php echo esc_html( $numero ); ?>.
+				<a href="<?php echo esc_url( $d['mail'] ); ?>" style="color:#0d0d0d;-webkit-text-fill-color:#0d0d0d;text-decoration:underline;font-weight:600;"><?php echo esc_html( self::correo() ); ?></a>
+				con tu número de pedido <?php echo esc_html( $d['numero'] ); ?>.
+			</p>
+		</div>
+		<?php
+	}
+
+	private static function pintar_html_pantalla( WC_Order $order ): void {
+		$d = self::datos_aviso( $order );
+		?>
+		<div class="akb-pickup-coord">
+			<p class="akb-pickup-coord__title">
+				<span aria-hidden="true">📍</span>
+				<?php echo esc_html( $d['titulo'] ); ?>
+			</p>
+			<p class="akb-pickup-coord__body">
+				<?php echo esc_html( $d['cuerpo'] ); ?>
+			</p>
+			<p class="akb-pickup-coord__contact">
+				Si prefieres adelantarlo, escríbenos por
+				<a href="<?php echo esc_url( $d['wa'] ); ?>">WhatsApp</a>
+				o a
+				<a href="<?php echo esc_url( $d['mail'] ); ?>"><?php echo esc_html( self::correo() ); ?></a>
+				con tu número de pedido <?php echo esc_html( $d['numero'] ); ?>.
 			</p>
 		</div>
 		<?php
